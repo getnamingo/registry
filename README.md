@@ -59,9 +59,7 @@ rdap.example.com {
     reverse_proxy localhost:7500
     encode gzip
     file_server
-    tls your-email@example.com {
-        alpn h2,h3
-    }
+    tls your-email@example.com
 }
 
 whois.example.com {
@@ -70,9 +68,7 @@ whois.example.com {
     encode gzip
     php_fastcgi unix//run/php/php8.2-fpm.sock
     file_server
-    tls your-email@example.com {
-        alpn h2,h3
-    }
+    tls your-email@example.com
 }
 
 cp.example.com {
@@ -81,9 +77,7 @@ cp.example.com {
     php_fastcgi unix//run/php/php8.2-fpm.sock
     encode gzip
     file_server
-    tls your-email@example.com {
-        alpn h2,h3
-    }
+    tls your-email@example.com
     # Adminer Configuration
     route /adminer.php* {
         root * /usr/share/adminer
