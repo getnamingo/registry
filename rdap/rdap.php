@@ -18,25 +18,32 @@ $http->on('request', function ($request, $response) {
         return;
     }
     
+    // Extract the request path
+    $requestPath = $request->server['request_uri'];
+
     // Handle domain query
-    if ($request->server['request_uri'] === '/domain') {
-        handleDomainQuery($request, $response, $pdo);
+    if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
+        $domainName = $matches[1];
+        handleDomainQuery($request, $response, $pdo, $domainName);
     }
     // Handle entity (contacts) query
-    elseif ($request->server['request_uri'] === '/entity') {
-        handleEntityQuery($request, $response, $pdo);
+    elseif (preg_match('#^/entity/([^/?]+)#', $requestPath, $matches)) {
+        $entityHandle = $matches[1];
+        handleEntityQuery($request, $response, $pdo, $entityHandle);
     }
     // Handle nameserver query
-    elseif ($request->server['request_uri'] === '/nameserver') {
-        handleNameserverQuery($request, $response, $pdo);
+    elseif (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $matches)) {
+        $nameserverHandle = $matches[1];
+        handleNameserverQuery($request, $response, $pdo, $nameserverHandle);
     }
     // Handle help query
-    elseif ($request->server['request_uri'] === '/help') {
+    elseif ($requestPath === '/help') {
         handleHelpQuery($request, $response, $pdo);
     }
     // Handle search query (e.g., search for domains by pattern)
-    elseif ($request->server['request_uri'] === '/domains') {
-        handleSearchQuery($request, $response, $pdo);
+    elseif (preg_match('#^/domains\?name=([^/?]+)#', $requestPath, $matches)) {
+        $searchPattern = $matches[1];
+        handleSearchQuery($request, $response, $pdo, $searchPattern);
     }
     else {
         $response->status(404);
@@ -50,9 +57,9 @@ $http->on('request', function ($request, $response) {
 // Start the server
 $http->start();
 
-function handleDomainQuery($request, $response, $pdo) {
+function handleDomainQuery($request, $response, $pdo, $domainName) {
     // Extract and validate the domain name from the request
-    $domain = strtoupper(trim($request->get['domain']));
+    $domain = $domainName;
     // ... Perform validation as in the WHOIS server ...
 
     // Perform the RDAP lookup
