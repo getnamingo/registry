@@ -172,7 +172,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
 
         // Send the RDAP response
         $response->header('Content-Type', 'application/json');
-        $response->end(json_encode($rdapResponse));
+        $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
