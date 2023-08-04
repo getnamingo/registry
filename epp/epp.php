@@ -70,6 +70,24 @@ $server->handle(function (Connection $conn) use ($table, $db) {
         processContactCreate($conn, $db, $xml);
         return;
     }
+	
+    // Parsing a contact:check command
+    if ($xml->getName() == 'epp' && isset($xml->command->{'check'}->{'contact:check'})) {
+        processContactCheck($conn, $db, $xml);
+        return;
+    }
+
+    // Parsing a contact:info command
+    if ($xml->getName() == 'epp' && isset($xml->command->{'info'}->{'contact:info'})) {
+        processContactInfo($conn, $db, $xml);
+        return;
+    }
+
+    // Parsing a domain:info command
+    if ($xml->getName() == 'epp' && isset($xml->command->{'info'}->{'domain:info'})) {
+        processDomainInfo($conn, $db, $xml);
+        return;
+    }
 
     // Parsing a domain:check command
     if ($xml->getName() == 'epp' && isset($xml->command->{'check'}->{'domain:check'})) {
@@ -81,6 +99,89 @@ $server->handle(function (Connection $conn) use ($table, $db) {
 });
 
 $server->start();
+
+function processContactCheck($conn, $db, $xml) {
+    $contactIDs = $xml->command->{'check'}->{'contact:check'}->{'contact:id'};
+
+    $results = [];
+    foreach ($contactIDs as $contactID) {
+        $contactID = (string)$contactID;
+
+        // Validation for contact ID
+        if (!ctype_alnum($contactID) || strlen($contactID) > 255) {
+            sendEppError($conn, 2005, 'Invalid contact ID');
+            return;
+        }
+
+        $stmt = $db->prepare("SELECT 1 FROM contacts WHERE id = :id");
+        $stmt->execute(['id' => $contactID]);
+
+        $results[$contactID] = $stmt->fetch() ? '0' : '1'; // 0 if exists, 1 if not
+    }
+
+    $checkResults = '';
+    foreach ($results as $id => $available) {
+        $checkResults .= "<contact:cd><contact:id avail=\"$available\">$id</contact:id></contact:cd>";
+    }
+
+    $response = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <response>
+    <result code="1000">
+      <msg>Contact check completed</msg>
+    </result>
+    <resData>
+      <contact:chkData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+        $checkResults
+      </contact:chkData>
+    </resData>
+  </response>
+</epp>
+XML;
+
+    $conn->send($response);
+}
+
+function processContactInfo($conn, $db, $xml) {
+    $contactID = (string) $xml->command->{'info'}->{'contact:info'}->{'contact:id'};
+
+    // Validation for contact ID
+    if (!ctype_alnum($contactID) || strlen($contactID) > 255) {
+        sendEppError($conn, 2005, 'Invalid contact ID');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM contacts WHERE id = :id");
+        $stmt->execute(['id' => $contactID]);
+
+        $contact = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$contact) {
+            sendEppError($conn, 2303, 'Object does not exist');
+            return;
+        }
+
+        $response = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <response>
+    <result code="1000">
+      <msg>Contact information retrieved successfully</msg>
+    </result>
+    <!-- Add contact details here -->
+  </response>
+</epp>
+XML;
+
+        // You can customize the response to include the specific details you want
+        $conn->send($response);
+
+    } catch (PDOException $e) {
+        sendEppError($conn, 2400, 'Database error');
+    }
+}
 
 function processContactCreate($conn, $db, $xml) {
     if (!isset($xml->command->create->{'contact:create'})) {
@@ -155,6 +256,46 @@ function processDomainCheck($conn, $db, $xml) {
     $lengthData = pack('N', $length); // Pack the length into 4 bytes
 
     $conn->send($lengthData . $response);
+}
+
+function processDomainInfo($conn, $db, $xml) {
+    $domainName = (string) $xml->command->{'info'}->{'domain:info'}->{'domain:name'};
+
+    // Validation for domain name
+    if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
+        sendEppError($conn, 2005, 'Invalid domain name');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM domains WHERE name = :name");
+        $stmt->execute(['name' => $domainName]);
+
+        $domain = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$domain) {
+            sendEppError($conn, 2303, 'Object does not exist');
+            return;
+        }
+
+        $response = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <response>
+    <result code="1000">
+      <msg>Domain information retrieved successfully</msg>
+    </result>
+    <!-- Add domain details here -->
+  </response>
+</epp>
+XML;
+
+        // You can customize the response to include the specific details you want
+        $conn->send($response);
+
+    } catch (PDOException $e) {
+        sendEppError($conn, 2400, 'Database error');
+    }
 }
 
 function checkLogin($db, $clID, $pw) {
