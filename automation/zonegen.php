@@ -20,9 +20,9 @@ $sth->execute();
 while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
     $tldRE = preg_quote($tld, '/');
     $outFile = fopen("/var/named/named{$tld}.zone", 'w') or print "Unable to open file '/var/named/named{$tld}.zone'.\n";
-    fwrite($outFile, "\$TTL\t1H\n\@\tIN\tSOA\t{$ns1}.\tpostmaster{$tld}. (\n\t$timestamp\n\t3H\n\t1H\n\t1W\n\t1D\n\t)\n\n");
-    fwrite($outFile, "\@\t1H\tIN\tNS\t{$ns1}.\n");
-    fwrite($outFile, "\@\t1H\tIN\tNS\t{$ns2}.\n");
+    fwrite($outFile, "\$TTL\t1H\n@\tIN\tSOA\t{$ns1}.\tpostmaster{$tld}. (\n\t$timestamp\n\t3H\n\t1H\n\t1W\n\t1D\n\t)\n\n");
+    fwrite($outFile, "@\t1H\tIN\tNS\t{$ns1}.\n");
+    fwrite($outFile, "@\t1H\tIN\tNS\t{$ns2}.\n");
 
     // Select all the hosts
     $sth2 = $dbh->prepare("SELECT DISTINCT `domain`.`id`, `domain`.`name`, `domain`.`exdate`, `rgpstatus`, `domain`.`name`
@@ -39,7 +39,7 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
         $status_id = $dbh->query("SELECT `id` FROM `domain_status` WHERE `domain_id` = '$did' AND `status` LIKE '%Hold' LIMIT 1")->fetchColumn();
         if ($status_id) continue;
         $dname = trim($dname, "$tldRE.");
-        $dname = '@' if ($dname == "$tld.");
+        $dname = ($dname == "$tld.") ? '@' : $dname;
         $hname = trim($hname, "$tldRE.");
         fwrite($outFile, "$dname\tIN\tNS\t$hname\n");
     }
@@ -58,7 +58,7 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
         $status_id = $dbh->query("SELECT `id` FROM `domain_status` WHERE `domain_id` = '$did' AND `status` LIKE '%Hold' LIMIT 1")->fetchColumn();
         if ($status_id) continue;
         $hname = trim($hname, "$tldRE.");
-        $hname = '@' if ($hname == "$tld.");
+        $hname = ($hname == "$tld.") ? '@' : $hname;
         if ($type == 'v4') {
             fwrite($outFile, "$hname\tIN\tA\t$addr\n");
         } else {
