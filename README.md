@@ -78,6 +78,10 @@ cp.example.com {
     encode gzip
     file_server
     tls your-email@example.com
+    log {
+        output file /var/log/caddy/cp_errors.log
+        format console
+    }
     # Adminer Configuration
     route /adminer.php* {
         root * /usr/share/adminer
