@@ -106,21 +106,24 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         // ...
 
         // Query 6: Get nameservers
-        $stmt6 = $pdo->prepare("SELECT `name` FROM `domain_host_map`,`host` WHERE `domain_host_map`.`domain_id` = :domain_id AND `domain_host_map`.`host_id` = `host`.`id`");
+        $stmt6 = $pdo->prepare("
+            SELECT host.name, host.id as host_id 
+            FROM domain_host_map, host 
+            WHERE domain_host_map.domain_id = :domain_id 
+            AND domain_host_map.host_id = host.id
+        ");
         $stmt6->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt6->execute();
-        $nameservers = $stmt6->fetchAll(PDO::FETCH_COLUMN, 0);
+        $nameservers = $stmt6->fetchAll(PDO::FETCH_ASSOC);
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
-            'objectClassName' => 'domain',
-            'ldhName' => $domain,
-            'status' => $statuses,
-            'events' => [
-                ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
-                ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
-                // ... Additional events ...
+            'rdapConformance' => [
+                'rdap_level_0',
+                'icann_rdap_response_profile_0',
+                'icann_rdap_technical_implementation_guide_0',
             ],
+            'objectClassName' => 'domain',
             'entities' => [
                 [
                     'objectClassName' => 'entity',
@@ -149,23 +152,39 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                 ],
                 // ... Additional entities for admin, tech ...
             ],
+            'events' => [
+                ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
+                ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
+                // ... Additional events ...
+            ],
+            'handle' => $domainDetails['id'] . '',
+            'ldhName' => $domain,
+            'status' => $statuses,
             'links' => [
                 [
-                    'value' => 'http://example.com/rdap/domain/' . $domain,
-                    'rel' => 'self',
                     'href' => 'http://example.com/rdap/domain/' . $domain,
+                    'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'value' => 'http://example.com/rdap/tos',
-                    'rel' => 'terms-of-service',
-                    'href' => 'http://example.com/rdap/tos',
-                   'type' => 'text/html',
-                ],
-                // ... Additional RDAP links ...
+                    'href' => 'http://example.com/rdap/domain/' . $domain,
+                    'rel' => 'related',
+                    'type' => 'application/rdap+json',
+                ]
             ],
-            'nameservers' => array_map(function ($name) {
-                return ['ldhName' => $name];
+            'nameservers' => array_map(function ($nameserverDetails) {
+                return [
+                    'objectClassName' => 'nameserver',
+                    'handle' => $nameserverDetails['host_id'] . '', // Use the 'host_id' from the query
+                    'ldhName' => $nameserverDetails['name'], // Use the 'name' from the query
+                    'links' => [
+                        [
+                            'href' => 'http://example.com/rdap/nameserver/' . $nameserverDetails['name'],
+                            'rel' => 'self',
+                            'type' => 'application/rdap+json',
+                        ],
+                    ],
+                ];
             }, $nameservers),
             // ... Other RDAP fields ...
         ];
