@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`reserved_domain_names` (
 CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`name` varchar(255) NOT NULL,
+	`iana_id` int(5) DEFAULT NULL,
 	`clid` varchar(16) NOT NULL,
 	`pw` varchar(64) NOT NULL,
 	`prefix` char(2) NOT NULL,
