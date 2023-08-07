@@ -1,0 +1,21 @@
+APP_NAME='StarterApp'
+APP_ENV=public
+APP_URL=http://localhost
+
+DB_DRIVER=mysql
+DB_HOST=localhost
+DB_DATABASE=pinglet
+DB_USERNAME=root
+DB_PASSWORD=
+DB_PORT=3306
+
+#mailer settings (Driver= smtp or sendmail or mail)
+
+MAIL_DRIVER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=username
+MAIL_PASSWORD=password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS='example@domain.com'
+MAIL_FROM_NAME='Example'

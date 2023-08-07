@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="A skeleton for a PHP application built on Slim Framework 4.">
+    <meta name="author" content="Taras Kondratyuk">
+    <title>Pinga Boilerplate</title>
+	{% include 'partials/css.twig' %}
+</head>
+<body class="d-flex flex-column h-100">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container">
+                <a class="navbar-brand" href="."><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-template" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 4m0 1a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-14a1 1 0 0 1 -1 -1z"></path><path d="M4 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path><path d="M14 12l6 0"></path><path d="M14 16l6 0"></path><path d="M14 20l6 0"></path></svg> Pinga</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbar">
+                    <ul class="navbar-nav">
+						{% if auth.isLogin %}
+                        <li class="nav-item">
+                            <a {{ is_current_url('home') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('home')}}">
+                                Dashboard
+                            </a>
+                        </li>
+						{% else %}
+                        <li class="nav-item">
+                            <a {{ is_current_url('register') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('register')}}">
+                                Register
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a {{ is_current_url('login') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('login')}}">
+                                Login
+                            </a>
+                        </li>
+						{% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                Support
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main>
+		<div class="p-5 rounded-3 bg-light text-center">
+			<div class="container-fluid">
+				<h1 class="display-5 fw-bold">Home</h1>
+				<p class="lead">This is an example page.</p>
+				<code>resources/views/index.twig</code>
+			</div>
+		</div>
+    </main>
+    <footer class="footer bg-dark mt-auto py-3">
+        <div class="container">
+            <span class="text-muted">&copy; {{ 'now' | date('Y') }}. All rights reserved.</span>
+        </div>
+    </footer>
+    {% include 'partials/js.twig' %}
+</body>
+</html>
