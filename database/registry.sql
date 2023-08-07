@@ -483,6 +483,65 @@ CREATE TABLE IF NOT EXISTS `users_throttling` (
   KEY `expires_at` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Flags';
 
+CREATE TABLE urs_actions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain_name VARCHAR(255) NOT NULL,
+    urs_provider VARCHAR(255) NOT NULL,
+    action_date DATE NOT NULL,
+    status VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='URS Actions';
+
+CREATE TABLE `rde_escrow_deposits` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `deposit_id` VARCHAR(255) UNIQUE,  -- Unique deposit identifier
+    `deposit_date` DATE NOT NULL,
+    `file_name` VARCHAR(255) NOT NULL,
+    `file_format` ENUM('XML', 'CSV') NOT NULL,  -- Format of the data file
+    `file_size` BIGINT UNSIGNED,
+    `checksum` VARCHAR(64),
+    `encryption_method` VARCHAR(255),  -- Details about how the file is encrypted
+    `deposit_type` ENUM('Full', 'Incremental', 'Differential') NOT NULL,
+    `status` ENUM('Deposited', 'Retrieved', 'Failed') NOT NULL DEFAULT 'Deposited',
+    `receiver` VARCHAR(255),  -- Escrow agent or receiver of the deposit
+    `notes` TEXT,
+    `verification_status` ENUM('Verified', 'Failed', 'Pending') DEFAULT 'Pending',  -- Status after the escrow agent verifies the deposit
+    `verification_notes` TEXT  -- Notes or remarks from the verification process
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Escrow Deposits';
+
+CREATE TABLE `icann_reports` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `report_date` DATE NOT NULL,
+    `type` VARCHAR(255) NOT NULL,
+    `file_name` VARCHAR(255),
+    `submitted_date` DATE,
+    `status` ENUM('Pending', 'Submitted', 'Accepted', 'Rejected') NOT NULL DEFAULT 'Pending',
+    `notes` TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='ICANN Reporting';
+
+CREATE TABLE `promotion_pricing` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `tld_id` INT UNSIGNED,
+    `promo_name` VARCHAR(255) NOT NULL,
+    `start_date` DATE NOT NULL,
+    `end_date` DATE NOT NULL,
+    `discount_percentage` DECIMAL(5,2),
+    `discount_amount` DECIMAL(10,2),
+    `description` TEXT,
+    `conditions` TEXT,
+    FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Promotions';
+
+CREATE TABLE `premium_domain_pricing` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `domain_name` VARCHAR(255) NOT NULL,
+    `tld_id` INT UNSIGNED NOT NULL,
+    `start_date` DATE NOT NULL,
+    `end_date` DATE,
+    `price` DECIMAL(10,2) NOT NULL,
+    `conditions` TEXT,
+    FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
+
 INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX');
 INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX');
 INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX');
