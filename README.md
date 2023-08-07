@@ -3,7 +3,7 @@ Open-source domain registry platform. Revolutionizing ccTLD and gTLD management 
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry and registrar platform, diligently crafted to serve ccTLD and gTLD domain registries, brand registries, and ICANN accredited registrars. Inspired by XPanel Registry (https://github.com/XPanel/epp), Namingo incorporates certain elements and parts of the code from XPanel and has been significantly rewritten. It's a fusion of innovation and imagination, designed to be more than a tool; it's a vision of a world where names breathe, sing, and resonate with meaning.
+Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD and gTLD domain registries, brand registries, and ICANN accredited registrars. Inspired by XPanel Registry (https://github.com/XPanel/epp), Namingo incorporates certain elements and parts of the code from XPanel and has been significantly rewritten. It's a fusion of innovation and imagination, designed to be more than a tool; it's a vision of a world where names breathe, sing, and resonate with meaning.
 
 Though we're still spreading our wings, our commitment to excellence ensures that Namingo is on an evolutionary journey. Gradually, we are expanding our capabilities, and before the launch of our first full version, support for a comprehensive range of services will be seamlessly integrated.
 
@@ -73,7 +73,7 @@ whois.example.com {
 
 cp.example.com {
     bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
-    root * /path/to/your/php/app
+    root * /path/to/your/php/app/public
     php_fastcgi unix//run/php/php8.2-fpm.sock
     encode gzip
     file_server
