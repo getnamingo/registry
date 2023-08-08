@@ -79,8 +79,12 @@ cp.example.com {
     file_server
     tls your-email@example.com
     log {
-        output file /var/log/caddy/cp_errors.log
+        output file /var/log/caddy/access.log
         format console
+    }
+    log {
+        output file /var/log/caddy/error.log
+        level ERROR
     }
     # Adminer Configuration
     route /adminer.php* {

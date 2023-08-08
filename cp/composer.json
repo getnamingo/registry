@@ -29,7 +29,8 @@
         "filp/whoops": "^2.14.6",
         "imefisto/psr-swoole-native": "^1.1",
         "chubbyphp/chubbyphp-static-file": "^1.2",
-        "lasserafn/php-initial-avatar-generator": "^4.2"
+        "lasserafn/php-initial-avatar-generator": "^4.2",
+        "mevdschee/php-crud-api": "^2.14"
     },
     "autoload": {
     	"psr-4": {

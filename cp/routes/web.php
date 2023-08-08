@@ -6,7 +6,10 @@ use App\Controllers\ProfileController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
 use Slim\Exception\HttpNotFoundException;
+use Nyholm\Psr7\ServerRequest;
 use Nyholm\Psr7\Response;
+use Tqdev\PhpCrudApi\Api;
+use Tqdev\PhpCrudApi\Config\Config;
 
 $app->get('/', HomeController::class .':index')->setName('index');
 
@@ -39,6 +42,22 @@ $app->group('', function ($route) {
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');
 })->add(new AuthMiddleware($container));
 
+$app->any('/api[/{params:.*}]', function (
+    ServerRequest $request,
+    Response $response,
+    $args
+) use ($container) {
+    $config = new Config([
+        'username' => 'database-user',
+        'password' => 'database-pass',
+        'database' => 'database-name',
+        'basePath' => '/api',
+    ]);
+    $api = new Api($config);
+    $response = $api->handle($request);
+    return $response;
+});
+
 $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\Server\RequestHandlerInterface $handler) {
     try {
         return $handler->handle($request);
@@ -48,3 +67,5 @@ $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\S
         return $response->withStatus(404);
     }
 });
+
+$app->addErrorMiddleware(true, true, true);
