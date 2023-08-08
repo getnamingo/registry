@@ -1,104 +1,194 @@
 <?php
 
-require 'vendor/autoload.php';
+//require 'vendor/autoload.php';
+global $c;
+$c = require 'config.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
 use Swoole\Table;
-use PDO;
 
 $table = new Table(1024);
+$table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->create();
 
-$db = new PDO('mysql:host=localhost;dbname=epp', 'username', 'password');
+$dsn = "mysql:host={$c['mysql_host']};dbname={$c['mysql_database']};port={$c['mysql_port']}";
+$db = new PDO($dsn, $c['mysql_username'], $c['mysql_password']);
+$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$server = new Server('0.0.0.0', 700);
+$server = new Server($c['epp_host'], $c['epp_port']);
+$server->set([
+	'enable_coroutine' => true,
+    'worker_num' => swoole_cpu_num() * 4,
+    'pid_file' => $c['epp_pid'],
+    'tcp_user_timeout' => 10,
+    'open_ssl' => true,
+    'ssl_cert_file' => $c['ssl_cert'],
+    'ssl_key_file' => $c['ssl_key'],
+    'ssl_verify_peer' => false,
+    'ssl_allow_self_signed' => false,
+    'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
+]);
 
 $server->handle(function (Connection $conn) use ($table, $db) {
-    $lengthData = $conn->recv(4);
-    if ($lengthData === false || strlen($lengthData) !== 4) {
-        sendEppError($conn, 2100, 'Framing error');
-        return;
-    }
+    echo "Client connected.\n";
+    sendGreeting($conn);
+	
+    while (true) {
+        $data = $conn->recv();
+        $connId = spl_object_id($conn);
 
-    $length = unpack('N', $lengthData)[1];
-    $data = $conn->recv($length - 4);
-
-    if ($data === false || strlen($data) !== $length - 4) {
-        sendEppError($conn, 2100, 'Framing error');
-        return;
-    }
-    $xml = simplexml_load_string($data);
-
-    if ($xml === false) {
-        sendEppError($conn, 2001, 'Invalid XML');
-        return;
-    }
-
-    $clID = (string) $xml->command->clTRID;
-    $isLoggedIn = $table->get($clID, 'logged_in');
-
-    // Parsing a login command
-    if ($xml->getName() == 'epp' && isset($xml->command->login)) {
-        $clID = (string) $xml->command->login->clID;
-        $pw = (string) $xml->command->login->pw;
-
-        if (checkLogin($db, $clID, $pw)) {
-            $table->set($clID, ['logged_in' => 1]);
-            $conn->send('Login success!');
-        } else {
-            sendEppError($conn, 2200, 'Authentication error');
+        if ($data === false || strlen($data) < 4) {
+            sendEppError($conn, 2100, 'Data reception error');
+            break;
         }
-        return;
-    }
 
-    // Parsing a logout command
-    if ($xml->getName() == 'epp' && isset($xml->command->logout)) {
-        $table->del($clID);
-        $conn->send('Logout success!');
-        return;
-    }
+        $length = unpack('N', substr($data, 0, 4))[1];
+        $xmlData = substr($data, 4, $length - 4);
 
-    if (!$isLoggedIn) {
-        sendEppError($conn, 2202, 'Authorization error');
-        return;
-    }
-	
-    // Parsing a contact:create command
-    if ($xml->getName() == 'epp' && isset($xml->command->{'create'}->{'contact:create'})) {
-        processContactCreate($conn, $db, $xml);
-        return;
-    }
-	
-    // Parsing a contact:check command
-    if ($xml->getName() == 'epp' && isset($xml->command->{'check'}->{'contact:check'})) {
-        processContactCheck($conn, $db, $xml);
-        return;
-    }
+        $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_DTDLOAD | LIBXML_NOENT);
+		$xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
+        $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+        $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
+        $xml->registerXPathNamespace('contact', 'urn:ietf:params:xml:ns:contact-1.0');
+        $xml->registerXPathNamespace('host', 'urn:ietf:params:xml:ns:host-1.0');
 
-    // Parsing a contact:info command
-    if ($xml->getName() == 'epp' && isset($xml->command->{'info'}->{'contact:info'})) {
-        processContactInfo($conn, $db, $xml);
-        return;
-    }
+        if ($xml === false) {
+            sendEppError($conn, 2001, 'Invalid XML');
+            break;
+        }
+		
+        if ($xml->getName() != 'epp') {
+            continue;  // Skip this iteration if not an EPP command
+        }
 
-    // Parsing a domain:info command
-    if ($xml->getName() == 'epp' && isset($xml->command->{'info'}->{'domain:info'})) {
-        processDomainInfo($conn, $db, $xml);
-        return;
-    }
+        switch (true) {
+            case isset($xml->command->login):
+			{
+                $clID = (string) $xml->command->login->clID;
+                $pw = (string) $xml->command->login->pw;
 
-    // Parsing a domain:check command
-    if ($xml->getName() == 'epp' && isset($xml->command->{'check'}->{'domain:check'})) {
-        processDomainCheck($conn, $db, $xml);
-        return;
-    }
+                if (checkLogin($db, $clID, $pw)) {
+					$table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                    $eppLoginResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                    <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+                      <response>
+                        <result code="1000">
+                          <msg>Login successful</msg>
+                        </result>
+                        <trID>
+                          <clTRID>ABC-12345</clTRID>
+                          <svTRID>SRV-54321</svTRID>
+                        </trID>
+                      </response>
+                    </epp>';
+
+                    $length = strlen($eppLoginResponse) + 4; // Total length including the 4-byte header
+                    $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+                    $conn->send($lengthData . $eppLoginResponse);
+                } else {
+                    sendEppError($conn, 2200, 'Authentication error');
+                }
+                break;
+			}
+			
+            case isset($xml->command->logout):
+			{
+                $table->del($connId);
+                $eppLogoutResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+                  <response>
+                    <result code="1500">
+                      <msg>Logout successful</msg>
+                    </result>
+                    <trID>
+                      <clTRID>ABC-12345</clTRID>
+                      <svTRID>SRV-54321</svTRID>
+                    </trID>
+                  </response>
+                </epp>';
+
+                $length = strlen($eppLogoutResponse) + 4; // Total length including the 4-byte header
+                $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+                $conn->send($lengthData . $eppLogoutResponse);
+                $conn->close();
+                break;
+			}
+			
+            case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check):
+			{
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processContactCheck($conn, $db, $xml);
+                break;
+			}
+			
+            case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create):
+			{
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+				processContactCreate($conn, $db, $xml);
+                break;
+			}
+			
+            case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
+			{
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+				processContactInfo($conn, $db, $xml);
+                break;
+			}
+				
+            case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
+			{
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+				processDomainCheck($conn, $db, $xml);
+                break;
+			}
+
+            case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info):
+			{
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+				processDomainInfo($conn, $db, $xml);
+                break;
+			}
+			
+            default:
+			{
+			    sendEppError($conn, 2102, 'Unrecognized command');
+				break;
+			}
+        }
+	}
 
     sendEppError($conn, 2100, 'Unknown command');
+	echo "Client disconnected.\n";
 });
 
-$server->start();
+echo "Namingo EPP server started.\n";
+Swoole\Coroutine::create(function () use ($server) {
+    $server->start();
+});
 
 function processContactCheck($conn, $db, $xml) {
     $contactIDs = $xml->command->{'check'}->{'contact:check'}->{'contact:id'};
@@ -140,7 +230,10 @@ function processContactCheck($conn, $db, $xml) {
 </epp>
 XML;
 
-    $conn->send($response);
+    $length = strlen($response) + 4; // Total length including the 4-byte header
+    $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+    $conn->send($lengthData . $response);
 }
 
 function processContactInfo($conn, $db, $xml) {
@@ -175,8 +268,10 @@ function processContactInfo($conn, $db, $xml) {
 </epp>
 XML;
 
-        // You can customize the response to include the specific details you want
-        $conn->send($response);
+        $length = strlen($response) + 4; // Total length including the 4-byte header
+        $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+        $conn->send($lengthData . $response);
 
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error');
@@ -234,7 +329,10 @@ function processContactCreate($conn, $db, $xml) {
 </epp>
 XML;
 
-        $conn->send($response);
+        $length = strlen($response) + 4; // Total length including the 4-byte header
+        $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+        $conn->send($lengthData . $response);
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error');
     }
@@ -299,11 +397,44 @@ XML;
 }
 
 function checkLogin($db, $clID, $pw) {
-    $stmt = $db->prepare("SELECT password FROM users WHERE username = :username");
+    $stmt = $db->prepare("SELECT pw FROM registrar WHERE clid = :username");
     $stmt->execute(['username' => $clID]);
     $hashedPassword = $stmt->fetchColumn();
 
     return password_verify($pw, $hashedPassword);
+}
+
+function sendGreeting($conn) {
+	global $c;
+    $currentDate = gmdate('Y-m-d\TH:i:s\Z');
+    $greetingXml = <<<XML
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <greeting>
+        <svID>{$c['epp_greeting']}</svID>
+        <svDate>$currentDate</svDate>
+        <svcMenu>
+            <version>1.0</version>
+            <lang>en</lang>
+            <objURI>urn:ietf:params:xml:ns:domain-1.0</objURI>
+            <objURI>urn:ietf:params:xml:ns:contact-1.0</objURI>
+            <!-- Add other namespaces as supported -->
+        </svcMenu>
+        <!-- Optional: extensions you support -->
+        <dcp>
+            <access><all/></access>
+            <statement>
+                <purpose><admin/><prov/></purpose>
+                <recipient><ours/><public/><same/></recipient>
+                <retention><stated/></retention>
+            </statement>
+        </dcp>
+    </greeting>
+</epp>
+XML;
+    $length = strlen($greetingXml) + 4; // Total length including the 4-byte header
+    $lengthData = pack('N', $length); // Pack the length into 4 bytes
+    $conn->send($lengthData . $greetingXml);
 }
 
 function sendEppError($conn, $code, $msg) {
@@ -317,6 +448,7 @@ function sendEppError($conn, $code, $msg) {
   </response>
 </epp>
 XML;
-
-    $conn->send($errorResponse);
+    $length = strlen($errorResponse) + 4; // Total length including the 4-byte header
+    $lengthData = pack('N', $length); // Pack the length into 4 bytes
+    $conn->send($lengthData . $errorResponse);
 }
