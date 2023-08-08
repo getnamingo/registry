@@ -47,10 +47,11 @@ $app->any('/api[/{params:.*}]', function (
     Response $response,
     $args
 ) use ($container) {
+    $db = config('connections');
     $config = new Config([
-        'username' => 'database-user',
-        'password' => 'database-pass',
-        'database' => 'database-name',
+        'username' => $db['mysql']['username'],
+        'password' => $db['mysql']['password'],
+        'database' => $db['mysql']['database'],
         'basePath' => '/api',
     ]);
     $api = new Api($config);
