@@ -19,7 +19,7 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $server = new Server($c['epp_host'], $c['epp_port']);
 $server->set([
-	'enable_coroutine' => true,
+    'enable_coroutine' => true,
     'worker_num' => swoole_cpu_num() * 4,
     'pid_file' => $c['epp_pid'],
     'tcp_user_timeout' => 10,
@@ -34,7 +34,7 @@ $server->set([
 $server->handle(function (Connection $conn) use ($table, $db) {
     echo "Client connected.\n";
     sendGreeting($conn);
-	
+  
     while (true) {
         $data = $conn->recv();
         $connId = spl_object_id($conn);
@@ -48,7 +48,7 @@ $server->handle(function (Connection $conn) use ($table, $db) {
         $xmlData = substr($data, 4, $length - 4);
 
         $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_DTDLOAD | LIBXML_NOENT);
-		$xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
+        $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
         $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
         $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
         $xml->registerXPathNamespace('contact', 'urn:ietf:params:xml:ns:contact-1.0');
@@ -58,19 +58,19 @@ $server->handle(function (Connection $conn) use ($table, $db) {
             sendEppError($conn, 2001, 'Invalid XML');
             break;
         }
-		
+    
         if ($xml->getName() != 'epp') {
             continue;  // Skip this iteration if not an EPP command
         }
 
         switch (true) {
             case isset($xml->command->login):
-			{
+            {
                 $clID = (string) $xml->command->login->clID;
                 $pw = (string) $xml->command->login->pw;
 
                 if (checkLogin($db, $clID, $pw)) {
-					$table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                    $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
                     $eppLoginResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                     <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
                       <response>
@@ -92,10 +92,10 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                     sendEppError($conn, 2200, 'Authentication error');
                 }
                 break;
-			}
-			
+            }
+      
             case isset($xml->command->logout):
-			{
+            {
                 $table->del($connId);
                 $eppLogoutResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
@@ -116,10 +116,10 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                 $conn->send($lengthData . $eppLogoutResponse);
                 $conn->close();
                 break;
-			}
-			
+            }
+      
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check):
-			{
+            {
                 $data = $table->get($connId);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error');
@@ -127,62 +127,62 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                 }
                 processContactCheck($conn, $db, $xml);
                 break;
-			}
-			
+            }
+      
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create):
-			{
+            {
                 $data = $table->get($connId);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error');
                     $conn->close();
                 }
-				processContactCreate($conn, $db, $xml);
+                processContactCreate($conn, $db, $xml);
                 break;
-			}
-			
+            }
+      
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
-			{
+            {
                 $data = $table->get($connId);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error');
                     $conn->close();
                 }
-				processContactInfo($conn, $db, $xml);
+                processContactInfo($conn, $db, $xml);
                 break;
-			}
-				
+            }
+        
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
-			{
+            {
                 $data = $table->get($connId);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error');
                     $conn->close();
                 }
-				processDomainCheck($conn, $db, $xml);
+                processDomainCheck($conn, $db, $xml);
                 break;
-			}
+            }
 
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info):
-			{
+            {
                 $data = $table->get($connId);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error');
                     $conn->close();
                 }
-				processDomainInfo($conn, $db, $xml);
+                processDomainInfo($conn, $db, $xml);
                 break;
-			}
-			
+            }
+      
             default:
-			{
-			    sendEppError($conn, 2102, 'Unrecognized command');
-				break;
-			}
+            {
+                sendEppError($conn, 2102, 'Unrecognized command');
+                break;
+            }
         }
-	}
+    }
 
     sendEppError($conn, 2100, 'Unknown command');
-	echo "Client disconnected.\n";
+    echo "Client disconnected.\n";
 });
 
 echo "Namingo EPP server started.\n";
@@ -405,7 +405,7 @@ function checkLogin($db, $clID, $pw) {
 }
 
 function sendGreeting($conn) {
-	global $c;
+  global $c;
     $currentDate = gmdate('Y-m-d\TH:i:s\Z');
     $greetingXml = <<<XML
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
