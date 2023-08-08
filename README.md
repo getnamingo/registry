@@ -13,6 +13,26 @@ Fully primed to support gTLDs for the next ICANN application round, Namingo stan
 
 We are actively looking for help and contributors to make Namingo even better! Whether you're a developer, designer, or just someone with great ideas, we would love to have you on board. Check out our issues or feel free to reach out to us directly.
 
+## Features
+
+Namingo is equipped with a comprehensive suite of features to meet the diverse needs of modern domain registries:
+
+- **ICANN Compliant**: Robust support for both ccTLDs and gTLDs in line with ICANN requirements.
+  
+- **EPP Server**: Enables secure and robust communication for domain registration and management.
+  
+- **WHOIS Service**: Offers both port 43 access and web access, ensuring transparency in domain information retrieval.
+  
+- **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
+  
+- **Control Panel**: Intuitive interface for streamlined domain management and administration.
+  
+- **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
+  
+- **API Integration**: Control panel integrated with a powerful API, facilitating direct access to the registry database.
+  
+- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations.
+
 ## Installation Instructions
 
 The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [INSTALL.md](INSTALL.md).
