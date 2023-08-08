@@ -191,7 +191,7 @@ Swoole\Coroutine::create(function () use ($server) {
 });
 
 function processContactCheck($conn, $db, $xml) {
-    $contactIDs = $xml->command->{'check'}->{'contact:check'}->{'contact:id'};
+    $contactIDs = $xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check->{'id'};
 
     $results = [];
     foreach ($contactIDs as $contactID) {
@@ -237,7 +237,7 @@ XML;
 }
 
 function processContactInfo($conn, $db, $xml) {
-    $contactID = (string) $xml->command->{'info'}->{'contact:info'}->{'contact:id'};
+    $contactID = (string) $xml->command->{'info'}->{'contact:info'}->{'id'};
 
     // Validation for contact ID
     if (!ctype_alnum($contactID) || strlen($contactID) > 255) {
@@ -339,12 +339,12 @@ XML;
 }
 
 function processDomainCheck($conn, $db, $xml) {
-    $domains = $xml->command->{'check'}->{'domain:check'}->children('domain', true);
+    $domains = $xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check->name;
     $response = '<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><domain:chkData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">';
 
     foreach ($domains as $domain) {
         $domainName = (string) $domain;
-        $availability = $db->query("SELECT availability FROM domains WHERE domain_name = '$domainName'")->fetchColumn();
+        $availability = $db->query("SELECT name FROM domain WHERE name = '$domainName'")->fetchColumn();
         $availString = $availability ? 'available' : 'unavailable';
         $response .= "<domain:cd><domain:name avail=\"$availability\">$domainName</domain:name></domain:cd>";
     }
@@ -357,7 +357,7 @@ function processDomainCheck($conn, $db, $xml) {
 }
 
 function processDomainInfo($conn, $db, $xml) {
-    $domainName = (string) $xml->command->{'info'}->{'domain:info'}->{'domain:name'};
+    $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
 
     // Validation for domain name
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
@@ -366,7 +366,7 @@ function processDomainInfo($conn, $db, $xml) {
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM domains WHERE name = :name");
+        $stmt = $db->prepare("SELECT * FROM domain WHERE name = :name");
         $stmt->execute(['name' => $domainName]);
 
         $domain = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -387,10 +387,10 @@ function processDomainInfo($conn, $db, $xml) {
   </response>
 </epp>
 XML;
+        $length = strlen($response) + 4; // Total length including the 4-byte header
+        $lengthData = pack('N', $length); // Pack the length into 4 bytes
 
-        // You can customize the response to include the specific details you want
-        $conn->send($response);
-
+        $conn->send($lengthData . $response);
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error');
     }
