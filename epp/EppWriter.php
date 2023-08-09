@@ -635,7 +635,10 @@ class EppWriter {
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 foreach ($resp['names'] as $names) {
                     $writer->startElement('domain:cd');
-                        $writer->writeElement('domain:name', $names[0], ['avail' => $names[1]]);
+                        $writer->startElement('domain:name');
+                            $writer->writeAttribute('avail', $names[1]);
+                            $writer->text($names[0]);
+                        $writer->endElement();  // End of 'domain:name'
                         if (isset($names[2])) {
                             $writer->writeElement('domain:reason', $names[2]);
                         }
@@ -676,7 +679,7 @@ class EppWriter {
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
                 $writer->writeElement('domain:roid', $resp['roid']);
-                                foreach ($resp['status'] as $s) {
+                foreach ($resp['status'] as $s) {
                     if (isset($s[1]) && isset($s[2])) {
                         $writer->writeElement('domain:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
                     } else {
@@ -690,20 +693,25 @@ class EppWriter {
                     $writer->writeElement('domain:registrant', $resp['registrant']);
                 }
                 foreach ($resp['contact'] as $t) {
-                    $writer->writeElement('domain:contact', $t[1], ['type' => $t[0]]);
+                    $writer->startElement('domain:contact');
+                    $writer->writeAttribute('type', $t[0]);
+                    $writer->text($t[1]);
+                    $writer->endElement();
                 }
-                if ($resp['return_ns']) {
+                if (isset($resp['hostObj']) && is_array($resp['hostObj'])) {
                     $writer->startElement('domain:ns');
-                    foreach ($resp['hostObj'] as $n) {
-                        $writer->writeElement('domain:hostObj', $n);
+                    foreach ($resp['hostObj'] as $host) {
+                        $writer->writeElement('domain:hostObj', (string)$host[0]);
                     }
                     $writer->endElement();  // End of 'domain:ns'
                 }
-                if ($resp['return_host']) {
-                    foreach ($resp['host'] as $h) {
-                        $writer->writeElement('domain:host', $h);
+				if (isset($resp['return_host'])) {
+                    if ($resp['return_host']) {
+                        foreach ($resp['host'] as $h) {
+                            $writer->writeElement('domain:host', $h);
+                        }
                     }
-                }
+				}
                 $writer->writeElement('domain:clID', $resp['clID']);
                 if (isset($resp['crID'])) {
                     $writer->writeElement('domain:crID', $resp['crID']);
@@ -737,15 +745,19 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
 
             // Handling the extension part
-            $writer->startElement('extension');
-                $writer->startElement('rgp:infData');
-                $writer->writeAttribute('xmlns:rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
-                $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd');
-                $writer->startElement('rgp:rgpStatus');
-                $writer->writeAttribute('s', $resp['rgpstatus']);
-                $writer->endElement();  // End of 'rgp:rgpStatus'
-                $writer->endElement();  // End of 'rgp:infData'
-            $writer->endElement();  // End of 'extension'
+            // Check if the 'rgpstatus' key is set in $resp
+            if (isset($resp['rgpstatus'])) {
+                // Handling the extension part
+                $writer->startElement('extension');
+                    $writer->startElement('rgp:infData');
+                    $writer->writeAttribute('xmlns:rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
+                    $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd');
+                    $writer->startElement('rgp:rgpStatus');
+                    $writer->writeAttribute('s', $resp['rgpstatus']);
+                    $writer->endElement();  // End of 'rgp:rgpStatus'
+                    $writer->endElement();  // End of 'rgp:infData'
+                $writer->endElement();  // End of 'extension'
+            }
         }
 
         $this->_postamble($writer, $resp);
