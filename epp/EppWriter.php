@@ -7,13 +7,6 @@ use XMLWriter;
 class EppWriter {
 
     // Properties
-    private $EPP_VERSIONS = ['1.0'];
-    private $EPP_LANGUAGES = ['en-US', 'ua'];
-    private $EPP_OBJECTS = [
-        'contact' => 'urn:ietf:params:xml:ns:contact-1.0',
-        'domain' => 'urn:ietf:params:xml:ns:domain-1.0',
-        'host' => 'urn:ietf:params:xml:ns:host-1.0',
-    ];
     private $command_handler_map = [
         'greeting' => '_greeting',
         'login' => '_common',
@@ -257,23 +250,93 @@ class EppWriter {
 
     private function _greeting($writer, $resp) {
         $writer->startElement('greeting');
+    
+        // Server ID and Server Date
         $writer->writeElement('svID', $resp['svID']);
-        $writer->writeElement('svDate', date('c'));  // Using PHP's date function with 'c' format as a placeholder for EPP date
+        $writer->writeElement('svDate', $resp['svDate']);
+    
+        // Services
         $writer->startElement('svcMenu');
-        
-        foreach ($this->EPP_VERSIONS as $ver) {
-            $writer->writeElement('version', $ver);
-        }
-        
-        foreach ($this->EPP_LANGUAGES as $lang) {
-            $writer->writeElement('lang', $lang);
+        $writer->writeElement('version', $resp['version']);
+
+        // Check if 'lang' is an array and handle accordingly
+        if (is_array($resp['lang'])) {
+            foreach ($resp['lang'] as $language) {
+                $writer->writeElement('lang', $language);
+            }
+        } else {
+            $writer->writeElement('lang', $resp['lang']);
         }
 
-        foreach ($this->EPP_OBJECTS as $obj => $uri) {
-            $writer->writeElement('objURI', $uri);
+        foreach ($resp['services'] as $service) {
+            $writer->writeElement('objURI', $service);
+        }
+
+        // Optional extensions
+        if (isset($resp['extensions'])) {
+            $writer->startElement('svcExtension');
+            foreach ($resp['extensions'] as $extension) {
+                $writer->writeElement('extURI', $extension);
+            }
+            $writer->endElement();  // End of 'svcExtension'
         }
 
         $writer->endElement();  // End of 'svcMenu'
+
+        // Optional Data Collection Policy (dcp)
+        if (isset($resp['dcp'])) {
+            $writer->startElement('dcp');
+
+            // Handle the access element
+            if (isset($resp['dcp']['access'])) {
+                $writer->startElement('access');
+                foreach ($resp['dcp']['access'] as $accessType) {
+					$writer->startElement($accessType);
+					$writer->endElement();
+                }
+                $writer->endElement();  // End of 'access'
+            }
+
+            // Handle the statement element
+            if (isset($resp['dcp']['statement'])) {
+                $writer->startElement('statement');
+
+                // Handle purpose
+                if (isset($resp['dcp']['statement']['purpose'])) {
+                    $writer->startElement('purpose');
+                    foreach ($resp['dcp']['statement']['purpose'] as $purposeType) {
+					    $writer->startElement($purposeType);
+					    $writer->endElement();
+                    }
+                    $writer->endElement();  // End of 'purpose'
+                }
+
+                // Handle recipient
+                if (isset($resp['dcp']['statement']['recipient'])) {
+                    $writer->startElement('recipient');
+                    foreach ($resp['dcp']['statement']['recipient'] as $recipientType) {
+					    $writer->startElement($recipientType);
+					    $writer->endElement();
+                    }
+                    $writer->endElement();  // End of 'recipient'
+                }
+
+                // Handle retention
+                if (isset($resp['dcp']['statement']['retention'])) {
+                    $writer->startElement('retention');
+                    foreach ($resp['dcp']['statement']['retention'] as $retentionType) {
+					    $writer->startElement($retentionType);
+					    $writer->endElement();
+                    }
+                    $writer->endElement();  // End of 'retention'
+                }
+
+                $writer->endElement();  // End of 'statement'
+            }
+
+            $writer->endElement();  // End of 'dcp'
+        }
+    
         $writer->endElement();  // End of 'greeting'
     }
 

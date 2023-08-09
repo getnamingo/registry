@@ -69,7 +69,7 @@ $server->handle(function (Connection $conn) use ($table, $db) {
             {
                 $clID = (string) $xml->command->login->clID;
                 $pw = (string) $xml->command->login->pw;
-				$clTRID = (string) $xml->command->clTRID;
+                $clTRID = (string) $xml->command->clTRID;
 
                 if (checkLogin($db, $clID, $pw)) {
                     $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
@@ -108,6 +108,12 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                 $xml = $epp->epp_writer($response);
                 sendEppResponse($conn, $xml);
                 $conn->close();
+                break;
+            }
+			
+            case isset($xml->hello):
+            {
+                sendGreeting($conn);
                 break;
             }
       
@@ -462,36 +468,43 @@ function checkLogin($db, $clID, $pw) {
 }
 
 function sendGreeting($conn) {
-  global $c;
+    global $c;
     $currentDate = gmdate('Y-m-d\TH:i:s\Z');
-    $greetingXml = <<<XML
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-    <greeting>
-        <svID>{$c['epp_greeting']}</svID>
-        <svDate>$currentDate</svDate>
-        <svcMenu>
-            <version>1.0</version>
-            <lang>en</lang>
-            <objURI>urn:ietf:params:xml:ns:domain-1.0</objURI>
-            <objURI>urn:ietf:params:xml:ns:contact-1.0</objURI>
-            <!-- Add other namespaces as supported -->
-        </svcMenu>
-        <!-- Optional: extensions you support -->
-        <dcp>
-            <access><all/></access>
-            <statement>
-                <purpose><admin/><prov/></purpose>
-                <recipient><ours/><public/><same/></recipient>
-                <retention><stated/></retention>
-            </statement>
-        </dcp>
-    </greeting>
-</epp>
-XML;
-    $length = strlen($greetingXml) + 4; // Total length including the 4-byte header
-    $lengthData = pack('N', $length); // Pack the length into 4 bytes
-    $conn->send($lengthData . $greetingXml);
+
+    $response = [
+        'command' => 'greeting',
+        'svID' => $c['epp_greeting'],
+        'svDate' => $currentDate,
+        'version' => '1.0',
+        'lang' => 'en',
+        'services' => [
+            'urn:ietf:params:xml:ns:domain-1.0',
+            'urn:ietf:params:xml:ns:contact-1.0',
+            'urn:ietf:params:xml:ns:host-1.0'
+        ],
+        'extensions' => [
+			'http://www.namingo.org/epp/nBalance-1.0',
+			'http://www.namingo.org/epp/nIdent-1.0',
+			'urn:ietf:params:xml:ns:secDNS-1.1',
+			'urn:ietf:params:xml:ns:rgp-1.0',
+			'urn:ietf:params:xml:ns:launch-1.0',
+			'urn:ietf:params:xml:ns:idn-1.0',
+			'urn:ietf:params:xml:ns:epp:fee-1.0',
+			'urn:ar:params:xml:ns:price-1.1'
+        ],
+        'dcp' => [ // Data Collection Policy (optional)
+            'access' => ['all'],
+            'statement' => [
+                'purpose' => ['admin', 'prov'],
+                'recipient' => ['ours'],
+                'retention' => ['stated']
+            ]
+        ]
+    ];
+
+    $epp = new EPP\EppWriter();
+    $xml = $epp->epp_writer($response);
+    sendEppResponse($conn, $xml);
 }
 
 function sendEppError($conn, $code, $msg) {
