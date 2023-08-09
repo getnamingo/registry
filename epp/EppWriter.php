@@ -542,15 +542,15 @@ class EppWriter {
                 $writer->writeElement('contact:email', $resp['email']);
                 $writer->writeElement('contact:clID', $resp['clID']);
                 $writer->writeElement('contact:crID', $resp['crID']);
-                $writer->writeElement('contact:crDate', $resp['crDate']);
+                $writer->writeElement('contact:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
                 if (isset($resp['upID'])) {
                     $writer->writeElement('contact:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('contact:upDate', $resp['upDate']);
+                    $writer->writeElement('contact:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('contact:trDate', $resp['trDate']);
+                    $writer->writeElement('contact:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
                 }
                 
                 // Handling 'contact:authInfo'
@@ -717,19 +717,19 @@ class EppWriter {
                     $writer->writeElement('domain:crID', $resp['crID']);
                 }
                 if (isset($resp['crDate'])) {
-                    $writer->writeElement('domain:crDate', $resp['crDate']);
+                    $writer->writeElement('domain:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
                 }
                 if (isset($resp['exDate'])) {
-                    $writer->writeElement('domain:exDate', $resp['exDate']);
+                    $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
                 }
                 if (isset($resp['upID'])) {
                     $writer->writeElement('domain:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('domain:upDate', $resp['upDate']);
+                    $writer->writeElement('domain:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('domain:trDate', $resp['trDate']);
+                    $writer->writeElement('domain:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
                 }
                 if ($resp['authInfo'] == 'valid') {
                     $writer->startElement('domain:authInfo');

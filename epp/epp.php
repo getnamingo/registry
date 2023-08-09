@@ -209,6 +209,27 @@ function generateSvTRID($prefix = "Namingo") {
     return $svTRID;
 }
 
+function getRegistrarClid(PDO $db, $id) {
+    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['clid'] ?? null;  // Return the clid if found, otherwise return null
+}
+
+function getContactIdentifier(PDO $db, $id) {
+    $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['identifier'] ?? null;  // Return the identifier if found, otherwise return null
+}
+
+function getHost(PDO $db, $id) {
+    $stmt = $db->prepare("SELECT name FROM host WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['name'] ?? null;  // Return the name if found, otherwise return null
+}
+
 function processContactCheck($conn, $db, $xml) {
     $contactIDs = $xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check->{'id'};
     $clTRID = (string) $xml->command->clTRID;
@@ -322,10 +343,10 @@ function processContactInfo($conn, $db, $xml) {
         	'voice' => $contact['voice'],
         	'fax' => $contact['fax'],
         	'email' => $contact['email'],
-        	'clID' => $contact['clid'],
-        	'crID' => $contact['crid'],
+        	'clID' => getRegistrarClid($db, $contact['clid']),
+        	'crID' => getRegistrarClid($db, $contact['crid']),
         	'crDate' => $contact['crdate'],
-        	'upID' => $contact['upid'],
+        	'upID' => getRegistrarClid($db, $contact['upid']),
         	'upDate' => $contact['update'],
         	'authInfo' => 'valid',
         	'authInfo_type' => $authInfo['authtype'],
@@ -468,7 +489,7 @@ function processDomainInfo($conn, $db, $xml) {
 
         $transformedContacts = [];
         foreach ($contacts as $contact) {
-            $transformedContacts[] = [$contact['type'], $contact['contact_id']];
+            $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
         }
 		
         // Fetch hosts
@@ -478,7 +499,7 @@ function processDomainInfo($conn, $db, $xml) {
 
         $transformedHosts = [];
         foreach ($hosts as $host) {
-            $transformedHosts[] = [$host['host_id']];
+            $transformedHosts[] = [getHost($db, $host['host_id'])];
         }
 
         // Fetch authInfo
@@ -507,12 +528,13 @@ function processDomainInfo($conn, $db, $xml) {
         	'status' => $statusArray,
         	'registrant' => $domain['registrant'],
             'contact' => $transformedContacts,
-            'hostObj' => $transformedHosts,	
-        	'clID' => $domain['clid'],
-        	'crID' => $domain['crid'],
+        	'hostObj' => $transformedHosts,
+        	'clID' => getRegistrarClid($db, $domain['clid']),
+        	'crID' => getRegistrarClid($db, $domain['crid']),
         	'crDate' => $domain['crdate'],
-        	'upID' => $domain['upid'],
+        	'upID' => getRegistrarClid($db, $domain['upid']),
         	'upDate' => $domain['update'],
+        	'exDate' => $domain['exdate'],
         	'trDate' => $domain['trdate'],
         	'authInfo' => 'valid',
         	'authInfo_type' => $authInfo['authtype'],
