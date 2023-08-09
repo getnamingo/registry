@@ -48,7 +48,11 @@ $server->handle(function (Connection $conn) use ($table, $db) {
         $length = unpack('N', substr($data, 0, 4))[1];
         $xmlData = substr($data, 4, $length - 4);
 
-        $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_DTDLOAD | LIBXML_NOENT);
+        // If you're using PHP < 8.0
+        libxml_disable_entity_loader(true);
+        libxml_use_internal_errors(true);
+
+        $xml = simplexml_load_string($xmlData);
         $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
         $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
         $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
