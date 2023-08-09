@@ -394,14 +394,18 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd');
                 
-                foreach ($resp['ids'] as $ids) {
-                    $writer->startElement('contact:cd');
-                        $writer->writeElement('contact:id', $ids[0], ['avail' => $ids[1]]);
-                        if (isset($ids[2])) {
-                            $writer->writeElement('contact:reason', $ids[2]);
-                        }
-                    $writer->endElement();  // End of 'contact:cd'
-                }
+            foreach ($resp['ids'] as $ids) {
+            	$writer->startElement('contact:cd');
+            		$writer->startElement('contact:id');
+                        $writer->writeAttribute('avail', $ids[1]);
+                        $writer->text($ids[0]);
+            		$writer->endElement(); // End of 'contact:id'
+            		
+            		if (isset($ids[2])) {
+                        $writer->writeElement('contact:reason', $ids[2]);
+            		}
+            	$writer->endElement();  // End of 'contact:cd'
+            }
                 
                 $writer->endElement();  // End of 'contact:chkData'
             $writer->endElement();  // End of 'resData'

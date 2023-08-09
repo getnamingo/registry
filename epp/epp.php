@@ -3,6 +3,7 @@
 //require 'vendor/autoload.php';
 global $c;
 $c = require 'config.php';
+require_once 'EppWriter.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
@@ -68,26 +69,22 @@ $server->handle(function (Connection $conn) use ($table, $db) {
             {
                 $clID = (string) $xml->command->login->clID;
                 $pw = (string) $xml->command->login->pw;
+				$clTRID = (string) $xml->command->clTRID;
 
                 if (checkLogin($db, $clID, $pw)) {
                     $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
-                    $eppLoginResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-                    <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-                      <response>
-                        <result code="1000">
-                          <msg>Login successful</msg>
-                        </result>
-                        <trID>
-                          <clTRID>ABC-12345</clTRID>
-                          <svTRID>SRV-54321</svTRID>
-                        </trID>
-                      </response>
-                    </epp>';
+                    $response = [
+                        'command' => 'login',
+                        'resultCode' => 1000,
+                        'lang' => 'en-US',
+                        'message' => 'Login successful',
+                        'clTRID' => $clTRID,
+                        'svTRID' => generateSvTRID(),
+                    ];
 
-                    $length = strlen($eppLoginResponse) + 4; // Total length including the 4-byte header
-                    $lengthData = pack('N', $length); // Pack the length into 4 bytes
-
-                    $conn->send($lengthData . $eppLoginResponse);
+                    $epp = new EPP\EppWriter();
+                    $xml = $epp->epp_writer($response);
+                    sendEppResponse($conn, $xml);
                 } else {
                     sendEppError($conn, 2200, 'Authentication error');
                 }
@@ -97,23 +94,19 @@ $server->handle(function (Connection $conn) use ($table, $db) {
             case isset($xml->command->logout):
             {
                 $table->del($connId);
-                $eppLogoutResponse = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-                <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-                  <response>
-                    <result code="1500">
-                      <msg>Logout successful</msg>
-                    </result>
-                    <trID>
-                      <clTRID>ABC-12345</clTRID>
-                      <svTRID>SRV-54321</svTRID>
-                    </trID>
-                  </response>
-                </epp>';
+				$clTRID = (string) $xml->command->clTRID;
+				
+                $response = [
+                    'command' => 'logout',
+                    'resultCode' => 1500,
+                    'lang' => 'en-US',
+                    'clTRID' => $clTRID,
+                    'svTRID' => generateSvTRID(),
+                ];
 
-                $length = strlen($eppLogoutResponse) + 4; // Total length including the 4-byte header
-                $lengthData = pack('N', $length); // Pack the length into 4 bytes
-
-                $conn->send($lengthData . $eppLogoutResponse);
+                $epp = new EPP\EppWriter();
+                $xml = $epp->epp_writer($response);
+                sendEppResponse($conn, $xml);
                 $conn->close();
                 break;
             }
@@ -190,8 +183,29 @@ Swoole\Coroutine::create(function () use ($server) {
     $server->start();
 });
 
+function sendEppResponse($conn, $response) {
+    $length = strlen($response) + 4; // Total length including the 4-byte header
+    $lengthData = pack('N', $length); // Pack the length into 4 bytes
+
+    $conn->send($lengthData . $response);
+}
+
+function generateSvTRID($prefix = "Namingo") {
+    // Get current timestamp
+    $timestamp = time();
+
+    // Generate a random 5-character alphanumeric string
+    $randomString = bin2hex(random_bytes(5));
+
+    // Combine the prefix, timestamp, and random string to form the svTRID
+    $svTRID = "{$prefix}-{$timestamp}-{$randomString}";
+
+    return $svTRID;
+}
+
 function processContactCheck($conn, $db, $xml) {
     $contactIDs = $xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check->{'id'};
+    $clTRID = (string) $xml->command->clTRID;
 
     $results = [];
     foreach ($contactIDs as $contactID) {
@@ -203,41 +217,40 @@ function processContactCheck($conn, $db, $xml) {
             return;
         }
 
-        $stmt = $db->prepare("SELECT 1 FROM contacts WHERE id = :id");
+        $stmt = $db->prepare("SELECT 1 FROM contact WHERE id = :id");
         $stmt->execute(['id' => $contactID]);
 
         $results[$contactID] = $stmt->fetch() ? '0' : '1'; // 0 if exists, 1 if not
     }
 
-    $checkResults = '';
+    $ids = [];
     foreach ($results as $id => $available) {
-        $checkResults .= "<contact:cd><contact:id avail=\"$available\">$id</contact:id></contact:cd>";
+        $entry = [$id, $available];
+        // Check if the contact is unavailable
+        if (!$available) {
+            $entry[] = "Contact ID already registered";
+        }
+        $ids[] = $entry;
     }
 
-    $response = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <response>
-    <result code="1000">
-      <msg>Contact check completed</msg>
-    </result>
-    <resData>
-      <contact:chkData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
-        $checkResults
-      </contact:chkData>
-    </resData>
-  </response>
-</epp>
-XML;
+    $response = [
+        'command' => 'check_contact',
+        'resultCode' => 1000,
+        'lang' => 'en-US',
+        'message' => 'Command completed successfully',
+        'ids' => $ids,
+        'clTRID' => $clTRID,
+        'svTRID' => generateSvTRID(),
+    ];
 
-    $length = strlen($response) + 4; // Total length including the 4-byte header
-    $lengthData = pack('N', $length); // Pack the length into 4 bytes
-
-    $conn->send($lengthData . $response);
+    $epp = new EPP\EppWriter();
+    $xml = $epp->epp_writer($response);
+    sendEppResponse($conn, $xml);
 }
 
 function processContactInfo($conn, $db, $xml) {
-    $contactID = (string) $xml->command->{'info'}->{'contact:info'}->{'id'};
+    $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
+    $clTRID = (string) $xml->command->clTRID;
 
     // Validation for contact ID
     if (!ctype_alnum($contactID) || strlen($contactID) > 255) {
@@ -246,7 +259,7 @@ function processContactInfo($conn, $db, $xml) {
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM contacts WHERE id = :id");
+        $stmt = $db->prepare("SELECT * FROM contact WHERE id = :id");
         $stmt->execute(['id' => $contactID]);
 
         $contact = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -255,23 +268,67 @@ function processContactInfo($conn, $db, $xml) {
             sendEppError($conn, 2303, 'Object does not exist');
             return;
         }
+		
+        // Fetch authInfo
+        $stmt = $db->prepare("SELECT * FROM contact_authInfo WHERE contact_id = :id");
+        $stmt->execute(['id' => $contactID]);
+        $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Fetch status
+        $stmt = $db->prepare("SELECT * FROM contact_status WHERE contact_id = :id");
+        $stmt->execute(['id' => $contactID]);
+        $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $statusArray = [];
+        foreach($statuses as $status) {
+            $statusArray[] = [$status['status']];
+        }
 
-        $response = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <response>
-    <result code="1000">
-      <msg>Contact information retrieved successfully</msg>
-    </result>
-    <!-- Add contact details here -->
-  </response>
-</epp>
-XML;
+        // Fetch postal_info
+        $stmt = $db->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :id");
+        $stmt->execute(['id' => $contactID]);
+        $postals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $length = strlen($response) + 4; // Total length including the 4-byte header
-        $lengthData = pack('N', $length); // Pack the length into 4 bytes
+        $postalArray = [];
+        foreach ($postals as $postal) {
+            $postalType = $postal['type']; // 'int' or 'loc'
+                $postalArray[$postalType] = [
+                'name' => $postal['name'],
+                'org' => $postal['org'],
+                'street' => [$postal['street1'], $postal['street2'], $postal['street3']],
+                'city' => $postal['city'],
+                'sp' => $postal['sp'],
+                'pc' => $postal['pc'],
+                'cc' => $postal['cc']
+            ];
+        }
+        
+        $response = [
+        	'command' => 'info_contact',
+        	'clTRID' => $clTRID,
+        	'svTRID' => generateSvTRID(),
+        	'resultCode' => 1000,
+        	'msg' => 'Command completed successfully',
+        	'id' => $contact['id'],
+        	'roid' => $contact['identifier'],
+        	'status' => $statusArray,
+        	'postal' => $postalArray,
+        	'voice' => $contact['voice'],
+        	'fax' => $contact['fax'],
+        	'email' => $contact['email'],
+        	'clID' => $contact['clid'],
+        	'crID' => $contact['crid'],
+        	'crDate' => $contact['crdate'],
+        	'upID' => $contact['upid'],
+        	'upDate' => $contact['update'],
+        	'authInfo' => 'valid',
+        	'authInfo_type' => $authInfo['authtype'],
+        	'authInfo_val' => $authInfo['authinfo']
+        ];
 
-        $conn->send($lengthData . $response);
+    $epp = new EPP\EppWriter();
+    $xml = $epp->epp_writer($response);
+    sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error');
@@ -448,7 +505,5 @@ function sendEppError($conn, $code, $msg) {
   </response>
 </epp>
 XML;
-    $length = strlen($errorResponse) + 4; // Total length including the 4-byte header
-    $lengthData = pack('N', $length); // Pack the length into 4 bytes
-    $conn->send($lengthData . $errorResponse);
+    sendEppResponse($conn, $errorResponse);
 }
