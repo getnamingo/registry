@@ -88,7 +88,7 @@ Each component in the project comes with its own configuration file. Before gett
 
 Once all configurations are set, initiate the application by executing:
 
-```
+```bash
 php app.php
 ```
 

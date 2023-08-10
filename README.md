@@ -11,7 +11,21 @@ Fully primed to support gTLDs for the next ICANN application round, Namingo stan
 
 ## Get Involved
 
-We are actively looking for help and contributors to make Namingo even better! Whether you're a developer, designer, or just someone with great ideas, we would love to have you on board. Check out our issues or feel free to reach out to us directly.
+We're on a mission to make **Namingo** the best it can be, and we need your expertise! Whether you're adept in development, have a keen eye for design, or simply brim with innovative ideas, your contribution can make a world of difference.
+
+### Current Status:
+
+- **WHOIS and DAS Servers**: These servers are almost ready to go! They are functional but require additional testing and security hardening to ensure reliability and safety.
+  
+- **EPP Server**: Our work is ongoing here. Basic commands like domain/contact check and info are operational. However, it's in need of further testing, security measures, and the addition of more commands.
+  
+- **RDAP Server**: Nearing completion. The primary focus is on formatting more data for the output. Like the others, it also requires further testing and security hardening.
+  
+- **Automation Scripts**: These scripts are at varying stages of development. While some are ready, they need in-depth logic testing to ensure their efficiency and accuracy.
+  
+- **Control Panel**: This is our most nascent component. Development is underway, and there's ample opportunity for contributors to shape its direction and functionality.
+
+Feel free to dive into our issues to see where you can help or reach out to us directly to discuss how you can contribute.
 
 ## Features
 
