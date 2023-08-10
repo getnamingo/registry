@@ -5,6 +5,7 @@ CREATE DATABASE IF NOT EXISTS `registry`;
 CREATE TABLE IF NOT EXISTS `registry`.`domain_tld` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`tld` varchar(32) NOT NULL,
+	`idn_table` varchar(255) NOT NULL,
 	PRIMARY KEY (`id`),
 	UNIQUE KEY `tld` (`tld`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain tld';
@@ -542,11 +543,11 @@ CREATE TABLE `premium_domain_pricing` (
     FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
 
-INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX');
-INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX');
-INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX');
-INSERT INTO `registry`.`domain_tld` VALUES('4','.PRO.XX');
-INSERT INTO `registry`.`domain_tld` VALUES('5','.XX');
+INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO `registry`.`domain_tld` VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO `registry`.`domain_tld` VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
 
 INSERT INTO `registry`.`domain_price` VALUES('1','1','create','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
 INSERT INTO `registry`.`domain_price` VALUES('2','1','renew','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');

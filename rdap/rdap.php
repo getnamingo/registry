@@ -4,8 +4,35 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
+function mapContactToVCard($contactDetails, $role) {
+    return [
+        'objectClassName' => 'entity',
+        'roles' => [$role],
+        'vcardArray' => [
+            "vcard",
+            [
+                ["version", "4.0"],
+                ["fn", $contactDetails['name']],
+                ["org", $contactDetails['org']],
+                ["adr", [
+                    "", // Post office box
+                    $contactDetails['street1'], // Extended address
+                    $contactDetails['street2'], // Street address
+                    $contactDetails['city'], // Locality
+                    $contactDetails['sp'], // Region
+                    $contactDetails['pc'], // Postal code
+                    $contactDetails['cc']  // Country name
+                ]],
+                ["tel", $contactDetails['voice'], ["type" => "voice"]],
+                ["tel", $contactDetails['fax'], ["type" => "fax"]],
+                ["email", $contactDetails['email']],
+            ]
+        ],
+    ];
+}
+
 // Create a Swoole HTTP server
-$http = new Swoole\Http\Server('0.0.0.0', 8080);
+$http = new Swoole\Http\Server('0.0.0.0', 7500);
 
 // Register a callback to handle incoming requests
 $http->on('request', function ($request, $response) {
@@ -59,8 +86,69 @@ $http->start();
 
 function handleDomainQuery($request, $response, $pdo, $domainName) {
     // Extract and validate the domain name from the request
-    $domain = $domainName;
-    // ... Perform validation as in the WHOIS server ...
+    $domain = trim($domainName);
+	
+    // Empty domain check
+    if (!$domain) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Please enter a domain name']));
+        return;
+    }
+	
+    // Check domain length
+    if (strlen($domain) > 68) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name is too long']));
+        return;
+    }
+	
+    // Check for prohibited patterns in domain names
+    if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        return;
+    }
+	
+    // Extract TLD from the domain
+    $parts = explode('.', $domain);
+    $tld = "." . end($parts);
+
+    // Check if the TLD exists in the domain_tld table
+    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
+    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtTLD->execute();
+    $tldExists = $stmtTLD->fetchColumn();
+
+    if (!$tldExists) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Invalid TLD. Please search only allowed TLDs']));
+        return;
+    }
+	
+    // Fetch the IDN regex for the given TLD
+    $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
+    $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtRegex->execute();
+    $idnRegex = $stmtRegex->fetchColumn();
+
+    if (!$idnRegex) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Failed to fetch domain IDN table']));
+        return;
+    }
+
+    // Check for invalid characters using fetched regex
+    if (!preg_match($idnRegex, $domain)) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        return;
+    }
 
     // Perform the RDAP lookup
     try {
@@ -73,6 +161,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
 		// Check if the domain exists
 		if (!$domainDetails) {
 		    // Domain not found, respond with a 404 error
+		    $response->header('Content-Type', 'application/json');
 		    $response->status(404);
 		    $response->end(json_encode([
 		        'errorCode' => 404,
@@ -102,8 +191,35 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt4->execute();
         $registrantDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
 
-        // Query 5: Get admin and tech contacts (similar to registrant, with different conditions)
-        // ...
+        // Query 5: Get admin, billing and tech contacts		
+        $stmtMap = $pdo->prepare("SELECT contact_id, type FROM domain_contact_map WHERE domain_id = :domain_id");
+        $stmtMap->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmtMap->execute();
+        $contactMap = $stmtMap->fetchAll(PDO::FETCH_ASSOC);
+		
+        $adminDetails = [];
+        $techDetails = [];
+        $billingDetails = [];
+
+        foreach ($contactMap as $map) {
+            $stmtDetails = $pdo->prepare("SELECT contact.identifier, contact_postalInfo.name, contact_postalInfo.org, contact_postalInfo.street1, contact_postalInfo.street2, contact_postalInfo.street3, contact_postalInfo.city, contact_postalInfo.sp, contact_postalInfo.pc, contact_postalInfo.cc, contact.voice, contact.voice_x, contact.fax, contact.fax_x, contact.email FROM contact, contact_postalInfo WHERE contact.id = :contact_id AND contact_postalInfo.contact_id = contact.id");
+            $stmtDetails->bindParam(':contact_id', $map['contact_id'], PDO::PARAM_INT);
+            $stmtDetails->execute();
+    
+            $contactDetails = $stmtDetails->fetch(PDO::FETCH_ASSOC);
+    
+            switch ($map['type']) {
+                case 'admin':
+                    $adminDetails[] = $contactDetails;
+                    break;
+                case 'tech':
+                    $techDetails[] = $contactDetails;
+                    break;
+                case 'billing':
+                    $billingDetails[] = $contactDetails;
+                    break;
+            }
+        }
 
         // Query 6: Get nameservers
         $stmt6 = $pdo->prepare("
@@ -115,6 +231,23 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt6->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt6->execute();
         $nameservers = $stmt6->fetchAll(PDO::FETCH_ASSOC);
+		
+        // Define the basic events
+        $events = [
+            ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
+            ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
+            ['eventAction' => 'last rdap database update', 'eventDate' => date('Y-m-d\TH:i:s\Z')],
+        ];
+
+        // Check if domain last update is set and not empty
+        if (isset($domainDetails['update']) && !empty($domainDetails['update'])) {
+            $events[] = ['eventAction' => 'last domain update', 'eventDate' => date('Y-m-d', strtotime($domainDetails['update']))];
+        }
+
+        // Check if domain transfer date is set and not empty
+        if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
+            $events[] = ['eventAction' => 'domain transfer', 'eventDate' => date('Y-m-d', strtotime($domainDetails['trdate']))];
+        }
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -124,39 +257,21 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                 'icann_rdap_technical_implementation_guide_0',
             ],
             'objectClassName' => 'domain',
-            'entities' => [
+            'entities' => array_merge(
                 [
-                    'objectClassName' => 'entity',
-                    'roles' => ['registrant'],
-                    'vcardArray' => [
-                        "vcard",
-                        [
-                            ["version", "4.0"],
-                            ["fn", $registrantDetails['name']],
-                            ["org", $registrantDetails['org']],
-                            ["adr", [
-                                "", // Post office box
-                                $registrantDetails['street1'], // Extended address
-                                $registrantDetails['street2'], // Street address
-                                $registrantDetails['city'], // Locality
-                                $registrantDetails['sp'], // Region
-                                $registrantDetails['pc'], // Postal code
-                                $registrantDetails['cc']  // Country name
-                            ]],
-                            ["tel", $registrantDetails['voice'], ["type" => "voice"]],
-                            ["tel", $registrantDetails['fax'], ["type" => "fax"]],
-                            ["email", $registrantDetails['email']],
-                            // ... Additional vCard properties ...
-                        ]
-                    ],
+                    mapContactToVCard($registrantDetails, 'registrant')
                 ],
-                // ... Additional entities for admin, tech ...
-            ],
-            'events' => [
-                ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
-                ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
-                // ... Additional events ...
-            ],
+                array_map(function ($contact) {
+                    return mapContactToVCard($contact, 'admin');
+                }, $adminDetails),
+                array_map(function ($contact) {
+                    return mapContactToVCard($contact, 'tech');
+                }, $techDetails),
+                array_map(function ($contact) {
+                    return mapContactToVCard($contact, 'billing');
+                }, $billingDetails)
+            ),
+            'events' => $events,
             'handle' => $domainDetails['id'] . '',
             'ldhName' => $domain,
             'status' => $statuses,
@@ -175,8 +290,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             'nameservers' => array_map(function ($nameserverDetails) {
                 return [
                     'objectClassName' => 'nameserver',
-                    'handle' => $nameserverDetails['host_id'] . '', // Use the 'host_id' from the query
-                    'ldhName' => $nameserverDetails['name'], // Use the 'name' from the query
+                    'handle' => $nameserverDetails['host_id'] . '',
+                    'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
                             'href' => 'http://example.com/rdap/nameserver/' . $nameserverDetails['name'],
@@ -193,6 +308,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $response->header('Content-Type', 'application/json');
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $response->header('Content-Type', 'application/json');
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     }
