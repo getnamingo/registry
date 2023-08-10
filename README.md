@@ -25,7 +25,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
   
-- **Control Panel**: Intuitive interface for streamlined domain management and administration.
+- **Control Panel**: An intuitive and modern interface designed for streamlined domain management and administration. Built on the API-first principle, it ensures seamless integration and adaptability. Additionally, it supports multiple languages for enhanced user accessibility.
   
 - **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
   
@@ -51,7 +51,11 @@ We appreciate your involvement and patience as Namingo continues to grow and ada
 
 ## Acknowledgements
 
-Special thanks to XPanel Ltd for their inspirational work on XPanel Registry.
+Special thanks to **XPanel Ltd** for their inspirational work on [XPanel Registry](https://github.com/XPanel/epp).
+
+Additionally, we extend our gratitude to:
+- **ChatGPT** for invaluable assistance with code and text writing.
+- [Slim Framework 4 Starter App](https://github.com/hezecom/slim-starter) which served as the foundation for our control panel.
 
 ## Licensing
 

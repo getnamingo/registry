@@ -75,7 +75,23 @@ cp.example.com {
 }
 ```
 
-## 6. Reload Caddy:
+## 6. Move ```registry/cp``` to ```/path/to/your/php/app```
+
+## 7. Move ```registry/whois/web``` to ```/path/to/your/whois/app```
+
+## 8. Configure registry
+
+Each component in the project comes with its own configuration file. Before getting started:
+1. Edit database settings to match your setup.
+2. Update IP addresses as necessary.
+3. Adjust certificate paths to point to the correct locations.
+
+Once all configurations are set, initiate the application by executing:
+\```
+php app.php
+\```
+
+## 9. Reload Caddy:
 
 ```bash
 systemctl enable caddy
