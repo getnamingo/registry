@@ -1,0 +1,42 @@
+<script src="/assets/libs/list.js/dist/list.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+  const list = new List('table-default', {
+  	sortClass: 'table-sort',
+  	listClass: 'table-tbody',
+  	valueNames: [ 'sort-name', 'sort-type', 'sort-city', 'sort-score',
+  		{ attr: 'data-date', name: 'sort-date' },
+  		{ attr: 'data-progress', name: 'sort-progress' },
+  		'sort-quantity'
+  	]
+  });
+  })
+  
+fetch('/api/records/domain')
+    .then(response => response.json())
+    .then(data => {
+        if (data.records) {
+            populateTable(data.records);
+        }
+    });
+  
+function populateTable(records) {
+    const tableBody = document.getElementById('domainTable').querySelector('tbody');
+    records.forEach(domain => {
+        const row = tableBody.insertRow();
+        const cell1 = row.insertCell(0);
+        const cell2 = row.insertCell(1);
+        const cell3 = row.insertCell(2);
+        const cell4 = row.insertCell(3);
+        const cell5 = row.insertCell(4);
+        cell1.textContent = domain.id;
+        cell2.textContent = domain.name;
+		cell2.style.fontWeight = 'bold';
+        cell3.textContent = domain.crdate;
+        cell4.textContent = domain.exdate;
+        cell5.textContent = domain.registrant;
+    });
+}
+
+</script>
