@@ -87,9 +87,10 @@ Each component in the project comes with its own configuration file. Before gett
 3. Adjust certificate paths to point to the correct locations.
 
 Once all configurations are set, initiate the application by executing:
-\```
+
+```
 php app.php
-\```
+```
 
 ## 9. Reload Caddy:
 
