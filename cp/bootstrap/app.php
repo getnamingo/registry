@@ -8,6 +8,8 @@ use Slim\Handlers\Strategies\RequestResponseArgs;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
 use Twig\TwigFunction;
+use Gettext\Loader\PoLoader;
+use Gettext\Translations;
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -42,6 +44,22 @@ $routeParser = $app->getRouteCollector()->getRouteParser();
 
 require_once __DIR__ . '/database.php';
 
+$desiredLanguage = 'en_US'; // Default language
+
+// Check for a URL parameter
+if (isset($_GET['lang'])) {
+    $desiredLanguage = $_GET['lang'];
+}
+
+$languageFile = '../lang/' . $desiredLanguage . '/messages.po';
+if (!file_exists($languageFile)) {
+    $desiredLanguage = 'en_US'; // Fallback
+    $languageFile = '../lang/en_US/messages.po';
+}
+
+$loader = new PoLoader();
+$translations = $loader->loadFile($languageFile);
+
 $container->set('router', function () use ($routeParser) {
     return $routeParser;
 });
@@ -62,7 +80,7 @@ $container->set('flash', function() {
     return new \Slim\Flash\Messages;
 });
 
-$container->set('view', function ($container) {
+$container->set('view', function ($container) use ($translations) {
     $view = Twig::create(__DIR__ . '/../resources/views', [
         'cache' => false,
     ]);
@@ -76,6 +94,17 @@ $container->set('view', function ($container) {
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
     }
+	
+    $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
+        // Find the translation
+        $translation = $translations->find(null, $text);
+        if ($translation) {
+            return $translation->getTranslation();
+        }
+        // Return the original text if translation not found
+        return $text;
+    });
+    $view->getEnvironment()->addFunction($translateFunction);
 
     //route
     $route = new TwigFunction('route', function ($name) {

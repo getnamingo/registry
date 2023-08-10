@@ -30,7 +30,8 @@
         "imefisto/psr-swoole-native": "^1.1",
         "chubbyphp/chubbyphp-static-file": "^1.2",
         "lasserafn/php-initial-avatar-generator": "^4.2",
-        "mevdschee/php-crud-api": "^2.14"
+        "mevdschee/php-crud-api": "^2.14",
+        "gettext/gettext": "^5.7"
     },
     "autoload": {
     	"psr-4": {
