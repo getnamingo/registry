@@ -48,6 +48,7 @@ $http->on('request', function ($request, $response) {
         $pdo = new PDO('mysql:host=localhost;dbname=registry', 'registry-select', 'EPPRegistrySELECT');
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
+        $response->header('Content-Type', 'application/json');
         $response->end(json_encode(['error' => 'Error connecting to database']));
         return;
     }
@@ -80,6 +81,7 @@ $http->on('request', function ($request, $response) {
         handleSearchQuery($request, $response, $pdo, $searchPattern);
     }
     else {
+        $response->header('Content-Type', 'application/json');
         $response->status(404);
         $response->end(json_encode(['error' => 'Endpoint not found']));
     }
