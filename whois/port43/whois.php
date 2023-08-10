@@ -21,6 +21,15 @@ $server->on('connect', function ($server, $fd) {
 
 // Register a callback to handle incoming requests
 $server->on('receive', function ($server, $fd, $reactorId, $data) {
+    // Connect to the database
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=registry', 'registry-select', 'EPPRegistrySELECT');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        $server->send($fd, "Error connecting to database");
+        $server->close($fd);
+    }
+	
     // Validate and sanitize the domain name
     $domain = trim($data);
     if (!$domain) {
@@ -32,28 +41,45 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
         $server->close($fd);
     }
     $domain = strtoupper($domain);
-    if (preg_match("/[^A-Z0-9\.\-]/", $domain)) {
-        $server->send($fd, "domain name invalid format");
-        $server->close($fd);
-    }
     if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
         $server->send($fd, "domain name invalid format");
         $server->close($fd);
     }
-    if (!preg_match("/^[A-Z0-9-]+\.(XX|COM\.XX|ORG\.XX|INFO\.XX|PRO\.XX)$/", $domain)) {
-        $server->send($fd, "please search only XX domains at least 2 letters");
+	
+    // Extract TLD from the domain and prepend a dot
+    $tld = "." . end(explode('.', $domain));
+
+    // Check if the TLD exists in the domain_tld table
+    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
+    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtTLD->execute();
+    $tldExists = $stmtTLD->fetchColumn();
+
+    if (!$tldExists) {
+        $server->send($fd, "Invalid TLD. Please search only allowed TLDs");
         $server->close($fd);
+        return;  // Return to avoid further processing
     }
 
-    // Connect to the database
-    try {
-        $pdo = new PDO('mysql:host=localhost;dbname=registry', 'registry-select', 'EPPRegistrySELECT');
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } catch (PDOException $e) {
-        $server->send($fd, "Error connecting to database");
+    // Fetch the IDN regex for the given TLD
+    $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
+    $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtRegex->execute();
+    $idnRegex = $stmtRegex->fetchColumn();
+
+    if (!$idnRegex) {
+        $server->send($fd, "Failed to fetch domain IDN table");
         $server->close($fd);
+        return;  // Return to avoid further processing
     }
-	
+
+    // Check for invalid characters using fetched regex
+    if (!preg_match($idnRegex, $domain)) {
+        $server->send($fd, "Domain name invalid format");
+        $server->close($fd);
+        return;  // Return to avoid further processing
+    }
+
     // Perform the WHOIS lookup
 	try {
 		$query = "SELECT *,
