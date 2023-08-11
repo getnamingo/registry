@@ -18,12 +18,20 @@ $dsn = "mysql:host={$c['mysql_host']};dbname={$c['mysql_database']};port={$c['my
 $db = new PDO($dsn, $c['mysql_username'], $c['mysql_password']);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port']);
 $server->set([
     'enable_coroutine' => true,
+    'log_file' => '/var/log/epp/epp.log',
+    'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 4,
     'pid_file' => $c['epp_pid'],
     'tcp_user_timeout' => 10,
+    'max_request' => 1000,
+    'open_tcp_nodelay' => true,
+    'max_conn' => 10000,
+    'heartbeat_check_interval' => 60,
+    'heartbeat_idle_time' => 120,
     'open_ssl' => true,
     'ssl_cert_file' => $c['ssl_cert'],
     'ssl_key_file' => $c['ssl_key'],
