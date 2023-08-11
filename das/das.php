@@ -47,7 +47,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
     }
 	
     // Extract TLD from the domain and prepend a dot
-    $tld = "." . end(explode('.', $domain));
+    $parts = explode('.', $domain);
+    $tld = "." . end($parts);
 
     // Check if the TLD exists in the domain_tld table
     $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
@@ -58,7 +59,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
     if (!$tldExists) {
         $server->send($fd, "Invalid TLD. Please search only allowed TLDs");
         $server->close($fd);
-        return;  // Return to avoid further processing
+        return;
     }
 
     // Fetch the IDN regex for the given TLD
@@ -70,14 +71,14 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
     if (!$idnRegex) {
         $server->send($fd, "Failed to fetch domain IDN table");
         $server->close($fd);
-        return;  // Return to avoid further processing
+        return;
     }
 
     // Check for invalid characters using fetched regex
     if (!preg_match($idnRegex, $domain)) {
         $server->send($fd, "Domain name invalid format");
         $server->close($fd);
-        return;  // Return to avoid further processing
+        return;
     }
 	
     // Perform the DAS lookup
