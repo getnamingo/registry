@@ -1,4 +1,7 @@
 <?php
+require 'vendor/autoload.php';
+
+use Gregwar\Captcha\PhraseBuilder;
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -7,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if ($_POST['captcha'] !== $_SESSION['captcha']) {
+    if (PhraseBuilder::comparePhrases($_SESSION['captcha'], $_POST['captcha'])) {
         echo json_encode(['error' => 'Incorrect Captcha.']);
         exit;
     }

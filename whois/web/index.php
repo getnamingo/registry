@@ -3,10 +3,9 @@ require 'vendor/autoload.php';
 
 use Gregwar\Captcha\CaptchaBuilder;
 
-session_start();
-
-$builder = new CaptchaBuilder;
+$builder = new CaptchaBuilder();
 $builder->build();
+session_start();
 $_SESSION['captcha'] = $builder->getPhrase();
 ?>
 <!DOCTYPE html>
