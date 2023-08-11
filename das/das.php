@@ -11,7 +11,18 @@ $server->set([
     'log_file' => '/var/log/das/das.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file' => '/var/log/das/das.pid'
+    'pid_file' => '/var/log/das/das.pid',
+    'max_request' => 1000,
+    'dispatch_mode' => 2,
+    'open_tcp_nodelay' => true,
+    'max_conn' => 10000,
+    'heartbeat_check_interval' => 60,
+    'heartbeat_idle_time' => 120,
+    'buffer_output_size' => 2 * 1024 * 1024, // 2MB
+    'enable_reuse_port' => true,
+    'package_max_length' => 8192, // 8KB
+    'open_eof_check' => true,
+    'package_eof' => "\r\n"
 ]);
 
 // Register a callback to handle incoming connections
