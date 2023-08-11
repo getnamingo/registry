@@ -34,12 +34,15 @@ $server->on('connect', function ($server, $fd) {
 $server->on('receive', function ($server, $fd, $reactorId, $data) {
     // Connect to the database
     try {
-        $pdo = new PDO('mysql:host=localhost;dbname=registry', 'registry-select', 'EPPRegistrySELECT');
+        $c = include 'config.php';
+        $pdo = new PDO("mysql:host=localhost;dbname={$c['mysql_database']}", $c['mysql_username'], $c['mysql_password']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
         $server->send($fd, "Error connecting to database");
         $server->close($fd);
     }
+	
+    $privacy = $c['privacy'];
     
     // Validate and sanitize the data
     $data = trim($data);
@@ -364,6 +367,21 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                 $stmt5->execute();
 
                 $f2 = $stmt5->fetch(PDO::FETCH_ASSOC);
+				if ($privacy) {
+                $res .= "\nRegistry Registrant ID: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Name: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Organization: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Street: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Street: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Street: REDACTED FOR PRIVACY"
+                    ."\nRegistrant City: REDACTED FOR PRIVACY"
+                    ."\nRegistrant State/Province: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Postal Code: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Country: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Phone: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Fax: REDACTED FOR PRIVACY"
+                    ."\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
+				} else {
                 $res .= "\nRegistry Registrant ID: ".$f2['identifier']
                     ."\nRegistrant Name: ".$f2['name']
                     ."\nRegistrant Organization: ".$f2['org']
@@ -377,6 +395,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                     ."\nRegistrant Phone: ".$f2['voice']
                     ."\nRegistrant Fax: ".$f2['fax']
                     ."\nRegistrant Email: ".$f2['email'];
+				}
 
                 $query6 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                 FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='admin' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
@@ -385,6 +404,21 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                 $stmt6->execute();
 
                 $f2 = $stmt6->fetch(PDO::FETCH_ASSOC);
+				if ($privacy) {
+                $res .= "\nRegistry Admin ID: REDACTED FOR PRIVACY"
+                    ."\nAdmin Name: REDACTED FOR PRIVACY"
+                    ."\nAdmin Organization: REDACTED FOR PRIVACY"
+                    ."\nAdmin Street: REDACTED FOR PRIVACY"
+                    ."\nAdmin Street: REDACTED FOR PRIVACY"
+                    ."\nAdmin Street: REDACTED FOR PRIVACY"
+                    ."\nAdmin City: REDACTED FOR PRIVACY"
+                    ."\nAdmin State/Province: REDACTED FOR PRIVACY"
+                    ."\nAdmin Postal Code: REDACTED FOR PRIVACY"
+                    ."\nAdmin Country: REDACTED FOR PRIVACY"
+                    ."\nAdmin Phone: REDACTED FOR PRIVACY"
+                    ."\nAdmin Fax: REDACTED FOR PRIVACY"
+                    ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
+				} else {
                 $res .= "\nRegistry Admin ID: ".$f2['identifier']
                     ."\nAdmin Name: ".$f2['name']
                     ."\nAdmin Organization: ".$f2['org']
@@ -398,6 +432,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                     ."\nAdmin Phone: ".$f2['voice']
                     ."\nAdmin Fax: ".$f2['fax']
                     ."\nAdmin Email: ".$f2['email'];
+				}
 
                 $query7 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                 FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='billing' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
@@ -406,6 +441,21 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                 $stmt7->execute();
 
                 $f2 = $stmt7->fetch(PDO::FETCH_ASSOC);
+				if ($privacy) {
+                $res .= "\nRegistry Billing ID: REDACTED FOR PRIVACY"
+                    ."\nBilling Name: REDACTED FOR PRIVACY"
+                    ."\nBilling Organization: REDACTED FOR PRIVACY"
+                    ."\nBilling Street: REDACTED FOR PRIVACY"
+                    ."\nBilling Street: REDACTED FOR PRIVACY"
+                    ."\nBilling Street: REDACTED FOR PRIVACY"
+                    ."\nBilling City: REDACTED FOR PRIVACY"
+                    ."\nBilling State/Province: REDACTED FOR PRIVACY"
+                    ."\nBilling Postal Code: REDACTED FOR PRIVACY"
+                    ."\nBilling Country: REDACTED FOR PRIVACY"
+                    ."\nBilling Phone: REDACTED FOR PRIVACY"
+                    ."\nBilling Fax: REDACTED FOR PRIVACY"
+                    ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
+				} else {
                 $res .= "\nRegistry Billing ID: ".$f2['identifier']
                     ."\nBilling Name: ".$f2['name']
                     ."\nBilling Organization: ".$f2['org']
@@ -419,6 +469,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                     ."\nBilling Phone: ".$f2['voice']
                     ."\nBilling Fax: ".$f2['fax']
                     ."\nBilling Email: ".$f2['email'];
+				}
 
                 $query8 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                 FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='tech' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
@@ -427,6 +478,21 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                 $stmt8->execute();
 
                 $f2 = $stmt8->fetch(PDO::FETCH_ASSOC);
+				if ($privacy) {
+                $res .= "\nRegistry Tech ID: REDACTED FOR PRIVACY"
+                    ."\nTech Name: REDACTED FOR PRIVACY"
+                    ."\nTech Organization: REDACTED FOR PRIVACY"
+                    ."\nTech Street: REDACTED FOR PRIVACY"
+                    ."\nTech Street: REDACTED FOR PRIVACY"
+                    ."\nTech Street: REDACTED FOR PRIVACY"
+                    ."\nTech City: REDACTED FOR PRIVACY"
+                    ."\nTech State/Province: REDACTED FOR PRIVACY"
+                    ."\nTech Postal Code: REDACTED FOR PRIVACY"
+                    ."\nTech Country: REDACTED FOR PRIVACY"
+                    ."\nTech Phone: REDACTED FOR PRIVACY"
+                    ."\nTech Fax: REDACTED FOR PRIVACY"
+                    ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
+				} else {
                 $res .= "\nRegistry Tech ID: ".$f2['identifier']
                     ."\nTech Name: ".$f2['name']
                     ."\nTech Organization: ".$f2['org']
@@ -440,6 +506,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
                     ."\nTech Phone: ".$f2['voice']
                     ."\nTech Fax: ".$f2['fax']
                     ."\nTech Email: ".$f2['email'];
+				}
 
                 $query9 = "SELECT `name` FROM `domain_host_map`,`host` WHERE `domain_host_map`.`domain_id` = :domain_id AND `domain_host_map`.`host_id` = `host`.`id`";
                 $stmt9 = $pdo->prepare($query9);
