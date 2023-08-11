@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
 	`prefix` char(2) NOT NULL,
 	`email` varchar(255) NOT NULL,
 	`whois_server` varchar(255) NOT NULL,
+	`rdap_server` varchar(255) NOT NULL,
 	`url` varchar(255) NOT NULL,
 	`abuse_email` varchar(255) NOT NULL,
 	`abuse_phone` varchar(255) NOT NULL,
@@ -575,9 +576,9 @@ INSERT INTO `registry`.`domain_restore_price` VALUES('3','3','50.00');
 INSERT INTO `registry`.`domain_restore_price` VALUES('4','4','50.00');
 INSERT INTO `registry`.`domain_restore_price` VALUES('5','5','50.00');
 
-INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Namingo Test','namingo','{SHA}MyVYFDDrSjD546LIF11cMPu93ss=','XP','info@namingo.org','whois.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 002','testregistrar1','{SHA}ELxnUq/+JQS9a7pCUIZQpUrA3bY=','AA','info@testregistrar1.com','whois.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 003','testregistrar2','{SHA}jkkAfdvdLH5vbkCeQLGJy77LEGM=','BB','info@testregistrar2.com','whois.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Namingo Test','namingo','{SHA}MyVYFDDrSjD546LIF11cMPu93ss=','XP','info@namingo.org','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 002','testregistrar1','{SHA}ELxnUq/+JQS9a7pCUIZQpUrA3bY=','AA','info@testregistrar1.com','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 003','testregistrar2','{SHA}jkkAfdvdLH5vbkCeQLGJy77LEGM=','BB','info@testregistrar2.com','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 CREATE USER 'registry'@'localhost' IDENTIFIED BY 'EPPRegistry';
 CREATE USER 'registry-select'@'localhost' IDENTIFIED BY 'EPPRegistrySELECT';
