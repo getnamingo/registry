@@ -38,7 +38,17 @@ $http->set([
     'log_file' => '/var/log/rdap/rdap.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file' => '/var/log/rdap/rdap.pid'
+    'pid_file' => '/var/log/rdap/rdap.pid',
+    'max_request' => 1000,
+    'dispatch_mode' => 1,
+    'open_tcp_nodelay' => true,
+    'max_conn' => 10000,
+    'buffer_output_size' => 2 * 1024 * 1024,  // 2MB
+    'heartbeat_check_interval' => 60,
+    'heartbeat_idle_time' => 600,  // 10 minutes
+    'package_max_length' => 2 * 1024 * 1024,  // 2MB
+    'reload_async' => true,
+    'http_compression' => true
 ]);
 
 // Register a callback to handle incoming requests
@@ -286,12 +296,12 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             'status' => $statuses,
             'links' => [
                 [
-                    'href' => 'http://example.com/rdap/domain/' . $domain,
+                    'href' => 'http://rdap.example.com/domain/' . $domain,
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => 'http://example.com/rdap/domain/' . $domain,
+                    'href' => 'http://rdap.registrar.com/domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -303,14 +313,69 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                     'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
-                            'href' => 'http://example.com/rdap/nameserver/' . $nameserverDetails['name'],
+                            'href' => 'http://rdap.example.com/nameserver/' . $nameserverDetails['name'],
                             'rel' => 'self',
                             'type' => 'application/rdap+json',
                         ],
                     ],
                 ];
             }, $nameservers),
-            // ... Other RDAP fields ...
+            "notices" => [
+                [
+                    "description" => [
+                        "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                        "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                        "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                        "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                        "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                        "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                ],
+                    "links" => [
+                    [
+                        "href" => "https://rdap.example.com/help",
+                        "rel" => "self",
+                        "type" => "application/rdap+json"
+                    ],
+                    [
+                        "href" => "https://example.com/rdap-terms",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ],
+                ],
+                    "title" => "RDAP Terms of Service"
+                ],
+                [
+            "description" => [
+                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                ]
+                ],
+				[
+            "description" => [
+                "For more information on domain status codes, please visit https://icann.org/epp"
+                ],
+			  "links" => [
+                    [
+                        "href" => "https://icann.org/epp",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                    "title" => "Status Codes"
+                ],
+				[
+            "description" => [
+                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                ],
+			  "links" => [
+                    [
+                        "href" => "https://icann.org/wicf",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                    "title" => "RDDS Inaccuracy Complaint Form"
+                ],
+            ]
         ];
 
         // Send the RDAP response
