@@ -126,37 +126,30 @@ systemctl restart caddy
 
 ### Generate the Key Pair:
 
-```bash
-gpg2 --full-generate-key
+Create a configuration file, say key-config, with the following content:
+
+```yaml
+%echo Generating a default key
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: Your Name
+Name-Comment: Your Comment
+Name-Email: your.email@example.com
+Expire-Date: 0
+%no-protection
+%commit
+%echo done
 ```
 
-### Key Type Selection:
+Replace "Your Name", "Your Comment", and "your.email@example.com" with your details.
 
-You'll be prompted to select the type of key you want. Typically, the default (RSA and RSA) is fine. Press Enter to accept the default.
+Use the following command to generate the key:
 
-### Key Size:
-
-You'll be asked for a key size. 2048 bits is the default and is sufficient for most use cases. Press Enter to accept the default.
-
-### Key Validity:
-
-Set how long the key should be valid. You can choose a specific period (e.g., 1y for 1 year) or press Enter to accept the default of the key being valid forever.
-
-### Confirm Key Options:
-
-Confirm your key settings.
-
-### Provide Your Information:
-
-Real name: Enter your name.
-
-Email address: Enter your email address. This is essential as GPG keys are often identified by the associated email.
-
-Comment: Optional. You can leave this blank.
-
-Confirm Your Details: Check that the details you've entered are correct.
-
-Set a Passphrase: Since you need a key without a passphrase, simply press Enter at the passphrase prompt. You'll need to press Enter again to confirm the empty passphrase.
+```bash
+gpg2 --batch --generate-key key-config
+```
 
 Your GPG key pair will now be generated.
 
@@ -165,7 +158,7 @@ Your GPG key pair will now be generated.
 Public key:
 
 ```bash
-gpg2 --armor --export your-email@example.com > mypublickey.asc
+gpg2 --armor --export your.email@example.com > publickey.asc
 ```
 
 Replace `your-email@example.com` with the email address you used when generating the key.
@@ -173,7 +166,7 @@ Replace `your-email@example.com` with the email address you used when generating
 Private key:
 
 ```bash
-gpg2 --armor --export-secret-keys your-email@example.com > myprivatekey.asc
+gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
 ```
 
 ### Secure Your Private Key:
@@ -182,4 +175,4 @@ Always keep your private key secure. Do not share it. If someone gains access to
 
 ### Use in RDE deposit generation:
 
-Please send the exported `mypublickey.asc` to your RDE provider, and also place the path to `myprivatekey.asc` in the escrow.php system as required.
+Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
