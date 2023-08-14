@@ -121,3 +121,65 @@ php app.php
 systemctl enable caddy
 systemctl restart caddy
 ```
+
+## 10. RDE (Registry data escrow) configuration:
+
+### Generate the Key Pair:
+
+```bash
+gpg2 --full-generate-key
+```
+
+### Key Type Selection:
+
+You'll be prompted to select the type of key you want. Typically, the default (RSA and RSA) is fine. Press Enter to accept the default.
+
+### Key Size:
+
+You'll be asked for a key size. 2048 bits is the default and is sufficient for most use cases. Press Enter to accept the default.
+
+### Key Validity:
+
+Set how long the key should be valid. You can choose a specific period (e.g., 1y for 1 year) or press Enter to accept the default of the key being valid forever.
+
+### Confirm Key Options:
+
+Confirm your key settings.
+
+### Provide Your Information:
+
+Real name: Enter your name.
+
+Email address: Enter your email address. This is essential as GPG keys are often identified by the associated email.
+
+Comment: Optional. You can leave this blank.
+
+Confirm Your Details: Check that the details you've entered are correct.
+
+Set a Passphrase: Since you need a key without a passphrase, simply press Enter at the passphrase prompt. You'll need to press Enter again to confirm the empty passphrase.
+
+Your GPG key pair will now be generated.
+
+### Exporting Your Keys:
+
+Public key:
+
+```bash
+gpg2 --armor --export your-email@example.com > mypublickey.asc
+```
+
+Replace `your-email@example.com` with the email address you used when generating the key.
+
+Private key:
+
+```bash
+gpg2 --armor --export-secret-keys your-email@example.com > myprivatekey.asc
+```
+
+### Secure Your Private Key:
+
+Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
+
+### Use in RDE deposit generation:
+
+Please send the exported `mypublickey.asc` to your RDE provider, and also place the path to `myprivatekey.asc` in the escrow.php system as required.
