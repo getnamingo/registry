@@ -472,6 +472,7 @@ CREATE TABLE registry.rde_escrow_deposits (
     "id" serial8 PRIMARY KEY,
     "deposit_id" VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     "deposit_date" DATE NOT NULL,
+	"revision" INTEGER NOT NULL DEFAULT 1,
     "file_name" VARCHAR(255) NOT NULL,
     "file_format" file_format_enum NOT NULL,  -- Format of the data file
     "file_size" BIGINT CHECK ("file_size" >= 0),

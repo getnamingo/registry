@@ -497,6 +497,7 @@ CREATE TABLE `rde_escrow_deposits` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `deposit_id` VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     `deposit_date` DATE NOT NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
     `file_name` VARCHAR(255) NOT NULL,
     `file_format` ENUM('XML', 'CSV') NOT NULL,  -- Format of the data file
     `file_size` BIGINT UNSIGNED,
