@@ -9,10 +9,38 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stabl
 gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 apt update && apt upgrade
-apt install -y bzip2 caddy composer curl gettext git gnupg2 mariadb-client mariadb-server net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-mysql php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml unzip wget whois
+apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml unzip wget whois
 ```
 
-## 2. Install Adminer:
+## 2. Database installation (please choose one):
+
+### 2a. Install and configure MariaDB:
+
+```bash
+apt install -y mariadb-client mariadb-server php8.2-mysql
+mysql_secure_installation
+```
+
+### 2b. Install and configure PostgreSQL:
+
+```bash
+sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
+apt update
+apt install -y postgresql postgresql-client php8.2-pgsql
+psql --version
+```
+
+Now you need to update PostgreSQL Admin User Password:
+
+```bash
+sudo -u postgres psql
+postgres=#
+postgres=# ALTER USER postgres PASSWORD 'demoPassword';
+postgres=# \q
+```
+
+## 3. Install Adminer:
 
 ```bash
 mkdir /usr/share/adminer
@@ -20,16 +48,10 @@ wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 ```
 
-## 3. Download Namingo:
+## 4. Download Namingo:
 
 ```bash
 git clone https://github.com/getnamingo/registry
-```
-
-## 4. Configure MariaDB:
-
-```bash
-mysql_secure_installation
 ```
 
 ## 5. Edit ```/etc/caddy/Caddyfile``` and place the following content:
