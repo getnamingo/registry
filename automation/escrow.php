@@ -1,34 +1,19 @@
 <?php
-//use phpseclib\Net\SFTP;
+use phpseclib\Net\SFTP;
 
-//require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 
-// Database connection using PDO
-$host = '127.0.0.1';
-$db   = 'db_name';
-$user = 'db_user';
-$pass = 'db_pass';
-$charset = 'utf8mb4';
-$path = '/opt/escrow';
-$deleteXML = false;
-$RDEupload = false;
-$escrowKey = '/root/escrowKey.asc';
-$privateKey = '/root/privatekey.asc';
+$c = require_once 'config.php';
+require_once 'helpers.php';
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+// Database connection
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
-$pdo = new PDO($dsn, $user, $pass, $options);
-
-function fetchCount($pdo, $tableName) {
-    $stmt = $pdo->prepare("SELECT count(id) AS count FROM {$tableName};");
-    $stmt->execute();
-    $result = $stmt->fetch();
-    return $result['count'];
-}
+$pdo = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 
 $domainCount = fetchCount($pdo, 'domain');
 $hostCount = fetchCount($pdo, 'host');
@@ -50,14 +35,14 @@ $nextRevisionNumber = is_null($deposit_id['deposit_id']) ? 1 : ($deposit_id['rev
 // Format the revision number (001, 002, 003, ..., 010, ...)
 $finalDepositId = str_pad($nextRevisionNumber, 3, '0', STR_PAD_LEFT);
 
-foreach ($tlds as $tld) {  
+foreach ($tlds as $tld) {
     $tldname = strtoupper(ltrim($tld['tld'], '.'));
-	
+    
     // Skip subdomains
     if (strpos($tldname, '.') !== false) {
         continue;
     }
-	
+    
     // Starting the XML for this TLD
     // Initializing XMLWriter
     $xml = new XMLWriter();
@@ -123,118 +108,118 @@ foreach ($tlds as $tld) {
         $xml->endElement();  // Closing rdeDom:domain
     }
 
-// Fetch and incorporate registrar details
-$stmt = $pdo->prepare("SELECT * FROM registrar;");
-$stmt->execute();
-$registrars = $stmt->fetchAll();
-
-$xml->startElement('rdeRegistrar:registrar');
-foreach ($registrars as $registrar) {
-    $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
-    $xml->writeElement('rdeRegistrar:name', $registrar['name']);
-    $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
-    $xml->writeElement('rdeRegistrar:status', 'ok');
-
-    // Fetch and incorporate registrar contact details
-    $stmt = $pdo->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
-    $stmt->bindParam(':registrar_id', $registrar['id']);
+    // Fetch and incorporate registrar details
+    $stmt = $pdo->prepare("SELECT * FROM registrar;");
     $stmt->execute();
-    $registrar_contacts = $stmt->fetchAll();
+    $registrars = $stmt->fetchAll();
 
-    foreach ($registrar_contacts as $contact) {
-        $xml->startElement('rdeRegistrar:postalInfo');
-        $xml->writeAttribute('type', 'int');
-        $xml->startElement('rdeRegistrar:addr');
-        $xml->writeElement('rdeRegistrar:street', $contact['street1']);
-        $xml->writeElement('rdeRegistrar:city', $contact['city']);
-        $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
-        $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
-        $xml->endElement();  // Closing rdeRegistrar:addr
-        $xml->endElement();  // Closing rdeRegistrar:postalInfo
+    $xml->startElement('rdeRegistrar:registrar');
+    foreach ($registrars as $registrar) {
+        $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
+        $xml->writeElement('rdeRegistrar:name', $registrar['name']);
+        $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
+        $xml->writeElement('rdeRegistrar:status', 'ok');
+
+        // Fetch and incorporate registrar contact details
+        $stmt = $pdo->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
+        $stmt->bindParam(':registrar_id', $registrar['id']);
+        $stmt->execute();
+        $registrar_contacts = $stmt->fetchAll();
+
+        foreach ($registrar_contacts as $contact) {
+            $xml->startElement('rdeRegistrar:postalInfo');
+            $xml->writeAttribute('type', 'int');
+            $xml->startElement('rdeRegistrar:addr');
+            $xml->writeElement('rdeRegistrar:street', $contact['street1']);
+            $xml->writeElement('rdeRegistrar:city', $contact['city']);
+            $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
+            $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
+            $xml->endElement();  // Closing rdeRegistrar:addr
+            $xml->endElement();  // Closing rdeRegistrar:postalInfo
+            
+            $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
+            $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
+            $xml->writeElement('rdeRegistrar:email', $contact['email']);
+        }
+
+        $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+        $xml->startElement('rdeRegistrar:whoisInfo');
+        $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+        $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+        $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+
+        $xml->writeElement('rdeRegistrar:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($registrar['crdate'])));
+    }
+    $xml->endElement();  // Closing rdeRegistrar:registrar
+
+    // Fetch and incorporate host details
+    $stmt = $pdo->prepare("SELECT * FROM host;");
+    $stmt->execute();
+    $hosts = $stmt->fetchAll();
+
+    foreach ($hosts as $host) {
+        $xml->startElement('rdeHost:host');
+        $xml->writeElement('rdeHost:name', $host['name']);
+        $xml->writeElement('rdeHost:roid', $host['id']);
         
-        $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
-        $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
-        $xml->writeElement('rdeRegistrar:email', $contact['email']);
+        $xml->startElement('rdeHost:status');
+        $xml->writeAttribute('s', 'ok');
+        $xml->text('ok');
+        $xml->endElement();  // Closing rdeHost:status
+        
+        $xml->writeElement('rdeHost:clID', $host['clid']);
+        $xml->writeElement('rdeHost:crRr', $host['crid']);
+        $xml->writeElement('rdeHost:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($host['crdate'])));
+        $xml->endElement();  // Closing rdeHost:host
     }
 
-    $xml->writeElement('rdeRegistrar:url', $registrar['url']);
-    $xml->startElement('rdeRegistrar:whoisInfo');
-    $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-    $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-    $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+    // Fetch and incorporate contact details
+    $stmt = $pdo->prepare("SELECT * FROM contact;");
+    $stmt->execute();
+    $contacts = $stmt->fetchAll();
 
-    $xml->writeElement('rdeRegistrar:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($registrar['crdate'])));
-}
-$xml->endElement();  // Closing rdeRegistrar:registrar
+    foreach ($contacts as $contact) {
+        $xml->startElement('rdeContact:contact');
+        $xml->writeElement('rdeContact:id', $contact['identifier']);
+        $xml->writeElement('rdeContact:roid', $contact['id']);
+        $xml->startElement('rdeContact:status');
+        $xml->writeAttribute('s', 'ok');
+        $xml->text('ok');
+        $xml->endElement();  // Closing rdeContact:status
 
-// Fetch and incorporate host details
-$stmt = $pdo->prepare("SELECT * FROM host;");
-$stmt->execute();
-$hosts = $stmt->fetchAll();
+        // Fetch postalInfo for the current contact
+        $stmtPostal = $pdo->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
+        $stmtPostal->bindParam(':contact_id', $contact['id']);
+        $stmtPostal->execute();
+        $postalInfo = $stmtPostal->fetch();
 
-foreach ($hosts as $host) {
-    $xml->startElement('rdeHost:host');
-    $xml->writeElement('rdeHost:name', $host['name']);
-    $xml->writeElement('rdeHost:roid', $host['id']);
+        if ($postalInfo) {
+            $xml->startElement('rdeContact:postalInfo');
+            $xml->writeAttribute('type', 'int');
+            $xml->writeElement('contact:name', $postalInfo['name']);
+            $xml->writeElement('contact:org', $postalInfo['org']);
+            $xml->startElement('contact:addr');
+            $xml->writeElement('contact:street', $postalInfo['street1']);
+            $xml->writeElement('contact:city', $postalInfo['city']);
+            $xml->writeElement('contact:pc', $postalInfo['pc']);
+            $xml->writeElement('contact:cc', $postalInfo['cc']);
+            $xml->endElement();  // Closing contact:addr
+            $xml->endElement();  // Closing rdeContact:postalInfo
+        }
+
+        $xml->writeElement('rdeContact:voice', $contact['voice']);
+        $xml->writeElement('rdeContact:fax', $contact['fax']);
+        $xml->writeElement('rdeContact:email', $contact['email']);
+        $xml->writeElement('rdeContact:clID', $contact['clid']);
+        $xml->writeElement('rdeContact:crRr', $contact['crid']);
+        $xml->writeElement('rdeContact:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['crdate'])));
+        if (!empty($contact['upid'])) {
+            $xml->writeElement('rdeContact:upRr', $contact['upid']);
+            $xml->writeElement('rdeContact:upDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['update'])));
+        }
+        $xml->endElement();  // Closing rdeContact:contact
+    }
     
-    $xml->startElement('rdeHost:status');
-    $xml->writeAttribute('s', 'ok');
-    $xml->text('ok');
-    $xml->endElement();  // Closing rdeHost:status
-    
-    $xml->writeElement('rdeHost:clID', $host['clid']);
-    $xml->writeElement('rdeHost:crRr', $host['crid']);
-    $xml->writeElement('rdeHost:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($host['crdate'])));
-    $xml->endElement();  // Closing rdeHost:host
-}
-
-// Fetch and incorporate contact details
-$stmt = $pdo->prepare("SELECT * FROM contact;");
-$stmt->execute();
-$contacts = $stmt->fetchAll();
-
-foreach ($contacts as $contact) {
-    $xml->startElement('rdeContact:contact');
-    $xml->writeElement('rdeContact:id', $contact['identifier']);
-    $xml->writeElement('rdeContact:roid', $contact['id']);
-    $xml->startElement('rdeContact:status');
-    $xml->writeAttribute('s', 'ok');
-    $xml->text('ok');
-    $xml->endElement();  // Closing rdeContact:status
-
-    // Fetch postalInfo for the current contact
-    $stmtPostal = $pdo->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
-    $stmtPostal->bindParam(':contact_id', $contact['id']);
-    $stmtPostal->execute();
-    $postalInfo = $stmtPostal->fetch();
-
-    if ($postalInfo) {
-        $xml->startElement('rdeContact:postalInfo');
-        $xml->writeAttribute('type', 'int');
-        $xml->writeElement('contact:name', $postalInfo['name']);
-        $xml->writeElement('contact:org', $postalInfo['org']);
-        $xml->startElement('contact:addr');
-        $xml->writeElement('contact:street', $postalInfo['street1']);
-        $xml->writeElement('contact:city', $postalInfo['city']);
-        $xml->writeElement('contact:pc', $postalInfo['pc']);
-        $xml->writeElement('contact:cc', $postalInfo['cc']);
-        $xml->endElement();  // Closing contact:addr
-        $xml->endElement();  // Closing rdeContact:postalInfo
-    }
-
-    $xml->writeElement('rdeContact:voice', $contact['voice']);
-    $xml->writeElement('rdeContact:fax', $contact['fax']);
-    $xml->writeElement('rdeContact:email', $contact['email']);
-    $xml->writeElement('rdeContact:clID', $contact['clid']);
-    $xml->writeElement('rdeContact:crRr', $contact['crid']);
-    $xml->writeElement('rdeContact:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['crdate'])));
-    if (!empty($contact['upid'])) {
-        $xml->writeElement('rdeContact:upRr', $contact['upid']);
-        $xml->writeElement('rdeContact:upDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['update'])));
-    }
-    $xml->endElement();  // Closing rdeContact:contact
-}
-	
     // Writing the rdeHeader section to XML
     $xml->startElement('rdeIDN:idnTableRef');
     $xml->writeAttribute('id', 'Latn');
@@ -276,7 +261,7 @@ foreach ($contacts as $contact) {
     $xml->endElement();
 
     $xml->endElement();  // Closing rdeHeader:header
-	
+    
     $xml->endElement();  // Closing the 'rde:deposit' element
     $es = $xml->outputMemory();
 
@@ -289,28 +274,28 @@ foreach ($contacts as $contact) {
     $gzipFileName = $baseFileName . ".tar.gz";
 
     // Save the main XML file
-    file_put_contents($path."/".$xmlFileName, $es, LOCK_EX);
+    file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $es, LOCK_EX);
 
     // Compress the XML file using tar
-    $phar = new PharData($path."/".$tarFileName);
-    $phar->addFile($path."/".$xmlFileName, $xmlFileName);
+    $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
+    $phar->addFile($c['escrow_deposit_path']."/".$xmlFileName, $xmlFileName);
 
     // Compress the tar archive using gzip
     $phar->compress(Phar::GZ);
 
     // Delete the original tar file
-    unlink($path."/".$tarFileName);
+    unlink($c['escrow_deposit_path']."/".$tarFileName);
 
-    // Check if the $deleteXML variable is set to true and delete the original XML file
-    if ($deleteXML) {
-        unlink($path."/".$xmlFileName);
+    // Check if the $c['escrow_deleteXML'] variable is set to true and delete the original XML file
+    if ($c['escrow_deleteXML']) {
+        unlink($c['escrow_deposit_path']."/".$xmlFileName);
     }
-	
+    
     // Initialize a GnuPG instance
     $res = gnupg_init();
 
     // Get information about the public key from its content
-    $publicKeyInfo = gnupg_import($res, file_get_contents($escrowKey));
+    $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
     $fingerprint = $publicKeyInfo['fingerprint'];
 
     // Check if the key is already in the keyring
@@ -318,12 +303,12 @@ foreach ($contacts as $contact) {
 
     if (!$existingKeys) {
         // If not, import the public key
-        gnupg_import($res, file_get_contents($escrowKey));
+        gnupg_import($res, file_get_contents($c['escrow_keyPath']));
     }
 
     // Read the .tar.gz file contents
-    $fileData = file_get_contents($path . "/" . $gzipFileName);
-	
+    $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $gzipFileName);
+    
     // Add the encryption key
     gnupg_addencryptkey($res, $fingerprint);
 
@@ -335,25 +320,25 @@ foreach ($contacts as $contact) {
     }
 
     // Save the encrypted data to a new file
-    file_put_contents($path . "/" . $baseFileName . ".ryde", $encryptedData);
+    file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde", $encryptedData);
 
     // Delete the original .tar.gz file
-    unlink($path . "/" . $gzipFileName);
-	
-	$encryptedFilePath = $path . "/" . $baseFileName . ".ryde";
-	
+    unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
+    
+    $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
+    
     // Initialize the GnuPG extension
     $gpg = new gnupg();
     $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
 
     // Import your private key (if it's not already in the keyring)
-    $privateKeyData = file_get_contents($privateKey);
+    $privateKeyData = file_get_contents($c['escrow_privateKey']);
     $importResult = $gpg->import($privateKeyData);
 
     // Set the key to be used for signing
     $privateKeyId = $importResult['fingerprint'];
     $gpg->addsignkey($privateKeyId);
-	
+    
     // Specify the detached signature mode
     $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
@@ -362,84 +347,12 @@ foreach ($contacts as $contact) {
     $signature = $gpg->sign($encryptedData);
 
     // Save the signature to a .sig file
-    $sigFilePath = $path . '/' . pathinfo($encryptedFilePath, PATHINFO_FILENAME) . '.sig';
-    file_put_contents($sigFilePath, $signature);
+    $signatureFilePath = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePath, PATHINFO_FILENAME) . '.sig';
+    file_put_contents($signatureFilePath, $signature);
 
     // Optionally, delete the encrypted file if you don't need it anymore
     // unlink($encryptedFilePath);
-
-    if ($RDEupload) {
-        // Connect to the SFTP server
-        $sftp = new SFTP('your.sftp.server.com');
-
-        // Login with username and password
-        if (!$sftp->login('yourUsername', 'yourPassword')) {
-            die('Login failed');
-        }
-
-        // Define the remote directory where you want to upload the files
-        $remoteDir = '/path/on/sftp/server/';
-
-        // Upload the files
-        $filesToUpload = [
-            $encryptedFilePath,
-            $signatureFilePath,
-            $reportFilePath
-        ];
-
-        foreach ($filesToUpload as $filePath) {
-            $remoteFile = $remoteDir . basename($filePath);
-            if (!$sftp->put($remoteFile, $filePath, SFTP::SOURCE_LOCAL_FILE)) {
-                echo "Failed to upload " . basename($filePath) . "\n";
-            } else {
-                echo "Successfully uploaded " . basename($filePath) . "\n";
-            }
-        }
-		
-        $url = 'https://ry-api.icann.org/report/registrar-transactions/';
-        $reportFileData = file_get_contents($reportFilePath);
-
-        $ch = curl_init();
-
-        // Set cURL options
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_USERPWD, 'yourUsername:yourPassword');
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $reportFileData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Content-Type: application/octet-stream',
-            'Content-Length: ' . strlen($reportFileData)
-        ));
-
-        $response = curl_exec($ch);
-
-        if ($response === false) {
-            die('Error occurred: ' . curl_error($ch));
-        }
-
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($httpCode >= 200 && $httpCode < 300) {
-            echo "File uploaded successfully.\n";
-        } else {
-            echo "Failed to upload file. HTTP Status Code: " . $httpCode . "\n";
-        }
-
-        curl_close($ch);
-		
-    }
-
-}
-
-// And now the report
-foreach ($tlds as $tld) {
-    $tldname = strtoupper(ltrim($tld['tld'], '.'));
-	
-    // Skip subdomains
-    if (strpos($tldname, '.') !== false) {
-        continue;
-    }
-
+    
     // Start XMLWriter for the report
     $reportXML = new XMLWriter();
     $reportXML->openMemory();
@@ -501,5 +414,67 @@ foreach ($tlds as $tld) {
     $reps = $reportXML->outputMemory();
 
     // Save the report file
-    file_put_contents($path."/{$tldname}_".date('Y-m-d')."_full_R{$finalDepositId}.rep", $reps, LOCK_EX);
+    $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_".date('Y-m-d')."_full_R{$finalDepositId}.rep";
+    file_put_contents($reportFilePath, $reps, LOCK_EX);
+
+    if ($c['escrow_RDEupload']) {
+        // Connect to the SFTP server
+        $sftp = new SFTP($c['escrow_sftp_host']);
+
+        // Login with username and password
+        if (!$sftp->login($c['escrow_sftp_username'], $c['escrow_sftp_password'])) {
+            die('Login failed');
+        }
+
+        // Define the remote directory where you want to upload the files
+        $remoteDir = $c['escrow_sftp_remotepath'];
+
+        // Upload the files
+        $filesToUpload = [
+            $encryptedFilePath,
+            $signatureFilePath,
+            $reportFilePath
+        ];
+
+        foreach ($filesToUpload as $filePath) {
+            $remoteFile = $remoteDir . basename($filePath);
+            if (!$sftp->put($remoteFile, $filePath, SFTP::SOURCE_LOCAL_FILE)) {
+                echo "Failed to upload " . basename($filePath) . "\n";
+            } else {
+                echo "Successfully uploaded " . basename($filePath) . "\n";
+            }
+        }
+        
+        $reportFileData = file_get_contents($reportFilePath);
+
+        $ch = curl_init();
+
+        // Set cURL options
+        curl_setopt($ch, CURLOPT_URL, $c['escrow_report_url']);
+        curl_setopt($ch, CURLOPT_USERPWD, $c['escrow_report_username'].':'.$c['escrow_report_password']);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $reportFileData);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/octet-stream',
+            'Content-Length: ' . strlen($reportFileData)
+        ));
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            die('Error occurred: ' . curl_error($ch));
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($httpCode >= 200 && $httpCode < 300) {
+            echo "File uploaded successfully.\n";
+        } else {
+            echo "Failed to upload file. HTTP Status Code: " . $httpCode . "\n";
+        }
+
+        curl_close($ch);
+        
+    }
+
 }
