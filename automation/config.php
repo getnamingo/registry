@@ -9,7 +9,7 @@ return [
     'db_username' => 'your_username',
     'db_password' => 'your_password',
 	
-	// Escrow Configuration
+    // Escrow Configuration
     'escrow_deposit_path' => '/opt/escrow',
     'escrow_deleteXML' => false,
     'escrow_RDEupload' => false,
@@ -22,4 +22,9 @@ return [
     'escrow_report_url' => 'https://ry-api.icann.org/report/',
     'escrow_report_username' => 'your_username',
     'escrow_report_password' => 'your_password',
+	
+    // Reporting Configuration
+	'reporting_upload' => false,
+	'reporting_username' => 'your_username',
+	'reporting_password' => 'your_password',
 ];
