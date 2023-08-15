@@ -1,10 +1,17 @@
 <?php
 
-// Connect to the MySQL database using PDO
-$c = require 'config.php';
-$dsn = "mysql:host={$c['mysql_host']};dbname={$c['mysql_database']};port={$c['mysql_port']}";
-$dbh = new PDO($dsn, $c['mysql_username'], $c['mysql_password']);
-$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$c = require_once 'config.php';
+require_once 'helpers.php';
+
+// Connect to the database
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+
+try {
+    $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
+    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
 
 $query_domain = "SELECT id, name, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'";
 $stmt_domain = $dbh->prepare($query_domain);

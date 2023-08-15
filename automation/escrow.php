@@ -6,26 +6,31 @@ require __DIR__ . '/vendor/autoload.php';
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
-// Database connection
+// Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
-$pdo = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 
-$domainCount = fetchCount($pdo, 'domain');
-$hostCount = fetchCount($pdo, 'host');
-$contactCount = fetchCount($pdo, 'contact');
-$registrarCount = fetchCount($pdo, 'registrar');
+try {
+    $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
+$domainCount = fetchCount($dbh, 'domain');
+$hostCount = fetchCount($dbh, 'host');
+$contactCount = fetchCount($dbh, 'contact');
+$registrarCount = fetchCount($dbh, 'registrar');
 
 // Fetching TLDs
-$stmt = $pdo->query("SELECT id,tld FROM domain_tld;");
+$stmt = $dbh->query("SELECT id,tld FROM domain_tld;");
 $tlds = $stmt->fetchAll();
 
 // Fetching details from rde_escrow_deposits table
-$stmt = $pdo->prepare("SELECT deposit_id, revision FROM rde_escrow_deposits;");
+$stmt = $dbh->prepare("SELECT deposit_id, revision FROM rde_escrow_deposits;");
 $stmt->execute();
 $deposit_id = $stmt->fetch();
 
@@ -56,7 +61,7 @@ foreach ($tlds as $tld) {
     $xml->writeAttributeNS('xmlns', 'rdeRegistrar', null, 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
 
     // Fetch domain details for this TLD
-    $stmt = $pdo->prepare("SELECT * FROM domain WHERE tldid = :tldid;");
+    $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid;");
     $stmt->bindParam(':tldid', $tld['id']);
     $stmt->execute();
     $domains = $stmt->fetchAll();
@@ -69,7 +74,7 @@ foreach ($tlds as $tld) {
         $xml->writeElement('rdeDom:idnTableId', 'Latn');
 
         // Fetch domain status
-        $stmt = $pdo->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
+        $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
         $stmt->bindParam(':domain_id', $domain['id']);
         $stmt->execute();
         $status = $stmt->fetch();
@@ -78,7 +83,7 @@ foreach ($tlds as $tld) {
         $xml->writeElement('rdeDom:registrant', $domain['registrant']);
 
         // Fetch domain contacts
-        $stmt = $pdo->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
+        $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
         $stmt->bindParam(':domain_id', $domain['id']);
         $stmt->execute();
         $domain_contacts = $stmt->fetchAll();
@@ -90,7 +95,7 @@ foreach ($tlds as $tld) {
         }
 
         // Fetch domain hosts and incorporate into XML
-        $stmt = $pdo->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
+        $stmt = $dbh->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
         $stmt->bindParam(':domain_id', $domain['id']);
         $stmt->execute();
         $domain_hosts = $stmt->fetchAll();
@@ -109,7 +114,7 @@ foreach ($tlds as $tld) {
     }
 
     // Fetch and incorporate registrar details
-    $stmt = $pdo->prepare("SELECT * FROM registrar;");
+    $stmt = $dbh->prepare("SELECT * FROM registrar;");
     $stmt->execute();
     $registrars = $stmt->fetchAll();
 
@@ -121,7 +126,7 @@ foreach ($tlds as $tld) {
         $xml->writeElement('rdeRegistrar:status', 'ok');
 
         // Fetch and incorporate registrar contact details
-        $stmt = $pdo->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
+        $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
         $stmt->bindParam(':registrar_id', $registrar['id']);
         $stmt->execute();
         $registrar_contacts = $stmt->fetchAll();
@@ -153,7 +158,7 @@ foreach ($tlds as $tld) {
     $xml->endElement();  // Closing rdeRegistrar:registrar
 
     // Fetch and incorporate host details
-    $stmt = $pdo->prepare("SELECT * FROM host;");
+    $stmt = $dbh->prepare("SELECT * FROM host;");
     $stmt->execute();
     $hosts = $stmt->fetchAll();
 
@@ -174,7 +179,7 @@ foreach ($tlds as $tld) {
     }
 
     // Fetch and incorporate contact details
-    $stmt = $pdo->prepare("SELECT * FROM contact;");
+    $stmt = $dbh->prepare("SELECT * FROM contact;");
     $stmt->execute();
     $contacts = $stmt->fetchAll();
 
@@ -188,7 +193,7 @@ foreach ($tlds as $tld) {
         $xml->endElement();  // Closing rdeContact:status
 
         // Fetch postalInfo for the current contact
-        $stmtPostal = $pdo->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
+        $stmtPostal = $dbh->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
         $stmtPostal->bindParam(':contact_id', $contact['id']);
         $stmtPostal->execute();
         $postalInfo = $stmtPostal->fetch();

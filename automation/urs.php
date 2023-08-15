@@ -1,5 +1,18 @@
 <?php
 
+$c = require_once 'config.php';
+require_once 'helpers.php';
+
+// Connect to the database
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+
+try {
+    $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
+    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
 $hostname = '{your_imap_server:993/imap/ssl}INBOX';
 $username = 'your_email@example.com';
 $password = 'your_password';
@@ -13,9 +26,6 @@ $emailsFromProviderB = imap_search($inbox, 'FROM "providerB@example.com" UNSEEN'
 
 // Combine the arrays of email IDs
 $allEmails = array_merge($emailsFromProviderA, $emailsFromProviderB);
-
-// Connect to the database using PDO
-$pdo = new PDO("mysql:host=your_host;dbname=your_db", "db_username", "db_password");
 
 foreach ($allEmails as $emailId) {
     $header = imap_headerinfo($inbox, $emailId);
@@ -31,7 +41,7 @@ foreach ($allEmails as $emailId) {
     $domainName = extractDomainNameFromEmail($body); // You'd have to define this function
 
     // Insert into the database
-    $stmt = $pdo->prepare("INSERT INTO urs_actions (domain_name, urs_provider, action_date, status) VALUES (?, ?, ?, ?)");
+    $stmt = $dbh->prepare("INSERT INTO urs_actions (domain_name, urs_provider, action_date, status) VALUES (?, ?, ?, ?)");
     $stmt->execute([$domainName, $ursProvider, $date, 'Suspended']);
 }
 
