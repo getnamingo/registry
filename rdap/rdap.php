@@ -55,7 +55,8 @@ $http->set([
 $http->on('request', function ($request, $response) {
     // Connect to the database
     try {
-        $pdo = new PDO('mysql:host=localhost;dbname=registry', 'registry-select', 'EPPRegistrySELECT');
+        $c = require_once 'config.php';
+        $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
         $response->header('Content-Type', 'application/json');

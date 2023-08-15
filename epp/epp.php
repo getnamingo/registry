@@ -2,7 +2,7 @@
 
 //require 'vendor/autoload.php';
 global $c;
-$c = require 'config.php';
+$c = require_once 'config.php';
 require_once 'EppWriter.php';
 
 use Swoole\Coroutine\Server;
@@ -14,8 +14,8 @@ $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->create();
 
-$dsn = "mysql:host={$c['mysql_host']};dbname={$c['mysql_database']};port={$c['mysql_port']}";
-$db = new PDO($dsn, $c['mysql_username'], $c['mysql_password']);
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$db = new PDO($dsn, $c['db_username'], $c['db_password']);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 Swoole\Runtime::enableCoroutine();

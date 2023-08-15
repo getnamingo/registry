@@ -6,6 +6,5 @@ return [
     'db_port' => 3306,
     'db_database' => 'your_database_name',
     'db_username' => 'your_username',
-    'db_password' => 'your_password',
-    'privacy' => false
+    'db_password' => 'your_password'
 ];
