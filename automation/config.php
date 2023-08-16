@@ -27,4 +27,7 @@ return [
 	'reporting_upload' => false,
 	'reporting_username' => 'your_username',
 	'reporting_password' => 'your_password',
+	
+    // Zone Writer Configuration
+	'dns_server' => 'bind',
 ];

@@ -1,1 +1,1 @@
-composer require phpseclib/phpseclib
+composer require badcow/dns phpseclib/phpseclib
