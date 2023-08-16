@@ -815,7 +815,10 @@ class EppWriter {
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd');
                 foreach ($resp['names'] as $n) {
                     $writer->startElement('host:cd');
-                    $writer->writeElement('host:name', $n[0], ['avail' => $n[1]]);
+                    $writer->startElement('host:name');
+                    $writer->writeAttribute('avail', $n[1]);
+                    $writer->text($n[0]);
+                    $writer->endElement();
                     if (isset($n[2])) {
                         $writer->writeElement('host:reason', $n[2]);
                     }
@@ -917,4 +920,3 @@ class EppWriter {
     }
 
 }
-
