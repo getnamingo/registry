@@ -146,7 +146,7 @@ function validate_label($label, $pdo) {
     $tldExists = $stmtTLD->fetchColumn();
 
     if (!$tldExists) {
-        return 'TLD not supported by the system';
+        return 'Zone is not supported';
     }
 
     // Fetch the IDN regex for the given TLD
