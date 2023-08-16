@@ -40,6 +40,8 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 - **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
   
 - **Control Panel**: An intuitive and modern interface designed for streamlined domain management and administration. Built on the API-first principle, it ensures seamless integration and adaptability. Additionally, it supports multiple languages for enhanced user accessibility.
+
+- **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
   
 - **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
   
