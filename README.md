@@ -47,7 +47,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **API Integration**: Control panel integrated with a powerful API, facilitating direct access to the registry database.
   
-- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations.
+- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Advanced scripting capabilities also facilitate the generation of RDE deposits, the creation of ICANN's monthly reports, and ensure full compliance with other ICANN gTLD requirements for streamlined regulatory adherence.
 
 ## Installation Instructions
 
