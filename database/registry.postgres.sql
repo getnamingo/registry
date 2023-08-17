@@ -63,6 +63,7 @@ CREATE TABLE registry.registrar (
 	 "creditlimit"   decimal(8,2) NOT NULL default '0.00',
 	 "creditthreshold"   decimal(8,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
+	 "currency"   varchar(5) NOT NULL,
 	 "crdate"   timestamp without time zone NOT NULL,
 	 "update"   TIMESTAMP ,
 	 primary key ("id"),

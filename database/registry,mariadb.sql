@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
 	`creditLimit` decimal(8,2) NOT NULL default '0.00',
 	`creditThreshold` decimal(8,2) NOT NULL default '0.00',
 	`thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
+	`currency` varchar(5) NOT NULL,
 	`crdate` datetime NOT NULL,
 	`update` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),

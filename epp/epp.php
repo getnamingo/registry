@@ -197,6 +197,28 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                 processHostCheck($conn, $db, $xml);
                 break;
             }
+			
+            case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processHostInfo($conn, $db, $xml);
+                break;
+            }
+			
+            case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processFundsInfo($conn, $db, $xml, $data['clid']);
+                break;
+            }
       
             default:
             {

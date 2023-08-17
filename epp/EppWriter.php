@@ -28,7 +28,7 @@ class EppWriter {
         'create_host' => '_create_host',
         'delete_host' => '_common',
         'info_host' => '_info_host',
-        'info_balance' => '_info_balance',
+        'info_funds' => '_info_funds',
         'update_host' => '_common',
         'poll' => '_poll',
         'unknown' => '_common',
@@ -861,7 +861,11 @@ class EppWriter {
                 if (isset($resp['status']) && count($resp['status'])) {
                     foreach ($resp['status'] as $s) {
                         if (isset($s[1]) && isset($s[2])) {
-                            $writer->writeElement('host:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
+                            $writer->startElement('host:status');
+                            $writer->writeAttribute('s', $s[0]);
+                            $writer->writeAttribute('lang', $s[1]);
+                            $writer->text($s[2]);
+                            $writer->endElement();
                         } else {
                             $writer->startElement('host:status');
                             $writer->writeAttribute('s', $s[0]);
@@ -869,20 +873,25 @@ class EppWriter {
                         }
                     }
                 }
-                foreach ($resp['addr'] as $a) {
-                    $writer->writeElement('host:addr', $a[1], ['ip' => 'v' . $a[0]]);
+                if (isset($resp['addr']) && !empty($resp['addr'])) {
+                    foreach ($resp['addr'] as $a) {
+                        $writer->startElement('host:addr');
+                        $writer->writeAttribute('ip', 'v' . $a[0]);
+                        $writer->text($a[1]);
+                        $writer->endElement();
+                    }
                 }
                 $writer->writeElement('host:clID', $resp['clID']);
                 $writer->writeElement('host:crID', $resp['crID']);
-                $writer->writeElement('host:crDate', $resp['crDate']);
+                $writer->writeElement('host:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
                 if (isset($resp['upID'])) {
                     $writer->writeElement('host:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('host:upDate', $resp['upDate']);
+                    $writer->writeElement('host:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('host:trDate', $resp['trDate']);
+                    $writer->writeElement('host:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
                 }
                 $writer->endElement();  // End of 'host:infData'
             $writer->endElement();  // End of 'resData'
@@ -891,28 +900,29 @@ class EppWriter {
         $this->_postamble($writer, $resp);
     }
 
-    private function _info_balance($writer, $resp) {
+    private function _info_funds($writer, $resp) {
         $this->_preamble($writer, $resp);
         
         if ($this->epp_success($resp['resultCode'])) {
             $writer->startElement('resData');
-                $writer->startElement('balance:infData');
-                $writer->writeAttribute('xmlns:balance', 'http://www.verisign.com/epp/balance-1.0');
-                $writer->writeAttribute('xsi:schemaLocation', 'http://www.verisign.com/epp/balance-1.0 balance-1.0.xsd');
+                $writer->startElement('funds:infData');
+                $writer->writeAttribute('xmlns:funds', 'https://namingo.org/epp/funds-1.0');
+                $writer->writeAttribute('xsi:schemaLocation', 'https://namingo.org/epp/funds-1.0 funds-1.0.xsd');
                 
-                $writer->writeElement('balance:creditLimit', $resp['creditLimit']);
-                $writer->writeElement('balance:balance', $resp['balance']);
-                $writer->writeElement('balance:availableCredit', $resp['availableCredit']);
+                $writer->writeElement('funds:balance', $resp['funds']);
+                $writer->writeElement('funds:currency', $resp['currency']);
+                $writer->writeElement('funds:availableCredit', $resp['availableCredit']);
+                $writer->writeElement('funds:creditLimit', $resp['creditLimit']);
                 
-                $writer->startElement('balance:creditThreshold');
+                $writer->startElement('funds:creditThreshold');
                 if ($resp['thresholdType'] === 'fixed') {
-                    $writer->writeElement('balance:fixed', $resp['creditThreshold']);
+                    $writer->writeElement('funds:fixed', $resp['creditThreshold']);
                 } elseif ($resp['thresholdType'] === 'percent') {
-                    $writer->writeElement('balance:percent', $resp['creditThreshold']);
+                    $writer->writeElement('funds:percent', $resp['creditThreshold']);
                 }
-                $writer->endElement();  // End of 'balance:creditThreshold'
+                $writer->endElement();  // End of 'funds:creditThreshold'
                 
-                $writer->endElement();  // End of 'balance:infData'
+                $writer->endElement();  // End of 'funds:infData'
             $writer->endElement();  // End of 'resData'
         }
 
