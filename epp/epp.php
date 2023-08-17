@@ -7,6 +7,7 @@ require_once 'EppWriter.php';
 require_once 'helpers.php';
 require_once 'epp-check.php';
 require_once 'epp-info.php';
+require_once 'epp-renew.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
@@ -43,7 +44,7 @@ $server->set([
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
 ]);
 
-$server->handle(function (Connection $conn) use ($table, $db) {
+$server->handle(function (Connection $conn) use ($table, $db, $c) {
     echo "Client connected.\n";
     sendGreeting($conn);
   
@@ -217,6 +218,17 @@ $server->handle(function (Connection $conn) use ($table, $db) {
                     $conn->close();
                 }
                 processFundsInfo($conn, $db, $xml, $data['clid']);
+                break;
+            }
+			
+            case isset($xml->command->renew) && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processDomainRenew($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
       

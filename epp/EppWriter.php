@@ -772,7 +772,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
-                $writer->writeElement('domain:exDate', $resp['exDate']);
+                $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
                 $writer->endElement();  // End of 'domain:renData'
             $writer->endElement();  // End of 'resData'
         }
