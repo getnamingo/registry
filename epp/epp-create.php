@@ -370,8 +370,6 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         $crdate = $stmt->fetchColumn();
 
     } catch (PDOException $e) {
-		    echo "Database Error: " . $e->getMessage();
-
         sendEppError($conn, 2400, 'Database error');
     	return;
     }
