@@ -111,7 +111,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->logout):
             {
                 $table->del($connId);
-				$clTRID = (string) $xml->command->clTRID;
+                $clTRID = (string) $xml->command->clTRID;
 				
                 $response = [
                     'command' => 'logout',
