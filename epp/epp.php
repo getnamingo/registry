@@ -7,6 +7,7 @@ require_once 'EppWriter.php';
 require_once 'helpers.php';
 require_once 'epp-check.php';
 require_once 'epp-info.php';
+require_once 'epp-create.php';
 require_once 'epp-renew.php';
 
 use Swoole\Coroutine\Server;
@@ -151,7 +152,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error');
                     $conn->close();
                 }
-                processContactCreate($conn, $db, $xml);
+                processContactCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
       
@@ -248,63 +249,3 @@ echo "Namingo EPP server started.\n";
 Swoole\Coroutine::create(function () use ($server) {
     $server->start();
 });
-
-function processContactCreate($conn, $db, $xml) {
-    if (!isset($xml->command->create->{'contact:create'})) {
-        sendEppError($conn, 2005, 'Syntax error');
-        return;
-    }
-
-    $contactCreate = $xml->command->create->{'contact:create'};
-    $contactID = (string) $contactCreate->{'contact:id'};
-    $postalInfo = $contactCreate->{'contact:postalInfo'};
-    $email = (string) $contactCreate->{'contact:email'};
-    $voice = (string) $contactCreate->{'contact:voice'};
-    $fax = (string) $contactCreate->{'contact:fax'};
-    $password = (string) $contactCreate->{'contact:authInfo'}->{'contact:pw'};
-
-    $name = (string) $postalInfo->{'contact:name'};
-    $org = (string) $postalInfo->{'contact:org'};
-    $addr = $postalInfo->{'contact:addr'};
-    $street = (string) $addr->{'contact:street'};
-    $city = (string) $addr->{'contact:city'};
-    $sp = (string) $addr->{'contact:sp'};
-    $pc = (string) $addr->{'contact:pc'};
-    $cc = (string) $addr->{'contact:cc'};
-
-    try {
-        $stmt = $db->prepare("INSERT INTO contacts (id, name, org, street, city, state_province, postal_code, country_code, email, voice, fax, password) VALUES (:id, :name, :org, :street, :city, :sp, :pc, :cc, :email, :voice, :fax, :password)");
-        $stmt->execute([
-            'id' => $contactID,
-            'name' => $name,
-            'org' => $org,
-            'street' => $street,
-            'city' => $city,
-            'sp' => $sp,
-            'pc' => $pc,
-            'cc' => $cc,
-            'email' => $email,
-            'voice' => $voice,
-            'fax' => $fax,
-            'password' => password_hash($password, PASSWORD_DEFAULT)
-        ]);
-
-        $response = <<<XML
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <response>
-    <result code="1000">
-      <msg>Contact created successfully</msg>
-    </result>
-  </response>
-</epp>
-XML;
-
-        $length = strlen($response) + 4; // Total length including the 4-byte header
-        $lengthData = pack('N', $length); // Pack the length into 4 bytes
-
-        $conn->send($lengthData . $response);
-    } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
-    }
-}

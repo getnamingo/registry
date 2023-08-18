@@ -617,7 +617,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd');
                 $writer->writeElement('contact:id', $resp['id']);
-                $writer->writeElement('contact:crDate', $resp['crDate']);
+                $writer->writeElement('contact:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
                 $writer->endElement();  // End of 'contact:creData'
             $writer->endElement();  // End of 'resData'
         }
