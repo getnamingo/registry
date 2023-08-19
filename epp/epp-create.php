@@ -389,3 +389,171 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
     $xml = $epp->epp_writer($response);
     sendEppResponse($conn, $xml);
 }
+
+function processHostCreate($conn, $db, $xml, $clid, $database_type) {
+    $hostName = $xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create->name;
+    $clTRID = (string) $xml->command->clTRID;
+
+    $hostName = strtoupper($hostName);
+    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+        $host_id_already_exist = $db->query("SELECT id FROM host WHERE name = '$hostName' LIMIT 1")->fetchColumn();
+        if ($host_id_already_exist) {
+            sendEppError($conn, 2302, 'host:name already exists');
+            return;
+        }
+    } else {
+        sendEppError($conn, 2005, 'Invalid host:name');
+        return;
+    }
+
+    $host_addr_list = $xml->xpath('//addr'); 
+    if (count($host_addr_list) > 13) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+	
+    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
+    $stmt->execute();
+    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+	$clid = $clid['id'];
+
+    $nsArr = [];
+
+    foreach ($host_addr_list as $node) {
+        $addr = (string)$node;
+        $addr_type = (string) $node['ip'] ?? 'v4';
+
+        if ($addr_type === 'v6') {
+            $addr = normalize_v6_address($addr);
+        } else {
+            $addr = normalize_v4_address($addr);
+        }
+
+        // v6 IP validation
+        if ($addr_type === 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            sendEppError($conn, 2005, 'Invalid host:addr v6');
+            return;
+        }
+
+        // v4 IP validation
+        if ($addr_type !== 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            sendEppError($conn, 2005, 'Invalid host:addr v4');
+            return;
+        }
+
+        // check for duplicate IPs
+        if (isset($nsArr[$addr_type][$addr])) {
+            sendEppError($conn, 2306, 'Duplicated host:addr');
+            return;
+        }
+
+        $nsArr[$addr_type][$addr] = $addr;
+    }
+
+    $internal_host = false;
+
+    $query = "SELECT tld FROM domain_tld";
+    foreach ($db->query($query) as $row) {
+        if (preg_match("/" . preg_quote(strtoupper($row['tld']), '/') . "$/i", $hostName)) {
+            $internal_host = true;
+            break;
+        }
+    }
+
+    if ($internal_host) {
+        $domain_exist = false;
+        $clid_domain = 0;
+        $superordinate_dom = 0;
+        
+        $stmt = $db->prepare("SELECT id,clid,name FROM domain");
+        $stmt->execute();
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (strpos($hostName, $row['name']) !== false) {
+                $domain_exist = true;
+                $clid_domain = $row['clid'];
+                $superordinate_dom = $row['id'];
+                break;
+            }
+        }
+        
+        if (!$domain_exist) {
+            sendEppError($conn, 2303, 'Object does not exist');
+            return;
+        }
+        
+        if ($clid != $clid_domain) {
+            sendEppError($conn, 2201, 'Authorization error');
+            return;
+        }
+
+        $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP)");
+        $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
+        $host_id = $db->lastInsertId();
+        
+        $host_addr_list = $xml->xpath('host:addr');
+        
+        foreach ($host_addr_list as $node) {
+            $addr = (string) $node;
+            $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
+            
+            if ($addr_type == 'v6') {
+                $addr = normalize_v6_address($addr);
+            } else {
+                $addr = normalize_v4_address($addr);
+            }
+            
+            $addr_type = ($addr_type == 'v6') ? 6 : 4;
+            
+            $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
+            $stmt->execute([$host_id, $addr, $addr_type]);
+        }
+
+        $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
+        $stmt->execute([$hostName]);
+        $crdate = $stmt->fetchColumn();
+        
+        $response = [
+            'command' => 'create_host',
+            'resultCode' => 1000,
+            'lang' => 'en-US',
+            'message' => 'Command completed successfully',
+            'name' => $hostName,
+            'crDate' => $crdate,
+            'clTRID' => $clTRID,
+            'svTRID' => generateSvTRID(),
+        ];
+
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        sendEppResponse($conn, $xml);
+
+    } else {
+
+        $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP)");
+        $stmt->execute([$hostName, $clid, $clid]);
+        
+        $host_id = $db->lastInsertId();
+        
+        $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
+        $stmt->execute([$hostName]);
+        $crdate = $stmt->fetchColumn();
+        
+        $response = [
+            'command' => 'create_host',
+            'resultCode' => 1000,
+            'lang' => 'en-US',
+            'message' => 'Command completed successfully',
+            'name' => $hostName,
+            'crDate' => $crdate,
+            'clTRID' => $clTRID,
+            'svTRID' => generateSvTRID(),
+        ];
+
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        sendEppResponse($conn, $xml);
+    }
+
+}

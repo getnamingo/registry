@@ -165,3 +165,40 @@ function validate_label($label, $pdo) {
         return 'Invalid domain name format, please review registry policy about accepted labels';
     }
 }
+
+function normalize_v4_address($v4) {
+    // Remove leading zeros from the first octet
+    $v4 = preg_replace('/^0+(\d)/', '$1', $v4);
+    
+    // Remove leading zeros from successive octets
+    $v4 = preg_replace('/\.0+(\d)/', '.$1', $v4);
+
+    return $v4;
+}
+
+function normalize_v6_address($v6) {
+    // Upper case any alphabetics
+    $v6 = strtoupper($v6);
+    
+    // Remove leading zeros from the first word
+    $v6 = preg_replace('/^0+([\dA-F])/', '$1', $v6);
+    
+    // Remove leading zeros from successive words
+    $v6 = preg_replace('/:0+([\dA-F])/', ':$1', $v6);
+    
+    // Introduce a :: if there isn't one already
+    if (strpos($v6, '::') === false) {
+        $v6 = preg_replace('/:0:0:/', '::', $v6);
+    }
+
+    // Remove initial zero word before a ::
+    $v6 = preg_replace('/^0+::/', '::', $v6);
+    
+    // Remove other zero words before a ::
+    $v6 = preg_replace('/(:0)+::/', '::', $v6);
+
+    // Remove zero words following a ::
+    $v6 = preg_replace('/:(:0)+/', ':', $v6);
+
+    return $v6;
+}

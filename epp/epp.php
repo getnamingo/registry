@@ -212,6 +212,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 break;
             }
 			
+            case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
+			
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
             {
                 $data = $table->get($connId);

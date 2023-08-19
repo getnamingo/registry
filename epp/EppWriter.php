@@ -842,7 +842,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:host', 'urn:ietf:params:xml:ns:host-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd');
                 $writer->writeElement('host:name', $resp['name']);
-                $writer->writeElement('host:crDate', $resp['crDate']);
+                $writer->writeElement('host:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
                 $writer->endElement();  // End of 'host:creData'
             $writer->endElement();  // End of 'resData'
         }
