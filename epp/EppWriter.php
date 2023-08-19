@@ -444,6 +444,8 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
         }
         }
+		
+        $this->_postamble($writer, $resp);
 
     }
 

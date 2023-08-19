@@ -9,6 +9,7 @@ require_once 'epp-check.php';
 require_once 'epp-info.php';
 require_once 'epp-create.php';
 require_once 'epp-renew.php';
+require_once 'epp-poll.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
@@ -131,6 +132,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->hello):
             {
                 sendGreeting($conn);
+                break;
+            }
+			
+            case isset($xml->command->poll):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processPoll($conn, $db, $xml, $data['clid']);
                 break;
             }
       
