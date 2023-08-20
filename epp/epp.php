@@ -10,6 +10,7 @@ require_once 'epp-info.php';
 require_once 'epp-create.php';
 require_once 'epp-renew.php';
 require_once 'epp-poll.php';
+require_once 'epp-delete.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
@@ -178,6 +179,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processContactInfo($conn, $db, $xml);
                 break;
             }
+			
+            case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
         
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
             {
@@ -231,6 +243,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     $conn->close();
                 }
                 processHostInfo($conn, $db, $xml);
+                break;
+            }
+			
+            case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
 			
