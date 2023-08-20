@@ -114,7 +114,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $table->del($connId);
                 $clTRID = (string) $xml->command->clTRID;
-				
+                
                 $response = [
                     'command' => 'logout',
                     'resultCode' => 1500,
@@ -129,13 +129,13 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $conn->close();
                 break;
             }
-			
+            
             case isset($xml->hello):
             {
                 sendGreeting($conn);
                 break;
             }
-			
+            
             case isset($xml->command->poll):
             {
                 $data = $table->get($connId);
@@ -179,7 +179,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processContactInfo($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete):
             {
                 $data = $table->get($connId);
@@ -212,7 +212,18 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainInfo($conn, $db, $xml);
                 break;
             }
-			
+            
+            case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
+            
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check):
             {
                 $data = $table->get($connId);
@@ -223,7 +234,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostCheck($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create):
             {
                 $data = $table->get($connId);
@@ -234,7 +245,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
-			
+            
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
             {
                 $data = $table->get($connId);
@@ -245,7 +256,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostInfo($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
             {
                 $data = $table->get($connId);
@@ -256,7 +267,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
-			
+            
             case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
             {
                 $data = $table->get($connId);
@@ -267,7 +278,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processFundsInfo($conn, $db, $xml, $data['clid']);
                 break;
             }
-			
+            
             case isset($xml->command->renew) && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew):
             {
                 $data = $table->get($connId);
