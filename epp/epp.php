@@ -212,6 +212,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainInfo($conn, $db, $xml);
                 break;
             }
+			
+            case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processDomainCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
             
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete):
             {

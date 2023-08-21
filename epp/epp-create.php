@@ -557,3 +557,653 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
     }
 
 }
+
+function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
+    $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
+    $clTRID = (string) $xml->command->clTRID;
+
+    list($label, $domain_extension) = explode('.', $domainName, 2);
+    $invalid_domain = validate_label($domainName, $db);
+
+    if ($invalid_domain) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+
+    $valid_tld = false;
+    $stmt = $db->prepare("SELECT id, tld FROM domain_tld");
+    $stmt->execute();
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+            $valid_tld = true;
+            $tld_id = $row['id'];
+            break;
+        }
+    }
+
+    if (!$valid_tld) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+
+    $stmt = $db->prepare("SELECT id FROM domain WHERE name = ? LIMIT 1");
+    $stmt->execute([$domainName]);
+    $domain_already_exist = $stmt->fetchColumn();
+
+    if ($domain_already_exist) {
+        sendEppError($conn, 2302, 'Object exists');
+        return;
+    }
+
+    $stmt = $db->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+    $stmt->execute([$domainName]);
+    $domain_already_reserved = $stmt->fetchColumn();
+
+    if ($domain_already_reserved) {
+        sendEppError($conn, 2302, 'Object exists');
+        return;
+    }
+	
+    $periodElements = $xml->xpath("//domain:create/domain:period");
+    $periodElement = $periodElements[0];
+    $period = (int) $periodElement;
+    $period_unit = (string) $periodElement['unit'];
+
+    if ($period && (($period < 1) || ($period > 99))) {
+        sendEppError($conn, 2004, 'Parameter value range error');
+        return;
+    } elseif (!$period) {
+        $period = 1;
+    }
+
+    if ($period_unit) {
+        if (!preg_match('/^(m|y)$/', $period_unit)) {
+        sendEppError($conn, 2004, 'Parameter value range error');
+        return;
+        }
+    } else {
+        $period_unit = 'y';
+    }
+
+    $date_add = 0;
+    if ($period_unit === 'y') {
+        $date_add = ($period * 12);
+    } elseif ($period_unit === 'm') {
+        $date_add = $period;
+    }
+
+    if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+	
+    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
+    $stmt->execute();
+    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+	$clid = $clid['id'];
+
+    $stmt = $db->prepare("SELECT `accountBalance`, `creditLimit` FROM `registrar` WHERE `id` = :registrar_id LIMIT 1");
+    $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $registrar_balance = $result['accountBalance'];
+    $creditLimit = $result['creditLimit'];
+
+    $priceColumn = "m" . $date_add;
+    $stmt = $db->prepare("SELECT `$priceColumn` FROM `domain_price` WHERE `tldid` = :tld_id AND `command` = 'create' LIMIT 1");
+    $stmt->bindParam(':tld_id', $tld_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $price = $stmt->fetchColumn();
+
+    if (!$price) {
+        sendEppError($conn, 2400, 'Command failed');
+        return;
+    }
+
+    if (($registrar_balance + $creditLimit) < $price) {
+        sendEppError($conn, 2104, 'Billing failure');
+        return;
+    }
+
+    $ns = $xml->xpath('//domain:ns')[0];
+    $hostObj_list = $ns->xpath('//domain:hostObj');
+    $hostAttr_list = $ns->xpath('//domain:hostAttr');
+
+    if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
+        sendEppError($conn, 2001, 'Command syntax error');
+        return;
+    }
+
+    if (count($hostObj_list) > 13) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+
+    if (count($hostAttr_list) > 13) {
+        sendEppError($conn, 2306, 'Parameter value policy error');
+        return;
+    }
+
+    $nsArr = [];
+    foreach ($hostObj_list as $hostObj) {
+        if (isset($nsArr[(string)$hostObj])) {
+            sendEppError($conn, 2302, 'Object exists');
+            return;
+        }
+        $nsArr[(string)$hostObj] = 1;
+    }
+
+    $nsArr = [];
+    foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
+        if (isset($nsArr[(string)$hostName])) {
+            sendEppError($conn, 2302, 'Object exists');
+            return;
+        }
+        $nsArr[(string)$hostName] = 1;
+    }
+
+    if (count($hostObj_list) > 0) {
+        foreach ($hostObj_list as $node) {
+            $hostObj = strtoupper((string)$node);
+
+            if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
+                sendEppError($conn, 2005, 'Parameter value syntax error');
+                return;
+            }
+
+            if (preg_match("/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/", $hostObj) && strlen($hostObj) < 254) {
+                // A host object MUST be known to the server before the host object can be associated with a domain object.
+                $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
+                $stmt->bindParam(':hostObj', $hostObj);
+                $stmt->execute();
+            
+                $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
+
+                if (!$host_id_already_exist) {
+                    sendEppError($conn, 2303, 'Object does not exist');
+                    return;
+                }
+            } else {
+                sendEppError($conn, 2005, 'Parameter value syntax error');
+                return;
+            }
+        }
+    }
+
+    if (count($hostAttr_list) > 0) {
+        foreach ($hostAttr_list as $node) {
+            $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
+
+            if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
+                sendEppError($conn, 2005, 'Parameter value syntax error');
+                return;
+            }
+
+            // Check if the host is internal or external
+            $internal_host = false;
+            $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
+            $stmt->execute();
+            while ($tld = $stmt->fetchColumn()) {
+                $tld = strtoupper($tld);
+                $escapedTld = preg_quote($tld, '/');
+                if (preg_match("/$escapedTld$/i", $hostName)) {
+                    $internal_host = true;
+                    break;
+                }
+            }
+
+            if ($internal_host) {
+				if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
+                $hostAddrNodes = $node->xpath('//domain:hostAddr');
+
+                if (count($hostAddrNodes) > 13) {
+                    sendEppError($conn, 2306, 'Parameter value policy error');
+                    return;
+                }
+
+                $nsArr = [];
+                foreach ($hostAddrNodes as $hostAddrNode) {
+                    $hostAddr = (string)$hostAddrNode;
+                    if (isset($nsArr[$hostAddr])) {
+                        sendEppError($conn, 2302, 'Object exists');
+                        return;
+                    }
+                    $nsArr[$hostAddr] = true;
+                }
+
+                if (count($hostAddrNodes) === 0) {
+                    sendEppError($conn, 2003, 'Required parameter missing');
+                    return;
+                }
+				
+                foreach ($hostAddrNodes as $node) {
+                    $hostAddr = (string) $node;
+                    $addr_type = (string) ($node['ip'] ?? 'v4');
+    
+                    if ($addr_type == 'v6') {
+                        if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
+                            preg_match('/^::$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
+                            preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
+                        ) {
+                            // true
+                            // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
+                        } else {
+                            sendEppError($conn, 2005, 'Parameter value syntax error');
+                            return;
+                        }
+                    } else {
+                        list($a, $b, $c, $d) = explode('.', $hostAddr);
+                        if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) && $a < 256 &&  $b < 256 && $c < 256 && $d < 256) {
+                            // true
+                            // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
+                            if ($hostAddr == '127.0.0.1') {
+                              sendEppError($conn, 2005, 'Parameter value syntax error');
+                              return;
+                            }
+                        } else {
+                           sendEppError($conn, 2005, 'Parameter value syntax error');
+                           return;
+                        }
+                    }
+                }
+            } else {
+                // Check if the hostname matches the pattern and is less than 254 characters
+                if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+                    $domain_exist = false;
+                    $clid_domain = 0;
+
+                    // Prepare statement
+                    $stmt = $db->prepare("SELECT `clid`, `name` FROM `domain`");
+                    $stmt->execute();
+
+                    // Fetch results
+                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        if (stripos($hostName, '.' . $row['name']) !== false) {
+                            $domain_exist = true;
+                            $clid_domain = $row['clid'];
+                            break;
+                        }
+                    }
+
+                    // Object does not exist error
+                    if (!$domain_exist) {
+                       sendEppError($conn, 2303, 'Object does not exist');
+                       return;
+                    }
+
+                    // Authorization error
+                    if ($clid != $clid_domain) {
+                       sendEppError($conn, 2201, 'Authorization error');
+                       return;
+                    }
+                } else {
+                   sendEppError($conn, 2005, 'Parameter value syntax error');
+                   return;
+                }
+
+                $hostAddr_list = $xml->xpath('//domain:hostAddr');
+
+                // Max 13 IP per host
+                if (count($hostAddr_list) > 13) {
+                   sendEppError($conn, 2306, 'Parameter value policy error');
+                   return;
+                }
+
+                // Compare for duplicates in hostAddr
+                $nsArr = array();
+                foreach ($hostAddr_list as $node) {
+                    $hostAddr = (string) $node;
+                    if (isset($nsArr[$hostAddr])) {
+                        sendEppError($conn, 2302, 'Object exists');
+                        return;
+                    }
+                    $nsArr[$hostAddr] = 1;
+                }
+
+                // Check for missing host addresses
+                if (count($hostAddr_list) === 0) {
+                    sendEppError($conn, 2003, 'Required parameter missing');
+                    return;
+                }
+
+
+                foreach ($hostAddr_list as $node) {
+                    $hostAddr = (string) $node;
+                    $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
+
+                    if ($addr_type === 'v6') {
+                        if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
+                            $hostAddr === '::' ||
+                            preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
+                            preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
+                            preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
+                        ) {
+                            // true
+                            // Add check for reserved or private IP addresses (not implemented here, add as needed)
+                        } else {
+                             sendEppError($conn, 2005, 'Parameter value syntax error');
+                             return;
+                        }
+                    } else {
+                        list($a, $b, $c, $d) = explode('.', $hostAddr);
+
+                        if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) &&
+                            $a < 256 && $b < 256 && $c < 256 && $d < 256) {
+                            // true
+                            // Add check for reserved or private IP addresses (not implemented here, add as needed)
+                            if ($hostAddr === '127.0.0.1') {
+                               sendEppError($conn, 2005, 'Parameter value syntax error');
+                               return;
+                            }
+                        } else {
+                               sendEppError($conn, 2005, 'Parameter value syntax error');
+                               return;
+                        }
+                    }
+                }
+            }
+            } else {
+				// External host
+				if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+
+				} else {
+                    sendEppError($conn, 2005, 'Parameter value syntax error');
+                    return;
+				}
+			}
+        }
+    }
+
+    // Registrant
+    $registrant = $xml->xpath('//domain:registrant[1]');
+	$registrant_id = (string)$registrant[0][0];
+
+    if ($registrant) {
+        $validRegistrant = validate_identifier($registrant_id);
+
+        $stmt = $db->prepare("SELECT `id`, `clid` FROM `contact` WHERE `identifier` = :registrant LIMIT 1");
+        $stmt->bindParam(':registrant', $registrant_id);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            sendEppError($conn, 2303, 'Object does not exist');
+            return;
+        }
+
+        if ($clid != $row['clid']) {
+            sendEppError($conn, 2201, 'Authorization error');
+            return;
+        }
+    }
+
+    // Handle contacts of type 'admin', 'billing' and 'tech'
+    foreach (['admin', 'billing', 'tech'] as $type) {
+        $contactList = $xml->xpath("//domain:contact[@type='{$type}']");
+        $size = count($contactList);
+
+        // Max five contacts per domain name for each type
+        if ($size > 5) {
+            sendEppError($conn, 2306, 'Parameter value policy error');
+            return;
+        }
+
+        foreach ($contactList as $node) {
+            $contactValue = (string)$node;
+            $validContact = validate_identifier($contactValue);
+
+            $stmt = $db->prepare("SELECT `id`, `clid` FROM `contact` WHERE `identifier` = :contact LIMIT 1");
+            $stmt->bindParam(':contact', $contactValue);
+            $stmt->execute();
+
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                sendEppError($conn, 2303, 'Object does not exist');
+                return;
+            }
+
+            if ($clid != $row['clid']) {
+                sendEppError($conn, 2201, 'Authorization error');
+                return;
+            }
+        }
+    }
+	
+    $authInfo_pw = $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
+
+    if (!$authInfo_pw) {
+        sendEppError($conn, 2003, 'Required parameter missing');
+        return;
+    }
+
+    if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
+        sendEppError($conn, 2005, 'Parameter value syntax error');
+        return;
+    }
+
+    if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+        sendEppError($conn, 2005, 'Parameter value syntax error');
+        return;
+    }
+
+    if (!preg_match('/\d/', $authInfo_pw)) {
+        sendEppError($conn, 2005, 'Parameter value syntax error');
+        return;
+    }
+	
+    $registrantStmt = $db->prepare("SELECT `id` FROM `contact` WHERE `identifier` = :registrant LIMIT 1");
+    $registrantStmt->execute([':registrant' => $registrant_id]);
+    $registrant_id = $registrantStmt->fetchColumn();
+
+    $domainSql = "INSERT INTO `domain` (`name`,`tldid`,`registrant`,`crdate`,`exdate`,`update`,`clid`,`crid`,`upid`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate`,`rgpstatus`,`addPeriod`)
+    VALUES(:name, :tld_id, :registrant_id, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2)";
+
+    $domainStmt = $db->prepare($domainSql);
+    $domainStmt->execute([
+        ':name' => $domainName,
+        ':tld_id' => $tld_id,
+        ':registrant_id' => $registrant_id,
+        ':date_add' => $date_add,
+        ':date_add2' => $date_add,
+        ':registrar_id' => $clid
+    ]);
+    $domain_id = $db->lastInsertId();
+
+    $authInfoStmt = $db->prepare("INSERT INTO `domain_authInfo` (`domain_id`,`authtype`,`authinfo`) VALUES(:domain_id,'pw',:authInfo_pw)");
+    $authInfoStmt->execute([
+        ':domain_id' => $domain_id,
+        ':authInfo_pw' => $authInfo_pw
+    ]);
+
+    $updateRegistrarStmt = $db->prepare("UPDATE `registrar` SET `accountBalance` = (`accountBalance` - :price) WHERE `id` = :registrar_id");
+    $updateRegistrarStmt->execute([
+        ':price' => $price,
+        ':registrar_id' => $clid
+    ]);
+
+    $paymentHistoryStmt = $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP,:description,:amount)");
+    $paymentHistoryStmt->execute([
+        ':registrar_id' => $clid,
+        ':description' => "create domain $domainName for period $date_add MONTH",
+        ':amount' => "-$price"
+    ]);
+
+    $selectDomainDatesStmt = $db->prepare("SELECT `crdate`,`exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+    $selectDomainDatesStmt->execute([':name' => $domainName]);
+    [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
+
+    $statementStmt = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP,:cmd,:name,:date_add,:from,:to,:price)");
+    $statementStmt->execute([
+        ':registrar_id' => $clid,
+        ':cmd' => 'create',
+        ':name' => $domainName,
+        ':date_add' => $date_add,
+        ':from' => $from,
+        ':to' => $to,
+        ':price' => $price
+    ]);
+
+    foreach ($hostObj_list as $node) {
+        $hostObj = strtoupper((string)$node);
+
+        $hostExistStmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
+        $hostExistStmt->execute([':hostObj' => $hostObj]);
+        $hostObj_already_exist = $hostExistStmt->fetchColumn();
+
+        if ($hostObj_already_exist) {
+            $domainHostMapStmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = :domain_id AND `host_id` = :host_id LIMIT 1");
+            $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+            $domain_host_map_id = $domainHostMapStmt->fetchColumn();
+
+            if (!$domain_host_map_id) {
+                $insertDomainHostMapStmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(:domain_id,:host_id)");
+                $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+            } else {
+                $errorLogStmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP)");
+                $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ;   hostObj : $hostObj - se dubleaza"]);
+            }
+        } else {
+            $internal_host = false;
+            $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
+            $stmt->execute();
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $tld = strtoupper($row['tld']);
+                $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
+                if (preg_match("/$tld$/i", $hostObj)) {
+                    $internal_host = true;
+                    break;
+                }
+            }
+            $stmt->closeCursor();
+
+            if ($internal_host) {
+                if (preg_match("/\.$domainName$/i", $hostObj)) {
+                    $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                    $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+                    $host_id = $db->lastInsertId();
+
+                    $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?, ?)");
+                    $stmt->execute([$domain_id, $host_id]);
+                }
+            } else {
+                $stmt = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP)");
+                $stmt->execute([$hostObj, $clid, $clid]);
+                $host_id = $db->lastInsertId();
+
+                $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?, ?)");
+                $stmt->execute([$domain_id, $host_id]);
+            }
+
+        }
+    }
+
+    foreach ($hostAttr_list as $element) {
+    foreach ($element->children() as $node) {
+        $hostName = strtoupper($node->xpath('//domain:hostName')[0]);
+        $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = ? LIMIT 1");
+        $stmt->execute([$hostName]);
+        $hostName_already_exist = $stmt->fetchColumn();
+    
+        if ($hostName_already_exist) {
+            $stmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = ? AND `host_id` = ? LIMIT 1");
+            $stmt->execute([$domain_id, $hostName_already_exist]);
+            $domain_host_map_id = $stmt->fetchColumn();
+
+            if (!$domain_host_map_id) {
+                $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
+                $stmt->execute([$domain_id, $hostName_already_exist]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP)");
+                $stmt->execute([$clid, "Domain : $domainName ;   hostName : $hostName - se dubleaza"]);
+            }
+        } else {
+            $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+            $stmt->execute([$hostName, $domain_id, $clid, $clid]);
+            $host_id = $db->lastInsertId();
+
+            $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
+            $stmt->execute([$domain_id, $host_id]);
+
+            foreach ($node->xpath('//domain:hostAddr') as $nodeAddr) {
+                $hostAddr = (string)$nodeAddr;
+                $addr_type = $nodeAddr->attributes()->ip ?? 'v4';
+
+                if ($addr_type == 'v6') {
+                    $hostAddr = normalize_v6_address($hostAddr);
+                } else {
+                    $hostAddr = normalize_v4_address($hostAddr);
+                }
+
+                $stmt = $db->prepare("INSERT INTO `host_addr` (`host_id`,`addr`,`ip`) VALUES(?,?,?)");
+                $stmt->execute([$host_id, $hostAddr, $addr_type]);
+            }
+        }
+    }
+    }
+	
+    $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
+    $contact_billing_list = $xml->xpath("//domain:contact[@type='billing']");
+    $contact_tech_list = $xml->xpath("//domain:contact[@type='tech']");
+
+    $contactTypes = [
+        'admin' => $contact_admin_list,
+        'billing' => $contact_billing_list,
+        'tech' => $contact_tech_list
+    ];
+
+    foreach ($contactTypes as $type => $contact_list) {
+        foreach ($contact_list as $element) {
+        foreach ($element->children() as $node) {
+            $contact = (string)$node;
+            $stmt = $db->prepare("SELECT `id` FROM `contact` WHERE `identifier` = ? LIMIT 1");
+            $stmt->execute([$contact]);
+            $contact_id = $stmt->fetchColumn();
+
+            $stmt = $db->prepare("INSERT INTO `domain_contact_map` (`domain_id`,`contact_id`,`type`) VALUES(?,?,?)");
+            $stmt->execute([$domain_id, $contact_id, $type]);
+        }
+	    }
+    }
+
+    $stmt = $db->prepare("SELECT `crdate`,`exdate` FROM `domain` WHERE `name` = ? LIMIT 1");
+    $stmt->execute([$domainName]);
+    [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
+
+    $stmt = $db->prepare("SELECT `id` FROM `statistics` WHERE `date` = CURDATE()");
+    $stmt->execute();
+    $curdate_id = $stmt->fetchColumn();
+
+    if (!$curdate_id) {
+        $stmt = $db->prepare("INSERT IGNORE INTO `statistics` (`date`) VALUES(CURDATE())");
+        $stmt->execute();
+    }
+    $db->exec("UPDATE `statistics` SET `created_domains` = `created_domains` + 1 WHERE `date` = CURDATE()");
+
+    $response = [
+        'command' => 'create_domain',
+        'resultCode' => 1000,
+        'lang' => 'en-US',
+        'message' => 'Command completed successfully',
+        'name' => $domainName,
+        'crDate' => $crdate,
+        'exDate' => $exdate,
+        'clTRID' => $clTRID,
+        'svTRID' => generateSvTRID(),
+    ];
+
+    $epp = new EPP\EppWriter();
+    $xml = $epp->epp_writer($response);
+    sendEppResponse($conn, $xml);	
+}
