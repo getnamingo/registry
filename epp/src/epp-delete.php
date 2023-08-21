@@ -169,8 +169,13 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type) {
         sendEppError($conn, 2003, 'Required parameter missing');
         return;
     }
-
-    $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
+	
+    if ($database_type === 'mysql') {
+        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
+    } elseif ($database_type === 'pgsql') {
+        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, \"update\", clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
+    }
+    
     $stmt->execute([':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
