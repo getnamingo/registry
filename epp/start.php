@@ -3,14 +3,14 @@
 //require 'vendor/autoload.php';
 global $c;
 $c = require_once 'config.php';
-require_once 'EppWriter.php';
-require_once 'helpers.php';
-require_once 'epp-check.php';
-require_once 'epp-info.php';
-require_once 'epp-create.php';
-require_once 'epp-renew.php';
-require_once 'epp-poll.php';
-require_once 'epp-delete.php';
+require_once 'src/EppWriter.php';
+require_once 'src/helpers.php';
+require_once 'src/epp-check.php';
+require_once 'src/epp-info.php';
+require_once 'src/epp-create.php';
+require_once 'src/epp-renew.php';
+require_once 'src/epp-poll.php';
+require_once 'src/epp-delete.php';
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
