@@ -24,7 +24,7 @@ function sendGreeting($conn) {
             'urn:ietf:params:xml:ns:host-1.0'
         ],
         'extensions' => [
-            'http://www.namingo.org/epp/nBalance-1.0',
+            'https://namingo.org/epp/funds-1.0',
             'http://www.namingo.org/epp/nIdent-1.0',
             'urn:ietf:params:xml:ns:secDNS-1.1',
             'urn:ietf:params:xml:ns:rgp-1.0',
@@ -49,17 +49,17 @@ function sendGreeting($conn) {
 }
 
 function sendEppError($conn, $code, $msg) {
-    $errorResponse = <<<XML
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <response>
-    <result code="$code">
-      <msg>$msg</msg>
-    </result>
-  </response>
-</epp>
-XML;
-    sendEppResponse($conn, $errorResponse);
+    $response = [
+        'command' => 'error',
+        'resultCode' => $code,
+        'msg' => $msg,
+        'clTRID' => '1',
+        'svTRID' => generateSvTRID(),
+    ];
+
+    $epp = new EPP\EppWriter();
+    $xml = $epp->epp_writer($response);
+    sendEppResponse($conn, $xml);
 }
 
 function sendEppResponse($conn, $response) {

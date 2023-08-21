@@ -31,6 +31,7 @@ class EppWriter {
         'info_funds' => '_info_funds',
         'update_host' => '_common',
         'poll' => '_poll',
+        'error' => '_common',
         'unknown' => '_common',
     ];
 
