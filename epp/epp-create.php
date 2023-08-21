@@ -1165,15 +1165,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
     foreach ($contactTypes as $type => $contact_list) {
         foreach ($contact_list as $element) {
-        foreach ($element->children() as $node) {
-            $contact = (string)$node;
+            $contact = (string)$element;
             $stmt = $db->prepare("SELECT `id` FROM `contact` WHERE `identifier` = ? LIMIT 1");
             $stmt->execute([$contact]);
             $contact_id = $stmt->fetchColumn();
 
             $stmt = $db->prepare("INSERT INTO `domain_contact_map` (`domain_id`,`contact_id`,`type`) VALUES(?,?,?)");
             $stmt->execute([$domain_id, $contact_id, $type]);
-        }
 	    }
     }
 
