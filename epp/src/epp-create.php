@@ -304,11 +304,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         }
     }
 
-    $obj_ext = $xml->xpath('//identExt:create')[0] ?? null;
+    $obj_ext = $xml->xpath('//identica:create')[0] ?? null;
 
     if ($obj_ext) {
-        $nin = (string)$obj_ext->xpath('identExt:nin')[0] ?? '';
-        $nin_type = (string)$obj_ext->xpath('identExt:nin/@type')[0] ?? '';
+        $nin = (string)$obj_ext->xpath('identica:nin')[0] ?? '';
+        $nin_type = (string)$obj_ext->xpath('identica:nin/@type')[0] ?? '';
 
         if (!preg_match('/\d/', $nin)) {
             sendEppError($conn, 2005, 'NIN should contain one or more numbers');
