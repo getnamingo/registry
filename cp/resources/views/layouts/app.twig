@@ -171,6 +171,24 @@
                     </span>
                   </a>
                 </li>
+                <li {{ is_current_url('contacts') ? 'class="nav-item active"' : 'class="nav-item"' }}>
+                  <a class="nav-link" href="{{route('contacts')}}">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 6v12a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2z"></path><path d="M10 16h6"></path><path d="M13 11m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M4 8h3"></path><path d="M4 12h3"></path><path d="M4 16h3"></path></svg>
+                    </span>
+                    <span class="nav-link-title">
+                      Contacts
+                    </span>
+                  </a>
+                </li>
+                <li {{ is_current_url('hosts') ? 'class="nav-item active"' : 'class="nav-item"' }}>
+                  <a class="nav-link" href="{{route('hosts')}}">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 9m-6 0a6 6 0 1 0 12 0a6 6 0 1 0 -12 0"></path><path d="M12 3c1.333 .333 2 2.333 2 6s-.667 5.667 -2 6"></path><path d="M12 3c-1.333 .333 -2 2.333 -2 6s.667 5.667 2 6"></path><path d="M6 9h12"></path><path d="M3 19h7"></path><path d="M14 19h7"></path><path d="M12 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M12 15v2"></path></svg>
+                    </span>
+                    <span class="nav-link-title">
+                      Hosts
+                    </span>
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -287,6 +305,10 @@
     {% include 'partials/js-dash.twig' %}
 {% elseif route_is('domains') %}
     {% include 'partials/js-domains.twig' %}
+{% elseif route_is('contacts') %}
+    {% include 'partials/js-contacts.twig' %}
+{% elseif route_is('hosts') %}
+    {% include 'partials/js-hosts.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

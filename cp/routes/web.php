@@ -3,6 +3,8 @@ use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\PasswordController;
 use App\Controllers\HomeController;
 use App\Controllers\DomainsController;
+use App\Controllers\ContactsController;
+use App\Controllers\HostsController;
 use App\Controllers\ProfileController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
@@ -33,6 +35,8 @@ $app->group('', function ($route) {
 $app->group('', function ($route) {
     $route->get('/dashboard', HomeController::class .':dashboard')->setName('home');
     $route->get('/domains', DomainsController::class .':view')->setName('domains');
+    $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
+    $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
     $route->get('/profile/security', ProfileController::class .':security')->setName('security');

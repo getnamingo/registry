@@ -1,0 +1,43 @@
+<script src="/assets/libs/list.js/dist/list.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+  const list = new List('table-default', {
+  	sortClass: 'table-sort',
+  	listClass: 'table-tbody',
+  	valueNames: [ 'sort-name', 'sort-type', 'sort-city', 'sort-score',
+  		{ attr: 'data-date', name: 'sort-date' },
+  		{ attr: 'data-progress', name: 'sort-progress' },
+  		'sort-quantity'
+  	]
+  });
+  })
+  
+fetch('/api/records/host')
+    .then(response => response.json())
+    .then(data => {
+        if (data.records) {
+            populateTable(data.records);
+        }
+    });
+  
+function populateTable(records) {
+    const tableBody = document.getElementById('hostTable').querySelector('tbody');
+    records.forEach(host => {
+        const row = tableBody.insertRow();
+        const cell1 = row.insertCell(0);
+        const cell2 = row.insertCell(1);
+        const cell3 = row.insertCell(2);
+        const cell4 = row.insertCell(3);
+        const cell5 = row.insertCell(4);
+        cell1.textContent = host.id;
+        cell2.textContent = host.name;
+		cell2.style.fontWeight = 'bold';
+        cell3.textContent = host.crdate;
+        cell4.textContent = host.status;
+    });
+}
+
+</script>
+	
+
