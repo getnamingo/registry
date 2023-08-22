@@ -10,6 +10,7 @@ require_once 'src/epp-info.php';
 require_once 'src/epp-create.php';
 require_once 'src/epp-renew.php';
 require_once 'src/epp-poll.php';
+require_once 'src/epp-transfer.php';
 require_once 'src/epp-delete.php';
 
 use Swoole\Coroutine\Server;
@@ -188,6 +189,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     $conn->close();
                 }
                 processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
+			
+            case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processContactTransfer($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
         

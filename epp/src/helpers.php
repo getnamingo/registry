@@ -25,7 +25,7 @@ function sendGreeting($conn) {
         ],
         'extensions' => [
             'https://namingo.org/epp/funds-1.0',
-            'http://www.namingo.org/epp/nIdent-1.0',
+            'https://namingo.org/epp/identica-1.0',
             'urn:ietf:params:xml:ns:secDNS-1.1',
             'urn:ietf:params:xml:ns:rgp-1.0',
             'urn:ietf:params:xml:ns:launch-1.0',

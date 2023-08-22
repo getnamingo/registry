@@ -573,16 +573,16 @@ class EppWriter {
             // Handling the extension part
             if (isset($resp['nin']) && isset($resp['nin_type'])) {
                 $writer->startElement('extension');
-                    $writer->startElement('identExt:infData');
-                        $writer->writeAttribute('xmlns:identExt', 'http://www.nic.xx/XXNIC-EPP/identExt-1.0');
-                        $writer->writeAttribute('xsi:schemaLocation', 'http://www.nic.xx/XXNIC-EPP/identExt-1.0 identExt-1.0.xsd');
+                    $writer->startElement('identica:infData');
+                        $writer->writeAttribute('xmlns:identica', 'https://namingo.org/epp/identica-1.0');
+                        $writer->writeAttribute('xsi:schemaLocation', 'https://namingo.org/epp/identica-1.0 identica-1.0.xsd');
             
-                        $writer->startElement('identExt:nin');
+                        $writer->startElement('identica:nin');
                             $writer->writeAttribute('type', $resp['nin_type']);
                             $writer->text($resp['nin']);
-                        $writer->endElement();  // End of 'identExt:nin'
+                        $writer->endElement();  // End of 'identica:nin'
                     
-                    $writer->endElement();  // End of 'identExt:infData'
+                    $writer->endElement();  // End of 'identica:infData'
                 $writer->endElement();  // End of 'extension'
             }
         }
@@ -601,9 +601,9 @@ class EppWriter {
                 $writer->writeElement('contact:id', $resp['id']);
                 $writer->writeElement('contact:trStatus', $resp['trStatus']);
                 $writer->writeElement('contact:reID', $resp['reID']);
-                $writer->writeElement('contact:reDate', $resp['reDate']);
+                $writer->writeElement('contact:reDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['reDate'])));
                 $writer->writeElement('contact:acID', $resp['acID']);
-                $writer->writeElement('contact:acDate', $resp['acDate']);
+                $writer->writeElement('contact:acDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['acDate'])));
                 $writer->endElement();  // End of 'contact:trnData'
             $writer->endElement();  // End of 'resData'
         }
