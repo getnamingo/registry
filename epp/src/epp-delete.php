@@ -246,7 +246,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type) {
             $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1");
             $stmt->execute([$domain_id]);
             $addPeriod_id = $stmt->fetchColumn();
-    
+
             if ($addPeriod_id) {
                 $stmt = $db->prepare("SELECT m$addPeriod FROM domain_price WHERE tldid = ? AND command = 'create' LIMIT 1");
                 $stmt->execute([$tldid]);
