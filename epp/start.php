@@ -107,7 +107,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     $xml = $epp->epp_writer($response);
                     sendEppResponse($conn, $xml);
                 } else {
-                    sendEppError($conn, 2200, 'Authentication error');
+                    sendEppError($conn, 2200, 'Authentication error', $clTRID);
                 }
                 break;
             }
@@ -141,8 +141,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->poll):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processPoll($conn, $db, $xml, $data['clid']);
@@ -152,8 +153,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactCheck($conn, $db, $xml);
@@ -163,8 +165,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -174,8 +177,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactInfo($conn, $db, $xml);
@@ -185,8 +189,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:contact-1.0')->update):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -196,8 +201,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -207,8 +213,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactTransfer($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -218,8 +225,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainCheck($conn, $db, $xml);
@@ -229,8 +237,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainInfo($conn, $db, $xml);
@@ -240,8 +249,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -251,8 +261,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -262,8 +273,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostCheck($conn, $db, $xml);
@@ -273,8 +285,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -284,8 +297,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostInfo($conn, $db, $xml);
@@ -295,8 +309,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -306,8 +321,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
@@ -317,8 +333,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processFundsInfo($conn, $db, $xml, $data['clid']);
@@ -328,8 +345,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->renew) && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew):
             {
                 $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error');
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainRenew($conn, $db, $xml, $data['clid'], $c['db_type']);
