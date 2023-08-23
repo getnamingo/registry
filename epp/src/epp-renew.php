@@ -10,7 +10,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$domainName) {
-        sendEppError($conn, 2003, 'Required parameter missing <domain:name>', $clTRID);
+        sendEppError($conn, 2003, 'Pleae provide domain name', $clTRID);
         return;
     }
 
@@ -39,12 +39,12 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     $domainData = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$domainData) {
-        sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+        sendEppError($conn, 2303, 'Domain does not exist', $clTRID);
         return;
     }
 
     if ($clid['id'] != $domainData['clid']) {
-        sendEppError($conn, 2201, 'Authorization error', $clTRID);
+        sendEppError($conn, 2201, 'It belongs to another registrar', $clTRID);
         return;
     }
 	
@@ -56,7 +56,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $status = $row['status'];
         if (preg_match('/.*(RenewProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-            sendEppError($conn, 2304, 'Object status prohibits operation', $clTRID);
+            sendEppError($conn, 2304, 'It has a status that does not allow renew, first change the status', $clTRID);
             return;
         }
     }
@@ -64,7 +64,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     $expiration_date = explode(" ", $domainData['exdate'])[0];  // remove time, keep only date
 
     if ($curExpDate !== $expiration_date) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'The expiration date does not match', $clTRID);
         return;
     }
 
@@ -78,7 +78,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     if ($date_add > 0) {
         // The number of units available MAY be subject to limits imposed by the server.
         if (!in_array($date_add, [12, 24, 36, 48, 60, 72, 84, 96, 108, 120])) {
-            sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+            sendEppError($conn, 2306, 'Not less than 1 year and not more than 10', $clTRID);
             return;
         }
 
@@ -91,7 +91,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
 
         // Domains can be renewed at any time, but the expire date cannot be more than 10 years in the future.
         if ($after_renew > $after_10_years) {
-            sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+            sendEppError($conn, 2306, 'Domains can be renewed at any time, but the expire date cannot be more than 10 years in the future', $clTRID);
             return;
         }
 
@@ -110,7 +110,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
         $price = $stmt->fetchColumn();
 
         if (($registrar_balance + $creditLimit) < $price) {
-            sendEppError($conn, 2104, 'Billing failure', $clTRID);
+            sendEppError($conn, 2104, 'There is no money on the account to renew', $clTRID);
             return;
         }
 		
@@ -130,7 +130,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
         // Error check
         $errorInfo = $stmt->errorInfo();
         if (isset($errorInfo[2])) {
-            sendEppError($conn, 2400, 'Command failed', $clTRID);
+            sendEppError($conn, 2400, 'It was not renewed successfully, something is wrong', $clTRID);
             return;
         } else {
             // Update registrar's account balance:

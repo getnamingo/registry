@@ -18,7 +18,7 @@ function processContactInfo($conn, $db, $xml) {
         $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$contact) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'Contact does not exist', $clTRID);
             return;
         }
         
@@ -105,7 +105,7 @@ function processHostInfo($conn, $db, $xml) {
         $host = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$host) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'Host does not exist', $clTRID);
             return;
         }
 		
@@ -187,7 +187,7 @@ function processDomainInfo($conn, $db, $xml) {
         $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$domain) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'Domain does not exist', $clTRID);
             return;
         }
         

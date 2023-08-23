@@ -11,7 +11,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
         $authInfo_pw = (string)$obj->xpath('//contact:authInfo/contact:pw[1]')[0];
 
         if (!$contactID) {
-            sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
+            sendEppError($conn, 2003, 'Contact ID was not provided', $clTRID);
             return;
         }
 
@@ -23,7 +23,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
         $registrar_id_contact = $result['clid'] ?? null;
 
         if (!$contact_id) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'Contact does not exist', $clTRID);
             return;
         }
     
@@ -35,7 +35,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
 
         if ($op === 'approve') {
             if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'Only the losing registrar can approve', $clTRID);
                 return;
             }
 
@@ -48,7 +48,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $contact_authinfo_id = $stmt->fetchColumn();
 
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'Invalid authorization information', $clTRID);
+                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
                     return;
                 }
             }
@@ -67,7 +67,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 ]);
 
                 if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, 2400, 'Command failed', $clTRID);
+                    sendEppError($conn, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID);
                     return;
                 } else {
                     $stmt->execute([':contact_id' => $contact_id]);
@@ -101,13 +101,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Object not pending transfer', $clTRID);
+                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
                 return;
             }
         } elseif ($op === 'cancel') {
             // Only the requesting or 'Gaining' Registrar can cancel
             if ($clid === $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'Only the applicant can cancel', $clTRID);
                 return;
             }
 
@@ -117,7 +117,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
                  $contact_authinfo_id = $stmt->fetchColumn();
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'Invalid authorization information', $clTRID);
+                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
                     return;
                 }
             }
@@ -132,7 +132,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $stmt->execute([':contact_id' => $contact_id]);
 
                 if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, 2400, 'Command failed', $clTRID);
+                    sendEppError($conn, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID);
                     return;
                 } else {
                     $stmt->execute([':contact_id' => $contact_id]);
@@ -166,7 +166,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Object not pending transfer', $clTRID);
+                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
                 return;
             }
         } elseif ($op === 'query') {
@@ -203,13 +203,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $xml = $epp->epp_writer($response);
                 sendEppResponse($conn, $xml);
             } else {
-                sendEppError($conn, 2301, 'Object not pending transfer', $clTRID);
+                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
                 return;
             }
         } elseif ($op === 'reject') {
             // Only the LOSING REGISTRAR can approve or reject
             if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'Only the losing registrar can reject', $clTRID);
                 return;
             }
 
@@ -220,7 +220,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $contact_authinfo_id = $stmt->fetchColumn();
 
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'Invalid authorization information', $clTRID);
+                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
                     return;
                 }
             }
@@ -235,7 +235,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $updateStmt->execute([':contact_id' => $contact_id]);
 
                 if ($updateStmt->errorCode() !== '00000') {
-                    sendEppError($conn, 2400, 'Command failed', $clTRID);
+                    sendEppError($conn, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID);
                     return;
                 } else {
                     $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
@@ -271,7 +271,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Object not pending transfer', $clTRID);
+                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
                 return;
             }
         } elseif ($op == 'request') {
@@ -281,7 +281,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
             $days_from_registration = $stmt->fetchColumn();
 
             if ($days_from_registration < 60) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID);
                 return;
             }
 
@@ -293,7 +293,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
             $days_from_last_transfer = $result['intval'];
 
             if ($last_trdate && $days_from_last_transfer < 60) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID);
                 return;
             }
 
@@ -303,7 +303,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
             $contact_authinfo_id = $stmt->fetchColumn();
 
             if (!$contact_authinfo_id) {
-                sendEppError($conn, 2202, 'Invalid authorization information', $clTRID);
+                sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
                 return;
             }
 
@@ -313,13 +313,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
 
             while ($status = $stmt->fetchColumn()) {
                 if (preg_match("/.*(TransferProhibited)$/", $status) || preg_match("/^pending/", $status)) {
-                    sendEppError($conn, 2304, 'Object status prohibits operation', $clTRID);
+                    sendEppError($conn, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID);
                     return;
                 }
             }
 
             if ($clid == $registrar_id_contact) {
-                sendEppError($conn, 2106, 'Object is not eligible for transfer', $clTRID);
+                sendEppError($conn, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID);
                 return;
             }
 
@@ -338,7 +338,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 ]);
 
                 if ($stmt->errorCode() != '00000') {
-                    sendEppError($conn, 2400, 'Command failed', $clTRID);
+                    sendEppError($conn, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID);
                     return;
                 } else {
                     $stmt = $db->prepare("SELECT `crid`,`crdate`,`upid`,`update`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
@@ -378,11 +378,11 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     sendEppResponse($conn, $xml);
                 }
             } elseif ($op == 'pending') {
-                sendEppError($conn, 2300, 'Object pending transfer', $clTRID);
+                sendEppError($conn, 2300, 'Command failed because the contact is pending transfer', $clTRID);
                 return;
             }
         } else {
-            sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+            sendEppError($conn, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID);
             return;
         }
     }
