@@ -291,6 +291,17 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostInfo($conn, $db, $xml);
                 break;
             }
+			
+            case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update):
+            {
+                $data = $table->get($connId);
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error');
+                    $conn->close();
+                }
+                processHostUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
             
             case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
             {

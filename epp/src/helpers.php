@@ -48,12 +48,16 @@ function sendGreeting($conn) {
     sendEppResponse($conn, $xml);
 }
 
-function sendEppError($conn, $code, $msg) {
+function sendEppError($conn, $code, $msg, $clTRID = "000") {
+    if (!isset($clTRID)) {
+        $clTRID = "000";
+    }
+	
     $response = [
         'command' => 'error',
         'resultCode' => $code,
-        'msg' => $msg,
-        'clTRID' => '1',
+        'human_readable_message' => $msg,
+        'clTRID' => $clTRID,
         'svTRID' => generateSvTRID(),
     ];
 
