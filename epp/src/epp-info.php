@@ -7,7 +7,7 @@ function processContactInfo($conn, $db, $xml) {
     // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
-        sendEppError($conn, 2005, 'Invalid contact ID');
+        sendEppError($conn, 2005, 'Invalid contact ID', $clTRID);
         return;
     }
 
@@ -18,7 +18,7 @@ function processContactInfo($conn, $db, $xml) {
         $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$contact) {
-            sendEppError($conn, 2303, 'Object does not exist');
+            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
             return;
         }
         
@@ -84,7 +84,7 @@ function processContactInfo($conn, $db, $xml) {
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
+        sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }
 
@@ -94,7 +94,7 @@ function processHostInfo($conn, $db, $xml) {
 
     // Validation for host name
     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) > 254) {
-        sendEppError($conn, 2005, 'Invalid host name');
+        sendEppError($conn, 2005, 'Invalid host name', $clTRID);
         return;
     }
 	
@@ -105,7 +105,7 @@ function processHostInfo($conn, $db, $xml) {
         $host = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$host) {
-            sendEppError($conn, 2303, 'Object does not exist');
+            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
             return;
         }
 		
@@ -160,7 +160,7 @@ function processHostInfo($conn, $db, $xml) {
     $xml = $epp->epp_writer($response);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
+        sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }
 
@@ -171,12 +171,12 @@ function processDomainInfo($conn, $db, $xml) {
     // Validation for domain name
     $invalid_label = validate_label($domainName, $db);
     if ($invalid_label) {
-        sendEppError($conn, 2005, 'Invalid domain name');
+        sendEppError($conn, 2005, 'Invalid domain name', $clTRID);
         return;
     }
 	
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
-        sendEppError($conn, 2005, 'Invalid domain name');
+        sendEppError($conn, 2005, 'Invalid domain name', $clTRID);
         return;
     }
 
@@ -187,7 +187,7 @@ function processDomainInfo($conn, $db, $xml) {
         $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$domain) {
-            sendEppError($conn, 2303, 'Object does not exist');
+            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
             return;
         }
         
@@ -254,7 +254,7 @@ function processDomainInfo($conn, $db, $xml) {
     $xml = $epp->epp_writer($response);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
+        sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }
 
@@ -272,7 +272,7 @@ function processFundsInfo($conn, $db, $xml, $clid) {
 		$availableCredit = number_format($availableCredit, 2, '.', '');
 
         if (!$funds) {
-            sendEppError($conn, 2303, 'Registrar does not exist');
+            sendEppError($conn, 2303, 'Registrar does not exist', $clTRID);
             return;
         }
         
@@ -295,6 +295,6 @@ function processFundsInfo($conn, $db, $xml, $clid) {
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
+        sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }

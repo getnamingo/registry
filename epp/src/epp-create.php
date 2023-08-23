@@ -5,14 +5,14 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$contactID) {
-        sendEppError($conn, 2003, 'Required parameter missing');
+        sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
         return;
     }
 
     // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
-        sendEppError($conn, 2005, 'Invalid contact ID');
+        sendEppError($conn, 2005, 'Invalid contact ID', $clTRID);
         return;
     }
     
@@ -22,7 +22,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
     $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($contact) {
-        sendEppError($conn, 2302, 'Contact ID already exists');
+        sendEppError($conn, 2302, 'Contact ID already exists', $clTRID);
         return;
     }
 	
@@ -65,64 +65,64 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         $postalInfoIntCc   = (string) $postalInfoInt->addr->cc;
 
         if (!$postalInfoIntName) {
-            sendEppError($conn, 2003, 'Missing contact:name');
+            sendEppError($conn, 2003, 'Missing contact:name', $clTRID);
             return;
         }
 
         if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
-            sendEppError($conn, 2005, 'Invalid contact:name');
+            sendEppError($conn, 2005, 'Invalid contact:name', $clTRID);
             return;
         }
 
         if ($postalInfoIntOrg) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
-                sendEppError($conn, 2005, 'Invalid contact:org');
+                sendEppError($conn, 2005, 'Invalid contact:org', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoIntStreet1) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoIntStreet2) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoIntStreet3) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
-            sendEppError($conn, 2005, 'Invalid contact:city');
+            sendEppError($conn, 2005, 'Invalid contact:city', $clTRID);
             return;
         }
 
         if ($postalInfoIntSp) {
             if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoIntSp)) {
-                sendEppError($conn, 2005, 'Invalid contact:sp');
+                sendEppError($conn, 2005, 'Invalid contact:sp', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoIntPc) {
             if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoIntPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoIntPc)) {
-                sendEppError($conn, 2005, 'Invalid contact:pc');
+                sendEppError($conn, 2005, 'Invalid contact:pc', $clTRID);
                 return;
             }
         }
 
         if (!preg_match('/^(AF|AX|AL|DZ|AS|AD|AO|AI|AQ|AG|AR|AM|AW|AU|AT|AZ|BS|BH|BD|BB|BY|BE|BZ|BJ|BM|BT|BO|BQ|BA|BW|BV|BR|IO|BN|BG|BF|BI|KH|CM|CA|CV|KY|CF|TD|CL|CN|CX|CC|CO|KM|CG|CD|CK|CR|CI|HR|CU|CW|CY|CZ|DK|DJ|DM|DO|EC|EG|SV|GQ|ER|EE|ET|FK|FO|FJ|FI|FR|GF|PF|TF|GA|GM|GE|DE|GH|GI|GR|GL|GD|GP|GU|GT|GG|GN|GW|GY|HT|HM|VA|HN|HK|HU|IS|IN|ID|IR|IQ|IE|IM|IL|IT|JM|JP|JE|JO|KZ|KE|KI|KP|KR|KW|KG|LA|LV|LB|LS|LR|LY|LI|LT|LU|MO|MK|MG|MW|MY|MV|ML|MT|MH|MQ|MR|MU|YT|MX|FM|MD|MC|MN|ME|MS|MA|MZ|MM|NA|NR|NP|NL|NC|NZ|NI|NE|NG|NU|NF|MP|NO|OM|PK|PW|PS|PA|PG|PY|PE|PH|PN|PL|PT|PR|QA|RE|RO|RU|RW|BL|SH|KN|LC|MF|PM|VC|WS|SM|ST|SA|SN|RS|SC|SL|SG|SX|SK|SI|SB|SO|ZA|GS|ES|LK|SD|SR|SJ|SZ|SE|CH|SY|TW|TJ|TZ|TH|TL|TG|TK|TO|TT|TN|TR|TM|TC|TV|UG|UA|AE|GB|US|UM|UY|UZ|VU|VE|VN|VG|VI|WF|EH|YE|ZM|ZW)$/', $postalInfoIntCc)) {
-            sendEppError($conn, 2005, 'Invalid contact:cc');
+            sendEppError($conn, 2005, 'Invalid contact:cc', $clTRID);
             return;
         }
     }
@@ -148,70 +148,70 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         $postalInfoLocCc   = (string) $postalInfoLoc->addr->cc;
 
         if (!$postalInfoLocName) {
-            sendEppError($conn, 2003, 'Missing contact:name');
+            sendEppError($conn, 2003, 'Missing contact:name', $clTRID);
             return;
         }
 
         if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocName)) {
-            sendEppError($conn, 2005, 'Invalid contact:name');
+            sendEppError($conn, 2005, 'Invalid contact:name', $clTRID);
             return;
         }
 
         if ($postalInfoLocOrg) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocOrg)) {
-                sendEppError($conn, 2005, 'Invalid contact:org');
+                sendEppError($conn, 2005, 'Invalid contact:org', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoLocStreet1) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet1)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoLocStreet2) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet2)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoLocStreet3) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet3)) {
-                sendEppError($conn, 2005, 'Invalid contact:street');
+                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
                 return;
             }
         }
 
         if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoLocCity)) {
-            sendEppError($conn, 2005, 'Invalid contact:city');
+            sendEppError($conn, 2005, 'Invalid contact:city', $clTRID);
             return;
         }
 
         if ($postalInfoLocSp) {
             if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoLocSp)) {
-                sendEppError($conn, 2005, 'Invalid contact:sp');
+                sendEppError($conn, 2005, 'Invalid contact:sp', $clTRID);
                 return;
             }
         }
 
         if ($postalInfoLocPc) {
             if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoLocPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoLocPc)) {
-                sendEppError($conn, 2005, 'Invalid contact:pc');
+                sendEppError($conn, 2005, 'Invalid contact:pc', $clTRID);
                 return;
             }
         }
 
         if (!preg_match('/^(AF|AX|AL|DZ|AS|AD|AO|AI|AQ|AG|AR|AM|AW|AU|AT|AZ|BS|BH|BD|BB|BY|BE|BZ|BJ|BM|BT|BO|BQ|BA|BW|BV|BR|IO|BN|BG|BF|BI|KH|CM|CA|CV|KY|CF|TD|CL|CN|CX|CC|CO|KM|CG|CD|CK|CR|CI|HR|CU|CW|CY|CZ|DK|DJ|DM|DO|EC|EG|SV|GQ|ER|EE|ET|FK|FO|FJ|FI|FR|GF|PF|TF|GA|GM|GE|DE|GH|GI|GR|GL|GD|GP|GU|GT|GG|GN|GW|GY|HT|HM|VA|HN|HK|HU|IS|IN|ID|IR|IQ|IE|IM|IL|IT|JM|JP|JE|JO|KZ|KE|KI|KP|KR|KW|KG|LA|LV|LB|LS|LR|LY|LI|LT|LU|MO|MK|MG|MW|MY|MV|ML|MT|MH|MQ|MR|MU|YT|MX|FM|MD|MC|MN|ME|MS|MA|MZ|MM|NA|NR|NP|NL|NC|NZ|NI|NE|NG|NU|NF|MP|NO|OM|PK|PW|PS|PA|PG|PY|PE|PH|PN|PL|PT|PR|QA|RE|RO|RU|RW|BL|SH|KN|LC|MF|PM|VC|WS|SM|ST|SA|SN|RS|SC|SL|SG|SX|SK|SI|SB|SO|ZA|GS|ES|LK|SD|SR|SJ|SZ|SE|CH|SY|TW|TJ|TZ|TH|TL|TG|TK|TO|TT|TN|TR|TM|TC|TV|UG|UA|AE|GB|US|UM|UY|UZ|VU|VE|VN|VG|VI|WF|EH|YE|ZM|ZW)$/', $postalInfoLocCc)) {
-            sendEppError($conn, 2005, 'Invalid contact:cc');
+            sendEppError($conn, 2005, 'Invalid contact:cc', $clTRID);
             return;
         }
     }
 
     if (!$postalInfoInt && !$postalInfoLoc) {
-        sendEppError($conn, 2003, 'Missing contact:postalInfo');
+        sendEppError($conn, 2003, 'Missing contact:postalInfo', $clTRID);
         return;
     }
 	
@@ -220,7 +220,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
 	$voice = (string) $contactCreate->voice;
 	$voice_x = (string) $contactCreate->voice->attributes()->x;
     if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
-        sendEppError($conn, 2005, 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+        sendEppError($conn, 2005, 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
         return;
     }
 
@@ -230,34 +230,34 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
 	    $fax_x = (string) $contactCreate->fax->attributes()->x;
 	}
     if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
-        sendEppError($conn, 2005, 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+        sendEppError($conn, 2005, 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
         return;
     }
 
     $email = (string) $contactCreate->email;
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        sendEppError($conn, 2005, 'Email address failed check');
+        sendEppError($conn, 2005, 'Email address failed check', $clTRID);
         return;
     }
 
     $authInfo_pw = (string) $contactCreate->authInfo->pw;
     if (!$authInfo_pw) {
-        sendEppError($conn, 2003, 'Missing contact:pw');
+        sendEppError($conn, 2003, 'Missing contact:pw', $clTRID);
         return;
     }
 
     if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-        sendEppError($conn, 2005, 'Password needs to be at least 6 and up to 16 characters long');
+        sendEppError($conn, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID);
         return;
     }
 
     if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should have both upper and lower case characters');
+        sendEppError($conn, 2005, 'Password should have both upper and lower case characters', $clTRID);
         return;
     }
 
     if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should contain one or more numbers');
+        sendEppError($conn, 2005, 'Password should contain one or more numbers', $clTRID);
         return;
     }
 
@@ -311,11 +311,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         $nin_type = (string)$obj_ext->xpath('identica:nin/@type')[0] ?? '';
 
         if (!preg_match('/\d/', $nin)) {
-            sendEppError($conn, 2005, 'NIN should contain one or more numbers');
+            sendEppError($conn, 2005, 'NIN should contain one or more numbers', $clTRID);
             return;
         }
         if (!in_array($nin_type, ['personal', 'business'])) {
-            sendEppError($conn, 2005, 'NIN type is invalid');
+            sendEppError($conn, 2005, 'NIN type is invalid', $clTRID);
             return;
         }
     }
@@ -370,7 +370,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         $crdate = $stmt->fetchColumn();
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error');
+        sendEppError($conn, 2400, 'Database error', $clTRID);
     	return;
     }
 
@@ -397,17 +397,17 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
     if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
         $host_id_already_exist = $db->query("SELECT id FROM host WHERE name = '$hostName' LIMIT 1")->fetchColumn();
         if ($host_id_already_exist) {
-            sendEppError($conn, 2302, 'host:name already exists');
+            sendEppError($conn, 2302, 'host:name already exists', $clTRID);
             return;
         }
     } else {
-        sendEppError($conn, 2005, 'Invalid host:name');
+        sendEppError($conn, 2005, 'Invalid host:name', $clTRID);
         return;
     }
 
     $host_addr_list = $xml->xpath('//addr'); 
     if (count($host_addr_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 	
@@ -431,19 +431,19 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
 
         // v6 IP validation
         if ($addr_type === 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            sendEppError($conn, 2005, 'Invalid host:addr v6');
+            sendEppError($conn, 2005, 'Invalid host:addr v6', $clTRID);
             return;
         }
 
         // v4 IP validation
         if ($addr_type !== 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            sendEppError($conn, 2005, 'Invalid host:addr v4');
+            sendEppError($conn, 2005, 'Invalid host:addr v4', $clTRID);
             return;
         }
 
         // check for duplicate IPs
         if (isset($nsArr[$addr_type][$addr])) {
-            sendEppError($conn, 2306, 'Duplicated host:addr');
+            sendEppError($conn, 2306, 'Duplicated host:addr', $clTRID);
             return;
         }
 
@@ -478,12 +478,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
         }
         
         if (!$domain_exist) {
-            sendEppError($conn, 2303, 'Object does not exist');
+            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
             return;
         }
         
         if ($clid != $clid_domain) {
-            sendEppError($conn, 2201, 'Authorization error');
+            sendEppError($conn, 2201, 'Authorization error', $clTRID);
             return;
         }
 
@@ -567,7 +567,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $invalid_domain = validate_label($domainName, $db);
 
     if ($invalid_domain) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 
@@ -583,7 +583,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     }
 
     if (!$valid_tld) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 
@@ -592,7 +592,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $domain_already_exist = $stmt->fetchColumn();
 
     if ($domain_already_exist) {
-        sendEppError($conn, 2302, 'Object exists');
+        sendEppError($conn, 2302, 'Object exists', $clTRID);
         return;
     }
 
@@ -601,7 +601,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $domain_already_reserved = $stmt->fetchColumn();
 
     if ($domain_already_reserved) {
-        sendEppError($conn, 2302, 'Object exists');
+        sendEppError($conn, 2302, 'Object exists', $clTRID);
         return;
     }
 	
@@ -611,7 +611,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $period_unit = (string) $periodElement['unit'];
 
     if ($period && (($period < 1) || ($period > 99))) {
-        sendEppError($conn, 2004, 'Parameter value range error');
+        sendEppError($conn, 2004, 'Parameter value range error', $clTRID);
         return;
     } elseif (!$period) {
         $period = 1;
@@ -619,7 +619,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
     if ($period_unit) {
         if (!preg_match('/^(m|y)$/', $period_unit)) {
-        sendEppError($conn, 2004, 'Parameter value range error');
+        sendEppError($conn, 2004, 'Parameter value range error', $clTRID);
         return;
         }
     } else {
@@ -634,7 +634,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     }
 
     if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 	
@@ -658,12 +658,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $price = $stmt->fetchColumn();
 
     if (!$price) {
-        sendEppError($conn, 2400, 'Command failed');
+        sendEppError($conn, 2400, 'Command failed', $clTRID);
         return;
     }
 
     if (($registrar_balance + $creditLimit) < $price) {
-        sendEppError($conn, 2104, 'Billing failure');
+        sendEppError($conn, 2104, 'Billing failure', $clTRID);
         return;
     }
 
@@ -672,24 +672,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $hostAttr_list = $ns->xpath('//domain:hostAttr');
 
     if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
-        sendEppError($conn, 2001, 'Command syntax error');
+        sendEppError($conn, 2001, 'Command syntax error', $clTRID);
         return;
     }
 
     if (count($hostObj_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 
     if (count($hostAttr_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error');
+        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
         return;
     }
 
     $nsArr = [];
     foreach ($hostObj_list as $hostObj) {
         if (isset($nsArr[(string)$hostObj])) {
-            sendEppError($conn, 2302, 'Object exists');
+            sendEppError($conn, 2302, 'Object exists', $clTRID);
             return;
         }
         $nsArr[(string)$hostObj] = 1;
@@ -698,7 +698,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $nsArr = [];
     foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
         if (isset($nsArr[(string)$hostName])) {
-            sendEppError($conn, 2302, 'Object exists');
+            sendEppError($conn, 2302, 'Object exists', $clTRID);
             return;
         }
         $nsArr[(string)$hostName] = 1;
@@ -709,7 +709,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
             $hostObj = strtoupper((string)$node);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
-                sendEppError($conn, 2005, 'Parameter value syntax error');
+                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                 return;
             }
 
@@ -722,11 +722,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                 $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
 
                 if (!$host_id_already_exist) {
-                    sendEppError($conn, 2303, 'Object does not exist');
+                    sendEppError($conn, 2303, 'Object does not exist', $clTRID);
                     return;
                 }
             } else {
-                sendEppError($conn, 2005, 'Parameter value syntax error');
+                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                 return;
             }
         }
@@ -737,7 +737,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
             $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
-                sendEppError($conn, 2005, 'Parameter value syntax error');
+                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                 return;
             }
 
@@ -759,7 +759,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                 $hostAddrNodes = $node->xpath('//domain:hostAddr');
 
                 if (count($hostAddrNodes) > 13) {
-                    sendEppError($conn, 2306, 'Parameter value policy error');
+                    sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
                     return;
                 }
 
@@ -767,14 +767,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                 foreach ($hostAddrNodes as $hostAddrNode) {
                     $hostAddr = (string)$hostAddrNode;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Object exists');
+                        sendEppError($conn, 2302, 'Object exists', $clTRID);
                         return;
                     }
                     $nsArr[$hostAddr] = true;
                 }
 
                 if (count($hostAddrNodes) === 0) {
-                    sendEppError($conn, 2003, 'Required parameter missing');
+                    sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
                     return;
                 }
 				
@@ -796,7 +796,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                         } else {
-                            sendEppError($conn, 2005, 'Parameter value syntax error');
+                            sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                             return;
                         }
                     } else {
@@ -805,11 +805,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                             if ($hostAddr == '127.0.0.1') {
-                              sendEppError($conn, 2005, 'Parameter value syntax error');
+                              sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                               return;
                             }
                         } else {
-                           sendEppError($conn, 2005, 'Parameter value syntax error');
+                           sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                            return;
                         }
                     }
@@ -835,17 +835,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
                     // Object does not exist error
                     if (!$domain_exist) {
-                       sendEppError($conn, 2303, 'Object does not exist');
+                       sendEppError($conn, 2303, 'Object does not exist', $clTRID);
                        return;
                     }
 
                     // Authorization error
                     if ($clid != $clid_domain) {
-                       sendEppError($conn, 2201, 'Authorization error');
+                       sendEppError($conn, 2201, 'Authorization error', $clTRID);
                        return;
                     }
                 } else {
-                   sendEppError($conn, 2005, 'Parameter value syntax error');
+                   sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                    return;
                 }
 
@@ -853,7 +853,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
                 // Max 13 IP per host
                 if (count($hostAddr_list) > 13) {
-                   sendEppError($conn, 2306, 'Parameter value policy error');
+                   sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
                    return;
                 }
 
@@ -862,7 +862,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                 foreach ($hostAddr_list as $node) {
                     $hostAddr = (string) $node;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Object exists');
+                        sendEppError($conn, 2302, 'Object exists', $clTRID);
                         return;
                     }
                     $nsArr[$hostAddr] = 1;
@@ -870,7 +870,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
                 // Check for missing host addresses
                 if (count($hostAddr_list) === 0) {
-                    sendEppError($conn, 2003, 'Required parameter missing');
+                    sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
                     return;
                 }
 
@@ -893,7 +893,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                         } else {
-                             sendEppError($conn, 2005, 'Parameter value syntax error');
+                             sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                              return;
                         }
                     } else {
@@ -904,11 +904,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                             if ($hostAddr === '127.0.0.1') {
-                               sendEppError($conn, 2005, 'Parameter value syntax error');
+                               sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                                return;
                             }
                         } else {
-                               sendEppError($conn, 2005, 'Parameter value syntax error');
+                               sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                                return;
                         }
                     }
@@ -919,7 +919,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 				if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
 
 				} else {
-                    sendEppError($conn, 2005, 'Parameter value syntax error');
+                    sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
                     return;
 				}
 			}
@@ -939,12 +939,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            sendEppError($conn, 2303, 'Object does not exist');
+            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
             return;
         }
 
         if ($clid != $row['clid']) {
-            sendEppError($conn, 2201, 'Authorization error');
+            sendEppError($conn, 2201, 'Authorization error', $clTRID);
             return;
         }
     }
@@ -956,7 +956,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
         // Max five contacts per domain name for each type
         if ($size > 5) {
-            sendEppError($conn, 2306, 'Parameter value policy error');
+            sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
             return;
         }
 
@@ -970,12 +970,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
 
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
-                sendEppError($conn, 2303, 'Object does not exist');
+                sendEppError($conn, 2303, 'Object does not exist', $clTRID);
                 return;
             }
 
             if ($clid != $row['clid']) {
-                sendEppError($conn, 2201, 'Authorization error');
+                sendEppError($conn, 2201, 'Authorization error', $clTRID);
                 return;
             }
         }
@@ -984,22 +984,22 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     $authInfo_pw = $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
 
     if (!$authInfo_pw) {
-        sendEppError($conn, 2003, 'Required parameter missing');
+        sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
         return;
     }
 
     if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
-        sendEppError($conn, 2005, 'Parameter value syntax error');
+        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
         return;
     }
 
     if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Parameter value syntax error');
+        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
         return;
     }
 
     if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Parameter value syntax error');
+        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
         return;
     }
 	

@@ -60,7 +60,7 @@ function processHostCheck($conn, $db, $xml) {
 
         // Validation for host name
 		if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $host) && strlen($host) > 254) {
-            sendEppError($conn, 2005, 'Invalid host name');
+            sendEppError($conn, 2005, 'Invalid host name', $clTRID);
             return;
 		}
 
