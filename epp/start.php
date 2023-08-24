@@ -246,6 +246,18 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 break;
             }
 			
+            case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update):
+            {
+                $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    $conn->close();
+                }
+                processDomainUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
+			
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
             {
                 $data = $table->get($connId);
