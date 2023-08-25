@@ -3,6 +3,7 @@
 function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
     $clTRID = (string) $xml->command->clTRID;
+    $op = (string) $xml->xpath('//@op')[0] ?? null;
 
     $op = (string)$xml['op'][0];
     $obj = $xml->xpath('//contact:transfer')[0] ?? null;
@@ -250,7 +251,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     $acidStmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
                     $acidStmt->execute([':acid' => $contactInfo['acid']]);
                     $acid_identifier = $acidStmt->fetchColumn();
-					
+                    
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -357,7 +358,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                             ':acid_identifier' => $acid_identifier,
                             ':acdate' => str_replace(" ", "T", $result['acdate']) . '.0Z'
                         ]);
-						
+                        
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -388,13 +389,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
     }
 }
 
-function processDomainTranfer($conn, $db, $xml, $clid, $database_type) {
+function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
     $clTRID = (string) $xml->command->clTRID;
+    $op = (string) $xml->xpath('//@op')[0] ?? null;
 
     // -  An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
     $authInfo_pw = (string)$xml->xpath('//domain:authInfo/domain:pw[1]')[0];
-    $authInfo_pw_roid = (string)$xml->xpath('//domain:authInfo/domain:pw/@roid[1]')[0];
 
     if (!$domainName) {
         sendEppError($conn, 2003, 'Please provide the domain name', $clTRID);
@@ -765,36 +766,14 @@ function processDomainTranfer($conn, $db, $xml, $clid, $database_type) {
             return;
         }
 
-        // Auth info with ROID
-        if ($authInfo_pw_roid) {
-            // Retain only numbers from roid
-            $authInfo_pw_roid = preg_replace("/\D/", "", $authInfo_pw_roid);
-            $stmt = $db->prepare("SELECT `contact_id` FROM `domain_contact_map` WHERE `domain_id` = :domain_id AND `contact_id` = :authInfo_pw_roid LIMIT 1");
-            $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw_roid' => $authInfo_pw_roid]);
-            $contact_id_roid = $stmt->fetchColumn();
+        // Auth info
+        $stmt = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = :domain_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+        $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
+        $domain_authinfo_id = $stmt->fetchColumn();
 
-            if (!$contact_id_roid) {
-                sendEppError($conn, 2202, 'authInfo pw with roid is invalid', $clTRID);
-                return;
-            }
-
-            $stmt = $db->prepare("SELECT `id` FROM `contact_authInfo` WHERE `contact_id` = :authInfo_pw_roid AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
-            $stmt->execute(['authInfo_pw_roid' => $authInfo_pw_roid, 'authInfo_pw' => $authInfo_pw]);
-            $contact_authInfo_id = $stmt->fetchColumn();
-
-            if (!$contact_authInfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw with roid is invalid', $clTRID);
-                return;
-            }
-        } else {
-            $stmt = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = :domain_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
-            $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
-            $domain_authinfo_id = $stmt->fetchColumn();
-
-            if (!$domain_authinfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw is invalid', $clTRID);
-                return;
-            }
+        if (!$domain_authinfo_id) {
+            sendEppError($conn, 2202, 'authInfo pw is invalid', $clTRID);
+            return;
         }
 
         // Check domain status
@@ -978,7 +957,7 @@ function processDomainTranfer($conn, $db, $xml, $clid, $database_type) {
                         ':acid_identifier' => $acid_identifier,
                         ':acdate' => $acdate
                     ]);
-					
+                    
                     $response = [
                         'command' => 'transfer_domain',
                         'resultCode' => 1001,
