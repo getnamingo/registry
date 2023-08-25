@@ -258,3 +258,13 @@ function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, 
 
     return true;
 }
+
+function getClid(PDO $db, string $clid): ?int {
+    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
+    $stmt->execute();
+    
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $result ? (int)$result['id'] : null;
+}

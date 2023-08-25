@@ -91,11 +91,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $clID = (string) $xml->command->login->clID;
                 $pw = (string) $xml->command->login->pw;
                 $clTRID = (string) $xml->command->clTRID;
-                $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-                $stmt->bindParam(':clid', $clID, PDO::PARAM_STR);
-                $stmt->execute();
-                $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-                $clid = $clid['id'];
+                $clid = getClid($db, $clID);
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
 
@@ -106,14 +102,13 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                         'command' => 'login',
                         'resultCode' => 1000,
                         'lang' => 'en-US',
-                        'message' => 'Login successful',
                         'clTRID' => $clTRID,
                         'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'login', null, null, 1000, 'Login successful', $svTRID, $xml, $trans);
+                    updateTransaction($db, 'login', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 } else {
                     sendEppError($conn, 2200, 'Authentication error', $clTRID);
@@ -124,11 +119,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             case isset($xml->command->logout):
             {
                 $data = $table->get($connId);
-                $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-                $stmt->bindParam(':clid', $data['clid'], PDO::PARAM_STR);
-                $stmt->execute();
-                $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-                $clid = $clid['id'];
+                $clid = getClid($db, $clID);
                 $table->del($connId);
                 $clTRID = (string) $xml->command->clTRID;
                 $xmlString = $xml->asXML();
@@ -144,7 +135,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
-                updateTransaction($db, 'logout', null, null, 1500, 'Logout successful', $svTRID, $xml, $trans);
+                updateTransaction($db, 'logout', null, null, 1500, 'Command completed successfully; ending session', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
                 $conn->close();
                 break;
@@ -160,6 +151,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -172,6 +166,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -184,6 +181,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -196,6 +196,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -208,6 +211,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -220,6 +226,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -232,6 +241,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -244,6 +256,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -256,6 +271,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -268,6 +286,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -280,6 +301,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -292,6 +316,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -304,6 +331,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -316,6 +346,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -328,6 +361,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -340,6 +376,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -352,6 +391,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -364,6 +406,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -376,6 +421,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
@@ -388,6 +436,9 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
             {
                 $data = $table->get($connId);
                 $clTRID = (string) $xml->command->clTRID;
+                $clid = getClid($db, $data['clid']);
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
