@@ -1,6 +1,6 @@
 <?php
 
-function processContactInfo($conn, $db, $xml) {
+function processContactInfo($conn, $db, $xml, $trans) {
     $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -56,10 +56,11 @@ function processContactInfo($conn, $db, $xml) {
             ];
         }
         
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_contact',
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'id' => $contact['id'],
@@ -81,6 +82,7 @@ function processContactInfo($conn, $db, $xml) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'info', 'contact', 'C_'.$contact['identifier'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
@@ -88,7 +90,7 @@ function processContactInfo($conn, $db, $xml) {
     }
 }
 
-function processHostInfo($conn, $db, $xml) {
+function processHostInfo($conn, $db, $xml, $trans) {
     $hostName = $xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -138,10 +140,11 @@ function processHostInfo($conn, $db, $xml) {
             $statusArray[] = ['linked'];
         }
 
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_host',
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'name' => $host['name'],
@@ -158,13 +161,14 @@ function processHostInfo($conn, $db, $xml) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'info', 'host', 'H_'.$host['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }
 
-function processDomainInfo($conn, $db, $xml) {
+function processDomainInfo($conn, $db, $xml, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -226,10 +230,11 @@ function processDomainInfo($conn, $db, $xml) {
             $statusArray[] = [$status['status']];
         }
 
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_domain',
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'name' => $domain['name'],
@@ -252,13 +257,14 @@ function processDomainInfo($conn, $db, $xml) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Database error', $clTRID);
     }
 }
 
-function processFundsInfo($conn, $db, $xml, $clid) {
+function processFundsInfo($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     try {
@@ -276,10 +282,11 @@ function processFundsInfo($conn, $db, $xml, $clid) {
             return;
         }
         
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_funds',
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'funds' => $funds['accountBalance'],
@@ -292,6 +299,7 @@ function processFundsInfo($conn, $db, $xml, $clid) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'info', null, $funds['accountBalance'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {

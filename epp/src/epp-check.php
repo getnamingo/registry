@@ -1,6 +1,6 @@
 <?php
 
-function processContactCheck($conn, $db, $xml) {
+function processContactCheck($conn, $db, $xml, $trans) {
     $contactIDs = $xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -34,7 +34,8 @@ function processContactCheck($conn, $db, $xml) {
     
         $ids[] = $entry;
     }
-
+	
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'check_contact',
         'resultCode' => 1000,
@@ -42,15 +43,19 @@ function processContactCheck($conn, $db, $xml) {
         'message' => 'Command completed successfully',
         'ids' => $ids,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    if (is_array($ids)) {
+        $ids = implode(',', array_column($ids, 0));
+    }
+    updateTransaction($db, 'check', 'contact', $ids, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processHostCheck($conn, $db, $xml) {
+function processHostCheck($conn, $db, $xml, $trans) {
     $hosts = $xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check->{'name'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -80,6 +85,7 @@ function processHostCheck($conn, $db, $xml) {
         $names[] = $entry;
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'check_host',
         'resultCode' => 1000,
@@ -87,15 +93,19 @@ function processHostCheck($conn, $db, $xml) {
         'message' => 'Command completed successfully',
         'names' => $names,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    if (is_array($names)) {
+        $names = implode(',', array_column($names, 0));
+    }
+    updateTransaction($db, 'check', 'host', $names, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processDomainCheck($conn, $db, $xml) {
+function processDomainCheck($conn, $db, $xml, $trans) {
     $domains = $xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -132,6 +142,7 @@ function processDomainCheck($conn, $db, $xml) {
         $names[] = $domainEntry;
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'check_domain',
         'resultCode' => 1000,
@@ -139,10 +150,14 @@ function processDomainCheck($conn, $db, $xml) {
         'message' => 'Command completed successfully',
         'names' => $names,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    if (is_array($names)) {
+        $names = implode(',', array_column($names, 0));
+    }
+    updateTransaction($db, 'check', 'domain', $names, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }

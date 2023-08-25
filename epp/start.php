@@ -173,7 +173,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactCheck($conn, $db, $xml);
+                processContactCheck($conn, $db, $xml, $trans);
                 break;
             }
       
@@ -203,7 +203,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactInfo($conn, $db, $xml);
+                processContactInfo($conn, $db, $xml, $trans);
                 break;
             }
             
@@ -263,7 +263,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainCheck($conn, $db, $xml);
+                processDomainCheck($conn, $db, $xml, $trans);
                 break;
             }
 
@@ -278,7 +278,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainInfo($conn, $db, $xml);
+                processDomainInfo($conn, $db, $xml, $trans);
                 break;
             }
             
@@ -353,7 +353,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processHostCheck($conn, $db, $xml);
+                processHostCheck($conn, $db, $xml, $trans);
                 break;
             }
             
@@ -383,7 +383,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processHostInfo($conn, $db, $xml);
+                processHostInfo($conn, $db, $xml, $trans);
                 break;
             }
             
@@ -428,7 +428,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processFundsInfo($conn, $db, $xml, $data['clid']);
+                processFundsInfo($conn, $db, $xml, $data['clid'], $trans);
                 break;
             }
             
