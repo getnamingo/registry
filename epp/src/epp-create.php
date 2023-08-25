@@ -1,6 +1,6 @@
 <?php
 
-function processContactCreate($conn, $db, $xml, $clid, $database_type) {
+function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactID = (string) $xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -374,6 +374,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
     	return;
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'create_contact',
         'resultCode' => 1000,
@@ -382,15 +383,16 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type) {
         'id' => $identifier,
         'crDate' => $crdate,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'create', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processHostCreate($conn, $db, $xml, $clid, $database_type) {
+function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostName = $xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -515,6 +517,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
         $stmt->execute([$hostName]);
         $crdate = $stmt->fetchColumn();
         
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'create_host',
             'resultCode' => 1000,
@@ -523,15 +526,15 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
             'name' => $hostName,
             'crDate' => $crdate,
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
         ];
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'create', 'host', $hostName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 
     } else {
-
         $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP)");
         $stmt->execute([$hostName, $clid, $clid]);
         
@@ -541,6 +544,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
         $stmt->execute([$hostName]);
         $crdate = $stmt->fetchColumn();
         
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'create_host',
             'resultCode' => 1000,
@@ -549,17 +553,18 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type) {
             'name' => $hostName,
             'crDate' => $crdate,
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
         ];
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'create', 'host', $hostName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
     }
 
 }
 
-function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
+function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -1190,6 +1195,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
     }
     $db->exec("UPDATE `statistics` SET `created_domains` = `created_domains` + 1 WHERE `date` = CURDATE()");
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'create_domain',
         'resultCode' => 1000,
@@ -1199,10 +1205,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type) {
         'crDate' => $crdate,
         'exDate' => $exdate,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);	
 }

@@ -1,6 +1,6 @@
 <?php
 
-function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
+function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->name;
     $curExpDate = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->curExpDate;
     $periodElements = $xml->xpath("//domain:renew/domain:period");
@@ -187,6 +187,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
     $stmt = $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()");
     $stmt->execute();
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'renew_domain',
         'resultCode' => 1000,
@@ -195,10 +196,11 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type) {
         'name' => $domainName,
         'exDate' => $exdateUpdated,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'renew', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }

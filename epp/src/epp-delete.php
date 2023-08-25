@@ -1,6 +1,6 @@
 <?php
 
-function processContactDelete($conn, $db, $xml, $clid, $database_type) {
+function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactID = (string) $xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -73,21 +73,23 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type) {
         return;
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'delete_contact',
         'resultCode' => 1000,
         'lang' => 'en-US',
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'delete', 'contact', $contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processHostDelete($conn, $db, $xml, $clid, $database_type) {
+function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostName = $xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -147,21 +149,23 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type) {
         return;
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'delete_host',
         'resultCode' => 1000,
         'lang' => 'en-US',
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'delete', 'host', $host_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processDomainDelete($conn, $db, $xml, $clid, $database_type) {
+function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = $xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete->name;
     $clTRID = (string) $xml->command->clTRID;
     
@@ -378,16 +382,18 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type) {
         } 
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'delete_domain',
         'resultCode' => 1001,
         'lang' => 'en-US',
         'message' => 'Command completed successfully; action pending',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'delete', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }

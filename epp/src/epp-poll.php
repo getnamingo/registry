@@ -1,6 +1,6 @@
 <?php
 
-function processPoll($conn, $db, $xml, $clid) {
+function processPoll($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
     $op = (string) $node['op'];
@@ -28,16 +28,18 @@ function processPoll($conn, $db, $xml, $clid) {
     }
 	
     if ((int) $response['resultCode'] === 1300) {
+        $svTRID = generateSvTRID();
         $response = [
             'command' => 'poll',
             'clTRID' => $clTRID,
-            'svTRID' => generateSvTRID(),
+            'svTRID' => $svTRID,
             'resultCode' => $response['resultCode'],
             'msg' => 'Command completed successfully; no messages',
         ];
 		
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'poll', null, null, $response['resultCode'], 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 		return;
     }
@@ -90,5 +92,6 @@ function processPoll($conn, $db, $xml, $clid) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'poll', null, $response['id'], $response['resultCode'], 'Command completed successfully', $response['svTRID'], $xml, $trans);
     sendEppResponse($conn, $xml);
 }

@@ -158,7 +158,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processPoll($conn, $db, $xml, $data['clid']);
+                processPoll($conn, $db, $xml, $data['clid'], $trans);
                 break;
             }
       
@@ -188,7 +188,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processContactCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
       
@@ -218,7 +218,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processContactUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -233,7 +233,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -248,7 +248,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processContactTransfer($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processContactTransfer($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
         
@@ -293,7 +293,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processDomainUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -308,7 +308,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processDomainCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -323,7 +323,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -338,7 +338,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainTransfer($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processDomainTransfer($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -368,7 +368,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -398,7 +398,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processHostUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processHostUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -413,7 +413,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
             
@@ -443,7 +443,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     sendEppError($conn, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
-                processDomainRenew($conn, $db, $xml, $data['clid'], $c['db_type']);
+                processDomainRenew($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
                 break;
             }
       

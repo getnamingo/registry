@@ -1,6 +1,6 @@
 <?php
 
-function processContactUpdate($conn, $db, $xml, $clid, $database_type) {
+function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactID = (string) $xml->command->update->children('urn:ietf:params:xml:ns:contact-1.0')->update->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -604,21 +604,23 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type) {
         }
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'update_contact',
         'resultCode' => 1000,
         'lang' => 'en-US',
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'update', 'contact', $contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processHostUpdate($conn, $db, $xml, $clid, $database_type) {
+function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $name = (string) $xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update->name;
     $clTRID = (string) $xml->command->clTRID;
     
@@ -915,21 +917,23 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type) {
         $stmt->execute([$chg_name, $name]);
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'update_host',
         'resultCode' => 1000,
         'lang' => 'en-US',
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'update', 'host', $hostId, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
-function processDomainUpdate($conn, $db, $xml, $clid, $database_type) {
+function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = (string) $xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -1726,17 +1730,19 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type) {
         }
     }
 
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'update_domain',
         'resultCode' => 1000,
         'lang' => 'en-US',
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, 'update', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 
 }

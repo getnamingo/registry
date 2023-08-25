@@ -1,6 +1,6 @@
 <?php
 
-function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
+function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
@@ -82,6 +82,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
                     $acid_identifier = $acid_identifier_stmt->fetchColumn();
                     
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -94,11 +95,12 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                         'acID' => $acid_identifier,
                         'acDate' => $updatedContactInfo['acdate'],
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
             } else {
@@ -147,6 +149,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
                     $acid_identifier = $acid_identifier_stmt->fetchColumn();
                     
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -159,11 +162,12 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                         'acID' => $acid_identifier,
                         'acDate' => $updatedContactInfo['acdate'],
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
             } else {
@@ -185,6 +189,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                 $acid_identifier_stmt->execute([':acid' => $contactInfo['acid']]);
                 $acid_identifier = $acid_identifier_stmt->fetchColumn();
                 
+                $svTRID = generateSvTRID();
                 $response = [
                     'command' => 'transfer_contact',
                     'resultCode' => 1000,
@@ -197,11 +202,12 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     'acID' => $acid_identifier,
                     'acDate' => $contactInfo['acdate'],
                     'clTRID' => $clTRID,
-                    'svTRID' => generateSvTRID(),
+                    'svTRID' => $svTRID,
                 ];
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             } else {
                 sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
@@ -252,6 +258,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                     $acidStmt->execute([':acid' => $contactInfo['acid']]);
                     $acid_identifier = $acidStmt->fetchColumn();
                     
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -264,11 +271,12 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                         'acID' => $acid_identifier,
                         'acDate' => $contactInfo['acdate'],
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
             } else {
@@ -359,6 +367,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                             ':acdate' => str_replace(" ", "T", $result['acdate']) . '.0Z'
                         ]);
                         
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_contact',
                         'resultCode' => 1000,
@@ -371,11 +380,12 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
                         'acID' => $acid_identifier,
                         'acDate' => $result['acdate'],
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
             } elseif ($op == 'pending') {
@@ -389,7 +399,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type) {
     }
 }
 
-function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
+function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
@@ -488,7 +498,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                 $to = $stmt->fetchColumn();
 
                 $stmt = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(:registrar_id, CURRENT_TIMESTAMP, :command, :domain_name, :length_in_months, :from, :to, :amount)");
-                $stmt->execute(['registrar_id' => $reid, 'command' => $blob["cmd"], 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
+                $stmt->execute(['registrar_id' => $reid, 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
 
                 $stmt = $db->prepare("SELECT `id`,`registrant`,`crdate`,`exdate`,`update`,`clid`,`crid`,`upid`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate`,`transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
                 $stmt->execute(['name' => $domainName]);
@@ -515,6 +525,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                 $stmt = $db->prepare("UPDATE `statistics` SET `transfered_domains` = `transfered_domains` + 1 WHERE `date` = CURDATE()");
                 $stmt->execute();
                 
+                $svTRID = generateSvTRID();
                 $response = [
                     'command' => 'transfer_domain',
                     'resultCode' => 1000,
@@ -527,7 +538,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                     'acID' => $acid_identifier,
                     'acDate' => $acdate,
                     'clTRID' => $clTRID,
-                    'svTRID' => generateSvTRID(),
+                    'svTRID' => $svTRID,
                 ];
                 
                 if ($transfer_exdate) {
@@ -536,6 +547,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             }
         } else {
@@ -587,6 +599,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                 $stmt->execute(['acid' => $acid]);
                 $acid_identifier = $stmt->fetchColumn();
                 
+                $svTRID = generateSvTRID();
                 $response = [
                     'command' => 'transfer_domain',
                     'resultCode' => 1000,
@@ -599,7 +612,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                     'acID' => $acid_identifier,
                     'acDate' => $acdate,
                     'clTRID' => $clTRID,
-                    'svTRID' => generateSvTRID(),
+                    'svTRID' => $svTRID,
                 ];
                 
                 if ($transfer_exdate) {
@@ -608,6 +621,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             }
         } else {
@@ -633,6 +647,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
             $stmtAcID->execute(['acid' => $acid]);
             $acid_identifier = $stmtAcID->fetchColumn();
             
+            $svTRID = generateSvTRID();
             $response = [
                 'command' => 'transfer_domain',
                 'resultCode' => 1000,
@@ -645,7 +660,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                 'acID' => $acid_identifier,
                 'acDate' => $acdate,
                 'clTRID' => $clTRID,
-                'svTRID' => generateSvTRID(),
+                'svTRID' => $svTRID,
             ];
                 
             if ($transfer_exdate) {
@@ -654,16 +669,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
             $epp = new EPP\EppWriter();
             $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
             sendEppResponse($conn, $xml);
         } else {
             sendEppError($conn, 2301, 'The domain is NOT pending transfer', $clTRID);
             return;
         }
-
-        $msg = epp_writer($blob);
-        echo $msg;
-        $uptr = update_transaction($msg);
-        exit;
     }
     elseif ($op === 'reject') {
 
@@ -704,6 +715,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                 $stmtAcID->execute(['acid' => $acid]);
                 $acid_identifier = $stmtAcID->fetchColumn();
                 
+                $svTRID = generateSvTRID();
                 $response = [
                     'command' => 'transfer_domain',
                     'resultCode' => 1000,
@@ -716,7 +728,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                     'acID' => $acid_identifier,
                     'acDate' => $acdate,
                     'clTRID' => $clTRID,
-                    'svTRID' => generateSvTRID(),
+                    'svTRID' => $svTRID,
                 ];
                     
                 if ($transfer_exdate) {
@@ -725,6 +737,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             }
         } else {
@@ -893,6 +906,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                         ':transfer_exdate' => $transfer_exdate
                     ]);
                     
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_domain',
                         'resultCode' => 1001,
@@ -905,7 +919,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
                         'acID' => $acid_identifier,
                         'acDate' => $acdate,
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
                         
                     if ($transfer_exdate) {
@@ -914,6 +928,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
             } else {
@@ -979,6 +994,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type) {
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
         }
