@@ -17,7 +17,7 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 - **WHOIS and DAS Servers**: These servers are almost ready to go! They are functional but require additional testing and security hardening to ensure reliability and safety.
   
-- **EPP Server**: Our EPP Server is progressing steadily. Currently, the Check, Create, Info, Poll, Delete, and Renew commands are fully operational. We're actively developing the Update and Transfer commands. Extensions like RGP, SecDNS, and others are also on our development roadmap. As always, we're committed to ensuring security and thorough testing as we continue to enhance our server capabilities.
+- **EPP Server**: All primary commands including Check, Create, Info, Poll, Delete, Renew, Update, and Transfer are now added. We're currently refining and testing these features for optimal performance. Extensions like RGP and SecDNS will be available soon. As always, our focus is on security and quality.
   
 - **RDAP Server**: Nearing completion. The primary focus is on formatting more data for the output. Like the others, it also requires further testing and security hardening.
   
