@@ -73,7 +73,10 @@ function sendEppResponse($conn, $response) {
     $conn->send($lengthData . $response);
 }
 
-function generateSvTRID($prefix = "Namingo") {
+function generateSvTRID() {
+    global $c;
+    $prefix = $c['epp_prefix'];
+
     // Get current timestamp
     $timestamp = time();
 

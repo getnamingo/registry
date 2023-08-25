@@ -11,6 +11,7 @@ return [
     'epp_port' => 700,
     'epp_pid' => '/var/run/epp.pid',
     'epp_greeting' => 'Namingo EPP Server 1.0',
+    'epp_prefix' => 'namingo',
     'ssl_cert' => '',
     'ssl_key' => '',
 ];
