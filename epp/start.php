@@ -281,6 +281,18 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
+			
+            case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer):
+            {
+                $data = $table->get($connId);
+                $clTRID = (string) $xml->command->clTRID;
+                if (!$data || $data['logged_in'] !== 1) {
+                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    $conn->close();
+                }
+                processDomainTransfer($conn, $db, $xml, $data['clid'], $c['db_type']);
+                break;
+            }
             
             case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check):
             {

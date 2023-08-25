@@ -794,11 +794,11 @@ class EppWriter {
                 $writer->writeElement('domain:name', $resp['name']);
                 $writer->writeElement('domain:trStatus', $resp['trStatus']);
                 $writer->writeElement('domain:reID', $resp['reID']);
-                $writer->writeElement('domain:reDate', $resp['reDate']);
+                $writer->writeElement('domain:reDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['reDate'])));
                 $writer->writeElement('domain:acID', $resp['acID']);
-                $writer->writeElement('domain:acDate', $resp['acDate']);
+                $writer->writeElement('domain:acDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['acDate'])));
                 if (isset($resp['exDate'])) {
-                    $writer->writeElement('domain:exDate', $resp['exDate']);
+                    $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
                 }
                 $writer->endElement();  // End of 'domain:trnData'
             $writer->endElement();  // End of 'resData'
@@ -806,7 +806,6 @@ class EppWriter {
 
         $this->_postamble($writer, $resp);
     }
-
 
     private function _check_host($writer, $resp) {
         $this->_preamble($writer, $resp);
