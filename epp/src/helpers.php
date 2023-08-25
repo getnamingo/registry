@@ -206,3 +206,55 @@ function normalize_v6_address($v6) {
 
     return $v6;
 }
+
+function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
+    // Prepare the statement for insertion
+    $stmt = $db->prepare("INSERT INTO `registryTransaction`.`transaction_identifier` (`registrar_id`,`clTRID`,`clTRIDframe`,`cldate`,`clmicrosecond`) VALUES(?,?,?,?,?)");
+
+    // Get date and microsecond for cl transaction
+    $dateForClTransaction = microtime(true);
+    $cldate = date("Y-m-d H:i:s", $dateForClTransaction);
+    $clmicrosecond = sprintf("%06d", ($dateForClTransaction - floor($dateForClTransaction)) * 1000000);
+
+    // Execute the statement
+    if (!$stmt->execute([
+        $clid,
+        $clTRID,
+        $clTRIDframe,
+        $cldate,
+        $clmicrosecond
+    ])) {
+        throw new Exception("Failed to execute createTransaction: " . implode(", ", $stmt->errorInfo()));
+    }
+
+    // Return the ID of the newly created transaction
+    return $db->lastInsertId();
+}
+
+function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, $svTRIDframe, $transaction_id) {
+    // Prepare the statement
+    $stmt = $db->prepare("UPDATE `registryTransaction`.`transaction_identifier` SET `cmd` = ?, `obj_type` = ?, `obj_id` = ?, `code` = ?, `msg` = ?, `svTRID` = ?, `svTRIDframe` = ?, `svdate` = ?, `svmicrosecond` = ? WHERE `id` = ?");
+
+    // Get date and microsecond for sv transaction
+    $dateForSvTransaction = microtime(true);
+    $svdate = date("Y-m-d H:i:s", $dateForSvTransaction);
+    $svmicrosecond = sprintf("%06d", ($dateForSvTransaction - floor($dateForSvTransaction)) * 1000000);
+
+    // Execute the statement
+    if (!$stmt->execute([
+        $cmd,
+        $obj_type,
+        $obj_id,
+        $code,
+        $msg,
+        $svTRID,
+        $svTRIDframe,
+        $svdate,
+        $svmicrosecond,
+        $transaction_id
+    ])) {
+        throw new Exception("Failed to execute updateTransaction: " . implode(", ", $stmt->errorInfo()));
+    }
+
+    return true;
+}

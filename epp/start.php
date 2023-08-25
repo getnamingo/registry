@@ -91,20 +91,29 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $clID = (string) $xml->command->login->clID;
                 $pw = (string) $xml->command->login->pw;
                 $clTRID = (string) $xml->command->clTRID;
+                $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+                $stmt->bindParam(':clid', $clID, PDO::PARAM_STR);
+                $stmt->execute();
+                $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+                $clid = $clid['id'];
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
 
                 if (checkLogin($db, $clID, $pw)) {
                     $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'login',
                         'resultCode' => 1000,
                         'lang' => 'en-US',
                         'message' => 'Login successful',
                         'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
+                        'svTRID' => $svTRID,
                     ];
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    updateTransaction($db, 'login', null, null, 1000, 'Login successful', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 } else {
                     sendEppError($conn, 2200, 'Authentication error', $clTRID);
@@ -114,19 +123,28 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
       
             case isset($xml->command->logout):
             {
+                $data = $table->get($connId);
+                $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+                $stmt->bindParam(':clid', $data['clid'], PDO::PARAM_STR);
+                $stmt->execute();
+                $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+                $clid = $clid['id'];
                 $table->del($connId);
                 $clTRID = (string) $xml->command->clTRID;
-                
+                $xmlString = $xml->asXML();
+                $trans = createTransaction($db, $clid, $clTRID, $xmlString);
+                $svTRID = generateSvTRID();
                 $response = [
                     'command' => 'logout',
                     'resultCode' => 1500,
                     'lang' => 'en-US',
                     'clTRID' => $clTRID,
-                    'svTRID' => generateSvTRID(),
+                    'svTRID' => $svTRID,
                 ];
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'logout', null, null, 1500, 'Logout successful', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
                 $conn->close();
                 break;
@@ -185,7 +203,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processContactInfo($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:contact-1.0')->update):
             {
                 $data = $table->get($connId);
@@ -209,7 +227,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
-			
+            
             case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer):
             {
                 $data = $table->get($connId);
@@ -245,7 +263,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainInfo($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update):
             {
                 $data = $table->get($connId);
@@ -257,7 +275,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainUpdate($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
-			
+            
             case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
             {
                 $data = $table->get($connId);
@@ -281,7 +299,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type']);
                 break;
             }
-			
+            
             case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer):
             {
                 $data = $table->get($connId);
@@ -329,7 +347,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 processHostInfo($conn, $db, $xml);
                 break;
             }
-			
+            
             case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update):
             {
                 $data = $table->get($connId);
