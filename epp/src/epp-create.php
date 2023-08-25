@@ -5,7 +5,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$contactID) {
-        sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
+        sendEppError($conn, 2003, 'Identifier type minLength value=3, maxLength value=16', $clTRID);
         return;
     }
 
@@ -370,7 +370,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $crdate = $stmt->fetchColumn();
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error', $clTRID);
+        sendEppError($conn, 2400, 'Contact could not be created due to database error', $clTRID);
     	return;
     }
 
@@ -409,7 +409,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $host_addr_list = $xml->xpath('//addr'); 
     if (count($host_addr_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'No more than 13 host:addr are allowed', $clTRID);
         return;
     }
 	
@@ -445,7 +445,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         // check for duplicate IPs
         if (isset($nsArr[$addr_type][$addr])) {
-            sendEppError($conn, 2306, 'Duplicated host:addr', $clTRID);
+            sendEppError($conn, 2306, 'Duplicated host:addr '.$addr, $clTRID);
             return;
         }
 
@@ -480,12 +480,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
         
         if (!$domain_exist) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID);
             return;
         }
         
         if ($clid != $clid_domain) {
-            sendEppError($conn, 2201, 'Authorization error', $clTRID);
+            sendEppError($conn, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID);
             return;
         }
 
@@ -572,7 +572,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $invalid_domain = validate_label($domainName, $db);
 
     if ($invalid_domain) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'Invalid domain:name', $clTRID);
         return;
     }
 
@@ -588,7 +588,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (!$valid_tld) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'Invalid domain extension', $clTRID);
         return;
     }
 
@@ -597,7 +597,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domain_already_exist = $stmt->fetchColumn();
 
     if ($domain_already_exist) {
-        sendEppError($conn, 2302, 'Object exists', $clTRID);
+        sendEppError($conn, 2302, 'Domain name already exists', $clTRID);
         return;
     }
 
@@ -606,7 +606,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domain_already_reserved = $stmt->fetchColumn();
 
     if ($domain_already_reserved) {
-        sendEppError($conn, 2302, 'Object exists', $clTRID);
+        sendEppError($conn, 2302, 'Domain name is reserved or restricted', $clTRID);
         return;
     }
 	
@@ -616,7 +616,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $period_unit = (string) $periodElement['unit'];
 
     if ($period && (($period < 1) || ($period > 99))) {
-        sendEppError($conn, 2004, 'Parameter value range error', $clTRID);
+        sendEppError($conn, 2004, 'domain:period minLength value=1, maxLength value=99', $clTRID);
         return;
     } elseif (!$period) {
         $period = 1;
@@ -624,7 +624,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     if ($period_unit) {
         if (!preg_match('/^(m|y)$/', $period_unit)) {
-        sendEppError($conn, 2004, 'Parameter value range error', $clTRID);
+        sendEppError($conn, 2004, 'domain:period unit m|y', $clTRID);
         return;
         }
     } else {
@@ -639,7 +639,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'A domain name can initially be registered for 1-10 years period', $clTRID);
         return;
     }
 	
@@ -663,12 +663,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $price = $stmt->fetchColumn();
 
     if (!$price) {
-        sendEppError($conn, 2400, 'Command failed', $clTRID);
+        sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
         return;
     }
 
     if (($registrar_balance + $creditLimit) < $price) {
-        sendEppError($conn, 2104, 'Billing failure', $clTRID);
+        sendEppError($conn, 2104, 'Low credit: minimum threshold reached', $clTRID);
         return;
     }
 
@@ -677,24 +677,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostAttr_list = $ns->xpath('//domain:hostAttr');
 
     if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
-        sendEppError($conn, 2001, 'Command syntax error', $clTRID);
+        sendEppError($conn, 2001, 'It cannot be hostObj and hostAttr at the same time, either one or the other', $clTRID);
         return;
     }
 
     if (count($hostObj_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID);
         return;
     }
 
     if (count($hostAttr_list) > 13) {
-        sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+        sendEppError($conn, 2306, 'No more than 13 domain:hostAttr are allowed', $clTRID);
         return;
     }
 
     $nsArr = [];
     foreach ($hostObj_list as $hostObj) {
         if (isset($nsArr[(string)$hostObj])) {
-            sendEppError($conn, 2302, 'Object exists', $clTRID);
+            sendEppError($conn, 2302, 'Duplicate nameserver '.(string)$hostObj, $clTRID);
             return;
         }
         $nsArr[(string)$hostObj] = 1;
@@ -703,7 +703,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $nsArr = [];
     foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
         if (isset($nsArr[(string)$hostName])) {
-            sendEppError($conn, 2302, 'Object exists', $clTRID);
+            sendEppError($conn, 2302, 'Duplicate nameserver '.(string)$hostName, $clTRID);
             return;
         }
         $nsArr[(string)$hostName] = 1;
@@ -714,7 +714,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $hostObj = strtoupper((string)$node);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
-                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                sendEppError($conn, 2005, 'Invalid domain:hostObj', $clTRID);
                 return;
             }
 
@@ -727,11 +727,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
 
                 if (!$host_id_already_exist) {
-                    sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+                    sendEppError($conn, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID);
                     return;
                 }
             } else {
-                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                sendEppError($conn, 2005, 'Invalid domain:hostObj', $clTRID);
                 return;
             }
         }
@@ -742,7 +742,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
-                sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
                 return;
             }
 
@@ -764,7 +764,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $hostAddrNodes = $node->xpath('//domain:hostAddr');
 
                 if (count($hostAddrNodes) > 13) {
-                    sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+                    sendEppError($conn, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID);
                     return;
                 }
 
@@ -772,14 +772,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 foreach ($hostAddrNodes as $hostAddrNode) {
                     $hostAddr = (string)$hostAddrNode;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Object exists', $clTRID);
+                        sendEppError($conn, 2302, 'Duplicate IP'.$hostAddr, $clTRID);
                         return;
                     }
                     $nsArr[$hostAddr] = true;
                 }
 
                 if (count($hostAddrNodes) === 0) {
-                    sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
+                    sendEppError($conn, 2003, 'Missing domain:hostAddr', $clTRID);
                     return;
                 }
 				
@@ -801,7 +801,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                         } else {
-                            sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                            sendEppError($conn, 2005, 'Invalid domain:hostAddr v6', $clTRID);
                             return;
                         }
                     } else {
@@ -810,11 +810,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                             if ($hostAddr == '127.0.0.1') {
-                              sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                              sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
                               return;
                             }
                         } else {
-                           sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                           sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
                            return;
                         }
                     }
@@ -840,17 +840,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     // Object does not exist error
                     if (!$domain_exist) {
-                       sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+                       sendEppError($conn, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID);
                        return;
                     }
 
                     // Authorization error
                     if ($clid != $clid_domain) {
-                       sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                       sendEppError($conn, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID);
                        return;
                     }
                 } else {
-                   sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                   sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
                    return;
                 }
 
@@ -858,7 +858,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Max 13 IP per host
                 if (count($hostAddr_list) > 13) {
-                   sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+                   sendEppError($conn, 2306, 'No more than 13 IPs are allowed per host', $clTRID);
                    return;
                 }
 
@@ -867,7 +867,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 foreach ($hostAddr_list as $node) {
                     $hostAddr = (string) $node;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Object exists', $clTRID);
+                        sendEppError($conn, 2302, 'Duplicate IP'.$hostAddr, $clTRID);
                         return;
                     }
                     $nsArr[$hostAddr] = 1;
@@ -875,7 +875,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Check for missing host addresses
                 if (count($hostAddr_list) === 0) {
-                    sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
+                    sendEppError($conn, 2003, 'Missing domain:hostAddr', $clTRID);
                     return;
                 }
 
@@ -898,7 +898,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                         } else {
-                             sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                             sendEppError($conn, 2005, 'Invalid domain:hostAddr v6', $clTRID);
                              return;
                         }
                     } else {
@@ -909,11 +909,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                             if ($hostAddr === '127.0.0.1') {
-                               sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                               sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
                                return;
                             }
                         } else {
-                               sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                               sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
                                return;
                         }
                     }
@@ -924,7 +924,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 				if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
 
 				} else {
-                    sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+                    sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
                     return;
 				}
 			}
@@ -944,12 +944,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+            sendEppError($conn, 2303, 'domain:registrant does not exist', $clTRID);
             return;
         }
 
         if ($clid != $row['clid']) {
-            sendEppError($conn, 2201, 'Authorization error', $clTRID);
+            sendEppError($conn, 2201, 'The contact requested in the command does NOT belong to the current registrar', $clTRID);
             return;
         }
     }
@@ -961,7 +961,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         // Max five contacts per domain name for each type
         if ($size > 5) {
-            sendEppError($conn, 2306, 'Parameter value policy error', $clTRID);
+            sendEppError($conn, 2306, 'No more than 5 '.$type.' contacts are allowed per domain name', $clTRID);
             return;
         }
 
@@ -975,12 +975,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
-                sendEppError($conn, 2303, 'Object does not exist', $clTRID);
+                sendEppError($conn, 2303, 'domain:contact '.$type.' does not exist', $clTRID);
                 return;
             }
 
             if ($clid != $row['clid']) {
-                sendEppError($conn, 2201, 'Authorization error', $clTRID);
+                sendEppError($conn, 2201, 'The contact type='.$type.' requested in the command does NOT belong to the current Registrar', $clTRID);
                 return;
             }
         }
@@ -989,22 +989,22 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $authInfo_pw = $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
 
     if (!$authInfo_pw) {
-        sendEppError($conn, 2003, 'Required parameter missing', $clTRID);
+        sendEppError($conn, 2003, 'Missing domain:pw', $clTRID);
         return;
     }
 
     if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
-        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+        sendEppError($conn, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID);
         return;
     }
 
     if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+        sendEppError($conn, 2005, 'Password should have both upper and lower case characters', $clTRID);
         return;
     }
 
     if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Parameter value syntax error', $clTRID);
+        sendEppError($conn, 2005, 'Password should contain one or more numbers', $clTRID);
         return;
     }
 	
