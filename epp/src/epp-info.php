@@ -204,16 +204,22 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         foreach ($contacts as $contact) {
             $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
         }
-        
+		
         // Fetch hosts
         $stmt = $db->prepare("SELECT * FROM domain_host_map WHERE domain_id = :id");
         $stmt->execute(['id' => $domain['id']]);
         $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $transformedHosts = [];
-        foreach ($hosts as $host) {
-            $transformedHosts[] = [getHost($db, $host['host_id'])];
+        if ($hosts) {
+            foreach ($hosts as $host) {
+                $transformedHosts[] = [getHost($db, $host['host_id'])];
+            }
         }
+        
+        $stmt = $db->prepare("SELECT name FROM host WHERE domain_id = :id");
+        $stmt->execute(['id' => $domain['id']]);
+        $hostNames = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
 
         // Fetch authInfo
         $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id");
@@ -229,6 +235,45 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         foreach($statuses as $status) {
             $statusArray[] = [$status['status']];
         }
+		
+        // Fetch secDNS data
+        $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
+        $stmt->execute(['id' => $domain['id']]);
+        $secDnsRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $transformedSecDnsRecords = [];
+        if ($secDnsRecords) {
+            foreach ($secDnsRecords as $record) {
+                $tmpRecord = [
+                    'keyTag' => $record['keytag'],
+                    'alg' => $record['alg'],
+                    'digestType' => $record['digesttype'],
+                    'digest' => $record['digest']
+                ];
+
+                // Add optional fields if they are not null
+                if (!is_null($record['maxsiglife'])) {
+                    $tmpRecord['maxSigLife'] = $record['maxsiglife'];
+                }
+                if (!is_null($record['flags'])) {
+                    $tmpRecord['keyData']['flags'] = $record['flags'];
+                }
+                if (!is_null($record['protocol'])) {
+                    $tmpRecord['keyData']['protocol'] = $record['protocol'];
+                }
+                if (!is_null($record['keydata_alg'])) {
+                    $tmpRecord['keyData']['alg'] = $record['keydata_alg'];
+                }
+                if (!is_null($record['pubkey'])) {
+                    $tmpRecord['keyData']['pubKey'] = $record['pubkey'];
+                }
+        
+                $transformedSecDnsRecords[] = $tmpRecord;
+            }
+        }
+
+        // Fetch RGP status
+        $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
 
         $svTRID = generateSvTRID();
         $response = [
@@ -242,18 +287,44 @@ function processDomainInfo($conn, $db, $xml, $trans) {
             'status' => $statusArray,
             'registrant' => $domain['registrant'],
             'contact' => $transformedContacts,
-            'hostObj' => $transformedHosts,
             'clID' => getRegistrarClid($db, $domain['clid']),
             'crID' => getRegistrarClid($db, $domain['crid']),
             'crDate' => $domain['crdate'],
-            'upID' => getRegistrarClid($db, $domain['upid']),
-            'upDate' => $domain['update'],
             'exDate' => $domain['exdate'],
-            'trDate' => $domain['trdate'],
             'authInfo' => 'valid',
             'authInfo_type' => $authInfo['authtype'],
             'authInfo_val' => $authInfo['authinfo']
         ];
+        // Conditionally add upID, upDate, and trDate to the response
+        if (isset($domain['upid']) && $domain['upid']) {
+            $response['upID'] = getRegistrarClid($db, $domain['upid']);
+        }
+        if (isset($domain['update']) && $domain['update']) {
+            $response['upDate'] = $domain['update'];
+        }
+        if (isset($domain['trdate']) && $domain['trdate']) {
+            $response['trDate'] = $domain['trdate'];
+        }
+		
+        // Conditionally add hostObj if hosts are available from domain_host_map
+        if (!empty($transformedHosts)) {
+            $response['hostObj'] = $transformedHosts;
+        }
+
+        // Conditionally add hostName if hosts are available from host
+        if (!empty($hostNames)) {
+            $response['host'] = $hostNames;
+        }
+
+        // Add secDNS records to response if they exist
+        if ($transformedSecDnsRecords) {
+            $response['secDNS'] = $transformedSecDnsRecords;
+        }
+
+        // Add RGP status to response if it exists
+        if ($rgpstatus) {
+            $response['rgpstatus'] = $rgpstatus;
+        }
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);

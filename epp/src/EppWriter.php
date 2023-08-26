@@ -708,13 +708,13 @@ class EppWriter {
                     }
                     $writer->endElement();  // End of 'domain:ns'
                 }
-				if (isset($resp['return_host'])) {
+                if (isset($resp['return_host'])) {
                     if ($resp['return_host']) {
                         foreach ($resp['host'] as $h) {
                             $writer->writeElement('domain:host', $h);
                         }
                     }
-				}
+                }
                 $writer->writeElement('domain:clID', $resp['clID']);
                 if (isset($resp['crID'])) {
                     $writer->writeElement('domain:crID', $resp['crID']);
@@ -747,11 +747,12 @@ class EppWriter {
                 $writer->endElement();  // End of 'domain:infData'
             $writer->endElement();  // End of 'resData'
 
-            // Handling the extension part
-            // Check if the 'rgpstatus' key is set in $resp
-            if (isset($resp['rgpstatus'])) {
-                // Handling the extension part
+            // Begin the extension part if any of the extensions are present
+            if (isset($resp['rgpstatus']) || isset($resp['secDNS'])) {
                 $writer->startElement('extension');
+
+                // Handle RGP status
+                if (isset($resp['rgpstatus'])) {
                     $writer->startElement('rgp:infData');
                     $writer->writeAttribute('xmlns:rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
                     $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd');
@@ -759,6 +760,49 @@ class EppWriter {
                     $writer->writeAttribute('s', $resp['rgpstatus']);
                     $writer->endElement();  // End of 'rgp:rgpStatus'
                     $writer->endElement();  // End of 'rgp:infData'
+                }
+
+                // Handle secDNS
+                if (isset($resp['secDNS'])) {
+                    $writer->startElement('secDNS:infData');
+                    $writer->writeAttribute('xmlns:secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
+                    $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:secDNS-1.1 secDNS-1.1.xsd');
+
+                    // maxsiglife
+                    if (isset($resp['secDNS'][0]['maxSigLife'])) {
+                        $writer->writeElement('secDNS:maxSigLife', $resp['secDNS'][0]['maxSigLife']);
+                    }
+
+                    // Handle secdns records
+                    foreach ($resp['secDNS'] as $secData) {
+                        // Start the DS data section
+                        if (isset($secData['keyTag'])) {
+                            $writer->startElement('secDNS:dsData');
+                            
+                            $writer->writeElement('secDNS:keyTag', $secData['keyTag']);
+                            $writer->writeElement('secDNS:alg', $secData['alg']);
+                            $writer->writeElement('secDNS:digestType', $secData['digestType']);
+                            $writer->writeElement('secDNS:digest', $secData['digest']);
+                            
+                            // If keyData is present, nest it inside the current dsData section
+                            if (isset($secData['keyData']) && is_array($secData['keyData'])) {
+                                $writer->startElement('secDNS:keyData');
+                                
+                                $writer->writeElement('secDNS:flags', $secData['keyData']['flags']);
+                                $writer->writeElement('secDNS:protocol', $secData['keyData']['protocol']);
+                                $writer->writeElement('secDNS:alg', $secData['keyData']['alg']);
+                                $writer->writeElement('secDNS:pubKey', $secData['keyData']['pubKey']);
+                                
+                                $writer->endElement();  // End of 'secDNS:keyData'
+                            }
+
+                            $writer->endElement();  // End of 'secDNS:dsData'
+                        }
+                    }
+
+                    $writer->endElement();  // End of 'secDNS:infData'
+                }
+
                 $writer->endElement();  // End of 'extension'
             }
         }
