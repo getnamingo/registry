@@ -943,8 +943,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $rgp_update = $xml->xpath('//rgp:update')[0] ?? null;
+        $secdns_update = $xml->xpath('//secDNS:update')[0] ?? null;
     }
-	
+
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {
         sendEppError($conn, 2003, 'At least one domain:rem || domain:add || domain:chg', $clTRID);
         return;
@@ -1730,6 +1731,54 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 sendEppError($conn, 2304, 'report can only be sent if the domain is in pendingRestore status', $clTRID);
                 return;
             }
+        }
+    }
+	
+    if (isset($secdns_update)) {
+        $secdnsRems = $xml->xpath('//secDNS:rem') ?? [];
+        $secdnsAdds = $xml->xpath('//secDNS:add') ?? [];
+        $secdnsChg = $xml->xpath('//secDNS:chg')[0] ?? null;
+        
+        foreach ($secdnsRems as $secdnsRem) {
+            $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
+            foreach ($dsDataToRemove as $ds) {
+                $keyTag = (int)$ds->keyTag;
+                $algorithm = (int)$ds->alg;
+                $digestType = (int)$ds->digestType;
+                $digest = (string)$ds->digest;
+
+                $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keyTag = :keyTag AND algorithm = :algorithm AND digestType = :digestType AND digest = :digest");
+                $stmt->execute([
+                    'domain_id' => $domain_id,
+                    'keyTag' => $keyTag,
+                    'algorithm' => $algorithm,
+                    'digestType' => $digestType,
+                    'digest' => $digest
+                ]);
+            }
+        }
+
+        foreach ($secdnsAdds as $secdnsAdd) {
+            $dsDataToAdd = $secdnsAdd->xpath('./secDNS:dsData');
+            foreach ($dsDataToAdd as $ds) {
+                // Example: add DS record to your database
+                $keyTag = (int)$ds->keyTag;
+                $algorithm = (int)$ds->alg;
+                $digestType = (int)$ds->digestType;
+                $digest = (string)$ds->digest;
+
+                // Insert this DS record into your secdns table
+            }
+        }
+
+        if ($secdnsChg !== null) {
+            $maxSigLife = (int)$secdnsChg->maxSigLife;
+
+            $stmt = $db->prepare("UPDATE secdns SET maxSigLife = :maxSigLife WHERE domain_id = :domain_id");
+            $stmt->execute([
+                'maxSigLife' => $maxSigLife,
+                'domain_id' => $domain_id
+            ]);
         }
     }
 
