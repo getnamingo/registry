@@ -75,6 +75,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
         $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
         $xml->registerXPathNamespace('contact', 'urn:ietf:params:xml:ns:contact-1.0');
         $xml->registerXPathNamespace('host', 'urn:ietf:params:xml:ns:host-1.0');
+        $xml->registerXPathNamespace('rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
         $xml->registerXPathNamespace('secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
 
         if ($xml === false) {

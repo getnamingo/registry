@@ -940,8 +940,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainRem = $xml->xpath('//domain:rem')[0] ?? null;
     $domainAdd = $xml->xpath('//domain:add')[0] ?? null;
     $domainChg = $xml->xpath('//domain:chg')[0] ?? null;
-    $extensionNode = $xml->xpath('//extension')[0] ?? null;
-
+    $extensionNode = $xml->command->extension;
+    if (isset($extensionNode)) {
+        $rgp_update = $xml->xpath('//rgp:update')[0] ?? null;
+    }
+	
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {
         sendEppError($conn, 2003, 'At least one domain:rem || domain:add || domain:chg', $clTRID);
         return;
@@ -1268,8 +1271,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
-    if (isset($rgp_update) && $rgp_update) {
-        $op_attribute = $xml->xpath('rgp:restore/@op[1]')[0]->__toString();
+    if (isset($rgp_update)) {
+        $op_attribute = (string) $xml->xpath('//rgp:restore/@op[1]')[0];
 
         if ($op_attribute === 'request') {
             $stmt = $db->prepare("SELECT COUNT(`id`) AS `ids` FROM `domain` WHERE `rgpstatus` = 'redemptionPeriod' AND `id` = :domain_id LIMIT 1");
@@ -1376,7 +1379,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         foreach ($status_list as $node) {
-            $status = $node->__toString();
+            $status = (string) $node;
 
             $stmt = $db->prepare("DELETE FROM `domain_status` WHERE `domain_id` = :domain_id AND `status` = :status");
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
@@ -1556,7 +1559,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         foreach ($status_list as $node) {
-            $status = $node->__toString();
+            $status = (string) $node;
 
             try {
                 $stmt = $db->prepare("INSERT INTO `domain_status` (`domain_id`,`status`) VALUES(:domain_id, :status)");
@@ -1636,8 +1639,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
-    if (isset($rgp_update) && $rgp_update) {
-        $op_attribute = (string)$xml->xpath('//rgp:restore/@op[1]')[0];
+    if (isset($rgp_update)) {
+        $op_attribute = (string) $xml->xpath('//rgp:restore/@op[1]')[0];
 
         if ($op_attribute == 'request') {
             $sth = $db->prepare("SELECT COUNT(`id`) AS `ids` FROM `domain` WHERE `rgpstatus` = 'redemptionPeriod' AND `id` = ?");
@@ -1665,11 +1668,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 list($registrar_balance, $creditLimit) = $sth->fetch();
 
                 $sth = $db->prepare("SELECT `m12` FROM `domain_price` WHERE `tldid` = ? AND `command` = 'renew' LIMIT 1");
-                $sth->execute([$tldid]);
+                $sth->execute([$row['tldid']]);
                 $renew_price = $sth->fetchColumn();
 
                 $sth = $db->prepare("SELECT `price` FROM `domain_restore_price` WHERE `tldid` = ? LIMIT 1");
-                $sth->execute([$tldid]);
+                $sth->execute([$row['tldid']]);
                 $restore_price = $sth->fetchColumn();
 
                 if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
