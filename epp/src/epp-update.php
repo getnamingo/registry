@@ -1733,7 +1733,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
     }
-	
+    
     if (isset($secdns_update)) {
         $secdnsRems = $xml->xpath('//secDNS:rem') ?? [];
         $secdnsAdds = $xml->xpath('//secDNS:add') ?? [];
@@ -1758,19 +1758,62 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
 
-        foreach ($secdnsAdds as $secdnsAdd) {
-            $dsDataToAdd = $secdnsAdd->xpath('./secDNS:dsData');
-            foreach ($dsDataToAdd as $ds) {
-                // Example: add DS record to your database
-                $keyTag = (int)$ds->keyTag;
-                $algorithm = (int)$ds->alg;
-                $digestType = (int)$ds->digestType;
-                $digest = (string)$ds->digest;
+        if (isset($secdnsAdds)) {
+            $secDNSDataSet = $xml->xpath('//secDNS:dsData');
 
-                // Insert this DS record into your secdns table
+            if ($secDNSDataSet) {
+                foreach ($secDNSDataSet as $secDNSData) {
+                    // Extract dsData elements
+                    $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
+                    $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
+                    $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
+                    $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                    $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
+
+                    // Data sanity checks
+                    if (!$keyTag || !$alg || !$digestType || !$digest) {
+                        sendEppError($conn, 2005, 'Incomplete or invalid dsData provided', $clTRID);
+                        return;
+                    }
+
+                    // Extract keyData elements if available
+                    $flags = null;
+                    $protocol = null;
+                    $algKeyData = null;
+                    $pubKey = null;
+
+                    if ($secDNSData->xpath('secDNS:keyData')) {
+                        $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
+                        $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
+                        $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
+                        $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+
+                        // Data sanity checks for keyData
+                        if (!$flags || !$protocol || !$algKeyData || !$pubKey) {
+                            sendEppError($conn, 2005, 'Incomplete or invalid keyData provided', $clTRID);
+                            return;
+                        }
+                    }
+
+                    $stmt = $db->prepare("INSERT INTO `secdns` (`domain_id`, `maxsiglife`, `interface`, `keytag`, `alg`, `digesttype`, `digest`, `flags`, `protocol`, `keydata_alg`, `pubkey`) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
+
+                    $stmt->execute([
+                        ':domain_id' => $domain_id,
+                        ':maxsiglife' => $maxSigLife,
+                        ':interface' => 'dsData',
+                        ':keytag' => $keyTag,
+                        ':alg' => $alg,
+                        ':digesttype' => $digestType,
+                        ':digest' => $digest,
+                        ':flags' => $flags ?? null,
+                        ':protocol' => $protocol ?? null,
+                        ':keydata_alg' => $algKeyData ?? null,
+                        ':pubkey' => $pubKey ?? null
+                    ]);
+                }
             }
         }
-
+        
         if ($secdnsChg !== null) {
             $maxSigLife = (int)$secdnsChg->maxSigLife;
 

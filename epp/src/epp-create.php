@@ -1046,7 +1046,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
                 $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
-
                 // Data sanity checks
                 if (!$keyTag || !$alg || !$digestType || !$digest) {
                     sendEppError($conn, 2005, 'Incomplete or invalid dsData provided', $clTRID);
