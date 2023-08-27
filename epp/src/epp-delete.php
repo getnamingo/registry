@@ -5,7 +5,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$contactID) {
-        sendEppError($conn, 2003, 'Missing contact:id', $clTRID);
+        sendEppError($conn, $db, 2003, 'Missing contact:id', $clTRID, $trans);
         return;
     }
 
@@ -17,7 +17,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $registrar_id_contact = $row['clid'] ?? null;
 
     if (!$contact_id) {
-        sendEppError($conn, 2303, 'contact:id does not exist', $clTRID);
+        sendEppError($conn, $db, 2303, 'contact:id does not exist', $clTRID, $trans);
         return;
     }
     
@@ -28,7 +28,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clid = $clid['id'];
 
     if ($clid !== $registrar_id_contact) {
-        sendEppError($conn, 2201, 'Contact belongs to another registrar', $clTRID);
+        sendEppError($conn, $db, 2201, 'Contact belongs to another registrar', $clTRID, $trans);
         return;
     }
 
@@ -37,7 +37,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $registrantExists = $stmt->fetchColumn();
 
     if ($registrantExists) {
-        sendEppError($conn, 2305, 'This contact is associated with a domain as a registrant', $clTRID);
+        sendEppError($conn, $db, 2305, 'This contact is associated with a domain as a registrant', $clTRID, $trans);
         return;
     }
 
@@ -46,7 +46,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactInUse = $stmt->fetchColumn();
 
     if ($contactInUse) {
-        sendEppError($conn, 2305, 'This contact is associated with a domain', $clTRID);
+        sendEppError($conn, $db, 2305, 'This contact is associated with a domain', $clTRID, $trans);
         return;
     }
 
@@ -55,7 +55,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     while ($status = $stmt->fetchColumn()) {
         if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-        sendEppError($conn, 2304, 'It has a status that does not allow deletion', $clTRID);
+        sendEppError($conn, $db, 2304, 'It has a status that does not allow deletion', $clTRID, $trans);
         return;
         }
     }
@@ -69,7 +69,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute([$contact_id]);
 
     if ($stmt->errorCode() != '00000') {
-        sendEppError($conn, 2400, 'Contact was not deleted, it probably has links to other objects', $clTRID);
+        sendEppError($conn, $db, 2400, 'Contact was not deleted, it probably has links to other objects', $clTRID, $trans);
         return;
     }
 
@@ -94,7 +94,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$hostName) {
-        sendEppError($conn, 2003, 'Specify your host name', $clTRID);
+        sendEppError($conn, $db, 2003, 'Specify your host name', $clTRID, $trans);
         return;
     }
 
@@ -107,7 +107,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $registrar_id_host = $result['clid'] ?? null;
 
     if (!$host_id) {
-        sendEppError($conn, 2303, 'host:name does not exist', $clTRID);
+        sendEppError($conn, $db, 2303, 'host:name does not exist', $clTRID, $trans);
         return;
     }
     
@@ -118,7 +118,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clid = $clid['id'];
 
     if ($clid !== $registrar_id_host) {
-        sendEppError($conn, 2201, 'Host belongs to another registrar', $clTRID);
+        sendEppError($conn, $db, 2201, 'Host belongs to another registrar', $clTRID, $trans);
         return;
     }
 
@@ -128,7 +128,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $nameserver_inuse = $stmt->fetchColumn();
 
     if ($nameserver_inuse) {
-        sendEppError($conn, 2305, 'It is not possible to delete because it is a dependency, it is used by some domain', $clTRID);
+        sendEppError($conn, $db, 2305, 'It is not possible to delete because it is a dependency, it is used by some domain', $clTRID, $trans);
         return;
     }
 
@@ -145,7 +145,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute([':host_id' => $host_id]);
 
     if ($stmt->errorCode() != '00000') {
-        sendEppError($conn, 2400, 'The host was not deleted, it depends on other objects', $clTRID);
+        sendEppError($conn, $db, 2400, 'The host was not deleted, it depends on other objects', $clTRID, $trans);
         return;
     }
 
@@ -170,7 +170,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
     
     if (!$domainName) {
-        sendEppError($conn, 2003, 'Please specify the domain name that will be deleted', $clTRID);
+        sendEppError($conn, $db, 2003, 'Please specify the domain name that will be deleted', $clTRID, $trans);
         return;
     }
 	
@@ -184,7 +184,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$result) {
-        sendEppError($conn, 2303, 'domain:name does not exist', $clTRID);
+        sendEppError($conn, $db, 2303, 'domain:name does not exist', $clTRID, $trans);
         return;
     }
 
@@ -217,7 +217,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $clid = $clid['id'];
 
     if ($clid != $registrar_id_domain) {
-        sendEppError($conn, 2201, 'Domain belongs to another registrar', $clTRID);
+        sendEppError($conn, $db, 2201, 'Domain belongs to another registrar', $clTRID, $trans);
         return;
     }
 
@@ -226,7 +226,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $status = $row['status'];
         if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-            sendEppError($conn, 2304, 'The domain name has a status that does not allow deletion', $clTRID);
+            sendEppError($conn, $db, 2304, 'The domain name has a status that does not allow deletion', $clTRID, $trans);
             return;
         }
     }
@@ -257,7 +257,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $price = $stmt->fetchColumn();
         
                 if (!isset($price)) {
-                    sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                     return;
                 }
 
@@ -291,7 +291,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->execute([$domain_id]);
 
                 if ($stmt->errorCode() != "00000") {
-                    sendEppError($conn, 2400, 'The domain name has not been deleted, it has something to do with other objects', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The domain name has not been deleted, it has something to do with other objects', $clTRID, $trans);
                     return;
                 }
 
@@ -315,7 +315,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $price = $stmt->fetchColumn();
 
                 if (!isset($price)) {
-                    sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                     return;
                 }
 
@@ -339,7 +339,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $price = $stmt->fetchColumn();
 
                 if (!isset($price)) {
-                    sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                     return;
                 }
 
@@ -365,7 +365,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                     $price = $stmt->fetchColumn();
 
                     if (!isset($price)) {
-                        sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
+                        sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                         return;
                     }
 

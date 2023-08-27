@@ -12,7 +12,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $authInfo_pw = (string)$obj->xpath('//contact:authInfo/contact:pw[1]')[0];
 
         if (!$contactID) {
-            sendEppError($conn, 2003, 'Contact ID was not provided', $clTRID);
+            sendEppError($conn, $db, 2003, 'Contact ID was not provided', $clTRID, $trans);
             return;
         }
 
@@ -24,7 +24,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $registrar_id_contact = $result['clid'] ?? null;
 
         if (!$contact_id) {
-            sendEppError($conn, 2303, 'Contact does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
             return;
         }
     
@@ -36,7 +36,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
         if ($op === 'approve') {
             if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Only the losing registrar can approve', $clTRID);
+                sendEppError($conn, $db, 2201, 'Only the losing registrar can approve', $clTRID, $trans);
                 return;
             }
 
@@ -49,7 +49,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $contact_authinfo_id = $stmt->fetchColumn();
 
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                     return;
                 }
             }
@@ -68,7 +68,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 ]);
 
                 if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     $stmt->execute([':contact_id' => $contact_id]);
@@ -104,13 +104,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
+                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
                 return;
             }
         } elseif ($op === 'cancel') {
             // Only the requesting or 'Gaining' Registrar can cancel
             if ($clid === $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Only the applicant can cancel', $clTRID);
+                sendEppError($conn, $db, 2201, 'Only the applicant can cancel', $clTRID, $trans);
                 return;
             }
 
@@ -120,7 +120,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
                  $contact_authinfo_id = $stmt->fetchColumn();
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                     return;
                 }
             }
@@ -135,7 +135,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([':contact_id' => $contact_id]);
 
                 if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     $stmt->execute([':contact_id' => $contact_id]);
@@ -171,7 +171,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
+                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
                 return;
             }
         } elseif ($op === 'query') {
@@ -210,13 +210,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             } else {
-                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
+                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
                 return;
             }
         } elseif ($op === 'reject') {
             // Only the LOSING REGISTRAR can approve or reject
             if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, 2201, 'Only the losing registrar can reject', $clTRID);
+                sendEppError($conn, $db, 2201, 'Only the losing registrar can reject', $clTRID, $trans);
                 return;
             }
 
@@ -227,7 +227,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $contact_authinfo_id = $stmt->fetchColumn();
 
                 if (!$contact_authinfo_id) {
-                    sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                     return;
                 }
             }
@@ -242,7 +242,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $updateStmt->execute([':contact_id' => $contact_id]);
 
                 if ($updateStmt->errorCode() !== '00000') {
-                    sendEppError($conn, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
@@ -280,7 +280,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     sendEppResponse($conn, $xml);
                 }
             } else {
-                sendEppError($conn, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID);
+                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
                 return;
             }
         } elseif ($op == 'request') {
@@ -290,7 +290,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $days_from_registration = $stmt->fetchColumn();
 
             if ($days_from_registration < 60) {
-                sendEppError($conn, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID);
+                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID, $trans);
                 return;
             }
 
@@ -302,7 +302,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $days_from_last_transfer = $result['intval'];
 
             if ($last_trdate && $days_from_last_transfer < 60) {
-                sendEppError($conn, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID);
+                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
                 return;
             }
 
@@ -312,7 +312,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $contact_authinfo_id = $stmt->fetchColumn();
 
             if (!$contact_authinfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
 
@@ -322,13 +322,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             while ($status = $stmt->fetchColumn()) {
                 if (preg_match("/.*(TransferProhibited)$/", $status) || preg_match("/^pending/", $status)) {
-                    sendEppError($conn, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID);
+                    sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID, $trans);
                     return;
                 }
             }
 
             if ($clid == $registrar_id_contact) {
-                sendEppError($conn, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID);
+                sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID, $trans);
                 return;
             }
 
@@ -347,7 +347,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 ]);
 
                 if ($stmt->errorCode() != '00000') {
-                    sendEppError($conn, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     $stmt = $db->prepare("SELECT `crid`,`crdate`,`upid`,`update`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
@@ -389,11 +389,11 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     sendEppResponse($conn, $xml);
                 }
             } elseif ($op == 'pending') {
-                sendEppError($conn, 2300, 'Command failed because the contact is pending transfer', $clTRID);
+                sendEppError($conn, $db, 2300, 'Command failed because the contact is pending transfer', $clTRID, $trans);
                 return;
             }
         } else {
-            sendEppError($conn, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID);
+            sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
             return;
         }
     }
@@ -408,7 +408,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
     $authInfo_pw = (string)$xml->xpath('//domain:authInfo/domain:pw[1]')[0];
 
     if (!$domainName) {
-        sendEppError($conn, 2003, 'Please provide the domain name', $clTRID);
+        sendEppError($conn, $db, 2003, 'Please provide the domain name', $clTRID, $trans);
         return;
     }
 
@@ -422,7 +422,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
     $registrar_id_domain = $row['clid'] ?? null;
 
     if (!$domain_id) {
-        sendEppError($conn, 2303, 'Domain does not exist in registry', $clTRID);
+        sendEppError($conn, $db, 2303, 'Domain does not exist in registry', $clTRID, $trans);
         return;
     }
     
@@ -434,7 +434,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
     if ($op === 'approve') {
         if ($clid !== $registrar_id_domain) {
-            sendEppError($conn, 2201, 'Only LOSING REGISTRAR can approve', $clTRID);
+            sendEppError($conn, $db, 2201, 'Only LOSING REGISTRAR can approve', $clTRID, $trans);
             return;
         }
 
@@ -444,7 +444,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $domain_authinfo_id = $stmt->fetchColumn();
 
             if (!$domain_authinfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
         }
@@ -471,7 +471,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $price = $stmt->fetchColumn();
 
                 if (($registrar_balance + $creditLimit) < $price) {
-                    sendEppError($conn, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID);
+                    sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
                     return;
                 }
             }
@@ -483,7 +483,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $stmt->execute([$row["reid"], $clid, $domain_id]);
 
             if ($stmt->errorCode() !== PDO::ERR_NONE) {
-                sendEppError($conn, 2400, 'The transfer was not successful, something is wrong', $clTRID);
+                sendEppError($conn, $db, 2400, 'The transfer was not successful, something is wrong', $clTRID, $trans);
                 return;
             } else {
                 $stmt = $db->prepare("UPDATE `registrar` SET `accountBalance` = (`accountBalance` - :price) WHERE `id` = :reid");
@@ -551,14 +551,14 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 sendEppResponse($conn, $xml);
             }
         } else {
-            sendEppError($conn, 2301, 'The domain is NOT pending transfer', $clTRID);
+            sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
         }
     }
     elseif ($op === 'cancel') {
 
         if ($clid === $registrar_id_domain) {
-            sendEppError($conn, 2201, 'Only the APPLICANT can cancel', $clTRID);
+            sendEppError($conn, $db, 2201, 'Only the APPLICANT can cancel', $clTRID, $trans);
             return;
         }
 
@@ -568,7 +568,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $domain_authinfo_id = $stmt->fetchColumn();
 
             if (!$domain_authinfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
         }
@@ -583,7 +583,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $stmt->execute(['domain_id' => $domain_id]);
             
             if ($stmt->errorCode() !== '00000') {
-                sendEppError($conn, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID);
+                sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
                 return;
             } else {
                 $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
@@ -625,7 +625,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 sendEppResponse($conn, $xml);
             }
         } else {
-            sendEppError($conn, 2301, 'The domain is NOT pending transfer', $clTRID);
+            sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
         }
     }
@@ -672,14 +672,14 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
             sendEppResponse($conn, $xml);
         } else {
-            sendEppError($conn, 2301, 'The domain is NOT pending transfer', $clTRID);
+            sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
         }
     }
     elseif ($op === 'reject') {
 
         if ($clid !== $registrar_id_domain) {
-            sendEppError($conn, 2201, 'Only LOSING REGISTRAR can reject', $clTRID);
+            sendEppError($conn, $db, 2201, 'Only LOSING REGISTRAR can reject', $clTRID, $trans);
             return;
         }
 
@@ -689,7 +689,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $domain_authinfo_id = $stmtAuthInfo->fetchColumn();
 
             if (!$domain_authinfo_id) {
-                sendEppError($conn, 2202, 'authInfo pw is not correct', $clTRID);
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
         }
@@ -704,7 +704,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
 
             if (!$success || $stmtUpdate->errorCode() !== '00000') {
-                sendEppError($conn, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID);
+                sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
                 return;
             } else {
                 $stmtReID = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
@@ -741,7 +741,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 sendEppResponse($conn, $xml);
             }
         } else {
-            sendEppError($conn, 2301, 'The domain is NOT pending transfer', $clTRID);
+            sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
         }
     }
@@ -753,7 +753,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $days_from_registration = $stmt->fetchColumn();
 
         if ($days_from_registration < 60) {
-            sendEppError($conn, 2201, 'The domain name must not be within 60 days of its initial registration', $clTRID);
+            sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its initial registration', $clTRID, $trans);
             return;
         }
 
@@ -765,7 +765,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $days_from_last_transfer = $result["intval"];
 
         if ($last_trdate && $days_from_last_transfer < 60) {
-            sendEppError($conn, 2201, 'The domain name must not be within 60 days of its last transfer from another registrar', $clTRID);
+            sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
             return;
         }
 
@@ -775,7 +775,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $days_from_expiry_date = $stmt->fetchColumn();
 
         if ($days_from_expiry_date > 30) {
-            sendEppError($conn, 2201, 'The domain name must not be more than 30 days past its expiry date', $clTRID);
+            sendEppError($conn, $db, 2201, 'The domain name must not be more than 30 days past its expiry date', $clTRID, $trans);
             return;
         }
 
@@ -785,7 +785,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $domain_authinfo_id = $stmt->fetchColumn();
 
         if (!$domain_authinfo_id) {
-            sendEppError($conn, 2202, 'authInfo pw is invalid', $clTRID);
+            sendEppError($conn, $db, 2202, 'authInfo pw is invalid', $clTRID, $trans);
             return;
         }
 
@@ -794,13 +794,13 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $stmt->execute(['domain_id' => $domain_id]);
         while ($status = $stmt->fetchColumn()) {
             if (preg_match('/.*(TransferProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-                sendEppError($conn, 2304, 'It has a status that does not allow the transfer', $clTRID);
+                sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer', $clTRID, $trans);
                 return;
             }
         }
 
         if ($clid == $registrar_id_domain) {
-            sendEppError($conn, 2106, 'Destination client of the transfer operation is the domain sponsoring client', $clTRID);
+            sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the domain sponsoring client', $clTRID, $trans);
             return;
         }
 
@@ -829,14 +829,14 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             if ($period) {
                 if ($period < 1 || $period > 99) {
-                    sendEppError($conn, 2004, "domain:period minLength value='1', maxLength value='99'", $clTRID);
+                    sendEppError($conn, $db, 2004, "domain:period minLength value='1', maxLength value='99'", $clTRID, $trans);
                     return;
                 }
             }
 
             if ($period_unit) {
                 if (!in_array($period_unit, ['m', 'y'])) {
-                    sendEppError($conn, 2004, 'domain:period unit m|y', $clTRID);
+                    sendEppError($conn, $db, 2004, 'domain:period unit m|y', $clTRID, $trans);
                     return;
                 }
             }
@@ -851,7 +851,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             if ($date_add > 0) {
 
                 if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
-                    sendEppError($conn, 2306, 'Not less than 1 year and not more than 10', $clTRID);
+                    sendEppError($conn, $db, 2306, 'Not less than 1 year and not more than 10', $clTRID, $trans);
                     return;
                 }
 
@@ -867,7 +867,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $price = $result["m$date_add"];
 
                 if (($registrar_balance + $creditLimit) < $price) {
-                    sendEppError($conn, 2104, 'The registrar who wants to take over this domain has no money', $clTRID);
+                    sendEppError($conn, $db, 2104, 'The registrar who wants to take over this domain has no money', $clTRID, $trans);
                     return;
                 }
 
@@ -876,7 +876,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
                 
                 if ($stmt->errorCode() !== '00000') {
-                    sendEppError($conn, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     // Get the domain details
@@ -944,7 +944,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 ]);
 
                 if ($stmt->errorCode() !== '00000') {
-                    sendEppError($conn, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID);
+                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
                     // Get the domain details
@@ -999,12 +999,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
         }
     } elseif ($trstatus === 'pending') {
-        sendEppError($conn, 2300, 'Command failed as the domain is pending transfer', $clTRID);
+        sendEppError($conn, $db, 2300, 'Command failed as the domain is pending transfer', $clTRID, $trans);
         return;
         }
     }
     else {
-        sendEppError($conn, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID);
+        sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
         return;
     }
 }

@@ -58,7 +58,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
         $connId = spl_object_id($conn);
 
         if ($data === false || strlen($data) < 4) {
-            sendEppError($conn, 2100, 'Data reception error');
+            sendEppError($conn, $db, 2100, 'Data reception error');
             break;
         }
 
@@ -79,7 +79,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
         $xml->registerXPathNamespace('secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
 
         if ($xml === false) {
-            sendEppError($conn, 2001, 'Invalid XML');
+            sendEppError($conn, $db, 2001, 'Invalid XML');
             break;
         }
     
@@ -113,7 +113,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                     updateTransaction($db, 'login', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 } else {
-                    sendEppError($conn, 2200, 'Authentication error', $clTRID);
+                    sendEppError($conn, $db, 2200, 'Authentication error', $clTRID);
                 }
                 break;
             }
@@ -157,7 +157,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processPoll($conn, $db, $xml, $data['clid'], $trans);
@@ -172,7 +172,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactCheck($conn, $db, $xml, $trans);
@@ -187,7 +187,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -202,7 +202,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactInfo($conn, $db, $xml, $trans);
@@ -217,7 +217,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -232,7 +232,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -247,7 +247,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processContactTransfer($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -262,7 +262,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainCheck($conn, $db, $xml, $trans);
@@ -277,7 +277,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainInfo($conn, $db, $xml, $trans);
@@ -292,7 +292,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -307,7 +307,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -322,7 +322,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -337,7 +337,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainTransfer($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -352,7 +352,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostCheck($conn, $db, $xml, $trans);
@@ -367,7 +367,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostCreate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -382,7 +382,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostInfo($conn, $db, $xml, $trans);
@@ -397,7 +397,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostUpdate($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -412,7 +412,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processHostDelete($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -427,7 +427,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processFundsInfo($conn, $db, $xml, $data['clid'], $trans);
@@ -442,7 +442,7 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $xmlString = $xml->asXML();
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
                 if (!$data || $data['logged_in'] !== 1) {
-                    sendEppError($conn, 2202, 'Authorization error', $clTRID);
+                    sendEppError($conn, $db, 2202, 'Authorization error', $clTRID);
                     $conn->close();
                 }
                 processDomainRenew($conn, $db, $xml, $data['clid'], $c['db_type'], $trans);
@@ -451,13 +451,13 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
       
             default:
             {
-                sendEppError($conn, 2102, 'Unrecognized command');
+                sendEppError($conn, $db, 2102, 'Unrecognized command');
                 break;
             }
         }
     }
 
-    sendEppError($conn, 2100, 'Unknown command');
+    sendEppError($conn, $db, 2100, 'Unknown command');
     echo "Client disconnected.\n";
 });
 

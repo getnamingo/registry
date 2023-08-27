@@ -7,7 +7,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
     // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
-        sendEppError($conn, 2005, 'Invalid contact ID', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid contact ID', $clTRID, $trans);
         return;
     }
 
@@ -18,7 +18,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
         $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$contact) {
-            sendEppError($conn, 2303, 'Contact does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
             return;
         }
         
@@ -86,7 +86,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error', $clTRID);
+        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }
 }
 
@@ -96,7 +96,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
 
     // Validation for host name
     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) > 254) {
-        sendEppError($conn, 2005, 'Invalid host name', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
         return;
     }
 	
@@ -107,7 +107,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         $host = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$host) {
-            sendEppError($conn, 2303, 'Host does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'Host does not exist', $clTRID, $trans);
             return;
         }
 		
@@ -164,7 +164,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
     updateTransaction($db, 'info', 'host', 'H_'.$host['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error', $clTRID);
+        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }
 }
 
@@ -175,12 +175,12 @@ function processDomainInfo($conn, $db, $xml, $trans) {
     // Validation for domain name
     $invalid_label = validate_label($domainName, $db);
     if ($invalid_label) {
-        sendEppError($conn, 2005, 'Invalid domain name', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
 	
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
-        sendEppError($conn, 2005, 'Invalid domain name', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
 
@@ -191,7 +191,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$domain) {
-            sendEppError($conn, 2303, 'Domain does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
             return;
         }
         
@@ -331,7 +331,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
     updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error', $clTRID);
+        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }
 }
 
@@ -349,7 +349,7 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
 		$availableCredit = number_format($availableCredit, 2, '.', '');
 
         if (!$funds) {
-            sendEppError($conn, 2303, 'Registrar does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'Registrar does not exist', $clTRID, $trans);
             return;
         }
         
@@ -374,6 +374,6 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Database error', $clTRID);
+        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }
 }

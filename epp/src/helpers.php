@@ -48,21 +48,25 @@ function sendGreeting($conn) {
     sendEppResponse($conn, $xml);
 }
 
-function sendEppError($conn, $code, $msg, $clTRID = "000") {
+function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
     if (!isset($clTRID)) {
         $clTRID = "000";
     }
-	
+    if (!isset($trans)) {
+        $trans = "0";
+    }
+    $svTRID = generateSvTRID();
     $response = [
         'command' => 'error',
         'resultCode' => $code,
         'human_readable_message' => $msg,
         'clTRID' => $clTRID,
-        'svTRID' => generateSvTRID(),
+        'svTRID' => $svTRID,
     ];
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+    updateTransaction($db, null, null, 'error', $code, $msg, $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 

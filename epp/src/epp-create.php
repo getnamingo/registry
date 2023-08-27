@@ -5,14 +5,14 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$contactID) {
-        sendEppError($conn, 2003, 'Identifier type minLength value=3, maxLength value=16', $clTRID);
+        sendEppError($conn, $db, 2003, 'Identifier type minLength value=3, maxLength value=16', $clTRID, $trans);
         return;
     }
 
     // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
-        sendEppError($conn, 2005, 'Invalid contact ID', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid contact ID', $clTRID, $trans);
         return;
     }
     
@@ -22,7 +22,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($contact) {
-        sendEppError($conn, 2302, 'Contact ID already exists', $clTRID);
+        sendEppError($conn, $db, 2302, 'Contact ID already exists', $clTRID, $trans);
         return;
     }
     
@@ -65,64 +65,64 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $postalInfoIntCc   = (string) $postalInfoInt->addr->cc;
 
         if (!$postalInfoIntName) {
-            sendEppError($conn, 2003, 'Missing contact:name', $clTRID);
+            sendEppError($conn, $db, 2003, 'Missing contact:name', $clTRID, $trans);
             return;
         }
 
         if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
-            sendEppError($conn, 2005, 'Invalid contact:name', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
             return;
         }
 
         if ($postalInfoIntOrg) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
-                sendEppError($conn, 2005, 'Invalid contact:org', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet1) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet2) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet3) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
-            sendEppError($conn, 2005, 'Invalid contact:city', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:city', $clTRID, $trans);
             return;
         }
 
         if ($postalInfoIntSp) {
             if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoIntSp)) {
-                sendEppError($conn, 2005, 'Invalid contact:sp', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:sp', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntPc) {
             if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoIntPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoIntPc)) {
-                sendEppError($conn, 2005, 'Invalid contact:pc', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:pc', $clTRID, $trans);
                 return;
             }
         }
 
         if (!preg_match('/^(AF|AX|AL|DZ|AS|AD|AO|AI|AQ|AG|AR|AM|AW|AU|AT|AZ|BS|BH|BD|BB|BY|BE|BZ|BJ|BM|BT|BO|BQ|BA|BW|BV|BR|IO|BN|BG|BF|BI|KH|CM|CA|CV|KY|CF|TD|CL|CN|CX|CC|CO|KM|CG|CD|CK|CR|CI|HR|CU|CW|CY|CZ|DK|DJ|DM|DO|EC|EG|SV|GQ|ER|EE|ET|FK|FO|FJ|FI|FR|GF|PF|TF|GA|GM|GE|DE|GH|GI|GR|GL|GD|GP|GU|GT|GG|GN|GW|GY|HT|HM|VA|HN|HK|HU|IS|IN|ID|IR|IQ|IE|IM|IL|IT|JM|JP|JE|JO|KZ|KE|KI|KP|KR|KW|KG|LA|LV|LB|LS|LR|LY|LI|LT|LU|MO|MK|MG|MW|MY|MV|ML|MT|MH|MQ|MR|MU|YT|MX|FM|MD|MC|MN|ME|MS|MA|MZ|MM|NA|NR|NP|NL|NC|NZ|NI|NE|NG|NU|NF|MP|NO|OM|PK|PW|PS|PA|PG|PY|PE|PH|PN|PL|PT|PR|QA|RE|RO|RU|RW|BL|SH|KN|LC|MF|PM|VC|WS|SM|ST|SA|SN|RS|SC|SL|SG|SX|SK|SI|SB|SO|ZA|GS|ES|LK|SD|SR|SJ|SZ|SE|CH|SY|TW|TJ|TZ|TH|TL|TG|TK|TO|TT|TN|TR|TM|TC|TV|UG|UA|AE|GB|US|UM|UY|UZ|VU|VE|VN|VG|VI|WF|EH|YE|ZM|ZW)$/', $postalInfoIntCc)) {
-            sendEppError($conn, 2005, 'Invalid contact:cc', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:cc', $clTRID, $trans);
             return;
         }
     }
@@ -148,70 +148,70 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $postalInfoLocCc   = (string) $postalInfoLoc->addr->cc;
 
         if (!$postalInfoLocName) {
-            sendEppError($conn, 2003, 'Missing contact:name', $clTRID);
+            sendEppError($conn, $db, 2003, 'Missing contact:name', $clTRID, $trans);
             return;
         }
 
         if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocName)) {
-            sendEppError($conn, 2005, 'Invalid contact:name', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
             return;
         }
 
         if ($postalInfoLocOrg) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocOrg)) {
-                sendEppError($conn, 2005, 'Invalid contact:org', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoLocStreet1) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet1)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoLocStreet2) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet2)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoLocStreet3) {
             if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet3)) {
-                sendEppError($conn, 2005, 'Invalid contact:street', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoLocCity)) {
-            sendEppError($conn, 2005, 'Invalid contact:city', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:city', $clTRID, $trans);
             return;
         }
 
         if ($postalInfoLocSp) {
             if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoLocSp)) {
-                sendEppError($conn, 2005, 'Invalid contact:sp', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:sp', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoLocPc) {
             if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoLocPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoLocPc)) {
-                sendEppError($conn, 2005, 'Invalid contact:pc', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid contact:pc', $clTRID, $trans);
                 return;
             }
         }
 
         if (!preg_match('/^(AF|AX|AL|DZ|AS|AD|AO|AI|AQ|AG|AR|AM|AW|AU|AT|AZ|BS|BH|BD|BB|BY|BE|BZ|BJ|BM|BT|BO|BQ|BA|BW|BV|BR|IO|BN|BG|BF|BI|KH|CM|CA|CV|KY|CF|TD|CL|CN|CX|CC|CO|KM|CG|CD|CK|CR|CI|HR|CU|CW|CY|CZ|DK|DJ|DM|DO|EC|EG|SV|GQ|ER|EE|ET|FK|FO|FJ|FI|FR|GF|PF|TF|GA|GM|GE|DE|GH|GI|GR|GL|GD|GP|GU|GT|GG|GN|GW|GY|HT|HM|VA|HN|HK|HU|IS|IN|ID|IR|IQ|IE|IM|IL|IT|JM|JP|JE|JO|KZ|KE|KI|KP|KR|KW|KG|LA|LV|LB|LS|LR|LY|LI|LT|LU|MO|MK|MG|MW|MY|MV|ML|MT|MH|MQ|MR|MU|YT|MX|FM|MD|MC|MN|ME|MS|MA|MZ|MM|NA|NR|NP|NL|NC|NZ|NI|NE|NG|NU|NF|MP|NO|OM|PK|PW|PS|PA|PG|PY|PE|PH|PN|PL|PT|PR|QA|RE|RO|RU|RW|BL|SH|KN|LC|MF|PM|VC|WS|SM|ST|SA|SN|RS|SC|SL|SG|SX|SK|SI|SB|SO|ZA|GS|ES|LK|SD|SR|SJ|SZ|SE|CH|SY|TW|TJ|TZ|TH|TL|TG|TK|TO|TT|TN|TR|TM|TC|TV|UG|UA|AE|GB|US|UM|UY|UZ|VU|VE|VN|VG|VI|WF|EH|YE|ZM|ZW)$/', $postalInfoLocCc)) {
-            sendEppError($conn, 2005, 'Invalid contact:cc', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid contact:cc', $clTRID, $trans);
             return;
         }
     }
 
     if (!$postalInfoInt && !$postalInfoLoc) {
-        sendEppError($conn, 2003, 'Missing contact:postalInfo', $clTRID);
+        sendEppError($conn, $db, 2003, 'Missing contact:postalInfo', $clTRID, $trans);
         return;
     }
     
@@ -220,7 +220,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $voice = (string) $contactCreate->voice;
     $voice_x = (string) $contactCreate->voice->attributes()->x;
     if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
-        sendEppError($conn, 2005, 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
+        sendEppError($conn, $db, 2005, 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID, $trans);
         return;
     }
 
@@ -230,34 +230,34 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $fax_x = (string) $contactCreate->fax->attributes()->x;
     }
     if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
-        sendEppError($conn, 2005, 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
+        sendEppError($conn, $db, 2005, 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID, $trans);
         return;
     }
 
     $email = (string) $contactCreate->email;
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        sendEppError($conn, 2005, 'Email address failed check', $clTRID);
+        sendEppError($conn, $db, 2005, 'Email address failed check', $clTRID, $trans);
         return;
     }
 
     $authInfo_pw = (string) $contactCreate->authInfo->pw;
     if (!$authInfo_pw) {
-        sendEppError($conn, 2003, 'Missing contact:pw', $clTRID);
+        sendEppError($conn, $db, 2003, 'Missing contact:pw', $clTRID, $trans);
         return;
     }
 
     if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-        sendEppError($conn, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
         return;
     }
 
     if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should have both upper and lower case characters', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
         return;
     }
 
     if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should contain one or more numbers', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
         return;
     }
 
@@ -311,11 +311,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $nin_type = (string)$obj_ext->xpath('identica:nin/@type')[0] ?? '';
 
         if (!preg_match('/\d/', $nin)) {
-            sendEppError($conn, 2005, 'NIN should contain one or more numbers', $clTRID);
+            sendEppError($conn, $db, 2005, 'NIN should contain one or more numbers', $clTRID, $trans);
             return;
         }
         if (!in_array($nin_type, ['personal', 'business'])) {
-            sendEppError($conn, 2005, 'NIN type is invalid', $clTRID);
+            sendEppError($conn, $db, 2005, 'NIN type is invalid', $clTRID, $trans);
             return;
         }
     }
@@ -370,7 +370,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $crdate = $stmt->fetchColumn();
 
     } catch (PDOException $e) {
-        sendEppError($conn, 2400, 'Contact could not be created due to database error', $clTRID);
+        sendEppError($conn, $db, 2400, 'Contact could not be created due to database error', $clTRID, $trans);
         return;
     }
 
@@ -399,17 +399,17 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
         $host_id_already_exist = $db->query("SELECT id FROM host WHERE name = '$hostName' LIMIT 1")->fetchColumn();
         if ($host_id_already_exist) {
-            sendEppError($conn, 2302, 'host:name already exists', $clTRID);
+            sendEppError($conn, $db, 2302, 'host:name already exists', $clTRID, $trans);
             return;
         }
     } else {
-        sendEppError($conn, 2005, 'Invalid host:name', $clTRID);
+        sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
         return;
     }
 
     $host_addr_list = $xml->xpath('//addr'); 
     if (count($host_addr_list) > 13) {
-        sendEppError($conn, 2306, 'No more than 13 host:addr are allowed', $clTRID);
+        sendEppError($conn, $db, 2306, 'No more than 13 host:addr are allowed', $clTRID, $trans);
         return;
     }
     
@@ -433,19 +433,19 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         // v6 IP validation
         if ($addr_type === 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            sendEppError($conn, 2005, 'Invalid host:addr v6', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid host:addr v6', $clTRID, $trans);
             return;
         }
 
         // v4 IP validation
         if ($addr_type !== 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            sendEppError($conn, 2005, 'Invalid host:addr v4', $clTRID);
+            sendEppError($conn, $db, 2005, 'Invalid host:addr v4', $clTRID, $trans);
             return;
         }
 
         // check for duplicate IPs
         if (isset($nsArr[$addr_type][$addr])) {
-            sendEppError($conn, 2306, 'Duplicated host:addr '.$addr, $clTRID);
+            sendEppError($conn, $db, 2306, 'Duplicated host:addr '.$addr, $clTRID, $trans);
             return;
         }
 
@@ -480,12 +480,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
         
         if (!$domain_exist) {
-            sendEppError($conn, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID);
+            sendEppError($conn, $db, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
             return;
         }
         
         if ($clid != $clid_domain) {
-            sendEppError($conn, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID);
+            sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
             return;
         }
 
@@ -572,7 +572,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $invalid_domain = validate_label($domainName, $db);
 
     if ($invalid_domain) {
-        sendEppError($conn, 2306, 'Invalid domain:name', $clTRID);
+        sendEppError($conn, $db, 2306, 'Invalid domain:name', $clTRID, $trans);
         return;
     }
 
@@ -588,7 +588,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (!$valid_tld) {
-        sendEppError($conn, 2306, 'Invalid domain extension', $clTRID);
+        sendEppError($conn, $db, 2306, 'Invalid domain extension', $clTRID, $trans);
         return;
     }
 
@@ -597,7 +597,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domain_already_exist = $stmt->fetchColumn();
 
     if ($domain_already_exist) {
-        sendEppError($conn, 2302, 'Domain name already exists', $clTRID);
+        sendEppError($conn, $db, 2302, 'Domain name already exists', $clTRID, $trans);
         return;
     }
 
@@ -606,7 +606,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domain_already_reserved = $stmt->fetchColumn();
 
     if ($domain_already_reserved) {
-        sendEppError($conn, 2302, 'Domain name is reserved or restricted', $clTRID);
+        sendEppError($conn, $db, 2302, 'Domain name is reserved or restricted', $clTRID, $trans);
         return;
     }
     
@@ -616,7 +616,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $period_unit = (string) $periodElement['unit'];
 
     if ($period && (($period < 1) || ($period > 99))) {
-        sendEppError($conn, 2004, 'domain:period minLength value=1, maxLength value=99', $clTRID);
+        sendEppError($conn, $db, 2004, 'domain:period minLength value=1, maxLength value=99', $clTRID, $trans);
         return;
     } elseif (!$period) {
         $period = 1;
@@ -624,7 +624,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     if ($period_unit) {
         if (!preg_match('/^(m|y)$/', $period_unit)) {
-        sendEppError($conn, 2004, 'domain:period unit m|y', $clTRID);
+        sendEppError($conn, $db, 2004, 'domain:period unit m|y', $clTRID, $trans);
         return;
         }
     } else {
@@ -639,7 +639,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
-        sendEppError($conn, 2306, 'A domain name can initially be registered for 1-10 years period', $clTRID);
+        sendEppError($conn, $db, 2306, 'A domain name can initially be registered for 1-10 years period', $clTRID, $trans);
         return;
     }
     
@@ -663,12 +663,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $price = $stmt->fetchColumn();
 
     if (!$price) {
-        sendEppError($conn, 2400, 'The price, period and currency for such TLD are not declared', $clTRID);
+        sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
         return;
     }
 
     if (($registrar_balance + $creditLimit) < $price) {
-        sendEppError($conn, 2104, 'Low credit: minimum threshold reached', $clTRID);
+        sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
         return;
     }
 
@@ -677,24 +677,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostAttr_list = $ns->xpath('//domain:hostAttr');
 
     if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
-        sendEppError($conn, 2001, 'It cannot be hostObj and hostAttr at the same time, either one or the other', $clTRID);
+        sendEppError($conn, $db, 2001, 'It cannot be hostObj and hostAttr at the same time, either one or the other', $clTRID, $trans);
         return;
     }
 
     if (count($hostObj_list) > 13) {
-        sendEppError($conn, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID);
+        sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
         return;
     }
 
     if (count($hostAttr_list) > 13) {
-        sendEppError($conn, 2306, 'No more than 13 domain:hostAttr are allowed', $clTRID);
+        sendEppError($conn, $db, 2306, 'No more than 13 domain:hostAttr are allowed', $clTRID, $trans);
         return;
     }
 
     $nsArr = [];
     foreach ($hostObj_list as $hostObj) {
         if (isset($nsArr[(string)$hostObj])) {
-            sendEppError($conn, 2302, 'Duplicate nameserver '.(string)$hostObj, $clTRID);
+            sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostObj, $clTRID, $trans);
             return;
         }
         $nsArr[(string)$hostObj] = 1;
@@ -703,7 +703,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $nsArr = [];
     foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
         if (isset($nsArr[(string)$hostName])) {
-            sendEppError($conn, 2302, 'Duplicate nameserver '.(string)$hostName, $clTRID);
+            sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostName, $clTRID, $trans);
             return;
         }
         $nsArr[(string)$hostName] = 1;
@@ -714,7 +714,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $hostObj = strtoupper((string)$node);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
-                sendEppError($conn, 2005, 'Invalid domain:hostObj', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                 return;
             }
 
@@ -727,11 +727,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
 
                 if (!$host_id_already_exist) {
-                    sendEppError($conn, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID);
+                    sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
                     return;
                 }
             } else {
-                sendEppError($conn, 2005, 'Invalid domain:hostObj', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                 return;
             }
         }
@@ -742,7 +742,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
 
             if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
-                sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
+                sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                 return;
             }
 
@@ -764,7 +764,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $hostAddrNodes = $node->xpath('//domain:hostAddr');
 
                 if (count($hostAddrNodes) > 13) {
-                    sendEppError($conn, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID);
+                    sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
                     return;
                 }
 
@@ -772,14 +772,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 foreach ($hostAddrNodes as $hostAddrNode) {
                     $hostAddr = (string)$hostAddrNode;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Duplicate IP'.$hostAddr, $clTRID);
+                        sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
                         return;
                     }
                     $nsArr[$hostAddr] = true;
                 }
 
                 if (count($hostAddrNodes) === 0) {
-                    sendEppError($conn, 2003, 'Missing domain:hostAddr', $clTRID);
+                    sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
                     return;
                 }
                 
@@ -801,7 +801,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                         } else {
-                            sendEppError($conn, 2005, 'Invalid domain:hostAddr v6', $clTRID);
+                            sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                             return;
                         }
                     } else {
@@ -810,11 +810,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
                             if ($hostAddr == '127.0.0.1') {
-                              sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
+                              sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                               return;
                             }
                         } else {
-                           sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
+                           sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                            return;
                         }
                     }
@@ -840,17 +840,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     // Object does not exist error
                     if (!$domain_exist) {
-                       sendEppError($conn, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID);
+                       sendEppError($conn, $db, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
                        return;
                     }
 
                     // Authorization error
                     if ($clid != $clid_domain) {
-                       sendEppError($conn, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID);
+                       sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
                        return;
                     }
                 } else {
-                   sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
+                   sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                    return;
                 }
 
@@ -858,7 +858,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Max 13 IP per host
                 if (count($hostAddr_list) > 13) {
-                   sendEppError($conn, 2306, 'No more than 13 IPs are allowed per host', $clTRID);
+                   sendEppError($conn, $db, 2306, 'No more than 13 IPs are allowed per host', $clTRID, $trans);
                    return;
                 }
 
@@ -867,7 +867,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 foreach ($hostAddr_list as $node) {
                     $hostAddr = (string) $node;
                     if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, 2302, 'Duplicate IP'.$hostAddr, $clTRID);
+                        sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
                         return;
                     }
                     $nsArr[$hostAddr] = 1;
@@ -875,7 +875,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Check for missing host addresses
                 if (count($hostAddr_list) === 0) {
-                    sendEppError($conn, 2003, 'Missing domain:hostAddr', $clTRID);
+                    sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
                     return;
                 }
 
@@ -898,7 +898,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                         } else {
-                             sendEppError($conn, 2005, 'Invalid domain:hostAddr v6', $clTRID);
+                             sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                              return;
                         }
                     } else {
@@ -909,11 +909,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // true
                             // Add check for reserved or private IP addresses (not implemented here, add as needed)
                             if ($hostAddr === '127.0.0.1') {
-                               sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
+                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                                return;
                             }
                         } else {
-                               sendEppError($conn, 2005, 'Invalid domain:hostAddr v4', $clTRID);
+                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                                return;
                         }
                     }
@@ -924,7 +924,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
 
                 } else {
-                    sendEppError($conn, 2005, 'Invalid domain:hostName', $clTRID);
+                    sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                     return;
                 }
             }
@@ -944,12 +944,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            sendEppError($conn, 2303, 'domain:registrant does not exist', $clTRID);
+            sendEppError($conn, $db, 2303, 'domain:registrant does not exist', $clTRID, $trans);
             return;
         }
 
         if ($clid != $row['clid']) {
-            sendEppError($conn, 2201, 'The contact requested in the command does NOT belong to the current registrar', $clTRID);
+            sendEppError($conn, $db, 2201, 'The contact requested in the command does NOT belong to the current registrar', $clTRID, $trans);
             return;
         }
     }
@@ -961,7 +961,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         // Max five contacts per domain name for each type
         if ($size > 5) {
-            sendEppError($conn, 2306, 'No more than 5 '.$type.' contacts are allowed per domain name', $clTRID);
+            sendEppError($conn, $db, 2306, 'No more than 5 '.$type.' contacts are allowed per domain name', $clTRID, $trans);
             return;
         }
 
@@ -975,12 +975,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
-                sendEppError($conn, 2303, 'domain:contact '.$type.' does not exist', $clTRID);
+                sendEppError($conn, $db, 2303, 'domain:contact '.$type.' does not exist', $clTRID, $trans);
                 return;
             }
 
             if ($clid != $row['clid']) {
-                sendEppError($conn, 2201, 'The contact type='.$type.' requested in the command does NOT belong to the current Registrar', $clTRID);
+                sendEppError($conn, $db, 2201, 'The contact type='.$type.' requested in the command does NOT belong to the current Registrar', $clTRID, $trans);
                 return;
             }
         }
@@ -989,22 +989,22 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $authInfo_pw = $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
 
     if (!$authInfo_pw) {
-        sendEppError($conn, 2003, 'Missing domain:pw', $clTRID);
+        sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);
         return;
     }
 
     if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
-        sendEppError($conn, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
         return;
     }
 
     if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should have both upper and lower case characters', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
         return;
     }
 
     if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, 2005, 'Password should contain one or more numbers', $clTRID);
+        sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
         return;
     }
     
@@ -1049,24 +1049,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 // Data sanity checks
                 // Validate keyTag
                 if (!isset($keyTag) || !is_int($keyTag)) {
-                    sendEppError($conn, 2005, 'Incomplete keyTag provided', $clTRID);
+                    sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
                     return;
                 }
                 if ($keyTag < 0 || $keyTag > 65535) {
-                    sendEppError($conn, 2006, 'Invalid keyTag provided', $clTRID);
+                    sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
                     return;
                 }
 
                 // Validate alg
                 $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
                 if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
-                    sendEppError($conn, 2006, 'Invalid algorithm', $clTRID);
+                    sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
                     return;
                 }
 
                 // Validate digestType and digest
                 if (!isset($digestType) || !is_int($digestType)) {
-                    sendEppError($conn, 2005, 'Invalid digestType', $clTRID);
+                    sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
                     return;
                 }
                 $validDigests = [
@@ -1075,11 +1075,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 4 => 96   // SHA-384
                 ];
                 if (!isset($validDigests[$digestType])) {
-                    sendEppError($conn, 2006, 'Unsupported digestType', $clTRID);
+                    sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
                     return;
                 }
                 if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                    sendEppError($conn, 2006, 'Invalid digest length or format', $clTRID);
+                    sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
                     return;
                 }
 
@@ -1099,25 +1099,25 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                     // Validate flags
                     $validFlags = [256, 257];
                     if (isset($flags) && !in_array($flags, $validFlags)) {
-                        sendEppError($conn, 2005, 'Invalid flags', $clTRID);
+                        sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
                         return;
                     }
 
                     // Validate protocol
                     if (isset($protocol) && $protocol != 3) {
-                        sendEppError($conn, 2006, 'Invalid protocol', $clTRID);
+                        sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
                         return;
                     }
 
                     // Validate algKeyData
                     if (isset($algKeyData)) {
-                        sendEppError($conn, 2005, 'Invalid algKeyData encoding', $clTRID);
+                        sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                         return;
                     }
 
                     // Validate pubKey
                     if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
-                        sendEppError($conn, 2005, 'Invalid pubKey encoding', $clTRID);
+                        sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                         return;
                     }
                 }
@@ -1307,7 +1307,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     } catch (Exception $e) {
         $db->rollBack();
 
-        sendEppError($conn, 2400, "Database failure: " . $e->getMessage(), $clTRID);
+        sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
     }
     $svTRID = generateSvTRID();
     $response = [
