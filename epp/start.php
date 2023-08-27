@@ -98,6 +98,41 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
                 $trans = createTransaction($db, $clid, $clTRID, $xmlString);
 
                 if (checkLogin($db, $clID, $pw)) {
+                    if (isset($xml->command->login->newPW)) {
+                        $newPW = (string) $xml->command->login->newPW;
+                        $options = [
+                            'memory_cost' => 1024 * 128,
+                            'time_cost'   => 6,
+                            'threads'     => 4,
+                        ];
+                        $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
+                        try {
+                            $stmt = $db->prepare("UPDATE registrar SET pw = :newPW WHERE clid = :clID");
+                            $stmt->bindParam(':newPW', $hashedPassword);
+                            $stmt->bindParam(':clID', $clID);
+                            $stmt->execute();
+                        } catch (PDOException $e) {
+                            sendEppError($conn, $db, 2400, 'Password could not be changed', $clTRID);
+                        }
+
+                        $svTRID = generateSvTRID();
+                        $response = [
+                            'command' => 'login',
+                            'resultCode' => 1000,
+                            'lang' => 'en-US',
+                            'clTRID' => $clTRID,
+                            'svTRID' => $svTRID,
+                            'msg' => 'Password changed successfully. Session will be terminated'
+                        ];
+
+                        $epp = new EPP\EppWriter();
+                        $xml = $epp->epp_writer($response);
+                        updateTransaction($db, 'login', null, null, 1000, 'Password changed successfully. Session will be terminated', $svTRID, $xml, $trans);
+                        sendEppResponse($conn, $xml);
+                        $conn->close();
+                        break;
+                    }
+                    
                     $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
                     $svTRID = generateSvTRID();
                     $response = [
