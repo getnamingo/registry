@@ -1739,89 +1739,208 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $secdnsAdds = $xml->xpath('//secDNS:add') ?? [];
         $secdnsChg = $xml->xpath('//secDNS:chg')[0] ?? null;
         
-        foreach ($secdnsRems as $secdnsRem) {
-            $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
-            foreach ($dsDataToRemove as $ds) {
-                $keyTag = (int)$ds->keyTag;
-                $algorithm = (int)$ds->alg;
-                $digestType = (int)$ds->digestType;
-                $digest = (string)$ds->digest;
+        if (isset($secdnsRems)) {
+            foreach ($secdnsRems as $secdnsRem) {
+                $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
+                foreach ($dsDataToRemove as $ds) {
+                    $keyTag = (int)$ds->xpath('secDNS:keyTag')[0];
+                    $alg = (int)$ds->xpath('secDNS:alg')[0];
+                    $digestType = (int)$ds->xpath('secDNS:digestType')[0];
+                    $digest = (string)$ds->xpath('secDNS:digest')[0];
 
-                $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keyTag = :keyTag AND algorithm = :algorithm AND digestType = :digestType AND digest = :digest");
-                $stmt->execute([
-                    'domain_id' => $domain_id,
-                    'keyTag' => $keyTag,
-                    'algorithm' => $algorithm,
-                    'digestType' => $digestType,
-                    'digest' => $digest
-                ]);
+                    // Data sanity checks
+                    // Validate keyTag
+                    if (!isset($keyTag) || !is_int($keyTag)) {
+                        sendEppError($conn, 2005, 'Incomplete keyTag provided', $clTRID);
+                        return;
+                    }
+                    if ($keyTag < 0 || $keyTag > 65535) {
+                        sendEppError($conn, 2006, 'Invalid keyTag provided', $clTRID);
+                        return;
+                    }
+
+                    // Validate alg
+                    $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                    if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                        sendEppError($conn, 2006, 'Invalid algorithm', $clTRID);
+                        return;
+                    }
+
+                    // Validate digestType and digest
+                    if (!isset($digestType) || !is_int($digestType)) {
+                        sendEppError($conn, 2005, 'Invalid digestType', $clTRID);
+                        return;
+                    }
+                    $validDigests = [
+                    1 => 40,  // SHA-1
+                    2 => 64,  // SHA-256
+                    4 => 96   // SHA-384
+                    ];
+                    if (!isset($validDigests[$digestType])) {
+                        sendEppError($conn, 2006, 'Unsupported digestType', $clTRID);
+                        return;
+                    }
+                    if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                        sendEppError($conn, 2006, 'Invalid digest length or format', $clTRID);
+                        return;
+                    }
+
+                    try {
+                        $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keytag = :keyTag AND alg = :alg AND digesttype = :digestType AND digest = :digest");
+                        $stmt->execute([
+                            ':domain_id' => $domain_id,
+                            ':keyTag' => $keyTag,
+                            ':alg' => $alg,
+                            ':digestType' => $digestType,
+                            ':digest' => $digest
+                        ]);
+                    } catch (PDOException $e) {
+                        sendEppError($conn, 2400, 'Database error during dsData removal', $clTRID);
+                        return;
+                    }
+                }
             }
         }
 
         if (isset($secdnsAdds)) {
-            $secDNSDataSet = $xml->xpath('//secDNS:dsData');
+            foreach ($secdnsAdds as $secdnsAdd) {
+                $secDNSDataSet = $secdnsAdd->xpath('./secDNS:dsData');
+                if ($secDNSDataSet) {
+                    foreach ($secDNSDataSet as $secDNSData) {
+                        // Extract dsData elements
+                        $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
+                        $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
+                        $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
+                        $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                        $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
-            if ($secDNSDataSet) {
-                foreach ($secDNSDataSet as $secDNSData) {
-                    // Extract dsData elements
-                    $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
-                    $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
-                    $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
-                    $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
-                    $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
-
-                    // Data sanity checks
-                    if (!$keyTag || !$alg || !$digestType || !$digest) {
-                        sendEppError($conn, 2005, 'Incomplete or invalid dsData provided', $clTRID);
-                        return;
-                    }
-
-                    // Extract keyData elements if available
-                    $flags = null;
-                    $protocol = null;
-                    $algKeyData = null;
-                    $pubKey = null;
-
-                    if ($secDNSData->xpath('secDNS:keyData')) {
-                        $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
-                        $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
-                        $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
-                        $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
-
-                        // Data sanity checks for keyData
-                        if (!$flags || !$protocol || !$algKeyData || !$pubKey) {
-                            sendEppError($conn, 2005, 'Incomplete or invalid keyData provided', $clTRID);
+                        // Data sanity checks
+                        // Validate keyTag
+                        if (!isset($keyTag) || !is_int($keyTag)) {
+                            sendEppError($conn, 2005, 'Incomplete keyTag provided', $clTRID);
                             return;
                         }
+                        if ($keyTag < 0 || $keyTag > 65535) {
+                            sendEppError($conn, 2006, 'Invalid keyTag provided', $clTRID);
+                            return;
+                        }
+
+                        // Validate alg
+                        $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                        if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                            sendEppError($conn, 2006, 'Invalid algorithm', $clTRID);
+                            return;
+                        }
+
+                        // Validate digestType and digest
+                        if (!isset($digestType) || !is_int($digestType)) {
+                            sendEppError($conn, 2005, 'Invalid digestType', $clTRID);
+                            return;
+                        }
+                        $validDigests = [
+                        1 => 40,  // SHA-1
+                        2 => 64,  // SHA-256
+                        4 => 96   // SHA-384
+                        ];
+                        if (!isset($validDigests[$digestType])) {
+                            sendEppError($conn, 2006, 'Unsupported digestType', $clTRID);
+                            return;
+                        }
+                        if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                            sendEppError($conn, 2006, 'Invalid digest length or format', $clTRID);
+                            return;
+                        }
+
+                        // Extract keyData elements if available
+                        $flags = null;
+                        $protocol = null;
+                        $algKeyData = null;
+                        $pubKey = null;
+
+                        if ($secDNSData->xpath('secDNS:keyData')) {
+                            $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
+                            $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
+                            $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
+                            $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+
+                            // Data sanity checks for keyData
+                            // Validate flags
+                            $validFlags = [256, 257];
+                            if (isset($flags) && !in_array($flags, $validFlags)) {
+                                sendEppError($conn, 2005, 'Invalid flags', $clTRID);
+                                return;
+                            }
+
+                            // Validate protocol
+                            if (isset($protocol) && $protocol != 3) {
+                                sendEppError($conn, 2006, 'Invalid protocol', $clTRID);
+                                return;
+                            }
+
+                            // Validate algKeyData
+                            if (isset($algKeyData)) {
+                                sendEppError($conn, 2005, 'Invalid algKeyData encoding', $clTRID);
+                                return;
+                            }
+
+                            // Validate pubKey
+                            if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                                sendEppError($conn, 2005, 'Invalid pubKey encoding', $clTRID);
+                                return;
+                            }
+                        }
+
+                        try {
+                            $stmt = $db->prepare("INSERT INTO `secdns` (`domain_id`, `maxsiglife`, `interface`, `keytag`, `alg`, `digesttype`, `digest`, `flags`, `protocol`, `keydata_alg`, `pubkey`) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
+
+                            $stmt->execute([
+                                ':domain_id' => $domain_id,
+                                ':maxsiglife' => $maxSigLife,
+                                ':interface' => 'dsData',
+                                ':keytag' => $keyTag,
+                                ':alg' => $alg,
+                                ':digesttype' => $digestType,
+                                ':digest' => $digest,
+                                ':flags' => $flags ?? null,
+                                ':protocol' => $protocol ?? null,
+                                ':keydata_alg' => $algKeyData ?? null,
+                                ':pubkey' => $pubKey ?? null
+                            ]);
+                        } catch (PDOException $e) {
+                            $isMySQLUniqueViolation = $e->getCode() === '23000' && strpos($e->getMessage(), '1062 Duplicate entry') !== false;
+                            $isPostgreSQLUniqueViolation = $e->getCode() === '23505';
+                            if ($isMySQLUniqueViolation || $isPostgreSQLUniqueViolation) {
+                            // Do nothing
+                            } else {
+                                sendEppError($conn, 2400, 'Database error', $clTRID);
+                                return;
+                            }
+                        }
                     }
-
-                    $stmt = $db->prepare("INSERT INTO `secdns` (`domain_id`, `maxsiglife`, `interface`, `keytag`, `alg`, `digesttype`, `digest`, `flags`, `protocol`, `keydata_alg`, `pubkey`) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
-
-                    $stmt->execute([
-                        ':domain_id' => $domain_id,
-                        ':maxsiglife' => $maxSigLife,
-                        ':interface' => 'dsData',
-                        ':keytag' => $keyTag,
-                        ':alg' => $alg,
-                        ':digesttype' => $digestType,
-                        ':digest' => $digest,
-                        ':flags' => $flags ?? null,
-                        ':protocol' => $protocol ?? null,
-                        ':keydata_alg' => $algKeyData ?? null,
-                        ':pubkey' => $pubKey ?? null
-                    ]);
                 }
             }
         }
         
-        if ($secdnsChg !== null) {
-            $maxSigLife = (int)$secdnsChg->maxSigLife;
+        if (isset($secdnsChg)) {
+            $maxSigLifeElement = $secdnsChg->xpath('secDNS:maxSigLife');
+            
+            if ($maxSigLifeElement && isset($maxSigLifeElement[0])) {
+                $maxSigLife = (int)$maxSigLifeElement[0];
 
-            $stmt = $db->prepare("UPDATE secdns SET maxSigLife = :maxSigLife WHERE domain_id = :domain_id");
-            $stmt->execute([
-                'maxSigLife' => $maxSigLife,
-                'domain_id' => $domain_id
-            ]);
+                try {
+                    $stmt = $db->prepare("UPDATE secdns SET maxSigLife = :maxSigLife WHERE domain_id = :domain_id");
+                    $stmt->execute([
+                        ':maxSigLife' => $maxSigLife,
+                        ':domain_id' => $domain_id
+                    ]);
+                } catch (PDOException $e) {
+                    sendEppError($conn, 2400, 'Database error during maxSigLife update', $clTRID);
+                    return;
+                }
+            } else {
+                sendEppError($conn, 2005, 'Invalid or missing maxSigLife', $clTRID);
+                return;
+            }
         }
     }
 

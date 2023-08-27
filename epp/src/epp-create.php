@@ -25,7 +25,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, 2302, 'Contact ID already exists', $clTRID);
         return;
     }
-	
+    
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
@@ -126,7 +126,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
-	
+    
     if ($postalInfoLoc) {
         $postalInfoLocName = (string) $postalInfoLoc->name;
         $postalInfoLocOrg  = (string) $postalInfoLoc->org;
@@ -214,21 +214,21 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, 2003, 'Missing contact:postalInfo', $clTRID);
         return;
     }
-	
-	$contactCreate = $xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create;
+    
+    $contactCreate = $xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create;
 
-	$voice = (string) $contactCreate->voice;
-	$voice_x = (string) $contactCreate->voice->attributes()->x;
+    $voice = (string) $contactCreate->voice;
+    $voice_x = (string) $contactCreate->voice->attributes()->x;
     if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
         sendEppError($conn, 2005, 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
         return;
     }
 
-	$fax = (string) $contactCreate->fax;
-	$fax_x = '';
-	if ($contactCreate->fax) {
-	    $fax_x = (string) $contactCreate->fax->attributes()->x;
-	}
+    $fax = (string) $contactCreate->fax;
+    $fax_x = '';
+    if ($contactCreate->fax) {
+        $fax_x = (string) $contactCreate->fax->attributes()->x;
+    }
     if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
         sendEppError($conn, 2005, 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})', $clTRID);
         return;
@@ -319,7 +319,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
-	
+    
     try {
         if ($database_type === 'mysql') {
             $stmt = $db->prepare("INSERT INTO contact (identifier,voice,voice_x,fax,fax_x,email,nin,nin_type,clid,crid,crdate,upid,`update`,trdate,trstatus,reid,redate,acid,acdate,disclose_voice,disclose_fax,disclose_email) VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
@@ -357,10 +357,10 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         $stmt = $db->prepare("INSERT INTO contact_authInfo (contact_id,authtype,authinfo) VALUES(?,?,?)");
         $stmt->execute([$contact_id, 'pw', $authInfo_pw]);
-		
+        
         $stmt = $db->prepare("INSERT INTO contact_status (contact_id,status) VALUES(?,?)");
         $stmt->execute([$contact_id, 'ok']);
-		
+        
         $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = ? LIMIT 1");
         $stmt->execute([$contact_id]);
         $identifier = $stmt->fetchColumn();
@@ -371,7 +371,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     } catch (PDOException $e) {
         sendEppError($conn, 2400, 'Contact could not be created due to database error', $clTRID);
-    	return;
+        return;
     }
 
     $svTRID = generateSvTRID();
@@ -412,12 +412,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, 2306, 'No more than 13 host:addr are allowed', $clTRID);
         return;
     }
-	
+    
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
     $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-	$clid = $clid['id'];
+    $clid = $clid['id'];
 
     $nsArr = [];
 
@@ -508,7 +508,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
             $stmt->execute([$host_id, $addr, $addr_type]);
         }
-		
+        
         $host_status = 'ok';
         $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
         $stmt->execute([$host_id, $host_status]);
@@ -1047,8 +1047,39 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                 // Data sanity checks
-                if (!$keyTag || !$alg || !$digestType || !$digest) {
-                    sendEppError($conn, 2005, 'Incomplete or invalid dsData provided', $clTRID);
+                // Validate keyTag
+                if (!isset($keyTag) || !is_int($keyTag)) {
+                    sendEppError($conn, 2005, 'Incomplete keyTag provided', $clTRID);
+                    return;
+                }
+                if ($keyTag < 0 || $keyTag > 65535) {
+                    sendEppError($conn, 2006, 'Invalid keyTag provided', $clTRID);
+                    return;
+                }
+
+                // Validate alg
+                $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                    sendEppError($conn, 2006, 'Invalid algorithm', $clTRID);
+                    return;
+                }
+
+                // Validate digestType and digest
+                if (!isset($digestType) || !is_int($digestType)) {
+                    sendEppError($conn, 2005, 'Invalid digestType', $clTRID);
+                    return;
+                }
+                $validDigests = [
+                1 => 40,  // SHA-1
+                2 => 64,  // SHA-256
+                4 => 96   // SHA-384
+                ];
+                if (!isset($validDigests[$digestType])) {
+                    sendEppError($conn, 2006, 'Unsupported digestType', $clTRID);
+                    return;
+                }
+                if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                    sendEppError($conn, 2006, 'Invalid digest length or format', $clTRID);
                     return;
                 }
 
@@ -1065,8 +1096,28 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
 
                     // Data sanity checks for keyData
-                    if (!$flags || !$protocol || !$algKeyData || !$pubKey) {
-                        sendEppError($conn, 2005, 'Incomplete or invalid keyData provided', $clTRID);
+                    // Validate flags
+                    $validFlags = [256, 257];
+                    if (isset($flags) && !in_array($flags, $validFlags)) {
+                        sendEppError($conn, 2005, 'Invalid flags', $clTRID);
+                        return;
+                    }
+
+                    // Validate protocol
+                    if (isset($protocol) && $protocol != 3) {
+                        sendEppError($conn, 2006, 'Invalid protocol', $clTRID);
+                        return;
+                    }
+
+                    // Validate algKeyData
+                    if (isset($algKeyData)) {
+                        sendEppError($conn, 2005, 'Invalid algKeyData encoding', $clTRID);
+                        return;
+                    }
+
+                    // Validate pubKey
+                    if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        sendEppError($conn, 2005, 'Invalid pubKey encoding', $clTRID);
                         return;
                     }
                 }
