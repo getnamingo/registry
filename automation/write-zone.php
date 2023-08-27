@@ -32,9 +32,9 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
     $cleanedTld = ltrim(strtolower($tld), '.');
     $zone = new Zone($cleanedTld . '.');
     $zone->setDefaultTtl(3600);
-	
+    
     $soa = new ResourceRecord;
-    $soa->setName('@');
+    $soa->setName($cleanedTld . '.');
     $soa->setClass(Classes::INTERNET);
     $soa->setRdata(Factory::Soa(
         $ns1 . '.',
@@ -48,13 +48,13 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
     $zone->addResourceRecord($soa);
 
     $nsRecord1 = new ResourceRecord;
-    $nsRecord1->setName('@');
+    $nsRecord1->setName($cleanedTld . '.');
     $nsRecord1->setClass(Classes::INTERNET);
     $nsRecord1->setRdata(Factory::Ns($ns1 . '.'));
     $zone->addResourceRecord($nsRecord1);
 
     $nsRecord2 = new ResourceRecord;
-    $nsRecord2->setName('@');
+    $nsRecord2->setName($cleanedTld . '.');
     $nsRecord2->setClass(Classes::INTERNET);
     $nsRecord2->setRdata(Factory::Ns($ns2 . '.'));
     $zone->addResourceRecord($nsRecord2);
@@ -103,45 +103,80 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
                            ORDER BY host.name");
     $sth2->execute([':id' => $id]);
 
-	while (list($hname, $did, $type, $addr) = $sth2->fetch(PDO::FETCH_NUM)) {
+    while (list($hname, $did, $type, $addr) = $sth2->fetch(PDO::FETCH_NUM)) {
         $sthStatus = $dbh->prepare("SELECT id FROM domain_status WHERE domain_id = :did AND status LIKE '%Hold' LIMIT 1");
         $sthStatus->bindParam(':did', $did, PDO::PARAM_INT);
         $sthStatus->execute();
         $status_id = $sthStatus->fetchColumn();
-		
-	    if ($status_id) continue;
+        
+        if ($status_id) continue;
 
-	    $hname = trim($hname, "$tldRE.");
-	    $hname = ($hname == "$tld.") ? '@' : $hname;
+        $hname = trim($hname, "$tldRE.");
+        $hname = ($hname == "$tld.") ? '@' : $hname;
 
-	    $record = new ResourceRecord;
-	    $record->setName($hname);
-	    $record->setClass(Classes::INTERNET);
+        $record = new ResourceRecord;
+        $record->setName($hname);
+        $record->setClass(Classes::INTERNET);
 
-	    if ($type == 'v4') {
-	        $record->setRdata(Factory::A($addr));
-	    } else {
-	        $record->setRdata(Factory::AAAA($addr));
-	    }
+        if ($type == 'v4') {
+            $record->setRdata(Factory::A($addr));
+        } else {
+            $record->setRdata(Factory::AAAA($addr));
+        }
     
-	    $zone->addResourceRecord($record);
-	}
-	
-	$builder = new AlignedBuilder();
-	$completed_zone = $builder->build($zone);
+        $zone->addResourceRecord($record);
+    }
+    
+    // Fetch DS records for domains from the secdns table
+    $sthDS = $dbh->prepare("SELECT domain_id, keytag, alg, digesttype, digest 
+                            FROM secdns 
+                            WHERE domain_id IN (
+                                SELECT id FROM domain 
+                                WHERE tldid = :id 
+                                AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = 'pendingRestore')
+                            )");
+    $sthDS->execute([':id' => $id]);
 
-	if ($c['dns_server'] == 'bind') {
-	    $basePath = '/etc/bind/zones';
-	} elseif ($c['dns_server'] == 'nsd') {
-	    $basePath = '/etc/nsd';
-	} elseif ($c['dns_server'] == 'knot') {
-	    $basePath = '/etc/knot';
-	} else {
-	    // Default path
-	    $basePath = '/etc/bind/zones';
-	}
+    while (list($did, $keytag, $alg, $digesttype, $digest) = $sthDS->fetch(PDO::FETCH_NUM)) {
+        $sthStatus = $dbh->prepare("SELECT id FROM domain_status WHERE domain_id = :did AND status LIKE '%Hold' LIMIT 1");
+        $sthStatus->bindParam(':did', $did, PDO::PARAM_INT);
+        $sthStatus->execute();
+        $status_id = $sthStatus->fetchColumn();
 
-	file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
+        if ($status_id) continue;
+
+        // Fetch domain name based on domain_id for the DS record
+        $sthDomainName = $dbh->prepare("SELECT name FROM domain WHERE id = :did LIMIT 1");
+        $sthDomainName->bindParam(':did', $did, PDO::PARAM_INT);
+        $sthDomainName->execute();
+        $dname = $sthDomainName->fetchColumn();
+        
+        $dname = trim($dname, "$tldRE.");
+        $dname = ($dname == "$tld.") ? '@' : $dname;
+
+        $dsRecord = new ResourceRecord;
+        $dsRecord->setName($dname);
+        $dsRecord->setClass(Classes::INTERNET);
+        $dsRecord->setRdata(Factory::Ds($keytag, $alg, $digest, $digesttype));
+
+        $zone->addResourceRecord($dsRecord);
+    }
+    
+    $builder = new AlignedBuilder();
+    $completed_zone = $builder->build($zone);
+
+    if ($c['dns_server'] == 'bind') {
+        $basePath = '/etc/bind/zones';
+    } elseif ($c['dns_server'] == 'nsd') {
+        $basePath = '/etc/nsd';
+    } elseif ($c['dns_server'] == 'knot') {
+        $basePath = '/etc/knot';
+    } else {
+        // Default path
+        $basePath = '/etc/bind/zones';
+    }
+
+    file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
 }
 
 if ($c['dns_server'] == 'bind') {
