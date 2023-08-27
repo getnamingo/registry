@@ -107,7 +107,7 @@ $http->start();
 function handleDomainQuery($request, $response, $pdo, $domainName) {
     // Extract and validate the domain name from the request
     $domain = trim($domainName);
-	
+    
     // Empty domain check
     if (!$domain) {
         $response->header('Content-Type', 'application/json');
@@ -115,7 +115,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $response->end(json_encode(['error' => 'Please enter a domain name']));
         return;
     }
-	
+    
     // Check domain length
     if (strlen($domain) > 68) {
         $response->header('Content-Type', 'application/json');
@@ -123,7 +123,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $response->end(json_encode(['error' => 'Domain name is too long']));
         return;
     }
-	
+    
     // Check for prohibited patterns in domain names
     if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
         $response->header('Content-Type', 'application/json');
@@ -131,7 +131,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $response->end(json_encode(['error' => 'Domain name invalid format']));
         return;
     }
-	
+    
     // Extract TLD from the domain
     $parts = explode('.', $domain);
     $tld = "." . end($parts);
@@ -148,7 +148,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $response->end(json_encode(['error' => 'Invalid TLD. Please search only allowed TLDs']));
         return;
     }
-	
+    
     // Fetch the IDN regex for the given TLD
     $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
     $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
@@ -177,21 +177,21 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt1->bindParam(':domain', $domain, PDO::PARAM_STR);
         $stmt1->execute();
         $domainDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
-		
-		// Check if the domain exists
-		if (!$domainDetails) {
-		    // Domain not found, respond with a 404 error
-		    $response->header('Content-Type', 'application/json');
-		    $response->status(404);
-		    $response->end(json_encode([
-		        'errorCode' => 404,
-		        'title' => 'Not Found',
-		        'description' => 'The requested domain was not found in the RDAP database.',
-		    ]));
-		    // Close the connection
-		    $pdo = null;
-		    return;
-		}
+        
+        // Check if the domain exists
+        if (!$domainDetails) {
+            // Domain not found, respond with a 404 error
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested domain was not found in the RDAP database.',
+            ]));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
 
         // Query 2: Get status details
         $stmt2 = $pdo->prepare("SELECT `status` FROM `domain_status` WHERE `domain_id` = :domain_id");
@@ -211,12 +211,12 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt4->execute();
         $registrantDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
 
-        // Query 5: Get admin, billing and tech contacts		
+        // Query 5: Get admin, billing and tech contacts        
         $stmtMap = $pdo->prepare("SELECT contact_id, type FROM domain_contact_map WHERE domain_id = :domain_id");
         $stmtMap->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmtMap->execute();
         $contactMap = $stmtMap->fetchAll(PDO::FETCH_ASSOC);
-		
+        
         $adminDetails = [];
         $techDetails = [];
         $billingDetails = [];
@@ -251,7 +251,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt6->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt6->execute();
         $nameservers = $stmt6->fetchAll(PDO::FETCH_ASSOC);
-		
+        
         // Define the basic events
         $events = [
             ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
@@ -350,11 +350,11 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                 "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                 ]
                 ],
-				[
+                [
             "description" => [
                 "For more information on domain status codes, please visit https://icann.org/epp"
                 ],
-			  "links" => [
+              "links" => [
                     [
                         "href" => "https://icann.org/epp",
                         "rel" => "alternate",
@@ -363,11 +363,11 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                 ],
                     "title" => "Status Codes"
                 ],
-				[
+                [
             "description" => [
                 "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
                 ],
-			  "links" => [
+              "links" => [
                     [
                         "href" => "https://icann.org/wicf",
                         "rel" => "alternate",

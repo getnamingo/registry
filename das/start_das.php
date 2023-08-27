@@ -41,7 +41,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
         $server->send($fd, "Error connecting to database");
         $server->close($fd);
     }
-	
+    
     // Validate and sanitize the domain name
     $domain = trim($data);
     if (!$domain) {
@@ -57,7 +57,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
         $server->send($fd, "domain name invalid format");
         $server->close($fd);
     }
-	
+    
     // Extract TLD from the domain and prepend a dot
     $parts = explode('.', $domain);
     $tld = "." . end($parts);
@@ -92,39 +92,39 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) {
         $server->close($fd);
         return;
     }
-	
+    
     // Perform the DAS lookup
-	try {
-		$query = "SELECT name FROM `registry`.`domain` WHERE `name` = :domain";
-		$stmt = $pdo->prepare($query);
-		$stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
-		$stmt->execute();
+    try {
+        $query = "SELECT name FROM `registry`.`domain` WHERE `name` = :domain";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
+        $stmt->execute();
 
-		if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
-			$server->send($fd, "1");
+        if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $server->send($fd, "1");
 
-			if ($fp = @fopen("/var/log/das/das_request.log",'a')) {
-				$clientInfo = $server->getClientInfo($fd);
-				$remoteAddr = $clientInfo['remote_ip'];
-				fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
-				fclose($fp);
-			}
-			$server->close($fd);
-		} else {
-			$server->send($fd, "0");
+            if ($fp = @fopen("/var/log/das/das_request.log",'a')) {
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                fclose($fp);
+            }
+            $server->close($fd);
+        } else {
+            $server->send($fd, "0");
 
-			if ($fp = @fopen("/var/log/das/das_not_found.log",'a')) {
-				$clientInfo = $server->getClientInfo($fd);
-				$remoteAddr = $clientInfo['remote_ip'];
-				fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
-				fclose($fp);
-			}
-			$server->close($fd);
-		}
-	} catch (PDOException $e) {
+            if ($fp = @fopen("/var/log/das/das_not_found.log",'a')) {
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                fclose($fp);
+            }
+            $server->close($fd);
+        }
+    } catch (PDOException $e) {
         $server->send($fd, "Error connecting to the das database");
         $server->close($fd);
-	}
+    }
 
     // Close the connection
     $pdo = null;
