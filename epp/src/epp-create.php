@@ -676,7 +676,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostObj_list = null;
     $hostAttr_list = null;
 
-    if ($ns && count($ns) > 0) {
+    if (isset($ns)) {
         $hostObj_list = $ns->xpath('//domain:hostObj');
         $hostAttr_list = $ns->xpath('//domain:hostAttr');
     }
