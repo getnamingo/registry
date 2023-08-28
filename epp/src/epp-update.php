@@ -1318,8 +1318,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $contact_list = $xml->xpath('//domain:rem/domain:contact'); 
         $status_list = $xml->xpath('//domain:rem/domain:status/@s');
 
-        $hostObj_list = $xml->xpath('//domain:rem/domain:hostObj');
-        $hostAttr_list = $xml->xpath('//domain:rem/domain:hostAttr');
+        $hostObj_list = $xml->xpath('//domain:rem//domain:hostObj');
+        $hostAttr_list = $xml->xpath('//domain:rem//domain:hostAttr');
 
         foreach ($hostObj_list as $node) {
             $hostObj = (string) $node;
