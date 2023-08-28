@@ -45,18 +45,40 @@
             <div class="card">
               <div class="card-body">
                 <div id="table-default" class="table-responsive">
-                  <table id="hostTable" class="table">
+                  <table class="table">
                     <thead>
                       <tr>
-                        <th><button class="table-sort" data-sort="sort-id">ID</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">Name</button></th>
-                        <th><button class="table-sort" data-sort="sort-crdate">Creation Date</button></th>
-                        <th><button class="table-sort" data-sort="sort-status">Status</button></th>
+                        <th><button class="table-sort" data-sort="sort-id">Host Name</button></th>
+                        <th><button class="table-sort" data-sort="sort-name">IP Addresses</button></th>
+                        <th><button class="table-sort" data-sort="sort-name">Creation Date</button></th>
+                        <th><button class="table-sort" data-sort="sort-crdate">Status</button></th>
+                        <th><button class="table-sort" data-sort="sort-status">Associated</button></th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody class="table-tbody">
-					    <!-- Rows will be added here dynamically -->
+						{% for host in hosts %}
+							<tr>
+								<td><strong>{{ host.name }}</strong></td>
+								<td>{{ host.addr }}</td>
+								<td>{{ host.crdate }}</td>
+								<td>{{ host.host_status }}</td>
+								<td>{{ host.has_domain_mapping }}</td>
+                          <td class="text-end">
+                            <span class="dropdown">
+                              <button class="btn dropdown-toggle align-text-top" data-bs-boundary="viewport" data-bs-toggle="dropdown">Actions</button>
+                              <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="#">
+                                  Action
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                  Another action
+                                </a>
+                              </div>
+                            </span>
+                          </td>
+							</tr>
+						{% endfor %}
                     </tbody>
                   </table>
                 </div>
