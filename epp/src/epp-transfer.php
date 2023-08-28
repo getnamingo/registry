@@ -835,6 +835,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
 
             if ($period_unit) {
+                $period_unit = strtolower($period_unit);
                 if (!in_array($period_unit, ['m', 'y'])) {
                     sendEppError($conn, $db, 2004, 'domain:period unit m|y', $clTRID, $trans);
                     return;

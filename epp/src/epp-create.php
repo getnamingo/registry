@@ -611,9 +611,16 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     
     $periodElements = $xml->xpath("//domain:create/domain:period");
-    $periodElement = $periodElements[0];
-    $period = (int) $periodElement;
-    $period_unit = (string) $periodElement['unit'];
+
+    if (!empty($periodElements)) {
+        $periodElement = $periodElements[0];
+        $period = (int) $periodElement;
+        $period_unit = (string) $periodElement['unit'];
+    } else {
+        $periodElement = null;
+        $period = null;
+        $period_unit = null;
+    }
 
     if ($period && (($period < 1) || ($period > 99))) {
         sendEppError($conn, $db, 2004, 'domain:period minLength value=1, maxLength value=99', $clTRID, $trans);
@@ -623,7 +630,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if ($period_unit) {
-        if (!preg_match('/^(m|y)$/', $period_unit)) {
+        if (!preg_match('/^(m|y)$/i', $period_unit)) {
         sendEppError($conn, $db, 2004, 'domain:period unit m|y', $clTRID, $trans);
         return;
         }
@@ -996,7 +1003,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
     
-    $authInfo_pw = $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
+    $authInfo_pw = (string) $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
 
     if (!$authInfo_pw) {
         sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);

@@ -228,6 +228,11 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
     $cldate = date("Y-m-d H:i:s", $dateForClTransaction);
     $clmicrosecond = sprintf("%06d", ($dateForClTransaction - floor($dateForClTransaction)) * 1000000);
 
+    if (empty($clTRID)) {
+        // If $clTRID is empty, generate a random string prefixed with "client-not-provided-"
+        $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));  // Generates a 16 character hexadecimal string
+    }
+
     // Execute the statement
     if (!$stmt->execute([
         $clid,

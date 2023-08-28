@@ -4,9 +4,15 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->name;
     $curExpDate = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->curExpDate;
     $periodElements = $xml->xpath("//domain:renew/domain:period");
-    $periodElement = $periodElements[0];
-    $period = (int) $periodElement;
-    $periodUnit = (string) $periodElement['unit'];
+    if (!empty($periodElements)) {
+        $periodElement = $periodElements[0];
+        $period = (int) $periodElement;
+        $periodUnit = (string) $periodElement['unit'];
+    } else {
+        $periodElement = null;
+        $period = null;
+        $periodUnit = null;
+    }
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$domainName) {
@@ -19,13 +25,17 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             sendEppError($conn, $db, 2004, "domain:period minLength value='1', maxLength value='99'");
             return;
         }
+    } elseif (!$period) {
+        $period = 1;
     }
 
     if ($periodUnit) {
-        if (!preg_match("/^(m|y)$/", $periodUnit)) {
+        if (!preg_match('/^(m|y)$/i', $periodUnit)) {
             sendEppError($conn, $db, 2004, "domain:period unit m|y");
             return;
         }
+    } elseif (!$periodUnit) {
+        $period = 'y';
     }
     
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
