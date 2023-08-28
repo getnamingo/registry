@@ -673,259 +673,269 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     $ns = $xml->xpath('//domain:ns')[0];
-    $hostObj_list = $ns->xpath('//domain:hostObj');
-    $hostAttr_list = $ns->xpath('//domain:hostAttr');
+    $hostObj_list = null;
+    $hostAttr_list = null;
 
-    if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
-        sendEppError($conn, $db, 2001, 'It cannot be hostObj and hostAttr at the same time, either one or the other', $clTRID, $trans);
-        return;
+    if ($ns && count($ns) > 0) {
+        $hostObj_list = $ns->xpath('//domain:hostObj');
+        $hostAttr_list = $ns->xpath('//domain:hostAttr');
     }
 
-    if (count($hostObj_list) > 13) {
-        sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
-        return;
-    }
-
-    if (count($hostAttr_list) > 13) {
-        sendEppError($conn, $db, 2306, 'No more than 13 domain:hostAttr are allowed', $clTRID, $trans);
-        return;
-    }
-
-    $nsArr = [];
-    foreach ($hostObj_list as $hostObj) {
-        if (isset($nsArr[(string)$hostObj])) {
-            sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostObj, $clTRID, $trans);
+    if (
+        ($hostObj_list !== null && is_array($hostObj_list)) || 
+        ($hostAttr_list !== null && is_array($hostAttr_list))
+    ) {
+        if (count($hostObj_list) > 0 && count($hostAttr_list) > 0) {
+            sendEppError($conn, $db, 2001, 'It cannot be hostObj and hostAttr at the same time, either one or the other', $clTRID, $trans);
             return;
         }
-        $nsArr[(string)$hostObj] = 1;
-    }
 
-    $nsArr = [];
-    foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
-        if (isset($nsArr[(string)$hostName])) {
-            sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostName, $clTRID, $trans);
+        if (count($hostObj_list) > 13) {
+            sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
             return;
         }
-        $nsArr[(string)$hostName] = 1;
-    }
 
-    if (count($hostObj_list) > 0) {
-        foreach ($hostObj_list as $node) {
-            $hostObj = strtoupper((string)$node);
-
-            if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
-                sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
-                return;
-            }
-
-            if (preg_match("/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/", $hostObj) && strlen($hostObj) < 254) {
-                // A host object MUST be known to the server before the host object can be associated with a domain object.
-                $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
-                $stmt->bindParam(':hostObj', $hostObj);
-                $stmt->execute();
-            
-                $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
-
-                if (!$host_id_already_exist) {
-                    sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
-                    return;
-                }
-            } else {
-                sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
-                return;
-            }
+        if (count($hostAttr_list) > 13) {
+            sendEppError($conn, $db, 2306, 'No more than 13 domain:hostAttr are allowed', $clTRID, $trans);
+            return;
         }
-    }
 
-    if (count($hostAttr_list) > 0) {
-        foreach ($hostAttr_list as $node) {
-            $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
-
-            if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
-                sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
+        $nsArr = [];
+        foreach ($hostObj_list as $hostObj) {
+            if (isset($nsArr[(string)$hostObj])) {
+                sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostObj, $clTRID, $trans);
                 return;
             }
+            $nsArr[(string)$hostObj] = 1;
+        }
 
-            // Check if the host is internal or external
-            $internal_host = false;
-            $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
-            $stmt->execute();
-            while ($tld = $stmt->fetchColumn()) {
-                $tld = strtoupper($tld);
-                $escapedTld = preg_quote($tld, '/');
-                if (preg_match("/$escapedTld$/i", $hostName)) {
-                    $internal_host = true;
-                    break;
-                }
+        $nsArr = [];
+        foreach ($ns->xpath('//domain:hostAttr/domain:hostName') as $hostName) {
+            if (isset($nsArr[(string)$hostName])) {
+                sendEppError($conn, $db, 2302, 'Duplicate nameserver '.(string)$hostName, $clTRID, $trans);
+                return;
             }
+            $nsArr[(string)$hostName] = 1;
+        }
 
-            if ($internal_host) {
-                if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
-                $hostAddrNodes = $node->xpath('//domain:hostAddr');
+        if (count($hostObj_list) > 0) {
+            foreach ($hostObj_list as $node) {
+                $hostObj = strtoupper((string)$node);
 
-                if (count($hostAddrNodes) > 13) {
-                    sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
+                if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
+                    sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                     return;
                 }
 
-                $nsArr = [];
-                foreach ($hostAddrNodes as $hostAddrNode) {
-                    $hostAddr = (string)$hostAddrNode;
-                    if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
-                        return;
-                    }
-                    $nsArr[$hostAddr] = true;
-                }
-
-                if (count($hostAddrNodes) === 0) {
-                    sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
-                    return;
-                }
-                
-                foreach ($hostAddrNodes as $node) {
-                    $hostAddr = (string) $node;
-                    $addr_type = (string) ($node['ip'] ?? 'v4');
-    
-                    if ($addr_type == 'v6') {
-                        if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
-                            preg_match('/^::$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
-                            preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
-                        ) {
-                            // true
-                            // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
-                        } else {
-                            sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
-                            return;
-                        }
-                    } else {
-                        list($a, $b, $c, $d) = explode('.', $hostAddr);
-                        if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) && $a < 256 &&  $b < 256 && $c < 256 && $d < 256) {
-                            // true
-                            // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
-                            if ($hostAddr == '127.0.0.1') {
-                              sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                              return;
-                            }
-                        } else {
-                           sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                           return;
-                        }
-                    }
-                }
-            } else {
-                // Check if the hostname matches the pattern and is less than 254 characters
-                if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
-                    $domain_exist = false;
-                    $clid_domain = 0;
-
-                    // Prepare statement
-                    $stmt = $db->prepare("SELECT `clid`, `name` FROM `domain`");
+                if (preg_match("/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/", $hostObj) && strlen($hostObj) < 254) {
+                    // A host object MUST be known to the server before the host object can be associated with a domain object.
+                    $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
+                    $stmt->bindParam(':hostObj', $hostObj);
                     $stmt->execute();
+                
+                    $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
 
-                    // Fetch results
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        if (stripos($hostName, '.' . $row['name']) !== false) {
-                            $domain_exist = true;
-                            $clid_domain = $row['clid'];
-                            break;
-                        }
-                    }
-
-                    // Object does not exist error
-                    if (!$domain_exist) {
-                       sendEppError($conn, $db, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
-                       return;
-                    }
-
-                    // Authorization error
-                    if ($clid != $clid_domain) {
-                       sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
-                       return;
-                    }
-                } else {
-                   sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
-                   return;
-                }
-
-                $hostAddr_list = $xml->xpath('//domain:hostAddr');
-
-                // Max 13 IP per host
-                if (count($hostAddr_list) > 13) {
-                   sendEppError($conn, $db, 2306, 'No more than 13 IPs are allowed per host', $clTRID, $trans);
-                   return;
-                }
-
-                // Compare for duplicates in hostAddr
-                $nsArr = array();
-                foreach ($hostAddr_list as $node) {
-                    $hostAddr = (string) $node;
-                    if (isset($nsArr[$hostAddr])) {
-                        sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
+                    if (!$host_id_already_exist) {
+                        sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
                         return;
                     }
-                    $nsArr[$hostAddr] = 1;
-                }
-
-                // Check for missing host addresses
-                if (count($hostAddr_list) === 0) {
-                    sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
+                } else {
+                    sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                     return;
                 }
-
-
-                foreach ($hostAddr_list as $node) {
-                    $hostAddr = (string) $node;
-                    $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
-
-                    if ($addr_type === 'v6') {
-                        if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
-                            $hostAddr === '::' ||
-                            preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
-                            preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
-                            preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
-                        ) {
-                            // true
-                            // Add check for reserved or private IP addresses (not implemented here, add as needed)
-                        } else {
-                             sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
-                             return;
-                        }
-                    } else {
-                        list($a, $b, $c, $d) = explode('.', $hostAddr);
-
-                        if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) &&
-                            $a < 256 && $b < 256 && $c < 256 && $d < 256) {
-                            // true
-                            // Add check for reserved or private IP addresses (not implemented here, add as needed)
-                            if ($hostAddr === '127.0.0.1') {
-                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                               return;
-                            }
-                        } else {
-                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                               return;
-                        }
-                    }
-                }
             }
-            } else {
-                // External host
-                if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+        }
 
-                } else {
+        if (count($hostAttr_list) > 0) {
+            foreach ($hostAttr_list as $node) {
+                $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
+
+                if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
                     sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                     return;
+                }
+
+                // Check if the host is internal or external
+                $internal_host = false;
+                $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
+                $stmt->execute();
+                while ($tld = $stmt->fetchColumn()) {
+                    $tld = strtoupper($tld);
+                    $escapedTld = preg_quote($tld, '/');
+                    if (preg_match("/$escapedTld$/i", $hostName)) {
+                        $internal_host = true;
+                        break;
+                    }
+                }
+
+                if ($internal_host) {
+                    if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
+                    $hostAddrNodes = $node->xpath('//domain:hostAddr');
+
+                    if (count($hostAddrNodes) > 13) {
+                        sendEppError($conn, $db, 2306, 'No more than 13 domain:hostObj are allowed', $clTRID, $trans);
+                        return;
+                    }
+
+                    $nsArr = [];
+                    foreach ($hostAddrNodes as $hostAddrNode) {
+                        $hostAddr = (string)$hostAddrNode;
+                        if (isset($nsArr[$hostAddr])) {
+                            sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
+                            return;
+                        }
+                        $nsArr[$hostAddr] = true;
+                    }
+
+                    if (count($hostAddrNodes) === 0) {
+                        sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
+                        return;
+                    }
+                    
+                    foreach ($hostAddrNodes as $node) {
+                        $hostAddr = (string) $node;
+                        $addr_type = (string) ($node['ip'] ?? 'v4');
+        
+                        if ($addr_type == 'v6') {
+                            if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
+                                preg_match('/^::$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
+                                preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
+                            ) {
+                                // true
+                                // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
+                            } else {
+                                sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
+                                return;
+                            }
+                        } else {
+                            list($a, $b, $c, $d) = explode('.', $hostAddr);
+                            if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) && $a < 256 &&  $b < 256 && $c < 256 && $d < 256) {
+                                // true
+                                // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
+                                if ($hostAddr == '127.0.0.1') {
+                                  sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                                  return;
+                                }
+                            } else {
+                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                               return;
+                            }
+                        }
+                    }
+                } else {
+                    // Check if the hostname matches the pattern and is less than 254 characters
+                    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+                        $domain_exist = false;
+                        $clid_domain = 0;
+
+                        // Prepare statement
+                        $stmt = $db->prepare("SELECT `clid`, `name` FROM `domain`");
+                        $stmt->execute();
+
+                        // Fetch results
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            if (stripos($hostName, '.' . $row['name']) !== false) {
+                                $domain_exist = true;
+                                $clid_domain = $row['clid'];
+                                break;
+                            }
+                        }
+
+                        // Object does not exist error
+                        if (!$domain_exist) {
+                           sendEppError($conn, $db, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
+                           return;
+                        }
+
+                        // Authorization error
+                        if ($clid != $clid_domain) {
+                           sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
+                           return;
+                        }
+                    } else {
+                       sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
+                       return;
+                    }
+
+                    $hostAddr_list = $xml->xpath('//domain:hostAddr');
+
+                    // Max 13 IP per host
+                    if (count($hostAddr_list) > 13) {
+                       sendEppError($conn, $db, 2306, 'No more than 13 IPs are allowed per host', $clTRID, $trans);
+                       return;
+                    }
+
+                    // Compare for duplicates in hostAddr
+                    $nsArr = array();
+                    foreach ($hostAddr_list as $node) {
+                        $hostAddr = (string) $node;
+                        if (isset($nsArr[$hostAddr])) {
+                            sendEppError($conn, $db, 2302, 'Duplicate IP'.$hostAddr, $clTRID, $trans);
+                            return;
+                        }
+                        $nsArr[$hostAddr] = 1;
+                    }
+
+                    // Check for missing host addresses
+                    if (count($hostAddr_list) === 0) {
+                        sendEppError($conn, $db, 2003, 'Missing domain:hostAddr', $clTRID, $trans);
+                        return;
+                    }
+
+
+                    foreach ($hostAddr_list as $node) {
+                        $hostAddr = (string) $node;
+                        $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
+
+                        if ($addr_type === 'v6') {
+                            if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
+                                $hostAddr === '::' ||
+                                preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
+                                preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
+                                preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
+                            ) {
+                                // true
+                                // Add check for reserved or private IP addresses (not implemented here, add as needed)
+                            } else {
+                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
+                                 return;
+                            }
+                        } else {
+                            list($a, $b, $c, $d) = explode('.', $hostAddr);
+
+                            if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) &&
+                                $a < 256 && $b < 256 && $c < 256 && $d < 256) {
+                                // true
+                                // Add check for reserved or private IP addresses (not implemented here, add as needed)
+                                if ($hostAddr === '127.0.0.1') {
+                                   sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                                   return;
+                                }
+                            } else {
+                                   sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                                   return;
+                            }
+                        }
+                    }
+                }
+                } else {
+                    // External host
+                    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+
+                    } else {
+                        sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
+                        return;
+                    }
                 }
             }
         }
@@ -1168,103 +1178,107 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             ':price' => $price
         ]);
 
-        foreach ($hostObj_list as $node) {
-            $hostObj = strtoupper((string)$node);
+        if ($hostObj_list !== null && is_array($hostObj_list)) {
+            foreach ($hostObj_list as $node) {
+                $hostObj = strtoupper((string)$node);
 
-            $hostExistStmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
-            $hostExistStmt->execute([':hostObj' => $hostObj]);
-            $hostObj_already_exist = $hostExistStmt->fetchColumn();
+                $hostExistStmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = :hostObj LIMIT 1");
+                $hostExistStmt->execute([':hostObj' => $hostObj]);
+                $hostObj_already_exist = $hostExistStmt->fetchColumn();
 
-            if ($hostObj_already_exist) {
-                $domainHostMapStmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = :domain_id AND `host_id` = :host_id LIMIT 1");
-                $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
-                $domain_host_map_id = $domainHostMapStmt->fetchColumn();
+                if ($hostObj_already_exist) {
+                    $domainHostMapStmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = :domain_id AND `host_id` = :host_id LIMIT 1");
+                    $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                    $domain_host_map_id = $domainHostMapStmt->fetchColumn();
 
-                if (!$domain_host_map_id) {
-                    $insertDomainHostMapStmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(:domain_id,:host_id)");
-                    $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
-                } else {
-                    $errorLogStmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP)");
-                    $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ;   hostObj : $hostObj - se dubleaza"]);
-                }
-            } else {
-                $internal_host = false;
-                $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
-                $stmt->execute();
-
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $tld = strtoupper($row['tld']);
-                    $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
-                    if (preg_match("/$tld$/i", $hostObj)) {
-                        $internal_host = true;
-                        break;
+                    if (!$domain_host_map_id) {
+                        $insertDomainHostMapStmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(:domain_id,:host_id)");
+                        $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                    } else {
+                        $errorLogStmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP)");
+                        $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ;   hostObj : $hostObj - se dubleaza"]);
                     }
-                }
-                $stmt->closeCursor();
+                } else {
+                    $internal_host = false;
+                    $stmt = $db->prepare("SELECT `tld` FROM `domain_tld`");
+                    $stmt->execute();
 
-                if ($internal_host) {
-                    if (preg_match("/\.$domainName$/i", $hostObj)) {
-                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
-                        $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $tld = strtoupper($row['tld']);
+                        $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
+                        if (preg_match("/$tld$/i", $hostObj)) {
+                            $internal_host = true;
+                            break;
+                        }
+                    }
+                    $stmt->closeCursor();
+
+                    if ($internal_host) {
+                        if (preg_match("/\.$domainName$/i", $hostObj)) {
+                            $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                            $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+                            $host_id = $db->lastInsertId();
+
+                            $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?, ?)");
+                            $stmt->execute([$domain_id, $host_id]);
+                        }
+                    } else {
+                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP)");
+                        $stmt->execute([$hostObj, $clid, $clid]);
                         $host_id = $db->lastInsertId();
 
                         $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?, ?)");
                         $stmt->execute([$domain_id, $host_id]);
                     }
-                } else {
-                    $stmt = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP)");
-                    $stmt->execute([$hostObj, $clid, $clid]);
-                    $host_id = $db->lastInsertId();
 
-                    $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?, ?)");
-                    $stmt->execute([$domain_id, $host_id]);
                 }
-
             }
         }
 
-        foreach ($hostAttr_list as $element) {
-        foreach ($element->children() as $node) {
-            $hostName = strtoupper($node->xpath('//domain:hostName')[0]);
-            $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = ? LIMIT 1");
-            $stmt->execute([$hostName]);
-            $hostName_already_exist = $stmt->fetchColumn();
-        
-            if ($hostName_already_exist) {
-                $stmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = ? AND `host_id` = ? LIMIT 1");
-                $stmt->execute([$domain_id, $hostName_already_exist]);
-                $domain_host_map_id = $stmt->fetchColumn();
+        if ($hostAttr_list !== null && is_array($hostAttr_list)) {
+            foreach ($hostAttr_list as $element) {
+                foreach ($element->children() as $node) {
+                    $hostName = strtoupper($node->xpath('//domain:hostName')[0]);
+                    $stmt = $db->prepare("SELECT `id` FROM `host` WHERE `name` = ? LIMIT 1");
+                    $stmt->execute([$hostName]);
+                    $hostName_already_exist = $stmt->fetchColumn();
+                
+                    if ($hostName_already_exist) {
+                        $stmt = $db->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `domain_id` = ? AND `host_id` = ? LIMIT 1");
+                        $stmt->execute([$domain_id, $hostName_already_exist]);
+                        $domain_host_map_id = $stmt->fetchColumn();
 
-                if (!$domain_host_map_id) {
-                    $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
-                    $stmt->execute([$domain_id, $hostName_already_exist]);
-                } else {
-                    $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP)");
-                    $stmt->execute([$clid, "Domain : $domainName ;   hostName : $hostName - se dubleaza"]);
-                }
-            } else {
-                $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
-                $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                $host_id = $db->lastInsertId();
-
-                $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
-                $stmt->execute([$domain_id, $host_id]);
-
-                foreach ($node->xpath('//domain:hostAddr') as $nodeAddr) {
-                    $hostAddr = (string)$nodeAddr;
-                    $addr_type = $nodeAddr->attributes()->ip ?? 'v4';
-
-                    if ($addr_type == 'v6') {
-                        $hostAddr = normalize_v6_address($hostAddr);
+                        if (!$domain_host_map_id) {
+                            $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
+                            $stmt->execute([$domain_id, $hostName_already_exist]);
+                        } else {
+                            $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP)");
+                            $stmt->execute([$clid, "Domain : $domainName ;   hostName : $hostName - se dubleaza"]);
+                        }
                     } else {
-                        $hostAddr = normalize_v4_address($hostAddr);
-                    }
+                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                        $stmt->execute([$hostName, $domain_id, $clid, $clid]);
+                        $host_id = $db->lastInsertId();
 
-                    $stmt = $db->prepare("INSERT INTO `host_addr` (`host_id`,`addr`,`ip`) VALUES(?,?,?)");
-                    $stmt->execute([$host_id, $hostAddr, $addr_type]);
+                        $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
+                        $stmt->execute([$domain_id, $host_id]);
+
+                        foreach ($node->xpath('//domain:hostAddr') as $nodeAddr) {
+                            $hostAddr = (string)$nodeAddr;
+                            $addr_type = $nodeAddr->attributes()->ip ?? 'v4';
+
+                            if ($addr_type == 'v6') {
+                                $hostAddr = normalize_v6_address($hostAddr);
+                            } else {
+                                $hostAddr = normalize_v4_address($hostAddr);
+                            }
+
+                            $stmt = $db->prepare("INSERT INTO `host_addr` (`host_id`,`addr`,`ip`) VALUES(?,?,?)");
+                            $stmt->execute([$host_id, $hostAddr, $addr_type]);
+                        }
+                    }
                 }
             }
-        }
         }
         
         $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
