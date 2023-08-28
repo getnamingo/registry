@@ -437,7 +437,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     extract($row);
 
-    if ($postalInfoInt) {
+/*     if ($postalInfoInt) {
         // For `contact_postalInfo` table with `type` = 'int'
         $stmt_int = $db->prepare("SELECT name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_int,disclose_org_int,disclose_addr_int FROM contact_postalInfo WHERE contact_id = :contact_id AND type = 'int' LIMIT 1");
         $stmt_int->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
@@ -453,7 +453,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt_loc->execute();
         $row_loc = $stmt_loc->fetch(PDO::FETCH_ASSOC);
         extract($row_loc);
-    }
+    } */
 
     // For `contact_authInfo` table with `authtype` = 'pw'
     $stmt_pw = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' LIMIT 1");
@@ -544,7 +544,8 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     if ($postalInfoLoc) {
         // Update contact_postalInfo for 'loc'
-        $stmt = $db->prepare($query); // Same query as above, can reuse
+        $query = "UPDATE contact_postalInfo SET name = ?, org = ?, street1 = ?, street2 = ?, street3 = ?, city = ?, sp = ?, pc = ?, cc = ? WHERE contact_id = ? AND type = ?";
+        $stmt = $db->prepare($query);
         $stmt->execute([
             $loc_name,
             $loc_org,
