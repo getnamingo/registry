@@ -997,7 +997,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $contact_list = $xml->xpath('//domain:rem/domain:contact') ?? [];
         $statusList = $xml->xpath('//domain:rem/domain:status/@s') ?? [];
 
-        if (!$ns && count($contact_list) == 0 && count($statusList) == 0) {
+        if (!$ns && count($contact_list) == 0 && count($statusList) == 0 && !$extensionNode) {
             sendEppError($conn, $db, 2005, 'At least one element MUST be present', $clTRID, $trans);
             return;
         }
@@ -1034,7 +1034,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $contact_list = $xml->xpath('//domain:add/domain:contact');
         $statusList = $xml->xpath('//domain:add/domain:status/@s');
 
-        if (!$ns && !count($contact_list) && !count($statusList) && !count($hostObjList) && !count($hostAttrList)) {
+        if (!$ns && !count($contact_list) && !count($statusList) && !count($hostObjList) && !count($hostAttrList) && !$extensionNode) {
             sendEppError($conn, $db, 2005, 'At least one element MUST be present', $clTRID, $trans);
             return;
         }
@@ -1253,21 +1253,25 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
 
-        $authInfo_pw = (string)$domainChg->xpath('//domain:authInfo/domain:pw[1]')[0];
-        if ($authInfo_pw) {
-            if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
-                sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
-                return;
-            }
+        $authInfo_pw_elements = $domainChg->xpath('//domain:authInfo/domain:pw[1]');
+        if (!empty($authInfo_pw_elements)) {
+            $authInfo_pw = (string)$authInfo_pw_elements[0];
 
-            if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
-                return;
-            }
+            if ($authInfo_pw) {
+                if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
+                    sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
+                    return;
+                }
 
-            if (!preg_match('/\d/', $authInfo_pw)) {
-                sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
-                return;
+                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                    sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
+                    return;
+                }
+
+                if (!preg_match('/\d/', $authInfo_pw)) {
+                    sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+                    return;
+                }
             }
         }
     }
@@ -1602,9 +1606,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
         
-        $authInfo = $xml->xpath('//domain:authInfo')[0];
-        $authInfo_pw = (string)$xml->xpath('//domain:pw[1]')[0];
-        
+        $authInfoNodes = $xml->xpath('//domain:authInfo');
+        $authInfo_pw = (!empty($authInfoNodes)) ? (string)$xml->xpath('//domain:pw[1]')[0] : null;
+
         if ($authInfo_pw) {
             $sth = $db->prepare("UPDATE `domain_authInfo` SET `authinfo` = ? WHERE `domain_id` = ? AND `authtype` = ?");
             if (!$sth->execute([$authInfo_pw, $domain_id, 'pw'])) {
@@ -1614,9 +1618,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $authInfoExtNodes = $xml->xpath('//domain:ext[1]');
-        if (!empty($authInfoExtNodes)) {
-            $authInfo_ext = !empty($authInfoExtNodes) ? (string)$authInfoExtNodes[0] : null;
-        }
+        $authInfo_ext = (!empty($authInfoExtNodes)) ? (string)$authInfoExtNodes[0] : null;
 
         if (isset($authInfo_ext)) {
             $sth = $db->prepare("UPDATE `domain_authInfo` SET `authinfo` = ? WHERE `domain_id` = ? AND `authtype` = ?");
@@ -1625,11 +1627,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
         }
-        
+
         $authInfoNullNodes = $xml->xpath('//domain:null[1]');
-        if (!empty($authInfoExtNodes)) {
-            $authInfo_null = !empty($authInfoNullNodes) ? (string)$authInfoNullNodes[0] : null;
-        }
+        $authInfo_null = (!empty($authInfoNullNodes)) ? (string)$authInfoNullNodes[0] : null;
 
         if (isset($authInfo_null)) {
             $sth = $db->prepare("DELETE FROM `domain_authInfo` WHERE `domain_id` = ?");
@@ -1733,7 +1733,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
     }
-    
+
     if (isset($secdns_update)) {
         $secdnsRems = $xml->xpath('//secDNS:rem') ?? [];
         $secdnsAdds = $xml->xpath('//secDNS:add') ?? [];
@@ -1742,61 +1742,113 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         if (isset($secdnsRems)) {
             foreach ($secdnsRems as $secdnsRem) {
                 $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
-                foreach ($dsDataToRemove as $ds) {
-                    $keyTag = (int)$ds->xpath('secDNS:keyTag')[0];
-                    $alg = (int)$ds->xpath('secDNS:alg')[0];
-                    $digestType = (int)$ds->xpath('secDNS:digestType')[0];
-                    $digest = (string)$ds->xpath('secDNS:digest')[0];
+                $keyDataToRemove = $secdnsRem->xpath('./secDNS:keyData');
 
-                    // Data sanity checks
-                    // Validate keyTag
-                    if (!isset($keyTag) || !is_int($keyTag)) {
-                        sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
-                        return;
-                    }
-                    if ($keyTag < 0 || $keyTag > 65535) {
-                        sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
-                        return;
-                    }
+                if ($dsDataToRemove) {
+                    foreach ($dsDataToRemove as $ds) {
+                        $keyTag = (int)$ds->xpath('secDNS:keyTag')[0];
+                        $alg = (int)$ds->xpath('secDNS:alg')[0];
+                        $digestType = (int)$ds->xpath('secDNS:digestType')[0];
+                        $digest = (string)$ds->xpath('secDNS:digest')[0];
 
-                    // Validate alg
-                    $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
-                    if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
-                        sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
-                        return;
-                    }
+                        // Data sanity checks
+                        // Validate keyTag
+                        if (!isset($keyTag) || !is_int($keyTag)) {
+                            sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
+                            return;
+                        }
+                        if ($keyTag < 0 || $keyTag > 65535) {
+                            sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
+                            return;
+                        }
 
-                    // Validate digestType and digest
-                    if (!isset($digestType) || !is_int($digestType)) {
-                        sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
-                        return;
-                    }
-                    $validDigests = [
-                    1 => 40,  // SHA-1
-                    2 => 64,  // SHA-256
-                    4 => 96   // SHA-384
-                    ];
-                    if (!isset($validDigests[$digestType])) {
-                        sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
-                        return;
-                    }
-                    if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                        sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
-                        return;
-                    }
+                        // Validate alg
+                        $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                        if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                            sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                            return;
+                        }
 
-                    try {
-                        $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keytag = :keyTag AND alg = :alg AND digesttype = :digestType AND digest = :digest");
-                        $stmt->execute([
-                            ':domain_id' => $domain_id,
-                            ':keyTag' => $keyTag,
-                            ':alg' => $alg,
-                            ':digestType' => $digestType,
-                            ':digest' => $digest
-                        ]);
-                    } catch (PDOException $e) {
-                        sendEppError($conn, $db, 2400, 'Database error during dsData removal', $clTRID, $trans);
-                        return;
+                        // Validate digestType and digest
+                        if (!isset($digestType) || !is_int($digestType)) {
+                            sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
+                            return;
+                        }
+                        $validDigests = [
+                        1 => 40,  // SHA-1
+                        2 => 64,  // SHA-256
+                        4 => 96   // SHA-384
+                        ];
+                        if (!isset($validDigests[$digestType])) {
+                            sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                            return;
+                        }
+                        if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                            sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                            return;
+                        }
+
+                        try {
+                            $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keytag = :keyTag AND alg = :alg AND digesttype = :digestType AND digest = :digest");
+                            $stmt->execute([
+                                ':domain_id' => $domain_id,
+                                ':keyTag' => $keyTag,
+                                ':alg' => $alg,
+                                ':digestType' => $digestType,
+                                ':digest' => $digest
+                            ]);
+                        } catch (PDOException $e) {
+                            sendEppError($conn, $db, 2400, 'Database error during dsData removal', $clTRID, $trans);
+                            return;
+                        }
+                    }
+                }
+                if ($keyDataToRemove) {
+                    foreach ($keyDataToRemove as $keyData) {
+                        $flags = (int) $keyData->xpath('secDNS:flags')[0];
+                        $protocol = (int) $keyData->xpath('secDNS:protocol')[0];
+                        $algKeyData = (int) $keyData->xpath('secDNS:alg')[0];
+                        $pubKey = (string) $keyData->xpath('secDNS:pubKey')[0];
+
+                        // Data sanity checks for keyData
+                        // Validate flags
+                        $validFlags = [256, 257];
+                        if (isset($flags) && !in_array($flags, $validFlags)) {
+                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate protocol
+                        if (isset($protocol) && $protocol != 3) {
+                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate algKeyData
+                        if (isset($algKeyData)) {
+                            sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate pubKey
+                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                            return;
+                        }
+
+                        try {
+                            $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND flags = :flags AND protocol = :protocol AND algKeyData = :algKeyData AND pubKey = :pubKey");
+                            $stmt->execute([
+                                ':domain_id' => $domain_id,
+                                ':flags' => $flags,
+                                ':protocol' => $protocol,
+                                ':algKeyData' => $algKeyData,
+                                ':pubKey' => $pubKey
+                            ]);
+                        } catch (PDOException $e) {
+                            sendEppError($conn, $db, 2400, 'Database error during keyData removal', $clTRID, $trans);
+                            return;
+                        }
                     }
                 }
             }
@@ -1805,6 +1857,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         if (isset($secdnsAdds)) {
             foreach ($secdnsAdds as $secdnsAdd) {
                 $secDNSDataSet = $secdnsAdd->xpath('./secDNS:dsData');
+                $keyDataSet = $secdnsAdd->xpath('./secDNS:keyData');
+
                 if ($secDNSDataSet) {
                     foreach ($secDNSDataSet as $secDNSData) {
                         // Extract dsData elements
@@ -1888,6 +1942,67 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                                 return;
                             }
+                        }
+
+                        try {
+                            $stmt = $db->prepare("INSERT INTO `secdns` (`domain_id`, `maxsiglife`, `interface`, `keytag`, `alg`, `digesttype`, `digest`, `flags`, `protocol`, `keydata_alg`, `pubkey`) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
+
+                            $stmt->execute([
+                                ':domain_id' => $domain_id,
+                                ':maxsiglife' => $maxSigLife,
+                                ':interface' => 'dsData',
+                                ':keytag' => $keyTag,
+                                ':alg' => $alg,
+                                ':digesttype' => $digestType,
+                                ':digest' => $digest,
+                                ':flags' => $flags ?? null,
+                                ':protocol' => $protocol ?? null,
+                                ':keydata_alg' => $algKeyData ?? null,
+                                ':pubkey' => $pubKey ?? null
+                            ]);
+                        } catch (PDOException $e) {
+                            $isMySQLUniqueViolation = $e->getCode() === '23000' && strpos($e->getMessage(), '1062 Duplicate entry') !== false;
+                            $isPostgreSQLUniqueViolation = $e->getCode() === '23505';
+                            if ($isMySQLUniqueViolation || $isPostgreSQLUniqueViolation) {
+                            // Do nothing
+                            } else {
+                                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                                return;
+                            }
+                        }
+                    }
+                }
+                if ($keyDataSet) {
+                    foreach ($keyDataSet as $keyDataData) {
+                        $flags = (int) $keyDataData->xpath('secDNS:keyData/secDNS:flags')[0];
+                        $protocol = (int) $keyDataData->xpath('secDNS:keyData/secDNS:protocol')[0];
+                        $algKeyData = (int) $keyDataData->xpath('secDNS:keyData/secDNS:alg')[0];
+                        $pubKey = (string) $keyDataData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+
+                        // Data sanity checks for keyData
+                        // Validate flags
+                        $validFlags = [256, 257];
+                        if (isset($flags) && !in_array($flags, $validFlags)) {
+                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate protocol
+                        if (isset($protocol) && $protocol != 3) {
+                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate algKeyData
+                        if (isset($algKeyData)) {
+                            sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate pubKey
+                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                            return;
                         }
 
                         try {
