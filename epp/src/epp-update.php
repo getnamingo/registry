@@ -1007,8 +1007,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($status === 'clientUpdateProhibited') {
                 $clientUpdateProhibited = 0;
             }
-            if (!in_array($status, ['clientDeleteProhibited', 'clientTransferProhibited', 'clientUpdateProhibited', 'clientRenewProhibited'])) {
-                sendEppError($conn, $db, 2005, 'Only these clientDeleteProhibited|clientTransferProhibited|clientUpdateProhibited|clientRenewProhibited statuses are accepted', $clTRID, $trans);
+            if (!in_array($status, ['clientDeleteProhibited', 'clientHold', 'clientRenewProhibited', 'clientTransferProhibited', 'clientUpdateProhibited'])) {
+                sendEppError($conn, $db, 2005, 'Only these clientDeleteProhibited|clientHold|clientRenewProhibited|clientTransferProhibited|clientUpdateProhibited statuses are accepted', $clTRID, $trans);
                 return;
             }
         }
@@ -1043,7 +1043,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $status = (string) $node;
 
             if (!preg_match('/^(clientDeleteProhibited|clientHold|clientRenewProhibited|clientTransferProhibited|clientUpdateProhibited)$/', $status)) {
-                sendEppError($conn, $db, 2005, 'Only these clientDeleteProhibited|clientTransferProhibited|clientUpdateProhibited statuses are accepted', $clTRID, $trans);
+                sendEppError($conn, $db, 2005, 'Only these clientDeleteProhibited|clientHold|clientRenewProhibited|clientTransferProhibited|clientUpdateProhibited statuses are accepted', $clTRID, $trans);
                 return;
             }
 
