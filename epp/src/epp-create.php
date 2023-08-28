@@ -5,7 +5,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     if (!$contactID) {
-        sendEppError($conn, $db, 2003, 'Identifier type minLength value=3, maxLength value=16', $clTRID, $trans);
+        sendEppError($conn, $db, 2003, 'Please provide a contact ID', $clTRID, $trans);
         return;
     }
 

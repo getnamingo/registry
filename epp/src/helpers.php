@@ -116,19 +116,24 @@ function getHost(PDO $db, $id) {
 
 function validate_identifier($identifier) {
     if (!$identifier) {
-        return 'Abstract client and object identifier type minLength value=3';
+        return 'Please provide a contact ID';
     }
 
-    if (strlen($identifier) < 3) {
-        return 'Abstract client and object identifier type minLength value=3';
+    $length = strlen($identifier);
+
+    if ($length < 3) {
+        return 'Identifier type minLength value=3, maxLength value=16';
     }
 
-    if (strlen($identifier) > 16) {
-        return 'Abstract client and object identifier type maxLength value=16';
+    if ($length > 16) {
+        return 'Identifier type minLength value=3, maxLength value=16';
     }
 
-    if (preg_match('/[^A-Z0-9\-]/', $identifier)) {
-        return 'The ID of the contact must contain letters (A-Z) (ASCII) hyphen (-), and digits (0-9). Registry assigns each registrar a unique prefix with which that registrar must create contact IDs.';
+    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
+    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
+
+    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier)) {
+        return 'The ID of the contact must contain letters (A-Z) (ASCII), hyphen (-), and digits (0-9).';
     }
 }
 
