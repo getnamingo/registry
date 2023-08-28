@@ -1813,25 +1813,25 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         // Data sanity checks for keyData
                         // Validate flags
                         $validFlags = [256, 257];
-                        if (isset($flags) && !in_array($flags, $validFlags)) {
+                        if (!isset($flags) && !in_array($flags, $validFlags)) {
                             sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
                             return;
                         }
 
                         // Validate protocol
-                        if (isset($protocol) && $protocol != 3) {
+                        if (!isset($protocol) && $protocol != 3) {
                             sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
                             return;
                         }
 
                         // Validate algKeyData
-                        if (isset($algKeyData)) {
+                        if (!isset($algKeyData)) {
                             sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                             return;
                         }
 
                         // Validate pubKey
-                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
                             sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                             return;
                         }
@@ -1920,25 +1920,25 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // Data sanity checks for keyData
                             // Validate flags
                             $validFlags = [256, 257];
-                            if (isset($flags) && !in_array($flags, $validFlags)) {
+                            if (!isset($flags) && !in_array($flags, $validFlags)) {
                                 sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
                                 return;
                             }
 
                             // Validate protocol
-                            if (isset($protocol) && $protocol != 3) {
+                            if (!isset($protocol) && $protocol != 3) {
                                 sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
                                 return;
                             }
 
                             // Validate algKeyData
-                            if (isset($algKeyData)) {
+                            if (!isset($algKeyData)) {
                                 sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                                 return;
                             }
 
                             // Validate pubKey
-                            if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                            if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
                                 sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                                 return;
                             }
@@ -1974,36 +1974,39 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
                 if ($keyDataSet) {
                     foreach ($keyDataSet as $keyDataData) {
-                        $flags = (int) $keyDataData->xpath('secDNS:keyData/secDNS:flags')[0];
-                        $protocol = (int) $keyDataData->xpath('secDNS:keyData/secDNS:protocol')[0];
-                        $algKeyData = (int) $keyDataData->xpath('secDNS:keyData/secDNS:alg')[0];
-                        $pubKey = (string) $keyDataData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+                        $flags = (int) $keyDataData->xpath('secDNS:flags')[0];
+                        $protocol = (int) $keyDataData->xpath('secDNS:protocol')[0];
+                        $algKeyData = (int) $keyDataData->xpath('secDNS:alg')[0];
+                        $pubKey = (string) $keyDataData->xpath('secDNS:pubKey')[0];
+                        $maxSigLife = $xml->xpath('//secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                         // Data sanity checks for keyData
                         // Validate flags
                         $validFlags = [256, 257];
-                        if (isset($flags) && !in_array($flags, $validFlags)) {
+                        if (!isset($flags) && !in_array($flags, $validFlags)) {
                             sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
                             return;
                         }
 
                         // Validate protocol
-                        if (isset($protocol) && $protocol != 3) {
+                        if (!isset($protocol) && $protocol != 3) {
                             sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
                             return;
                         }
 
                         // Validate algKeyData
-                        if (isset($algKeyData)) {
+                        if (!isset($algKeyData)) {
                             sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                             return;
                         }
 
                         // Validate pubKey
-                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
                             sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                             return;
                         }
+						
+						$dsres = dnssec_key2ds($domainName.'.', $flags, $protocol, $algKeyData, $pubKey);
 
                         try {
                             $stmt = $db->prepare("INSERT INTO `secdns` (`domain_id`, `maxsiglife`, `interface`, `keytag`, `alg`, `digesttype`, `digest`, `flags`, `protocol`, `keydata_alg`, `pubkey`) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
@@ -2012,10 +2015,10 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 ':domain_id' => $domain_id,
                                 ':maxsiglife' => $maxSigLife,
                                 ':interface' => 'dsData',
-                                ':keytag' => $keyTag,
-                                ':alg' => $alg,
-                                ':digesttype' => $digestType,
-                                ':digest' => $digest,
+                                ':keytag' => $dsres['keytag'],
+                                ':alg' => $dsres['algorithm'],
+                                ':digesttype' => $dsres['digest'][1]['type'],
+                                ':digest' => $dsres['digest'][1]['hash'],
                                 ':flags' => $flags ?? null,
                                 ':protocol' => $protocol ?? null,
                                 ':keydata_alg' => $algKeyData ?? null,
