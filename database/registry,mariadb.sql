@@ -39,6 +39,13 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_restore_price` (
 	CONSTRAINT `domain_restore_price_ibfk_1` FOREIGN KEY (`tldid`) REFERENCES `domain_tld` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain restore price';
 
+CREATE TABLE IF NOT EXISTS `registry`.`error_log` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `registrar_id` INT(11) NOT NULL,
+    `log` TEXT NOT NULL,
+    `date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registry error log';
+
 CREATE TABLE IF NOT EXISTS `registry`.`reserved_domain_names` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`name` varchar(68) NOT NULL,

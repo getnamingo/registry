@@ -38,6 +38,13 @@ CREATE TABLE registry.domain_restore_price (
 	 unique ("tldid") 
 );
 
+CREATE TABLE registry.error_log (
+    "id" INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    "registrar_id" INT(11) NOT NULL,
+    "log" TEXT NOT NULL,
+    "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE registry.reserved_domain_names (
 	 "id" serial8 ,
 	 "name"   varchar(68) NOT NULL,
