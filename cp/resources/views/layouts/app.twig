@@ -318,6 +318,8 @@
     {% include 'partials/js-contacts.twig' %}
 {% elseif route_is('hosts') %}
     {% include 'partials/js-hosts.twig' %}
+{% elseif route_is('logs') %}
+    {% include 'partials/js-logs.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

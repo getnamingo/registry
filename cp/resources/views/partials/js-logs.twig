@@ -1,0 +1,17 @@
+<script src="/assets/libs/list.js/dist/list.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+  const list = new List('table-logs', {
+    sortClass: 'table-sort',
+    listClass: 'table-tbody',
+    valueNames: [ 'sort-date', 'sort-registrar', 'sort-command', 'sort-object',
+  		'sort-result', 'sort-message', 'sort-milliseconds', 'sort-cltrid'
+  	],
+    page: 10,
+    pagination: true
+  });
+  })
+</script>
+	
+

@@ -44,32 +44,32 @@
           <div class="container-xl">
             <div class="card">
               <div class="card-body">
-                <div id="table-default" class="table-responsive">
+                <div id="table-logs" class="table-responsive">
                   <table class="table">
                     <thead>
                       <tr>
-                        <th><button class="table-sort" data-sort="sort-id">Date</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">Registrar</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">Command</button></th>
-                        <th><button class="table-sort" data-sort="sort-crdate">Object</button></th>
-                        <th><button class="table-sort" data-sort="sort-status">Result</button></th>
-                        <th><button class="table-sort" data-sort="sort-id">Message</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">Miliseconds</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">clTRID</button></th>
+                        <th><button class="table-sort" data-sort="sort-date">Date</button></th>
+                        <th><button class="table-sort" data-sort="sort-registrar">Registrar</button></th>
+                        <th><button class="table-sort" data-sort="sort-command">Command</button></th>
+                        <th><button class="table-sort" data-sort="sort-object">Object</button></th>
+                        <th><button class="table-sort" data-sort="sort-result">Result</button></th>
+                        <th><button class="table-sort" data-sort="sort-message">Message</button></th>
+                        <th><button class="table-sort" data-sort="sort-milliseconds">Milliseconds</button></th>
+                        <th><button class="table-sort" data-sort="sort-cltrid">clTRID</button></th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody class="table-tbody">
 						{% for log in logs %}
 							<tr>
-								<td>{{ log.cldate }}</td>
-								<td>{{ log.registrar_id }}</td>
-								<td>{{ log.cmd }}</td>
-								<td>{{ log.obj_id }}</td>
-								<td>{{ log.code }}</td>
-								<td>{{ log.msg }}</td>
-								<td>{{ log.clmicrosecond }}</td>
-								<td>{{ log.clTRID }}</td>
+								<td class="sort-date">{{ log.cldate }}</td>
+								<td class="sort-registrar">{{ log.registrar_id }}</td>
+								<td class="sort-command">{{ log.cmd }}</td>
+								<td class="sort-object">{{ log.obj_id }}</td>
+								<td class="sort-result">{{ log.code }}</td>
+								<td class="sort-message">{{ log.msg }}</td>
+								<td class="sort-milliseconds">{{ log.clmicrosecond }}</td>
+								<td class="sort-cltrid">{{ log.clTRID }}</td>
                           <td class="text-end">
                             <span class="dropdown">
                               <button class="btn dropdown-toggle align-text-top" data-bs-boundary="viewport" data-bs-toggle="dropdown">Actions</button>
@@ -86,7 +86,7 @@
 							</tr>
 						{% endfor %}
                     </tbody>
-                  </table>
+                  </table><ul class="pagination"></ul>
                 </div>
 			</div>
 		</div>
