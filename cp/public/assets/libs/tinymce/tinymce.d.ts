@@ -33,7 +33,7 @@ declare type NormalizedEvent<E, T = any> = E & {
     readonly isImmediatePropagationStopped: () => boolean;
     readonly stopImmediatePropagation: () => void;
 };
-declare type MappedEvent<T, K extends string> = K extends keyof T ? T[K] : any;
+declare type MappedEvent<T extends {}, K extends string> = K extends keyof T ? T[K] : any;
 interface NativeEventMap {
     'beforepaste': Event;
     'blur': FocusEvent;
@@ -82,12 +82,12 @@ interface EventDispatcherSettings {
     toggleEvent?: (name: string, state: boolean) => void | boolean;
     beforeFire?: <T>(args: EditorEvent<T>) => void;
 }
-interface EventDispatcherConstructor<T extends NativeEventMap> {
+interface EventDispatcherConstructor<T extends {}> {
     readonly prototype: EventDispatcher<T>;
     new (settings?: EventDispatcherSettings): EventDispatcher<T>;
     isNative: (name: string) => boolean;
 }
-declare class EventDispatcher<T> {
+declare class EventDispatcher<T extends {}> {
     static isNative(name: string): boolean;
     private readonly settings;
     private readonly scope;
@@ -151,6 +151,7 @@ interface ElementSettings {
     text_inline_elements?: string;
     void_elements?: string;
     whitespace_elements?: string;
+    transparent_elements?: string;
 }
 interface SchemaSettings extends ElementSettings {
     custom_elements?: string;
@@ -218,6 +219,7 @@ interface Schema {
     getNonEmptyElements: () => SchemaMap;
     getMoveCaretBeforeOnEnterElements: () => SchemaMap;
     getWhitespaceElements: () => SchemaMap;
+    getTransparentElements: () => SchemaMap;
     getSpecialElements: () => SchemaRegExpMap;
     isValidChild: (name: string, child: string) => boolean;
     isValid: (name: string, attr?: string) => boolean;
@@ -287,6 +289,7 @@ interface SetContentArgs {
     paste?: boolean;
     load?: boolean;
     initial?: boolean;
+    [key: string]: any;
 }
 interface GetSelectionContentArgs extends GetContentArgs {
     selection?: boolean;
@@ -506,6 +509,7 @@ interface CollectionItem {
 }
 interface ColorInputSpec extends FormComponentWithLabelSpec {
     type: 'colorinput';
+    storageKey?: string;
 }
 interface ColorPickerSpec extends FormComponentWithLabelSpec {
     type: 'colorpicker';
@@ -614,152 +618,35 @@ interface TextAreaSpec extends FormComponentWithLabelSpec {
     maximized?: boolean;
     enabled?: boolean;
 }
-interface UrlInputSpec extends FormComponentWithLabelSpec {
-    type: 'urlinput';
-    filetype?: 'image' | 'media' | 'file';
+interface BaseToolbarButtonSpec<I extends BaseToolbarButtonInstanceApi> {
     enabled?: boolean;
-}
-interface UrlInputData {
-    value: string;
-    meta: {
-        text?: string;
-    };
-}
-declare type BodyComponentSpec = BarSpec | ButtonSpec | CheckboxSpec | TextAreaSpec | InputSpec | ListBoxSpec | SelectBoxSpec | SizeInputSpec | SliderSpec | IframeSpec | HtmlPanelSpec | UrlInputSpec | DropZoneSpec | ColorInputSpec | GridSpec | ColorPickerSpec | ImagePreviewSpec | AlertBannerSpec | CollectionSpec | LabelSpec | TableSpec | PanelSpec | CustomEditorSpec;
-interface BarSpec {
-    type: 'bar';
-    items: BodyComponentSpec[];
-}
-interface CommonMenuItemSpec {
-    enabled?: boolean;
-    text?: string;
-    value?: string;
-    meta?: Record<string, any>;
-    shortcut?: string;
-}
-interface CommonMenuItemInstanceApi {
-    isEnabled: () => boolean;
-    setEnabled: (state: boolean) => void;
-}
-interface DialogToggleMenuItemSpec extends CommonMenuItemSpec {
-    type?: 'togglemenuitem';
-    name: string;
-}
-declare type DialogFooterMenuButtonItemSpec = DialogToggleMenuItemSpec;
-interface BaseDialogFooterButtonSpec {
-    name?: string;
-    align?: 'start' | 'end';
-    primary?: boolean;
-    enabled?: boolean;
-    icon?: string;
-    buttonType?: 'primary' | 'secondary';
-}
-interface DialogFooterNormalButtonSpec extends BaseDialogFooterButtonSpec {
-    type: 'submit' | 'cancel' | 'custom';
-    text: string;
-}
-interface DialogFooterMenuButtonSpec extends BaseDialogFooterButtonSpec {
-    type: 'menu';
-    text?: string;
     tooltip?: string;
     icon?: string;
-    items: DialogFooterMenuButtonItemSpec[];
+    text?: string;
+    onSetup?: (api: I) => (api: I) => void;
 }
-declare type DialogFooterButtonSpec = DialogFooterNormalButtonSpec | DialogFooterMenuButtonSpec;
-interface TabSpec {
-    name?: string;
-    title: string;
-    items: BodyComponentSpec[];
+interface BaseToolbarButtonInstanceApi {
+    isEnabled: () => boolean;
+    setEnabled: (state: boolean) => void;
+    setText: (text: string) => void;
+    setIcon: (icon: string) => void;
 }
-interface TabPanelSpec {
-    type: 'tabpanel';
-    tabs: TabSpec[];
+interface ToolbarButtonSpec extends BaseToolbarButtonSpec<ToolbarButtonInstanceApi> {
+    type?: 'button';
+    onAction: (api: ToolbarButtonInstanceApi) => void;
 }
-declare type DialogDataItem = any;
-declare type DialogData = Record<string, DialogDataItem>;
-interface DialogInstanceApi<T extends DialogData> {
-    getData: () => T;
-    setData: (data: Partial<T>) => void;
-    setEnabled: (name: string, state: boolean) => void;
-    focus: (name: string) => void;
-    showTab: (name: string) => void;
-    redial: (nu: DialogSpec<T>) => void;
-    block: (msg: string) => void;
-    unblock: () => void;
-    close: () => void;
+interface ToolbarButtonInstanceApi extends BaseToolbarButtonInstanceApi {
 }
-interface DialogActionDetails {
+interface ToolbarGroupSetting {
     name: string;
-    value?: any;
+    items: string[];
 }
-interface DialogChangeDetails<T> {
-    name: keyof T;
+declare type ToolbarConfig = string | ToolbarGroupSetting[];
+interface GroupToolbarButtonInstanceApi extends BaseToolbarButtonInstanceApi {
 }
-interface DialogTabChangeDetails {
-    newTabName: string;
-    oldTabName: string;
-}
-declare type DialogActionHandler<T> = (api: DialogInstanceApi<T>, details: DialogActionDetails) => void;
-declare type DialogChangeHandler<T> = (api: DialogInstanceApi<T>, details: DialogChangeDetails<T>) => void;
-declare type DialogSubmitHandler<T> = (api: DialogInstanceApi<T>) => void;
-declare type DialogCloseHandler = () => void;
-declare type DialogCancelHandler<T> = (api: DialogInstanceApi<T>) => void;
-declare type DialogTabChangeHandler<T> = (api: DialogInstanceApi<T>, details: DialogTabChangeDetails) => void;
-declare type DialogSize = 'normal' | 'medium' | 'large';
-interface DialogSpec<T extends DialogData> {
-    title: string;
-    size?: DialogSize;
-    body: TabPanelSpec | PanelSpec;
-    buttons: DialogFooterButtonSpec[];
-    initialData?: Partial<T>;
-    onAction?: DialogActionHandler<T>;
-    onChange?: DialogChangeHandler<T>;
-    onSubmit?: DialogSubmitHandler<T>;
-    onClose?: DialogCloseHandler;
-    onCancel?: DialogCancelHandler<T>;
-    onTabChange?: DialogTabChangeHandler<T>;
-}
-interface UrlDialogInstanceApi {
-    block: (msg: string) => void;
-    unblock: () => void;
-    close: () => void;
-    sendMessage: (msg: any) => void;
-}
-interface UrlDialogActionDetails {
-    name: string;
-    value?: any;
-}
-interface UrlDialogMessage {
-    mceAction: string;
-    [key: string]: any;
-}
-declare type UrlDialogActionHandler = (api: UrlDialogInstanceApi, actions: UrlDialogActionDetails) => void;
-declare type UrlDialogCloseHandler = () => void;
-declare type UrlDialogCancelHandler = (api: UrlDialogInstanceApi) => void;
-declare type UrlDialogMessageHandler = (api: UrlDialogInstanceApi, message: UrlDialogMessage) => void;
-interface UrlDialogFooterButtonSpec extends DialogFooterNormalButtonSpec {
-    type: 'cancel' | 'custom';
-}
-interface UrlDialogSpec {
-    title: string;
-    url: string;
-    height?: number;
-    width?: number;
-    buttons?: UrlDialogFooterButtonSpec[];
-    onAction?: UrlDialogActionHandler;
-    onClose?: UrlDialogCloseHandler;
-    onCancel?: UrlDialogCancelHandler;
-    onMessage?: UrlDialogMessageHandler;
-}
-declare type CardContainerDirection = 'vertical' | 'horizontal';
-declare type CardContainerAlign = 'left' | 'right';
-declare type CardContainerValign = 'top' | 'middle' | 'bottom';
-interface CardContainerSpec {
-    type: 'cardcontainer';
-    items: CardItemSpec[];
-    direction?: CardContainerDirection;
-    align?: CardContainerAlign;
-    valign?: CardContainerValign;
+interface GroupToolbarButtonSpec extends BaseToolbarButtonSpec<GroupToolbarButtonInstanceApi> {
+    type?: 'grouptoolbarbutton';
+    items?: ToolbarConfig;
 }
 interface CardImageSpec {
     type: 'cardimage';
@@ -774,6 +661,27 @@ interface CardTextSpec {
     classes?: string[];
 }
 declare type CardItemSpec = CardContainerSpec | CardImageSpec | CardTextSpec;
+declare type CardContainerDirection = 'vertical' | 'horizontal';
+declare type CardContainerAlign = 'left' | 'right';
+declare type CardContainerValign = 'top' | 'middle' | 'bottom';
+interface CardContainerSpec {
+    type: 'cardcontainer';
+    items: CardItemSpec[];
+    direction?: CardContainerDirection;
+    align?: CardContainerAlign;
+    valign?: CardContainerValign;
+}
+interface CommonMenuItemSpec {
+    enabled?: boolean;
+    text?: string;
+    value?: string;
+    meta?: Record<string, any>;
+    shortcut?: string;
+}
+interface CommonMenuItemInstanceApi {
+    isEnabled: () => boolean;
+    setEnabled: (state: boolean) => void;
+}
 interface CardMenuItemInstanceApi extends CommonMenuItemInstanceApi {
 }
 interface CardMenuItemSpec extends Omit<CommonMenuItemSpec, 'text' | 'shortcut'> {
@@ -782,108 +690,6 @@ interface CardMenuItemSpec extends Omit<CommonMenuItemSpec, 'text' | 'shortcut'>
     items: CardItemSpec[];
     onSetup?: (api: CardMenuItemInstanceApi) => (api: CardMenuItemInstanceApi) => void;
     onAction?: (api: CardMenuItemInstanceApi) => void;
-}
-interface SeparatorMenuItemSpec {
-    type?: 'separator';
-    text?: string;
-}
-declare type ColumnTypes$1 = number | 'auto';
-declare type SeparatorItemSpec = SeparatorMenuItemSpec;
-interface AutocompleterItemSpec {
-    type?: 'autocompleteitem';
-    value: string;
-    text?: string;
-    icon?: string;
-    meta?: Record<string, any>;
-}
-declare type AutocompleterContents = SeparatorItemSpec | AutocompleterItemSpec | CardMenuItemSpec;
-interface AutocompleterSpec {
-    type?: 'autocompleter';
-    ch?: string;
-    trigger?: string;
-    minChars?: number;
-    columns?: ColumnTypes$1;
-    matches?: (rng: Range, text: string, pattern: string) => boolean;
-    fetch: (pattern: string, maxResults: number, fetchOptions: Record<string, any>) => Promise<AutocompleterContents[]>;
-    onAction: (autocompleterApi: AutocompleterInstanceApi, rng: Range, value: string, meta: Record<string, any>) => void;
-    maxResults?: number;
-    highlightOn?: string[];
-}
-interface AutocompleterInstanceApi {
-    hide: () => void;
-    reload: (fetchOptions: Record<string, any>) => void;
-}
-declare type ContextPosition = 'node' | 'selection' | 'line';
-declare type ContextScope = 'node' | 'editor';
-interface ContextBarSpec {
-    predicate?: (elem: Element) => boolean;
-    position?: ContextPosition;
-    scope?: ContextScope;
-}
-interface BaseToolbarButtonSpec<I extends BaseToolbarButtonInstanceApi> {
-    enabled?: boolean;
-    tooltip?: string;
-    icon?: string;
-    text?: string;
-    onSetup?: (api: I) => (api: I) => void;
-}
-interface BaseToolbarButtonInstanceApi {
-    isEnabled: () => boolean;
-    setEnabled: (state: boolean) => void;
-}
-interface ToolbarButtonSpec extends BaseToolbarButtonSpec<ToolbarButtonInstanceApi> {
-    type?: 'button';
-    onAction: (api: ToolbarButtonInstanceApi) => void;
-}
-interface ToolbarButtonInstanceApi extends BaseToolbarButtonInstanceApi {
-}
-interface BaseToolbarToggleButtonSpec<I extends BaseToolbarButtonInstanceApi> extends BaseToolbarButtonSpec<I> {
-    active?: boolean;
-}
-interface BaseToolbarToggleButtonInstanceApi extends BaseToolbarButtonInstanceApi {
-    isActive: () => boolean;
-    setActive: (state: boolean) => void;
-}
-interface ToolbarToggleButtonSpec extends BaseToolbarToggleButtonSpec<ToolbarToggleButtonInstanceApi> {
-    type?: 'togglebutton';
-    onAction: (api: ToolbarToggleButtonInstanceApi) => void;
-}
-interface ToolbarToggleButtonInstanceApi extends BaseToolbarToggleButtonInstanceApi {
-}
-interface ContextFormLaunchButtonApi extends BaseToolbarButtonSpec<BaseToolbarButtonInstanceApi> {
-    type: 'contextformbutton';
-}
-interface ContextFormLaunchToggleButtonSpec extends BaseToolbarToggleButtonSpec<BaseToolbarToggleButtonInstanceApi> {
-    type: 'contextformtogglebutton';
-}
-interface ContextFormButtonInstanceApi extends BaseToolbarButtonInstanceApi {
-}
-interface ContextFormToggleButtonInstanceApi extends BaseToolbarToggleButtonInstanceApi {
-}
-interface ContextFormButtonSpec extends BaseToolbarButtonSpec<ContextFormButtonInstanceApi> {
-    type?: 'contextformbutton';
-    primary?: boolean;
-    onAction: (formApi: ContextFormInstanceApi, api: ContextFormButtonInstanceApi) => void;
-}
-interface ContextFormToggleButtonSpec extends BaseToolbarToggleButtonSpec<ContextFormToggleButtonInstanceApi> {
-    type?: 'contextformtogglebutton';
-    onAction: (formApi: ContextFormInstanceApi, buttonApi: ContextFormToggleButtonInstanceApi) => void;
-    primary?: boolean;
-}
-interface ContextFormInstanceApi {
-    hide: () => void;
-    getValue: () => string;
-}
-interface ContextFormSpec extends ContextBarSpec {
-    type?: 'contextform';
-    initValue?: () => string;
-    label?: string;
-    launch?: ContextFormLaunchButtonApi | ContextFormLaunchToggleButtonSpec;
-    commands: Array<ContextFormToggleButtonSpec | ContextFormButtonSpec>;
-}
-interface ContextToolbarSpec extends ContextBarSpec {
-    type?: 'contexttoolbar';
-    items: string;
 }
 interface ChoiceMenuItemSpec extends CommonMenuItemSpec {
     type?: 'choiceitem';
@@ -930,9 +736,11 @@ interface InsertTableMenuItemSpec extends BaseFancyMenuItemSpec<'inserttable'> {
 }
 interface ColorSwatchMenuItemSpec extends BaseFancyMenuItemSpec<'colorswatch'> {
     fancytype: 'colorswatch';
+    select?: (value: string) => boolean;
     initData?: {
         allowCustomColors?: boolean;
         colors?: ChoiceMenuItemSpec[];
+        storageKey?: string;
     };
 }
 declare type FancyMenuItemSpec = InsertTableMenuItemSpec | ColorSwatchMenuItemSpec;
@@ -944,14 +752,9 @@ interface MenuItemSpec extends CommonMenuItemSpec {
 }
 interface MenuItemInstanceApi extends CommonMenuItemInstanceApi {
 }
-declare type NestedMenuItemContents = string | MenuItemSpec | NestedMenuItemSpec | ToggleMenuItemSpec | SeparatorMenuItemSpec | FancyMenuItemSpec;
-interface NestedMenuItemSpec extends CommonMenuItemSpec {
-    type?: 'nestedmenuitem';
-    icon?: string;
-    getSubmenuItems: () => string | Array<NestedMenuItemContents>;
-    onSetup?: (api: NestedMenuItemInstanceApi) => (api: NestedMenuItemInstanceApi) => void;
-}
-interface NestedMenuItemInstanceApi extends CommonMenuItemInstanceApi {
+interface SeparatorMenuItemSpec {
+    type?: 'separator';
+    text?: string;
 }
 interface ToggleMenuItemSpec extends CommonMenuItemSpec {
     type?: 'togglemenuitem';
@@ -963,6 +766,306 @@ interface ToggleMenuItemSpec extends CommonMenuItemSpec {
 interface ToggleMenuItemInstanceApi extends CommonMenuItemInstanceApi {
     isActive: () => boolean;
     setActive: (state: boolean) => void;
+}
+declare type NestedMenuItemContents = string | MenuItemSpec | NestedMenuItemSpec | ToggleMenuItemSpec | SeparatorMenuItemSpec | FancyMenuItemSpec;
+interface NestedMenuItemSpec extends CommonMenuItemSpec {
+    type?: 'nestedmenuitem';
+    icon?: string;
+    getSubmenuItems: () => string | Array<NestedMenuItemContents>;
+    onSetup?: (api: NestedMenuItemInstanceApi) => (api: NestedMenuItemInstanceApi) => void;
+}
+interface NestedMenuItemInstanceApi extends CommonMenuItemInstanceApi {
+    setIconFill: (id: string, value: string) => void;
+}
+declare type MenuButtonItemTypes = NestedMenuItemContents;
+declare type SuccessCallback$1 = (menu: string | MenuButtonItemTypes[]) => void;
+interface MenuButtonFetchContext {
+    pattern: string;
+}
+interface BaseMenuButtonSpec {
+    text?: string;
+    tooltip?: string;
+    icon?: string;
+    search?: boolean | {
+        placeholder?: string;
+    };
+    fetch: (success: SuccessCallback$1, fetchContext: MenuButtonFetchContext, api: BaseMenuButtonInstanceApi) => void;
+    onSetup?: (api: BaseMenuButtonInstanceApi) => (api: BaseMenuButtonInstanceApi) => void;
+}
+interface BaseMenuButtonInstanceApi {
+    isEnabled: () => boolean;
+    setEnabled: (state: boolean) => void;
+    isActive: () => boolean;
+    setActive: (state: boolean) => void;
+    setText: (text: string) => void;
+    setIcon: (icon: string) => void;
+}
+interface ToolbarMenuButtonSpec extends BaseMenuButtonSpec {
+    type?: 'menubutton';
+    onSetup?: (api: ToolbarMenuButtonInstanceApi) => (api: ToolbarMenuButtonInstanceApi) => void;
+}
+interface ToolbarMenuButtonInstanceApi extends BaseMenuButtonInstanceApi {
+}
+declare type ToolbarSplitButtonItemTypes = ChoiceMenuItemSpec | SeparatorMenuItemSpec;
+declare type SuccessCallback = (menu: ToolbarSplitButtonItemTypes[]) => void;
+declare type SelectPredicate = (value: string) => boolean;
+declare type PresetTypes = 'color' | 'normal' | 'listpreview';
+declare type ColumnTypes$1 = number | 'auto';
+interface ToolbarSplitButtonSpec {
+    type?: 'splitbutton';
+    tooltip?: string;
+    icon?: string;
+    text?: string;
+    select?: SelectPredicate;
+    presets?: PresetTypes;
+    columns?: ColumnTypes$1;
+    fetch: (success: SuccessCallback) => void;
+    onSetup?: (api: ToolbarSplitButtonInstanceApi) => (api: ToolbarSplitButtonInstanceApi) => void;
+    onAction: (api: ToolbarSplitButtonInstanceApi) => void;
+    onItemAction: (api: ToolbarSplitButtonInstanceApi, value: string) => void;
+}
+interface ToolbarSplitButtonInstanceApi {
+    isEnabled: () => boolean;
+    setEnabled: (state: boolean) => void;
+    setIconFill: (id: string, value: string) => void;
+    isActive: () => boolean;
+    setActive: (state: boolean) => void;
+    setText: (text: string) => void;
+    setIcon: (icon: string) => void;
+}
+interface BaseToolbarToggleButtonSpec<I extends BaseToolbarButtonInstanceApi> extends BaseToolbarButtonSpec<I> {
+    active?: boolean;
+}
+interface BaseToolbarToggleButtonInstanceApi extends BaseToolbarButtonInstanceApi {
+    isActive: () => boolean;
+    setActive: (state: boolean) => void;
+}
+interface ToolbarToggleButtonSpec extends BaseToolbarToggleButtonSpec<ToolbarToggleButtonInstanceApi> {
+    type?: 'togglebutton';
+    onAction: (api: ToolbarToggleButtonInstanceApi) => void;
+}
+interface ToolbarToggleButtonInstanceApi extends BaseToolbarToggleButtonInstanceApi {
+}
+declare type Id = string;
+interface TreeSpec {
+    type: 'tree';
+    items: TreeItemSpec[];
+    onLeafAction?: (id: Id) => void;
+}
+interface BaseTreeItemSpec {
+    title: string;
+    id: Id;
+    menu?: ToolbarMenuButtonSpec;
+}
+interface DirectorySpec extends BaseTreeItemSpec {
+    type: 'directory';
+    children: TreeItemSpec[];
+}
+interface LeafSpec extends BaseTreeItemSpec {
+    type: 'leaf';
+}
+declare type TreeItemSpec = DirectorySpec | LeafSpec;
+interface UrlInputSpec extends FormComponentWithLabelSpec {
+    type: 'urlinput';
+    filetype?: 'image' | 'media' | 'file';
+    enabled?: boolean;
+}
+interface UrlInputData {
+    value: string;
+    meta: {
+        text?: string;
+    };
+}
+declare type BodyComponentSpec = BarSpec | ButtonSpec | CheckboxSpec | TextAreaSpec | InputSpec | ListBoxSpec | SelectBoxSpec | SizeInputSpec | SliderSpec | IframeSpec | HtmlPanelSpec | UrlInputSpec | DropZoneSpec | ColorInputSpec | GridSpec | ColorPickerSpec | ImagePreviewSpec | AlertBannerSpec | CollectionSpec | LabelSpec | TableSpec | TreeSpec | PanelSpec | CustomEditorSpec;
+interface BarSpec {
+    type: 'bar';
+    items: BodyComponentSpec[];
+}
+interface DialogToggleMenuItemSpec extends CommonMenuItemSpec {
+    type?: 'togglemenuitem';
+    name: string;
+}
+declare type DialogFooterMenuButtonItemSpec = DialogToggleMenuItemSpec;
+interface BaseDialogFooterButtonSpec {
+    name?: string;
+    align?: 'start' | 'end';
+    primary?: boolean;
+    enabled?: boolean;
+    icon?: string;
+    buttonType?: 'primary' | 'secondary';
+}
+interface DialogFooterNormalButtonSpec extends BaseDialogFooterButtonSpec {
+    type: 'submit' | 'cancel' | 'custom';
+    text: string;
+}
+interface DialogFooterMenuButtonSpec extends BaseDialogFooterButtonSpec {
+    type: 'menu';
+    text?: string;
+    tooltip?: string;
+    icon?: string;
+    items: DialogFooterMenuButtonItemSpec[];
+}
+interface DialogFooterToggleButtonSpec extends BaseDialogFooterButtonSpec {
+    type: 'togglebutton';
+    tooltip?: string;
+    icon?: string;
+    text?: string;
+    active?: boolean;
+}
+declare type DialogFooterButtonSpec = DialogFooterNormalButtonSpec | DialogFooterMenuButtonSpec | DialogFooterToggleButtonSpec;
+interface TabSpec {
+    name?: string;
+    title: string;
+    items: BodyComponentSpec[];
+}
+interface TabPanelSpec {
+    type: 'tabpanel';
+    tabs: TabSpec[];
+}
+declare type DialogDataItem = any;
+declare type DialogData = Record<string, DialogDataItem>;
+interface DialogInstanceApi<T extends DialogData> {
+    getData: () => T;
+    setData: (data: Partial<T>) => void;
+    setEnabled: (name: string, state: boolean) => void;
+    focus: (name: string) => void;
+    showTab: (name: string) => void;
+    redial: (nu: DialogSpec<T>) => void;
+    block: (msg: string) => void;
+    unblock: () => void;
+    toggleFullscreen: () => void;
+    close: () => void;
+}
+interface DialogActionDetails {
+    name: string;
+    value?: any;
+}
+interface DialogChangeDetails<T> {
+    name: keyof T;
+}
+interface DialogTabChangeDetails {
+    newTabName: string;
+    oldTabName: string;
+}
+declare type DialogActionHandler<T extends DialogData> = (api: DialogInstanceApi<T>, details: DialogActionDetails) => void;
+declare type DialogChangeHandler<T extends DialogData> = (api: DialogInstanceApi<T>, details: DialogChangeDetails<T>) => void;
+declare type DialogSubmitHandler<T extends DialogData> = (api: DialogInstanceApi<T>) => void;
+declare type DialogCloseHandler = () => void;
+declare type DialogCancelHandler<T extends DialogData> = (api: DialogInstanceApi<T>) => void;
+declare type DialogTabChangeHandler<T extends DialogData> = (api: DialogInstanceApi<T>, details: DialogTabChangeDetails) => void;
+declare type DialogSize = 'normal' | 'medium' | 'large';
+interface DialogSpec<T extends DialogData> {
+    title: string;
+    size?: DialogSize;
+    body: TabPanelSpec | PanelSpec;
+    buttons: DialogFooterButtonSpec[];
+    initialData?: Partial<T>;
+    onAction?: DialogActionHandler<T>;
+    onChange?: DialogChangeHandler<T>;
+    onSubmit?: DialogSubmitHandler<T>;
+    onClose?: DialogCloseHandler;
+    onCancel?: DialogCancelHandler<T>;
+    onTabChange?: DialogTabChangeHandler<T>;
+}
+interface UrlDialogInstanceApi {
+    block: (msg: string) => void;
+    unblock: () => void;
+    close: () => void;
+    sendMessage: (msg: any) => void;
+}
+interface UrlDialogActionDetails {
+    name: string;
+    value?: any;
+}
+interface UrlDialogMessage {
+    mceAction: string;
+    [key: string]: any;
+}
+declare type UrlDialogActionHandler = (api: UrlDialogInstanceApi, actions: UrlDialogActionDetails) => void;
+declare type UrlDialogCloseHandler = () => void;
+declare type UrlDialogCancelHandler = (api: UrlDialogInstanceApi) => void;
+declare type UrlDialogMessageHandler = (api: UrlDialogInstanceApi, message: UrlDialogMessage) => void;
+interface UrlDialogFooterButtonSpec extends DialogFooterNormalButtonSpec {
+    type: 'cancel' | 'custom';
+}
+interface UrlDialogSpec {
+    title: string;
+    url: string;
+    height?: number;
+    width?: number;
+    buttons?: UrlDialogFooterButtonSpec[];
+    onAction?: UrlDialogActionHandler;
+    onClose?: UrlDialogCloseHandler;
+    onCancel?: UrlDialogCancelHandler;
+    onMessage?: UrlDialogMessageHandler;
+}
+declare type ColumnTypes = number | 'auto';
+declare type SeparatorItemSpec = SeparatorMenuItemSpec;
+interface AutocompleterItemSpec {
+    type?: 'autocompleteitem';
+    value: string;
+    text?: string;
+    icon?: string;
+    meta?: Record<string, any>;
+}
+declare type AutocompleterContents = SeparatorItemSpec | AutocompleterItemSpec | CardMenuItemSpec;
+interface AutocompleterSpec {
+    type?: 'autocompleter';
+    ch?: string;
+    trigger?: string;
+    minChars?: number;
+    columns?: ColumnTypes;
+    matches?: (rng: Range, text: string, pattern: string) => boolean;
+    fetch: (pattern: string, maxResults: number, fetchOptions: Record<string, any>) => Promise<AutocompleterContents[]>;
+    onAction: (autocompleterApi: AutocompleterInstanceApi, rng: Range, value: string, meta: Record<string, any>) => void;
+    maxResults?: number;
+    highlightOn?: string[];
+}
+interface AutocompleterInstanceApi {
+    hide: () => void;
+    reload: (fetchOptions: Record<string, any>) => void;
+}
+declare type ContextPosition = 'node' | 'selection' | 'line';
+declare type ContextScope = 'node' | 'editor';
+interface ContextBarSpec {
+    predicate?: (elem: Element) => boolean;
+    position?: ContextPosition;
+    scope?: ContextScope;
+}
+interface ContextFormLaunchButtonApi extends BaseToolbarButtonSpec<BaseToolbarButtonInstanceApi> {
+    type: 'contextformbutton';
+}
+interface ContextFormLaunchToggleButtonSpec extends BaseToolbarToggleButtonSpec<BaseToolbarToggleButtonInstanceApi> {
+    type: 'contextformtogglebutton';
+}
+interface ContextFormButtonInstanceApi extends BaseToolbarButtonInstanceApi {
+}
+interface ContextFormToggleButtonInstanceApi extends BaseToolbarToggleButtonInstanceApi {
+}
+interface ContextFormButtonSpec extends BaseToolbarButtonSpec<ContextFormButtonInstanceApi> {
+    type?: 'contextformbutton';
+    primary?: boolean;
+    onAction: (formApi: ContextFormInstanceApi, api: ContextFormButtonInstanceApi) => void;
+}
+interface ContextFormToggleButtonSpec extends BaseToolbarToggleButtonSpec<ContextFormToggleButtonInstanceApi> {
+    type?: 'contextformtogglebutton';
+    onAction: (formApi: ContextFormInstanceApi, buttonApi: ContextFormToggleButtonInstanceApi) => void;
+    primary?: boolean;
+}
+interface ContextFormInstanceApi {
+    hide: () => void;
+    getValue: () => string;
+}
+interface ContextFormSpec extends ContextBarSpec {
+    type?: 'contextform';
+    initValue?: () => string;
+    label?: string;
+    launch?: ContextFormLaunchButtonApi | ContextFormLaunchToggleButtonSpec;
+    commands: Array<ContextFormToggleButtonSpec | ContextFormButtonSpec>;
+}
+interface ContextToolbarSpec extends ContextBarSpec {
+    type?: 'contexttoolbar';
+    items: string;
 }
 type PublicDialog_d_AlertBannerSpec = AlertBannerSpec;
 type PublicDialog_d_BarSpec = BarSpec;
@@ -978,11 +1081,11 @@ type PublicDialog_d_CustomEditorInit = CustomEditorInit;
 type PublicDialog_d_CustomEditorInitFn = CustomEditorInitFn;
 type PublicDialog_d_DialogData = DialogData;
 type PublicDialog_d_DialogSize = DialogSize;
-type PublicDialog_d_DialogSpec<_0> = DialogSpec<_0>;
-type PublicDialog_d_DialogInstanceApi<_0> = DialogInstanceApi<_0>;
+type PublicDialog_d_DialogSpec<T extends DialogData> = DialogSpec<T>;
+type PublicDialog_d_DialogInstanceApi<T extends DialogData> = DialogInstanceApi<T>;
 type PublicDialog_d_DialogFooterButtonSpec = DialogFooterButtonSpec;
 type PublicDialog_d_DialogActionDetails = DialogActionDetails;
-type PublicDialog_d_DialogChangeDetails<_0> = DialogChangeDetails<_0>;
+type PublicDialog_d_DialogChangeDetails<T> = DialogChangeDetails<T>;
 type PublicDialog_d_DialogTabChangeDetails = DialogTabChangeDetails;
 type PublicDialog_d_DropZoneSpec = DropZoneSpec;
 type PublicDialog_d_GridSpec = GridSpec;
@@ -1004,6 +1107,8 @@ type PublicDialog_d_TableSpec = TableSpec;
 type PublicDialog_d_TabSpec = TabSpec;
 type PublicDialog_d_TabPanelSpec = TabPanelSpec;
 type PublicDialog_d_TextAreaSpec = TextAreaSpec;
+type PublicDialog_d_TreeSpec = TreeSpec;
+type PublicDialog_d_TreeItemSpec = TreeItemSpec;
 type PublicDialog_d_UrlInputData = UrlInputData;
 type PublicDialog_d_UrlInputSpec = UrlInputSpec;
 type PublicDialog_d_UrlDialogSpec = UrlDialogSpec;
@@ -1012,7 +1117,7 @@ type PublicDialog_d_UrlDialogInstanceApi = UrlDialogInstanceApi;
 type PublicDialog_d_UrlDialogActionDetails = UrlDialogActionDetails;
 type PublicDialog_d_UrlDialogMessage = UrlDialogMessage;
 declare namespace PublicDialog_d {
-    export { PublicDialog_d_AlertBannerSpec as AlertBannerSpec, PublicDialog_d_BarSpec as BarSpec, PublicDialog_d_BodyComponentSpec as BodyComponentSpec, PublicDialog_d_ButtonSpec as ButtonSpec, PublicDialog_d_CheckboxSpec as CheckboxSpec, PublicDialog_d_CollectionItem as CollectionItem, PublicDialog_d_CollectionSpec as CollectionSpec, PublicDialog_d_ColorInputSpec as ColorInputSpec, PublicDialog_d_ColorPickerSpec as ColorPickerSpec, PublicDialog_d_CustomEditorSpec as CustomEditorSpec, PublicDialog_d_CustomEditorInit as CustomEditorInit, PublicDialog_d_CustomEditorInitFn as CustomEditorInitFn, PublicDialog_d_DialogData as DialogData, PublicDialog_d_DialogSize as DialogSize, PublicDialog_d_DialogSpec as DialogSpec, PublicDialog_d_DialogInstanceApi as DialogInstanceApi, PublicDialog_d_DialogFooterButtonSpec as DialogFooterButtonSpec, PublicDialog_d_DialogActionDetails as DialogActionDetails, PublicDialog_d_DialogChangeDetails as DialogChangeDetails, PublicDialog_d_DialogTabChangeDetails as DialogTabChangeDetails, PublicDialog_d_DropZoneSpec as DropZoneSpec, PublicDialog_d_GridSpec as GridSpec, PublicDialog_d_HtmlPanelSpec as HtmlPanelSpec, PublicDialog_d_IframeSpec as IframeSpec, PublicDialog_d_ImagePreviewSpec as ImagePreviewSpec, PublicDialog_d_InputSpec as InputSpec, PublicDialog_d_LabelSpec as LabelSpec, PublicDialog_d_ListBoxSpec as ListBoxSpec, PublicDialog_d_ListBoxItemSpec as ListBoxItemSpec, PublicDialog_d_ListBoxNestedItemSpec as ListBoxNestedItemSpec, PublicDialog_d_ListBoxSingleItemSpec as ListBoxSingleItemSpec, PublicDialog_d_PanelSpec as PanelSpec, PublicDialog_d_SelectBoxSpec as SelectBoxSpec, PublicDialog_d_SelectBoxItemSpec as SelectBoxItemSpec, PublicDialog_d_SizeInputSpec as SizeInputSpec, PublicDialog_d_SliderSpec as SliderSpec, PublicDialog_d_TableSpec as TableSpec, PublicDialog_d_TabSpec as TabSpec, PublicDialog_d_TabPanelSpec as TabPanelSpec, PublicDialog_d_TextAreaSpec as TextAreaSpec, PublicDialog_d_UrlInputData as UrlInputData, PublicDialog_d_UrlInputSpec as UrlInputSpec, PublicDialog_d_UrlDialogSpec as UrlDialogSpec, PublicDialog_d_UrlDialogFooterButtonSpec as UrlDialogFooterButtonSpec, PublicDialog_d_UrlDialogInstanceApi as UrlDialogInstanceApi, PublicDialog_d_UrlDialogActionDetails as UrlDialogActionDetails, PublicDialog_d_UrlDialogMessage as UrlDialogMessage, };
+    export { PublicDialog_d_AlertBannerSpec as AlertBannerSpec, PublicDialog_d_BarSpec as BarSpec, PublicDialog_d_BodyComponentSpec as BodyComponentSpec, PublicDialog_d_ButtonSpec as ButtonSpec, PublicDialog_d_CheckboxSpec as CheckboxSpec, PublicDialog_d_CollectionItem as CollectionItem, PublicDialog_d_CollectionSpec as CollectionSpec, PublicDialog_d_ColorInputSpec as ColorInputSpec, PublicDialog_d_ColorPickerSpec as ColorPickerSpec, PublicDialog_d_CustomEditorSpec as CustomEditorSpec, PublicDialog_d_CustomEditorInit as CustomEditorInit, PublicDialog_d_CustomEditorInitFn as CustomEditorInitFn, PublicDialog_d_DialogData as DialogData, PublicDialog_d_DialogSize as DialogSize, PublicDialog_d_DialogSpec as DialogSpec, PublicDialog_d_DialogInstanceApi as DialogInstanceApi, PublicDialog_d_DialogFooterButtonSpec as DialogFooterButtonSpec, PublicDialog_d_DialogActionDetails as DialogActionDetails, PublicDialog_d_DialogChangeDetails as DialogChangeDetails, PublicDialog_d_DialogTabChangeDetails as DialogTabChangeDetails, PublicDialog_d_DropZoneSpec as DropZoneSpec, PublicDialog_d_GridSpec as GridSpec, PublicDialog_d_HtmlPanelSpec as HtmlPanelSpec, PublicDialog_d_IframeSpec as IframeSpec, PublicDialog_d_ImagePreviewSpec as ImagePreviewSpec, PublicDialog_d_InputSpec as InputSpec, PublicDialog_d_LabelSpec as LabelSpec, PublicDialog_d_ListBoxSpec as ListBoxSpec, PublicDialog_d_ListBoxItemSpec as ListBoxItemSpec, PublicDialog_d_ListBoxNestedItemSpec as ListBoxNestedItemSpec, PublicDialog_d_ListBoxSingleItemSpec as ListBoxSingleItemSpec, PublicDialog_d_PanelSpec as PanelSpec, PublicDialog_d_SelectBoxSpec as SelectBoxSpec, PublicDialog_d_SelectBoxItemSpec as SelectBoxItemSpec, PublicDialog_d_SizeInputSpec as SizeInputSpec, PublicDialog_d_SliderSpec as SliderSpec, PublicDialog_d_TableSpec as TableSpec, PublicDialog_d_TabSpec as TabSpec, PublicDialog_d_TabPanelSpec as TabPanelSpec, PublicDialog_d_TextAreaSpec as TextAreaSpec, PublicDialog_d_TreeSpec as TreeSpec, PublicDialog_d_TreeItemSpec as TreeItemSpec, DirectorySpec as TreeDirectorySpec, LeafSpec as TreeLeafSpec, PublicDialog_d_UrlInputData as UrlInputData, PublicDialog_d_UrlInputSpec as UrlInputSpec, PublicDialog_d_UrlDialogSpec as UrlDialogSpec, PublicDialog_d_UrlDialogFooterButtonSpec as UrlDialogFooterButtonSpec, PublicDialog_d_UrlDialogInstanceApi as UrlDialogInstanceApi, PublicDialog_d_UrlDialogActionDetails as UrlDialogActionDetails, PublicDialog_d_UrlDialogMessage as UrlDialogMessage, };
 }
 type PublicInlineContent_d_AutocompleterSpec = AutocompleterSpec;
 type PublicInlineContent_d_AutocompleterItemSpec = AutocompleterItemSpec;
@@ -1072,69 +1177,6 @@ type PublicSidebar_d_SidebarInstanceApi = SidebarInstanceApi;
 declare namespace PublicSidebar_d {
     export { PublicSidebar_d_SidebarSpec as SidebarSpec, PublicSidebar_d_SidebarInstanceApi as SidebarInstanceApi, };
 }
-interface ToolbarGroupSetting {
-    name: string;
-    items: string[];
-}
-declare type ToolbarConfig = string | ToolbarGroupSetting[];
-interface GroupToolbarButtonInstanceApi extends BaseToolbarButtonInstanceApi {
-}
-interface GroupToolbarButtonSpec extends BaseToolbarButtonSpec<GroupToolbarButtonInstanceApi> {
-    type?: 'grouptoolbarbutton';
-    items?: ToolbarConfig;
-}
-declare type MenuButtonItemTypes = NestedMenuItemContents;
-declare type SuccessCallback$1 = (menu: string | MenuButtonItemTypes[]) => void;
-interface MenuButtonFetchContext {
-    pattern: string;
-}
-interface BaseMenuButtonSpec {
-    text?: string;
-    tooltip?: string;
-    icon?: string;
-    search?: boolean | {
-        placeholder?: string;
-    };
-    fetch: (success: SuccessCallback$1, fetchContext: MenuButtonFetchContext) => void;
-    onSetup?: (api: BaseMenuButtonInstanceApi) => (api: BaseMenuButtonInstanceApi) => void;
-}
-interface BaseMenuButtonInstanceApi {
-    isEnabled: () => boolean;
-    setEnabled: (state: boolean) => void;
-    isActive: () => boolean;
-    setActive: (state: boolean) => void;
-}
-interface ToolbarMenuButtonSpec extends BaseMenuButtonSpec {
-    type?: 'menubutton';
-    onSetup?: (api: ToolbarMenuButtonInstanceApi) => (api: ToolbarMenuButtonInstanceApi) => void;
-}
-interface ToolbarMenuButtonInstanceApi extends BaseMenuButtonInstanceApi {
-}
-declare type ToolbarSplitButtonItemTypes = ChoiceMenuItemSpec | SeparatorMenuItemSpec;
-declare type SuccessCallback = (menu: ToolbarSplitButtonItemTypes[]) => void;
-declare type SelectPredicate = (value: string) => boolean;
-declare type PresetTypes = 'color' | 'normal' | 'listpreview';
-declare type ColumnTypes = number | 'auto';
-interface ToolbarSplitButtonSpec {
-    type?: 'splitbutton';
-    tooltip?: string;
-    icon?: string;
-    text?: string;
-    select?: SelectPredicate;
-    presets?: PresetTypes;
-    columns?: ColumnTypes;
-    fetch: (success: SuccessCallback) => void;
-    onSetup?: (api: ToolbarSplitButtonInstanceApi) => (api: ToolbarSplitButtonInstanceApi) => void;
-    onAction: (api: ToolbarSplitButtonInstanceApi) => void;
-    onItemAction: (api: ToolbarSplitButtonInstanceApi, value: string) => void;
-}
-interface ToolbarSplitButtonInstanceApi {
-    isEnabled: () => boolean;
-    setEnabled: (state: boolean) => void;
-    setIconFill: (id: string, value: string) => void;
-    isActive: () => boolean;
-    setActive: (state: boolean) => void;
-}
 type PublicToolbar_d_ToolbarButtonSpec = ToolbarButtonSpec;
 type PublicToolbar_d_ToolbarButtonInstanceApi = ToolbarButtonInstanceApi;
 type PublicToolbar_d_ToolbarSplitButtonSpec = ToolbarSplitButtonSpec;
@@ -1147,6 +1189,48 @@ type PublicToolbar_d_GroupToolbarButtonSpec = GroupToolbarButtonSpec;
 type PublicToolbar_d_GroupToolbarButtonInstanceApi = GroupToolbarButtonInstanceApi;
 declare namespace PublicToolbar_d {
     export { PublicToolbar_d_ToolbarButtonSpec as ToolbarButtonSpec, PublicToolbar_d_ToolbarButtonInstanceApi as ToolbarButtonInstanceApi, PublicToolbar_d_ToolbarSplitButtonSpec as ToolbarSplitButtonSpec, PublicToolbar_d_ToolbarSplitButtonInstanceApi as ToolbarSplitButtonInstanceApi, PublicToolbar_d_ToolbarMenuButtonSpec as ToolbarMenuButtonSpec, PublicToolbar_d_ToolbarMenuButtonInstanceApi as ToolbarMenuButtonInstanceApi, PublicToolbar_d_ToolbarToggleButtonSpec as ToolbarToggleButtonSpec, PublicToolbar_d_ToolbarToggleButtonInstanceApi as ToolbarToggleButtonInstanceApi, PublicToolbar_d_GroupToolbarButtonSpec as GroupToolbarButtonSpec, PublicToolbar_d_GroupToolbarButtonInstanceApi as GroupToolbarButtonInstanceApi, };
+}
+interface ViewButtonApi {
+    setIcon: (newIcon: string) => void;
+}
+interface ViewToggleButtonApi extends ViewButtonApi {
+    isActive: () => boolean;
+    setActive: (state: boolean) => void;
+}
+interface BaseButtonSpec<Api extends ViewButtonApi> {
+    text?: string;
+    icon?: string;
+    tooltip?: string;
+    buttonType?: 'primary' | 'secondary';
+    borderless?: boolean;
+    onAction: (api: Api) => void;
+}
+interface ViewNormalButtonSpec extends BaseButtonSpec<ViewButtonApi> {
+    text: string;
+    type: 'button';
+}
+interface ViewToggleButtonSpec extends BaseButtonSpec<ViewToggleButtonApi> {
+    type: 'togglebutton';
+    active?: boolean;
+    onAction: (api: ViewToggleButtonApi) => void;
+}
+interface ViewButtonsGroupSpec {
+    type: 'group';
+    buttons: Array<ViewNormalButtonSpec | ViewToggleButtonSpec>;
+}
+declare type ViewButtonSpec = ViewNormalButtonSpec | ViewToggleButtonSpec | ViewButtonsGroupSpec;
+interface ViewInstanceApi {
+    getContainer: () => HTMLElement;
+}
+interface ViewSpec {
+    buttons?: ViewButtonSpec[];
+    onShow: (api: ViewInstanceApi) => void;
+    onHide: (api: ViewInstanceApi) => void;
+}
+type PublicView_d_ViewSpec = ViewSpec;
+type PublicView_d_ViewInstanceApi = ViewInstanceApi;
+declare namespace PublicView_d {
+    export { PublicView_d_ViewSpec as ViewSpec, PublicView_d_ViewInstanceApi as ViewInstanceApi, };
 }
 interface Registry$1 {
     addButton: (name: string, spec: ToolbarButtonSpec) => void;
@@ -1163,6 +1247,7 @@ interface Registry$1 {
     addIcon: (name: string, svgData: string) => void;
     addAutocompleter: (name: string, spec: AutocompleterSpec) => void;
     addSidebar: (name: string, spec: SidebarSpec) => void;
+    addView: (name: string, spec: ViewSpec) => void;
     getAll: () => {
         buttons: Record<string, ToolbarButtonSpec | GroupToolbarButtonSpec | ToolbarMenuButtonSpec | ToolbarSplitButtonSpec | ToolbarToggleButtonSpec>;
         menuItems: Record<string, MenuItemSpec | NestedMenuItemSpec | ToggleMenuItemSpec>;
@@ -1171,12 +1256,13 @@ interface Registry$1 {
         contextToolbars: Record<string, ContextToolbarSpec | ContextFormSpec>;
         icons: Record<string, string>;
         sidebars: Record<string, SidebarSpec>;
+        views: Record<string, ViewSpec>;
     };
 }
 interface AutocompleteLookupData {
     readonly matchText: string;
     readonly items: AutocompleterContents[];
-    readonly columns: ColumnTypes$1;
+    readonly columns: ColumnTypes;
     readonly onAction: (autoApi: AutocompleterInstanceApi, rng: Range, value: string, meta: Record<string, any>) => void;
     readonly highlightOn: string[];
 }
@@ -1273,18 +1359,19 @@ interface DomParserSettings {
     allow_html_in_named_anchor?: boolean;
     allow_script_urls?: boolean;
     allow_unsafe_link_target?: boolean;
+    blob_cache?: BlobCache;
     convert_fonts_to_spans?: boolean;
+    document?: Document;
     fix_list_elements?: boolean;
     font_size_legacy_values?: string;
     forced_root_block?: boolean | string;
     forced_root_block_attrs?: Record<string, string>;
+    inline_styles?: boolean;
     preserve_cdata?: boolean;
     remove_trailing_brs?: boolean;
     root_name?: string;
+    sanitize?: boolean;
     validate?: boolean;
-    inline_styles?: boolean;
-    blob_cache?: BlobCache;
-    document?: Document;
 }
 interface DomParser {
     schema: Schema;
@@ -1307,6 +1394,7 @@ interface StyleSheetLoader {
     unload: (url: string) => void;
     unloadAll: (urls: string[]) => void;
     _setReferrerPolicy: (referrerPolicy: ReferrerPolicy) => void;
+    _setContentCssCors: (contentCssCors: boolean) => void;
 }
 declare type Registry = Registry$1;
 interface EditorUiApi {
@@ -1323,22 +1411,22 @@ type Ui_d_Registry = Registry;
 type Ui_d_EditorUiApi = EditorUiApi;
 type Ui_d_EditorUi = EditorUi;
 declare namespace Ui_d {
-    export { Ui_d_Registry as Registry, PublicDialog_d as Dialog, PublicInlineContent_d as InlineContent, PublicMenu_d as Menu, PublicSidebar_d as Sidebar, PublicToolbar_d as Toolbar, Ui_d_EditorUiApi as EditorUiApi, Ui_d_EditorUi as EditorUi, };
+    export { Ui_d_Registry as Registry, PublicDialog_d as Dialog, PublicInlineContent_d as InlineContent, PublicMenu_d as Menu, PublicView_d as View, PublicSidebar_d as Sidebar, PublicToolbar_d as Toolbar, Ui_d_EditorUiApi as EditorUiApi, Ui_d_EditorUi as EditorUi, };
 }
 interface WindowParams {
     readonly inline?: 'cursor' | 'toolbar';
     readonly ariaAttrs?: boolean;
 }
-declare type InstanceApi<T> = UrlDialogInstanceApi | DialogInstanceApi<T>;
+declare type InstanceApi<T extends DialogData> = UrlDialogInstanceApi | DialogInstanceApi<T>;
 interface WindowManagerImpl {
-    open: <T>(config: DialogSpec<T>, params: WindowParams | undefined, closeWindow: (dialog: DialogInstanceApi<T>) => void) => DialogInstanceApi<T>;
+    open: <T extends DialogData>(config: DialogSpec<T>, params: WindowParams | undefined, closeWindow: (dialog: DialogInstanceApi<T>) => void) => DialogInstanceApi<T>;
     openUrl: (config: UrlDialogSpec, closeWindow: (dialog: UrlDialogInstanceApi) => void) => UrlDialogInstanceApi;
     alert: (message: string, callback: () => void) => void;
     confirm: (message: string, callback: (state: boolean) => void) => void;
     close: (dialog: InstanceApi<any>) => void;
 }
 interface WindowManager {
-    open: <T>(config: DialogSpec<T>, params?: WindowParams) => DialogInstanceApi<T>;
+    open: <T extends DialogData>(config: DialogSpec<T>, params?: WindowParams) => DialogInstanceApi<T>;
     openUrl: (config: UrlDialogSpec) => UrlDialogInstanceApi;
     alert: (message: string, callback?: () => void, scope?: any) => void;
     confirm: (message: string, callback?: (state: boolean) => void, scope?: any) => void;
@@ -1591,7 +1679,7 @@ type EventTypes_d_SwitchModeEvent = SwitchModeEvent;
 type EventTypes_d_ChangeEvent = ChangeEvent;
 type EventTypes_d_AddUndoEvent = AddUndoEvent;
 type EventTypes_d_UndoRedoEvent = UndoRedoEvent;
-type EventTypes_d_WindowEvent<_0> = WindowEvent<_0>;
+type EventTypes_d_WindowEvent<T extends DialogData> = WindowEvent<T>;
 type EventTypes_d_ProgressStateEvent = ProgressStateEvent;
 type EventTypes_d_AfterProgressStateEvent = AfterProgressStateEvent;
 type EventTypes_d_PlaceholderToggleEvent = PlaceholderToggleEvent;
@@ -1708,7 +1796,13 @@ interface BaseEditorOptions {
     branding?: boolean;
     cache_suffix?: string;
     color_cols?: number;
+    color_cols_foreground?: number;
+    color_cols_background?: number;
     color_map?: string[];
+    color_map_foreground?: string[];
+    color_map_background?: string[];
+    color_default_foreground?: string;
+    color_default_background?: string;
     content_css?: boolean | string | string[];
     content_css_cors?: boolean;
     content_security_policy?: string;
@@ -1748,12 +1842,14 @@ interface BaseEditorOptions {
     font_size_legacy_values?: string;
     font_size_style_values?: string;
     font_size_formats?: string;
+    font_size_input_default_unit?: string;
     forced_root_block?: string;
     forced_root_block_attrs?: Record<string, string>;
     formats?: Formats;
     format_noneditable_selector?: string;
     height?: number | string;
     hidden_input?: boolean;
+    highlight_on_focus?: boolean;
     icons?: string;
     icons_url?: string;
     id?: string;
@@ -1858,6 +1954,7 @@ interface BaseEditorOptions {
     toolbar_sticky?: boolean;
     toolbar_sticky_offset?: number;
     typeahead_urls?: boolean;
+    ui_mode?: 'combined' | 'split';
     url_converter?: URLConverter;
     url_converter_scope?: any;
     urlconverter_callback?: URLConverterCallback;
@@ -1870,6 +1967,7 @@ interface BaseEditorOptions {
     visual_anchor_class?: string;
     visual_table_class?: string;
     width?: number | string;
+    xss_sanitization?: boolean;
     disable_nodechange?: boolean;
     forced_plugins?: string | string[];
     plugin_base_urls?: Record<string, string>;
@@ -1896,7 +1994,12 @@ interface EditorOptions extends NormalizedEditorOptions {
     body_class: string;
     body_id: string;
     br_newline_selector: string;
+    color_map: string[];
     color_cols: number;
+    color_cols_foreground: number;
+    color_cols_background: number;
+    color_default_background: string;
+    color_default_foreground: string;
     content_css: string[];
     contextmenu: string[];
     custom_colors: boolean;
@@ -1907,12 +2010,14 @@ interface EditorOptions extends NormalizedEditorOptions {
     font_family_formats: string;
     font_size_classes: string;
     font_size_formats: string;
+    font_size_input_default_unit: string;
     font_size_legacy_values: string;
     font_size_style_values: string;
     forced_root_block: string;
     forced_root_block_attrs: Record<string, string>;
     format_noneditable_selector: string;
     height: number | string;
+    highlight_on_focus: boolean;
     iframe_attrs: Record<string, string>;
     images_file_types: string;
     images_upload_base_path: string;
@@ -1954,6 +2059,7 @@ interface EditorOptions extends NormalizedEditorOptions {
     visual_anchor_class: string;
     visual_table_class: string;
     width: number | string;
+    xss_sanitization: boolean;
 }
 declare type StyleMap = Record<string, string | number>;
 interface StylesSettings {
@@ -2158,6 +2264,7 @@ interface DOMUtils {
     dispatch: (target: Node | Window, name: string, evt?: {}) => EventUtils;
     getContentEditable: (node: Node) => string | null;
     getContentEditableParent: (node: Node) => string | null;
+    isEditable: (node: Node | null | undefined) => boolean;
     destroy: () => void;
     isChildOf: (node: Node, parent: Node) => boolean;
     dumpRng: (r: Range) => string;
@@ -2259,6 +2366,7 @@ interface EditorSelection {
     moveToBookmark: (bookmark: Bookmark) => void;
     select: (node: Node, content?: boolean) => Node;
     isCollapsed: () => boolean;
+    isEditable: () => boolean;
     isForward: () => boolean;
     setNode: (elm: Element) => Element;
     getNode: () => HTMLElement;
@@ -2286,6 +2394,9 @@ interface EditorSelection {
     placeCaretAt: (clientX: number, clientY: number) => void;
     getBoundingClientRect: () => ClientRect | DOMRect;
     destroy: () => void;
+    expand: (options?: {
+        type: 'word';
+    }) => void;
 }
 declare type EditorCommandCallback<S> = (this: S, ui: boolean, value: any) => void;
 declare type EditorCommandsCallback = (command: string, ui: boolean, value?: any) => void;
@@ -2337,7 +2448,7 @@ interface I18n {
     isRtl: () => boolean;
     hasCode: (code: string) => boolean;
 }
-interface Observable<T> {
+interface Observable<T extends {}> {
     fire<K extends string, U extends MappedEvent<T, K>>(name: K, args?: U, bubble?: boolean): EditorEvent<U>;
     dispatch<K extends string, U extends MappedEvent<T, K>>(name: K, args?: U, bubble?: boolean): EditorEvent<U>;
     on<K extends string>(name: K, callback: (event: EditorEvent<MappedEvent<T, K>>) => void, prepend?: boolean): EventDispatcher<T>;
@@ -2596,7 +2707,7 @@ interface Theme {
     execCommand?: (command: string, ui?: boolean, value?: any) => boolean;
     destroy?: () => void;
     init?: (editor: Editor, url: string) => void;
-    renderUI?: () => RenderResult;
+    renderUI?: () => Promise<RenderResult> | RenderResult;
     getNotificationManagerImpl?: () => NotificationManagerImpl;
     getWindowManagerImpl?: () => WindowManagerImpl;
 }
@@ -2617,6 +2728,7 @@ declare class Editor implements EditorObservable {
     ui: EditorUi;
     mode: EditorMode;
     options: Options;
+    editorUpload: EditorUpload;
     shortcuts: Shortcuts;
     loadedCSS: Record<string, any>;
     editorCommands: EditorCommands;
@@ -2638,7 +2750,6 @@ declare class Editor implements EditorObservable {
     destroyed: boolean;
     dom: DOMUtils;
     editorContainer: HTMLElement;
-    editorUpload: EditorUpload;
     eventRoot: Element | undefined;
     formatter: Formatter;
     formElement: HTMLElement | undefined;
@@ -2758,6 +2869,9 @@ interface RangeUtils {
     walk: (rng: Range, callback: (nodes: Node[]) => void) => void;
     split: (rng: Range) => RangeLikeObject;
     normalize: (rng: Range) => boolean;
+    expand: (rng: Range, options?: {
+        type: 'word';
+    }) => Range;
 }
 interface ScriptLoaderSettings {
     referrerPolicy?: ReferrerPolicy;

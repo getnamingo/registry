@@ -1,5 +1,5 @@
 /**
- * TinyMCE version 6.2.0 (2022-09-08)
+ * TinyMCE version 6.4.2 (2023-04-26)
  */
 
 (function () {
@@ -628,6 +628,12 @@
         type: 'premium'
       },
       {
+        key: 'advtemplate',
+        name: 'Advanced Templates',
+        type: 'premium',
+        slug: 'advanced-templates'
+      },
+      {
         key: 'casechange',
         name: 'Case Change',
         type: 'premium'
@@ -648,6 +654,12 @@
         type: 'premium'
       },
       {
+        key: 'typography',
+        name: 'Advanced Typography',
+        type: 'premium',
+        slug: 'advanced-typography'
+      },
+      {
         key: 'mediaembed',
         name: 'Enhanced Media Embed',
         type: 'premium',
@@ -662,6 +674,12 @@
         key: 'formatpainter',
         name: 'Format Painter',
         type: 'premium'
+      },
+      {
+        key: 'inlinecss',
+        name: 'Inline CSS',
+        type: 'premium',
+        slug: 'inline-css'
       },
       {
         key: 'linkchecker',
@@ -712,6 +730,11 @@
         type: 'premium'
       },
       {
+        key: 'tableofcontents',
+        name: 'Table of Contents',
+        type: 'premium'
+      },
+      {
         key: 'tinycomments',
         name: 'Tiny Comments',
         type: 'premium',
@@ -722,11 +745,6 @@
         name: 'Tiny Drive',
         type: 'premium',
         slug: 'tinydrive-introduction'
-      },
-      {
-        key: 'tableofcontents',
-        name: 'Table of Contents',
-        type: 'premium'
       }
     ], item => ({
       ...item,
@@ -891,7 +909,7 @@
       };
       editor.windowManager.open({
         title: 'Help',
-        size: 'medium',
+        size: 'normal',
         body,
         buttons: [{
             type: 'cancel',

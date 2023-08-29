@@ -1,11 +1,11 @@
 /**
- * TinyMCE version 6.2.0 (2022-09-08)
+ * TinyMCE version 6.4.2 (2023-04-26)
  */
 
 (function () {
     'use strict';
 
-    var global$2 = tinymce.util.Tools.resolve('tinymce.PluginManager');
+    var global$1 = tinymce.util.Tools.resolve('tinymce.PluginManager');
 
     const hasProto = (v, constructor, predicate) => {
       var _a;
@@ -111,11 +111,10 @@
       });
     };
 
-    var global$1 = tinymce.util.Tools.resolve('tinymce.Env');
-
     var global = tinymce.util.Tools.resolve('tinymce.util.Delay');
 
     const pickFile = editor => new Promise(resolve => {
+      let resolved = false;
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
@@ -124,20 +123,29 @@
       fileInput.style.top = '0';
       fileInput.style.opacity = '0.001';
       document.body.appendChild(fileInput);
-      const changeHandler = e => {
-        resolve(Array.prototype.slice.call(e.target.files));
+      const resolveFileInput = value => {
+        var _a;
+        if (!resolved) {
+          (_a = fileInput.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(fileInput);
+          resolved = true;
+          resolve(value);
+        }
       };
+      const changeHandler = e => {
+        resolveFileInput(Array.prototype.slice.call(e.target.files));
+      };
+      fileInput.addEventListener('input', changeHandler);
       fileInput.addEventListener('change', changeHandler);
       const cancelHandler = e => {
         const cleanup = () => {
-          var _a;
-          resolve([]);
-          (_a = fileInput.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(fileInput);
+          resolveFileInput([]);
         };
-        if (global$1.os.isAndroid() && e.type !== 'remove') {
-          global.setEditorTimeout(editor, cleanup, 0);
-        } else {
-          cleanup();
+        if (!resolved) {
+          if (e.type === 'focusin') {
+            global.setEditorTimeout(editor, cleanup, 1000);
+          } else {
+            cleanup();
+          }
         }
         editor.off('focusin remove', cancelHandler);
       };
@@ -269,6 +277,20 @@
     }
     Optional.singletonNone = new Optional(false);
 
+    typeof window !== 'undefined' ? window : Function('return this;')();
+
+    const ELEMENT = 1;
+
+    const name = element => {
+      const r = element.dom.nodeName;
+      return r.toLowerCase();
+    };
+
+    const has = (element, key) => {
+      const dom = element.dom;
+      return dom && dom.hasAttribute ? dom.hasAttribute(key) : false;
+    };
+
     var ClosestOrAncestor = (is, ancestor, scope, a, isRoot) => {
       if (is(scope, a)) {
         return Optional.some(scope);
@@ -278,8 +300,6 @@
         return ancestor(scope, a, isRoot);
       }
     };
-
-    const ELEMENT = 1;
 
     const fromHtml = (html, scope) => {
       const doc = scope || document;
@@ -337,13 +357,6 @@
       }
     };
 
-    typeof window !== 'undefined' ? window : Function('return this;')();
-
-    const name = element => {
-      const r = element.dom.nodeName;
-      return r.toLowerCase();
-    };
-
     const ancestor$1 = (scope, predicate, isRoot) => {
       let element = scope.dom;
       const stop = isFunction(isRoot) ? isRoot : never;
@@ -358,10 +371,12 @@
       }
       return Optional.none();
     };
-    const closest$1 = (scope, predicate, isRoot) => {
+    const closest$2 = (scope, predicate, isRoot) => {
       const is = (s, test) => test(s);
       return ClosestOrAncestor(is, ancestor$1, scope, predicate, isRoot);
     };
+
+    const closest$1 = (scope, predicate, isRoot) => closest$2(scope, predicate, isRoot).isSome();
 
     const ancestor = (scope, selector, isRoot) => ancestor$1(scope, e => is(e, selector), isRoot);
     const closest = (scope, selector, isRoot) => {
@@ -377,7 +392,7 @@
             const sugarNode = SugarElement.fromDom(node);
             const textBlockElementsMap = editor.schema.getTextBlockElements();
             const isRoot = elem => elem.dom === editor.getBody();
-            return closest(sugarNode, 'table', isRoot).fold(() => closest$1(sugarNode, elem => name(elem) in textBlockElementsMap && editor.dom.isEmpty(elem.dom), isRoot).isSome(), never);
+            return !has(sugarNode, 'data-mce-bogus') && closest(sugarNode, 'table,[data-mce-bogus="all"]', isRoot).fold(() => closest$1(sugarNode, elem => name(elem) in textBlockElementsMap && editor.dom.isEmpty(elem.dom), isRoot), never);
           },
           items: insertToolbarItems,
           position: 'line',
@@ -409,7 +424,7 @@
     };
 
     var Plugin = () => {
-      global$2.add('quickbars', editor => {
+      global$1.add('quickbars', editor => {
         register(editor);
         setupButtons(editor);
         addToEditor$1(editor);
