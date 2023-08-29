@@ -44,11 +44,18 @@ $routeParser = $app->getRouteCollector()->getRouteParser();
 
 require_once __DIR__ . '/database.php';
 
-$desiredLanguage = 'en_US'; // Default language
+// Known set of languages
+$allowedLanguages = ['en_US', 'uk_UA', 'es_ES']; // Add more as needed
 
-// Check for a URL parameter
-if (isset($_GET['lang'])) {
-    $desiredLanguage = $_GET['lang'];
+if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
+    // Use regex to validate the format: two letters, underscore, two letters
+    if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
+        $desiredLanguage = $_SESSION['_lang'];
+    } else {
+        $desiredLanguage = 'en_US';
+    }
+} else {
+    $desiredLanguage = 'en_US';
 }
 
 $languageFile = '../lang/' . $desiredLanguage . '/messages.po';

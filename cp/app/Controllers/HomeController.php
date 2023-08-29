@@ -9,10 +9,10 @@ use Psr\Container\ContainerInterface;
 
 class HomeController extends Controller
 {
-	public function index(Request $request, Response $response)
-	{
+    public function index(Request $request, Response $response)
+    {
         return view($response,'index.twig');
-	}
+    }
 
     public function dashboard(Request $request, Response $response)
     {
@@ -20,21 +20,21 @@ class HomeController extends Controller
         $users = $userModel->getAllUsers();
         return view($response,'admin/dashboard/index.twig', compact('users'));
     }
-	
+    
     public function mode(Request $request, Response $response)
     {
-		if ($_SESSION['_screen_mode'] == 'dark') {
-			$_SESSION['_screen_mode'] = 'light';
-		} else {
-			$_SESSION['_screen_mode'] = 'dark';
-		}
+        if ($_SESSION['_screen_mode'] == 'dark') {
+            $_SESSION['_screen_mode'] = 'light';
+        } else {
+            $_SESSION['_screen_mode'] = 'dark';
+        }
         $referer = $request->getHeaderLine('Referer');
         if (!empty($referer)) {
             return $response->withHeader('Location', $referer)->withStatus(302);
         }
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
-	
+    
     public function avatar(Request $request, Response $response)
     {
         $avatar = new \LasseRafn\InitialAvatarGenerator\InitialAvatar();
@@ -43,5 +43,20 @@ class HomeController extends Controller
         $psrResponse = $psr17Factory->createResponse(200)->withBody($stream);
 
         return $psrResponse;
+    }
+
+    public function lang(Request $request, Response $response)
+    {
+        $data = $request->getQueryParams();
+        if (!empty($data)) {
+            $_SESSION['_lang'] = array_key_first($data);
+        } else {
+            unset($_SESSION['_lang']);
+        }
+        $referer = $request->getHeaderLine('Referer');
+        if (!empty($referer)) {
+            return $response->withHeader('Location', $referer)->withStatus(302);
+        }
+        return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
 }

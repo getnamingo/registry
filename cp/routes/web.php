@@ -45,6 +45,7 @@ $app->group('', function ($route) {
     $route->get('/profile/plans', ProfileController::class .':plans')->setName('plans');
     $route->get('/profile/invoices', ProfileController::class .':invoices')->setName('invoices');
     $route->get('/mode', HomeController::class .':mode')->setName('mode');
+    $route->get('/lang', HomeController::class .':lang')->setName('lang');
     $route->get('/avatar', HomeController::class .':avatar')->setName('avatar');
     $route->get('/logout', AuthController::class . ':logout')->setName('logout');
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');
