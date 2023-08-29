@@ -1,2 +1,14 @@
 msgid "Dashboard"
-msgstr "Панель керування"
+msgstr "Інформаційна панель"
+
+msgid "Domains"
+msgstr "Домени"
+
+msgid "Contacts"
+msgstr "Контакти"
+
+msgid "Hosts"
+msgstr "Хости"
+
+msgid "Logs"
+msgstr "Логи"

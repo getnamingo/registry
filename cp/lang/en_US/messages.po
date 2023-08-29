@@ -1,2 +1,14 @@
 msgid "Dashboard"
 msgstr "Dashboard"
+
+msgid "Domains"
+msgstr "Domains"
+
+msgid "Contacts"
+msgstr "Contacts"
+
+msgid "Hosts"
+msgstr "Hosts"
+
+msgid "Logs"
+msgstr "Logs"
