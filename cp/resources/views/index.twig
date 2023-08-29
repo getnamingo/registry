@@ -6,39 +6,69 @@
     <meta name="description" content="Namingo Registry control panel.">
     <meta name="author" content="Taras Kondratyuk">
     <title>Namingo Registry</title>
-	{% include 'partials/css.twig' %}
+    {% include 'partials/css.twig' %}
+    <style>
+    .nav-link {
+        color: #d1d1d1 !important;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+    .nav-link:hover {
+        color: #ffffff !important;
+    }
+    ul.custom-bullet {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    ul.custom-bullet li::before {
+        content: "•";
+        margin-right: 10px;
+        color: #333;
+    }
+    </style>
 </head>
 <body class="d-flex flex-column h-100">
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" href="."><img src="static/logo-bw.svg" width="100" alt="Namingo" /></a>
+                <a class="navbar-brand" href="."><img src="static/logo.svg" width="100" /></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbar">
                     <ul class="navbar-nav">
-						{% if auth.isLogin %}
+                        {% if auth.isLogin %}
                         <li class="nav-item">
                             <a {{ is_current_url('home') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('home')}}">
                                 Dashboard
                             </a>
                         </li>
-						{% else %}
                         <li class="nav-item">
-                            <a {{ is_current_url('register') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('register')}}">
-                                Register
+                            <a {{ is_current_url('logout') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('logout')}}">
+                                Logout
                             </a>
                         </li>
+                        {% else %}
                         <li class="nav-item">
                             <a {{ is_current_url('login') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('login')}}">
                                 Login
                             </a>
                         </li>
-						{% endif %}
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="#">
-                                Support
+                                WHOIS
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                RDAP
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                Help Center
                             </a>
                         </li>
                     </ul>
@@ -47,13 +77,20 @@
         </nav>
     </header>
     <main>
-		<div class="p-5 rounded-3 bg-light text-center">
-			<div class="container-fluid">
-				<h1 class="display-5 fw-bold">Home</h1>
-				<p class="lead">This is an example page.</p>
-				<code>resources/views/index.twig</code>
-			</div>
-		</div>
+        <div class="p-5 rounded-3 bg-light text-center">
+            <div class="container-fluid">
+                <h1 class="display-4 fw-bold">Welcome to Your Registry Panel</h1>
+                <p class="display-6 lead"><em>Access and manage your domain-related services here.</em></p>
+                <p class="lead">To get started:</p>
+                <ul class="custom-bullet">
+                <li><a href="#"><strong>Log in</strong></a> to access your registrar dashboard and manage domains.</li>
+				<li>Access our <a href="#"><strong>WHOIS</strong></a> and <a href="#"><strong>RDAP</strong></a> services for domain information lookup.</li>
+                <li>Visit our <a href="#"><strong>Help Center</strong></a> for guides, FAQs, and support.</li>
+                <li>Interested in partnering with us? <a href="#"><strong>Apply</strong></a> to become an official registrar.</li>
+                </ul>
+                <code>Personalize this template to fit the unique needs and branding of your registry by editing `resources/views/index.twig`</code>
+            </div>
+        </div>
     </main>
     <footer class="footer bg-dark mt-auto py-3">
         <div class="container">
