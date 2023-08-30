@@ -12,4 +12,9 @@ class FinancialsController extends Controller
     {
         return view($response,'admin/financials/transactions.twig');
     }
+	
+    public function overview(Request $request, Response $response)
+    {
+        return view($response,'admin/financials/overview.twig');
+    }
 }

@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') or route_is('overview') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -293,7 +293,7 @@
                     <a class="dropdown-item" href="{{route('transactions')}}">
                       {{ __('Transactions') }}
                     </a>
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{route('overview')}}">
                       {{ __('Account Overview') }}
                     </a>
                     <a class="dropdown-item" href="#">
@@ -487,6 +487,8 @@
     {% include 'partials/js-registrars.twig' %}
 {% elseif route_is('transactions') %}
     {% include 'partials/js-transactions.twig' %}
+{% elseif route_is('overview') %}
+    {% include 'partials/js-overview.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

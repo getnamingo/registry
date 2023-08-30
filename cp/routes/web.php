@@ -43,6 +43,7 @@ $app->group('', function ($route) {
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->get('/logs', LogsController::class .':view')->setName('logs');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
+    $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
     $route->get('/profile/security', ProfileController::class .':security')->setName('security');
