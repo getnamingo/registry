@@ -79,6 +79,23 @@ $app->any('/api[/{params:.*}]', function (
     return $response;
 });
 
+$app->any('/log-api[/{params:.*}]', function (
+    ServerRequest $request,
+    Response $response,
+    $args
+) use ($container) {
+    $db = config('connections');
+    $config = new Config([
+        'username' => $db['mysql']['username'],
+        'password' => $db['mysql']['password'],
+        'database' => 'registryTransaction',
+        'basePath' => '/log-api',
+    ]);
+    $api = new Api($config);
+    $response = $api->handle($request);
+    return $response;
+});
+
 $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\Server\RequestHandlerInterface $handler) {
     try {
         return $handler->handle($request);

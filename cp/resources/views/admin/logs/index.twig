@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}Log History{% endblock %}
+{% block title %}{{ __('Log History') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,7 +14,7 @@
                   Overview
                 </div>
                 <h2 class="page-title">
-                  Log History
+                  {{ __('Log History') }}
                 </h2>
               </div>
               <!-- Page title actions -->
@@ -42,54 +42,29 @@
         <!-- Page body -->
         <div class="page-body">
           <div class="container-xl">
-            <div class="card">
-              <div class="card-body">
-                <div id="table-logs" class="table-responsive">
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        <th><button class="table-sort" data-sort="sort-date">Date</button></th>
-                        <th><button class="table-sort" data-sort="sort-registrar">Registrar</button></th>
-                        <th><button class="table-sort" data-sort="sort-command">Command</button></th>
-                        <th><button class="table-sort" data-sort="sort-object">Object</button></th>
-                        <th><button class="table-sort" data-sort="sort-result">Result</button></th>
-                        <th><button class="table-sort" data-sort="sort-message">Message</button></th>
-                        <th><button class="table-sort" data-sort="sort-milliseconds">Milliseconds</button></th>
-                        <th><button class="table-sort" data-sort="sort-cltrid">clTRID</button></th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="table-tbody">
-						{% for log in logs %}
-							<tr>
-								<td class="sort-date">{{ log.cldate }}</td>
-								<td class="sort-registrar">{{ log.registrar_id }}</td>
-								<td class="sort-command">{{ log.cmd }}</td>
-								<td class="sort-object">{{ log.obj_id }}</td>
-								<td class="sort-result">{{ log.code }}</td>
-								<td class="sort-message">{{ log.msg }}</td>
-								<td class="sort-milliseconds">{{ log.clmicrosecond }}</td>
-								<td class="sort-cltrid">{{ log.clTRID }}</td>
-                          <td class="text-end">
-                            <span class="dropdown">
-                              <button class="btn dropdown-toggle align-text-top" data-bs-boundary="viewport" data-bs-toggle="dropdown">Actions</button>
-                              <div class="dropdown-menu dropdown-menu-end">
-                                <a class="dropdown-item" href="#">
-                                  Action
-                                </a>
-                                <a class="dropdown-item" href="#">
-                                  Another action
-                                </a>
-                              </div>
-                            </span>
-                          </td>
-							</tr>
-						{% endfor %}
-                    </tbody>
-                  </table><ul class="pagination"></ul>
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                  <div class="d-flex">
+                    <div class="text-secondary">
+                      <button class="btn btn-info btn-icon" onclick="downloadCSV()"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 15a1 1 0 0 0 1 1h2a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-2a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1"></path><path d="M17 8l2 8l2 -8"></path><path d="M7 10a2 2 0 1 0 -4 0v4a2 2 0 1 0 4 0"></path></svg></button>
+                      <button class="btn btn-info btn-icon" onclick="downloadJSON()"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 16v-8l3 8v-8"></path><path d="M15 8a2 2 0 0 1 2 2v4a2 2 0 1 1 -4 0v-4a2 2 0 0 1 2 -2z"></path><path d="M1 8h3v6.5a1.5 1.5 0 0 1 -3 0v-.5"></path><path d="M7 15a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-1a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h1a1 1 0 0 1 1 1"></path></svg></button>
+                      <button class="btn btn-green btn-icon" onclick="downloadXLSX()"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M14 3v4a1 1 0 0 0 1 1h4"></path><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4"></path><path d="M4 15l4 6"></path><path d="M4 21l4 -6"></path><path d="M17 20.25c0 .414 .336 .75 .75 .75h1.25a1 1 0 0 0 1 -1v-1a1 1 0 0 0 -1 -1h-1a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1h1.25a.75 .75 0 0 1 .75 .75"></path><path d="M11 15v6h3"></path></svg></button>
+                      <button class="btn btn-red btn-icon" onclick="downloadPDF()"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 8v8h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-2z"></path><path d="M3 12h2a2 2 0 1 0 0 -4h-2v8"></path><path d="M17 12h3"></path><path d="M21 8h-4v8"></path></svg></button>
+                    </div>
+                    <div class="ms-auto text-secondary">
+                      Search:
+                      <div class="ms-2 d-inline-block">
+                        <input id="search-input" type="text" class="form-control" aria-label="Search logs">
+                      </div>
+                    </div>
+                  </div>
                 </div>
-			</div>
-		</div>
+                <div class="table-responsive">
+                  <div id="logTable"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <footer class="footer footer-transparent d-print-none">
