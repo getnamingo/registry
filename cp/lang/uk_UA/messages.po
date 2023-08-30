@@ -4,6 +4,24 @@ msgstr "Інформаційна панель"
 msgid "Domains"
 msgstr "Домени"
 
+msgid "List Domains"
+msgstr "Список доменів"
+
+msgid "Check Domain"
+msgstr "Перевірте домен"
+
+msgid "Create Domain"
+msgstr "Створити домен"
+
+msgid "List Applications"
+msgstr "Список заяв"
+
+msgid "Create Application"
+msgstr "Створити заявку"
+
+msgid "Transfers"
+msgstr "Трансфери"
+
 msgid "Contacts"
 msgstr "Контакти"
 
@@ -12,3 +30,18 @@ msgstr "Хости"
 
 msgid "Logs"
 msgstr "Логи"
+
+msgid "Registrars"
+msgstr "Реєстратори"
+
+msgid "Financials"
+msgstr "Фінанси"
+
+msgid "Reports"
+msgstr "Звіти"
+
+msgid "System"
+msgstr "Система"
+
+msgid "Support"
+msgstr "Підтримка"

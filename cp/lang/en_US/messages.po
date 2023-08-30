@@ -4,6 +4,24 @@ msgstr "Dashboard"
 msgid "Domains"
 msgstr "Domains"
 
+msgid "List Domains"
+msgstr "List Domains"
+
+msgid "Check Domain"
+msgstr "Check Domain"
+
+msgid "Create Domain"
+msgstr "Create Domain"
+
+msgid "List Applications"
+msgstr "List Applications"
+
+msgid "Create Application"
+msgstr "Create Application"
+
+msgid "Transfers"
+msgstr "Transfers"
+
 msgid "Contacts"
 msgstr "Contacts"
 
@@ -12,3 +30,18 @@ msgstr "Hosts"
 
 msgid "Logs"
 msgstr "Logs"
+
+msgid "Registrars"
+msgstr "Registrars"
+
+msgid "Financials"
+msgstr "Financials"
+
+msgid "Reports"
+msgstr "Reports"
+
+msgid "System"
+msgstr "System"
+
+msgid "Support"
+msgstr "Support"
