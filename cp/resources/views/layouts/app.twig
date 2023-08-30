@@ -6,15 +6,19 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-	{% include 'partials/css.twig' %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') %}
+        {% include 'partials/css-tables.twig' %}
+    {% else %}
+        {% include 'partials/css.twig' %}
+    {% endif %}
     <style>
       @import url('https://rsms.me/inter/inter.css');
       :root {
-      	--tblr-font-sans-serif: Inter, -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+          --tblr-font-sans-serif: Inter, -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
       }
     </style>
   </head>
-  <body class="layout-fluid"{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
+  <body{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
     <div class="page">
       <!-- Navbar -->
       <header class="navbar navbar-expand-md navbar-light d-print-none">
@@ -30,7 +34,7 @@
           <div class="navbar-nav flex-row order-md-last">
             <div class="nav-item d-none d-md-flex me-3">
               <div class="btn-list">
-			    <div class="dropdown">
+                <div class="dropdown">
                   <a href="#" class="btn dropdown-toggle" data-bs-toggle="dropdown"><span class="flag flag-country-gb-eng"></span>&nbsp;English</a>
                     <div class="dropdown-menu">
                       <a href="/lang?en_US" class="dropdown-item"><span class="flag flag-country-gb-eng"></span>&nbsp;English</a>
@@ -41,12 +45,12 @@
             </div>
             <div class="d-none d-md-flex">
               <a href="/mode" class="nav-link px-0 hide-theme-dark" title="Enable dark mode" data-bs-toggle="tooltip"
-		   data-bs-placement="bottom">
+           data-bs-placement="bottom">
                 <!-- Download SVG icon from http://tabler-icons.io/i/moon -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>
               </a>
               <a href="/mode" class="nav-link px-0 hide-theme-light" title="Enable light mode" data-bs-toggle="tooltip"
-		   data-bs-placement="bottom">
+           data-bs-placement="bottom">
                 <!-- Download SVG icon from http://tabler-icons.io/i/sun -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="4" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></svg>
               </a>

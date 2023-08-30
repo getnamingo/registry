@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}Domains{% endblock %}
+{% block title %}{{ __('Domains') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,7 +14,7 @@
                   Overview
                 </div>
                 <h2 class="page-title">
-                  Domains
+                  {{ __('Domains') }}
                 </h2>
               </div>
               <!-- Page title actions -->
@@ -42,28 +42,26 @@
         <!-- Page body -->
         <div class="page-body">
           <div class="container-xl">
-            <div class="card">
-              <div class="card-body">
-                <div id="table-default" class="table-responsive">
-                  <table id="domainTable" class="table">
-                    <thead>
-                      <tr>
-                        <th><button class="table-sort" data-sort="sort-id">ID</button></th>
-                        <th><button class="table-sort" data-sort="sort-name">Name</button></th>
-                        <th><button class="table-sort" data-sort="sort-crdate">Creation Date</button></th>
-                        <th><button class="table-sort" data-sort="sort-exdate">Expiration Date</button></th>
-                        <th><button class="table-sort" data-sort="sort-registrant">Registrant</button></th>
-                        <th><button class="table-sort" data-sort="sort-status">Status</button></th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="table-tbody">
-					    <!-- Rows will be added here dynamically -->
-                    </tbody>
-                  </table>
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">{{ __('Domains') }}</h3>
                 </div>
-			</div>
-		</div>
+                <div class="card-body border-bottom py-3">
+                  <div class="d-flex">
+                    <div class="ms-auto text-secondary">
+                      Search:
+                      <div class="ms-2 d-inline-block">
+                        <input id="search-input" type="text" class="form-control form-control-sm" aria-label="Search invoice">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <div id="domainTable"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <footer class="footer footer-transparent d-print-none">

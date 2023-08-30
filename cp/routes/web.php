@@ -62,6 +62,17 @@ $app->any('/api[/{params:.*}]', function (
         'password' => $db['mysql']['password'],
         'database' => $db['mysql']['database'],
         'basePath' => '/api',
+        'middlewares' => 'authorization,sanitation',
+        'authorization.tableHandler' => function ($operation, $tableName) {
+        $restrictedTables = ['users', 'contact_authInfo', 'contact_postalInfo', 'domain_authInfo', 'secdns'];
+            return !in_array($tableName, $restrictedTables);
+        },
+        'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
+            return !($tableName == 'registrar' && $columnName == 'pw');
+        },
+        'sanitation.handler' => function ($operation, $tableName, $column, $value) {
+            return is_string($value) ? strip_tags($value) : $value;
+        },
     ]);
     $api = new Api($config);
     $response = $api->handle($request);
