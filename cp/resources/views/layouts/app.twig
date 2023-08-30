@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -237,13 +237,13 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      List Hosts
+                      {{ __('List Hosts') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Check Host
+                      {{ __('Check Host') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Create Host
+                      {{ __('Create Host') }}
                     </a>
                   </div>
                 </li>
@@ -257,24 +257,24 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('registrars')}}">
-                      List Registrars
+                      {{ __('List Registrars') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Create Registrar
+                      {{ __('Create Registrar') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Communication
+                      {{ __('Communication') }}
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="#">
-                      List Applications
+                      {{ __('List Applications') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Compliance
+                      {{ __('Compliance') }}
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('hosts') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('transactions') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"></path><path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2"></path></svg>
 					</span>
@@ -284,20 +284,20 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Pricing
+                      {{ __('Pricing') }}
                     </a>
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Add Deposit
+                      {{ __('Add Deposit') }}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">
-                      Transactions
+                    <a class="dropdown-item" href="{{route('transactions')}}">
+                      {{ __('Transactions') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Account Overview
+                      {{ __('Account Overview') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Invoices
+                      {{ __('Invoices') }}
                     </a>
                   </div>
                 </li>
@@ -320,23 +320,20 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Configuration
+                      {{ __('Configuration') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      User Management
+                      {{ __('User Management') }}
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{route('logs')}}">
-                      Reports
+                      {{ __('EPP Log') }}
                     </a>
                     <a class="dropdown-item" href="{{route('logs')}}">
-                      EPP Log
+                      {{ __('Audit Log') }}
                     </a>
                     <a class="dropdown-item" href="{{route('logs')}}">
-                      Audit Log
-                    </a>
-                    <a class="dropdown-item" href="{{route('logs')}}">
-                      Backup
+                      {{ __('Backup') }}
                     </a>
                   </div>
                 </li>
@@ -350,17 +347,17 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Support Tickets
+                      {{ __('Support Tickets') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Create Ticket
+                      {{ __('Create Ticket') }}
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Documentation
+                      {{ __('Documentation') }}
                     </a>
                     <a class="dropdown-item" href="{{route('hosts')}}">
-                      Media Kit
+                      {{ __('Media Kit') }}
                     </a>
                   </div>
                 </li>
@@ -488,6 +485,8 @@
     {% include 'partials/js-logs.twig' %}
 {% elseif route_is('registrars') %}
     {% include 'partials/js-registrars.twig' %}
+{% elseif route_is('transactions') %}
+    {% include 'partials/js-transactions.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

@@ -7,6 +7,7 @@ use App\Controllers\ContactsController;
 use App\Controllers\HostsController;
 use App\Controllers\LogsController;
 use App\Controllers\RegistrarsController;
+use App\Controllers\FinancialsController;
 use App\Controllers\ProfileController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
@@ -41,6 +42,7 @@ $app->group('', function ($route) {
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->get('/logs', LogsController::class .':view')->setName('logs');
+    $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
     $route->get('/profile/security', ProfileController::class .':security')->setName('security');

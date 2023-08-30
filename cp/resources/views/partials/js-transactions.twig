@@ -1,0 +1,58 @@
+<script src="/assets/js/tabulator.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script>
+    var table;
+    document.addEventListener("DOMContentLoaded", function(){
+    table = new Tabulator("#transactionTable", {
+        ajaxURL:"/api/records/statement", // Set the URL for your JSON data
+        ajaxConfig:"GET",
+        pagination:"local",
+        paginationSize:10,
+        ajaxResponse:function(url, params, response){
+            return response.records;
+        },
+        layout:"fitColumns",
+        responsiveLayout: "hide",
+        initialSort:[
+            {column:"date", dir:"desc"},
+        ],
+        columns:[
+            {title:"Registrar", field:"registrar_id", headerSort:true},
+            {title:"Date", field:"date", headerSort:true, responsive:0},
+            {title:"Command", field:"command", headerSort:true, responsive:0},
+            {title:"Domain", field:"domain_name", headerSort:false, download:false},
+            {title:"Length", field:"length_in_months", headerSort:true},
+            {title:"From", field:"from", headerSort:true, responsive:0},
+            {title:"To", field:"to", headerSort:true, responsive:0},
+            {title:"Amount", field:"amount", headerSort:false, download:false},
+        ],
+    });
+    var searchInput = document.getElementById("search-input");
+        searchInput.addEventListener("input", function(){
+            table.setFilter("command", "like", searchInput.value);
+        });
+    });
+   
+    function downloadCSV() {
+        table.download("csv", "data.csv");
+    }
+
+    function downloadJSON() {
+        table.download("json", "data.json");
+    }
+
+    function downloadXLSX() {
+        table.download("xlsx", "data.xlsx", {sheetName:"My Registrars"});
+    }
+    
+    function downloadPDF() {
+        table.download("pdf", "data.pdf", {
+            orientation:"portrait",
+            title:"My Registrars",
+            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+        });
+    }
+</script>
