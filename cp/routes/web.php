@@ -6,6 +6,7 @@ use App\Controllers\DomainsController;
 use App\Controllers\ContactsController;
 use App\Controllers\HostsController;
 use App\Controllers\LogsController;
+use App\Controllers\RegistrarsController;
 use App\Controllers\ProfileController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
@@ -38,6 +39,7 @@ $app->group('', function ($route) {
     $route->get('/domains', DomainsController::class .':view')->setName('domains');
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
+    $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->get('/logs', LogsController::class .':view')->setName('logs');
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
