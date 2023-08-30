@@ -10,6 +10,7 @@ use Slim\Views\TwigMiddleware;
 use Twig\TwigFunction;
 use Gettext\Loader\PoLoader;
 use Gettext\Translations;
+use Punic\Language;
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -51,12 +52,20 @@ if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)
     // Use regex to validate the format: two letters, underscore, two letters
     if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
         $desiredLanguage = $_SESSION['_lang'];
+        $parts = explode('_', $_SESSION['_lang']);
+        if (isset($parts[1])) {
+            $uiLang = strtolower($parts[1]);
+        }
     } else {
         $desiredLanguage = 'en_US';
+		$uiLang = 'us';
     }
 } else {
     $desiredLanguage = 'en_US';
+	$uiLang = 'us';
 }
+$lang_full = Language::getName($desiredLanguage, 'en');
+$lang = trim(strstr($lang_full, ' (', true));
 
 $languageFile = '../lang/' . $desiredLanguage . '/messages.po';
 if (!file_exists($languageFile)) {
@@ -87,7 +96,7 @@ $container->set('flash', function() {
     return new \Slim\Flash\Messages;
 });
 
-$container->set('view', function ($container) use ($translations) {
+$container->set('view', function ($container) use ($translations, $uiLang, $lang) {
     $view = Twig::create(__DIR__ . '/../resources/views', [
         'cache' => false,
     ]);
@@ -95,13 +104,15 @@ $container->set('view', function ($container) use ($translations) {
         'isLogin' => $container->get('auth')->isLogin(),
         'user' => $container->get('auth')->user(),
     ]);
+    $view->getEnvironment()->addGlobal('uiLang', $uiLang);
+    $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));   
     if (isset($_SESSION['_screen_mode'])) {
         $view->getEnvironment()->addGlobal('screen_mode', $_SESSION['_screen_mode']);
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
     }
-	
+
     $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
         // Find the translation
         $translation = $translations->find(null, $text);
@@ -119,11 +130,11 @@ $container->set('view', function ($container) use ($translations) {
     });
     $view->getEnvironment()->addFunction($route);
     
-	// Define the route_is function
-	$routeIs = new \Twig\TwigFunction('route_is', function ($routeName) {
-		return strpos($_SERVER['REQUEST_URI'], $routeName) !== false;
-	});
-	$view->getEnvironment()->addFunction($routeIs);
+    // Define the route_is function
+    $routeIs = new \Twig\TwigFunction('route_is', function ($routeName) {
+        return strpos($_SERVER['REQUEST_URI'], $routeName) !== false;
+    });
+    $view->getEnvironment()->addFunction($routeIs);
 
     //assets
     $assets = new TwigFunction('assets', function ($location) {
