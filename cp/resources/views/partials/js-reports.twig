@@ -1,0 +1,58 @@
+<script src="/assets/js/tabulator.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script>
+    var table;
+
+    document.addEventListener("DOMContentLoaded", function(){
+    table = new Tabulator("#reportTable", {
+        ajaxURL:"/api/records/statistics", // Set the URL for your JSON data
+        ajaxConfig:"GET",
+        pagination:"local",
+        paginationSize:10,
+        ajaxResponse:function(url, params, response){
+            return response.records;
+        },
+        layout:"fitColumns",
+        responsiveLayout: "hide",
+        initialSort:[
+            {column:"date", dir:"desc"},
+        ],
+        columns:[
+            {title:"Date", field:"date", headerSort:true},
+            {title:"Total Domains", field:"total_domains", headerSort:true},
+            {title:"Created Domains", field:"created_domains", headerSort:true, responsive:0},
+            {title:"Renewed Domains", field:"renewed_domains", headerSort:true, responsive:0},
+            {title:"Transferred Domains", field:"transfered_domains", headerSort:true, responsive:0},
+            {title:"Deleted Domains", field:"deleted_domains", headerSort:true},
+            {title:"Restored Domains", field:"restored_domains", headerSort:true, responsive:0, download:false}
+        ],
+    });
+    var searchInput = document.getElementById("search-input");
+        searchInput.addEventListener("input", function(){
+            table.setFilter("date", "like", searchInput.value);
+        });
+    });
+   
+    function downloadCSV() {
+        table.download("csv", "data.csv");
+    }
+
+    function downloadJSON() {
+        table.download("json", "data.json");
+    }
+
+    function downloadXLSX() {
+        table.download("xlsx", "data.xlsx", {sheetName:"My Reports"});
+    }
+    
+    function downloadPDF() {
+        table.download("pdf", "data.pdf", {
+            orientation:"portrait",
+            title:"My Reports",
+            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+        });
+    }
+</script>

@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') or route_is('overview') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -299,8 +299,8 @@
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('logs') ? 'class="nav-item active"' : 'class="nav-item"' }}>
-                  <a class="nav-link" href="{{route('logs')}}">
+                <li {{ is_current_url('reports') ? 'class="nav-item active"' : 'class="nav-item"' }}>
+                  <a class="nav-link" href="{{route('reports')}}">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path><path d="M9 17v-5"></path><path d="M12 17v-1"></path><path d="M15 17v-3"></path></svg>
                     </span>
                     <span class="nav-link-title">
@@ -487,6 +487,8 @@
     {% include 'partials/js-transactions.twig' %}
 {% elseif route_is('overview') %}
     {% include 'partials/js-overview.twig' %}
+{% elseif route_is('reports') %}
+    {% include 'partials/js-reports.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}
