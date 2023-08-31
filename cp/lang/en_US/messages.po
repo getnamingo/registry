@@ -1,6 +1,18 @@
 msgid "Dashboard"
 msgstr "Dashboard"
 
+msgid "Enable dark mode"
+msgstr "Enable dark mode"
+
+msgid "Enable light mode"
+msgstr "Enable light mode"
+
+msgid "My Profile"
+msgstr "My Profile"
+
+msgid "Logout"
+msgstr "Logout"
+
 msgid "Domains"
 msgstr "Domains"
 
@@ -25,8 +37,32 @@ msgstr "Transfers"
 msgid "Contacts"
 msgstr "Contacts"
 
+msgid "List Contacts"
+msgstr "List Contacts"
+
+msgid "Check Contact"
+msgstr "Check Contact"
+
+msgid "Create Contact"
+msgstr "Create Contact"
+
+msgid "Abuse Prevention"
+msgstr "Abuse Prevention"
+
+msgid "Communication"
+msgstr "Communication"
+
 msgid "Hosts"
 msgstr "Hosts"
+
+msgid "List Hosts"
+msgstr "List Hosts"
+
+msgid "Check Host"
+msgstr "Check Host"
+
+msgid "Create Host"
+msgstr "Create Host"
 
 msgid "Logs"
 msgstr "Logs"
@@ -34,8 +70,32 @@ msgstr "Logs"
 msgid "Registrars"
 msgstr "Registrars"
 
+msgid "List Registrars"
+msgstr "List Registrars"
+
+msgid "Create Registrar"
+msgstr "Create Registrar"
+
+msgid "Compliance"
+msgstr "Compliance"
+
 msgid "Financials"
 msgstr "Financials"
+
+msgid "Pricing"
+msgstr "Pricing"
+
+msgid "Add Deposit"
+msgstr "Add Deposit"
+
+msgid "Transactions"
+msgstr "Transactions"
+
+msgid "Account Overview"
+msgstr "Account Overview"
+
+msgid "Invoices"
+msgstr "Invoices"
 
 msgid "Reports"
 msgstr "Reports"
@@ -43,5 +103,32 @@ msgstr "Reports"
 msgid "System"
 msgstr "System"
 
+msgid "Configuration"
+msgstr "Configuration"
+
+msgid "User Management"
+msgstr "User Management"
+
+msgid "EPP Log"
+msgstr "EPP Log"
+
+msgid "Audit Log"
+msgstr "Audit Log"
+
+msgid "Backup"
+msgstr "Backup"
+
 msgid "Support"
 msgstr "Support"
+
+msgid "Support Tickets"
+msgstr "Support Tickets"
+
+msgid "Create Ticket"
+msgstr "Create Ticket"
+
+msgid "Documentation"
+msgstr "Documentation"
+
+msgid "Media Kit"
+msgstr "Media Kit"

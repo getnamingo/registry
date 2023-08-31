@@ -44,14 +44,12 @@
               </div>
             </div>
             <div class="d-none d-md-flex">
-              <a href="/mode" class="nav-link px-0 hide-theme-dark" title="Enable dark mode" data-bs-toggle="tooltip"
+              <a href="/mode" class="nav-link px-0 hide-theme-dark" title="{{ __('Enable dark mode') }}" data-bs-toggle="tooltip"
            data-bs-placement="bottom">
-                <!-- Download SVG icon from http://tabler-icons.io/i/moon -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>
               </a>
-              <a href="/mode" class="nav-link px-0 hide-theme-light" title="Enable light mode" data-bs-toggle="tooltip"
+              <a href="/mode" class="nav-link px-0 hide-theme-light" title="{{ __('Enable light mode') }}" data-bs-toggle="tooltip"
            data-bs-placement="bottom">
-                <!-- Download SVG icon from http://tabler-icons.io/i/sun -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="4" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></svg>
               </a>
               <div class="nav-item dropdown d-none d-md-flex me-3">
@@ -148,8 +146,8 @@
                 </div>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                <a href="{{route('profile')}}" class="dropdown-item">Profile</a>
-                <a href="{{route('logout')}}" class="dropdown-item">Logout</a>
+                <a href="{{route('profile')}}" class="dropdown-item">{{ __('My Profile') }}</a>
+                <a href="{{route('logout')}}" class="dropdown-item">{{ __('Logout') }}</a>
               </div>
             </div>
           </div>
@@ -210,20 +208,20 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('contacts')}}">
-                      List Contacts
+                      {{ __('List Contacts') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Check Contact
+                      {{ __('Check Contact') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Create Contact
+                      {{ __('Create Contact') }}
                     </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="#">
-                      Abuse Prevention
+                      {{ __('Abuse Prevention') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      Communication
+                      {{ __('Communication') }}
                     </a>
                   </div>
                 </li>

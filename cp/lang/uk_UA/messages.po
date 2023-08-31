@@ -1,6 +1,18 @@
 msgid "Dashboard"
 msgstr "Інформаційна панель"
 
+msgid "Enable dark mode"
+msgstr "Увімкніть темний режим"
+
+msgid "Enable light mode"
+msgstr "Увімкніть світлий режим"
+
+msgid "My Profile"
+msgstr "Мій профіль"
+
+msgid "Logout"
+msgstr "Вийти"
+
 msgid "Domains"
 msgstr "Домени"
 
@@ -25,8 +37,32 @@ msgstr "Трансфери"
 msgid "Contacts"
 msgstr "Контакти"
 
+msgid "List Contacts"
+msgstr "Список контактів"
+
+msgid "Check Contact"
+msgstr "Перевірте контакт"
+
+msgid "Create Contact"
+msgstr "Створити контакт"
+
+msgid "Abuse Prevention"
+msgstr "Запобігання зловживанню"
+
+msgid "Communication"
+msgstr "Комунікація"
+
 msgid "Hosts"
 msgstr "Хости"
+
+msgid "List Hosts"
+msgstr "Список хостів"
+
+msgid "Check Host"
+msgstr "Перевірте хост"
+
+msgid "Create Host"
+msgstr "Створити хост"
 
 msgid "Logs"
 msgstr "Логи"
@@ -34,8 +70,32 @@ msgstr "Логи"
 msgid "Registrars"
 msgstr "Реєстратори"
 
+msgid "List Registrars"
+msgstr "Список реєстраторів"
+
+msgid "Create Registrar"
+msgstr "Створити реєстратора"
+
+msgid "Compliance"
+msgstr "Відповідність"
+
 msgid "Financials"
 msgstr "Фінанси"
+
+msgid "Pricing"
+msgstr "Ціноутворення"
+
+msgid "Add Deposit"
+msgstr "Додати депозит"
+
+msgid "Transactions"
+msgstr "Транзакції"
+
+msgid "Account Overview"
+msgstr "Огляд рахунку"
+
+msgid "Invoices"
+msgstr "Рахунки-фактури"
 
 msgid "Reports"
 msgstr "Звіти"
@@ -43,5 +103,32 @@ msgstr "Звіти"
 msgid "System"
 msgstr "Система"
 
+msgid "Configuration"
+msgstr "Конфігурація"
+
+msgid "User Management"
+msgstr "Керування користувачами"
+
+msgid "EPP Log"
+msgstr "Журнал EPP"
+
+msgid "Audit Log"
+msgstr "Журнал аудиту"
+
+msgid "Backup"
+msgstr "Резервна копія"
+
 msgid "Support"
 msgstr "Підтримка"
+
+msgid "Support Tickets"
+msgstr "Заявки на підтримку"
+
+msgid "Create Ticket"
+msgstr "Створити заявку"
+
+msgid "Documentation"
+msgstr "Документація"
+
+msgid "Media Kit"
+msgstr "Медіакомплект"
