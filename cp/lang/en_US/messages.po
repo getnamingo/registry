@@ -22,6 +22,18 @@ msgstr "List Domains"
 msgid "Check Domain"
 msgstr "Check Domain"
 
+msgid "Enter the domain name you want to check:"
+msgstr "Enter the domain name you want to check:"
+
+msgid "Check Availability"
+msgstr "Check Availability"
+
+msgid "is available"
+msgstr "is available"
+
+msgid "is not available"
+msgstr "is not available"
+
 msgid "Create Domain"
 msgstr "Create Domain"
 

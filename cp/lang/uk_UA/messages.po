@@ -22,6 +22,18 @@ msgstr "Список доменів"
 msgid "Check Domain"
 msgstr "Перевірте домен"
 
+msgid "Enter the domain name you want to check:"
+msgstr "Введіть доменне ім’я, яке потрібно перевірити:"
+
+msgid "Check Availability"
+msgstr "Перевірте наявність"
+
+msgid "is available"
+msgstr "доступний"
+
+msgid "is not available"
+msgstr "недоступний"
+
 msgid "Create Domain"
 msgstr "Створити домен"
 

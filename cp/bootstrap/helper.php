@@ -167,3 +167,101 @@ function assets($location){
 function toArray($data){
     return json_decode(json_encode($data), true);
 }
+
+function validate_identifier($identifier) {
+    if (!$identifier) {
+        return 'Please provide a contact ID';
+    }
+
+    $length = strlen($identifier);
+
+    if ($length < 3) {
+        return 'Identifier type minLength value=3, maxLength value=16';
+    }
+
+    if ($length > 16) {
+        return 'Identifier type minLength value=3, maxLength value=16';
+    }
+
+    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
+    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
+
+    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier)) {
+        return 'The ID of the contact must contain letters (A-Z) (ASCII), hyphen (-), and digits (0-9).';
+    }
+}
+
+function validate_label($label, $db) {
+    if (!$label) {
+        return 'You must enter a domain name';
+    }
+    if (strlen($label) > 63) {
+        return 'Total lenght of your domain must be less then 63 characters';
+    }
+    if (strlen($label) < 2) {
+        return 'Total lenght of your domain must be greater then 2 characters';
+    }
+    if (strpos($label, 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
+        return 'Invalid domain name format, cannot begin or end with a hyphen (-)';
+    }
+    
+    // Extract TLD from the domain and prepend a dot
+    $parts = explode('.', $label);
+    $tld = "." . end($parts);
+
+    // Check if the TLD exists in the domain_tld table
+    $tldExists = $db->select('SELECT COUNT(*) FROM domain_tld WHERE tld = ?', [$tld]);
+
+    if ($tldExists[0]["COUNT(*)"] == 0) {
+        return 'Zone is not supported';
+    }
+
+    // Fetch the IDN regex for the given TLD
+    $idnRegex = $db->selectRow('SELECT idn_table FROM domain_tld WHERE tld = ?', [$tld]);
+
+    if (!$idnRegex) {
+        return 'Failed to fetch domain IDN table';
+    }
+
+    // Check for invalid characters using fetched regex
+    if (!preg_match($idnRegex['idn_table'], $label)) {
+        return 'Invalid domain name format, please review registry policy about accepted labels';
+    }
+}
+
+function normalize_v4_address($v4) {
+    // Remove leading zeros from the first octet
+    $v4 = preg_replace('/^0+(\d)/', '$1', $v4);
+    
+    // Remove leading zeros from successive octets
+    $v4 = preg_replace('/\.0+(\d)/', '.$1', $v4);
+
+    return $v4;
+}
+
+function normalize_v6_address($v6) {
+    // Upper case any alphabetics
+    $v6 = strtoupper($v6);
+    
+    // Remove leading zeros from the first word
+    $v6 = preg_replace('/^0+([\dA-F])/', '$1', $v6);
+    
+    // Remove leading zeros from successive words
+    $v6 = preg_replace('/:0+([\dA-F])/', ':$1', $v6);
+    
+    // Introduce a :: if there isn't one already
+    if (strpos($v6, '::') === false) {
+        $v6 = preg_replace('/:0:0:/', '::', $v6);
+    }
+
+    // Remove initial zero word before a ::
+    $v6 = preg_replace('/^0+::/', '::', $v6);
+    
+    // Remove other zero words before a ::
+    $v6 = preg_replace('/(:0)+::/', '::', $v6);
+
+    // Remove zero words following a ::
+    $v6 = preg_replace('/:(:0)+/', ':', $v6);
+
+    return $v6;
+}

@@ -38,7 +38,10 @@ $app->group('', function ($route) {
 
 $app->group('', function ($route) {
     $route->get('/dashboard', HomeController::class .':dashboard')->setName('home');
+
     $route->get('/domains', DomainsController::class .':view')->setName('domains');
+    $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':check')->setName('domaincheck');
+
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
