@@ -539,6 +539,10 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->execute([$hostName, $clid, $clid]);
         
         $host_id = $db->lastInsertId();
+		
+        $host_status = 'ok';
+        $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
+        $stmt->execute([$host_id, $host_status]);
         
         $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$hostName]);
