@@ -17,25 +17,6 @@
                   {{ __('Create Host') }}
                 </h2>
               </div>
-              <!-- Page title actions -->
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  <span class="d-none d-sm-inline">
-                    <a href="#" class="btn">
-                      New view
-                    </a>
-                  </span>
-                  <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
-                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    Create new report
-                  </a>
-                  <a href="#" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
-                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -48,13 +29,13 @@
                   <form action="/host/create" method="post">
                   {{ csrf.field | raw }}
                     <div class="form-group">
-                        <label for="hostname" class="form-label required">Host Name:</label>
+                        <label for="hostname" class="form-label required">{{ __('Host Name') }}:</label>
                         <input type="text" class="form-control" id="hostname" name="hostname" placeholder="ns1.example.com" required>
                     </div>
                     
                     {% if registrars %}
                         <div class="form-group mt-3">
-                            <label for="registrarDropdown" class="form-label required">Select Registrar:</label>
+                            <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
                             <select id="registrarDropdown" name="registrar" class="form-control">
                                 {% for registrar in registrars %}
                                     <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -64,26 +45,26 @@
                     {% endif %}
 
                     <div class="form-group mt-3">
-                        <label for="ipv4" class="form-label">IPv4 Address (Optional):</label>
+                        <label for="ipv4" class="form-label">{{ __('IPv4 Address') }} ({{ __('Optional') }}):</label>
                         <input type="text" class="form-control" id="ipv4" name="ipv4" placeholder="192.168.1.1" pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$">
-                        <small class="form-text text-muted">Please enter a valid IPv4 address.</small>
+                        <small class="form-text text-muted">{{ __('Please enter a valid IPv4 address.') }}</small>
                     </div>
 
                     <div class="form-group mt-3">
-                        <label for="ipv6" class="form-label">IPv6 Address (Optional):</label>
+                        <label for="ipv6" class="form-label">{{ __('IPv6 Address') }} ({{ __('Optional') }}):</label>
                         <input type="text" class="form-control" id="ipv6" name="ipv6" placeholder="2001:0db8:85a3:0000:0000:8a2e:0370:7334">
-                        <small class="form-text text-muted">Please enter a valid IPv6 address.</small>
+                        <small class="form-text text-muted">{{ __('Please enter a valid IPv6 address.') }}</small>
                     </div>
 
-                    <button type="submit" class="btn btn-primary mt-3">Create</button>
+                    <button type="submit" class="btn btn-primary mt-3">{{ __('Create') }}</button>
                   </form>
                   {% if hostName is defined and crdate is defined %}
                     <div class="alert alert-success mt-3" role="alert">
-                      Host <strong>{{ hostName }}</strong> has been created successfully on <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
+                      {{ __('Host') }} <strong>{{ hostName }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
                     </div>
                   {% elseif error is defined %}
                     <div class="alert alert-danger mt-3" role="alert">
-                      <strong>{{ hostName }}</strong> is not available: <strong>{{ error }}</strong>
+                      {{ __('Host') }} <strong>{{ hostName }}</strong> {{ __('is not available') }}: <strong>{{ error }}</strong>
                     </div>
                   {% endif %}
                 </div>

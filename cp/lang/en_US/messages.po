@@ -76,6 +76,39 @@ msgstr "Check Host"
 msgid "Create Host"
 msgstr "Create Host"
 
+msgid "Host Name"
+msgstr "Host Name"
+
+msgid "Select Registrar"
+msgstr "Select Registrar"
+
+msgid "IPv4 Address"
+msgstr "IPv4 Address"
+
+msgid "IPv6 Address"
+msgstr "IPv6 Address"
+
+msgid "Optional"
+msgstr "Optional"
+
+msgid "Please enter a valid IPv4 address."
+msgstr "Please enter a valid IPv4 address."
+
+msgid "Please enter a valid IPv6 address."
+msgstr "Please enter a valid IPv6 address."
+
+msgid "Create"
+msgstr "Create"
+
+msgid "Host"
+msgstr "Host"
+
+msgid "has been created successfully on"
+msgstr "has been created successfully on"
+
+msgid "is not available"
+msgstr "is not available"
+
 msgid "Logs"
 msgstr "Logs"
 

@@ -76,6 +76,39 @@ msgstr "Перевірте хост"
 msgid "Create Host"
 msgstr "Створити хост"
 
+msgid "Host Name"
+msgstr "Ім'я хоста"
+
+msgid "Select Registrar"
+msgstr "Виберіть Реєстратор"
+
+msgid "IPv4 Address"
+msgstr "Адреса IPv4"
+
+msgid "IPv6 Address"
+msgstr "Адреса IPv6"
+
+msgid "Optional"
+msgstr "Необов'язковий"
+
+msgid "Please enter a valid IPv4 address."
+msgstr "Введіть дійсну адресу IPv4."
+
+msgid "Please enter a valid IPv6 address."
+msgstr "Введіть дійсну адресу IPv6."
+
+msgid "Create"
+msgstr "Створити"
+
+msgid "Host"
+msgstr "Хост"
+
+msgid "has been created successfully on"
+msgstr "було успішно створено на"
+
+msgid "is not available"
+msgstr "недоступний"
+
 msgid "Logs"
 msgstr "Логи"
 
