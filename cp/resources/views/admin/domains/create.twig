@@ -29,7 +29,7 @@
 						<form id="domainCreateForm" action="/your_endpoint" method="post">
 							<h6>Your Domain Name</h6>
 							<div class="mb-3">
-								<input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" required>
+								<input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required>
 							</div>
 
 							<!-- Slider for years -->
@@ -37,6 +37,11 @@
 								<label for="registrationYears">Registration Years</label>
 								<input type="range" class="form-range" min="1" max="10" step="1" id="registrationYears" name="registrationYears" value="1">
 								<span id="yearValue">1 Year</span>
+							</div>
+							
+							<!-- Placeholder for displaying domain price -->
+							<div class="mb-3" id="domainPriceDisplay" style="display:none;">
+								<strong>Estimated Price: </strong><span id="domainPrice">$0.00</span>
 							</div>
 
 							<!-- Fields for 4 contacts with roles -->
@@ -180,6 +185,35 @@ document.addEventListener("DOMContentLoaded", function() {
             dnssecData.style.display = 'none';
         }
     });
+	
+    const domainInput = document.getElementById('domainName');
+    const yearInput = document.getElementById('registrationYears');
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+    const priceValue = document.getElementById('domainPrice');
+
+    // Simulate an API request
+    function getDomainPrice(domain, years) {
+        // For now, we'll just return a dummy price. In a real scenario, you'd call your API here.
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve(10.00 * years); // Example: Price is $10/year
+            }, 500); // Simulating API delay
+        });
+    }
+
+    function updatePrice() {
+        if (domainInput.value) {
+            getDomainPrice(domainInput.value, yearInput.value).then(price => {
+                priceValue.innerText = `$${price.toFixed(2)}`;
+                priceDisplay.style.display = 'block';
+            });
+        } else {
+            priceDisplay.style.display = 'none';
+        }
+    }
+
+    domainInput.addEventListener('input', updatePrice);
+    yearInput.addEventListener('input', updatePrice);
 });
 </script>
 {% endblock %}
