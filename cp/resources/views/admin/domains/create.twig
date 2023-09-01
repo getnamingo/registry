@@ -39,13 +39,13 @@
 								<span id="yearValue">1 Year</span>
 							</div>
 
-							<!-- Fields for 4 contacts -->
+							<!-- Fields for 4 contacts with roles -->
 							<h6>Contacts</h6>
 							<div class="mb-3">
-								<input type="text" class="form-control mb-2" placeholder="Contact 1" name="contact1" required>
-								<input type="text" class="form-control mb-2" placeholder="Contact 2" name="contact2" required>
-								<input type="text" class="form-control mb-2" placeholder="Contact 3" name="contact3" required>
-								<input type="text" class="form-control mb-2" placeholder="Contact 4" name="contact4" required>
+								<input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" required>
+								<input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin" required>
+								<input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech" required>
+								<input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling" required>
 							</div>
 
 							<!-- Fields for nameservers -->
@@ -57,6 +57,45 @@
 							<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
 							<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
 
+							<!-- DNSSEC Data with checkbox -->
+							<div class="mb-3 form-check">
+								<input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
+								<label class="form-check-label" for="addDnssec">Add DNSSEC Data</label>
+							</div>
+							<div id="dnssecData" style="display: none;">
+								<h6>DS Record</h6>
+								<div class="mb-3">
+									<input type="text" class="form-control mb-2" placeholder="Key Tag" name="dsKeyTag">
+									<select class="form-control mb-2" name="dsAlg">
+										<option value="" disabled selected>Select Algorithm</option>
+										<option value="1">RSA/MD5 (deprecated)</option>
+										<option value="3">DSA/SHA1</option>
+										<option value="5">RSA/SHA-1</option>
+										<!-- Add other algorithms as required -->
+									</select>
+									<select class="form-control mb-2" name="dsDigestType">
+										<option value="" disabled selected>Select Digest Type</option>
+										<option value="1">SHA-1</option>
+										<option value="2">SHA-256</option>
+										<!-- Add other digest types as required -->
+									</select>
+									<input type="text" class="form-control mb-2" placeholder="Digest" name="dsDigest">
+								</div>
+								
+								<h6>DNSKEY Record</h6>
+								<div class="mb-3">
+									<input type="number" class="form-control mb-2" placeholder="Flags" name="dnskeyFlags">
+									<input type="number" class="form-control mb-2" placeholder="Protocol" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+									<select class="form-control mb-2" name="dnskeyAlg">
+										<option value="" disabled selected>Select Algorithm</option>
+										<option value="1">RSA/MD5 (deprecated)</option>
+										<option value="3">DSA/SHA1</option>
+										<option value="5">RSA/SHA-1</option>
+										<!-- Add other algorithms as required -->
+									</select>
+									<input type="text" class="form-control mb-2" placeholder="Public Key" name="dnskeyPubKey">
+								</div>
+							</div>
 							<!-- AuthInfo -->
 							<div class="mb-3">
 								<label for="authInfo">Auth Info</label>
@@ -131,6 +170,16 @@ document.addEventListener("DOMContentLoaded", function() {
         return result;
     }
     authInfoField.value = generateAuthInfo();
+	
+    // Display DNSSEC data when the checkbox is ticked
+    document.getElementById('addDnssec').addEventListener('change', function() {
+        const dnssecData = document.getElementById('dnssecData');
+        if (this.checked) {
+            dnssecData.style.display = 'block';
+        } else {
+            dnssecData.style.display = 'none';
+        }
+    });
 });
 </script>
 {% endblock %}
