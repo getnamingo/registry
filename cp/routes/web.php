@@ -41,13 +41,15 @@ $app->group('', function ($route) {
 
     $route->get('/domains', DomainsController::class .':view')->setName('domains');
     $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':check')->setName('domaincheck');
+    $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':create')->setName('domaincreate');
+    $route->map(['GET', 'POST'], '/transfers', DomainsController::class . ':transfers')->setName('transfers');
 
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
-
+    
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
-	
+    
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->get('/logs', LogsController::class .':view')->setName('logs');
     $route->get('/reports', ReportsController::class .':view')->setName('reports');

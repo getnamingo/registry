@@ -1,0 +1,136 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Create Domain') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Create Domain') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<form id="domainCreateForm" action="/your_endpoint" method="post">
+							<h6>Your Domain Name</h6>
+							<div class="mb-3">
+								<input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" required>
+							</div>
+
+							<!-- Slider for years -->
+							<div class="mb-3">
+								<label for="registrationYears">Registration Years</label>
+								<input type="range" class="form-range" min="1" max="10" step="1" id="registrationYears" name="registrationYears" value="1">
+								<span id="yearValue">1 Year</span>
+							</div>
+
+							<!-- Fields for 4 contacts -->
+							<h6>Contacts</h6>
+							<div class="mb-3">
+								<input type="text" class="form-control mb-2" placeholder="Contact 1" name="contact1" required>
+								<input type="text" class="form-control mb-2" placeholder="Contact 2" name="contact2" required>
+								<input type="text" class="form-control mb-2" placeholder="Contact 3" name="contact3" required>
+								<input type="text" class="form-control mb-2" placeholder="Contact 4" name="contact4" required>
+							</div>
+
+							<!-- Fields for nameservers -->
+							<h6>Nameservers</h6>
+							<div id="nameserverFields">
+								<input type="text" class="form-control mb-2" placeholder="Nameserver 1" name="nameserver1" required>
+								<input type="text" class="form-control mb-2" placeholder="Nameserver 2" name="nameserver2" required>
+							</div>
+							<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
+							<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
+
+							<!-- AuthInfo -->
+							<div class="mb-3">
+								<label for="authInfo">Auth Info</label>
+								<input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
+							</div>
+
+							<!-- Submit Button -->
+							<button type="submit" class="btn btn-primary">Create</button>
+						</form>
+					</div>
+				</div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const yearSlider = document.getElementById('registrationYears');
+    const yearValueDisplay = document.getElementById('yearValue');
+    const addNameserverBtn = document.getElementById('addNameserver');
+    const removeNameserverBtn = document.getElementById('removeNameserver');
+    const nameserverFields = document.getElementById('nameserverFields');
+    const authInfoField = document.getElementById('authInfo');
+
+    // Display year value from slider
+    yearSlider.addEventListener('input', function() {
+        yearValueDisplay.textContent = `${yearSlider.value} Year${yearSlider.value > 1 ? 's' : ''}`;
+    });
+
+    // Add nameserver field
+    let nameserverCount = 2;
+    addNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount < 13) {
+            nameserverCount++;
+            const newField = document.createElement('input');
+            newField.type = 'text';
+            newField.className = 'form-control mb-2';
+            newField.placeholder = `Nameserver ${nameserverCount}`;
+            newField.name = `nameserver${nameserverCount}`;
+            nameserverFields.appendChild(newField);
+        }
+    });
+
+    // Remove nameserver field
+    removeNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount > 2) {
+            nameserverFields.removeChild(nameserverFields.lastChild);
+            nameserverCount--;
+        }
+    });
+
+    // Generate random AuthInfo and set it to the field
+    function generateAuthInfo() {
+        const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
+        for (let i = 0; i < 10; i++) {
+            result += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        return result;
+    }
+    authInfoField.value = generateAuthInfo();
+});
+</script>
+{% endblock %}

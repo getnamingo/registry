@@ -55,4 +55,14 @@ class DomainsController extends Controller
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/domains/check.twig');
     }
+	
+    public function create(Request $request, Response $response)
+    {
+        return view($response,'admin/domains/create.twig');
+    }
+	
+    public function transfers(Request $request, Response $response)
+    {
+        return view($response,'admin/domains/transfers.twig');
+    }
 }

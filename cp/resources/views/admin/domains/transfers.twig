@@ -1,0 +1,67 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Check Domain') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Check Domain') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                  <p class="mb-4">{{ __('Enter the domain name you want to check:') }}</p>
+                    <form action="/domain/check" method="POST">
+                    {{ csrf.field | raw }}
+                      <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required">
+                        <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
+                      </div>
+                    </form>
+                    {% if isAvailable is defined and domainName is defined %}
+                        {% if isAvailable %}
+                            <div class="alert alert-success" role="alert">
+                                {{ domainName }} {{ __('is available') }}!
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ domainName }} {{ __('is not available') }}: {{ status }}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}
