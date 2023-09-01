@@ -50,7 +50,20 @@ class Host
         
         return $this->db->select($sql, [$id])->fetch();
     }
+    
+    public function getHostByNom($name)
+    {
+        $result = $this->db->select('SELECT id FROM host WHERE name = ?', [$name]);
+		
+        if (is_array($result)) {
+            return $result;
+        } else if (is_object($result) && method_exists($result, 'fetch')) {
+            return $result->fetch();
+        }
 
+        return null;
+    }
+	
     public function deleteHost($id)
     {
         $this->db->delete('DELETE FROM host WHERE id = ?', [$id]);
