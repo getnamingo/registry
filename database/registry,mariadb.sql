@@ -433,7 +433,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`statistics` (
 	UNIQUE KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Statistics';
 
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE TABLE IF NOT EXISTS `registry`.`users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
@@ -449,7 +449,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users';
 
-CREATE TABLE IF NOT EXISTS `users_confirmations` (
+CREATE TABLE IF NOT EXISTS `registry`.`users_confirmations` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned NOT NULL,
   `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -462,7 +462,7 @@ CREATE TABLE IF NOT EXISTS `users_confirmations` (
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Confirmations';
 
-CREATE TABLE IF NOT EXISTS `users_remembered` (
+CREATE TABLE IF NOT EXISTS `registry`.`users_remembered` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user` int(10) unsigned NOT NULL,
   `selector` varchar(24) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
@@ -473,7 +473,7 @@ CREATE TABLE IF NOT EXISTS `users_remembered` (
   KEY `user` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Remember';
 
-CREATE TABLE IF NOT EXISTS `users_resets` (
+CREATE TABLE IF NOT EXISTS `registry`.`users_resets` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user` int(10) unsigned NOT NULL,
   `selector` varchar(20) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
@@ -484,7 +484,7 @@ CREATE TABLE IF NOT EXISTS `users_resets` (
   KEY `user_expires` (`user`,`expires`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Reset';
 
-CREATE TABLE IF NOT EXISTS `users_throttling` (
+CREATE TABLE IF NOT EXISTS `registry`.`users_throttling` (
   `bucket` varchar(44) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
   `tokens` float unsigned NOT NULL,
   `replenished_at` int(10) unsigned NOT NULL,
@@ -493,7 +493,15 @@ CREATE TABLE IF NOT EXISTS `users_throttling` (
   KEY `expires_at` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Flags';
 
-CREATE TABLE urs_actions (
+CREATE TABLE IF NOT EXISTS `registry`.`registrar_users` (
+  `registrar_id` int(10) unsigned NOT NULL,
+  `user_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`registrar_id`, `user_id`),
+  FOREIGN KEY (`registrar_id`) REFERENCES `registrar`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Linking Registrars with Panel Users';
+
+CREATE TABLE IF NOT EXISTS `registry`.`urs_actions` (
     id INT AUTO_INCREMENT PRIMARY KEY,
     domain_name VARCHAR(255) NOT NULL,
     urs_provider VARCHAR(255) NOT NULL,
@@ -501,7 +509,7 @@ CREATE TABLE urs_actions (
     status VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='URS Actions';
 
-CREATE TABLE `rde_escrow_deposits` (
+CREATE TABLE IF NOT EXISTS `registry`.`rde_escrow_deposits` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `deposit_id` VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     `deposit_date` DATE NOT NULL,
@@ -519,7 +527,7 @@ CREATE TABLE `rde_escrow_deposits` (
     `verification_notes` TEXT  -- Notes or remarks from the verification process
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Escrow Deposits';
 
-CREATE TABLE `icann_reports` (
+CREATE TABLE IF NOT EXISTS `registry`.`icann_reports` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `report_date` DATE NOT NULL,
     `type` VARCHAR(255) NOT NULL,
@@ -529,7 +537,7 @@ CREATE TABLE `icann_reports` (
     `notes` TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='ICANN Reporting';
 
-CREATE TABLE `promotion_pricing` (
+CREATE TABLE IF NOT EXISTS `registry`.`promotion_pricing` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `tld_id` INT UNSIGNED,
     `promo_name` VARCHAR(255) NOT NULL,
@@ -542,7 +550,7 @@ CREATE TABLE `promotion_pricing` (
     FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Promotions';
 
-CREATE TABLE `premium_domain_pricing` (
+CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_pricing` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `domain_name` VARCHAR(255) NOT NULL,
     `tld_id` INT UNSIGNED NOT NULL,

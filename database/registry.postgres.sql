@@ -463,6 +463,15 @@ CREATE TABLE IF NOT EXISTS registry.users_throttling (
 );
 CREATE INDEX IF NOT EXISTS "expires_at" ON registry.users_throttling ("expires_at");
 
+CREATE TABLE IF NOT EXISTS registry.registrar_users (
+  registrar_id int NOT NULL,
+  user_id int NOT NULL,
+  PRIMARY KEY (registrar_id, user_id),
+  FOREIGN KEY (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) WITH (OIDS=FALSE);
+COMMENT ON TABLE registrar_users IS 'Linking Registrars with Panel Users';
+
 CREATE TABLE registry.urs_actions (
      "id" serial8  PRIMARY KEY,
      "domain_name"   VARCHAR(255) NOT NULL,
