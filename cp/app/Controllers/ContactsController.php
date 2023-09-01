@@ -11,8 +11,12 @@ class ContactsController extends Controller
 {
     public function view(Request $request, Response $response)
     {
-        $contactModel = new Contact($this->container->get('db'));
-        $contacts = $contactModel->getAllContact();
-        return view($response,'admin/contacts/index.twig', compact('contacts'));
+        return view($response,'admin/contacts/view.twig');
     }
+
+    public function create(Request $request, Response $response)
+    {
+        return view($response,'admin/contacts/create.twig');
+    }
+
 }

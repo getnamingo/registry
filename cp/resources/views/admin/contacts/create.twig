@@ -1,0 +1,150 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Contacts') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Contacts') }}
+                </h2>
+              </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <span class="d-none d-sm-inline">
+                    <a href="#" class="btn">
+                      New view
+                    </a>
+                  </span>
+                  <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
+                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    Create new report
+                  </a>
+                  <a href="#" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
+                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="row">
+                <div class="card">
+                    <div class="card-body">
+                        <form action="/your_endpoint" method="post">
+                            <div class="row">
+                                <!-- First Column: General & Internationalized Info -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">General & Internationalized Info</h6>
+                                    
+                                    <!-- General Details -->
+                                    <div class="mb-3">
+                                        <label for="contactID">Contact ID</label>
+                                        <input type="text" class="form-control" id="contactID" name="contactID" required>
+                                    </div>
+
+                                    <!-- ... additional general fields ... -->
+
+                                    <!-- Internationalized Postal Info -->
+                                    <div class="mb-3">
+                                        <label for="intName">Name (INT)</label>
+                                        <input type="text" class="form-control" id="intName" name="intName" required>
+                                    </div>
+
+                                    <!-- ... other internationalized fields ... -->
+                                </div>
+
+                                <!-- Second Column: Voice, Email, etc. -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Contact Details</h6>
+
+                                    <div class="mb-3">
+                                        <label for="voice">Voice</label>
+                                        <input type="tel" class="form-control" id="voice" name="voice">
+                                    </div>
+
+                                    <!-- ... additional contact details fields ... -->
+                                </div>
+                            </div>
+
+                            <!-- Localized Info Checkbox -->
+                            <div class="mb-3">
+                                <input type="checkbox" id="toggleLoc" class="form-check-input">
+                                <label for="toggleLoc" class="form-check-label">Include Localized Info</label>
+                            </div>
+
+                            <!-- Hidden Localized Info Rows -->
+                            <div class="row" id="localizedInfo" style="display: none;">
+                                <!-- Localized Postal Info: First Column -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Localized Postal Info</h6>
+
+                                    <div class="mb-3">
+                                        <label for="locName">Name (LOC)</label>
+                                        <input type="text" class="form-control" id="locName" name="locName">
+                                    </div>
+
+                                    <!-- ... additional localized fields ... -->
+                                </div>
+
+                                <!-- Localized Contact Details: Second Column -->
+                                <div class="col-md-6">
+                                    <!-- ... additional localized contact details fields ... -->
+                                </div>
+                            </div>
+							
+							<div class="row mt-4">
+								   <div class="col-md-12">
+									   <!-- Centralized Submit Button -->
+									   <button type="submit" class="btn btn-primary">Create</button>
+								   </div>
+							</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const toggleLocCheckbox = document.getElementById('toggleLoc');
+    const localizedSection = document.getElementById('localizedInfo');
+
+    toggleLocCheckbox.addEventListener('change', function() {
+        if (toggleLocCheckbox.checked) {
+            localizedSection.style.display = "flex";
+        } else {
+            localizedSection.style.display = "none";
+        }
+    });
+});
+</script>
+{% endblock %}
