@@ -47,38 +47,139 @@
                     <div class="card-body">
                         <form action="/your_endpoint" method="post">
                             <div class="row">
-                                <!-- First Column: General & Internationalized Info -->
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">General & Internationalized Info</h6>
-                                    
-                                    <!-- General Details -->
-                                    <div class="mb-3">
-                                        <label for="contactID">Contact ID</label>
-                                        <input type="text" class="form-control" id="contactID" name="contactID" required>
-                                    </div>
+								<!-- First Column: General & Internationalized Info -->
+								<div class="col-md-6">
+									<h6 class="mb-3">General & Internationalized Info</h6>
+									
+									<!-- Internationalized Name -->
+									<div class="mb-3">
+										<label for="intName">Name (INT)</label>
+										<input type="text" class="form-control" id="intName" name="intName" required>
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseNameInt" name="disclose_name_int">
+											<label class="form-check-label" for="discloseNameInt">Disclose in WHOIS</label>
+										</div>
+									</div>
 
-                                    <!-- ... additional general fields ... -->
+									<!-- Internationalized Organization -->
+									<div class="mb-3">
+										<label for="intOrg">Organization (INT)</label>
+										<input type="text" class="form-control" id="intOrg" name="org">
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseOrgInt" name="disclose_org_int">
+											<label class="form-check-label" for="discloseOrgInt">Disclose in WHOIS</label>
+										</div>
+									</div>
 
-                                    <!-- Internationalized Postal Info -->
-                                    <div class="mb-3">
-                                        <label for="intName">Name (INT)</label>
-                                        <input type="text" class="form-control" id="intName" name="intName" required>
-                                    </div>
+									<!-- Internationalized Address: Street Details -->
+									<div class="mb-3">
+										<label for="street1">Street 1 (INT)</label>
+										<input type="text" class="form-control" id="street1" name="street1">
+									</div>
+									<div class="mb-3">
+										<label for="street2">Street 2 (INT, Optional)</label>
+										<input type="text" class="form-control" id="street2" name="street2">
+									</div>
+									<div class="mb-3">
+										<label for="street3">Street 3 (INT, Optional)</label>
+										<input type="text" class="form-control" id="street3" name="street3">
+									</div>
 
-                                    <!-- ... other internationalized fields ... -->
-                                </div>
+									<!-- Internationalized Address: City, SP, PC, CC -->
+									<div class="mb-3">
+										<label for="city">City (INT)</label>
+										<input type="text" class="form-control" id="city" name="city" required>
+									</div>
+									<div class="mb-3">
+										<label for="sp">State/Province (INT, Optional)</label>
+										<input type="text" class="form-control" id="sp" name="sp">
+									</div>
+									<div class="mb-3">
+										<label for="pc">Postal Code (INT, Optional)</label>
+										<input type="text" class="form-control" id="pc" name="pc">
+									</div>
+									<div class="mb-3">
+										<label for="cc">Country Code (INT)</label>
+										<input type="text" class="form-control" id="cc" name="cc" required maxlength="2">
+									</div>
+									<div class="form-check mt-1 mb-3">
+										<input type="checkbox" class="form-check-input" id="discloseAddrInt" name="disclose_addr_int">
+										<label class="form-check-label" for="discloseAddrInt">Disclose Address in WHOIS</label>
+									</div>
+								</div>
 
-                                <!-- Second Column: Voice, Email, etc. -->
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">Contact Details</h6>
+								<!-- Second Column: Voice, Fax, Email, and other details -->
+								<div class="col-md-6">
+									<h6 class="mb-3">Contact Details</h6>
 
-                                    <div class="mb-3">
-                                        <label for="voice">Voice</label>
-                                        <input type="tel" class="form-control" id="voice" name="voice">
-                                    </div>
+									<!-- Voice -->
+									<div class="mb-3">
+										<label for="voice">Voice</label>
+										<input type="tel" class="form-control" id="voice" name="voice">
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseVoice" name="discloseVoice">
+											<label class="form-check-label" for="discloseVoice">Disclose in WHOIS</label>
+										</div>
+									</div>
 
-                                    <!-- ... additional contact details fields ... -->
-                                </div>
+									<!-- Fax -->
+									<div class="mb-3">
+										<label for="fax">Fax</label>
+										<input type="tel" class="form-control" id="fax" name="fax">
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseFax" name="discloseFax">
+											<label class="form-check-label" for="discloseFax">Disclose in WHOIS</label>
+										</div>
+									</div>
+
+									<!-- Email -->
+									<div class="mb-3">
+										<label for="email">Email</label>
+										<input type="email" class="form-control" id="email" name="email" required>
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseEmail" name="discloseEmail">
+											<label class="form-check-label" for="discloseEmail">Disclose in WHOIS</label>
+										</div>
+									</div>
+									
+									<!-- AuthInfo for Contact -->
+									<div class="mb-3">
+										<label for="authInfo">Contact AuthInfo</label>
+										<input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
+										<small class="form-text text-muted">Auto-generated authentication information for the contact.</small>
+									</div>
+
+									<!-- NIN - National Identification Number -->
+									<div class="mb-3">
+										<label for="nin">NIN - National Identification Number</label>
+										<input type="text" class="form-control" id="nin" name="nin">
+									</div>
+
+									<!-- Personal or Business Checkbox -->
+									<div class="mb-3">
+										<div class="form-check">
+											<input type="checkbox" class="form-check-input" id="isBusiness" name="isBusiness">
+											<label class="form-check-label" for="isBusiness">This is a Business Contact</label>
+										</div>
+										<!-- You can invert the logic if you prefer the default to be 'Personal' instead of 'Business' -->
+									</div>
+									
+									<div class="mb-3">
+										<div class="form-check">
+											<input type="checkbox" class="form-check-input" id="verifyPhone" name="verifyPhone">
+											<label class="form-check-label" for="verifyPhone">Verify by Phone</label>
+										</div>
+										<div class="form-check">
+											<input type="checkbox" class="form-check-input" id="verifyEmail" name="verifyEmail">
+											<label class="form-check-label" for="verifyEmail">Verify by Email</label>
+										</div>
+										<div class="form-check">
+											<input type="checkbox" class="form-check-input" id="verifyPostal" name="verifyPostal">
+											<label class="form-check-label" for="verifyPostal">Verify by Postal Mail</label>
+										</div>
+									</div>
+
+								</div>
                             </div>
 
                             <!-- Localized Info Checkbox -->
@@ -87,25 +188,76 @@
                                 <label for="toggleLoc" class="form-check-label">Include Localized Info</label>
                             </div>
 
-                            <!-- Hidden Localized Info Rows -->
-                            <div class="row" id="localizedInfo" style="display: none;">
-                                <!-- Localized Postal Info: First Column -->
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">Localized Postal Info</h6>
+							<!-- Hidden Localized Info Rows -->
+							<div class="row" id="localizedInfo" style="display: none;">
+								<!-- Localized Postal Info: First Column -->
+								<div class="col-md-6">
+									<h6 class="mb-3">Localized Postal Info: Personal Details</h6>
 
-                                    <div class="mb-3">
-                                        <label for="locName">Name (LOC)</label>
-                                        <input type="text" class="form-control" id="locName" name="locName">
-                                    </div>
+									<!-- Localized Name -->
+									<div class="mb-3">
+										<label for="locName">Name (LOC)</label>
+										<input type="text" class="form-control" id="locName" name="locName">
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseNameLoc" name="disclose_name_loc">
+											<label class="form-check-label" for="discloseNameLoc">Disclose in WHOIS</label>
+										</div>
+									</div>
 
-                                    <!-- ... additional localized fields ... -->
-                                </div>
+									<!-- Localized Organization -->
+									<div class="mb-3">
+										<label for="locOrg">Organization (LOC)</label>
+										<input type="text" class="form-control" id="locOrg" name="locOrg">
+										<div class="form-check mt-1">
+											<input type="checkbox" class="form-check-input" id="discloseOrgLoc" name="disclose_org_loc">
+											<label class="form-check-label" for="discloseOrgLoc">Disclose in WHOIS</label>
+										</div>
+									</div>
 
-                                <!-- Localized Contact Details: Second Column -->
-                                <div class="col-md-6">
-                                    <!-- ... additional localized contact details fields ... -->
-                                </div>
-                            </div>
+									<!-- Localized Street Details -->
+									<div class="mb-3">
+										<label for="locStreet1">Street 1 (LOC)</label>
+										<input type="text" class="form-control" id="locStreet1" name="locStreet1">
+									</div>
+									<div class="mb-3">
+										<label for="locStreet2">Street 2 (LOC, Optional)</label>
+										<input type="text" class="form-control" id="locStreet2" name="locStreet2">
+									</div>
+								</div>
+
+								<!-- Localized Postal Info: Second Column -->
+								<div class="col-md-6">
+									<h6 class="mb-3">Localized Postal Info: Address Details</h6>
+
+									<!-- Continued Localized Street Detail -->
+									<div class="mb-3">
+										<label for="locStreet3">Street 3 (LOC, Optional)</label>
+										<input type="text" class="form-control" id="locStreet3" name="locStreet3">
+									</div>
+
+									<!-- Localized City, SP, PC, CC -->
+									<div class="mb-3">
+										<label for="locCity">City (LOC)</label>
+										<input type="text" class="form-control" id="locCity" name="locCity" required>
+									</div>
+									<div class="mb-3">
+										<label for="locSP">State/Province (LOC, Optional)</label>
+										<input type="text" class="form-control" id="locSP" name="locSP">
+									</div>
+									<div class="mb-3">
+										<label for="locPC">Postal Code (LOC, Optional)</label>
+										<input type="text" class="form-control" id="locPC" name="locPC">
+									</div>
+									<div class="mb-3">
+										<label for="locCC">Country Code (LOC)</label>
+										<input type="text" class="form-control" id="locCC" name="locCC" required maxlength="2">
+									</div>
+									<div class="form-check mt-1 mb-3">
+										<input type="checkbox" class="form-check-input" id="discloseAddrLoc" name="disclose_addr_loc">
+										<label class="form-check-label" for="discloseAddrLoc">Disclose Address in WHOIS</label>
+									</div>
+								</div>
+							</div>
 							
 							<div class="row mt-4">
 								   <div class="col-md-12">
@@ -145,6 +297,21 @@ document.addEventListener("DOMContentLoaded", function() {
             localizedSection.style.display = "none";
         }
     });
+	
+    // Generate authInfo for Contact
+    const authInfoInput = document.getElementById('authInfo');
+    authInfoInput.value = generateAuthInfo();
+
+    function generateAuthInfo() {
+        const length = 16;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let retVal = "";
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            retVal += charset.charAt(randomIndex);
+        }
+        return retVal;
+    }
 });
 </script>
 {% endblock %}
