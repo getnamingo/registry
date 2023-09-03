@@ -338,15 +338,15 @@ class ContactsController extends Controller
                 ]);
             }
 
-            $disclose_voice = (isset($data['disclose_voice']) && ($data['disclose_voice'] === 1 || $data['disclose_voice'] === 0)) ? $data['disclose_voice'] : 0;
-            $disclose_fax = (isset($data['disclose_fax']) && ($data['disclose_fax'] === 1 || $data['disclose_fax'] === 0)) ? $data['disclose_fax'] : 0;
-            $disclose_email = (isset($data['disclose_email']) && ($data['disclose_email'] === 1 || $data['disclose_email'] === 0)) ? $data['disclose_email'] : 0;
-            $disclose_name_int = (isset($data['disclose_name_int']) && ($data['disclose_name_int'] === 1 || $data['disclose_name_int'] === 0)) ? $data['disclose_name_int'] : 0;
-            $disclose_name_loc = (isset($data['disclose_name_loc']) && ($data['disclose_name_loc'] === 1 || $data['disclose_name_loc'] === 0)) ? $data['disclose_name_loc'] : 0;
-            $disclose_org_int = (isset($data['disclose_org_int']) && ($data['disclose_org_int'] === 1 || $data['disclose_org_int'] === 0)) ? $data['disclose_org_int'] : 0;
-            $disclose_org_loc = (isset($data['disclose_org_loc']) && ($data['disclose_org_loc'] === 1 || $data['disclose_org_loc'] === 0)) ? $data['disclose_org_loc'] : 0;
-            $disclose_addr_int = (isset($data['disclose_addr_int']) && ($data['disclose_addr_int'] === 1 || $data['disclose_addr_int'] === 0)) ? $data['disclose_addr_int'] : 0;
-            $disclose_addr_loc = (isset($data['disclose_addr_loc']) && ($data['disclose_addr_loc'] === 1 || $data['disclose_addr_loc'] === 0)) ? $data['disclose_addr_loc'] : 0;
+			$disclose_voice = isset($data['disclose_voice']) ? 1 : 0;
+			$disclose_fax = isset($data['disclose_fax']) ? 1 : 0;
+			$disclose_email = isset($data['disclose_email']) ? 1 : 0;
+			$disclose_name_int = isset($data['disclose_name_int']) ? 1 : 0;
+			$disclose_name_loc = isset($data['disclose_name_loc']) ? 1 : 0;
+			$disclose_org_int = isset($data['disclose_org_int']) ? 1 : 0;
+			$disclose_org_loc = isset($data['disclose_org_loc']) ? 1 : 0;
+			$disclose_addr_int = isset($data['disclose_addr_int']) ? 1 : 0;
+			$disclose_addr_loc = isset($data['disclose_addr_loc']) ? 1 : 0;
 
             if ($data['nin']) {
                 $nin = $data['nin'];
