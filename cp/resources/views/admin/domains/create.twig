@@ -24,94 +24,109 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-				<div class="card">
-					<div class="card-body">
-						<form id="domainCreateForm" action="/your_endpoint" method="post">
-							<h6>Your Domain Name</h6>
-							<div class="mb-3">
-								<input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required>
-							</div>
+                <div class="card">
+                    <div class="card-body">
+                        <form id="domainCreateForm" action="/your_endpoint" method="post">
+                            <div class="mb-3">
+                                <label for="domainName" class="form-label required">Your Domain Name</label>
+                                <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required>
+                            </div>
+                            
+                            {% if registrars %}
+                                <div class="form-group mb-3">
+                                    <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
+                                    <select id="registrarDropdown" name="registrar" class="form-control">
+                                        {% for registrar in registrars %}
+                                            <option value="{{ registrar.id }}">{{ registrar.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% endif %}
 
-							<!-- Slider for years -->
-							<div class="mb-3">
-								<label for="registrationYears">Registration Years</label>
-								<input type="range" class="form-range" min="1" max="10" step="1" id="registrationYears" name="registrationYears" value="1">
-								<span id="yearValue">1 Year</span>
-							</div>
-							
-							<!-- Placeholder for displaying domain price -->
-							<div class="mb-3" id="domainPriceDisplay" style="display:none;">
-								<strong>Estimated Price: </strong><span id="domainPrice">$0.00</span>
-							</div>
+                            <!-- Slider for years -->
+                            <div class="mb-3">
+                                <label for="registrationYears" class="form-label">Registration Years</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="registrationYears" name="registrationYears" value="1">
+                                <span id="yearValue">1 Year</span>
+                            </div>
+                            
+                            <!-- Placeholder for displaying domain price -->
+                            <div class="mb-3" id="domainPriceDisplay" style="display:none;">
+                                <strong>Estimated Price: </strong><span id="domainPrice">$0.00</span>
+                            </div>
 
-							<!-- Fields for 4 contacts with roles -->
-							<h6>Contacts</h6>
-							<div class="mb-3">
-								<input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" required>
-								<input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin" required>
-								<input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech" required>
-								<input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling" required>
-							</div>
+                            <!-- Fields for 4 contacts with roles -->
+                            <div class="mb-3">
+                                <label for="contactRegistrant" class="form-label required">Contacts</label>
+                                <input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" id="contactRegistrant" required>
+                                <input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin" required>
+                                <input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech" required>
+                                <input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling" required>
+                            </div>
 
-							<!-- Fields for nameservers -->
-							<h6>Nameservers</h6>
-							<div id="nameserverFields">
-								<input type="text" class="form-control mb-2" placeholder="Nameserver 1" name="nameserver1" required>
-								<input type="text" class="form-control mb-2" placeholder="Nameserver 2" name="nameserver2" required>
-							</div>
-							<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
-							<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
+                            <!-- Fields for nameservers -->
+                            <div id="nameserverFields">
+                                <label for="nameserver1" class="form-label">Nameservers</label>
+                                <input type="text" class="form-control mb-2" placeholder="Nameserver 1" name="nameserver1" id="nameserver1" required>
+                                <input type="text" class="form-control mb-2" placeholder="Nameserver 2" name="nameserver2" required>
+                            </div>
+                            <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
+                            <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
 
-							<!-- DNSSEC Data with checkbox -->
-							<div class="mb-3 form-check">
-								<input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
-								<label class="form-check-label" for="addDnssec">Add DNSSEC Data</label>
-							</div>
-							<div id="dnssecData" style="display: none;">
-								<h6>DS Record</h6>
-								<div class="mb-3">
-									<input type="text" class="form-control mb-2" placeholder="Key Tag" name="dsKeyTag">
-									<select class="form-control mb-2" name="dsAlg">
-										<option value="" disabled selected>Select Algorithm</option>
-										<option value="1">RSA/MD5 (deprecated)</option>
-										<option value="3">DSA/SHA1</option>
-										<option value="5">RSA/SHA-1</option>
-										<!-- Add other algorithms as required -->
-									</select>
-									<select class="form-control mb-2" name="dsDigestType">
-										<option value="" disabled selected>Select Digest Type</option>
-										<option value="1">SHA-1</option>
-										<option value="2">SHA-256</option>
-										<!-- Add other digest types as required -->
-									</select>
-									<input type="text" class="form-control mb-2" placeholder="Digest" name="dsDigest">
-								</div>
-								
-								<h6>DNSKEY Record</h6>
-								<div class="mb-3">
-									<input type="number" class="form-control mb-2" placeholder="Flags" name="dnskeyFlags">
-									<input type="number" class="form-control mb-2" placeholder="Protocol" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
-									<select class="form-control mb-2" name="dnskeyAlg">
-										<option value="" disabled selected>Select Algorithm</option>
-										<option value="1">RSA/MD5 (deprecated)</option>
-										<option value="3">DSA/SHA1</option>
-										<option value="5">RSA/SHA-1</option>
-										<!-- Add other algorithms as required -->
-									</select>
-									<input type="text" class="form-control mb-2" placeholder="Public Key" name="dnskeyPubKey">
-								</div>
-							</div>
-							<!-- AuthInfo -->
-							<div class="mb-3">
-								<label for="authInfo">Auth Info</label>
-								<input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
-							</div>
-
-							<!-- Submit Button -->
-							<button type="submit" class="btn btn-primary">Create</button>
-						</form>
-					</div>
-				</div>
+                            <!-- DNSSEC Data with checkbox -->
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
+                                <label class="form-check-label" for="addDnssec">Add DNSSEC Data</label>
+                            </div>
+                            <div id="dnssecData" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="dsKeyTag" class="form-label">DS Record</label>
+                                    <input type="text" class="form-control mb-2" placeholder="Key Tag" name="dsKeyTag" id="dsKeyTag">
+                                    <select class="form-control mb-2" name="dsAlg">
+                                        <option value="" disabled selected>Select Algorithm</option>
+                                        <option value="1">RSA/MD5 (deprecated)</option>
+                                        <option value="3">DSA/SHA1</option>
+                                        <option value="5">RSA/SHA-1</option>
+                                        <!-- Add other algorithms as required -->
+                                    </select>
+                                    <select class="form-control mb-2" name="dsDigestType">
+                                        <option value="" disabled selected>Select Digest Type</option>
+                                        <option value="1">SHA-1</option>
+                                        <option value="2">SHA-256</option>
+                                        <!-- Add other digest types as required -->
+                                    </select>
+                                    <input type="text" class="form-control mb-2" placeholder="Digest" name="dsDigest">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="dnskeyFlags" class="form-label">DNSKEY Record</label>
+                                    <input type="number" class="form-control mb-2" placeholder="Flags" name="dnskeyFlags" id="dnskeyFlags">
+                                    <input type="number" class="form-control mb-2" placeholder="Protocol" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+                                    <select class="form-control mb-2" name="dnskeyAlg">
+                                        <option value="" disabled selected>Select Algorithm</option>
+                                        <option value="1">RSA/MD5 (deprecated)</option>
+                                        <option value="3">DSA/SHA1</option>
+                                        <option value="5">RSA/SHA-1</option>
+                                        <!-- Add other algorithms as required -->
+                                    </select>
+                                    <input type="text" class="form-control mb-2" placeholder="Public Key" name="dnskeyPubKey">
+                                </div>
+                            </div>
+                            <!-- AuthInfo -->
+                            <div class="mb-3">
+                                <label for="authInfo" class="form-label">Auth Info</label>
+                                <input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
+                            </div>
+                    </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">Create Domain</button>
+                    </div>
+                  </div>
+                </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -175,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return result;
     }
     authInfoField.value = generateAuthInfo();
-	
+    
     // Display DNSSEC data when the checkbox is ticked
     document.getElementById('addDnssec').addEventListener('change', function() {
         const dnssecData = document.getElementById('dnssecData');
@@ -185,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function() {
             dnssecData.style.display = 'none';
         }
     });
-	
+    
     const domainInput = document.getElementById('domainName');
     const yearInput = document.getElementById('registrationYears');
     const priceDisplay = document.getElementById('domainPriceDisplay');
