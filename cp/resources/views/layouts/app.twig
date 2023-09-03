@@ -480,6 +480,8 @@
     {% include 'partials/js-overview.twig' %}
 {% elseif route_is('reports') %}
     {% include 'partials/js-reports.twig' %}
+{% elseif route_is('transfers') %}
+    {% include 'partials/js-transfers.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}
