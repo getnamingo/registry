@@ -24,9 +24,35 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+              {% if contactID is defined and crdate is defined %}
+                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Contact') }} <strong>{{ contactID }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% elseif error is defined %}
+                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Contact') }} <strong>{{ contactID }}</strong> {{ __('can not be created') }}: <strong>{{ error }}</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% endif %}
                 <div class="card">
                     <div class="card-body">
-                        <form action="/your_endpoint" method="post">
+                        <form action="/contact/create" method="post">
+						{{ csrf.field | raw }}
                             <div class="row">
                                 <!-- First Column: General & Internationalized Info -->
                                 <div class="col-md-6">
@@ -107,6 +133,12 @@
                                 <!-- Second Column: Voice, Fax, Email, and other details -->
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Contact Details</h6>
+									
+                                    <!-- Contact ID -->
+                                    <div class="mb-3">
+                                        <label for="contactid" class="form-label required">Contact ID</label>
+                                        <input type="text" class="form-control" id="contactid" name="contactid" required="required">
+                                    </div>
 
                                     <!-- Voice -->
                                     <div class="mb-3">
