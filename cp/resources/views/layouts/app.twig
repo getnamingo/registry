@@ -326,7 +326,7 @@
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('hosts') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('ticketview') or is_current_url('newticket') or is_current_url('docs') or is_current_url('mediakit') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path><path d="M15 15l3.35 3.35"></path><path d="M9 15l-3.35 3.35"></path><path d="M5.65 5.65l3.35 3.35"></path><path d="M18.35 5.65l-3.35 3.35"></path></svg>
 					</span>
@@ -335,17 +335,17 @@
                     </span>
                   </a>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{{route('hosts')}}">
+                    <a class="dropdown-item" href="{{route('ticketview')}}">
                       {{ __('Support Tickets') }}
                     </a>
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{route('newticket')}}">
                       {{ __('Create Ticket') }}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{{route('hosts')}}">
+                    <a class="dropdown-item" href="{{route('docs')}}">
                       {{ __('Documentation') }}
                     </a>
-                    <a class="dropdown-item" href="{{route('hosts')}}">
+                    <a class="dropdown-item" href="{{route('mediakit')}}">
                       {{ __('Media Kit') }}
                     </a>
                   </div>

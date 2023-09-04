@@ -1,0 +1,67 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Media Kit') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Media Kit') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                <h2>Media Kit</h2>
+                <p>{{ media_kit_intro|default('Replace this section with an introduction about the media kit contents and its intended audience.') }}</p>
+
+                <h3>Logos</h3>
+                <p>{{ logos_intro|default('Provide guidelines on how to use your registry logos correctly.') }}</p>
+                <!-- Placeholder for logos. You can use a loop in Twig to iterate through and display multiple logos. -->
+                <img src="{{ logo_image_path|default('/static/logo.svg') }}" alt="Registry Logo" class="img-fluid mb-3">
+                
+                <h3>Branding Guidelines</h3>
+                <p>{{ branding_guidelines|default('Detail any color schemes, typography, or design patterns related to your TLD registry brand here.') }}</p>
+                
+                <h3>Press Releases</h3>
+                <p>{{ press_releases_text|default('List recent press releases or provide links to them for registrars and the media.') }}</p>
+
+                <!-- ... Add more sections as needed ... -->
+
+                <footer>
+                    <p class="text-muted">Replace or remove this footer as necessary. Add any relevant information or links here.</p>
+                </footer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}

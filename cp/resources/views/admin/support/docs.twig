@@ -1,0 +1,62 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Documentation') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Documentation') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                <h2>Documentation</h2>
+                <p>{{ documentation_intro|default('Replace this section with a brief introduction about your documentation.') }}</p>
+
+                <h3>Getting Started</h3>
+                <p>{{ getting_started_text|default('Provide users with the basics to get started with your TLD registry management system here.') }}</p>
+
+                <h3>Registration Process</h3>
+                <p>{{ registration_process_text|default('Describe the process for domain registration in detail here.') }}</p>
+
+                <!-- ... Add more sections as needed ... -->
+
+                <footer>
+                    <p class="text-muted">Replace or remove this footer as necessary. Add any relevant information or links here.</p>
+                </footer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}

@@ -10,6 +10,7 @@ use App\Controllers\RegistrarsController;
 use App\Controllers\FinancialsController;
 use App\Controllers\ReportsController;
 use App\Controllers\ProfileController;
+use App\Controllers\SupportController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
 use Slim\Exception\HttpNotFoundException;
@@ -46,15 +47,21 @@ $app->group('', function ($route) {
 
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
-    
+	
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
-    
+	
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->get('/logs', LogsController::class .':view')->setName('logs');
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
+
+    $route->get('/support', SupportController::class .':view')->setName('ticketview');
+    $route->get('/support/new', SupportController::class .':newticket')->setName('newticket');
+    $route->get('/support/docs', SupportController::class .':docs')->setName('docs');
+    $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
+	
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
     $route->get('/profile/security', ProfileController::class .':security')->setName('security');
