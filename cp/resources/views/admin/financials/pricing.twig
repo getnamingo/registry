@@ -1,0 +1,124 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Price Management') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Price Management') }}
+                </h2>
+              </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <span class="d-none d-sm-inline">
+                    <a href="#" class="btn">
+                      New view
+                    </a>
+                  </span>
+                  <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
+                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    Create new report
+                  </a>
+                  <a href="#" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
+                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+				<!-- Price list (This will be dynamically populated using your backend) -->
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th>TLD ID</th>
+							<th>Command</th>
+							<th>Initial</th>
+							<th>1 Year</th>
+							<th>2 Years</th>
+							<th>3 Years</th>
+							<th>4 Years</th>
+							<th>5 Years</th>
+							<th>6 Years</th>
+							<th>7 Years</th>
+							<th>8 Years</th>
+							<th>9 Years</th>
+							<th>10 Years</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Example row. This should be generated based on the data from your backend -->
+						<tr>
+							<td>1</td>
+							<td><strong>Create</strong></td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$100</td>
+							<td><button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#priceModal">Edit</button></td>
+						</tr>
+						<tr>
+							<td>1</td>
+							<td>Renew</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$10</td>
+							<td>$100</td>
+							<td><button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#priceModal">Edit</button></td>
+						</tr>
+						<!-- ... other rows ... -->
+					</tbody>
+				</table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}
