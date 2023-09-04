@@ -22,4 +22,9 @@ class FinancialsController extends Controller
     {
         return view($response,'admin/financials/pricing.twig');
     }
+	
+    public function deposit(Request $request, Response $response)
+    {
+        return view($response,'admin/financials/deposit.twig');
+    }
 }
