@@ -561,6 +561,40 @@ CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_pricing` (
     FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
 
+CREATE TABLE IF NOT EXISTS `registry`.`ticket_categories` (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Categories';
+
+CREATE TABLE IF NOT EXISTS `registry`.`support_tickets` (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT(11) UNSIGNED NOT NULL, 
+    category_id INT(11) UNSIGNED NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status ENUM('Open', 'In Progress', 'Resolved', 'Closed') DEFAULT 'Open',
+    priority ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
+    reported_domain VARCHAR(255) DEFAULT NULL,
+    nature_of_abuse TEXT DEFAULT NULL,
+    evidence TEXT DEFAULT NULL,
+    relevant_urls TEXT DEFAULT NULL,
+    date_of_incident DATE DEFAULT NULL,
+    date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES ticket_categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Support Tickets';
+
+CREATE TABLE IF NOT EXISTS `registry`.`ticket_responses` (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT(11) UNSIGNED NOT NULL,
+    responder_id INT(11) UNSIGNED NOT NULL,
+    response TEXT NOT NULL,
+    date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Responses';
+
 INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
 INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
 INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
@@ -596,6 +630,19 @@ INSERT INTO `registry`.`domain_restore_price` VALUES('5','5','50.00');
 INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Namingo Test','namingo','{SHA}MyVYFDDrSjD546LIF11cMPu93ss=','XP','info@namingo.org','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 002','testregistrar1','{SHA}ELxnUq/+JQS9a7pCUIZQpUrA3bY=','AA','info@testregistrar1.com','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Registrar 003','testregistrar2','{SHA}jkkAfdvdLH5vbkCeQLGJy77LEGM=','BB','info@testregistrar2.com','whois.namingo.org','https://rdap.namingo.org','http://www.namingo.org/','abuse@namingo.org','+380.123123123','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+INSERT INTO `registry`.`ticket_categories` (name, description) VALUES 
+('Domain Transfer', 'Issues related to domain transfers between registrars'),
+('Registration Errors', 'Errors or issues encountered during domain registration'),
+('Billing & Payments', 'Questions or issues related to invoicing, payments, or account balances'),
+('Technical Support', 'Technical problems or platform-related inquiries'),
+('WHOIS Updates', 'Issues related to updating or querying WHOIS data'),
+('Policy Violations', 'Reports of domains violating policies or terms of service'),
+('EPP Command Errors', 'Issues related to EPP command failures or errors'),
+('Abuse Notifications', 'Reports of domain abusive practices as per ICANN guidelines'),
+('General Inquiry', 'General questions or feedback about services, platform or any non-specific topic'),
+('Registrar Application', 'Queries or issues related to new registrar applications or onboarding'),
+('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates');
 
 CREATE USER 'registry'@'localhost' IDENTIFIED BY 'EPPRegistry';
 CREATE USER 'registry-select'@'localhost' IDENTIFIED BY 'EPPRegistrySELECT';

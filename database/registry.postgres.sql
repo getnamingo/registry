@@ -539,6 +539,44 @@ CREATE TABLE registry.premium_domain_pricing (
     FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
 );
 
+-- Create custom types for status and priority
+CREATE TYPE ticket_status AS ENUM ('Open', 'In Progress', 'Resolved', 'Closed');
+CREATE TYPE ticket_priority AS ENUM ('Low', 'Medium', 'High', 'Critical');
+
+CREATE TABLE registry.ticket_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE registry.support_tickets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL, 
+    category_id INTEGER NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status ticket_status DEFAULT 'Open',
+    priority ticket_priority DEFAULT 'Medium',
+    reported_domain VARCHAR(255) DEFAULT NULL,
+    nature_of_abuse TEXT DEFAULT NULL,
+    evidence TEXT DEFAULT NULL,
+    relevant_urls TEXT DEFAULT NULL,
+    date_of_incident DATE DEFAULT NULL,
+    date_created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES registry.users(id),
+    FOREIGN KEY (category_id) REFERENCES registry.ticket_categories(id)
+);
+
+CREATE TABLE ticket_responses (
+    id SERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL,
+    responder_id INTEGER NOT NULL,
+    response TEXT NOT NULL,
+    date_created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
+);
+
 INSERT INTO registry.domain_tld VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
 INSERT INTO registry.domain_tld VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
 INSERT INTO registry.domain_tld VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
@@ -572,6 +610,19 @@ INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_
 INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Registrar 002',E'testregistrar1',E'{SHA}ELxnUq/+JQS9a7pCUIZQpUrA3bY=',E'AA',E'info@testregistrar1.com',E'whois.namingo.org',E'https://rdap.namingo.org',E'http://www.namingo.org/',E'abuse@namingo.org',E'+380.123123123',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Registrar 003',E'testregistrar2',E'{SHA}jkkAfdvdLH5vbkCeQLGJy77LEGM=',E'BB',E'info@testregistrar2.com',E'whois.namingo.org',E'https://rdap.namingo.org',E'http://www.namingo.org/',E'abuse@namingo.org',E'+380.123123123',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+INSERT INTO registry.ticket_categories (name, description) VALUES 
+('Domain Transfer', 'Issues related to domain transfers between registrars'),
+('Registration Errors', 'Errors or issues encountered during domain registration'),
+('Billing & Payments', 'Questions or issues related to invoicing, payments, or account balances'),
+('Technical Support', 'Technical problems or platform-related inquiries'),
+('WHOIS Updates', 'Issues related to updating or querying WHOIS data'),
+('Policy Violations', 'Reports of domains violating policies or terms of service'),
+('EPP Command Errors', 'Issues related to EPP command failures or errors'),
+('Abuse Notifications', 'Reports of domain abusive practices as per ICANN guidelines'),
+('General Inquiry', 'General questions or feedback about services, platform or any non-specific topic'),
+('Registrar Application', 'Queries or issues related to new registrar applications or onboarding'),
+('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates');
  
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
