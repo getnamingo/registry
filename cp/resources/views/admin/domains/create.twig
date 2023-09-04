@@ -24,12 +24,38 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+              {% if domainName is defined and crdate is defined %}
+                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Domain') }} <strong>{{ domainName }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% elseif error is defined %}
+                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Domain') }} <strong>{{ domainName }}</strong> {{ __('can not be created') }}: <strong>{{ error }}</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% endif %}
                 <div class="card">
                     <div class="card-body">
-                        <form id="domainCreateForm" action="/your_endpoint" method="post">
+                        <form id="domainCreateForm" action="/domain/create" method="post">
+                        {{ csrf.field | raw }}
                             <div class="mb-3">
                                 <label for="domainName" class="form-label required">Your Domain Name</label>
-                                <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required>
+                                <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required">
                             </div>
                             
                             {% if registrars %}
@@ -58,18 +84,40 @@
                             <!-- Fields for 4 contacts with roles -->
                             <div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">Contacts</label>
-                                <input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" id="contactRegistrant" required>
-                                <input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin" required>
-                                <input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech" required>
-                                <input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling" required>
+                                <input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" id="contactRegistrant" required="required">
+                                <input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin">
+                                <input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech">
+                                <input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling">
                             </div>
 
                             <!-- Fields for nameservers -->
-                            <div id="nameserverFields">
-                                <label for="nameserver1" class="form-label">Nameservers</label>
-                                <input type="text" class="form-control mb-2" placeholder="Nameserver 1" name="nameserver1" id="nameserver1" required>
-                                <input type="text" class="form-control mb-2" placeholder="Nameserver 2" name="nameserver2" required>
-                            </div>
+							<div id="nameserverFields">
+								<label class="form-label">Nameservers</label>
+
+								<div class="nameserver-group mb-1 row">
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 1" name="nameserver[]" required>
+									</div>
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 1 - IPv4" name="nameserver_ipv4[]">
+									</div>
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 1 - IPv6" name="nameserver_ipv6[]">
+									</div>
+								</div>
+
+								<div class="nameserver-group mb-1 row">
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 2" name="nameserver[]" required>
+									</div>
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 2 - IPv4" name="nameserver_ipv4[]">
+									</div>
+									<div class="col-md-4">
+										<input type="text" class="form-control mb-1" placeholder="Nameserver 2 - IPv6" name="nameserver_ipv6[]">
+									</div>
+								</div>
+							</div>
                             <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
                             <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
 
@@ -158,27 +206,64 @@ document.addEventListener("DOMContentLoaded", function() {
         yearValueDisplay.textContent = `${yearSlider.value} Year${yearSlider.value > 1 ? 's' : ''}`;
     });
 
-    // Add nameserver field
-    let nameserverCount = 2;
-    addNameserverBtn.addEventListener('click', function() {
-        if (nameserverCount < 13) {
-            nameserverCount++;
-            const newField = document.createElement('input');
-            newField.type = 'text';
-            newField.className = 'form-control mb-2';
-            newField.placeholder = `Nameserver ${nameserverCount}`;
-            newField.name = `nameserver${nameserverCount}`;
-            nameserverFields.appendChild(newField);
-        }
-    });
+	function createNameserverGroup(count) {
+		const group = document.createElement('div');
+		group.className = 'nameserver-group mb-1 row';
 
-    // Remove nameserver field
-    removeNameserverBtn.addEventListener('click', function() {
-        if (nameserverCount > 2) {
-            nameserverFields.removeChild(nameserverFields.lastChild);
-            nameserverCount--;
-        }
-    });
+		const nameserverCol = document.createElement('div');
+		nameserverCol.className = 'col-md-4';
+		const nameserverField = document.createElement('input');
+		nameserverField.type = 'text';
+		nameserverField.className = 'form-control mb-1';
+		nameserverField.placeholder = `Nameserver ${count}`;
+		nameserverField.name = `nameserver[]`;
+		nameserverCol.appendChild(nameserverField);
+
+		const ipv4Col = document.createElement('div');
+		ipv4Col.className = 'col-md-4';
+		const ipv4Field = document.createElement('input');
+		ipv4Field.type = 'text';
+		ipv4Field.className = 'form-control mb-1';
+		ipv4Field.placeholder = `Nameserver ${count} - IPv4`;
+		ipv4Field.name = `nameserver_ipv4[]`;
+		ipv4Col.appendChild(ipv4Field);
+
+		const ipv6Col = document.createElement('div');
+		ipv6Col.className = 'col-md-4';
+		const ipv6Field = document.createElement('input');
+		ipv6Field.type = 'text';
+		ipv6Field.className = 'form-control mb-1';
+		ipv6Field.placeholder = `Nameserver ${count} - IPv6`;
+		ipv6Field.name = `nameserver_ipv6[]`;
+		ipv6Col.appendChild(ipv6Field);
+
+		group.appendChild(nameserverCol);
+		group.appendChild(ipv4Col);
+		group.appendChild(ipv6Col);
+
+		return group;
+	}
+
+	// Add nameserver fields
+	let nameserverCount = 2;
+	addNameserverBtn.addEventListener('click', function() {
+		if (nameserverCount < 13) {
+			nameserverCount++;
+			const nameserverGroup = createNameserverGroup(nameserverCount);
+			nameserverFields.appendChild(nameserverGroup);
+		}
+	});
+
+	// Remove nameserver group
+	removeNameserverBtn.addEventListener('click', function() {
+		if (nameserverCount > 2) {
+			const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
+			if (lastGroup) {
+				nameserverFields.removeChild(lastGroup);
+				nameserverCount--;
+			}
+		}
+	});
 
     // Generate random AuthInfo and set it to the field
     function generateAuthInfo() {
