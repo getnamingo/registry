@@ -119,15 +119,19 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
               JOIN registrar r ON ru.registrar_id = r.id 
               WHERE ru.user_id = ?';
 
-    $result = $db->select($query, [$_SESSION['auth_user_id']]);
+    if (isset($_SESSION['auth_user_id'])) {
+        $result = $db->select($query, [$_SESSION['auth_user_id']]);
 
-    $_SESSION['_currency'] = 'USD'; // default value
+        // Default value for currency
+        $_SESSION['_currency'] = 'USD'; 
 
-    if ($result !== null && isset($result[0]['currency'])) {
-        $_SESSION['_currency'] = $result[0]['currency'];
+        if ($result !== null && isset($result[0]['currency'])) {
+            $_SESSION['_currency'] = $result[0]['currency'];
+        }
     }
 
-    $view->getEnvironment()->addGlobal('currency', $_SESSION['_currency']);
+    $currency = isset($_SESSION['_currency']) ? $_SESSION['_currency'] : 'USD';
+    $view->getEnvironment()->addGlobal('currency', $currency);
 
     $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
         // Find the translation
