@@ -213,10 +213,6 @@
                     <a class="dropdown-item" href="{{route('contactcreate')}}">
                       {{ __('Create Contact') }}
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">
-                      {{ __('Abuse Prevention') }}
-                    </a>
                   </div>
                 </li>
                 <li {{ is_current_url('hosts') or is_current_url('hostcreate') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
@@ -239,7 +235,7 @@
                 <li {{ is_current_url('registrars') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 13a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z"></path><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"></path><path d="M6 20.05v-.05a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v.05"></path></svg>
-					</span>
+                    </span>
                     <span class="nav-link-title">
                       {{ __('Registrars') }}
                     </span>
@@ -251,22 +247,19 @@
                     <a class="dropdown-item" href="#">
                       {{ __('Create Registrar') }}
                     </a>
-                    <a class="dropdown-item" href="#">
-                      {{ __('Communication') }}
-                    </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="#">
-                      {{ __('List Applications') }}
+                      {{ __('Announcements') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      {{ __('Compliance') }}
+                      {{ __('Applications Center') }}
                     </a>
                   </div>
                 </li>
                 <li {{ is_current_url('pricing') or is_current_url('deposit') or is_current_url('transactions') or is_current_url('overview') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"></path><path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2"></path></svg>
-					</span>
+                    </span>
                     <span class="nav-link-title">
                       {{ __('Financials') }}
                     </span>
@@ -302,7 +295,7 @@
                 <li {{ is_current_url('logs') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"></path> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path></svg>
-					</span>
+                    </span>
                     <span class="nav-link-title">
                       {{ __('System') }}
                     </span>
@@ -315,21 +308,31 @@
                       {{ __('User Management') }}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{{route('logs')}}">
-                      {{ __('EPP Log') }}
-                    </a>
-                    <a class="dropdown-item" href="{{route('logs')}}">
-                      {{ __('Audit Log') }}
-                    </a>
-                    <a class="dropdown-item" href="{{route('logs')}}">
-                      {{ __('Backup') }}
-                    </a>
+                    <div class="dropend">
+                      <a class="dropdown-item dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
+                        {{ __('Logs') }}
+                      </a>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href="{{route('logs')}}">
+                          {{ __('Error Log') }}
+                        </a>
+                        <a class="dropdown-item" href="{{route('logs')}}">
+                          {{ __('EPP Log') }}
+                        </a>
+                        <a class="dropdown-item" href="{{route('logs')}}">
+                          {{ __('Audit Log') }}
+                        </a>
+                        <a class="dropdown-item" href="{{route('logs')}}">
+                          {{ __('Backup Log') }}
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </li>
                 <li {{ is_current_url('ticketview') or is_current_url('newticket') or is_current_url('docs') or is_current_url('mediakit') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path><path d="M15 15l3.35 3.35"></path><path d="M9 15l-3.35 3.35"></path><path d="M5.65 5.65l3.35 3.35"></path><path d="M18.35 5.65l-3.35 3.35"></path></svg>
-					</span>
+                    </span>
                     <span class="nav-link-title">
                       {{ __('Support') }}
                     </span>
