@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}{{ __('Price Management') }}{% endblock %}
+{% block title %}{{ __('Registrar Deposit') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,27 +14,8 @@
                   Overview
                 </div>
                 <h2 class="page-title">
-                  {{ __('Price Management') }}
+                  {{ __('Registrar Deposit') }}
                 </h2>
-              </div>
-              <!-- Page title actions -->
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  <span class="d-none d-sm-inline">
-                    <a href="#" class="btn">
-                      New view
-                    </a>
-                  </span>
-                  <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-report">
-                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    Create new report
-                  </a>
-                  <a href="#" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-report" aria-label="Create new report">
-                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  </a>
-                </div>
               </div>
             </div>
           </div>
@@ -44,88 +25,82 @@
           <div class="container-xl">
             <div class="col-12">
               <div class="card">
-                <div class="card-body border-bottom py-3">
-    <h2 class="text-center">Registrar Deposit</h2>
+                <div class="card-body">
+                  <form id="depositForm">
+                    <div class="mb-3">
+                        <label for="registrarSelect" class="form-label">Registrar</label>
+                        <select class="form-select" id="registrarSelect" name="registrar" required>
+                                <option selected disabled value="">Choose Registrar...</option>
+                            {% for registrar in registrars %}
+                                <option value="{{ registrar.id }}">{{ registrar.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-    <div class="row mt-4">
-        <div class="col-md-8 offset-md-2">
-            <form id="depositForm">
-                <!-- Registrar Dropdown -->
-                <div class="mb-3">
-                    <label for="registrarSelect" class="form-label">Registrar</label>
-                    <select class="form-select" id="registrarSelect" required>
-                        <option selected disabled value="">Choose Registrar...</option>
-                        <!-- Sample options. You'd dynamically populate this in a real scenario -->
-                        <option value="1">Registrar A</option>
-                        <option value="2">Registrar B</option>
-                    </select>
+                    <div class="deposit-info">
+                        <h5>Current Funds for <span id="registrarName"></span></h5>
+                        <p class="fs-4">$<span id="currentFunds">0.00</span></p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" placeholder="Enter deposit amount" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" rows="3" placeholder="Optional deposit description"></textarea>
+                    </div>
                 </div>
-
-                <!-- Deposit Info -->
-                <div class="deposit-info">
-                    <h5>Current Funds for <span id="registrarName"></span></h5>
-                    <p class="fs-4">$<span id="currentFunds">0.00</span></p>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">Add Deposit</button>
+                    </div>
+                  </div>
                 </div>
+                </form>
+                
+                <script>
+                    const registrarSelect = document.getElementById('registrarSelect');
+                    registrarSelect.addEventListener('change', function() {
+                        // Mock API call to get current funds for the selected registrar
+                        fetch(`https://api.example.com/registrarFunds/${registrarSelect.value}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const registrarName = registrarSelect.options[registrarSelect.selectedIndex].text;
+                            document.getElementById('registrarName').textContent = registrarName;
+                            document.getElementById('currentFunds').textContent = data.funds.toFixed(2);
+                            document.querySelector('.deposit-info').style.display = 'block';
+                        })
+                        .catch(error => {
+                            console.error('There was an error with the request:', error);
+                        });
+                    });
 
-                <!-- Amount Input -->
-                <div class="mb-3">
-                    <label for="amount" class="form-label">Amount</label>
-                    <input type="number" step="0.01" class="form-control" id="amount" placeholder="Enter deposit amount" required>
-                </div>
+                    document.getElementById('depositForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
 
-                <!-- Description Input -->
-                <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" rows="3" placeholder="Optional deposit description"></textarea>
-                </div>
+                        const amount = document.getElementById('amount').value;
 
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-primary">Submit Deposit</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-    const registrarSelect = document.getElementById('registrarSelect');
-    registrarSelect.addEventListener('change', function() {
-        // Mock API call to get current funds for the selected registrar
-        fetch(`https://api.example.com/registrarFunds/${registrarSelect.value}`)
-        .then(response => response.json())
-        .then(data => {
-            const registrarName = registrarSelect.options[registrarSelect.selectedIndex].text;
-            document.getElementById('registrarName').textContent = registrarName;
-            document.getElementById('currentFunds').textContent = data.funds.toFixed(2);
-            document.querySelector('.deposit-info').style.display = 'block';
-        })
-        .catch(error => {
-            console.error('There was an error with the request:', error);
-        });
-    });
-
-    document.getElementById('depositForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const amount = document.getElementById('amount').value;
-
-        // Mock API call to add deposit
-        fetch("https://api.example.com/addDeposit", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ registrarId: registrarSelect.value, amount: amount })
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Update the displayed funds after deposit
-            document.getElementById('currentFunds').textContent = data.newFunds.toFixed(2);
-        })
-        .catch(error => {
-            console.error('There was an error with the request:', error);
-        });
-    });
-</script>
+                        // Mock API call to add deposit
+                        fetch("https://api.example.com/addDeposit", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ registrarId: registrarSelect.value, amount: amount })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update the displayed funds after deposit
+                            document.getElementById('currentFunds').textContent = data.newFunds.toFixed(2);
+                        })
+                        .catch(error => {
+                            console.error('There was an error with the request:', error);
+                        });
+                    });
+                </script>
                 </div>
               </div>
             </div>

@@ -12,19 +12,24 @@ class FinancialsController extends Controller
     {
         return view($response,'admin/financials/transactions.twig');
     }
-	
+    
     public function overview(Request $request, Response $response)
     {
         return view($response,'admin/financials/overview.twig');
     }
-	
+    
     public function pricing(Request $request, Response $response)
     {
         return view($response,'admin/financials/pricing.twig');
     }
-	
+    
     public function deposit(Request $request, Response $response)
     {
-        return view($response,'admin/financials/deposit.twig');
+        $db = $this->container->get('db');
+        $registrars = $db->select("SELECT id, clid, name FROM registrar");
+    
+        return view($response,'admin/financials/deposit.twig', [
+            'registrars' => $registrars
+        ]);
     }
 }
