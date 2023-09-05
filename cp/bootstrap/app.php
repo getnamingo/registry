@@ -58,11 +58,11 @@ if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)
         }
     } else {
         $desiredLanguage = 'en_US';
-		$uiLang = 'us';
+        $uiLang = 'us';
     }
 } else {
     $desiredLanguage = 'en_US';
-	$uiLang = 'us';
+    $uiLang = 'us';
 }
 $lang_full = Language::getName($desiredLanguage, 'en');
 $lang = trim(strstr($lang_full, ' (', true));
@@ -112,6 +112,22 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
     }
+
+    $db = $container->get('db');
+    $query = 'SELECT r.currency 
+              FROM registrar_users ru
+              JOIN registrar r ON ru.registrar_id = r.id 
+              WHERE ru.user_id = ?';
+
+    $result = $db->select($query, [$_SESSION['auth_user_id']]);
+
+    $_SESSION['_currency'] = 'USD'; // default value
+
+    if ($result !== null && isset($result[0]['currency'])) {
+        $_SESSION['_currency'] = $result[0]['currency'];
+    }
+
+    $view->getEnvironment()->addGlobal('currency', $_SESSION['_currency']);
 
     $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
         // Find the translation

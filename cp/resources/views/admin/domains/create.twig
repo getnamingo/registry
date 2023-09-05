@@ -54,7 +54,7 @@
                         <form id="domainCreateForm" action="/domain/create" method="post">
                         {{ csrf.field | raw }}
                             <div class="mb-3">
-                                <label for="domainName" class="form-label required">Your Domain Name</label>
+                                <label for="domainName" class="form-label required">{{ __('Your Domain Name') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required">
                             </div>
                             
@@ -71,105 +71,105 @@
 
                             <!-- Slider for years -->
                             <div class="mb-3">
-                                <label for="registrationYears" class="form-label">Registration Years</label>
+                                <label for="registrationYears" class="form-label">{{ __('Registration Years') }}</label>
                                 <input type="range" class="form-range" min="1" max="10" step="1" id="registrationYears" name="registrationYears" value="1">
                                 <span id="yearValue">1 Year</span>
                             </div>
                             
                             <!-- Placeholder for displaying domain price -->
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
-                                <strong>Estimated Price: </strong><span id="domainPrice">$0.00</span>
+                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
                             </div>
 
                             <!-- Fields for 4 contacts with roles -->
                             <div class="mb-3">
-                                <label for="contactRegistrant" class="form-label required">Contacts</label>
-                                <input type="text" class="form-control mb-2" placeholder="Registrant Contact" name="contactRegistrant" id="contactRegistrant" required="required">
-                                <input type="text" class="form-control mb-2" placeholder="Admin Contact" name="contactAdmin">
-                                <input type="text" class="form-control mb-2" placeholder="Tech Contact" name="contactTech">
-                                <input type="text" class="form-control mb-2" placeholder="Billing Contact" name="contactBilling">
+                                <label for="contactRegistrant" class="form-label required">{{ __('Contacts') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" required="required">
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin">
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech">
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling">
                             </div>
 
                             <!-- Fields for nameservers -->
-							<div id="nameserverFields">
-								<label class="form-label">Nameservers</label>
+                            <div id="nameserverFields">
+                                <label class="form-label">{{ __('Nameservers') }}</label>
 
-								<div class="nameserver-group mb-1 row">
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 1" name="nameserver[]" required>
-									</div>
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 1 - IPv4" name="nameserver_ipv4[]">
-									</div>
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 1 - IPv6" name="nameserver_ipv6[]">
-									</div>
-								</div>
+                                <div class="nameserver-group mb-1 row">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1" name="nameserver[]" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1 - IPv4" name="nameserver_ipv4[]">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1 - IPv6" name="nameserver_ipv6[]">
+                                    </div>
+                                </div>
 
-								<div class="nameserver-group mb-1 row">
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 2" name="nameserver[]" required>
-									</div>
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 2 - IPv4" name="nameserver_ipv4[]">
-									</div>
-									<div class="col-md-4">
-										<input type="text" class="form-control mb-1" placeholder="Nameserver 2 - IPv6" name="nameserver_ipv6[]">
-									</div>
-								</div>
-							</div>
+                                <div class="nameserver-group mb-1 row">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2" name="nameserver[]" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2 - IPv4" name="nameserver_ipv4[]">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2 - IPv6" name="nameserver_ipv6[]">
+                                    </div>
+                                </div>
+                            </div>
                             <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
                             <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
 
                             <!-- DNSSEC Data with checkbox -->
                             <div class="mb-3 form-check">
                                 <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
-                                <label class="form-check-label" for="addDnssec">Add DNSSEC Data</label>
+                                <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
                             </div>
                             <div id="dnssecData" style="display: none;">
                                 <div class="mb-3">
-                                    <label for="dsKeyTag" class="form-label">DS Record</label>
-                                    <input type="text" class="form-control mb-2" placeholder="Key Tag" name="dsKeyTag" id="dsKeyTag">
+                                    <label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
                                     <select class="form-control mb-2" name="dsAlg">
-                                        <option value="" disabled selected>Select Algorithm</option>
+                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
                                         <option value="1">RSA/MD5 (deprecated)</option>
                                         <option value="3">DSA/SHA1</option>
                                         <option value="5">RSA/SHA-1</option>
                                         <!-- Add other algorithms as required -->
                                     </select>
                                     <select class="form-control mb-2" name="dsDigestType">
-                                        <option value="" disabled selected>Select Digest Type</option>
+                                        <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
                                         <option value="1">SHA-1</option>
                                         <option value="2">SHA-256</option>
                                         <!-- Add other digest types as required -->
                                     </select>
-                                    <input type="text" class="form-control mb-2" placeholder="Digest" name="dsDigest">
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="dnskeyFlags" class="form-label">DNSKEY Record</label>
-                                    <input type="number" class="form-control mb-2" placeholder="Flags" name="dnskeyFlags" id="dnskeyFlags">
-                                    <input type="number" class="form-control mb-2" placeholder="Protocol" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+                                    <label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
+                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
+                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
                                     <select class="form-control mb-2" name="dnskeyAlg">
-                                        <option value="" disabled selected>Select Algorithm</option>
+                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
                                         <option value="1">RSA/MD5 (deprecated)</option>
                                         <option value="3">DSA/SHA1</option>
                                         <option value="5">RSA/SHA-1</option>
                                         <!-- Add other algorithms as required -->
                                     </select>
-                                    <input type="text" class="form-control mb-2" placeholder="Public Key" name="dnskeyPubKey">
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
                                 </div>
                             </div>
                             <!-- AuthInfo -->
                             <div class="mb-3">
-                                <label for="authInfo" class="form-label">Auth Info</label>
+                                <label for="authInfo" class="form-label">{{ __('Auth Info') }}</label>
                                 <input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
                             </div>
                     </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">Create Domain</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Create Domain') }}</button>
                     </div>
                   </div>
                 </div>
@@ -194,6 +194,10 @@
       </div>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+
+    window.currencySymbol = "{{ currencySymbol }}";
+    window.currencyPosition = "{{ currencyPosition }}";
+
     const yearSlider = document.getElementById('registrationYears');
     const yearValueDisplay = document.getElementById('yearValue');
     const addNameserverBtn = document.getElementById('addNameserver');
@@ -206,64 +210,64 @@ document.addEventListener("DOMContentLoaded", function() {
         yearValueDisplay.textContent = `${yearSlider.value} Year${yearSlider.value > 1 ? 's' : ''}`;
     });
 
-	function createNameserverGroup(count) {
-		const group = document.createElement('div');
-		group.className = 'nameserver-group mb-1 row';
+    function createNameserverGroup(count) {
+        const group = document.createElement('div');
+        group.className = 'nameserver-group mb-1 row';
 
-		const nameserverCol = document.createElement('div');
-		nameserverCol.className = 'col-md-4';
-		const nameserverField = document.createElement('input');
-		nameserverField.type = 'text';
-		nameserverField.className = 'form-control mb-1';
-		nameserverField.placeholder = `Nameserver ${count}`;
-		nameserverField.name = `nameserver[]`;
-		nameserverCol.appendChild(nameserverField);
+        const nameserverCol = document.createElement('div');
+        nameserverCol.className = 'col-md-4';
+        const nameserverField = document.createElement('input');
+        nameserverField.type = 'text';
+        nameserverField.className = 'form-control mb-1';
+        nameserverField.placeholder = `{{ __('Nameserver') }} ${count}`;
+        nameserverField.name = `nameserver[]`;
+        nameserverCol.appendChild(nameserverField);
 
-		const ipv4Col = document.createElement('div');
-		ipv4Col.className = 'col-md-4';
-		const ipv4Field = document.createElement('input');
-		ipv4Field.type = 'text';
-		ipv4Field.className = 'form-control mb-1';
-		ipv4Field.placeholder = `Nameserver ${count} - IPv4`;
-		ipv4Field.name = `nameserver_ipv4[]`;
-		ipv4Col.appendChild(ipv4Field);
+        const ipv4Col = document.createElement('div');
+        ipv4Col.className = 'col-md-4';
+        const ipv4Field = document.createElement('input');
+        ipv4Field.type = 'text';
+        ipv4Field.className = 'form-control mb-1';
+        ipv4Field.placeholder = `{{ __('Nameserver') }} ${count} - IPv4`;
+        ipv4Field.name = `nameserver_ipv4[]`;
+        ipv4Col.appendChild(ipv4Field);
 
-		const ipv6Col = document.createElement('div');
-		ipv6Col.className = 'col-md-4';
-		const ipv6Field = document.createElement('input');
-		ipv6Field.type = 'text';
-		ipv6Field.className = 'form-control mb-1';
-		ipv6Field.placeholder = `Nameserver ${count} - IPv6`;
-		ipv6Field.name = `nameserver_ipv6[]`;
-		ipv6Col.appendChild(ipv6Field);
+        const ipv6Col = document.createElement('div');
+        ipv6Col.className = 'col-md-4';
+        const ipv6Field = document.createElement('input');
+        ipv6Field.type = 'text';
+        ipv6Field.className = 'form-control mb-1';
+        ipv6Field.placeholder = `{{ __('Nameserver') }} ${count} - IPv6`;
+        ipv6Field.name = `nameserver_ipv6[]`;
+        ipv6Col.appendChild(ipv6Field);
 
-		group.appendChild(nameserverCol);
-		group.appendChild(ipv4Col);
-		group.appendChild(ipv6Col);
+        group.appendChild(nameserverCol);
+        group.appendChild(ipv4Col);
+        group.appendChild(ipv6Col);
 
-		return group;
-	}
+        return group;
+    }
 
-	// Add nameserver fields
-	let nameserverCount = 2;
-	addNameserverBtn.addEventListener('click', function() {
-		if (nameserverCount < 13) {
-			nameserverCount++;
-			const nameserverGroup = createNameserverGroup(nameserverCount);
-			nameserverFields.appendChild(nameserverGroup);
-		}
-	});
+    // Add nameserver fields
+    let nameserverCount = 2;
+    addNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount < 13) {
+            nameserverCount++;
+            const nameserverGroup = createNameserverGroup(nameserverCount);
+            nameserverFields.appendChild(nameserverGroup);
+        }
+    });
 
-	// Remove nameserver group
-	removeNameserverBtn.addEventListener('click', function() {
-		if (nameserverCount > 2) {
-			const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
-			if (lastGroup) {
-				nameserverFields.removeChild(lastGroup);
-				nameserverCount--;
-			}
-		}
-	});
+    // Remove nameserver group
+    removeNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount > 2) {
+            const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
+            if (lastGroup) {
+                nameserverFields.removeChild(lastGroup);
+                nameserverCount--;
+            }
+        }
+    });
 
     // Generate random AuthInfo and set it to the field
     function generateAuthInfo() {
@@ -291,20 +295,58 @@ document.addEventListener("DOMContentLoaded", function() {
     const priceDisplay = document.getElementById('domainPriceDisplay');
     const priceValue = document.getElementById('domainPrice');
 
-    // Simulate an API request
+    function extractTLD(domain) {
+        const match = domain.match(/\.[a-zA-Z0-9]+$/);
+        return match ? match[0].toLowerCase() : null;
+    }
+
     function getDomainPrice(domain, years) {
-        // For now, we'll just return a dummy price. In a real scenario, you'd call your API here.
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve(10.00 * years); // Example: Price is $10/year
-            }, 500); // Simulating API delay
-        });
+        const tld = extractTLD(domain);
+        if (!tld) {
+            return Promise.reject("Invalid TLD");
+        }
+
+        // Call your API to get the domain price based on its TLD.
+        return fetch(`/api/records/domain_price?join=domain_tld`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    return Promise.reject("Failed to fetch domain prices");
+                }
+            })
+            .then(data => {
+                // Find the domain TLD and then get its price for the "create" command
+                const tldData = data.records.find(record => 
+                    record.tldid && record.tldid.tld.toLowerCase() === tld.toLowerCase() && 
+                    record.command === 'create'
+                );
+                if (tldData) {
+                    const priceField = `m${years * 12}`;
+                    const price = parseFloat(tldData[priceField]);
+                    if (!isNaN(price)) {
+                        return price;
+                    }
+                }
+                return Promise.reject("TLD price not found");
+            });
+    }
+
+    function formatPrice(price) {
+        switch(window.currencyPosition) {
+            case 'before':
+                return `${window.currencySymbol}${price.toFixed(2)}`;
+            case 'after':
+                return `${price.toFixed(2)} ${window.currencySymbol}`;
+            default:
+                return price.toFixed(2);
+        }
     }
 
     function updatePrice() {
         if (domainInput.value) {
             getDomainPrice(domainInput.value, yearInput.value).then(price => {
-                priceValue.innerText = `$${price.toFixed(2)}`;
+                priceValue.innerText = formatPrice(price);
                 priceDisplay.style.display = 'block';
             });
         } else {
