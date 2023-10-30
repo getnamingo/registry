@@ -16,9 +16,44 @@ class HomeController extends Controller
 
     public function dashboard(Request $request, Response $response)
     {
-        $userModel = new User($this->container->get('db'));
-        $users = $userModel->getAllUsers();
-        return view($response,'admin/dashboard/index.twig', compact('users'));
+        $db = $this->container->get('db');
+
+        if ($_SESSION['auth_roles'] === 0) {
+            $clid = null;
+        } else {
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            if (is_array($result)) {
+                $clid = $result['registrar_id'];
+            } else if (is_object($result) && method_exists($result, 'fetch')) {
+                $clid = $result->fetch();
+            } else {
+                $clid = null;
+            }
+        }
+
+        if ($clid !== null) {
+            $domains = $db->selectRow('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);
+            $hosts = $db->selectRow('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
+            $contacts = $db->selectRow('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
+            
+            return view($response, 'admin/dashboard/index.twig', [
+                'domains' => $domains['domains'],
+                'hosts' => $hosts['hosts'],
+                'contacts' => $contacts['contacts'],
+            ]);
+        } else {
+            $domains = $db->selectRow('SELECT count(id) as domains FROM domain');
+            $hosts = $db->selectRow('SELECT count(id) as hosts FROM host');
+            $contacts = $db->selectRow('SELECT count(id) as contacts FROM contact');
+            $registrars = $db->selectRow('SELECT count(id) as registrars FROM registrar');
+            
+            return view($response, 'admin/dashboard/index.twig', [
+                'domains' => $domains['domains'],
+                'hosts' => $hosts['hosts'],
+                'contacts' => $contacts['contacts'],
+                'registrars' => $registrars['registrars'],
+            ]);
+        }
     }
     
     public function mode(Request $request, Response $response)
@@ -44,7 +79,7 @@ class HomeController extends Controller
 
         return $psrResponse;
     }
-
+    
     public function lang(Request $request, Response $response)
     {
         $data = $request->getQueryParams();
