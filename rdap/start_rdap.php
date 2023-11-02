@@ -51,18 +51,19 @@ $http->set([
     'http_compression' => true
 ]);
 
+// Connect to the database
+try {
+    $c = require_once 'config.php';
+    $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    $response->header('Content-Type', 'application/json');
+    $response->end(json_encode(['error' => 'Error connecting to database']));
+    return;
+}
+
 // Register a callback to handle incoming requests
-$http->on('request', function ($request, $response) {
-    // Connect to the database
-    try {
-        $c = require_once 'config.php';
-        $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } catch (PDOException $e) {
-        $response->header('Content-Type', 'application/json');
-        $response->end(json_encode(['error' => 'Error connecting to database']));
-        return;
-    }
+$http->on('request', function ($request, $response) use ($c, $pdo) {
     
     // Extract the request path
     $requestPath = $request->server['request_uri'];
