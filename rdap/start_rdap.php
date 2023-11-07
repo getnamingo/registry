@@ -298,12 +298,12 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             'status' => $statuses,
             'links' => [
                 [
-                    'href' => 'http://rdap.example.com/domain/' . $domain,
+                    'href' => 'https://rdap.example.com/domain/' . $domain,
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => 'http://rdap.registrar.com/domain/' . $domain,
+                    'href' => 'https://rdap.registrar.com/domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -315,7 +315,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                     'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
-                            'href' => 'http://rdap.example.com/nameserver/' . $nameserverDetails['name'],
+                            'href' => 'https://rdap.example.com/nameserver/' . $nameserverDetails['name'],
                             'rel' => 'self',
                             'type' => 'application/rdap+json',
                         ],
@@ -382,10 +382,90 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
 
         // Send the RDAP response
         $response->header('Content-Type', 'application/json');
+        $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $response->header('Content-Type', 'application/json');
+        $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     }
+}
+
+function handleHelpQuery($request, $response, $pdo) {
+    // Set the RDAP conformance levels
+    $rdapConformance = [
+        "rdap_level_0",
+        "icann_rdap_response_profile_0",
+        "icann_rdap_technical_implementation_guide_0"
+    ];
+
+    // Set the descriptions and links for the help section
+    $helpNotices = [
+        "description" => [
+            "domain/XXXX",
+            "nameserver/XXXX",
+            "entity/XXXX",
+            "domains?name=XXXX",
+            "domains?nsLdhName=XXXX",
+            "domains?nsIp=XXXX",
+            "nameservers?name=XXXX",
+            "nameservers?ip=XXXX",
+            "entities?fn=XXXX",
+            "entities?handle=XXXX",
+            "help/XXXX"
+        ],
+        'links' => [
+            [
+                'href' => 'https://rdap.example.com/help',
+                'rel' => 'self',
+                'type' => 'application/rdap+json',
+            ],
+            [
+                'href' => 'https://namingo.org',
+                'rel' => 'related',
+                'type' => 'application/rdap+json',
+            ]
+        ],
+        "title" => "RDAP Help"
+    ];
+
+    // Set the terms of service
+    $termsOfService = [
+        "description" => [
+            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+        ],
+        "links" => [
+        [
+            "href" => "https://rdap.example.com/help",
+            "rel" => "self",
+            "type" => "application/rdap+json"
+        ],
+        [
+            "href" => "https://example.com/rdap-terms",
+            "rel" => "alternate",
+            "type" => "text/html"
+        ],
+        ],
+        "title" => "RDAP Terms of Service"
+    ];
+
+    // Construct the RDAP response for help query
+    $rdapResponse = [
+        "rdapConformance" => $rdapConformance,
+        "notices" => [
+            $helpNotices,
+            $termsOfService
+        ]
+    ];
+
+    // Send the RDAP response
+    $response->header('Content-Type', 'application/json');
+    $response->status(200);
+    $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
 }
