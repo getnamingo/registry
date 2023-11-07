@@ -4,38 +4,39 @@ CREATE SCHEMA registryTransaction;
 SET search_path TO registry, registryTransaction, public;
 
 CREATE TABLE registry.domain_tld (
-	 "id" serial8,
-	 "tld"   varchar(32) NOT NULL,
-	 "idn_table"   varchar(255) NOT NULL,
-	 primary key ("id"),
-	 unique ("tld") 
+     "id" serial8,
+     "tld"   varchar(32) NOT NULL,
+     "idn_table"   varchar(255) NOT NULL,
+     "secure"   SMALLINT NOT NULL,
+     primary key ("id"),
+     unique ("tld") 
 );
 
 CREATE TABLE registry.domain_price (
-	 "id" serial8,
-	 "tldid" int CHECK ("tldid" >= 0) NOT NULL,
-	 "command" varchar CHECK ("command" IN ( 'create','renew','transfer' )) NOT NULL default 'create',
-	 "m0"   decimal(10,2) NOT NULL default '0.00',
-	 "m12"   decimal(10,2) NOT NULL default '0.00',
-	 "m24"   decimal(10,2) NOT NULL default '0.00',
-	 "m36"   decimal(10,2) NOT NULL default '0.00',
-	 "m48"   decimal(10,2) NOT NULL default '0.00',
-	 "m60"   decimal(10,2) NOT NULL default '0.00',
-	 "m72"   decimal(10,2) NOT NULL default '0.00',
-	 "m84"   decimal(10,2) NOT NULL default '0.00',
-	 "m96"   decimal(10,2) NOT NULL default '0.00',
-	 "m108"   decimal(10,2) NOT NULL default '0.00',
-	 "m120"   decimal(10,2) NOT NULL default '0.00',
-	 primary key ("id"),
+     "id" serial8,
+     "tldid" int CHECK ("tldid" >= 0) NOT NULL,
+     "command" varchar CHECK ("command" IN ( 'create','renew','transfer' )) NOT NULL default 'create',
+     "m0"   decimal(10,2) NOT NULL default '0.00',
+     "m12"   decimal(10,2) NOT NULL default '0.00',
+     "m24"   decimal(10,2) NOT NULL default '0.00',
+     "m36"   decimal(10,2) NOT NULL default '0.00',
+     "m48"   decimal(10,2) NOT NULL default '0.00',
+     "m60"   decimal(10,2) NOT NULL default '0.00',
+     "m72"   decimal(10,2) NOT NULL default '0.00',
+     "m84"   decimal(10,2) NOT NULL default '0.00',
+     "m96"   decimal(10,2) NOT NULL default '0.00',
+     "m108"   decimal(10,2) NOT NULL default '0.00',
+     "m120"   decimal(10,2) NOT NULL default '0.00',
+     primary key ("id"),
      unique ("tldid", "command") 
 );
 
 CREATE TABLE registry.domain_restore_price (
-	 "id" serial8 ,
-	 "tldid" int CHECK ("tldid" >= 0) NOT NULL,
-	 "price"   decimal(10,2) NOT NULL default '0.00',
-	 primary key ("id"),
-	 unique ("tldid") 
+     "id" serial8 ,
+     "tldid" int CHECK ("tldid" >= 0) NOT NULL,
+     "price"   decimal(10,2) NOT NULL default '0.00',
+     primary key ("id"),
+     unique ("tldid") 
 );
 
 CREATE TABLE registry.error_log (
@@ -46,37 +47,37 @@ CREATE TABLE registry.error_log (
 );
 
 CREATE TABLE registry.reserved_domain_names (
-	 "id" serial8 ,
-	 "name"   varchar(68) NOT NULL,
+     "id" serial8 ,
+     "name"   varchar(68) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'reserved','restricted' )) NOT NULL default 'reserved',
-	 primary key ("id"),
+     primary key ("id"),
      unique ("name") 
 );
 
 CREATE TABLE registry.registrar (
-	 "id" serial8,
-	 "name"   varchar(255) NOT NULL,
-	 "iana_id"   int DEFAULT NULL,
-	 "clid"   varchar(16) NOT NULL,
-	 "pw"   varchar(256) NOT NULL,
-	 "prefix"   char(2) NOT NULL,
-	 "email"   varchar(255) NOT NULL,
-	 "whois_server"   varchar(255) NOT NULL,
-	 "rdap_server"   varchar(255) NOT NULL,
-	 "url"   varchar(255) NOT NULL,
-	 "abuse_email"   varchar(255) NOT NULL,
-	 "abuse_phone"   varchar(255) NOT NULL,
-	 "accountbalance"   decimal(8,2) NOT NULL default '0.00',
-	 "creditlimit"   decimal(8,2) NOT NULL default '0.00',
-	 "creditthreshold"   decimal(8,2) NOT NULL default '0.00',
+     "id" serial8,
+     "name"   varchar(255) NOT NULL,
+     "iana_id"   int DEFAULT NULL,
+     "clid"   varchar(16) NOT NULL,
+     "pw"   varchar(256) NOT NULL,
+     "prefix"   char(2) NOT NULL,
+     "email"   varchar(255) NOT NULL,
+     "whois_server"   varchar(255) NOT NULL,
+     "rdap_server"   varchar(255) NOT NULL,
+     "url"   varchar(255) NOT NULL,
+     "abuse_email"   varchar(255) NOT NULL,
+     "abuse_phone"   varchar(255) NOT NULL,
+     "accountbalance"   decimal(8,2) NOT NULL default '0.00',
+     "creditlimit"   decimal(8,2) NOT NULL default '0.00',
+     "creditthreshold"   decimal(8,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
-	 "currency"   varchar(5) NOT NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "update"   TIMESTAMP ,
-	 primary key ("id"),
-	 unique ("clid") ,
-	 unique ("prefix") ,
-	 unique ("email") 
+     "currency"   varchar(5) NOT NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "update"   TIMESTAMP ,
+     primary key ("id"),
+     unique ("clid") ,
+     unique ("prefix") ,
+     unique ("email") 
 );
 
  CREATE OR REPLACE FUNCTION update_registrar() RETURNS trigger AS '
@@ -91,375 +92,375 @@ CREATE TRIGGER add_current_date_to_registrar BEFORE UPDATE ON registry.registrar
 update_registrar();
 
 CREATE TABLE registry.registrar_whitelist (
-	 "id" serial8,
-	 "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-	 "addr"   varchar(45) NOT NULL,
-	 primary key ("id"),
+     "id" serial8,
+     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
+     "addr"   varchar(45) NOT NULL,
+     primary key ("id"),
      unique ("registrar_id", "addr") 
 );
 
 CREATE TABLE registry.registrar_contact (
-	 "id" serial8,
-	 "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-	 "type" varchar CHECK ("type" IN ( 'owner','admin','billing','tech' )) NOT NULL default 'admin',
-	 "title"   varchar(255) NOT NULL,
-	 "first_name"   varchar(255) NOT NULL,
-	 "middle_name"   varchar(255) NOT NULL,
-	 "last_name"   varchar(255) NOT NULL,
-	 "org"   varchar(255) default NULL,
-	 "street1"   varchar(255) default NULL,
-	 "street2"   varchar(255) default NULL,
-	 "street3"   varchar(255) default NULL,
-	 "city"   varchar(255) NOT NULL,
-	 "sp"   varchar(255) default NULL,
-	 "pc"   varchar(16) default NULL,
-	 "cc"   char(2) NOT NULL,
-	 "voice"   varchar(17) default NULL,
-	 "fax"   varchar(17) default NULL,
-	 "email"   varchar(255) NOT NULL,
-	 primary key ("id"),
-	 unique ("registrar_id", "type") 
+     "id" serial8,
+     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
+     "type" varchar CHECK ("type" IN ( 'owner','admin','billing','tech','abuse' )) NOT NULL default 'admin',
+     "title"   varchar(255) NOT NULL,
+     "first_name"   varchar(255) NOT NULL,
+     "middle_name"   varchar(255) NOT NULL,
+     "last_name"   varchar(255) NOT NULL,
+     "org"   varchar(255) default NULL,
+     "street1"   varchar(255) default NULL,
+     "street2"   varchar(255) default NULL,
+     "street3"   varchar(255) default NULL,
+     "city"   varchar(255) NOT NULL,
+     "sp"   varchar(255) default NULL,
+     "pc"   varchar(16) default NULL,
+     "cc"   char(2) NOT NULL,
+     "voice"   varchar(17) default NULL,
+     "fax"   varchar(17) default NULL,
+     "email"   varchar(255) NOT NULL,
+     primary key ("id"),
+     unique ("registrar_id", "type") 
 );
 
 CREATE TABLE registry.poll (
-	 "id" serial8,
-	 "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-	 "qdate"   timestamp without time zone NOT NULL,
-	 "msg"   text default NULL,
-	 "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer' )) default NULL,
-	 "obj_name_or_id"   varchar(68),
-	 "obj_trstatus" varchar CHECK ("obj_trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
-	 "obj_reid"   varchar(255),
-	 "obj_redate"   timestamp without time zone,
-	 "obj_acid"   varchar(255),
-	 "obj_acdate"   timestamp without time zone,
-	 "obj_exdate"   timestamp without time zone default NULL,
-	 "registrarname"   varchar(255),
-	 "creditlimit"   decimal(8,2) default '0.00',
-	 "creditthreshold"   decimal(8,2) default '0.00',
-	 "creditthresholdtype" varchar CHECK ("creditthresholdtype" IN ( 'FIXED','PERCENT' )),
-	 "availablecredit"   decimal(8,2) default '0.00',
-	 primary key ("id")
+     "id" serial8,
+     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
+     "qdate"   timestamp without time zone NOT NULL,
+     "msg"   text default NULL,
+     "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer' )) default NULL,
+     "obj_name_or_id"   varchar(68),
+     "obj_trstatus" varchar CHECK ("obj_trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
+     "obj_reid"   varchar(255),
+     "obj_redate"   timestamp without time zone,
+     "obj_acid"   varchar(255),
+     "obj_acdate"   timestamp without time zone,
+     "obj_exdate"   timestamp without time zone default NULL,
+     "registrarname"   varchar(255),
+     "creditlimit"   decimal(8,2) default '0.00',
+     "creditthreshold"   decimal(8,2) default '0.00',
+     "creditthresholdtype" varchar CHECK ("creditthresholdtype" IN ( 'FIXED','PERCENT' )),
+     "availablecredit"   decimal(8,2) default '0.00',
+     primary key ("id")
 );
 
 CREATE TABLE registry.payment_history (
-	 "id" serial8,
-	 "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-	 "date"   timestamp without time zone NOT NULL,
-	 "description"   text NOT NULL,
-	 "amount"   decimal(8,2) NOT NULL,
-	 primary key ("id")
+     "id" serial8,
+     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
+     "date"   timestamp without time zone NOT NULL,
+     "description"   text NOT NULL,
+     "amount"   decimal(8,2) NOT NULL,
+     primary key ("id")
 );
 
 CREATE TABLE registry.statement (
-	 "id" serial8,
-	 "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-	 "date"   timestamp without time zone NOT NULL,
-	 "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
-	 "domain_name"   varchar(68) NOT NULL,
-	 "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
-	 "from"   timestamp without time zone NOT NULL,
-	 "to"   timestamp without time zone NOT NULL,
-	 "amount"   decimal(8,2) NOT NULL,
-	 primary key ("id")
+     "id" serial8,
+     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
+     "date"   timestamp without time zone NOT NULL,
+     "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
+     "domain_name"   varchar(68) NOT NULL,
+     "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
+     "from"   timestamp without time zone NOT NULL,
+     "to"   timestamp without time zone NOT NULL,
+     "amount"   decimal(8,2) NOT NULL,
+     primary key ("id")
 );
 
 CREATE TABLE registry.contact (
-	 "id" serial8,
-	 "identifier"   varchar(255) NOT NULL,
-	 "voice"   varchar(17) default NULL,
-	 "voice_x"   int default NULL,
-	 "fax"   varchar(17) default NULL,
-	 "fax_x"   int default NULL,
-	 "email"   varchar(255) NOT NULL,
-	 "nin"   varchar(255) default NULL,
-	 "nin_type" varchar CHECK ("nin_type" IN ( 'personal','business' )) default NULL,
-	 "clid" int CHECK ("clid" >= 0) NOT NULL,
-	 "crid" int CHECK ("crid" >= 0) NOT NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "upid" int CHECK ("upid" >= 0) default NULL,
-	 "update"   timestamp without time zone default NULL,
-	 "trdate"   timestamp without time zone default NULL,
-	 "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
-	 "reid" int CHECK ("reid" >= 0) default NULL,
-	 "redate"   timestamp without time zone default NULL,
-	 "acid" int CHECK ("acid" >= 0) default NULL,
-	 "acdate"   timestamp without time zone default NULL,
-	 "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-	 primary key ("id"),
-	 unique ("identifier") 
+     "id" serial8,
+     "identifier"   varchar(255) NOT NULL,
+     "voice"   varchar(17) default NULL,
+     "voice_x"   int default NULL,
+     "fax"   varchar(17) default NULL,
+     "fax_x"   int default NULL,
+     "email"   varchar(255) NOT NULL,
+     "nin"   varchar(255) default NULL,
+     "nin_type" varchar CHECK ("nin_type" IN ( 'personal','business' )) default NULL,
+     "clid" int CHECK ("clid" >= 0) NOT NULL,
+     "crid" int CHECK ("crid" >= 0) NOT NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "upid" int CHECK ("upid" >= 0) default NULL,
+     "update"   timestamp without time zone default NULL,
+     "trdate"   timestamp without time zone default NULL,
+     "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
+     "reid" int CHECK ("reid" >= 0) default NULL,
+     "redate"   timestamp without time zone default NULL,
+     "acid" int CHECK ("acid" >= 0) default NULL,
+     "acdate"   timestamp without time zone default NULL,
+     "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
+     primary key ("id"),
+     unique ("identifier") 
 );
 
 CREATE TABLE registry.contact_postalinfo (
-	 "id" serial8,
-	 "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
-	 "type" varchar CHECK ("type" IN ( 'int','loc' )) NOT NULL default 'int',
-	 "name"   varchar(255) NOT NULL,
-	 "org"   varchar(255) default NULL,
-	 "street1"   varchar(255) default NULL,
-	 "street2"   varchar(255) default NULL,
-	 "street3"   varchar(255) default NULL,
-	 "city"   varchar(255) NOT NULL,
-	 "sp"   varchar(255) default NULL,
-	 "pc"   varchar(16) default NULL,
-	 "cc"   char(2) NOT NULL,
-	 "disclose_name_int" varchar CHECK ("disclose_name_int" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_name_loc" varchar CHECK ("disclose_name_loc" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_org_int" varchar CHECK ("disclose_org_int" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_org_loc" varchar CHECK ("disclose_org_loc" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_addr_int" varchar CHECK ("disclose_addr_int" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_addr_loc" varchar CHECK ("disclose_addr_loc" IN ( '0','1' )) NOT NULL default '1',
-	 primary key ("id"),
-	 unique ("contact_id", "type") 
+     "id" serial8,
+     "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
+     "type" varchar CHECK ("type" IN ( 'int','loc' )) NOT NULL default 'int',
+     "name"   varchar(255) NOT NULL,
+     "org"   varchar(255) default NULL,
+     "street1"   varchar(255) default NULL,
+     "street2"   varchar(255) default NULL,
+     "street3"   varchar(255) default NULL,
+     "city"   varchar(255) NOT NULL,
+     "sp"   varchar(255) default NULL,
+     "pc"   varchar(16) default NULL,
+     "cc"   char(2) NOT NULL,
+     "disclose_name_int" varchar CHECK ("disclose_name_int" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_name_loc" varchar CHECK ("disclose_name_loc" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_org_int" varchar CHECK ("disclose_org_int" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_org_loc" varchar CHECK ("disclose_org_loc" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_addr_int" varchar CHECK ("disclose_addr_int" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_addr_loc" varchar CHECK ("disclose_addr_loc" IN ( '0','1' )) NOT NULL default '1',
+     primary key ("id"),
+     unique ("contact_id", "type") 
 );
 
 CREATE TABLE registry.contact_authinfo (
-	 "id" serial8,
-	 "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
-	 "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
-	 "authinfo"   varchar(64) NOT NULL,
-	 primary key ("id"),
-	 unique ("contact_id") 
+     "id" serial8,
+     "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
+     "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
+     "authinfo"   varchar(64) NOT NULL,
+     primary key ("id"),
+     unique ("contact_id") 
 );
 
 CREATE TABLE registry.contact_status (
-	 "id" serial8,
-	 "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
-	 "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientTransferProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-	 primary key ("id"),
-	 unique ("contact_id", "status") 
+     "id" serial8,
+     "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
+     "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientTransferProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
+     primary key ("id"),
+     unique ("contact_id", "status") 
 );
 
 CREATE TABLE registry.domain (
-	 "id" serial8,
-	 "name"   varchar(68) NOT NULL,
-	 "tldid" int CHECK ("tldid" >= 0) NOT NULL,
-	 "registrant" int CHECK ("registrant" >= 0) default NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "exdate"   timestamp without time zone NOT NULL,
-	 "update"   timestamp without time zone default NULL,
-	 "clid" int CHECK ("clid" >= 0) NOT NULL,
-	 "crid" int CHECK ("crid" >= 0) NOT NULL,
-	 "upid" int CHECK ("upid" >= 0) default NULL,
-	 "trdate"   timestamp without time zone default NULL,
-	 "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
-	 "reid" int CHECK ("reid" >= 0) default NULL,
-	 "redate"   timestamp without time zone default NULL,
-	 "acid" int CHECK ("acid" >= 0) default NULL,
-	 "acdate"   timestamp without time zone default NULL,
-	 "transfer_exdate"   timestamp without time zone default NULL,
-	 "idnlang"   varchar(16) default NULL,
-	 "deltime"   timestamp without time zone default NULL,
-	 "restime"   timestamp without time zone default NULL,
-	 "rgpstatus" varchar CHECK ("rgpstatus" IN ( 'addPeriod','autoRenewPeriod','renewPeriod','transferPeriod','pendingDelete','pendingRestore','redemptionPeriod' )) default NULL,
-	 "rgppostdata"   text default NULL,
-	 "rgpdeltime"   timestamp without time zone default NULL,
-	 "rgprestime"   timestamp without time zone default NULL,
-	 "rgpresreason"   text default NULL,
-	 "rgpstatement1"   text default NULL,
-	 "rgpstatement2"   text default NULL,
-	 "rgpother"   text default NULL,
-	 "addperiod"  smallint CHECK ("addperiod" >= 0) default NULL,
-	 "autorenewperiod"  smallint CHECK ("autorenewperiod" >= 0) default NULL,
-	 "renewperiod"  smallint CHECK ("renewperiod" >= 0) default NULL,
-	 "transferperiod"  smallint CHECK ("transferperiod" >= 0) default NULL,
-	 "reneweddate"   timestamp without time zone default NULL,
-	 primary key ("id"),
-	 unique ("name") 
+     "id" serial8,
+     "name"   varchar(68) NOT NULL,
+     "tldid" int CHECK ("tldid" >= 0) NOT NULL,
+     "registrant" int CHECK ("registrant" >= 0) default NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "exdate"   timestamp without time zone NOT NULL,
+     "update"   timestamp without time zone default NULL,
+     "clid" int CHECK ("clid" >= 0) NOT NULL,
+     "crid" int CHECK ("crid" >= 0) NOT NULL,
+     "upid" int CHECK ("upid" >= 0) default NULL,
+     "trdate"   timestamp without time zone default NULL,
+     "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
+     "reid" int CHECK ("reid" >= 0) default NULL,
+     "redate"   timestamp without time zone default NULL,
+     "acid" int CHECK ("acid" >= 0) default NULL,
+     "acdate"   timestamp without time zone default NULL,
+     "transfer_exdate"   timestamp without time zone default NULL,
+     "idnlang"   varchar(16) default NULL,
+     "deltime"   timestamp without time zone default NULL,
+     "restime"   timestamp without time zone default NULL,
+     "rgpstatus" varchar CHECK ("rgpstatus" IN ( 'addPeriod','autoRenewPeriod','renewPeriod','transferPeriod','pendingDelete','pendingRestore','redemptionPeriod' )) default NULL,
+     "rgppostdata"   text default NULL,
+     "rgpdeltime"   timestamp without time zone default NULL,
+     "rgprestime"   timestamp without time zone default NULL,
+     "rgpresreason"   text default NULL,
+     "rgpstatement1"   text default NULL,
+     "rgpstatement2"   text default NULL,
+     "rgpother"   text default NULL,
+     "addperiod"  smallint CHECK ("addperiod" >= 0) default NULL,
+     "autorenewperiod"  smallint CHECK ("autorenewperiod" >= 0) default NULL,
+     "renewperiod"  smallint CHECK ("renewperiod" >= 0) default NULL,
+     "transferperiod"  smallint CHECK ("transferperiod" >= 0) default NULL,
+     "reneweddate"   timestamp without time zone default NULL,
+     primary key ("id"),
+     unique ("name") 
 );
 
 CREATE TABLE registry.domain_contact_map (
-	 "id" serial8,
-	 "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
-	 "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
-	 "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
-	 primary key ("id"),
-	 unique ("domain_id", "contact_id", "type") 
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
+     "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
+     primary key ("id"),
+     unique ("domain_id", "contact_id", "type") 
 );
 
 CREATE TABLE registry.domain_authinfo (
-	 "id" serial8,
-	 "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
-	 "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
-	 "authinfo"   varchar(64) NOT NULL,
-	 primary key ("id"),
-	 unique ("domain_id") 
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
+     "authinfo"   varchar(64) NOT NULL,
+     primary key ("id"),
+     unique ("domain_id") 
 );
 
 CREATE TABLE registry.domain_status (
-	 "id" serial8,
-	 "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
-	 "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientHold','clientRenewProhibited','clientTransferProhibited','clientUpdateProhibited','inactive','ok','pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverHold','serverRenewProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-	 primary key ("id"),
-	 unique ("domain_id", "status") 
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientHold','clientRenewProhibited','clientTransferProhibited','clientUpdateProhibited','inactive','ok','pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverHold','serverRenewProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
+     primary key ("id"),
+     unique ("domain_id", "status") 
 );
 
 CREATE TABLE registry.secdns (
-	 "id" serial8,
-	 "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
-	 "maxsiglife" int CHECK ("maxsiglife" >= 0) default '604800',
-	 "interface" varchar CHECK ("interface" IN ( 'dsData','keyData' )) NOT NULL default 'dsData',
-	 "keytag" smallint CHECK ("keytag" >= 0) NOT NULL,
-	 "alg"  smallint CHECK ("alg" >= 0) NOT NULL default '5',
-	 "digesttype"  smallint CHECK ("digesttype" >= 0) NOT NULL default '1',
-	 "digest"   varchar(64) NOT NULL,
-	 "flags" smallint CHECK ("flags" >= 0) default NULL,
-	 "protocol" smallint CHECK ("protocol" >= 0) default NULL,
-	 "keydata_alg"  smallint CHECK ("keydata_alg" >= 0) default NULL,
-	 "pubkey"   varchar(255) default NULL,
-	 primary key ("id"),
-	 unique ("domain_id", "digest") 
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "maxsiglife" int CHECK ("maxsiglife" >= 0) default '604800',
+     "interface" varchar CHECK ("interface" IN ( 'dsData','keyData' )) NOT NULL default 'dsData',
+     "keytag" smallint CHECK ("keytag" >= 0) NOT NULL,
+     "alg"  smallint CHECK ("alg" >= 0) NOT NULL default '5',
+     "digesttype"  smallint CHECK ("digesttype" >= 0) NOT NULL default '1',
+     "digest"   varchar(64) NOT NULL,
+     "flags" smallint CHECK ("flags" >= 0) default NULL,
+     "protocol" smallint CHECK ("protocol" >= 0) default NULL,
+     "keydata_alg"  smallint CHECK ("keydata_alg" >= 0) default NULL,
+     "pubkey"   varchar(255) default NULL,
+     primary key ("id"),
+     unique ("domain_id", "digest") 
 );
 
 CREATE TABLE registry.host (
-	 "id" serial8,
-	 "name"   varchar(255) NOT NULL,
-	 "domain_id" int CHECK ("domain_id" >= 0) default NULL,
-	 "clid" int CHECK ("clid" >= 0) NOT NULL,
-	 "crid" int CHECK ("crid" >= 0) NOT NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "upid" int CHECK ("upid" >= 0) default NULL,
-	 "update"   timestamp without time zone default NULL,
-	 "trdate"   timestamp without time zone default NULL,
-	 primary key ("id"),
-	 unique ("name") 
+     "id" serial8,
+     "name"   varchar(255) NOT NULL,
+     "domain_id" int CHECK ("domain_id" >= 0) default NULL,
+     "clid" int CHECK ("clid" >= 0) NOT NULL,
+     "crid" int CHECK ("crid" >= 0) NOT NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "upid" int CHECK ("upid" >= 0) default NULL,
+     "update"   timestamp without time zone default NULL,
+     "trdate"   timestamp without time zone default NULL,
+     primary key ("id"),
+     unique ("name") 
 );
 
 CREATE TABLE registry.domain_host_map (
-	 "id" serial8,
-	 "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
-	 "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-	 primary key ("id"),
-	 unique ("domain_id", "host_id") 
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "host_id" int CHECK ("host_id" >= 0) NOT NULL,
+     primary key ("id"),
+     unique ("domain_id", "host_id") 
 );
 
 CREATE TABLE registry.host_addr (
-	 "id" serial8,
-	 "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-	 "addr"   varchar(45) NOT NULL,
-	 "ip" varchar CHECK ("ip" IN ( 'v4','v6' )) NOT NULL default 'v4',
-	 primary key ("id"),
-	 unique ("host_id", "addr", "ip") 
+     "id" serial8,
+     "host_id" int CHECK ("host_id" >= 0) NOT NULL,
+     "addr"   varchar(45) NOT NULL,
+     "ip" varchar CHECK ("ip" IN ( 'v4','v6' )) NOT NULL default 'v4',
+     primary key ("id"),
+     unique ("host_id", "addr", "ip") 
 );
 
 CREATE TABLE registry.host_status (
-	 "id" serial8,
-	 "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-	 "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-	 primary key ("id"),
-	 unique ("host_id", "status") 
+     "id" serial8,
+     "host_id" int CHECK ("host_id" >= 0) NOT NULL,
+     "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
+     primary key ("id"),
+     unique ("host_id", "status") 
 );
 
 CREATE TABLE registry.domain_auto_approve_transfer (
-	 "id" serial8,
-	 "name"   varchar(68) NOT NULL,
-	 "registrant" int CHECK ("registrant" >= 0) default NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "exdate"   timestamp without time zone NOT NULL,
-	 "update"   timestamp without time zone default NULL,
-	 "clid" int CHECK ("clid" >= 0) NOT NULL,
-	 "crid" int CHECK ("crid" >= 0) NOT NULL,
-	 "upid" int CHECK ("upid" >= 0) default NULL,
-	 "trdate"   timestamp without time zone default NULL,
-	 "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
-	 "reid" int CHECK ("reid" >= 0) default NULL,
-	 "redate"   timestamp without time zone default NULL,
-	 "acid" int CHECK ("acid" >= 0) default NULL,
-	 "acdate"   timestamp without time zone default NULL,
-	 "transfer_exdate"   timestamp without time zone default NULL,
-	 primary key ("id")
+     "id" serial8,
+     "name"   varchar(68) NOT NULL,
+     "registrant" int CHECK ("registrant" >= 0) default NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "exdate"   timestamp without time zone NOT NULL,
+     "update"   timestamp without time zone default NULL,
+     "clid" int CHECK ("clid" >= 0) NOT NULL,
+     "crid" int CHECK ("crid" >= 0) NOT NULL,
+     "upid" int CHECK ("upid" >= 0) default NULL,
+     "trdate"   timestamp without time zone default NULL,
+     "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
+     "reid" int CHECK ("reid" >= 0) default NULL,
+     "redate"   timestamp without time zone default NULL,
+     "acid" int CHECK ("acid" >= 0) default NULL,
+     "acdate"   timestamp without time zone default NULL,
+     "transfer_exdate"   timestamp without time zone default NULL,
+     primary key ("id")
 );
 
 CREATE TABLE registry.contact_auto_approve_transfer (
-	 "id" serial8,
-	 "identifier"   varchar(255) NOT NULL,
-	 "voice"   varchar(17) default NULL,
-	 "voice_x"   int default NULL,
-	 "fax"   varchar(17) default NULL,
-	 "fax_x"   int default NULL,
-	 "email"   varchar(255) NOT NULL,
-	 "nin"   varchar(255) default NULL,
-	 "nin_type" varchar CHECK ("nin_type" IN ( 'personal','business' )) default NULL,
-	 "clid" int CHECK ("clid" >= 0) NOT NULL,
-	 "crid" int CHECK ("crid" >= 0) NOT NULL,
-	 "crdate"   timestamp without time zone NOT NULL,
-	 "upid" int CHECK ("upid" >= 0) default NULL,
-	 "update"   timestamp without time zone default NULL,
-	 "trdate"   timestamp without time zone default NULL,
-	 "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
-	 "reid" int CHECK ("reid" >= 0) default NULL,
-	 "redate"   timestamp without time zone default NULL,
-	 "acid" int CHECK ("acid" >= 0) default NULL,
-	 "acdate"   timestamp without time zone default NULL,
-	 "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
-	 "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-	 primary key ("id")
+     "id" serial8,
+     "identifier"   varchar(255) NOT NULL,
+     "voice"   varchar(17) default NULL,
+     "voice_x"   int default NULL,
+     "fax"   varchar(17) default NULL,
+     "fax_x"   int default NULL,
+     "email"   varchar(255) NOT NULL,
+     "nin"   varchar(255) default NULL,
+     "nin_type" varchar CHECK ("nin_type" IN ( 'personal','business' )) default NULL,
+     "clid" int CHECK ("clid" >= 0) NOT NULL,
+     "crid" int CHECK ("crid" >= 0) NOT NULL,
+     "crdate"   timestamp without time zone NOT NULL,
+     "upid" int CHECK ("upid" >= 0) default NULL,
+     "update"   timestamp without time zone default NULL,
+     "trdate"   timestamp without time zone default NULL,
+     "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
+     "reid" int CHECK ("reid" >= 0) default NULL,
+     "redate"   timestamp without time zone default NULL,
+     "acid" int CHECK ("acid" >= 0) default NULL,
+     "acdate"   timestamp without time zone default NULL,
+     "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
+     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
+     primary key ("id")
 );
 
 CREATE TABLE registry.statistics (
-	 "id" serial8,
-	 "date"   date NOT NULL,
-	 "total_domains" int CHECK ("total_domains" >= 0) NOT NULL DEFAULT '0',
-	 "created_domains" int CHECK ("created_domains" >= 0) NOT NULL DEFAULT '0',
-	 "renewed_domains" int CHECK ("renewed_domains" >= 0) NOT NULL DEFAULT '0',
-	 "transfered_domains" int CHECK ("transfered_domains" >= 0) NOT NULL DEFAULT '0',
-	 "deleted_domains" int CHECK ("deleted_domains" >= 0) NOT NULL DEFAULT '0',
-	 "restored_domains" int CHECK ("restored_domains" >= 0) NOT NULL DEFAULT '0',
-	 primary key ("id"),
+     "id" serial8,
+     "date"   date NOT NULL,
+     "total_domains" int CHECK ("total_domains" >= 0) NOT NULL DEFAULT '0',
+     "created_domains" int CHECK ("created_domains" >= 0) NOT NULL DEFAULT '0',
+     "renewed_domains" int CHECK ("renewed_domains" >= 0) NOT NULL DEFAULT '0',
+     "transfered_domains" int CHECK ("transfered_domains" >= 0) NOT NULL DEFAULT '0',
+     "deleted_domains" int CHECK ("deleted_domains" >= 0) NOT NULL DEFAULT '0',
+     "restored_domains" int CHECK ("restored_domains" >= 0) NOT NULL DEFAULT '0',
+     primary key ("id"),
 unique ("date") 
 );
 
 CREATE TABLE IF NOT EXISTS registry.users (
-	"id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
-	"email" VARCHAR(249) UNIQUE NOT NULL,
-	"password" VARCHAR(255) NOT NULL,
-	"username" VARCHAR(100) DEFAULT NULL,
-	"status" SMALLINT NOT NULL DEFAULT '0' CHECK ("status" >= 0),
-	"verified" SMALLINT NOT NULL DEFAULT '0' CHECK ("verified" >= 0),
-	"resettable" SMALLINT NOT NULL DEFAULT '1' CHECK ("resettable" >= 0),
-	"roles_mask" INTEGER NOT NULL DEFAULT '0' CHECK ("roles_mask" >= 0),
-	"registered" INTEGER NOT NULL CHECK ("registered" >= 0),
-	"last_login" INTEGER DEFAULT NULL CHECK ("last_login" >= 0),
-	"force_logout" INTEGER NOT NULL DEFAULT '0' CHECK ("force_logout" >= 0)
+    "id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "email" VARCHAR(249) UNIQUE NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
+    "username" VARCHAR(100) DEFAULT NULL,
+    "status" SMALLINT NOT NULL DEFAULT '0' CHECK ("status" >= 0),
+    "verified" SMALLINT NOT NULL DEFAULT '0' CHECK ("verified" >= 0),
+    "resettable" SMALLINT NOT NULL DEFAULT '1' CHECK ("resettable" >= 0),
+    "roles_mask" INTEGER NOT NULL DEFAULT '0' CHECK ("roles_mask" >= 0),
+    "registered" INTEGER NOT NULL CHECK ("registered" >= 0),
+    "last_login" INTEGER DEFAULT NULL CHECK ("last_login" >= 0),
+    "force_logout" INTEGER NOT NULL DEFAULT '0' CHECK ("force_logout" >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS registry.users_confirmations (
-	"id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
-	"user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
-	"email" VARCHAR(249) NOT NULL,
-	"selector" VARCHAR(16) UNIQUE NOT NULL,
-	"token" VARCHAR(255) NOT NULL,
-	"expires" INTEGER NOT NULL CHECK ("expires" >= 0)
+    "id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
+    "email" VARCHAR(249) NOT NULL,
+    "selector" VARCHAR(16) UNIQUE NOT NULL,
+    "token" VARCHAR(255) NOT NULL,
+    "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
 CREATE INDEX IF NOT EXISTS "email_expires" ON registry.users_confirmations ("email", "expires");
 CREATE INDEX IF NOT EXISTS "user_id" ON registry.users_confirmations ("user_id");
 
 CREATE TABLE IF NOT EXISTS registry.users_remembered (
-	"id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-	"user" INTEGER NOT NULL CHECK ("user" >= 0),
-	"selector" VARCHAR(24) UNIQUE NOT NULL,
-	"token" VARCHAR(255) NOT NULL,
-	"expires" INTEGER NOT NULL CHECK ("expires" >= 0)
+    "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "selector" VARCHAR(24) UNIQUE NOT NULL,
+    "token" VARCHAR(255) NOT NULL,
+    "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
 CREATE INDEX IF NOT EXISTS "user" ON registry.users_remembered ("user");
 
 CREATE TABLE IF NOT EXISTS registry.users_resets (
-	"id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-	"user" INTEGER NOT NULL CHECK ("user" >= 0),
-	"selector" VARCHAR(20) UNIQUE NOT NULL,
-	"token" VARCHAR(255) NOT NULL,
-	"expires" INTEGER NOT NULL CHECK ("expires" >= 0)
+    "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "selector" VARCHAR(20) UNIQUE NOT NULL,
+    "token" VARCHAR(255) NOT NULL,
+    "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
 CREATE INDEX IF NOT EXISTS "user_expires" ON registry.users_resets ("user", "expires");
 
 CREATE TABLE IF NOT EXISTS registry.users_throttling (
-	"bucket" VARCHAR(44) PRIMARY KEY,
-	"tokens" REAL NOT NULL CHECK ("tokens" >= 0),
-	"replenished_at" INTEGER NOT NULL CHECK ("replenished_at" >= 0),
-	"expires_at" INTEGER NOT NULL CHECK ("expires_at" >= 0)
+    "bucket" VARCHAR(44) PRIMARY KEY,
+    "tokens" REAL NOT NULL CHECK ("tokens" >= 0),
+    "replenished_at" INTEGER NOT NULL CHECK ("replenished_at" >= 0),
+    "expires_at" INTEGER NOT NULL CHECK ("expires_at" >= 0)
 );
 CREATE INDEX IF NOT EXISTS "expires_at" ON registry.users_throttling ("expires_at");
 
@@ -489,7 +490,7 @@ CREATE TABLE registry.rde_escrow_deposits (
     "id" serial8 PRIMARY KEY,
     "deposit_id" VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     "deposit_date" DATE NOT NULL,
-	"revision" INTEGER NOT NULL DEFAULT 1,
+    "revision" INTEGER NOT NULL DEFAULT 1,
     "file_name" VARCHAR(255) NOT NULL,
     "file_format" file_format_enum NOT NULL,  -- Format of the data file
     "file_size" BIGINT CHECK ("file_size" >= 0),

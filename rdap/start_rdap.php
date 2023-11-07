@@ -7,7 +7,32 @@ if (!extension_loaded('swoole')) {
 function mapContactToVCard($contactDetails, $role) {
     return [
         'objectClassName' => 'entity',
+        'handle' => [$contactDetails['identifier']],
         'roles' => [$role],
+        'remarks' => [
+            [
+                "description" => [
+                    "This object's data has been partially omitted for privacy.",
+                    "Only the registrar managing the record can view personal contact data."
+                ],
+                "links" => [
+                    [
+                        "href" => "https://namingo.org",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                "title" => "REDACTED FOR PRIVACY",
+                "type" => "Details are withheld due to privacy restrictions."
+            ],
+            [
+                "description" => [
+                    "To obtain contact information for the domain registrant, please refer to the Registrar of Record's RDDS service as indicated in this report."
+                ],
+                "title" => "EMAIL REDACTED FOR PRIVACY",
+                "type" => "Details are withheld due to privacy restrictions."
+            ],
+        ],
         'vcardArray' => [
             "vcard",
             [
@@ -199,12 +224,29 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $stmt2->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
+        
+        // Query: Get DNSSEC details
+        $stmt2a = $pdo->prepare("SELECT `interface` FROM `secdns` WHERE `domain_id` = :domain_id");
+        $stmt2a->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmt2a->execute();
+        $isDelegationSigned = $stmt2a->fetchColumn() > 0;
+
+        $stmt2b = $pdo->prepare("SELECT `secure` FROM `domain_tld` WHERE `tld` = :tld");
+        $stmt2b->bindParam(':tld', $tld, PDO::PARAM_STR);
+        $stmt2b->execute();
+        $isZoneSigned = ($stmt2b->fetchColumn() == 1);
 
         // Query 3: Get registrar details
-        $stmt3 = $pdo->prepare("SELECT `name`,`whois_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid");
+        $stmt3 = $pdo->prepare("SELECT `name`,`iana_id`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid");
         $stmt3->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
         $stmt3->execute();
         $registrarDetails = $stmt3->fetch(PDO::FETCH_ASSOC);
+        
+        // Query: Get registrar abuse details
+        $stmt3a = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid");
+        $stmt3a->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
+        $stmt3a->execute();
+        $registrarAbuseDetails = $stmt3a->fetch(PDO::FETCH_ASSOC);
 
         // Query 4: Get registrant details
         $stmt4 = $pdo->prepare("SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.voice_x,contact.fax,contact.fax_x,contact.email FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id");
@@ -269,6 +311,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
             $events[] = ['eventAction' => 'domain transfer', 'eventDate' => date('Y-m-d', strtotime($domainDetails['trdate']))];
         }
+        
+        $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -279,6 +323,54 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             ],
             'objectClassName' => 'domain',
             'entities' => array_merge(
+                [
+                [
+                    'objectClassName' => 'entity',
+                    'entities' => [
+                        'objectClassName' => 'entity',
+                        'roles' => ["abuse"],
+                        "status" => ["active"],
+                        "vcardArray" => [
+                            "vcard",
+                            [
+                                ["version", [], "text", "4.0"],
+                                ["fn", [], "text", $abuseContactName],
+                                ["tel", ["type" => "voice"], "uri", "tel:" . $registrarDetails['abuse_phone']],
+                                ["email", [], "text", $registrarDetails['abuse_email']]
+                            ]
+                        ],
+                    ],
+                    "handle" => $registrarDetails['iana_id'],
+                    "links" => [
+                        [
+                            "href" => "https://rdap.example.com/entity/" . $registrarDetails['iana_id'],
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ]
+                    ],
+                    "publicIds" => [
+                        [
+                            "identifier" => $registrarDetails['iana_id'],
+                            "type" => "IANA Registrar ID"
+                        ]
+                    ],
+                    "remarks" => [
+                        [
+                            "description" => ["This record contains only a summary. For detailed information, please submit a query specifically for this object."],
+                            "title" => "Incomplete Data",
+                            "type" => "object truncated"
+                        ]
+                    ],
+                    "roles" => ["registrar"],
+                    "vcardArray" => [
+                        "vcard",
+                        [
+                            ["version", [], "text", "4.0"],
+                            ["fn", [], "text", $registrarDetails['name']]
+                        ]
+                    ],
+                    ],
+                ],
                 [
                     mapContactToVCard($registrantDetails, 'registrant')
                 ],
@@ -295,7 +387,6 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             'events' => $events,
             'handle' => $domainDetails['id'] . '',
             'ldhName' => $domain,
-            'status' => $statuses,
             'links' => [
                 [
                     'href' => 'https://rdap.example.com/domain/' . $domain,
@@ -320,8 +411,22 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                             'type' => 'application/rdap+json',
                         ],
                     ],
+                    'remarks' => [
+                        [
+                            "description" => [
+                                "This record contains only a brief summary. To access the full details, please initiate a specific query targeting this entity."
+                            ],
+                            "title" => "Incomplete Data",
+                            "type" => "The object's information is incomplete due to reasons not currently understood."
+                        ],
+                    ],
                 ];
             }, $nameservers),
+            "secureDNS" => [
+                "delegationSigned" => $isDelegationSigned,
+                "zoneSigned" => $isZoneSigned
+            ],
+            'status' => $statuses,
             "notices" => [
                 [
                     "description" => [
