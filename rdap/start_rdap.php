@@ -36,8 +36,8 @@ function mapContactToVCard($contactDetails, $role) {
         'vcardArray' => [
             "vcard",
             [
-                ["version", "4.0"],
-                ["fn", $contactDetails['name']],
+                ['version', new stdClass(), 'text', '4.0'],
+                ["fn", new stdClass(), 'text', $contactDetails['name']],
                 ["org", $contactDetails['org']],
                 ["adr", [
                     "", // Post office box
@@ -333,10 +333,10 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                         "vcardArray" => [
                             "vcard",
                             [
-                                ["version", [], "text", "4.0"],
-                                ["fn", [], "text", $abuseContactName],
+                                ['version', new stdClass(), 'text', '4.0'],
+                                ["fn", new stdClass(), "text", $abuseContactName],
                                 ["tel", ["type" => "voice"], "uri", "tel:" . $registrarDetails['abuse_phone']],
-                                ["email", [], "text", $registrarDetails['abuse_email']]
+                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
                             ]
                         ],
                     ],
@@ -365,8 +365,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                     "vcardArray" => [
                         "vcard",
                         [
-                            ["version", [], "text", "4.0"],
-                            ["fn", [], "text", $registrarDetails['name']]
+                            ['version', new stdClass(), 'text', '4.0'],
+                            ["fn", new stdClass(), "text", $registrarDetails['name']]
                         ]
                     ],
                     ],
