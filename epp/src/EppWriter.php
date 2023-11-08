@@ -545,19 +545,19 @@ class EppWriter {
                 $writer->writeElement('contact:email', $resp['email']);
                 $writer->writeElement('contact:clID', $resp['clID']);
                 $writer->writeElement('contact:crID', $resp['crID']);
-                $crDate = new DateTime($resp['crDate']);
+                $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('contact:crDate', $crDateFormatted);
                 if (isset($resp['upID'])) {
                     $writer->writeElement('contact:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $upDate = new DateTime($resp['upDate']);
+                    $upDate = new \DateTime($resp['upDate']);
                     $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('contact:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $trDate = new DateTime($resp['trDate']);
+                    $trDate = new \DateTime($resp['trDate']);
                     $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('contact:trDate', $trDateFormatted);
                 }
@@ -607,11 +607,11 @@ class EppWriter {
                 $writer->writeElement('contact:id', $resp['id']);
                 $writer->writeElement('contact:trStatus', $resp['trStatus']);
                 $writer->writeElement('contact:reID', $resp['reID']);
-                $reDate = new DateTime($resp['reDate']);
+                $reDate = new \DateTime($resp['reDate']);
                 $reDateFormatted = $reDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('contact:reDate', $reDateFormatted);    
                 $writer->writeElement('contact:acID', $resp['acID']);
-                $acDate = new DateTime($resp['acDate']);
+                $acDate = new \DateTime($resp['acDate']);
                 $acDateFormatted = $acDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('contact:acDate', $acDateFormatted);    
                 $writer->endElement();  // End of 'contact:trnData'
@@ -630,7 +630,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd');
                 $writer->writeElement('contact:id', $resp['id']);
-                $crDate = new DateTime($resp['crDate']);
+                $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('contact:crDate', $crDateFormatted);
                 $writer->endElement();  // End of 'contact:creData'
@@ -675,10 +675,10 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
-                $crDate = new DateTime($resp['crDate']);
+                $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:crDate', $crDateFormatted);
-                $exDate = new DateTime($resp['exDate']);
+                $exDate = new \DateTime($resp['exDate']);
                 $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:creData'
@@ -736,12 +736,12 @@ class EppWriter {
                     $writer->writeElement('domain:crID', $resp['crID']);
                 }
                 if (isset($resp['crDate'])) {
-                    $crDate = new DateTime($resp['crDate']);
+                    $crDate = new \DateTime($resp['crDate']);
                     $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:crDate', $crDateFormatted);
                 }
                 if (isset($resp['exDate'])) {
-                    $exDate = new DateTime($resp['exDate']);
+                    $exDate = new \DateTime($resp['exDate']);
                     $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:exDate', $exDateFormatted);
                 }
@@ -749,12 +749,12 @@ class EppWriter {
                     $writer->writeElement('domain:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $upDate = new DateTime($resp['upDate']);
+                    $upDate = new \DateTime($resp['upDate']);
                     $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $trDate = new DateTime($resp['trDate']);
+                    $trDate = new \DateTime($resp['trDate']);
                     $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:trDate', $trDateFormatted);
                 }
@@ -843,7 +843,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
-                $exDate = new DateTime($resp['exDate']);
+                $exDate = new \DateTime($resp['exDate']);
                 $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:renData'
@@ -864,15 +864,15 @@ class EppWriter {
                 $writer->writeElement('domain:name', $resp['name']);
                 $writer->writeElement('domain:trStatus', $resp['trStatus']);
                 $writer->writeElement('domain:reID', $resp['reID']);
-                $reDate = new DateTime($resp['reDate']);
+                $reDate = new \DateTime($resp['reDate']);
                 $reDateFormatted = $reDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:reDate', $reDateFormatted);
                 $writer->writeElement('domain:acID', $resp['acID']);
-                $acDate = new DateTime($resp['acDate']);
+                $acDate = new \DateTime($resp['acDate']);
                 $acDateFormatted = $acDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:acDate', $acDateFormatted);
                 if (isset($resp['exDate'])) {
-                    $exDate = new DateTime($resp['exDate']);
+                    $exDate = new \DateTime($resp['exDate']);
                     $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:exDate', $exDateFormatted);
                 }
@@ -918,7 +918,7 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:host', 'urn:ietf:params:xml:ns:host-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd');
                 $writer->writeElement('host:name', $resp['name']);
-                $crDate = new DateTime($resp['crDate']);
+                $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('host:crDate', $crDateFormatted);
                 $writer->endElement();  // End of 'host:creData'
@@ -963,19 +963,19 @@ class EppWriter {
                 }
                 $writer->writeElement('host:clID', $resp['clID']);
                 $writer->writeElement('host:crID', $resp['crID']);
-                $crDate = new DateTime($resp['crDate']);
+                $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('host:crDate', $crDateFormatted);
                 if (isset($resp['upID'])) {
                     $writer->writeElement('host:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $upDate = new DateTime($resp['upDate']);
+                    $upDate = new \DateTime($resp['upDate']);
                     $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('host:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $trDate = new DateTime($resp['trDate']);
+                    $trDate = new \DateTime($resp['trDate']);
                     $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('host:trDate', $trDateFormatted);
                 }

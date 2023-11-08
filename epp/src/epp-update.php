@@ -509,7 +509,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     // Update contact
     if ($database_type == 'mysql') {
-        $query = "UPDATE `contact` SET `voice` = ?, `voice_x` = ?, `fax` = ?, `fax_x` = ?, `email` = ?, `update` = CURRENT_TIMESTAMP WHERE `id` = ?";
+        $query = "UPDATE `contact` SET `voice` = ?, `voice_x` = ?, `fax` = ?, `fax_x` = ?, `email` = ?, `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?";
     } else if ($database_type == 'pgsql') {
         $query = "UPDATE \"contact\" SET \"voice\" = ?, \"voice_x\" = ?, \"fax\" = ?, \"fax_x\" = ?, \"email\" = ?, \"update\" = timestamp 'now' WHERE \"id\" = ?";
     }
@@ -582,7 +582,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     if ($identica_update) {
         if ($database_type == 'mysql') {
-            $query = "UPDATE `contact` SET `nin` = ?, `nin_type` = ?, `update` = CURRENT_TIMESTAMP WHERE `id` = ?";
+            $query = "UPDATE `contact` SET `nin` = ?, `nin_type` = ?, `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?";
         } else if ($database_type == 'pgsql') {
             $query = "UPDATE \"contact\" SET \"nin\" = ?, \"nin_type\" = ?, \"update\" = timestamp 'now' WHERE \"id\" = ?";
         }
@@ -909,7 +909,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $chg_name = strtoupper($xml->xpath('//host:name[1]')[0]);
 
         if ($database_type == 'mysql') {
-            $query = "UPDATE `host` SET `name` = ?, `update` = CURRENT_TIMESTAMP WHERE `name` = ?";
+            $query = "UPDATE `host` SET `name` = ?, `update` = CURRENT_TIMESTAMP(3) WHERE `name` = ?";
         } else if ($database_type == 'pgsql') {
             $query = "UPDATE \"host\" SET \"name\" = ?, \"update\" = timestamp 'now' WHERE \"name\" = ?";
         }
@@ -1423,7 +1423,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt->bindParam(':hostObj_already_exist', $hostObj_already_exist, PDO::PARAM_INT);
                     $stmt->execute();
                 } else {
-                    $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id, :log, CURRENT_TIMESTAMP)");
+                    $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id, :log, CURRENT_TIMESTAMP(3))");
                     $log = "Domain : $domainName ;   hostObj : $hostObj - se dubleaza";
                     $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
                     $stmt->bindParam(':log', $log, PDO::PARAM_STR);
@@ -1449,7 +1449,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 if ($host_from_this_registry) {
                     if (preg_match("/\.$domainName$/i", $hostObj)) {
-                        $sth = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                        $sth = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                         if (!$sth->execute([$hostObj, $domain_id, $clid, $clid])) {
                             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                             return;
@@ -1463,7 +1463,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
                     }
                 } else {
-                    $sth = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP)");
+                    $sth = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
                     if (!$sth->execute([$hostObj, $clid, $clid])) {
                         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                         return;
@@ -1502,7 +1502,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     }
                 } else {
                     $logMessage = "Domain : $domainName ;   hostName : $hostName - se dubleaza";
-                    $sth = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP)");
+                    $sth = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
                     if (!$sth->execute([$clid, $logMessage])) {
                         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                         return;
@@ -1510,7 +1510,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
             } else {
                 // Insert into the host table
-                $sth = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                $sth = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                 $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);
                 
                 $host_id = $db->lastInsertId();
@@ -1593,13 +1593,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$registrant]);
                 $registrant_id = $sth->fetchColumn();
                 
-                $sth = $db->prepare("UPDATE `domain` SET `registrant` = ?, `update` = CURRENT_TIMESTAMP WHERE `id` = ?");
+                $sth = $db->prepare("UPDATE `domain` SET `registrant` = ?, `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?");
                 if (!$sth->execute([$registrant_id, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
             } else {
-                $sth = $db->prepare("UPDATE `domain` SET `registrant` = NULL, `update` = CURRENT_TIMESTAMP WHERE `id` = ?");
+                $sth = $db->prepare("UPDATE `domain` SET `registrant` = NULL, `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?");
                 if (!$sth->execute([$domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
@@ -1650,7 +1650,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $temp_id = $sth->fetchColumn();
 
             if ($temp_id == 1) {
-                $sth = $db->prepare("UPDATE `domain` SET `rgpstatus` = 'pendingRestore', `resTime` = CURRENT_TIMESTAMP, `update` = CURRENT_TIMESTAMP WHERE `id` = ?");
+                $sth = $db->prepare("UPDATE `domain` SET `rgpstatus` = 'pendingRestore', `resTime` = CURRENT_TIMESTAMP(3), `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?");
                 if (!$sth->execute([$domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
@@ -1686,7 +1686,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$domain_id]);
                 $from = $sth->fetchColumn();
 
-                $sth = $db->prepare("UPDATE `domain` SET `exdate` = DATE_ADD(`exdate`, INTERVAL 12 MONTH), `rgpstatus` = NULL, `rgpresTime` = CURRENT_TIMESTAMP, `update` = CURRENT_TIMESTAMP WHERE `id` = ?");
+                $sth = $db->prepare("UPDATE `domain` SET `exdate` = DATE_ADD(`exdate`, INTERVAL 12 MONTH), `rgpstatus` = NULL, `rgpresTime` = CURRENT_TIMESTAMP(3), `update` = CURRENT_TIMESTAMP(3) WHERE `id` = ?");
                 
                 if (!$sth->execute([$domain_id])) {
                     sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
@@ -1698,17 +1698,17 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $db->prepare("UPDATE `registrar` SET `accountBalance` = (`accountBalance` - ? - ?) WHERE `id` = ?")
                     ->execute([$renew_price, $restore_price, $clid]);
 
-                    $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(?,CURRENT_TIMESTAMP,'restore domain $domainName',?)")
+                    $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(?,CURRENT_TIMESTAMP(3),'restore domain $domainName',?)")
                     ->execute([$clid, -$restore_price]);
             
-                    $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(?,CURRENT_TIMESTAMP,'renew domain $domainName for period 12 MONTH',?)")
+                    $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(?,CURRENT_TIMESTAMP(3),'renew domain $domainName for period 12 MONTH',?)")
                     ->execute([$clid, -$renew_price]);
 
                     $stmt = $db->prepare("SELECT `exdate` FROM `domain` WHERE `id` = ?");
                     $stmt->execute([$domain_id]);
                     $to = $stmt->fetchColumn();
 
-                    $sth = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
+                    $sth = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
                     $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
         
                     $sth->execute([$clid, 'renew', $domainName, 12, $from, $to, $renew_price]);

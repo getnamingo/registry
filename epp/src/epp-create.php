@@ -322,9 +322,9 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     
     try {
         if ($database_type === 'mysql') {
-            $stmt = $db->prepare("INSERT INTO contact (identifier,voice,voice_x,fax,fax_x,email,nin,nin_type,clid,crid,crdate,upid,`update`,trdate,trstatus,reid,redate,acid,acdate,disclose_voice,disclose_fax,disclose_email) VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
+            $stmt = $db->prepare("INSERT INTO contact (identifier,voice,voice_x,fax,fax_x,email,nin,nin_type,clid,crid,crdate,upid,`update`,trdate,trstatus,reid,redate,acid,acdate,disclose_voice,disclose_fax,disclose_email) VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(3),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
         } elseif ($database_type === 'pgsql') {
-            $stmt = $db->prepare("INSERT INTO \"contact\" (\"identifier\",\"voice\",\"voice_x\",\"fax\",\"fax_x\",\"email\",\"nin\",\"nin_type\",\"clid\",\"crid\",\"crdate\",\"upid\",\"update\",\"trdate\",\"trstatus\",\"reid\",\"redate\",\"acid\",\"acdate\",\"disclose_voice\",\"disclose_fax\",\"disclose_email\") VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
+            $stmt = $db->prepare("INSERT INTO \"contact\" (\"identifier\",\"voice\",\"voice_x\",\"fax\",\"fax_x\",\"email\",\"nin\",\"nin_type\",\"clid\",\"crid\",\"crdate\",\"upid\",\"update\",\"trdate\",\"trstatus\",\"reid\",\"redate\",\"acid\",\"acdate\",\"disclose_voice\",\"disclose_fax\",\"disclose_email\") VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(3),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
         }
 
         $stmt->execute([
@@ -489,7 +489,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP)");
+        $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
         $host_id = $db->lastInsertId();
         
@@ -535,7 +535,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppResponse($conn, $xml);
 
     } else {
-        $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP)");
+        $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $clid, $clid]);
         
         $host_id = $db->lastInsertId();
@@ -1037,7 +1037,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $db->beginTransaction();
         
         $domainSql = "INSERT INTO `domain` (`name`,`tldid`,`registrant`,`crdate`,`exdate`,`update`,`clid`,`crid`,`upid`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate`,`rgpstatus`,`addPeriod`)
-        VALUES(:name, :tld_id, :registrant_id, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2)";
+        VALUES(:name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2)";
 
         $domainStmt = $db->prepare($domainSql);
         $domainStmt->execute([
@@ -1167,7 +1167,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             ':registrar_id' => $clid
         ]);
 
-        $paymentHistoryStmt = $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP,:description,:amount)");
+        $paymentHistoryStmt = $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
         $paymentHistoryStmt->execute([
             ':registrar_id' => $clid,
             ':description' => "create domain $domainName for period $date_add MONTH",
@@ -1178,7 +1178,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $selectDomainDatesStmt->execute([':name' => $domainName]);
         [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
 
-        $statementStmt = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP,:cmd,:name,:date_add,:from,:to,:price)");
+        $statementStmt = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
         $statementStmt->execute([
             ':registrar_id' => $clid,
             ':cmd' => 'create',
@@ -1206,7 +1206,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                         $insertDomainHostMapStmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(:domain_id,:host_id)");
                         $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
                     } else {
-                        $errorLogStmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP)");
+                        $errorLogStmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP(3))");
                         $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ;   hostObj : $hostObj - se dubleaza"]);
                     }
                 } else {
@@ -1226,7 +1226,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     if ($internal_host) {
                         if (preg_match("/\.$domainName$/i", $hostObj)) {
-                            $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                            $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                             $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
                             $host_id = $db->lastInsertId();
 
@@ -1234,7 +1234,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             $stmt->execute([$domain_id, $host_id]);
                         }
                     } else {
-                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP)");
+                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
                         $stmt->execute([$hostObj, $clid, $clid]);
                         $host_id = $db->lastInsertId();
 
@@ -1263,11 +1263,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                             $stmt = $db->prepare("INSERT INTO `domain_host_map` (`domain_id`,`host_id`) VALUES(?,?)");
                             $stmt->execute([$domain_id, $hostName_already_exist]);
                         } else {
-                            $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP)");
+                            $stmt = $db->prepare("INSERT INTO `error_log` (`registrar_id`,`log`,`date`) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
                             $stmt->execute([$clid, "Domain : $domainName ;   hostName : $hostName - se dubleaza"]);
                         }
                     } else {
-                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                        $stmt = $db->prepare("INSERT INTO `host` (`name`,`domain_id`,`clid`,`crid`,`crdate`) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                         $stmt->execute([$hostName, $domain_id, $clid, $clid]);
                         $host_id = $db->lastInsertId();
 

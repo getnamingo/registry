@@ -130,7 +130,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $from = $stmt->fetchColumn();
 
         $rgpstatus = 'renewPeriod';
-        $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, renewedDate = CURRENT_TIMESTAMP WHERE id = :domain_id");
+        $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
         $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
         $stmt->bindParam(':rgpstatus', $rgpstatus, PDO::PARAM_STR);
         $stmt->bindParam(':renewPeriod', $date_add, PDO::PARAM_INT);
@@ -152,7 +152,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             // Insert into payment_history:
 			$description = "renew domain $domainName for period $date_add MONTH";
 			$negative_price = -$price;
-            $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP, :description, :amount)");
+            $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)");
             $stmt->bindParam(':registrar_id', $clid['id'], PDO::PARAM_INT);
             $stmt->bindParam(':description', $description, PDO::PARAM_STR);
             $stmt->bindParam(':amount', $negative_price, PDO::PARAM_INT);
@@ -166,9 +166,9 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
 
             // Insert into statement:
             if ($database_type === "mysql") {
-                $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, `from`, `to`, amount) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, `from`, `to`, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
             } elseif ($database_type === "pgsql") {
-                $stmt = $db->prepare('INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, "from", "to", amount) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)');
+                $stmt = $db->prepare('INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, "from", "to", amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)');
             } else {
                 throw new Exception("Unsupported database type: $database_type");
             }

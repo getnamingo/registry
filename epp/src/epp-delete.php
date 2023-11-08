@@ -238,7 +238,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute([$domain_id]);
 
     // UPDATE domain
-    $stmt = $db->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? DAY) WHERE id = ?");
+    $stmt = $db->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY) WHERE id = ?");
     $stmt->execute([$grace_period, $domain_id]);
 
     // INSERT INTO domain_status
@@ -247,7 +247,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     if ($rgpstatus) {
         if ($rgpstatus === 'addPeriod') {
-            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1");
             $stmt->execute([$domain_id]);
             $addPeriod_id = $stmt->fetchColumn();
 
@@ -267,7 +267,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Insert into payment_history
                 $description = "domain name is deleted by the registrar during grace addPeriod, the registry provides a credit for the cost of the registration domain $domainName for period $addPeriod MONTH";
-                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)");
                 $stmt->execute([$clid, $description, $price]);
 
                 // Fetch host ids
@@ -305,7 +305,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $db->exec("UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()");
             }
         } elseif ($rgpstatus === 'autoRenewPeriod') {
-            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1");
             $stmt->execute([$domain_id]);
             $autoRenewPeriod_id = $stmt->fetchColumn();
 
@@ -325,11 +325,11 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Insert into payment_history
                 $description = "domain name is deleted by the registrar during grace autoRenewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $autoRenewPeriod MONTH";
-                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)");
                 $stmt->execute([$clid, $description, $price]);
             }
         } elseif ($rgpstatus === 'renewPeriod') {
-            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1");
             $stmt->execute([$domain_id]);
             $renewPeriod_id = $stmt->fetchColumn();
 
@@ -349,11 +349,11 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
                 // Insert into payment_history
                 $description = "domain name is deleted by the registrar during grace renewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $renewPeriod MONTH";
-                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)");
                 $stmt->execute([$clid, $description, $price]);
             }
         } elseif ($rgpstatus === 'transferPeriod') {
-            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1");
             $stmt->execute([$domain_id]);
             $transferPeriod_id = $stmt->fetchColumn();
 
@@ -375,7 +375,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     // Insert into payment_history
                     $description = "domain name is deleted by the registrar during grace transferPeriod, the registry provides a credit for the cost of the transfer domain $domainName for period $transferPeriod MONTH";
-                    $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
+                    $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)");
                     $stmt->execute([$clid, $description, $price]);
                 }
             }
