@@ -243,7 +243,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $registrarDetails = $stmt3->fetch(PDO::FETCH_ASSOC);
         
         // Query: Get registrar abuse details
-        $stmt3a = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid");
+        $stmt3a = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
         $stmt3a->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
         $stmt3a->execute();
         $registrarAbuseDetails = $stmt3a->fetch(PDO::FETCH_ASSOC);
@@ -526,7 +526,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
         $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
 
         // Query 2: Get registrar abuse details
-        $stmt2 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid");
+        $stmt2 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
         $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
         $stmt2->execute();
         $registrarAbuseDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
@@ -763,7 +763,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
         $registrarDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
         
         // Query 5: Get registrar abuse details
-        $stmt5 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid");
+        $stmt5 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
         $stmt5->bindParam(':clid', $hostDetails['clid'], PDO::PARAM_INT);
         $stmt5->execute();
         $registrarAbuseDetails = $stmt5->fetch(PDO::FETCH_ASSOC);
