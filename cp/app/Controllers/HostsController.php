@@ -127,7 +127,7 @@ class HostsController extends Controller
                     $db->beginTransaction();
 
                     try {
-                        $currentDateTime = new DateTime();
+                        $currentDateTime = new \DateTime();
                         $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                         $db->insert(
                             'host',
@@ -203,7 +203,7 @@ class HostsController extends Controller
                         'registrars' => $registrars,
                     ]);
                 } else {
-                    $currentDateTime = new DateTime();
+                    $currentDateTime = new \DateTime();
                     $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                     $db->insert(
                         'host',

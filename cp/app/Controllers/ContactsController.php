@@ -365,7 +365,7 @@ class ContactsController extends Controller
             $db->beginTransaction();
 
             try {    
-                $currentDateTime = new DateTime();
+                $currentDateTime = new \DateTime();
                 $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                 $db->insert(
                     'contact',

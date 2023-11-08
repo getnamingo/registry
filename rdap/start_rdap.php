@@ -199,10 +199,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
     // Perform the RDAP lookup
     try {
         // Query 1: Get domain details
-        $stmt1 = $pdo->prepare("SELECT *, DATE_FORMAT(`crdate`, '%Y-%m-%dT%TZ') AS `crdate`, DATE_FORMAT(`exdate`, '%Y-%m-%dT%TZ') AS `exdate` FROM `registry`.`domain` WHERE `name` = :domain");
+        $stmt1 = $pdo->prepare("SELECT * FROM `registry`.`domain` WHERE `name` = :domain");
         $stmt1->bindParam(':domain', $domain, PDO::PARAM_STR);
         $stmt1->execute();
         $domainDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+        
+        $domainDetails['crdate'] = (new DateTime($domainDetails['crdate']))->format('Y-m-d\TH:i:s.v\Z');
+        $domainDetails['exdate'] = (new DateTime($domainDetails['exdate']))->format('Y-m-d\TH:i:s.v\Z');
         
         // Check if the domain exists
         if (!$domainDetails) {

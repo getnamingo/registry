@@ -329,16 +329,20 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
 
         // Perform the WHOIS lookup
         try {
-            $query = "SELECT *,
-                DATE_FORMAT(`crdate`, '%Y-%m-%dT%H:%i:%sZ') AS `crdate`,
-                DATE_FORMAT(`update`, '%Y-%m-%dT%H:%i:%sZ') AS `update`,
-                DATE_FORMAT(`exdate`, '%Y-%m-%dT%H:%i:%sZ') AS `exdate`
-                FROM `registry`.`domain` WHERE `name` = :domain";
+            $query = "SELECT * FROM `registry`.`domain` WHERE `name` = :domain";
             $stmt = $pdo->prepare($query);
             $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
             $stmt->execute();
 
             if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $f['crdate'] = (new DateTime($f['crdate']))->format('Y-m-d\TH:i:s.v\Z');
+                if (isset($f['update']) && $f['update'] !== null) {
+                    $f['update'] = (new DateTime($f['update']))->format('Y-m-d\TH:i:s.v\Z');
+                } else {
+                    $f['update'] = '';
+                }
+                $f['exdate'] = (new DateTime($f['exdate']))->format('Y-m-d\TH:i:s.v\Z');
+                
                 $query2 = "SELECT `tld` FROM `domain_tld` WHERE `id` = :tldid";
                 $stmt2 = $pdo->prepare($query2);
                 $stmt2->bindParam(':tldid', $f['tldid'], PDO::PARAM_INT);

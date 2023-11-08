@@ -335,10 +335,10 @@ class DomainsController extends Controller
             try {
                 $db->beginTransaction();
                 
-                $currentDateTime = new DateTime();
+                $currentDateTime = new \DateTime();
                 $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
-                $currentDateTime = new DateTime();
+                $currentDateTime = new \DateTime();
                 $currentDateTime->modify("+$date_add months");
                 $exdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Expiry timestamp after $date_add months
 
@@ -503,7 +503,7 @@ class DomainsController extends Controller
                 $from = $row['crdate'];
                 $to = $row['exdate'];
 
-                $currentDateTime = new DateTime();
+                $currentDateTime = new \DateTime();
                 $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
                 $db->insert(
                     'statement',
@@ -540,7 +540,7 @@ class DomainsController extends Controller
                                 ]
                             );
                         } else {
-                            $currentDateTime = new DateTime();
+                            $currentDateTime = new \DateTime();
                             $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
                             $db->insert(
                                 'error_log',
@@ -552,7 +552,7 @@ class DomainsController extends Controller
                             );
                         }
                     } else {
-                        $currentDateTime = new DateTime();
+                        $currentDateTime = new \DateTime();
                         $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
                         $host_id = $db->insert(
                             'host',
