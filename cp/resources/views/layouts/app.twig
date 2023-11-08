@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('logs') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -248,6 +248,13 @@
                       {{ __('Create Registrar') }}
                     </a>
                     <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{{route('registrars')}}">
+                      {{ __('List Users') }}
+                    </a>
+                    <a class="dropdown-item" href="#">
+                      {{ __('Create User') }}
+                    </a>
+                    <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="#">
                       {{ __('Announcements') }}
                     </a>
@@ -292,7 +299,7 @@
                     </span>
                   </a>
                 </li>
-                <li {{ is_current_url('logs') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('settings') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"></path> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path></svg>
                     </span>
@@ -301,32 +308,35 @@
                     </span>
                   </a>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{{route('hosts')}}">
-                      {{ __('Configuration') }}
+                    <a class="dropdown-item" href="{{route('settings')}}">
+                      {{ __('Settings') }}
+                    </a>
+                  </div>
+                </li>
+                <li {{ is_current_url('epphistory') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                  <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-activity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 12h4l3 8l4 -16l3 8h4"></path></svg>
+                    </span>
+                    <span class="nav-link-title">
+                      {{ __('Activity') }}
+                    </span>
+                  </a>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#">
+                      {{ __('Message Queue') }}
+                    </a>
+                    <a class="dropdown-item" href="{{route('epphistory')}}">
+                      {{ __('EPP History') }}
                     </a>
                     <a class="dropdown-item" href="#">
-                      {{ __('User Management') }}
+                      {{ __('Audit History') }}
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropend">
-                      <a class="dropdown-item dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
-                        {{ __('Logs') }}
-                      </a>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" href="{{route('logs')}}">
-                          {{ __('Error Log') }}
-                        </a>
-                        <a class="dropdown-item" href="{{route('logs')}}">
-                          {{ __('EPP Log') }}
-                        </a>
-                        <a class="dropdown-item" href="{{route('logs')}}">
-                          {{ __('Audit Log') }}
-                        </a>
-                        <a class="dropdown-item" href="{{route('logs')}}">
-                          {{ __('Backup Log') }}
-                        </a>
-                      </div>
-                    </div>
+                    <a class="dropdown-item" href="#">
+                      {{ __('Backup History') }}
+                    </a>
+                    <a class="dropdown-item" href="#">
+                      {{ __('System Log') }}
+                    </a>
                   </div>
                 </li>
                 <li {{ is_current_url('ticketview') or is_current_url('newticket') or is_current_url('docs') or is_current_url('mediakit') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
@@ -473,7 +483,7 @@
     {% include 'partials/js-contacts.twig' %}
 {% elseif route_is('hosts') %}
     {% include 'partials/js-hosts.twig' %}
-{% elseif route_is('logs') %}
+{% elseif route_is('epphistory') %}
     {% include 'partials/js-logs.twig' %}
 {% elseif route_is('registrars') %}
     {% include 'partials/js-registrars.twig' %}
