@@ -109,7 +109,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
             }
                     
                 $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                $currentTimestamp = date('Y-m-d\TH:i:s\Z');
+                $currentDateTime = new DateTime();
+                $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
                 $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
                 $res .= "\n";
                 $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
@@ -136,7 +137,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$nameserver."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $nameserver . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);
@@ -147,7 +151,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$nameserver."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $nameserver . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);
@@ -210,7 +217,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
             }
                     
                 $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                $currentTimestamp = date('Y-m-d\TH:i:s\Z');
+                $currentDateTime = new DateTime();
+                $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
                 $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
                 $res .= "\n";
                 $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
@@ -237,7 +245,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$registrar."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $registrar . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);
@@ -248,7 +259,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$registrar."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $registrar . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);
@@ -534,7 +548,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     $res .= "\nDNSSEC: unsigned";
                 }
                 $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                $currentTimestamp = date('Y-m-d\TH:i:s\Z');
+                $currentDateTime = new DateTime();
+                $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
                 $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
                 $res .= "\n";
                 $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
@@ -561,7 +576,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);
@@ -572,7 +590,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
-                    fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                    $currentDateTime = new DateTime();
+                    $milliseconds = $currentDateTime->format("v");
+                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
                     fclose($fp);
                 }
                 $server->close($fd);

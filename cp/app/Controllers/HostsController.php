@@ -127,6 +127,8 @@ class HostsController extends Controller
                     $db->beginTransaction();
 
                     try {
+                        $currentDateTime = new DateTime();
+                        $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                         $db->insert(
                             'host',
                             [
@@ -134,7 +136,7 @@ class HostsController extends Controller
                                 'domain_id' => $superordinate_dom,
                                 'clid' => $clid,
                                 'crid' => $clid,
-                                'crdate' => date('Y-m-d H:i:s')
+                                'crdate' => $crdate
                             ]
                         );
                         $host_id = $db->getLastInsertId();
@@ -201,13 +203,15 @@ class HostsController extends Controller
                         'registrars' => $registrars,
                     ]);
                 } else {
+                    $currentDateTime = new DateTime();
+                    $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                     $db->insert(
                         'host',
                         [
                             'name' => $hostName,
                             'clid' => $clid,
                             'crid' => $clid,
-                            'crdate' => date('Y-m-d H:i:s')
+                            'crdate' => $crdate
                         ]
                     );
                     $host_id = $db->getLastInsertId();

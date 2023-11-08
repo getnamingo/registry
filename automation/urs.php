@@ -31,7 +31,7 @@ foreach ($allEmails as $emailId) {
     $header = imap_headerinfo($inbox, $emailId);
     $from = $header->from[0]->mailbox . "@" . $header->from[0]->host;
     $subject = $header->subject;
-    $date = date('Y-m-d H:i:s', strtotime($header->date));
+    $date = date('Y-m-d H:i:s', strtotime($header->date)) . '.000';
 
     // Determine the URS provider based on the email sender
     $ursProvider = ($from == 'providerA@example.com') ? 'URSPA' : 'URSPB';

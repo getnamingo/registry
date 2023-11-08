@@ -107,7 +107,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
             if ($fp = @fopen("/var/log/das/das_request.log",'a')) {
                 $clientInfo = $server->getClientInfo($fd);
                 $remoteAddr = $clientInfo['remote_ip'];
-                fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                $currentDateTime = new DateTime();
+                $milliseconds = $currentDateTime->format("v");
+                $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
                 fclose($fp);
             }
             $server->close($fd);
@@ -117,7 +120,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
             if ($fp = @fopen("/var/log/das/das_not_found.log",'a')) {
                 $clientInfo = $server->getClientInfo($fd);
                 $remoteAddr = $clientInfo['remote_ip'];
-                fwrite($fp,date('Y-m-d H:i:s')."\t-\t".$remoteAddr."\t-\t".$domain."\n");
+                $currentDateTime = new DateTime();
+                $milliseconds = $currentDateTime->format("v");
+                $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
+                fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
                 fclose($fp);
             }
             $server->close($fd);

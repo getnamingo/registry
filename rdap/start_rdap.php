@@ -299,17 +299,25 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         $events = [
             ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
             ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
-            ['eventAction' => 'last rdap database update', 'eventDate' => date('Y-m-d\TH:i:s\Z')],
+            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         // Check if domain last update is set and not empty
         if (isset($domainDetails['update']) && !empty($domainDetails['update'])) {
-            $events[] = ['eventAction' => 'last domain update', 'eventDate' => date('Y-m-d', strtotime($domainDetails['update']))];
+            $updateDateTime = new DateTime($domainDetails['update']);
+            $events[] = [
+                'eventAction' => 'last domain update',
+                'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
+            ];
         }
 
         // Check if domain transfer date is set and not empty
         if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
-            $events[] = ['eventAction' => 'domain transfer', 'eventDate' => date('Y-m-d', strtotime($domainDetails['trdate']))];
+            $transferDateTime = new DateTime($domainDetails['trdate']);
+            $events[] = [
+                'eventAction' => 'domain transfer',
+                'eventDate' => $transferDateTime->format('Y-m-d\TH:i:s.v\Z')
+            ];
         }
         
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
@@ -539,7 +547,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
 
         // Define the basic events
         $events = [
-            ['eventAction' => 'last rdap database update', 'eventDate' => date('Y-m-d\TH:i:s\Z')],
+            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
@@ -770,7 +778,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
         
         // Define the basic events
         $events = [
-            ['eventAction' => 'last rdap database update', 'eventDate' => date('Y-m-d\TH:i:s\Z')],
+            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';

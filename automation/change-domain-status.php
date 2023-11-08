@@ -59,7 +59,8 @@ if ($auto_renew) {
                 $dbh->exec("INSERT INTO `domain_status` (`domain_id`, `status`) VALUES('$domain_id', 'pendingDelete')");
             }
         }
-        echo date("Y-m-d H:i:s") . " - $domain_id\t|\t$name\t|\trgpStatus:autoRenewPeriod exdate:$exdate\n";
+        $currentDateTime = new DateTime();
+        echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:autoRenewPeriod exdate:$exdate\n";
     }
 } else {
     $grace_period = 30;
@@ -87,8 +88,8 @@ if ($auto_renew) {
             $dbh->exec("UPDATE `domain` SET `rgpstatus` = 'redemptionPeriod', `delTime` = DATE_ADD(`exdate`, INTERVAL $grace_period DAY) WHERE `id` = '$domain_id'");
             $dbh->exec("INSERT INTO `domain_status` (`domain_id`, `status`) VALUES('$domain_id', 'pendingDelete')");
         }
-
-        echo date("Y-m-d H:i:s") . " - $domain_id\t|\t$name\t|\trgpStatus:redemptionPeriod exdate:$exdate\n";
+        $currentDateTime = new DateTime();
+        echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:redemptionPeriod exdate:$exdate\n";
     }
 }
 
@@ -138,8 +139,8 @@ while ($row = $sth_pendingdelete->fetch(PDO::FETCH_ASSOC)) {
     if ($set_pendingDelete) {
         $dbh->exec("UPDATE `domain` SET `rgpstatus` = 'pendingDelete' WHERE `id` = '$domain_id'");
     }
-
-    echo date("Y-m-d H:i:s") . " - $domain_id\t|\t$name\t|\trgpStatus:pendingDelete exdate:$exdate\n";
+    $currentDateTime = new DateTime();
+    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:pendingDelete exdate:$exdate\n";
 }
 
 // Pending Restore
@@ -153,7 +154,8 @@ while ($row = $sth_pendingRestore->fetch(PDO::FETCH_ASSOC)) {
 
     $dbh->exec("UPDATE `domain` SET `rgpstatus` = 'redemptionPeriod' WHERE `id` = '$domain_id'");
 
-    echo date("Y-m-d H:i:s") . " - $domain_id\t|\t$name\t|\tback to redemptionPeriod from pendingRestore exdate:$exdate\n";
+    $currentDateTime = new DateTime();
+    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\tback to redemptionPeriod from pendingRestore exdate:$exdate\n";
 }
 
 // Domain Deletion
@@ -209,6 +211,6 @@ while ($row = $sth_delete->fetch(PDO::FETCH_ASSOC)) {
             $dbh->exec("UPDATE `statistics` SET `deleted_domains` = `deleted_domains` + 1 WHERE `date` = CURDATE()");
         }
     }
-
-    echo date("Y-m-d H:i:s") . " - $domain_id\t|\t$name\t|\tdomain:Deleted exdate:$exdate\n";
+    $currentDateTime = new DateTime();
+    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\tdomain:Deleted exdate:$exdate\n";
 }

@@ -335,8 +335,12 @@ class DomainsController extends Controller
             try {
                 $db->beginTransaction();
                 
-                $crdate = date('Y-m-d H:i:s'); // Current timestamp
-                $exdate = date('Y-m-d H:i:s', strtotime("+$date_add months")); // Expiry timestamp after $date_add months
+                $currentDateTime = new DateTime();
+                $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                $currentDateTime = new DateTime();
+                $currentDateTime->modify("+$date_add months");
+                $exdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Expiry timestamp after $date_add months
 
                 $db->insert('domain', [
                     'name' => $domainName,
@@ -499,11 +503,13 @@ class DomainsController extends Controller
                 $from = $row['crdate'];
                 $to = $row['exdate'];
 
+                $currentDateTime = new DateTime();
+                $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
                 $db->insert(
                     'statement',
                     [
                         'registrar_id' => $clid,
-                        'date' => date('Y-m-d H:i:s'),
+                        'date' => $stdate,
                         'command' => 'create',
                         'domain_name' => $domainName,
                         'length_in_months' => $date_add,
@@ -534,16 +540,20 @@ class DomainsController extends Controller
                                 ]
                             );
                         } else {
+                            $currentDateTime = new DateTime();
+                            $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
                             $db->insert(
                                 'error_log',
                                 [
                                     'registrar_id' => $clid,
                                     'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
-                                    'date' => date('Y-m-d H:i:s')
+                                    'date' => $logdate
                                 ]
                             );
                         }
                     } else {
+                        $currentDateTime = new DateTime();
+                        $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
                         $host_id = $db->insert(
                             'host',
                             [
@@ -551,7 +561,7 @@ class DomainsController extends Controller
                                 'domain_id' => $domain_id,
                                 'clid' => $clid,
                                 'crid' => $clid,
-                                'crdate' => date('Y-m-d H:i:s')
+                                'crdate' => $host_date
                             ]
                         );
 

@@ -107,8 +107,10 @@ foreach ($tlds as $tld) {
 
         $xml->writeElement('rdeDom:clID', $domain['clid']);
         $xml->writeElement('rdeDom:crRr', $domain['crid']);
-        $xml->writeElement('rdeDom:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($domain['crdate'])));
-        $xml->writeElement('rdeDom:exDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($domain['exdate'])));
+        $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
+        $xml->writeElement('rdeDom:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+        $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
+        $xml->writeElement('rdeDom:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
         
         $xml->endElement();  // Closing rdeDom:domain
     }
@@ -153,7 +155,8 @@ foreach ($tlds as $tld) {
         $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
         $xml->endElement();  // Closing rdeRegistrar:whoisInfo
 
-        $xml->writeElement('rdeRegistrar:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($registrar['crdate'])));
+        $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+        $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
     }
     $xml->endElement();  // Closing rdeRegistrar:registrar
 
@@ -174,7 +177,8 @@ foreach ($tlds as $tld) {
         
         $xml->writeElement('rdeHost:clID', $host['clid']);
         $xml->writeElement('rdeHost:crRr', $host['crid']);
-        $xml->writeElement('rdeHost:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($host['crdate'])));
+        $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $host['crdate']);
+        $xml->writeElement('rdeHost:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
         $xml->endElement();  // Closing rdeHost:host
     }
 
@@ -217,10 +221,12 @@ foreach ($tlds as $tld) {
         $xml->writeElement('rdeContact:email', $contact['email']);
         $xml->writeElement('rdeContact:clID', $contact['clid']);
         $xml->writeElement('rdeContact:crRr', $contact['crid']);
-        $xml->writeElement('rdeContact:crDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['crdate'])));
+        $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['crdate']);
+        $xml->writeElement('rdeContact:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
         if (!empty($contact['upid'])) {
             $xml->writeElement('rdeContact:upRr', $contact['upid']);
-            $xml->writeElement('rdeContact:upDate', date("Y-m-d\\TH:i:s.0\\Z", strtotime($contact['update'])));
+            $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['update']);
+            $xml->writeElement('rdeContact:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
         }
         $xml->endElement();  // Closing rdeContact:contact
     }
@@ -372,9 +378,11 @@ foreach ($tlds as $tld) {
     $reportXML->writeElement('rdeReport:rydeSpecEscrow', 'RFC8909');
     $reportXML->writeElement('rdeReport:rydeSpecMapping', 'RFC9022');
     $reportXML->writeElement('rdeReport:resend', '0');
-    $reportXML->writeElement('rdeReport:crDate', date("Y-m-d\\TH:i:s.0\\Z"));
+    $currentDateTime = new DateTime();
+    $crDateWithMilliseconds = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+    $reportXML->writeElement('rdeReport:crDate', $crDateWithMilliseconds);
     $reportXML->writeElement('rdeReport:kind', 'FULL');
-    $reportXML->writeElement('rdeReport:watermark', date('Y-m-d\\T00:00:00\\Z'));
+    $reportXML->writeElement('rdeReport:watermark', date('Y-m-d\\T00:00:00.000\\Z'));
 
     $reportXML->startElement('rdeHeader:header');
     $reportXML->writeElement('rdeHeader:tld', $tld['tld']);

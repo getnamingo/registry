@@ -55,179 +55,179 @@ class EppWriter {
         $writer->endDocument();
         return $writer->outputMemory();
     }
-	
-	private function epp_result_totext($code, $lang = 'en-US') {
+    
+    private function epp_result_totext($code, $lang = 'en-US') {
         $resultTexts = [
-        	1000 => [
+            1000 => [
                 'code' => 'EPP_RS_SUCCESS',
                 'en-US' => 'Command completed successfully',
                 'fr-FR' => "la commande terminée avec succès"
-        	],
-        	1001 => [
+            ],
+            1001 => [
                 'code' => 'EPP_RS_PENDING',
                 'en-US' => 'Command completed successfully; action pending',
                 'fr-FR' => "la commande terminée avec succès ; l;'action est en suspens"
-        	],
-        	1300 => [
+            ],
+            1300 => [
                 'code' => 'EPP_RS_NOMSG',
                 'en-US' => 'Command completed successfully; no messages',
                 'fr-FR' => "la commande terminée avec succès ; il n'ya acun message"
-        	],
-        	1301 => [
+            ],
+            1301 => [
                 'code' => 'EPP_RS_ACK',
                 'en-US' => 'Command completed successfully; ack to dequeue',
                 'fr-FR' => "la commande terminé avec succès ; ack à retirer de la file d'attente"
-        	],
-        	1500 => [
+            ],
+            1500 => [
                 'code' => 'EPP_RS_END',
                 'en-US' => 'Command completed successfully; ending session',
                 'fr-FR' => "la commande terminé avec succès ; la session termine"
-        	],
-        	2000 => [
+            ],
+            2000 => [
                 'code' => 'EPP_RF_UNKCMD',
                 'en-US' => 'Unknown command',
                 'fr-FR' => "la commande est inconnue"
-        	],
-        	2001 => [
+            ],
+            2001 => [
                 'code' => 'EPP_RF_SYNTAX',
                 'en-US' => 'Command syntax error',
                 'fr-FR' => "erreur de syntaxe à la commande"
-        	],
-        	2002 => [
+            ],
+            2002 => [
                 'code' => 'EPP_RF_CMDUSE',
                 'en-US' => 'Command use error',
                 'fr-FR' => "erreur d'utilisation à la commande"
-        	],
-        	2003 => [
+            ],
+            2003 => [
                 'code' => 'EPP_RF_PARAM',
                 'en-US' => 'Required parameter missing',
                 'fr-FR' => "paramètre exigé est manquant"
-        	],
-        	2004 => [
+            ],
+            2004 => [
                 'code' => 'EPP_RF_VALRANGE',
                 'en-US' => 'Parameter value range error',
                 'fr-FR' => "la valeur de paramètre est hors d'intervalle"
-        	],
-        	2005 => [
+            ],
+            2005 => [
                 'code' => 'EPP_RF_VALSYNTAX',
                 'en-US' => 'Parameter value syntax error',
                 'fr-FR' => "erreur de syntaxe en valeur de paramètre"
-        	],
-        	2100 => [
+            ],
+            2100 => [
                 'code' => 'EPP_RF_PROTVERS',
                 'en-US' => 'Unimplemented protocol version',
                 'fr-FR' => "la version de protocole n'est pas mise en application"
-        	],
-        	2101 => [
+            ],
+            2101 => [
                 'code' => 'EPP_RF_UNIMPCMD',
                 'en-US' => 'Unimplemented command',
                 'fr-FR' => "la commande n'est pas mise en application"
-        	],
-        	2102 => [
+            ],
+            2102 => [
                 'code' => 'EPP_RF_UNIMPOPT',
                 'en-US' => 'Unimplemented option',
                 'fr-FR' => "l'option n'est pas mise en application"
-        	],
-        	2103 => [
+            ],
+            2103 => [
                 'code' => 'EPP_RF_UNIMPEXT',
                 'en-US' => 'Unimplemented extension',
                 'fr-FR' => "l'extension n'est pas mise en application"
-        	],
-        	2104 => [
+            ],
+            2104 => [
                 'code' => 'EPP_RF_BILLING',
                 'en-US' => 'Billing failure',
                 'fr-FR' => "panne de facturation"
-        	],
-        	2105 => [
+            ],
+            2105 => [
                 'code' => 'EPP_RF_NORENEW',
                 'en-US' => 'Object is not eligible for renewal',
                 'fr-FR' => "l'objet n'est pas habilité au renouvellement"
-        	],
-        	2106 => [
+            ],
+            2106 => [
                 'code' => 'EPP_RF_NOTRANSFER',
                 'en-US' => 'Object is not eligible for transfer',
                 'fr-FR' => "l'objet n'est pas éligible pour être transféré"
-        	],
-        	2200 => [
+            ],
+            2200 => [
                 'code' => 'EPP_RF_AUTHENTICATION',
                 'en-US' => 'Authentication error',
                 'fr-FR' => "erreur d'authentification"
-        	],
-        	2201 => [
+            ],
+            2201 => [
                 'code' => 'EPP_RF_AUTHORIZATION',
                 'en-US' => 'Authorization error',
                 'fr-FR' => "erreur d'autorisation"
-        	],
-        	2202 => [
+            ],
+            2202 => [
                 'code' => 'EPP_RF_INVAUTHOR',
                 'en-US' => 'Invalid authorization information',
                 'fr-FR' => "l'information d'autorisation est incorrecte"
-        	],
-        	2300 => [
+            ],
+            2300 => [
                 'code' => 'EPP_RF_PENDINGTRANSFER',
                 'en-US' => 'Object pending transfer',
                 'fr-FR' => "l'objet est transfert en suspens"
-        	],
-        	2301 => [
+            ],
+            2301 => [
                 'code' => 'EPP_RF_NOTPENDINGTRANSFER',
                 'en-US' => 'Object not pending transfer',
                 'fr-FR' => "l'objet n'est pas transfert en suspens"
-        	],
-        	2302 => [
+            ],
+            2302 => [
                 'code' => 'EPP_RF_EXISTS',
                 'en-US' => 'Object exists',
                 'fr-FR' => "l'objet existe"
-        	],
-        	2303 => [
+            ],
+            2303 => [
                 'code' => 'EPP_RF_NOTEXISTS',
                 'en-US' => 'Object does not exist',
                 'fr-FR' => "l'objet n'existe pas"
-        	],
-        	2304 => [
+            ],
+            2304 => [
                 'code' => 'EPP_RF_STATUS',
                 'en-US' => 'Object status prohibits operation',
                 'fr-FR' => "le statut de l'objet interdit cette exécution"
-        	],
-        	2305 => [
+            ],
+            2305 => [
                 'code' => 'EPP_RF_INUSE',
                 'en-US' => 'Object association prohibits operation',
                 'fr-FR' => "l'assocation de l'objet interdit cette exécution"
-        	],
-        	2306 => [
+            ],
+            2306 => [
                 'code' => 'EPP_RF_POLICYPARAM',
                 'en-US' => 'Parameter value policy error',
                 'fr-FR' => "erreur de politique en valeur du paramètre"
-        	],
-        	2307 => [
+            ],
+            2307 => [
                 'code' => 'EPP_RF_UNIMPLSERVICE',
                 'en-US' => 'Unimplemented object service',
                 'fr-FR' => "le service d'objet n'est pas mis en application"
-        	],
-        	2308 => [
+            ],
+            2308 => [
                 'code' => 'EPP_RF_DATAMGT',
                 'en-US' => 'Data management policy violation',
                 'fr-FR' => "violation de la politique de gestion des données"
-        	],
-        	2400 => [
+            ],
+            2400 => [
                 'code' => 'EPP_RF_FAIL',
                 'en-US' => 'Command failed',
                 'fr-FR' => "la commande a échoué"
-        	],
-        	2500 => [
+            ],
+            2500 => [
                 'code' => 'EPP_RF_CLOSING',
                 'en-US' => 'Command failed; server closing connection',
                 'fr-FR' => "la commande a échoué ; le serveur ferme la connexion"
-        	],
-        	2501 => [
+            ],
+            2501 => [
                 'code' => 'EPP_RF_AUTHCLOSING',
                 'en-US' => 'Authentiction error; server closing connection',
                 'fr-FR' => "erreur d'authentification ; le serveur ferme la connexion"
-        	],
-        	2502 => [
+            ],
+            2502 => [
                 'code' => 'EPP_RF_SESSIONLIMIT',
                 'en-US' => 'Session limit exceeded; server closing connection',
                 'fr-FR' => "la limite de session a été dépassée ; le serveur ferme la connexion"
-        	]
+            ]
         ];
 
         if (isset($resultTexts[$code][$lang])) {
@@ -242,7 +242,7 @@ class EppWriter {
         // Return a default message if the code is not found
         return 'Unknown response code';
     }
-	
+    
     private function epp_success($resultCode) {
         // Typically, EPP result codes for successful commands are in the range of 1000-1999.
         // But you might need to adjust this range based on your specific EPP server responses.
@@ -292,8 +292,8 @@ class EppWriter {
             if (isset($resp['dcp']['access'])) {
                 $writer->startElement('access');
                 foreach ($resp['dcp']['access'] as $accessType) {
-					$writer->startElement($accessType);
-					$writer->endElement();
+                    $writer->startElement($accessType);
+                    $writer->endElement();
                 }
                 $writer->endElement();  // End of 'access'
             }
@@ -306,8 +306,8 @@ class EppWriter {
                 if (isset($resp['dcp']['statement']['purpose'])) {
                     $writer->startElement('purpose');
                     foreach ($resp['dcp']['statement']['purpose'] as $purposeType) {
-					    $writer->startElement($purposeType);
-					    $writer->endElement();
+                        $writer->startElement($purposeType);
+                        $writer->endElement();
                     }
                     $writer->endElement();  // End of 'purpose'
                 }
@@ -316,8 +316,8 @@ class EppWriter {
                 if (isset($resp['dcp']['statement']['recipient'])) {
                     $writer->startElement('recipient');
                     foreach ($resp['dcp']['statement']['recipient'] as $recipientType) {
-					    $writer->startElement($recipientType);
-					    $writer->endElement();
+                        $writer->startElement($recipientType);
+                        $writer->endElement();
                     }
                     $writer->endElement();  // End of 'recipient'
                 }
@@ -326,8 +326,8 @@ class EppWriter {
                 if (isset($resp['dcp']['statement']['retention'])) {
                     $writer->startElement('retention');
                     foreach ($resp['dcp']['statement']['retention'] as $retentionType) {
-					    $writer->startElement($retentionType);
-					    $writer->endElement();
+                        $writer->startElement($retentionType);
+                        $writer->endElement();
                     }
                     $writer->endElement();  // End of 'retention'
                 }
@@ -445,7 +445,7 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
         }
         }
-		
+        
         $this->_postamble($writer, $resp);
 
     }
@@ -461,16 +461,16 @@ class EppWriter {
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd');
                 
             foreach ($resp['ids'] as $ids) {
-            	$writer->startElement('contact:cd');
-            		$writer->startElement('contact:id');
+                $writer->startElement('contact:cd');
+                    $writer->startElement('contact:id');
                         $writer->writeAttribute('avail', $ids[1]);
                         $writer->text($ids[0]);
-            		$writer->endElement(); // End of 'contact:id'
-            		
-            		if (isset($ids[2])) {
+                    $writer->endElement(); // End of 'contact:id'
+                    
+                    if (isset($ids[2])) {
                         $writer->writeElement('contact:reason', $ids[2]);
-            		}
-            	$writer->endElement();  // End of 'contact:cd'
+                    }
+                $writer->endElement();  // End of 'contact:cd'
             }
                 
                 $writer->endElement();  // End of 'contact:chkData'
@@ -479,7 +479,7 @@ class EppWriter {
 
         $this->_postamble($writer, $resp);
     }
-	
+    
     private function _info_contact($writer, $resp) {
         $this->_preamble($writer, $resp);
         
@@ -545,15 +545,21 @@ class EppWriter {
                 $writer->writeElement('contact:email', $resp['email']);
                 $writer->writeElement('contact:clID', $resp['clID']);
                 $writer->writeElement('contact:crID', $resp['crID']);
-                $writer->writeElement('contact:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
+                $crDate = new DateTime($resp['crDate']);
+                $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('contact:crDate', $crDateFormatted);
                 if (isset($resp['upID'])) {
                     $writer->writeElement('contact:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('contact:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
+                    $upDate = new DateTime($resp['upDate']);
+                    $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('contact:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('contact:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
+                    $trDate = new DateTime($resp['trDate']);
+                    $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('contact:trDate', $trDateFormatted);
                 }
                 
                 // Handling 'contact:authInfo'
@@ -601,9 +607,13 @@ class EppWriter {
                 $writer->writeElement('contact:id', $resp['id']);
                 $writer->writeElement('contact:trStatus', $resp['trStatus']);
                 $writer->writeElement('contact:reID', $resp['reID']);
-                $writer->writeElement('contact:reDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['reDate'])));
+                $reDate = new DateTime($resp['reDate']);
+                $reDateFormatted = $reDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('contact:reDate', $reDateFormatted);    
                 $writer->writeElement('contact:acID', $resp['acID']);
-                $writer->writeElement('contact:acDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['acDate'])));
+                $acDate = new DateTime($resp['acDate']);
+                $acDateFormatted = $acDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('contact:acDate', $acDateFormatted);    
                 $writer->endElement();  // End of 'contact:trnData'
             $writer->endElement();  // End of 'resData'
         }
@@ -620,7 +630,9 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd');
                 $writer->writeElement('contact:id', $resp['id']);
-                $writer->writeElement('contact:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
+                $crDate = new DateTime($resp['crDate']);
+                $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('contact:crDate', $crDateFormatted);
                 $writer->endElement();  // End of 'contact:creData'
             $writer->endElement();  // End of 'resData'
         }
@@ -663,8 +675,12 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
-                $writer->writeElement('domain:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
-                $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
+                $crDate = new DateTime($resp['crDate']);
+                $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('domain:crDate', $crDateFormatted);
+                $exDate = new DateTime($resp['exDate']);
+                $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:creData'
             $writer->endElement();  // End of 'resData'
         }
@@ -720,19 +736,27 @@ class EppWriter {
                     $writer->writeElement('domain:crID', $resp['crID']);
                 }
                 if (isset($resp['crDate'])) {
-                    $writer->writeElement('domain:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
+                    $crDate = new DateTime($resp['crDate']);
+                    $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:crDate', $crDateFormatted);
                 }
                 if (isset($resp['exDate'])) {
-                    $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
+                    $exDate = new DateTime($resp['exDate']);
+                    $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:exDate', $exDateFormatted);
                 }
                 if (isset($resp['upID'])) {
                     $writer->writeElement('domain:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('domain:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
+                    $upDate = new DateTime($resp['upDate']);
+                    $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('domain:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
+                    $trDate = new DateTime($resp['trDate']);
+                    $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:trDate', $trDateFormatted);
                 }
                 if ($resp['authInfo'] == 'valid') {
                     $writer->startElement('domain:authInfo');
@@ -819,7 +843,9 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
-                $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
+                $exDate = new DateTime($resp['exDate']);
+                $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:renData'
             $writer->endElement();  // End of 'resData'
         }
@@ -838,11 +864,17 @@ class EppWriter {
                 $writer->writeElement('domain:name', $resp['name']);
                 $writer->writeElement('domain:trStatus', $resp['trStatus']);
                 $writer->writeElement('domain:reID', $resp['reID']);
-                $writer->writeElement('domain:reDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['reDate'])));
+                $reDate = new DateTime($resp['reDate']);
+                $reDateFormatted = $reDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('domain:reDate', $reDateFormatted);
                 $writer->writeElement('domain:acID', $resp['acID']);
-                $writer->writeElement('domain:acDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['acDate'])));
+                $acDate = new DateTime($resp['acDate']);
+                $acDateFormatted = $acDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('domain:acDate', $acDateFormatted);
                 if (isset($resp['exDate'])) {
-                    $writer->writeElement('domain:exDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['exDate'])));
+                    $exDate = new DateTime($resp['exDate']);
+                    $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:exDate', $exDateFormatted);
                 }
                 $writer->endElement();  // End of 'domain:trnData'
             $writer->endElement();  // End of 'resData'
@@ -886,7 +918,9 @@ class EppWriter {
                 $writer->writeAttribute('xmlns:host', 'urn:ietf:params:xml:ns:host-1.0');
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd');
                 $writer->writeElement('host:name', $resp['name']);
-                $writer->writeElement('host:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
+                $crDate = new DateTime($resp['crDate']);
+                $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('host:crDate', $crDateFormatted);
                 $writer->endElement();  // End of 'host:creData'
             $writer->endElement();  // End of 'resData'
         }
@@ -929,15 +963,21 @@ class EppWriter {
                 }
                 $writer->writeElement('host:clID', $resp['clID']);
                 $writer->writeElement('host:crID', $resp['crID']);
-                $writer->writeElement('host:crDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['crDate'])));
+                $crDate = new DateTime($resp['crDate']);
+                $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
+                $writer->writeElement('host:crDate', $crDateFormatted);
                 if (isset($resp['upID'])) {
                     $writer->writeElement('host:upID', $resp['upID']);
                 }
                 if (isset($resp['upDate'])) {
-                    $writer->writeElement('host:upDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['upDate'])));
+                    $upDate = new DateTime($resp['upDate']);
+                    $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('host:upDate', $upDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
-                    $writer->writeElement('host:trDate', gmdate('Y-m-d\TH:i:s\.0\Z', strtotime($resp['trDate'])));
+                    $trDate = new DateTime($resp['trDate']);
+                    $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('host:trDate', $trDateFormatted);
                 }
                 $writer->endElement();  // End of 'host:infData'
             $writer->endElement();  // End of 'resData'

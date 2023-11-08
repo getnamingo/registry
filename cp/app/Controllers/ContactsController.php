@@ -338,15 +338,15 @@ class ContactsController extends Controller
                 ]);
             }
 
-			$disclose_voice = isset($data['disclose_voice']) ? 1 : 0;
-			$disclose_fax = isset($data['disclose_fax']) ? 1 : 0;
-			$disclose_email = isset($data['disclose_email']) ? 1 : 0;
-			$disclose_name_int = isset($data['disclose_name_int']) ? 1 : 0;
-			$disclose_name_loc = isset($data['disclose_name_loc']) ? 1 : 0;
-			$disclose_org_int = isset($data['disclose_org_int']) ? 1 : 0;
-			$disclose_org_loc = isset($data['disclose_org_loc']) ? 1 : 0;
-			$disclose_addr_int = isset($data['disclose_addr_int']) ? 1 : 0;
-			$disclose_addr_loc = isset($data['disclose_addr_loc']) ? 1 : 0;
+            $disclose_voice = isset($data['disclose_voice']) ? 1 : 0;
+            $disclose_fax = isset($data['disclose_fax']) ? 1 : 0;
+            $disclose_email = isset($data['disclose_email']) ? 1 : 0;
+            $disclose_name_int = isset($data['disclose_name_int']) ? 1 : 0;
+            $disclose_name_loc = isset($data['disclose_name_loc']) ? 1 : 0;
+            $disclose_org_int = isset($data['disclose_org_int']) ? 1 : 0;
+            $disclose_org_loc = isset($data['disclose_org_loc']) ? 1 : 0;
+            $disclose_addr_int = isset($data['disclose_addr_int']) ? 1 : 0;
+            $disclose_addr_loc = isset($data['disclose_addr_loc']) ? 1 : 0;
 
             if ($data['nin']) {
                 $nin = $data['nin'];
@@ -365,6 +365,8 @@ class ContactsController extends Controller
             $db->beginTransaction();
 
             try {    
+                $currentDateTime = new DateTime();
+                $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
                 $db->insert(
                     'contact',
                     [
@@ -378,7 +380,7 @@ class ContactsController extends Controller
                         'nin_type' => $nin_type ?? null,
                         'clid' => $clid,
                         'crid' => $clid,
-                        'crdate' => date('Y-m-d H:i:s'),
+                        'crdate' => $crdate,
                         'disclose_voice' => $disclose_voice,
                         'disclose_fax' => $disclose_fax,
                         'disclose_email' => $disclose_email
