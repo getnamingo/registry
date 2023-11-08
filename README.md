@@ -15,15 +15,7 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-- **WHOIS and DAS Servers**: These servers are almost ready to go! They are functional but require additional testing and security hardening to ensure reliability and safety.
-  
-- **EPP Server**: Our EPP server integrates commands such as Check, Create, Info, Poll, Delete, Renew, Update, and Transfer. Our latest improvements have brought in support for extensions like RGP and SecDNS, ensuring that they function harmoniously with the main operations. As we march forward in our commitment to security and quality, we're currently in the phase of rigorous stress and security testing for these integrations. Our development roadmap includes the integration of RFC8748 (fee extension) and RFC8334 (launch phase mapping extension).
-  
-- **RDAP Server**: Nearing completion. The primary focus is on formatting more data for the output. Like the others, it also requires further testing and security hardening.
-  
-- **Automation Scripts**: These scripts are at varying stages of development. While some are ready, they need in-depth logic testing to ensure their efficiency and accuracy.
-  
-- **Control Panel**: This is our most nascent component. Development is underway, and there's ample opportunity for contributors to shape its direction and functionality.
+**WHOIS**, **DAS**, and **RDAP servers** are implemented but require further security testing. RDAP will soon include additional search capabilities. The **EPP server** is ready, subject to security evaluations, with development in progress for fee (RFC8748) and launch phase (RFC8334) extensions. **Automation scripts** for ccTLDs are prepared for testing; gTLD scripts need more enhancement. The **control panel**, currently with basic functionalities, is set for completion by the end of 2023.
 
 Feel free to dive into our issues to see where you can help or reach out to us directly to discuss how you can contribute.
 
