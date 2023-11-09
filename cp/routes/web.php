@@ -7,6 +7,7 @@ use App\Controllers\ContactsController;
 use App\Controllers\HostsController;
 use App\Controllers\LogsController;
 use App\Controllers\RegistrarsController;
+use App\Controllers\UsersController;
 use App\Controllers\FinancialsController;
 use App\Controllers\ReportsController;
 use App\Controllers\ProfileController;
@@ -53,6 +54,9 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
     
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
+    
+    $route->get('/users', UsersController::class .':view')->setName('users');
+    
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     
@@ -91,9 +95,9 @@ $app->any('/api[/{params:.*}]', function (
         'password' => $db['mysql']['password'],
         'database' => $db['mysql']['database'],
         'basePath' => '/api',
-        'middlewares' => 'authorization,sanitation',
+        'middlewares' => 'authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
-        $restrictedTables = ['users', 'contact_authInfo', 'contact_postalInfo', 'domain_authInfo', 'secdns'];
+        $restrictedTables = ['contact_authInfo', 'contact_postalInfo', 'domain_authInfo', 'secdns'];
             return !in_array($tableName, $restrictedTables);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
@@ -101,6 +105,28 @@ $app->any('/api[/{params:.*}]', function (
         },
         'sanitation.handler' => function ($operation, $tableName, $column, $value) {
             return is_string($value) ? strip_tags($value) : $value;
+        },
+        'multiTenancy.handler' => function ($operation, $tableName) {
+            if (isset($_SESSION['auth_roles']) && $_SESSION['auth_roles'] === 0) {
+                return [];
+            }
+            $userId = $_SESSION['auth_user_id'];
+            $columnMap = [
+                'contact' => 'clid',
+                'domain' => 'clid',
+                'host' => 'clid',
+                'poll' => 'registrar_id',
+                'registrar' => 'id',
+                'payment_history' => 'registrar_id',
+                'statement' => 'registrar_id',
+                'support_tickets' => 'user_id',
+            ];
+
+            if (array_key_exists($tableName, $columnMap)) {
+                return [$columnMap[$tableName] => $userId];
+            }
+
+            return ['1' => '0'];
         },
     ]);
     $api = new Api($config);

@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -232,7 +232,7 @@
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('registrars') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('registrars') or is_current_url('users') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 13a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z"></path><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"></path><path d="M6 20.05v-.05a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v.05"></path></svg>
                     </span>
@@ -248,7 +248,7 @@
                       {{ __('Create Registrar') }}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{{route('registrars')}}">
+                    <a class="dropdown-item" href="{{route('users')}}">
                       {{ __('List Users') }}
                     </a>
                     <a class="dropdown-item" href="#">
@@ -495,6 +495,8 @@
     {% include 'partials/js-reports.twig' %}
 {% elseif route_is('transfers') %}
     {% include 'partials/js-transfers.twig' %}
+{% elseif route_is('users') %}
+    {% include 'partials/js-users.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

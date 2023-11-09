@@ -1,0 +1,107 @@
+<script src="/assets/js/tabulator.min.js" defer></script>
+<script src="/assets/js/tabler.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script>
+    var table;
+    document.querySelector("#userTable").addEventListener('click', function(e) {
+        if (e.target.matches('.update-btn')) {
+            let id = e.target.getAttribute('data-id');
+            updateRecord(id);
+        } else if (e.target.matches('.delete-btn')) {
+            let id = e.target.getAttribute('data-id');
+            deleteRecord(id);
+        }
+    });
+   
+    document.addEventListener("DOMContentLoaded", function(){
+    function userLinkFormatter(cell){
+        var value = cell.getValue();
+        return `<a href="/user/${value}" style="font-weight:bold;">${value}</a>`;
+    }
+   
+    function actionsFormatter(cell, formatterParams, onRendered) {
+        return `
+            <button class="btn btn-primary btn-icon update-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></button>
+            <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
+        `;
+    }
+
+    function statusFormatter(cell) {
+        var statusArray = cell.getValue();
+        if (statusArray && Array.isArray(statusArray)) {
+            return statusArray.map(item => item.status).join(', ');
+        }
+        return "";
+    }
+
+    table = new Tabulator("#userTable", {
+        ajaxURL:"/api/records/users", // Set the URL for your JSON data
+        ajaxConfig:"GET",
+        pagination:"local",
+        paginationSize:10,
+        ajaxResponse:function(url, params, response){
+            return response.records;
+        },
+        layout:"fitDataFill",
+        responsiveLayout: "collapse",
+        responsiveLayoutCollapseStartOpen:false,
+        resizableColumns:false,
+        columns:[
+            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"Name", field:"username", width:200, headerSort:true, formatter: userLinkFormatter, responsive:0},
+            {title:"Email", field:"email", width:300, headerSort:true, responsive:2},
+            {title:"Roles", field:"roles_mask", width:300, headerSort:true, responsive:2},
+            {title: "Actions", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
+        ],
+        placeholder:function(){
+            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+        }
+    });
+    var searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("input", function () {
+        var term = searchInput.value.toLowerCase();
+
+        if (term) { // Only apply filter when there's a term to search for
+            table.setFilter(function (data) {
+                return (
+                    String(data.username).toLowerCase().includes(term) ||
+                    String(data.email).toLowerCase().includes(term) ||
+                    String(data.roles_mask).toString().toLowerCase().includes(term)
+                );
+            });
+        } else {
+            table.clearFilter(); // Clear the filter when the search box is emptied
+        }
+    });
+    });
+   
+    function updateRecord(id) {
+        console.log("Updating record with ID: " + id);
+    }
+   
+    function deleteRecord(id) {
+        console.log("Deleting record with ID: " + id);
+    }
+   
+    function downloadCSV() {
+        table.download("csv", "data.csv");
+    }
+
+    function downloadJSON() {
+        table.download("json", "data.json");
+    }
+
+    function downloadXLSX() {
+        table.download("xlsx", "data.xlsx", {sheetName:"My Registrars"});
+    }
+    
+    function downloadPDF() {
+        table.download("pdf", "data.pdf", {
+            orientation:"portrait",
+            title:"My Registrars",
+            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+        });
+    }
+</script>
