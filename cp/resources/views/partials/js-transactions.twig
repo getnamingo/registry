@@ -33,6 +33,9 @@
             {title:"To", field:"to", headerSort:true, responsive:2},
             {title:"Amount", field:"amount", headerSort:false, download:false, responsive:2},
         ],
+        placeholder:function(){
+            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+        }
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {

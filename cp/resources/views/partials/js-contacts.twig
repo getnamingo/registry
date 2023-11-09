@@ -56,6 +56,9 @@
             {title:"Status", field:"contact_status", width:300, minWidth:200, formatter: statusFormatter, headerSort:false, download:false, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
+        placeholder:function(){
+            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+        }
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {

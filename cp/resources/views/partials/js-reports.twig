@@ -32,6 +32,9 @@
             {title:"Deleted Domains", field:"deleted_domains", headerSort:true, responsive:2},
             {title:"Restored Domains", field:"restored_domains", headerSort:true, responsive:2, download:false}
         ],
+        placeholder:function(){
+            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+        }
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {
