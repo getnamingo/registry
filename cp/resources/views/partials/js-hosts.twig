@@ -44,19 +44,34 @@
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitColumns",
-        responsiveLayout: "hide",
+        layout:"fitDataFill",
+        responsiveLayout: "collapse",
+        responsiveLayoutCollapseStartOpen:false,
+        resizableColumns:false,
         columns:[
-            {title:"Name", field:"name", headerSort:true, formatter: hostLinkFormatter},
-            {title:"Creation Date", field:"crdate", headerSort:true, responsive:0},
-            {title:"Status", field:"host_status", formatter: statusFormatter, headerSort:false, download:false},
-            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
+            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"Name", field:"name", width:200, headerSort:true, formatter: hostLinkFormatter, responsive:0},
+            {title:"Creation Date", field:"crdate", width:300, minWidth:200, headerSort:true, responsive:2},
+            {title:"Status", field:"host_status", width:300, minWidth:200, formatter: statusFormatter, headerSort:false, download:false, responsive:2},
+            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
     });
     var searchInput = document.getElementById("search-input");
-        searchInput.addEventListener("input", function(){
-            table.setFilter("identifier", "like", searchInput.value);
-        });
+    searchInput.addEventListener("input", function () {
+        var term = searchInput.value.toLowerCase();
+
+        if (term) { // Only apply filter when there's a term to search for
+            table.setFilter(function (data) {
+                return (
+                    String(data.name).toLowerCase().includes(term) ||
+                    String(data.crdate).toLowerCase().includes(term) ||
+                    String(data.host_status).toLowerCase().includes(term)
+                );
+            });
+        } else {
+            table.clearFilter(); // Clear the filter when the search box is emptied
+        }
+    });
     });
    
     function updateRecord(id) {

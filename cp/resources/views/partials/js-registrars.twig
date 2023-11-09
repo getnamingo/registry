@@ -44,20 +44,36 @@
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitColumns",
-        responsiveLayout: "hide",
+        layout:"fitDataFill",
+        responsiveLayout: "collapse",
+        responsiveLayoutCollapseStartOpen:false,
+        resizableColumns:false,
         columns:[
-            {title:"Name", field:"name", headerSort:true, formatter: registrarLinkFormatter},
-            {title:"IANA ID", field:"iana_id", headerSort:true, responsive:0},
-            {title:"Email", field:"email", headerSort:true, responsive:0},
-            {title:"Balance", field:"accountBalance", headerSort:false, download:false},
-            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
+            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"Name", field:"name", width:200, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
+            {title:"IANA ID", field:"iana_id", width:300, headerSort:true, responsive:2},
+            {title:"Email", field:"email", width:300, headerSort:true, responsive:2},
+            {title:"Balance", field:"accountBalance", width:300, headerSort:false, download:false, responsive:2},
+            {title: "Actions", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
     });
     var searchInput = document.getElementById("search-input");
-        searchInput.addEventListener("input", function(){
-            table.setFilter("name", "like", searchInput.value);
-        });
+    searchInput.addEventListener("input", function () {
+        var term = searchInput.value.toLowerCase();
+
+        if (term) { // Only apply filter when there's a term to search for
+            table.setFilter(function (data) {
+                return (
+                    String(data.name).toLowerCase().includes(term) ||
+                    String(data.iana_id).toLowerCase().includes(term) ||
+                    String(data.email).toLowerCase().includes(term) ||
+                    String(data.accountBalance).toString().toLowerCase().includes(term)
+                );
+            });
+        } else {
+            table.clearFilter(); // Clear the filter when the search box is emptied
+        }
+    });
     });
    
     function updateRecord(id) {

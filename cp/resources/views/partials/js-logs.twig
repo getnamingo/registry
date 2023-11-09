@@ -15,27 +15,49 @@
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitColumns",
-        responsiveLayout: "hide",
+        layout:"fitDataFill",
+        responsiveLayout: "collapse",
+        responsiveLayoutCollapseStartOpen:false,
+        resizableColumns:false,
         initialSort:[
             {column:"cldate", dir:"desc"}, // sorting by the "cldate" field in descending order
         ],
         columns:[
-            {title:"Date", field:"cldate", headerSort:true},
-            {title:"Registrar", field:"registrar_id", headerSort:true},
+            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"Date", field:"cldate", headerSort:true, responsive:0},
+            {title:"Registrar", field:"registrar_id", headerSort:true, responsive:2},
             {title:"Command", field:"cmd", headerSort:true, responsive:0},
             {title:"Object Type", field:"obj_type", headerSort:true, responsive:0},
-            {title:"Object", field:"obj_id", headerSort:true, responsive:0},
-            {title:"Result", field:"code", headerSort:true},
-            {title:"Message", field:"msg", headerSort:true, responsive:0, download:false},
-            {title:"clTRID", field:"clTRID", headerSort:true, responsive:0, download:false},
-            {title:"Milliseconds", field:"svmicrosecond", headerSort:false, download:false},
+            {title:"Object", field:"obj_id", headerSort:true, responsive:2},
+            {title:"Result", field:"code", headerSort:true, responsive:2},
+            {title:"Message", field:"msg", headerSort:true, responsive:2, download:false},
+            {title:"clTRID", field:"clTRID", headerSort:true, responsive:2, download:false},
+            {title:"Milliseconds", field:"svmicrosecond", headerSort:false, download:false, responsive:2},
         ],
     });
     var searchInput = document.getElementById("search-input");
-        searchInput.addEventListener("input", function(){
-            table.setFilter("cmd", "like", searchInput.value);
-        });
+    searchInput.addEventListener("input", function () {
+        var term = searchInput.value.toLowerCase();
+
+        if (term) { // Only apply the filter when there's a term to search for
+            table.setFilter(function (data) {
+                // Check if any of the fields contain the search term
+                return (
+                    String(data.cldate).toLowerCase().includes(term) ||
+                    String(data.registrar_id).toLowerCase().includes(term) ||
+                    String(data.cmd).toLowerCase().includes(term) ||
+                    String(data.obj_type).toLowerCase().includes(term) ||
+                    String(data.obj_id).toLowerCase().includes(term) ||
+                    String(data.code).toLowerCase().includes(term) ||
+                    String(data.msg).toLowerCase().includes(term) ||
+                    String(data.clTRID).toLowerCase().includes(term) ||
+                    String(data.svmicrosecond).toLowerCase().includes(term)
+                );
+            });
+        } else {
+            table.clearFilter(); // Clear the filter when the search box is emptied
+        }
+    });
     });
    
     function downloadCSV() {
