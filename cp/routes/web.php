@@ -95,7 +95,7 @@ $app->any('/api[/{params:.*}]', function (
         'password' => $db['mysql']['password'],
         'database' => $db['mysql']['database'],
         'basePath' => '/api',
-        'middlewares' => 'authorization,sanitation,multiTenancy',
+        'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
         $restrictedTables = ['contact_authInfo', 'contact_postalInfo', 'domain_authInfo', 'secdns'];
             return !in_array($tableName, $restrictedTables);
@@ -106,7 +106,21 @@ $app->any('/api[/{params:.*}]', function (
         'sanitation.handler' => function ($operation, $tableName, $column, $value) {
             return is_string($value) ? strip_tags($value) : $value;
         },
-        'multiTenancy.handler' => function ($operation, $tableName) {
+        'customization.beforeHandler' => function ($operation, $tableName, $request, $environment) {
+            if (!isset($_SESSION['auth_logged_in']) || $_SESSION['auth_logged_in'] !== true) {
+                header('HTTP/1.1 401 Unauthorized');
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['error' => 'Authentication required']);
+                exit;
+            }
+            $_SESSION['user'] = $_SESSION['auth_username'];
+        },
+        'dbAuth.usersTable' => 'users',
+        'dbAuth.usernameColumn' => 'email',
+        'dbAuth.passwordColumn' => 'password',
+        'dbAuth.returnedColumns' => 'email,roles_mask',
+        'dbAuth.registerUser' => false,
+        'multiTenancy.handler' => function ($operation, $tableName) {    
             if (isset($_SESSION['auth_roles']) && $_SESSION['auth_roles'] === 0) {
                 return [];
             }
@@ -145,6 +159,36 @@ $app->any('/log-api[/{params:.*}]', function (
         'password' => $db['mysql']['password'],
         'database' => 'registryTransaction',
         'basePath' => '/log-api',
+        'middlewares' => 'customization,dbAuth,multiTenancy',
+        'customization.beforeHandler' => function ($operation, $tableName, $request, $environment) {
+            if (!isset($_SESSION['auth_logged_in']) || $_SESSION['auth_logged_in'] !== true) {
+                header('HTTP/1.1 401 Unauthorized');
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['error' => 'Authentication required']);
+                exit;
+            }
+            $_SESSION['user'] = $_SESSION['auth_username'];
+        },
+        'dbAuth.usersTable' => 'users',
+        'dbAuth.usernameColumn' => 'email',
+        'dbAuth.passwordColumn' => 'password',
+        'dbAuth.returnedColumns' => 'email,roles_mask',
+        'dbAuth.registerUser' => false,
+        'multiTenancy.handler' => function ($operation, $tableName) {    
+            if (isset($_SESSION['auth_roles']) && $_SESSION['auth_roles'] === 0) {
+                return [];
+            }
+            $userId = $_SESSION['auth_user_id'];
+            $columnMap = [
+                'transaction_identifier' => 'registrar_id',
+            ];
+
+            if (array_key_exists($tableName, $columnMap)) {
+                return [$columnMap[$tableName] => $userId];
+            }
+
+            return ['1' => '0'];
+        },
     ]);
     $api = new Api($config);
     $response = $api->handle($request);
