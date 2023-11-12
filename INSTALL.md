@@ -68,7 +68,7 @@ rdap.example.com {
 
 whois.example.com {
     bind YOUR_IPV4_ADDRESS YOUR_IPV6_ADDRESS
-    root * /path/to/your/whois/app
+    root * /var/www/whois
     encode gzip
     php_fastcgi unix//run/php/php8.2-fpm.sock
     file_server
@@ -77,7 +77,7 @@ whois.example.com {
 
 cp.example.com {
     bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
-    root * /path/to/your/php/app/public
+    root * /var/www/cp
     php_fastcgi unix//run/php/php8.2-fpm.sock
     encode gzip
     file_server
@@ -174,7 +174,27 @@ composer update
 
 This command will update and install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
 
-## 12. RDE (Registry data escrow) configuration:
+## 12. WHOIS Setup
+
+### Port 43 Setup
+
+TODO
+
+### Web WHOIS Setup
+
+Use a file management tool or command line to copy the entire ```registry/whois/web/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/whois/```.
+
+Change your working directory to ```/var/www/whois/``` using a command line interface. This can be done with the command ```cd /var/www/whois/```.
+
+Once in the correct directory, run the following command to install necessary dependencies:
+
+```bash
+composer require gregwar/captcha
+```
+
+This command will install the **gregwar/captcha** package, which is required for the WHOIS web interface functionality.
+
+## 13. RDE (Registry data escrow) configuration:
 
 ### Generate the Key Pair:
 
