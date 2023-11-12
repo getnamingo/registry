@@ -251,6 +251,8 @@ class HostsController extends Controller
     public function viewHost(Request $request, Response $response, $args) 
     {
         $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
 
         function isValidHostname($hostname) {
             // Check for IDN and convert to ASCII if necessary
@@ -298,6 +300,7 @@ class HostsController extends Controller
                     'hostIPv4' => $hostIPv4,
                     'hostIPv6' => $hostIPv6,
                     'registrars' => $registrars,
+                    'currentUri' => $uri
                 ]);
             } else {
                 // Host does not exist, redirect to the hosts view
