@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -413,6 +413,8 @@
     {% include 'partials/js-transfers.twig' %}
 {% elseif route_is('users') %}
     {% include 'partials/js-users.twig' %}
+{% elseif route_is('support') %}
+    {% include 'partials/js-support.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

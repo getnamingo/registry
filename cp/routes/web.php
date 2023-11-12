@@ -69,7 +69,7 @@ $app->group('', function ($route) {
     $route->get('/settings', SystemController::class .':settings')->setName('settings');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
-    $route->get('/support/new', SupportController::class .':newticket')->setName('newticket');
+    $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');
     $route->get('/support/docs', SupportController::class .':docs')->setName('docs');
     $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
     
