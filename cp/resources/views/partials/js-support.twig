@@ -25,7 +25,7 @@
     }
 
     table = new Tabulator("#supportTable", {
-        ajaxURL:"/api/records/support_tickets", // Set the URL for your JSON data
+        ajaxURL:"/api/records/support_tickets?join=ticket_categories", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
         paginationSize:10,
@@ -41,7 +41,7 @@
             {title:"Subject", field:"subject", headerSort:true, responsive:0},
             {title:"Status", field:"status", headerSort:true, responsive:2},
             {title:"Priority", field:"priority", headerSort:true, responsive:2},
-            {title:"Category", field:"category_id", headerSort:false, download:false, responsive:2},
+            {title:"Category", field:"category_id.name", headerSort:false, download:false, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){
@@ -59,7 +59,7 @@
                     String(data.subject).toLowerCase().includes(term) ||
                     String(data.status).toLowerCase().includes(term) ||
                     String(data.priority).toLowerCase().includes(term) ||
-                    String(data.category_id).toLowerCase().includes(term)
+                    String(data.category_id.name).toLowerCase().includes(term)
                 );
             });
         } else {
