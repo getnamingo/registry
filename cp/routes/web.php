@@ -52,7 +52,8 @@ $app->group('', function ($route) {
     
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
-    
+    $route->get('/host/{domain}', HostsController::class . ':viewHost')->setName('viewHost');
+
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     
     $route->get('/users', UsersController::class .':view')->setName('users');
@@ -199,9 +200,11 @@ $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\S
     try {
         return $handler->handle($request);
     } catch (HttpNotFoundException $e) {
-        $response = new Response();
-        $response->getBody()->write('404 Not Found');
-        return $response->withStatus(404);
+        $responseFactory = new \Nyholm\Psr7\Factory\Psr17Factory();
+        $response = $responseFactory->createResponse();
+        return $response
+            ->withHeader('Location', '/')
+            ->withStatus(302);
     }
 });
 

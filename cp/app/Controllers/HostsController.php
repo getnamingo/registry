@@ -247,4 +247,68 @@ class HostsController extends Controller
             'registrars' => $registrars,
         ]);
     }
+    
+    public function viewHost(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+
+        function isValidHostname($hostname) {
+            // Check for IDN and convert to ASCII if necessary
+            if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
+                $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
+            }
+
+            // Regular expression for validating a hostname (simplified version)
+            $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+
+            return preg_match($pattern, $hostname);
+        }
+
+        if ($args && isValidHostname($args)) {
+            $host = $db->selectRow('SELECT id, name, clid, crdate FROM host WHERE name = ?',
+            [ $args ]);
+
+            if ($host) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$host['clid']]);
+
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the hosts view if the user is not authorized for this host
+                        return $response->withHeader('Location', '/hosts')->withStatus(302);
+                    }
+                }
+                
+                $hostStatus = $db->selectRow('SELECT status FROM host_status WHERE host_id = ?',
+                [ $host['id'] ]);
+                $hostIPv4 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v4'",
+                [ $host['id'] ]);
+                $hostIPv6 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v6'",
+                [ $host['id'] ]);
+                
+                return view($response,'admin/hosts/viewHost.twig', [
+                    'host' => $host,
+                    'hostStatus' => $hostStatus,
+                    'hostIPv4' => $hostIPv4,
+                    'hostIPv6' => $hostIPv6,
+                    'registrars' => $registrars,
+                ]);
+            } else {
+                // Host does not exist, redirect to the hosts view
+                return $response->withHeader('Location', '/hosts')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the hosts view
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
+    }
+
 }
