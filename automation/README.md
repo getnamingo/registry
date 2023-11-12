@@ -1,1 +1,0 @@
-composer require badcow/dns phpseclib/phpseclib

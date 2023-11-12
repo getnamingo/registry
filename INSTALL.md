@@ -122,7 +122,59 @@ systemctl enable caddy
 systemctl restart caddy
 ```
 
-## 10. RDE (Registry data escrow) configuration:
+## 10. Initial Setup for Automation Scripts
+
+Before you continue, it is essential to configure the automation scripts properly. Please follow these steps to set up your environment:
+
+### Rename Configuration File:
+
+Locate the file named ```config.php.dist``` in the automation directory and rename it to ```config.php```.
+
+### Edit Configuration Settings:
+
+Open the file in a text editor and carefully review and update all the values to match your specific requirements.
+
+### Install Required Dependencies:
+
+Navigate to the automation directory in your command line interface.
+
+Execute the following command to install the necessary dependencies:
+
+```bash
+composer require badcow/dns phpseclib/phpseclib
+```
+
+This command will install the ```badcow/dns``` and ```phpseclib/phpseclib``` packages which are essential for the automation script to function correctly.
+
+## 11. Control Panel Setup
+
+To set up the control panel, follow these instructions:
+
+### Configure Environment File:
+
+Locate the file named ```env-sample``` in the control panel (```cp```) directory.
+
+Rename this file to ```.env```.
+
+### Edit Environment Settings:
+
+Open the ```.env``` file in a text editor.
+
+Update the settings within this file to suit your specific environment and application needs.
+
+### Install Dependencies:
+
+Open your command line interface and navigate to the ```cp``` (control panel) directory.
+
+Run the following command to install the required dependencies:
+
+```bash
+composer update
+```
+
+This command will update and install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
+
+## 12. RDE (Registry data escrow) configuration:
 
 ### Generate the Key Pair:
 
