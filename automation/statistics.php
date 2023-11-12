@@ -15,18 +15,18 @@ try {
 
 try {
     // Check if there's an entry for the current date
-    $query = "SELECT `id` FROM `statistics` WHERE `date` = CURDATE()";
+    $query = "SELECT id FROM statistics WHERE date = CURDATE()";
     $curdate_id = $dbh->query($query)->fetchColumn();
 
     if (!$curdate_id) {
-        $dbh->exec("INSERT IGNORE INTO `statistics` (`date`) VALUES(CURDATE())");
+        $dbh->exec("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
     }
 
     // Get the total number of domains
-    $total_domains = $dbh->query("SELECT COUNT(`id`) AS `total_domains` FROM `domain`")->fetchColumn();
+    $total_domains = $dbh->query("SELECT COUNT(id) AS total_domains FROM domain")->fetchColumn();
 
     // Update the statistics table with the total number of domains for the current date
-    $dbh->exec("UPDATE `statistics` SET `total_domains` = '$total_domains' WHERE `date` = CURDATE()");
+    $dbh->exec("UPDATE statistics SET total_domains = '$total_domains' WHERE date = CURDATE()");
 
 } catch (PDOException $e) {
     // Handle database errors

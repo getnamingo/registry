@@ -44,7 +44,7 @@ while ($row = $stmt_domain->fetch(PDO::FETCH_ASSOC)) {
             }
         }
 
-        [$price] = $dbh->query("SELECT m$date_add FROM domain_price WHERE tldid = '$tld_id' AND command` = 'transfer' LIMIT 1")->fetch(PDO::FETCH_NUM);
+        [$price] = $dbh->query("SELECT m$date_add FROM domain_price WHERE tldid = '$tld_id' AND command = 'transfer' LIMIT 1")->fetch(PDO::FETCH_NUM);
 
         if (($registrar_balance + $creditLimit) < $price) {
             $echo = 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request';
