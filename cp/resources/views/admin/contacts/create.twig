@@ -52,7 +52,7 @@
                 <div class="card">
                     <div class="card-body">
                         <form action="/contact/create" method="post">
-						{{ csrf.field | raw }}
+                        {{ csrf.field | raw }}
                             <div class="row">
                                 <!-- First Column: General & Internationalized Info -->
                                 <div class="col-md-6">
@@ -68,7 +68,7 @@
                                         </label>
                                     </div>
                                     
-                                    {% if registrars %}
+                                    {% if registrars and not registrar %}
                                         <div class="form-group mb-3">
                                             <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
                                             <select id="registrarDropdown" name="registrar" class="form-control">
@@ -133,7 +133,7 @@
                                 <!-- Second Column: Voice, Fax, Email, and other details -->
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Contact Details</h6>
-									
+                                    
                                     <!-- Contact ID -->
                                     <div class="mb-3">
                                         <label for="contactid" class="form-label required">Contact ID</label>

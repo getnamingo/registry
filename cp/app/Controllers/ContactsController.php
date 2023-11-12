@@ -26,6 +26,11 @@ class ContactsController extends Controller
             $contactID = $data['contactid'] ?? null;
             $registrar_id = $data['registrar'] ?? null;
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
+            if ($_SESSION["auth_roles"] != 0) {
+                $registrar = true;
+            } else {
+                $registrar = null;
+            }
             
             $postalInfoIntName = $data['intName'] ?? null;
             $postalInfoIntOrg = $data['org'] ?? null;
@@ -58,6 +63,7 @@ class ContactsController extends Controller
                     'error' => 'Please provide a contact ID',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -69,6 +75,7 @@ class ContactsController extends Controller
                     'error' => 'Invalid contact ID',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -79,15 +86,14 @@ class ContactsController extends Controller
                     'error' => 'Contact ID already exists',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
-            $result = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
-            if (is_array($result)) {
+            if ($_SESSION["auth_roles"] != 0) {
                 $clid = $result['registrar_id'];
-            } else if (is_object($result) && method_exists($result, 'fetch')) {
-                $clid = $result->fetch();
             } else {
                 $clid = $registrar_id;
             }
@@ -99,6 +105,7 @@ class ContactsController extends Controller
                         'error' => 'Missing contact name',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -108,6 +115,7 @@ class ContactsController extends Controller
                         'error' => 'Invalid contact name',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -118,6 +126,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact org',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -129,6 +138,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -140,6 +150,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -151,6 +162,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -161,6 +173,7 @@ class ContactsController extends Controller
                         'error' => 'Invalid contact city',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -171,6 +184,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact state/province',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -182,6 +196,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid contact postal code',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -195,6 +210,7 @@ class ContactsController extends Controller
                         'error' => 'Missing loc contact name',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -204,6 +220,7 @@ class ContactsController extends Controller
                         'error' => 'Invalid loc contact name',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -214,6 +231,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact org',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -225,6 +243,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -236,6 +255,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -247,6 +267,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact street',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -257,6 +278,7 @@ class ContactsController extends Controller
                         'error' => 'Invalid loc contact city',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -267,6 +289,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact state/province',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -278,6 +301,7 @@ class ContactsController extends Controller
                             'error' => 'Invalid loc contact postal code',
                             'registrars' => $registrars,
                             'countries' => $countries,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -290,6 +314,7 @@ class ContactsController extends Controller
                     'error' => 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -299,6 +324,7 @@ class ContactsController extends Controller
                     'error' => 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -308,6 +334,7 @@ class ContactsController extends Controller
                     'error' => 'Email address failed check',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -317,6 +344,7 @@ class ContactsController extends Controller
                     'error' => 'Email contact authinfo',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -326,6 +354,7 @@ class ContactsController extends Controller
                     'error' => 'Password needs to be at least 6 and up to 16 characters long',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -335,6 +364,7 @@ class ContactsController extends Controller
                     'error' => 'Password should have both upper and lower case characters',
                     'registrars' => $registrars,
                     'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -358,6 +388,7 @@ class ContactsController extends Controller
                         'error' => 'NIN should contain one or more numbers',
                         'registrars' => $registrars,
                         'countries' => $countries,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -454,7 +485,8 @@ class ContactsController extends Controller
                     'contactID' => $contactID,
                     'error' => $e->getMessage(),
                     'registrars' => $registrars,
-                    'countries' => $countries
+                    'countries' => $countries,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -467,7 +499,8 @@ class ContactsController extends Controller
                 'contactID' => $contactID,
                 'crdate' => $crdate,
                 'registrars' => $registrars,
-                'countries' => $countries
+                'countries' => $countries,
+                'registrar' => $registrar,
             ]);
         }
 
@@ -475,11 +508,17 @@ class ContactsController extends Controller
         $db = $this->container->get('db');
         $countries = $iso3166->all();
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        if ($_SESSION["auth_roles"] != 0) {
+            $registrar = true;
+        } else {
+            $registrar = null;
+        }
         
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/contacts/create.twig', [
             'registrars' => $registrars,
             'countries' => $countries,
+            'registrar' => $registrar,
         ]);
     }
 }
