@@ -12,6 +12,30 @@ apt update && apt upgrade
 apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml unzip wget whois
 ```
 
+### Configure OPcache
+
+Edit the PHP Configuration Files:
+
+```bash
+nano /etc/php/8.2/cli/php.ini
+nano /etc/php/8.2/fpm/php.ini
+```
+
+Locate or add these lines in ```php.ini```:
+
+```bash
+opcache.enable=1
+opcache.enable_cli=1
+opcache.jit_buffer_size=100M
+opcache.jit=1255
+```
+
+After configuring OPcache and JIT, restart the PHP service to apply changes:
+
+```bash
+systemctl restart php8.2-fpm
+```
+
 ## 2. Database installation (please choose one):
 
 ### 2a. Install and configure MariaDB:
@@ -98,9 +122,47 @@ cp.example.com {
 }
 ```
 
-## 6. Move ```registry/cp``` to ```/path/to/your/php/app```
+## 6. Control Panel Setup
 
-## 7. Move ```registry/whois/web``` to ```/path/to/your/whois/app```
+Use a file management tool or command line to copy the entire ```registry/cp/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/cp/```.
+
+### Configure Environment File:
+
+Locate the file named ```env-sample``` in the control panel (```cp```) directory.
+
+Rename this file to ```.env```.
+
+### Edit Environment Settings:
+
+Open the ```.env``` file in a text editor.
+
+Update the settings within this file to suit your specific environment and application needs.
+
+### Install Dependencies:
+
+Open your command line interface and navigate to the ```cp``` (control panel) directory.
+
+Run the following command to install the required dependencies:
+
+```bash
+composer update
+```
+
+This command will update and install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
+
+## 7. WHOIS setup
+
+Use a file management tool or command line to copy the entire ```registry/whois/web/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/whois/```.
+
+Change your working directory to ```/var/www/whois/``` using a command line interface. This can be done with the command ```cd /var/www/whois/```.
+
+Once in the correct directory, run the following command to install necessary dependencies:
+
+```bash
+composer require gregwar/captcha
+```
+
+This command will install the **gregwar/captcha** package, which is required for the WHOIS web interface functionality.
 
 ## 8. Configure registry
 
@@ -146,55 +208,7 @@ composer require badcow/dns phpseclib/phpseclib
 
 This command will install the ```badcow/dns``` and ```phpseclib/phpseclib``` packages which are essential for the automation script to function correctly.
 
-## 11. Control Panel Setup
-
-To set up the control panel, follow these instructions:
-
-### Configure Environment File:
-
-Locate the file named ```env-sample``` in the control panel (```cp```) directory.
-
-Rename this file to ```.env```.
-
-### Edit Environment Settings:
-
-Open the ```.env``` file in a text editor.
-
-Update the settings within this file to suit your specific environment and application needs.
-
-### Install Dependencies:
-
-Open your command line interface and navigate to the ```cp``` (control panel) directory.
-
-Run the following command to install the required dependencies:
-
-```bash
-composer update
-```
-
-This command will update and install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
-
-## 12. WHOIS Setup
-
-### Port 43 Setup
-
-TODO
-
-### Web WHOIS Setup
-
-Use a file management tool or command line to copy the entire ```registry/whois/web/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/whois/```.
-
-Change your working directory to ```/var/www/whois/``` using a command line interface. This can be done with the command ```cd /var/www/whois/```.
-
-Once in the correct directory, run the following command to install necessary dependencies:
-
-```bash
-composer require gregwar/captcha
-```
-
-This command will install the **gregwar/captcha** package, which is required for the WHOIS web interface functionality.
-
-## 13. RDE (Registry data escrow) configuration:
+## 11. RDE (Registry data escrow) configuration:
 
 ### Generate the Key Pair:
 
