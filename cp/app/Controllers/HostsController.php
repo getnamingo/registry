@@ -25,6 +25,11 @@ class HostsController extends Controller
             $ipv6 = $data['ipv6'] ?? null;
             $registrar_id = $data['registrar'] ?? null;
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
+            if ($_SESSION["auth_roles"] != 0) {
+                $registrar = true;
+            } else {
+                $registrar = null;
+            }
 
             if ($hostName) {
                 $hostModel = new Host($this->container->get('db'));
@@ -36,6 +41,7 @@ class HostsController extends Controller
                             'hostName' => $hostName,
                             'error' => 'host name already exists',
                             'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 } else {
@@ -43,15 +49,14 @@ class HostsController extends Controller
                         'hostName' => $hostName,
                         'error' => 'Invalid host name',
                         'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
                 
-                $result = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
-                if (is_array($result)) {
-                    $clid = $result['registrar_id'];
-                } else if (is_object($result) && method_exists($result, 'fetch')) {
-                    $clid = $result->fetch();
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $result[0]['registrar_id'];
                 } else {
                     $clid = $registrar_id;
                 }
@@ -63,6 +68,7 @@ class HostsController extends Controller
                             'hostName' => $hostName,
                             'error' => 'Invalid host addr v4',
                             'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -74,6 +80,7 @@ class HostsController extends Controller
                             'hostName' => $hostName,
                             'error' => 'Invalid host addr v6',
                             'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -111,6 +118,7 @@ class HostsController extends Controller
                             'hostName' => $hostName,
                             'error' => 'A host name object can NOT be created in a repository for which no superordinate domain name object exists',
                             'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                     
@@ -120,6 +128,7 @@ class HostsController extends Controller
                                 'hostName' => $hostName,
                                 'error' => 'The domain name belongs to another registrar, you are not allowed to create hosts for it',
                                 'registrars' => $registrars,
+                                'registrar' => $registrar,
                             ]);
                         }
                     }
@@ -146,6 +155,7 @@ class HostsController extends Controller
                                 'hostName' => $hostName,
                                 'error' => 'At least one of IPv4 or IPv6 must be provided',
                                 'registrars' => $registrars,
+                                'registrar' => $registrar,
                             ]);
                         }
 
@@ -189,6 +199,7 @@ class HostsController extends Controller
                             'hostName' => $hostName,
                             'error' => $e->getMessage(),
                             'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
 
@@ -201,6 +212,7 @@ class HostsController extends Controller
                         'hostName' => $hostName,
                         'crdate' => $crdate,
                         'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 } else {
                     $currentDateTime = new \DateTime();
@@ -234,6 +246,7 @@ class HostsController extends Controller
                         'hostName' => $hostName,
                         'crdate' => $crdate,
                         'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -241,10 +254,16 @@ class HostsController extends Controller
 
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        if ($_SESSION["auth_roles"] != 0) {
+            $registrar = true;
+        } else {
+            $registrar = null;
+        }
 
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/hosts/create.twig', [
             'registrars' => $registrars,
+            'registrar' => $registrar,
         ]);
     }
     
