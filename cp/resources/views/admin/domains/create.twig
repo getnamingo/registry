@@ -58,7 +58,7 @@
                                 <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required">
                             </div>
                             
-                            {% if registrars %}
+                            {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
                                     <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">

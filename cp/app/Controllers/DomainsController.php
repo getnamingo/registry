@@ -65,6 +65,11 @@ class DomainsController extends Controller
             $domainName = $data['domainName'] ?? null;
             $registrar_id = $data['registrar'] ?? null;
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
+            if ($_SESSION["auth_roles"] != 0) {
+                $registrar = true;
+            } else {
+                $registrar = null;
+            }
             
             $registrationYears = $data['registrationYears'];
             
@@ -94,7 +99,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Invalid domain name',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -113,7 +119,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Invalid domain extension',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -126,7 +133,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Domain name already exists',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -139,7 +147,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Domain name is reserved or restricted',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -147,7 +156,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Domain period must be from 1 to 10',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             } elseif (!$registrationYears) {
                 $registrationYears = 1;
@@ -156,12 +166,10 @@ class DomainsController extends Controller
             $date_add = 0;
             $date_add = ($registrationYears * 12);
     
-            $result = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
-            if (is_array($result)) {
+            if ($_SESSION["auth_roles"] != 0) {
                 $clid = $result['registrar_id'];
-            } else if (is_object($result) && method_exists($result, 'fetch')) {
-                $clid = $result->fetch();
             } else {
                 $clid = $registrar_id;
             }
@@ -181,7 +189,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'The price, period and currency for such TLD are not declared',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -189,7 +198,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Low credit: minimum threshold reached',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -197,7 +207,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -206,7 +217,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid hostName',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
                 
@@ -214,7 +226,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid hostName',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -227,7 +240,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Registrant does not exist',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -235,7 +249,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -248,7 +263,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Admin contact does not exist',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -256,7 +272,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -269,7 +286,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Tech contact does not exist',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -277,7 +295,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -290,7 +309,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Billing contact does not exist',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -298,7 +318,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
             }
@@ -307,7 +328,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Missing domain authinfo',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -315,7 +337,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Password needs to be at least 6 and up to 16 characters long',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
 
@@ -323,7 +346,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Password should have both upper and lower case characters',
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -379,7 +403,8 @@ class DomainsController extends Controller
                         return view($response, 'admin/domains/create.twig', [
                             'domainName' => $domainName,
                             'error' => 'Incomplete key tag provided',
-                            'registrars' => $registrars
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 
@@ -387,7 +412,8 @@ class DomainsController extends Controller
                         return view($response, 'admin/domains/create.twig', [
                             'domainName' => $domainName,
                             'error' => 'Incomplete key tag provided',
-                            'registrars' => $registrars
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -398,7 +424,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Incomplete algorithm provided',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -407,7 +434,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Incomplete digest type provided',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
                 $validDigests = [
@@ -419,7 +447,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Unsupported digest type',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
                 if (!empty($dsDigest)) {
@@ -427,7 +456,8 @@ class DomainsController extends Controller
                         return view($response, 'admin/domains/create.twig', [
                             'domainName' => $domainName,
                             'error' => 'Invalid digest length or format',
-                            'registrars' => $registrars
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
                         ]);
                     }
                 }
@@ -439,7 +469,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid flags provided',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -448,7 +479,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid protocol provided',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -457,7 +489,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid algorithm encoding',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -466,7 +499,8 @@ class DomainsController extends Controller
                     return view($response, 'admin/domains/create.twig', [
                         'domainName' => $domainName,
                         'error' => 'Invalid public key encoding',
-                        'registrars' => $registrars
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
                     ]);
                 }
 
@@ -656,7 +690,8 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/create.twig', [
                     'domainName' => $domainName,
                     'error' => 'Database failure: ' . $e->getMessage(),
-                    'registrars' => $registrars
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
                 ]);
             }
             
@@ -668,12 +703,18 @@ class DomainsController extends Controller
             return view($response, 'admin/domains/create.twig', [
                 'domainName' => $domainName,
                 'crdate' => $crdate,
-                'registrars' => $registrars
+                'registrars' => $registrars,
+                'registrar' => $registrar,
             ]);
         }
 
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        if ($_SESSION["auth_roles"] != 0) {
+            $registrar = true;
+        } else {
+            $registrar = null;
+        }
 
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
         $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
@@ -691,7 +732,8 @@ class DomainsController extends Controller
         return view($response,'admin/domains/create.twig', [
             'registrars' => $registrars,
             'currencySymbol' => $symbol,
-            'currencyPosition' => $position
+            'currencyPosition' => $position,
+            'registrar' => $registrar,
         ]);
     }
     
