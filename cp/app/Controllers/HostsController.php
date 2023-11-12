@@ -56,7 +56,7 @@ class HostsController extends Controller
                 $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
                 if ($_SESSION["auth_roles"] != 0) {
-                    $clid = $result[0]['registrar_id'];
+                    $clid = $result['registrar_id'];
                 } else {
                     $clid = $registrar_id;
                 }
