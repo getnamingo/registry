@@ -289,6 +289,8 @@ class HostsController extends Controller
                 
                 $hostStatus = $db->selectRow('SELECT status FROM host_status WHERE host_id = ?',
                 [ $host['id'] ]);
+                $hostLinked = $db->selectRow('SELECT domain_id FROM domain_host_map WHERE host_id = ?',
+                [ $host['id'] ]);
                 $hostIPv4 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v4'",
                 [ $host['id'] ]);
                 $hostIPv6 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v6'",
@@ -297,6 +299,7 @@ class HostsController extends Controller
                 return view($response,'admin/hosts/viewHost.twig', [
                     'host' => $host,
                     'hostStatus' => $hostStatus,
+                    'hostLinked' => $hostLinked,
                     'hostIPv4' => $hostIPv4,
                     'hostIPv6' => $hostIPv6,
                     'registrars' => $registrars,
