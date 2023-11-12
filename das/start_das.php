@@ -96,7 +96,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
     
     // Perform the DAS lookup
     try {
-        $query = "SELECT name FROM `registry`.`domain` WHERE `name` = :domain";
+        $query = "SELECT name FROM registry.domain WHERE name = :domain";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
         $stmt->execute();

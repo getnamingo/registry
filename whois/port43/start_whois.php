@@ -84,7 +84,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
         
         // Perform the WHOIS lookup
         try {
-            $query = "SELECT `name`,`clid` FROM `host` WHERE `name` = :nameserver";
+            $query = "SELECT name,clid FROM host WHERE name = :nameserver";
             $stmt = $pdo->prepare($query);
             $stmt->bindParam(':nameserver', $nameserver, PDO::PARAM_STR);
             $stmt->execute();
@@ -93,7 +93,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 $res = "Server Name: ".$f['name'];
                     
             // Fetch the registrar details for this registrar using the id
-            $regQuery = "SELECT `id`,`name`,`iana_id`,`whois_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid";
+            $regQuery = "SELECT id,name,iana_id,whois_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid";
             $regStmt = $pdo->prepare($regQuery);
             $regStmt->bindParam(':clid', $f['clid'], PDO::PARAM_INT);
             $regStmt->execute();
@@ -186,7 +186,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
         
         // Perform the WHOIS lookup
         try {
-            $query = "SELECT `id`,`name`,`iana_id`,`whois_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `name` = :registrar";
+            $query = "SELECT id,name,iana_id,whois_server,url,abuse_email,abuse_phone FROM registrar WHERE name = :registrar";
             $stmt = $pdo->prepare($query);
             $stmt->bindParam(':registrar', $registrar, PDO::PARAM_STR);
             $stmt->execute();
@@ -200,7 +200,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nRegistrar Abuse Contact Phone: ".$f['abuse_phone'];
                     
             // Fetch the contact details for this registrar using the id
-            $contactQuery = "SELECT * FROM `registrar_contact` WHERE `id` = :registrar_id";
+            $contactQuery = "SELECT * FROM registrar_contact WHERE id = :registrar_id";
             $contactStmt = $pdo->prepare($contactQuery);
             $contactStmt->bindParam(':registrar_id', $f['id'], PDO::PARAM_INT);
             $contactStmt->execute();
@@ -329,7 +329,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
 
         // Perform the WHOIS lookup
         try {
-            $query = "SELECT * FROM `registry`.`domain` WHERE `name` = :domain";
+            $query = "SELECT * FROM registry.domain WHERE name = :domain";
             $stmt = $pdo->prepare($query);
             $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
             $stmt->execute();
@@ -343,14 +343,14 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 }
                 $f['exdate'] = (new DateTime($f['exdate']))->format('Y-m-d\TH:i:s.v\Z');
                 
-                $query2 = "SELECT `tld` FROM `domain_tld` WHERE `id` = :tldid";
+                $query2 = "SELECT tld FROM domain_tld WHERE id = :tldid";
                 $stmt2 = $pdo->prepare($query2);
                 $stmt2->bindParam(':tldid', $f['tldid'], PDO::PARAM_INT);
                 $stmt2->execute();
 
                 $tld = $stmt2->fetch(PDO::FETCH_ASSOC);
             
-                $query3 = "SELECT `name`,`iana_id`,`whois_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid";
+                $query3 = "SELECT name,iana_id,whois_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid";
                 $stmt3 = $pdo->prepare($query3);
                 $stmt3->bindParam(':clid', $f['clid'], PDO::PARAM_INT);
                 $stmt3->execute();
@@ -369,7 +369,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nRegistrar Abuse Contact Email: ".$clidF['abuse_email']
                     ."\nRegistrar Abuse Contact Phone: ".$clidF['abuse_phone'];
                     
-                $query4 = "SELECT `status` FROM `domain_status` WHERE `domain_id` = :domain_id";
+                $query4 = "SELECT status FROM domain_status WHERE domain_id = :domain_id";
                 $stmt4 = $pdo->prepare($query4);
                 $stmt4->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
                 $stmt4->execute();
@@ -526,7 +526,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nTech Email: ".$f2['email'];
                 }
 
-                $query9 = "SELECT `name` FROM `domain_host_map`,`host` WHERE `domain_host_map`.`domain_id` = :domain_id AND `domain_host_map`.`host_id` = `host`.`id`";
+                $query9 = "SELECT name FROM domain_host_map,host WHERE domain_host_map.domain_id = :domain_id AND domain_host_map.host_id = host.id";
                 $stmt9 = $pdo->prepare($query9);
                 $stmt9->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
                 $stmt9->execute();
@@ -539,7 +539,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                      $counter++;
                 }
 
-                $query_dnssec = "SELECT EXISTS(SELECT 1 FROM `secdns` WHERE `domain_id` = :domain_id)";
+                $query_dnssec = "SELECT EXISTS(SELECT 1 FROM secdns WHERE domain_id = :domain_id)";
                 $stmt_dnssec = $pdo->prepare($query_dnssec);
                 $stmt_dnssec->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
                 $stmt_dnssec->execute();

@@ -199,7 +199,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
     // Perform the RDAP lookup
     try {
         // Query 1: Get domain details
-        $stmt1 = $pdo->prepare("SELECT * FROM `registry`.`domain` WHERE `name` = :domain");
+        $stmt1 = $pdo->prepare("SELECT * FROM registry.domain WHERE name = :domain");
         $stmt1->bindParam(':domain', $domain, PDO::PARAM_STR);
         $stmt1->execute();
         $domainDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
@@ -223,30 +223,30 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
         }
 
         // Query 2: Get status details
-        $stmt2 = $pdo->prepare("SELECT `status` FROM `domain_status` WHERE `domain_id` = :domain_id");
+        $stmt2 = $pdo->prepare("SELECT status FROM domain_status WHERE domain_id = :domain_id");
         $stmt2->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
         
         // Query: Get DNSSEC details
-        $stmt2a = $pdo->prepare("SELECT `interface` FROM `secdns` WHERE `domain_id` = :domain_id");
+        $stmt2a = $pdo->prepare("SELECT interface FROM secdns WHERE domain_id = :domain_id");
         $stmt2a->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt2a->execute();
         $isDelegationSigned = $stmt2a->fetchColumn() > 0;
 
-        $stmt2b = $pdo->prepare("SELECT `secure` FROM `domain_tld` WHERE `tld` = :tld");
+        $stmt2b = $pdo->prepare("SELECT secure FROM domain_tld WHERE tld = :tld");
         $stmt2b->bindParam(':tld', $tld, PDO::PARAM_STR);
         $stmt2b->execute();
         $isZoneSigned = ($stmt2b->fetchColumn() == 1);
 
         // Query 3: Get registrar details
-        $stmt3 = $pdo->prepare("SELECT `name`,`iana_id`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid");
+        $stmt3 = $pdo->prepare("SELECT name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
         $stmt3->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
         $stmt3->execute();
         $registrarDetails = $stmt3->fetch(PDO::FETCH_ASSOC);
         
         // Query: Get registrar abuse details
-        $stmt3a = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
+        $stmt3a = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
         $stmt3a->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
         $stmt3a->execute();
         $registrarAbuseDetails = $stmt3a->fetch(PDO::FETCH_ASSOC);
@@ -531,19 +531,19 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
     // Perform the RDAP lookup
     try {
         // Query 1: Get registrar details
-        $stmt1 = $pdo->prepare("SELECT `id`,`name`,`clid`,`iana_id`,`whois_server`,`rdap_server`,`url`,`email`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `iana_id` = :iana_id");
+        $stmt1 = $pdo->prepare("SELECT id,name,clid,iana_id,whois_server,rdap_server,url,email,abuse_email,abuse_phone FROM registrar WHERE iana_id = :iana_id");
         $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
         $stmt1->execute();
         $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
 
         // Query 2: Get registrar abuse details
-        $stmt2 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
+        $stmt2 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
         $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
         $stmt2->execute();
         $registrarAbuseDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
 
         // Query 3: Get registrar abuse details
-        $stmt3 = $pdo->prepare("SELECT `org`,`street1`,`street2`,`city`,`sp`,`pc`,`cc` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'owner'");
+        $stmt3 = $pdo->prepare("SELECT org,street1,street2,city,sp,pc,cc FROM registrar_contact WHERE registrar_id = :clid AND type = 'owner'");
         $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
         $stmt3->execute();
         $registrarContact = $stmt3->fetch(PDO::FETCH_ASSOC);
@@ -729,7 +729,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
     // Perform the RDAP lookup
     try {
         // Query 1: Get nameserver details
-        $stmt1 = $pdo->prepare("SELECT `id`,`name`,`clid` FROM `registry`.`host` WHERE `name` = :ns");
+        $stmt1 = $pdo->prepare("SELECT id,name,clid FROM registry.host WHERE name = :ns");
         $stmt1->bindParam(':ns', $ns, PDO::PARAM_STR);
         $stmt1->execute();
         $hostDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
@@ -750,31 +750,31 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
         }
 
         // Query 2: Get status details
-        $stmt2 = $pdo->prepare("SELECT `status` FROM `host_status` WHERE `host_id` = :host_id");
+        $stmt2 = $pdo->prepare("SELECT status FROM host_status WHERE host_id = :host_id");
         $stmt2->bindParam(':host_id', $hostDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
         
         // Query 2a: Get associated status details
-        $stmt2a = $pdo->prepare("SELECT `domain_id` FROM `domain_host_map` WHERE `host_id` = :host_id");
+        $stmt2a = $pdo->prepare("SELECT domain_id FROM domain_host_map WHERE host_id = :host_id");
         $stmt2a->bindParam(':host_id', $hostDetails['id'], PDO::PARAM_INT);
         $stmt2a->execute();
         $associated = $stmt2a->fetchAll(PDO::FETCH_COLUMN, 0);
         
         // Query 3: Get IP details
-        $stmt3 = $pdo->prepare("SELECT `addr`,`ip` FROM `host_addr` WHERE `host_id` = :host_id");
+        $stmt3 = $pdo->prepare("SELECT addr,ip FROM host_addr WHERE host_id = :host_id");
         $stmt3->bindParam(':host_id', $hostDetails['id'], PDO::PARAM_INT);
         $stmt3->execute();
         $ipDetails = $stmt3->fetchAll(PDO::FETCH_COLUMN, 0);
 
         // Query 4: Get registrar details
-        $stmt4 = $pdo->prepare("SELECT `name`,`iana_id`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone` FROM `registrar` WHERE `id` = :clid");
+        $stmt4 = $pdo->prepare("SELECT name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
         $stmt4->bindParam(':clid', $hostDetails['clid'], PDO::PARAM_INT);
         $stmt4->execute();
         $registrarDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
         
         // Query 5: Get registrar abuse details
-        $stmt5 = $pdo->prepare("SELECT `first_name`,`last_name` FROM `registrar_contact` WHERE `registrar_id` = :clid AND `type` = 'abuse'");
+        $stmt5 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
         $stmt5->bindParam(':clid', $hostDetails['clid'], PDO::PARAM_INT);
         $stmt5->execute();
         $registrarAbuseDetails = $stmt5->fetch(PDO::FETCH_ASSOC);
