@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_tld` (
     UNIQUE KEY `tld` (`tld`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain tld';
 
+CREATE TABLE IF NOT EXISTS `registry`.`settings` (
+    `name` varchar(64) NOT NULL,
+    `value` varchar(255) DEFAULT NULL,
+    PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registry settings';
+
 CREATE TABLE IF NOT EXISTS `registry`.`domain_price` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `tldid` int(10) unsigned NOT NULL,
@@ -113,6 +119,13 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar_contact` (
     UNIQUE KEY `uniquekey` (`registrar_id`,`type`),
     CONSTRAINT `registrar_contact_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registrar data';
+
+CREATE TABLE IF NOT EXISTS `registry`.`registrar_ote` (
+    `registrar_id` int(11) unsigned NOT NULL,
+    `command` varchar(75) NOT NULL,
+    `result` int(10) unsigned NOT NULL,
+    UNIQUE KEY `test` (`registrar_id`,`command`,`result`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='automated registrar OTE';
 
 CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,

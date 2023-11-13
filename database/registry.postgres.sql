@@ -12,6 +12,12 @@ CREATE TABLE registry.domain_tld (
      unique ("tld") 
 );
 
+CREATE TABLE registry.settings (
+     "name" varchar(64) NOT NULL,
+     "value" varchar(255) default NULL,
+     PRIMARY KEY ("name")
+);
+
 CREATE TABLE registry.domain_price (
      "id" serial8,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
@@ -120,6 +126,13 @@ CREATE TABLE registry.registrar_contact (
      "email"   varchar(255) NOT NULL,
      primary key ("id"),
      unique ("registrar_id", "type") 
+);
+
+CREATE TABLE registry.registrar_ote (
+     "registrar_id" integer NOT NULL,
+     "command" varchar(75) NOT NULL,
+     "result" int NOT NULL,
+     CONSTRAINT test UNIQUE ("registrar_id", "command", "result")
 );
 
 CREATE TABLE registry.poll (
