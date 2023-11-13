@@ -41,11 +41,11 @@ foreach ($tlds as $tld) {
         'dns-udp-queries-responded' => getDnsUdpQueriesResponded($dbh, $tld),
         'dns-tcp-queries-received' => getDnsTcpQueriesReceived($dbh, $tld),
         'dns-tcp-queries-responded' => getDnsTcpQueriesResponded($dbh, $tld),
-        'srs-dom-check' => getSrsDomCheck($dbh, $tld),
-        'srs-dom-create' => getSrsDomCreate($dbh, $tld),
-        'srs-dom-delete' => getSrsDomDelete($dbh, $tld),
-        'srs-dom-info' => getSrsDomInfo($dbh, $tld),
-        'srs-dom-renew' => getSrsDomRenew($dbh, $tld),
+        'srs-dom-check' => getSrsCommand($dbh, 'check', 'domain'),
+        'srs-dom-create' => getSrsCommand($dbh, 'create', 'domain'),
+        'srs-dom-delete' => getSrsCommand($dbh, 'delete', 'domain'),
+        'srs-dom-info' => getSrsCommand($dbh, 'info', 'domain'),
+        'srs-dom-renew' => getSrsCommand($dbh, 'renew', 'domain'),
         'srs-dom-rgp-restore-report' => getSrsDomRgpRestoreReport($dbh, $tld),
         'srs-dom-rgp-restore-request' => getSrsDomRgpRestoreRequest($dbh, $tld),
         'srs-dom-transfer-approve' => getSrsDomTransferApprove($dbh, $tld),
@@ -53,22 +53,22 @@ foreach ($tlds as $tld) {
         'srs-dom-transfer-query' => getSrsDomTransferQuery($dbh, $tld),
         'srs-dom-transfer-reject' => getSrsDomTransferReject($dbh, $tld),
         'srs-dom-transfer-request' => getSrsDomTransferRequest($dbh, $tld),
-        'srs-dom-update' => getSrsDomUpdate($dbh, $tld),
-        'srs-host-check' => getSrsHostCheck($dbh, $tld),
-        'srs-host-create' => getSrsHostCreate($dbh, $tld),
-        'srs-host-delete' => getSrsHostDelete($dbh, $tld),
-        'srs-host-info' => getSrsHostInfo($dbh, $tld),
-        'srs-host-update' => getSrsHostUpdate($dbh, $tld),
-        'srs-cont-check' => getSrsContCheck($dbh, $tld),
-        'srs-cont-create' => getSrsContCreate($dbh, $tld),
-        'srs-cont-delete' => getSrsContDelete($dbh, $tld),
-        'srs-cont-info' => getSrsContInfo($dbh, $tld),
+        'srs-dom-update' => getSrsCommand($dbh, 'update', 'domain'),
+        'srs-host-check' => getSrsCommand($dbh, 'check', 'host'),
+        'srs-host-create' => getSrsCommand($dbh, 'create', 'host'),
+        'srs-host-delete' => getSrsCommand($dbh, 'delete', 'host'),
+        'srs-host-info' => getSrsCommand($dbh, 'info', 'host'),
+        'srs-host-update' => getSrsCommand($dbh, 'update', 'host'),
+        'srs-cont-check' => getSrsCommand($dbh, 'check', 'contact'),
+        'srs-cont-create' => getSrsCommand($dbh, 'create', 'contact'),
+        'srs-cont-delete' => getSrsCommand($dbh, 'delete', 'contact'),
+        'srs-cont-info' => getSrsCommand($dbh, 'info', 'contact'),
         'srs-cont-transfer-approve' => getSrsContTransferApprove($dbh, $tld),
         'srs-cont-transfer-cancel' => getSrsContTransferCancel($dbh, $tld),
         'srs-cont-transfer-query' => getSrsContTransferQuery($dbh, $tld),
         'srs-cont-transfer-reject' => getSrsContTransferReject($dbh, $tld),
         'srs-cont-transfer-request' => getSrsContTransferRequest($dbh, $tld),
-        'srs-cont-update' => getSrsContUpdate($dbh, $tld),
+        'srs-cont-update' => getSrsCommand($dbh, 'update', 'contact'),
     ];
 
     // Loop through registrars and get transaction data
@@ -245,29 +245,12 @@ function getDnsTcpQueriesResponded($dbh, $tld) {
     return 0;
 }
 
-function getSrsDomCheck($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsDomCreate($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsDomDelete($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsDomInfo($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsDomRenew($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getSrsCommand($dbh, $cmd, $object) {
+    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = :cmd AND obj_type = :object");
+    $stmt->bindParam(':cmd', $cmd, PDO::PARAM_STR);
+    $stmt->bindParam(':object', $object, PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getSrsDomRgpRestoreReport($dbh, $tld) {
@@ -305,56 +288,6 @@ function getSrsDomTransferRequest($dbh, $tld) {
     return 0;
 }
 
-function getSrsDomUpdate($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsHostCheck($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsHostCreate($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsHostDelete($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsHostInfo($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsHostUpdate($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContCheck($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContCreate($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContDelete($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContInfo($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
 function getSrsContTransferApprove($dbh, $tld) {
     // Placeholder: Replace with actual query/logic
     return 0;
@@ -376,11 +309,6 @@ function getSrsContTransferReject($dbh, $tld) {
 }
 
 function getSrsContTransferRequest($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContUpdate($dbh, $tld) {
     // Placeholder: Replace with actual query/logic
     return 0;
 }
