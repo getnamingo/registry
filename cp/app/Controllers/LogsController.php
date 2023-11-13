@@ -11,8 +11,16 @@ class LogsController extends Controller
 {
     public function view(Request $request, Response $response)
     {
-        $logModel = new RegistryTransaction($this->container->get('db'));
-        $logs = $logModel->getAllRegistryTransaction();
-        return view($response,'admin/logs/index.twig', compact('logs'));
+        return view($response,'admin/logs/index.twig');
+    }
+	
+    public function poll(Request $request, Response $response)
+    {
+        return view($response,'admin/logs/poll.twig');
+    }
+	
+    public function log(Request $request, Response $response)
+    {
+        return view($response,'admin/logs/log.twig');
     }
 }

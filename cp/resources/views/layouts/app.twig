@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -229,7 +229,7 @@
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('epphistory') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('epphistory') or is_current_url('poll') or is_current_url('log') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-activity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 12h4l3 8l4 -16l3 8h4"></path></svg>
                     </span>
@@ -238,19 +238,13 @@
                     </span>
                   </a>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{route('poll')}}">
                       {{ __('Message Queue') }}
                     </a>
                     <a class="dropdown-item" href="{{route('epphistory')}}">
                       {{ __('EPP History') }}
                     </a>
-                    <a class="dropdown-item" href="#">
-                      {{ __('Audit History') }}
-                    </a>
-                    <a class="dropdown-item" href="#">
-                      {{ __('Backup History') }}
-                    </a>
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{route('log')}}">
                       {{ __('System Log') }}
                     </a>
                   </div>
@@ -415,6 +409,10 @@
     {% include 'partials/js-users.twig' %}
 {% elseif route_is('support') %}
     {% include 'partials/js-support.twig' %}
+{% elseif route_is('poll') %}
+    {% include 'partials/js-poll.twig' %}
+{% elseif route_is('log') %}
+    {% include 'partials/js-log.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}
