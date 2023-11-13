@@ -36,4 +36,18 @@ return [
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX',
     'urs_imap_username' => 'your_username',
     'urs_imap_password' => 'your_password',
+    
+    // Notifications Configuration
+    'mailer' => 'phpmailer', // sendgrid, mailgun are also available
+    'mailer_api_key' => 'YOUR_API_KEY',
+    'mailer_domain' => 'example.com',
+    'mailer_from' => 'from@example.com',
+    'mailer_smtp_host' => 'smtp.example.com',
+    'mailer_smtp_username' => 'your_email@example.com',
+    'mailer_smtp_password' => 'your_password',
+    'mailer_smtp_port' => 587,
+    
+    'mailer_sms' => 'twilio', // telesign, plivo, vonage, clickatell are also available
+    'mailer_sms_account' => 'YOUR_ACCOUNT_SID/USERNAME',
+    'mailer_sms_auth' => 'YOUR_AUTH_TOKEN/PASSWORD',
 ];
