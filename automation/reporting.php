@@ -425,18 +425,24 @@ function getRestoredNoReport($dbh, $registrar) {
 }
 
 function getAgpExemptionRequests($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (agp_request BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'requested'");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptionsGranted($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'granted'");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptedDomains($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_exempted = 1");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAttemptedAdds($dbh, $registrar) {
@@ -532,18 +538,21 @@ function getRestoredNoReportAllRegistrars($dbh) {
 }
 
 function getAgpExemptionRequestsAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_request BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'requested'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptionsGrantedAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'granted'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptedDomainsAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_exempted = 1");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAttemptedAddsAllRegistrars($dbh) {

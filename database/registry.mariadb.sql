@@ -281,6 +281,11 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain` (
     `renewPeriod` tinyint(3) unsigned default NULL,
     `transferPeriod` tinyint(3) unsigned default NULL,
     `renewedDate` datetime(3) default NULL,
+    `agp_exempted` tinyint(1) DEFAULT 0,
+    `agp_request` datetime(3) default NULL,
+    `agp_grant` datetime(3) default NULL,
+    `agp_reason` text default NULL,
+    `agp_status` varchar(30) default NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `name` (`name`),
     CONSTRAINT `domain_ibfk_1` FOREIGN KEY (`clid`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT,
@@ -657,6 +662,15 @@ INSERT INTO `registry`.`ticket_categories` (name, description) VALUES
 ('General Inquiry', 'General questions or feedback about services, platform or any non-specific topic'),
 ('Registrar Application', 'Queries or issues related to new registrar applications or onboarding'),
 ('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates');
+
+INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
+('dns-tcp-queries-received',    '0'),
+('dns-tcp-queries-responded',    '0'),
+('dns-udp-queries-received',    '0'),
+('dns-udp-queries-responded',    '0'),
+('searchable-whois-queries',    '0'),
+('web-whois-queries',    '0'),
+('whois-43-queries',    '0');
 
 CREATE USER 'registry'@'localhost' IDENTIFIED BY 'EPPRegistry';
 CREATE USER 'registry-select'@'localhost' IDENTIFIED BY 'EPPRegistrySELECT';

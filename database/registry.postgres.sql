@@ -280,6 +280,11 @@ CREATE TABLE registry.domain (
      "renewperiod"  smallint CHECK ("renewperiod" >= 0) default NULL,
      "transferperiod"  smallint CHECK ("transferperiod" >= 0) default NULL,
      "reneweddate"   timestamp(3) without time zone default NULL,
+     "agp_exempted" BOOLEAN DEFAULT FALSE,
+     "agp_request" TIMESTAMP(3) DEFAULT NULL,
+     "agp_grant" TIMESTAMP(3) DEFAULT NULL,
+     "agp_reason" TEXT DEFAULT NULL,
+     "agp_status" VARCHAR(30) DEFAULT NULL,
      primary key ("id"),
      unique ("name") 
 );
@@ -637,6 +642,15 @@ INSERT INTO registry.ticket_categories (name, description) VALUES
 ('General Inquiry', 'General questions or feedback about services, platform or any non-specific topic'),
 ('Registrar Application', 'Queries or issues related to new registrar applications or onboarding'),
 ('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates');
+
+INSERT INTO registry.settings (name, value) VALUES
+('dns-tcp-queries-received', '0'),
+('dns-tcp-queries-responded', '0'),
+('dns-udp-queries-received', '0'),
+('dns-udp-queries-responded', '0'),
+('searchable-whois-queries', '0'),
+('web-whois-queries', '0'),
+('whois-43-queries', '0');
  
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
