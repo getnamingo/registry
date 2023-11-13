@@ -24,6 +24,7 @@ return [
     'escrow_report_password' => 'your_password',
     
     // Reporting Configuration
+    'reporting_path' => '/opt/reporting',
     'reporting_upload' => false,
     'reporting_username' => 'your_username',
     'reporting_password' => 'your_password',

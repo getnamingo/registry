@@ -21,6 +21,11 @@ $query = "SELECT tld FROM domain_tld";
 $tlds = $dbh->query($query)->fetchAll(PDO::FETCH_COLUMN);
 
 foreach ($tlds as $tld) {
+    // Skip TLDs with a dot inside, apart from the beginning
+    if (strpos(substr($tld, 1), '.') !== false) {
+        continue; // Skip this iteration if an additional dot is found
+    }
+    
     // Initialize activity and transaction data arrays for each TLD
     $activityData = []; 
     $transactionData = [];
@@ -158,8 +163,8 @@ foreach ($tlds as $tld) {
 
     // Write data to CSV
     $tld_save = strtolower(ltrim($tld, '.'));
-    writeCSV("/tmp/{$tld_save}-activity-" . date('Ym') . "-en.csv", $activityData);
-    writeCSV("/tmp/{$tld_save}-transactions-" . date('Ym') . "-en.csv", $transactionData);
+    writeCSV("{$c['reporting_path']}/{$tld_save}-activity-" . date('Ym') . "-en.csv", $activityData);
+    writeCSV("{$c['reporting_path']}/{$tld_save}-transactions-" . date('Ym') . "-en.csv", $transactionData);
     
     // Upload if the $c['reporting_upload'] variable is true
     if ($c['reporting_upload']) {
