@@ -32,27 +32,27 @@ foreach ($tlds as $tld) {
 
     // Construct activity data for each TLD
     $activityData[] = [
-        'operational-registrars' => getOperationalRegistrars($dbh, $tld),
-        'zfa-passwords' => getZfaPasswords($dbh, $tld),
-        'whois-43-queries' => getWhois43Queries($dbh, $tld),
-        'web-whois-queries' => getWebWhoisQueries($dbh, $tld),
-        'searchable-whois-queries' => getSearchableWhoisQueries($dbh, $tld),
-        'dns-udp-queries-received' => getDnsUdpQueriesReceived($dbh, $tld),
-        'dns-udp-queries-responded' => getDnsUdpQueriesResponded($dbh, $tld),
-        'dns-tcp-queries-received' => getDnsTcpQueriesReceived($dbh, $tld),
-        'dns-tcp-queries-responded' => getDnsTcpQueriesResponded($dbh, $tld),
+        'operational-registrars' => getOperationalRegistrars($dbh),
+        'zfa-passwords' => getZfaPasswords($dbh),
+        'whois-43-queries' => getWhois43Queries($dbh),
+        'web-whois-queries' => getWebWhoisQueries($dbh),
+        'searchable-whois-queries' => getSearchableWhoisQueries($dbh),
+        'dns-udp-queries-received' => getDnsUdpQueriesReceived($dbh),
+        'dns-udp-queries-responded' => getDnsUdpQueriesResponded($dbh),
+        'dns-tcp-queries-received' => getDnsTcpQueriesReceived($dbh),
+        'dns-tcp-queries-responded' => getDnsTcpQueriesResponded($dbh),
         'srs-dom-check' => getSrsCommand($dbh, 'check', 'domain'),
         'srs-dom-create' => getSrsCommand($dbh, 'create', 'domain'),
         'srs-dom-delete' => getSrsCommand($dbh, 'delete', 'domain'),
         'srs-dom-info' => getSrsCommand($dbh, 'info', 'domain'),
         'srs-dom-renew' => getSrsCommand($dbh, 'renew', 'domain'),
-        'srs-dom-rgp-restore-report' => getSrsDomRgpRestoreReport($dbh, $tld),
-        'srs-dom-rgp-restore-request' => getSrsDomRgpRestoreRequest($dbh, $tld),
-        'srs-dom-transfer-approve' => getSrsDomTransferApprove($dbh, $tld),
-        'srs-dom-transfer-cancel' => getSrsDomTransferCancel($dbh, $tld),
-        'srs-dom-transfer-query' => getSrsDomTransferQuery($dbh, $tld),
-        'srs-dom-transfer-reject' => getSrsDomTransferReject($dbh, $tld),
-        'srs-dom-transfer-request' => getSrsDomTransferRequest($dbh, $tld),
+        'srs-dom-rgp-restore-report' => getSrsDomRgpRestoreReport($dbh),
+        'srs-dom-rgp-restore-request' => getSrsDomRgpRestoreRequest($dbh),
+        'srs-dom-transfer-approve' => getSrsDomTransferApprove($dbh),
+        'srs-dom-transfer-cancel' => getSrsDomTransferCancel($dbh),
+        'srs-dom-transfer-query' => getSrsDomTransferQuery($dbh),
+        'srs-dom-transfer-reject' => getSrsDomTransferReject($dbh),
+        'srs-dom-transfer-request' => getSrsDomTransferRequest($dbh),
         'srs-dom-update' => getSrsCommand($dbh, 'update', 'domain'),
         'srs-host-check' => getSrsCommand($dbh, 'check', 'host'),
         'srs-host-create' => getSrsCommand($dbh, 'create', 'host'),
@@ -63,11 +63,11 @@ foreach ($tlds as $tld) {
         'srs-cont-create' => getSrsCommand($dbh, 'create', 'contact'),
         'srs-cont-delete' => getSrsCommand($dbh, 'delete', 'contact'),
         'srs-cont-info' => getSrsCommand($dbh, 'info', 'contact'),
-        'srs-cont-transfer-approve' => getSrsContTransferApprove($dbh, $tld),
-        'srs-cont-transfer-cancel' => getSrsContTransferCancel($dbh, $tld),
-        'srs-cont-transfer-query' => getSrsContTransferQuery($dbh, $tld),
-        'srs-cont-transfer-reject' => getSrsContTransferReject($dbh, $tld),
-        'srs-cont-transfer-request' => getSrsContTransferRequest($dbh, $tld),
+        'srs-cont-transfer-approve' => getSrsContTransferApprove($dbh),
+        'srs-cont-transfer-cancel' => getSrsContTransferCancel($dbh),
+        'srs-cont-transfer-query' => getSrsContTransferQuery($dbh),
+        'srs-cont-transfer-reject' => getSrsContTransferReject($dbh),
+        'srs-cont-transfer-request' => getSrsContTransferRequest($dbh),
         'srs-cont-update' => getSrsCommand($dbh, 'update', 'contact'),
     ];
 
@@ -206,43 +206,57 @@ function writeCSV($filename, $data) {
     fclose($file);
 }
 
-function getZfaPasswords($dbh, $tld) {
+function getZfaPasswords($dbh) {
     return 'CZDS';
 }
 
-function getWhois43Queries($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getWhois43Queries($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'whois-43-queries');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getWebWhoisQueries($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getWebWhoisQueries($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'web-whois-queries');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getSearchableWhoisQueries($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getSearchableWhoisQueries($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'searchable-whois-queries');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getDnsUdpQueriesReceived($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getDnsUdpQueriesReceived($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'dns-udp-queries-received');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getDnsUdpQueriesResponded($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getDnsUdpQueriesResponded($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'dns-udp-queries-responded');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getDnsTcpQueriesReceived($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getDnsTcpQueriesReceived($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'dns-tcp-queries-received');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getDnsTcpQueriesResponded($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getDnsTcpQueriesResponded($dbh) {
+    $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
+    $stmt->bindValue(':settingName', 'dns-tcp-queries-responded');
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getSrsCommand($dbh, $cmd, $object) {
@@ -253,64 +267,72 @@ function getSrsCommand($dbh, $cmd, $object) {
     return $stmt->fetchColumn();
 }
 
-function getSrsDomRgpRestoreReport($dbh, $tld) {
+function getSrsDomRgpRestoreReport($dbh) {
     // Placeholder: Replace with actual query/logic
     return 0;
 }
 
-function getSrsDomRgpRestoreRequest($dbh, $tld) {
+function getSrsDomRgpRestoreRequest($dbh) {
     // Placeholder: Replace with actual query/logic
     return 0;
 }
 
-function getSrsDomTransferApprove($dbh, $tld) {
+function getSrsDomTransferApprove($dbh) {
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientApproved' OR trstatus = 'serverApproved'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsDomTransferCancel($dbh) {
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientCancelled' OR trstatus = 'serverCancelled'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsDomTransferQuery($dbh) {
     // Placeholder: Replace with actual query/logic
     return 0;
 }
 
-function getSrsDomTransferCancel($dbh, $tld) {
+function getSrsDomTransferReject($dbh) {
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientRejected' OR trstatus = 'serverRejected'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsDomTransferRequest($dbh) {
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'pending'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsContTransferApprove($dbh) {
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientApproved' OR trstatus = 'serverApproved'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsContTransferCancel($dbh) {
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientCancelled' OR trstatus = 'serverCancelled'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getSrsContTransferQuery($dbh) {
     // Placeholder: Replace with actual query/logic
     return 0;
 }
 
-function getSrsDomTransferQuery($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getSrsContTransferReject($dbh) {
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientRejected' OR trstatus = 'serverRejected'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
-function getSrsDomTransferReject($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsDomTransferRequest($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContTransferApprove($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContTransferCancel($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContTransferQuery($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContTransferReject($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
-}
-
-function getSrsContTransferRequest($dbh, $tld) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+function getSrsContTransferRequest($dbh) {
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'pending'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getTotalDomains($dbh, $registrar) {
@@ -336,7 +358,7 @@ function getNetAddsByYear($dbh, $registrar, $years) {
 
 function getNetRenewsByYear($dbh, $registrar, $years) {
     $months = $years * 12;
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid= :registrarId AND (renewedDate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND renewPeriod = :months");
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (renewedDate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND renewPeriod = :months");
     $stmt->bindParam(':months', $months, PDO::PARAM_INT);
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
@@ -389,13 +411,17 @@ function getDeletedDomainsNoGrace($dbh, $registrar) {
 }
 
 function getRestoredDomains($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month))");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getRestoredNoReport($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND rgpresReason IS NULL");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptionRequests($dbh, $registrar) {
@@ -414,8 +440,10 @@ function getAgpExemptedDomains($dbh, $registrar) {
 }
 
 function getAttemptedAdds($dbh, $registrar) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = 'create' AND obj_type = 'domain' AND registrar_id = :registrarId");
+    $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getTotalDomainsAllRegistrars($dbh) {
@@ -492,13 +520,15 @@ function getDeletedDomainsNoGraceAllRegistrars($dbh) {
 }
 
 function getRestoredDomainsAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month))");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getRestoredNoReportAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND rgpresReason IS NULL");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 function getAgpExemptionRequestsAllRegistrars($dbh) {
@@ -517,8 +547,9 @@ function getAgpExemptedDomainsAllRegistrars($dbh) {
 }
 
 function getAttemptedAddsAllRegistrars($dbh) {
-    // Placeholder: Replace with actual query/logic
-    return 0;
+    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = 'create' AND obj_type = 'domain'");
+    $stmt->execute();
+    return $stmt->fetchColumn();
 }
 
 // Upload function using cURL
