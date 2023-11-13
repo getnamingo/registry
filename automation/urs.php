@@ -13,19 +13,16 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-$hostname = '{your_imap_server:993/imap/ssl}INBOX';
-$username = 'your_email@example.com';
-$password = 'your_password';
-
 // Connect to mailbox
-$inbox = imap_open($hostname, $username, $password) or die('Cannot connect to mailbox: ' . imap_last_error());
+$inbox = imap_open($c['urs_imap_host'], $c['urs_imap_username'], $c['urs_imap_password']) or die('Cannot connect to mailbox: ' . imap_last_error());
 
 // Search for emails from the two URS providers
-$emailsFromProviderA = imap_search($inbox, 'FROM "providerA@example.com" UNSEEN');
-$emailsFromProviderB = imap_search($inbox, 'FROM "providerB@example.com" UNSEEN');
+$emailsFromProviderA = imap_search($inbox, 'FROM "urs@adrforum.com" UNSEEN');
+$emailsFromProviderB = imap_search($inbox, 'FROM "urs@adndrc.org" UNSEEN');
+$emailsFromProviderC = imap_search($inbox, 'FROM "urs@mfsd.it" UNSEEN');
 
 // Combine the arrays of email IDs
-$allEmails = array_merge($emailsFromProviderA, $emailsFromProviderB);
+$allEmails = array_merge($emailsFromProviderA, $emailsFromProviderB, $emailsFromProviderC);
 
 foreach ($allEmails as $emailId) {
     $header = imap_headerinfo($inbox, $emailId);
@@ -34,21 +31,44 @@ foreach ($allEmails as $emailId) {
     $date = date('Y-m-d H:i:s', strtotime($header->date)) . '.000';
 
     // Determine the URS provider based on the email sender
-    $ursProvider = ($from == 'providerA@example.com') ? 'URSPA' : 'URSPB';
+    $providerAEmail = 'urs@adrforum.com';
+    $providerBEmail = 'urs@adndrc.org';
+    $providerCEmail = 'urs@mfsd.it';
+
+    // Determine the URS provider based on the email sender
+    if ($from == $providerAEmail) {
+        $ursProvider = 'FORUM';
+    } elseif ($from == $providerBEmail) {
+        $ursProvider = 'ADNDRC';
+    } elseif ($from == $providerCEmail) {
+        $ursProvider = 'MFSD';
+    } else {
+        $ursProvider = 'Unknown';
+    }
 
     // Extract domain name or relevant info from the email (you'd need more specific code here based on the email content)
     $body = imap_fetchbody($inbox, $emailId, 1);
-    $domainName = extractDomainNameFromEmail($body); // You'd have to define this function
+    $domainName = extractDomainNameFromEmail($body);
 
     // Insert into the database
-    $stmt = $dbh->prepare("INSERT INTO urs_actions (domain_name, urs_provider, action_date, status) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$domainName, $ursProvider, $date, 'Suspended']);
+    $stmt = $dbh->prepare("SELECT name, clid FROM domain WHERE name = ?");
+    $stmt->execute([$domainName]);
+    $domain = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($domain) {
+        $domainName = $domain['name'];
+        $registrarId = $domain['clid'];
+        
+        $stmt = $dbh->prepare("INSERT INTO support_tickets (user_id, category_id, subject, message, status, priority, evidence) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$registrarId, 12, 'New URS case for '.$domainName, 'New URS case for '.$domainName.' submitted by '.$ursProvider.' on '.$date.' Please act accordingly', 'Open', 'High', $body]);
+    } else {
+        echo "Domain does not exists in registry.";
+    }
 }
 
 imap_close($inbox);
 
 function extractDomainNameFromEmail($emailBody) {
-    // Placeholder function; you'd extract the domain name based on the email format/content
     // This is just a basic example
     preg_match("/domain: (.*?) /i", $emailBody, $matches);
     return $matches[1] ?? '';

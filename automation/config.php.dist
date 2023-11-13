@@ -22,7 +22,7 @@ return [
     'escrow_report_url' => 'https://ry-api.icann.org/report/',
     'escrow_report_username' => 'your_username',
     'escrow_report_password' => 'your_password',
-    
+
     // Reporting Configuration
     'reporting_path' => '/opt/reporting',
     'reporting_upload' => false,
@@ -31,4 +31,9 @@ return [
     
     // Zone Writer Configuration
     'dns_server' => 'bind',
+    
+    // URS Configuration
+    'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX',
+    'urs_imap_username' => 'your_username',
+    'urs_imap_password' => 'your_password',
 ];

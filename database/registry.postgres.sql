@@ -641,7 +641,8 @@ INSERT INTO registry.ticket_categories (name, description) VALUES
 ('Abuse Notifications', 'Reports of domain abusive practices as per ICANN guidelines'),
 ('General Inquiry', 'General questions or feedback about services, platform or any non-specific topic'),
 ('Registrar Application', 'Queries or issues related to new registrar applications or onboarding'),
-('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates');
+('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates'),
+('URS Cases', 'Reports of URS cases');
 
 INSERT INTO registry.settings (name, value) VALUES
 ('dns-tcp-queries-received', '0'),
