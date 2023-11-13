@@ -208,6 +208,22 @@ composer require badcow/dns phpseclib/phpseclib
 
 This command will install the ```badcow/dns``` and ```phpseclib/phpseclib``` packages which are essential for the automation script to function correctly.
 
+### Install Optional Dependencies:
+
+Execute one of the following commands to install the optional dependencies:
+
+```bash
+composer require utopia-php/messaging
+```
+
+or
+
+```bash
+composer require phpmailer/phpmailer
+```
+
+This command will install one of the packages which are essential for the notification script to function correctly.
+
 ## 11. RDE (Registry data escrow) configuration:
 
 ### Generate the Key Pair:
