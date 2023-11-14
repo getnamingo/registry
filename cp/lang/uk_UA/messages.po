@@ -1,6 +1,15 @@
 msgid "Dashboard"
 msgstr "Інформаційна панель"
 
+msgid "Overview"
+msgstr "Огляд"
+
+msgid "View Reports"
+msgstr "Переглянути звіти"
+
+msgid "Create new domain"
+msgstr "Створіть новий домен"
+
 msgid "Enable dark mode"
 msgstr "Увімкніть темний режим"
 
@@ -121,6 +130,15 @@ msgstr "Список реєстраторів"
 msgid "Create Registrar"
 msgstr "Створити реєстратора"
 
+msgid "List Users"
+msgstr "Список користувачів"
+
+msgid "Create User"
+msgstr "Створити користувача"
+
+msgid "Users"
+msgstr "Користувачі"
+
 msgid "Compliance"
 msgstr "Відповідність"
 
@@ -148,17 +166,26 @@ msgstr "Звіти"
 msgid "System"
 msgstr "Система"
 
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Activity"
+msgstr "Діяльність"
+
 msgid "Configuration"
 msgstr "Конфігурація"
 
 msgid "User Management"
 msgstr "Керування користувачами"
 
-msgid "EPP Log"
+msgid "EPP History"
 msgstr "Журнал EPP"
 
-msgid "Audit Log"
-msgstr "Журнал аудиту"
+msgid "System Log"
+msgstr "Системний журнал"
+
+msgid "Message Queue"
+msgstr "Черга повідомлень"
 
 msgid "Backup"
 msgstr "Резервна копія"
@@ -171,6 +198,9 @@ msgstr "Заявки на підтримку"
 
 msgid "Create Ticket"
 msgstr "Створити заявку"
+
+msgid "Create New Ticket"
+msgstr "Створити новий запит"
 
 msgid "Documentation"
 msgstr "Документація"

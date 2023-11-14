@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ __('Dashboard') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Dashboard') }}
@@ -22,14 +22,14 @@
                 <div class="btn-list">
                   <span class="d-none d-sm-inline">
                     <a href="{{route('reports')}}" class="btn btn-pink">
-                      View Reports
+                      {{ __('View Reports') }}
                     </a>
                   </span>
                   <a href="{{route('domaincreate')}}" class="btn btn-primary d-none d-sm-inline-block">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    Create new domain
+                    {{ __('Create new domain') }}
                   </a>
-                  <a href="{{route('domaincreate')}}" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" aria-label="Create new domain">
+                  <a href="{{route('domaincreate')}}" class="btn btn-primary d-sm-none btn-icon" data-bs-toggle="modal" aria-label="{{ __('Create new domain') }}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                   </a>
                 </div>
