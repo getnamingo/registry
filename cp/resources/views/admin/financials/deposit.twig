@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Registrar Deposit') }}
@@ -24,9 +24,35 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+              {% if deposit is defined %}
+                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Deposit successfully added. The registrar\'s account balance has been updated.') }}
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% elseif error is defined %}
+                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Unable to process the deposit due to a system error. Please retry or contact support for help') }}: <strong>{{ error }}</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% endif %}
               <div class="card">
                 <div class="card-body">
-                  <form id="depositForm">
+                  <form id="depositForm" action="/deposit" method="post">
+                  {{ csrf.field | raw }}
                     <div class="mb-3">
                         <label for="registrarSelect" class="form-label">Registrar</label>
                         <select class="form-select" id="registrarSelect" name="registrar" required>
@@ -38,18 +64,18 @@
                     </div>
 
                     <div class="deposit-info">
-                        <h5>Current Funds for <span id="registrarName"></span></h5>
+                        <h5>Current Balance for <span id="registrarName"></span></h5>
                         <p class="fs-4">$<span id="currentFunds">0.00</span></p>
                     </div>
 
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
-                        <input type="number" step="0.01" class="form-control" id="amount" placeholder="Enter deposit amount" required>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Enter deposit amount" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" rows="3" placeholder="Optional deposit description"></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional deposit description"></textarea>
                     </div>
                 </div>
                 <div class="card-footer">
@@ -64,37 +90,18 @@
                 <script>
                     const registrarSelect = document.getElementById('registrarSelect');
                     registrarSelect.addEventListener('change', function() {
-                        // Mock API call to get current funds for the selected registrar
-                        fetch(`https://api.example.com/registrarFunds/${registrarSelect.value}`)
+                        const selectedRegistrarId = registrarSelect.value;
+
+                        // Real API call to get registrars
+                        fetch(`/api/records/registrar`)
                         .then(response => response.json())
                         .then(data => {
-                            const registrarName = registrarSelect.options[registrarSelect.selectedIndex].text;
-                            document.getElementById('registrarName').textContent = registrarName;
-                            document.getElementById('currentFunds').textContent = data.funds.toFixed(2);
+                            const registrarData = data.records.find(registrar => registrar.id == selectedRegistrarId);
+                            const accountBalance = registrarData ? registrarData.accountBalance : '0.00';
+
+                            document.getElementById('registrarName').textContent = registrarData ? registrarData.name : 'N/A';
+                            document.getElementById('currentFunds').textContent = parseFloat(accountBalance).toFixed(2);
                             document.querySelector('.deposit-info').style.display = 'block';
-                        })
-                        .catch(error => {
-                            console.error('There was an error with the request:', error);
-                        });
-                    });
-
-                    document.getElementById('depositForm').addEventListener('submit', function(e) {
-                        e.preventDefault();
-
-                        const amount = document.getElementById('amount').value;
-
-                        // Mock API call to add deposit
-                        fetch("https://api.example.com/addDeposit", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({ registrarId: registrarSelect.value, amount: amount })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            // Update the displayed funds after deposit
-                            document.getElementById('currentFunds').textContent = data.newFunds.toFixed(2);
                         })
                         .catch(error => {
                             console.error('There was an error with the request:', error);

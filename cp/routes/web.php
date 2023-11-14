@@ -64,7 +64,7 @@ $app->group('', function ($route) {
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     
     $route->get('/pricing', FinancialsController::class .':pricing')->setName('pricing');
-    $route->get('/deposit', FinancialsController::class .':deposit')->setName('deposit');
+    $route->map(['GET', 'POST'], '/deposit', FinancialsController::class .':deposit')->setName('deposit');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
     
