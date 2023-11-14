@@ -55,6 +55,7 @@ $app->group('', function ($route) {
     $route->get('/host/{domain}', HostsController::class . ':viewHost')->setName('viewHost');
 
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
+    $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
     
     $route->get('/users', UsersController::class .':view')->setName('users');
     
