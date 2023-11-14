@@ -20,7 +20,16 @@ class RegistrarsController extends Controller
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            
+            var_dump ($data);
+            die();
+        }
+          
         $iso3166 = new ISO3166();
         $countries = $iso3166->all();
         
