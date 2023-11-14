@@ -104,7 +104,13 @@ $app->any('/api[/{params:.*}]', function (
             return !in_array($tableName, $restrictedTables);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
-            return !($tableName == 'registrar' && $columnName == 'pw');
+            if ($tableName == 'registrar' && $columnName == 'pw') {
+                return false;
+            }
+            if ($tableName == 'users' && $columnName == 'password') {
+                return false;
+            }
+            return true;
         },
         'sanitation.handler' => function ($operation, $tableName, $column, $value) {
             return is_string($value) ? strip_tags($value) : $value;
