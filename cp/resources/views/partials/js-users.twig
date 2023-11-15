@@ -5,35 +5,50 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
     var table;
-    document.querySelector("#userTable").addEventListener('click', function(e) {
-        if (e.target.matches('.update-btn')) {
-            let id = e.target.getAttribute('data-id');
-            updateRecord(id);
-        } else if (e.target.matches('.delete-btn')) {
-            let id = e.target.getAttribute('data-id');
-            deleteRecord(id);
-        }
-    });
    
     document.addEventListener("DOMContentLoaded", function(){
     function userLinkFormatter(cell){
         var value = cell.getValue();
-        return `<a href="/user/${value}" style="font-weight:bold;">${value}</a>`;
+        return `<span style="font-weight:bold;">${value}</a>`;
     }
    
-    function actionsFormatter(cell, formatterParams, onRendered) {
-        return `
-            <button class="btn btn-primary btn-icon update-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></button>
-            <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
-        `;
-    }
-
     function statusFormatter(cell) {
         var statusArray = cell.getValue();
         if (statusArray && Array.isArray(statusArray)) {
             return statusArray.map(item => item.status).join(', ');
         }
         return "";
+    }
+    
+    function roleLabelFormatter(cell) {
+        var value = cell.getValue();
+        if (value === 0) {
+            return '<span class="badge bg-purple text-purple-fg">Administrator</span>'; // Bootstrap label for Administrator
+        } else if (value === 4) {
+            return '<span class="badge bg-indigo text-indigo-fg">Registrar</span>'; // Bootstrap label for Registrar
+        }
+        return value; // If the value is neither 0 nor 4, return it as is
+    }
+    
+    function verifiedFormatter(cell) {
+        var value = cell.getValue();
+        if (value === false) {
+            return '<span class="badge bg-orange text-orange-fg">Pending</span>'; // Badge for Pending
+        } else if (value === true) {
+            return '<span class="badge bg-green text-green-fg">OK</span>'; // Green badge for OK
+        } else {
+            return '<span class="badge bg-dark text-dark-fg">?</span>';
+        }
+        return value; // Display the actual value for any other case
+    }
+
+    function statusBadgeFormatter(cell) {
+        var value = cell.getValue();
+        if (value === 0) {
+            return '<span class="badge bg-green text-green-fg">OK</span>'; // Green badge for OK
+        } else {
+            return '<span class="badge bg-red text-red-fg">Trouble</span>'; // Red badge for Trouble
+        }
     }
 
     table = new Tabulator("#userTable", {
@@ -52,8 +67,9 @@
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"Name", field:"username", width:200, headerSort:true, formatter: userLinkFormatter, responsive:0},
             {title:"Email", field:"email", width:300, headerSort:true, responsive:2},
-            {title:"Roles", field:"roles_mask", width:300, headerSort:true, responsive:2},
-            {title: "Actions", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
+            {title:"Roles", field:"roles_mask", width:200, headerSort:true, formatter: roleLabelFormatter, responsive:2},
+            {title:"Verified", field:"verified", width:200, headerSort:true, formatter: verifiedFormatter, responsive:2},
+            {title:"Status", field:"status", width:200, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
         ],
         placeholder:function(){
             return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
@@ -68,7 +84,9 @@
                 return (
                     String(data.username).toLowerCase().includes(term) ||
                     String(data.email).toLowerCase().includes(term) ||
-                    String(data.roles_mask).toString().toLowerCase().includes(term)
+                    String(data.roles_mask).toString().toLowerCase().includes(term) ||
+                    String(data.verified).toLowerCase().includes(term) ||
+                    String(data.status).toLowerCase().includes(term)
                 );
             });
         } else {
@@ -76,15 +94,7 @@
         }
     });
     });
-   
-    function updateRecord(id) {
-        console.log("Updating record with ID: " + id);
-    }
-   
-    function deleteRecord(id) {
-        console.log("Deleting record with ID: " + id);
-    }
-   
+
     function downloadCSV() {
         table.download("csv", "data.csv");
     }
@@ -94,13 +104,13 @@
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My Registrars"});
+        table.download("xlsx", "data.xlsx", {sheetName:"My Users"});
     }
     
     function downloadPDF() {
         table.download("pdf", "data.pdf", {
             orientation:"portrait",
-            title:"My Registrars",
+            title:"My Users",
             jsPDF:{unit:"mm", format:"a4", orientation:"p"}
         });
     }
