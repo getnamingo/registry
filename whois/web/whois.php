@@ -27,7 +27,4 @@ while (!feof($socket)) {
 }
 fclose($socket);
 
-// Invalidate the current captcha
-unset($_SESSION['captcha']);
-
 echo $output;
