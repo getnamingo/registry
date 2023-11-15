@@ -1,61 +1,65 @@
 <?php
-require 'vendor/autoload.php';
-
-use Gregwar\Captcha\CaptchaBuilder;
-
-$builder = new CaptchaBuilder();
-$builder->build();
 session_start();
-$_SESSION['captcha'] = $builder->getPhrase();
+use Gregwar\Captcha\CaptchaBuilder;
+    
+// Include this part only if the script is requested as an image (for the captcha)
+if ($_SERVER['REQUEST_URI'] == '/captcha.php') {
+    require 'vendor/autoload.php'; // Adjust path as needed
+
+    $captcha = new CaptchaBuilder;
+    $captcha->build();
+
+    $_SESSION['captcha'] = $captcha->getPhrase();
+
+    header('Content-type: image/jpeg');
+    $captcha->output();
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whois Check</title>
-    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
-    <link rel="stylesheet" href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
-    <script src="script.js"></script>
-    <style>
-        .row {
-            display: flex;
-            align-items: center;
-        }
-        .domain-input {
-            width: 45%;
-        }
-        .captcha-input {
-            width: 35%;
-			margin-left:10px;
-        }
-        .captcha-container {
-            display: flex;
-            align-items: center;
-        }
-    </style>
+    <title>WHOIS Lookup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center">Whois Check</h1>
-        <form id="whoisForm">
-            <div class="row">
-                <div class="domain-input">
-                    <label for="domain">Domain</label>
-                    <input type="text" id="domain" name="domain" placeholder="example.com" required>
-                </div>
-                <div class="captcha-input">
-                    <label for="captcha">Captcha</label>
-                    <div class="captcha-container">
-                        <input type="text" id="captcha" name="captcha" required>
-                        <img src="<?php echo $builder->inline(); ?>" id="captchaImage" style="margin-left:10px;">
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="button-primary">Check Whois</button>
-        </form>
-        <div id="result" class="mt-4"></div>
+        <h1>WHOIS Lookup</h1>
+        <div class="row">
+            <input type="text" id="domainInput" placeholder="Enter Domain Name" autocapitalize="none">
+            <img id="captchaImg" src="captcha.php" onclick="this.src='captcha.php?'+Math.random();">
+            <input type="text" id="captchaInput" placeholder="Enter Captcha" autocapitalize="none">
+            <button id="whoisButton">WHOIS</button>
+        </div>
+        <div id="result"></div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('whoisButton').addEventListener('click', function() {
+                var domain = document.getElementById('domainInput').value;
+                var captcha = document.getElementById('captchaInput').value;
+
+                fetch('whois.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'domain=' + encodeURIComponent(domain) + '&captcha=' + encodeURIComponent(captcha)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('result').innerText = data;
+                    // Reload captcha after a successful response
+                    document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    </script>
 
 </body>
 </html>
