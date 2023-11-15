@@ -116,12 +116,12 @@
                         <div class="col-md-6">
                           <div class="mb-3">
                             <label for="accountBalance" class="form-label required">Account Balance</label>
-                            <input type="number" class="form-control" id="accountBalance" name="accountBalance" required>
+                            <input type="number" step="0.01" class="form-control" id="accountBalance" name="accountBalance" required>
                             <small class="text-muted">Current balance in the registrar's account.</small>
                           </div>
                           <div class="mb-3">
                             <label for="creditLimit" class="form-label required">Credit Limit</label>
-                            <input type="number" class="form-control" id="creditLimit" name="creditLimit" required>
+                            <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" required>
                             <small class="text-muted">Maximum credit limit for the registrar.</small>
                           </div>
                         </div>
@@ -130,7 +130,7 @@
                         <div class="col-md-6">
                           <div class="mb-3">
                             <label for="creditThreshold" class="form-label required">Credit Threshold</label>
-                            <input type="number" class="form-control" id="creditThreshold" name="creditThreshold" required>
+                            <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required>
                             <small class="text-muted">Credit threshold triggering alerts or actions.</small>
                           </div>
                           <div class="mb-3">
