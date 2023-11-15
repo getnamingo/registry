@@ -69,7 +69,7 @@ $app->group('', function ($route) {
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
     
-    $route->get('/settings', SystemController::class .':settings')->setName('settings');
+    $route->get('/registry', SystemController::class .':registry')->setName('registry');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');
