@@ -18,9 +18,9 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/overview.twig');
     }
     
-    public function pricing(Request $request, Response $response)
+    public function invoices(Request $request, Response $response)
     {
-        return view($response,'admin/financials/pricing.twig');
+        return view($response,'admin/financials/invoices.twig');
     }
     
     public function deposit(Request $request, Response $response)

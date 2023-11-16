@@ -178,6 +178,23 @@ CREATE TABLE registry.statement (
      primary key ("id")
 );
 
+CREATE TABLE registry.invoices (
+    id SERIAL PRIMARY KEY,
+    invoice_number VARCHAR(20),
+    registrar_id INT,
+    billing_contact_id INT,
+    issue_date TIMESTAMP(3),
+    due_date TIMESTAMP(3) DEFAULT NULL,
+    total_amount NUMERIC(10,2),
+    payment_status VARCHAR(10) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'overdue', 'cancelled')),
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (registrar_id) REFERENCES registrar(id),
+    FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
+);
+
 CREATE TABLE registry.contact (
      "id" serial8,
      "identifier"   varchar(255) NOT NULL,

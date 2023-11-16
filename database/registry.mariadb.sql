@@ -173,6 +173,22 @@ CREATE TABLE IF NOT EXISTS `registry`.`statement` (
     CONSTRAINT `statement_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='financial statement';
 
+CREATE TABLE IF NOT EXISTS `registry`.`invoices` (
+    id INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    invoice_number VARCHAR(20),
+    registrar_id INT(10) UNSIGNED,
+    billing_contact_id INT(10) UNSIGNED,
+    issue_date DATETIME(3),
+    due_date DATETIME(3) default NULL,
+    total_amount DECIMAL(10,2),
+    payment_status ENUM('unpaid', 'paid', 'overdue', 'cancelled') DEFAULT 'unpaid',
+    notes TEXT default NULL,
+    created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    FOREIGN KEY (registrar_id) REFERENCES registrar(id),
+    FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='invoices';
+
 CREATE TABLE IF NOT EXISTS `registry`.`contact` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `identifier` varchar(255) NOT NULL,
