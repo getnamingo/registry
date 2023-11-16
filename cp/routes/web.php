@@ -130,11 +130,12 @@ $app->any('/api[/{params:.*}]', function (
         'dbAuth.passwordColumn' => 'password',
         'dbAuth.returnedColumns' => 'email,roles_mask',
         'dbAuth.registerUser' => false,
-        'multiTenancy.handler' => function ($operation, $tableName) {    
+        'multiTenancy.handler' => function ($operation, $tableName) {   
             if (isset($_SESSION['auth_roles']) && $_SESSION['auth_roles'] === 0) {
                 return [];
             }
-            $userId = $_SESSION['auth_user_id'];
+            $registrarId = $_SESSION['auth_registrar_id'];
+
             $columnMap = [
                 'contact' => 'clid',
                 'domain' => 'clid',
@@ -143,11 +144,13 @@ $app->any('/api[/{params:.*}]', function (
                 'registrar' => 'id',
                 'payment_history' => 'registrar_id',
                 'statement' => 'registrar_id',
-                'support_tickets' => 'user_id',
+                'support_tickets' => 'user_id',  // Note: this still uses user_id
             ];
 
             if (array_key_exists($tableName, $columnMap)) {
-                return [$columnMap[$tableName] => $userId];
+                // Use registrarId for tables where 'registrar_id' is the filter
+                // For 'support_tickets', continue to use userId
+                return [$columnMap[$tableName] => ($tableName === 'support_tickets' ? $_SESSION['auth_user_id'] : $registrarId)];
             }
 
             return ['1' => '0'];
@@ -188,13 +191,13 @@ $app->any('/log-api[/{params:.*}]', function (
             if (isset($_SESSION['auth_roles']) && $_SESSION['auth_roles'] === 0) {
                 return [];
             }
-            $userId = $_SESSION['auth_user_id'];
+            $registrarId = $_SESSION['auth_registrar_id'];
             $columnMap = [
                 'transaction_identifier' => 'registrar_id',
             ];
 
             if (array_key_exists($tableName, $columnMap)) {
-                return [$columnMap[$tableName] => $userId];
+                return [$columnMap[$tableName] => $registrarId];
             }
 
             return ['1' => '0'];

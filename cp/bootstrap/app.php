@@ -114,19 +114,25 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
     }
 
     $db = $container->get('db');
-    $query = 'SELECT r.currency 
+    $query = 'SELECT r.currency, ru.registrar_id
               FROM registrar_users ru
-              JOIN registrar r ON ru.registrar_id = r.id 
+              JOIN registrar r ON ru.registrar_id = r.id
               WHERE ru.user_id = ?';
 
     if (isset($_SESSION['auth_user_id'])) {
         $result = $db->select($query, [$_SESSION['auth_user_id']]);
 
-        // Default value for currency
-        $_SESSION['_currency'] = 'USD'; 
+        // Default values
+        $_SESSION['_currency'] = 'USD';
+        $_SESSION['auth_registrar_id'] = null;  // Default registrar_id
 
-        if ($result !== null && isset($result[0]['currency'])) {
-            $_SESSION['_currency'] = $result[0]['currency'];
+        if ($result !== null && count($result) > 0) {
+            if (isset($result[0]['currency'])) {
+                $_SESSION['_currency'] = $result[0]['currency'];
+            }
+            if (isset($result[0]['registrar_id'])) {
+                $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
+            }
         }
     }
 

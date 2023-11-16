@@ -1,4 +1,6 @@
-<?php namespace App\Lib;
+<?php
+
+namespace App\Lib;
 
 use Monolog\ErrorHandler;
 use Monolog\Handler\StreamHandler;
@@ -25,7 +27,7 @@ class Logger extends \Monolog\Logger
         parent::__construct($key);
 
         if (empty($config)) {
-            $LOG_PATH = '/tmp/slim';
+            $LOG_PATH = '/var/log/namingo';
             $config = [
                 'logFile' => "{$LOG_PATH}/{$key}.log",
                 'logLevel' => \Monolog\Logger::DEBUG
@@ -54,7 +56,7 @@ class Logger extends \Monolog\Logger
     public static function systemLogs($enable = true)
     {
 
-        $LOG_PATH = '/tmp/slim';
+        $LOG_PATH = '/var/log/namingo';
         $appEnv = envi('APP_ENV') ?? 'local';
 
         if($enable) {
@@ -63,7 +65,7 @@ class Logger extends \Monolog\Logger
         }else {
             // Error Log to file
             self::$loggers['error'] = new Logger('errors');
-            self::$loggers['error']->pushHandler(new StreamHandler("{$LOG_PATH}/errors.log"));
+            self::$loggers['error']->pushHandler(new StreamHandler("{$LOG_PATH}/cp.log"));
             ErrorHandler::register(self::$loggers['error']);
         }
     }
