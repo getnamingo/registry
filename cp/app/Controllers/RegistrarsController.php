@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Models\RegistryTransaction;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
@@ -290,5 +289,72 @@ class RegistrarsController extends Controller
         return view($response,'admin/registrars/create.twig', [
             'countries' => $countries,
         ]);
+    }
+    
+    public function viewRegistrar(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $registrar = $db->selectRow('SELECT * FROM registrar WHERE name = ?',
+            [ $args ]);
+
+            if ($registrar) {
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the registrars view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/registrars')->withStatus(302);
+                    }
+                }
+                
+                $registrarContact = $db->selectRow('SELECT * FROM registrar_contact WHERE registrar_id = ?',
+                [ $registrar['id'] ]);
+                $registrarOte = $db->select('SELECT * FROM registrar_ote WHERE registrar_id = ? ORDER by command',
+                [ $registrar['id'] ]);
+                $registrarUsers = $db->selectRow('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
+                [ $registrar['id'] ]);
+                $userEmail = $db->selectRow('SELECT email FROM users WHERE id = ?',
+                [ $registrarUsers['user_id'] ]);
+                $registrarWhitelist = $db->select('SELECT addr FROM registrar_whitelist WHERE registrar_id = ?',
+                [ $registrar['id'] ]);
+                // Check if RegistrarOTE is not empty
+                if (!empty($registrarOte)) {
+                    // Split the results into two groups
+                    $firstHalf = array_slice($registrarOte, 0, 5);
+                    $secondHalf = array_slice($registrarOte, 5);
+                } else {
+                    // If RegistrarOTE is empty, set both halves to empty arrays
+                    $firstHalf = [];
+                    $secondHalf = [];
+                }
+
+                return view($response,'admin/registrars/viewRegistrar.twig', [
+                    'registrar' => $registrar,
+                    'registrarContact' => $registrarContact,
+                    'firstHalf' => $firstHalf,
+                    'secondHalf' => $secondHalf,
+                    'userEmail' => $userEmail,
+                    'registrarWhitelist' => $registrarWhitelist,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Contact does not exist, redirect to the registrars view
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the registrars view
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+
     }
 }

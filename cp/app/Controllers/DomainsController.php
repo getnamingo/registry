@@ -741,4 +741,77 @@ class DomainsController extends Controller
     {
         return view($response,'admin/domains/transfers.twig');
     }
+    
+    public function viewDomain(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, `update`, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            [ $args ]);
+
+            if ($domain) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$domain['clid']]);
+
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the domains view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                    }
+                }
+                
+                $domainRegistrant = $db->selectRow('SELECT identifier FROM contact WHERE id = ?',
+                [ $domain['registrant'] ]);
+                $domainStatus = $db->select('SELECT status FROM domain_status WHERE domain_id = ?',
+                [ $domain['id'] ]);
+                $domainAuth = $db->selectRow('SELECT authinfo FROM domain_authInfo WHERE domain_id = ?',
+                [ $domain['id'] ]);
+                $domainSecdns = $db->select('SELECT * FROM secdns WHERE domain_id = ?',
+                [ $domain['id'] ]);
+                $domainHostsQuery = '
+                    SELECT dhm.id, dhm.domain_id, dhm.host_id, h.name
+                    FROM domain_host_map dhm
+                    JOIN host h ON dhm.host_id = h.id
+                    WHERE dhm.domain_id = ?';
+
+                $domainHosts = $db->select($domainHostsQuery, [$domain['id']]);
+                $domainContactsQuery = '
+                    SELECT dcm.id, dcm.domain_id, dcm.contact_id, dcm.type, c.identifier 
+                    FROM domain_contact_map dcm
+                    JOIN contact c ON dcm.contact_id = c.id
+                    WHERE dcm.domain_id = ?';
+                $domainContacts = $db->select($domainContactsQuery, [$domain['id']]);
+
+                return view($response,'admin/domains/viewDomain.twig', [
+                    'domain' => $domain,
+                    'domainStatus' => $domainStatus,
+                    'domainAuth' => $domainAuth,
+                    'domainRegistrant' => $domainRegistrant,
+                    'domainSecdns' => $domainSecdns,
+                    'domainHosts' => $domainHosts,
+                    'domainContacts' => $domainContacts,
+                    'registrars' => $registrars,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Contact does not exist, redirect to the domains view
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the domains view
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
+    }
+
 }

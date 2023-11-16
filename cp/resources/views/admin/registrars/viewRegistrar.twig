@@ -1,0 +1,183 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Registrar Details') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Registrar Details') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h3 class="card-title">Registrar {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span></h3>
+                </div>
+                <div class="card-body">
+                  <div class="datagrid">
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Contact Email</div>
+                      <div class="datagrid-content">{{ registrar.email }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Website</div>
+                      <div class="datagrid-content">{{ registrar.url }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Abuse Phone</div>
+                      <div class="datagrid-content">{{ registrar.abuse_phone }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Abuse Email</div>
+                      <div class="datagrid-content">{{ registrar.abuse_email }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">WHOIS Server</div>
+                      <div class="datagrid-content">{{ registrar.whois_server }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">RDAP Server</div>
+                      <div class="datagrid-content">{{ registrar.rdap_server }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Creation Date</div>
+                      <div class="datagrid-content">{{ registrar.crdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Currency</div>
+                      <div class="datagrid-content">{{ registrar.currency }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Account Balance</div>
+                      <div class="datagrid-content">{{ registrar.accountBalance }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Credit Limit</div>
+                      <div class="datagrid-content">{{ registrar.creditLimit }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Credit Threshold</div>
+                      <div class="datagrid-content">{{ registrar.creditThreshold }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Threshold Type</div>
+                      <div class="datagrid-content">{{ registrar.thresholdType|capitalize }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title">IP Whitelisting</h5>
+                      <ul class="list-group">
+                        {% if registrarWhitelist is not empty %}
+                            {% for ip in registrarWhitelist %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ ip.addr }}
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item">No data available.</li>
+                        {% endif %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title">Registrar User</h5>
+                        <div class="table-responsive">
+                          <table class="table">
+                            <thead>
+                              <tr>
+                                <th scope="col required">EPP Username/CLID</th>
+                                <th scope="col">Panel Login Email</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>
+                                  <div class="form-control-plaintext">{{ registrar.clid }}</div>
+                                </td>
+                                <td>
+                                  <div class="form-control-plaintext">{{ userEmail.email }}</div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">Operational Test and Evaluation (OTE)</h5>
+                  <p class="card-text">
+                    Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar's system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:
+                  </p>
+                  <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group">
+                            {% for item in firstHalf %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ item.command }}
+                                    <span class="badge {% if item.result == 0 %}bg-green{% elseif item.result == 9 %}bg-orange{% elseif item.result == 1 %}bg-red{% endif %} text-white">
+                                        {% if item.result == 0 %}Completed{% elseif item.result == 9 %}Pending{% elseif item.result == 1 %}Failed{% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="col-md-6">
+                        <ul class="list-group">
+                            {% for item in secondHalf %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ item.command }}
+                                    <span class="badge {% if item.result == 0 %}bg-green{% elseif item.result == 9 %}bg-orange{% elseif item.result == 1 %}bg-red{% endif %} text-white">
+                                        {% if item.result == 0 %}Completed{% elseif item.result == 9 %}Pending{% elseif item.result == 1 %}Failed{% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}

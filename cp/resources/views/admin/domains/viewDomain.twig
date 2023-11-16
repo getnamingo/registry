@@ -1,0 +1,122 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Domain Details') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Domain Details') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h3 class="card-title">Domain {{ domain.name }}&nbsp;<span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;<span class="status status-info" title="Status">{{ domain.rgpstatus }}</span></h3>
+                </div>
+                <div class="card-body">
+                  <div class="datagrid">
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registered On</div>
+                      <div class="datagrid-content">{{ domain.crdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Last Updated</div>
+                      <div class="datagrid-content">{{ domain.update }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Expiration Date</div>
+                      <div class="datagrid-content">{{ domain.exdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registrar</div>
+                      <div class="datagrid-content">{{ registrars.name }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registrant</div>
+                      <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
+                    </div>
+                    {% for contact in domainContacts %}
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ contact.type }} contact</div>
+                        <div class="datagrid-content">{{ contact.identifier }}</div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title">Nameservers</h5>
+                      <ul class="list-group">
+                      {% for host in domainHosts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          {{ host.name }}
+                        </li>
+                      {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title">DNSSEC Data</h5>
+					  <div class="table-responsive">
+						<table class="table table-vcenter card-table table-striped">
+							{% for row in domainSecdns %}
+								<tr>
+									{% for key, value in row %}
+										{% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+											<th>{{ key }}</th>
+										{% endif %}
+									{% endfor %}
+								</tr>
+								<tr>
+									{% for key, value in row %}
+										{% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+											<td>{{ value }}</td>
+										{% endif %}
+									{% endfor %}
+								</tr>
+							{% endfor %}
+						</table>
+					  </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}
