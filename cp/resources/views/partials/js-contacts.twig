@@ -18,7 +18,7 @@
     document.addEventListener("DOMContentLoaded", function(){
     function contactLinkFormatter(cell){
         var value = cell.getValue();
-        return `<a href="/contact/${value}" style="font-weight:bold;">${value}</a>`;
+        return `<a href="/contact/view/${value}" style="font-weight:bold;">${value}</a>`;
     }
    
     function actionsFormatter(cell, formatterParams, onRendered) {

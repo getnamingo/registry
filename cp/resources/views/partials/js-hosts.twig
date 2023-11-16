@@ -18,7 +18,7 @@
     document.addEventListener("DOMContentLoaded", function(){
     function hostLinkFormatter(cell){
         var value = cell.getValue();
-        return `<a href="/host/${value}" style="font-weight:bold;">${value}</a>`;
+        return `<a href="/host/view/${value}" style="font-weight:bold;">${value}</a>`;
     }
    
     function actionsFormatter(cell, formatterParams, onRendered) {

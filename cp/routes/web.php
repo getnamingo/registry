@@ -45,18 +45,20 @@ $app->group('', function ($route) {
     $route->get('/domains', DomainsController::class .':view')->setName('domains');
     $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':check')->setName('domaincheck');
     $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':create')->setName('domaincreate');
+    $route->get('/domain/view/{domain}', DomainsController::class . ':viewDomain')->setName('viewDomain');
     $route->map(['GET', 'POST'], '/transfers', DomainsController::class . ':transfers')->setName('transfers');
 
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
-    $route->get('/contact/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
+    $route->get('/contact/view/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
     
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
-    $route->get('/host/{host}', HostsController::class . ':viewHost')->setName('viewHost');
+    $route->get('/host/view/{host}', HostsController::class . ':viewHost')->setName('viewHost');
 
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
+    $route->get('/registrar/view/{registrar}', RegistrarsController::class . ':viewRegistrar')->setName('viewRegistrar');
     
     $route->get('/users', UsersController::class .':view')->setName('users');
     

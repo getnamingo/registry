@@ -15,7 +15,7 @@
     document.addEventListener("DOMContentLoaded", function(){
     function registrarLinkFormatter(cell){
         var value = cell.getValue();
-        return `<a href="/registrar/${value}" style="font-weight:bold;">${value}</a>`;
+        return `<a href="/registrar/view/${value}" style="font-weight:bold;">${value}</a>`;
     }
    
     function actionsFormatter(cell, formatterParams, onRendered) {
