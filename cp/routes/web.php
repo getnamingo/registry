@@ -80,10 +80,6 @@ $app->group('', function ($route) {
     $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
     
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
-    $route->get('/profile/notifications', ProfileController::class .':notifications')->setName('notifications');
-    $route->get('/profile/security', ProfileController::class .':security')->setName('security');
-    $route->get('/profile/plans', ProfileController::class .':plans')->setName('plans');
-    $route->get('/profile/invoices', ProfileController::class .':invoices')->setName('invoices');
     $route->get('/mode', HomeController::class .':mode')->setName('mode');
     $route->get('/lang', HomeController::class .':lang')->setName('lang');
     $route->get('/avatar', HomeController::class .':avatar')->setName('avatar');
