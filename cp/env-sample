@@ -1,6 +1,7 @@
 APP_NAME='CP'
 APP_ENV=public
 APP_URL=http://localhost
+APP_DOMAIN=example.com
 
 DB_DRIVER=mysql
 DB_HOST=localhost
@@ -9,7 +10,7 @@ DB_USERNAME=root
 DB_PASSWORD=
 DB_PORT=3306
 
-#mailer settings (Driver= smtp or sendmail or mail)
+#mailer settings (Driver = smtp or utopia, Api Provder = sendgrid or mailgun)
 
 MAIL_DRIVER=smtp
 MAIL_HOST=smtp.mailtrap.io
@@ -19,3 +20,5 @@ MAIL_PASSWORD=password
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS='example@domain.com'
 MAIL_FROM_NAME='Example'
+MAIL_API_KEY='test-api-key'
+MAIL_API_PROVIDER='sendgrid'
