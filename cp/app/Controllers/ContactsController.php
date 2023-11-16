@@ -521,4 +521,61 @@ class ContactsController extends Controller
             'registrar' => $registrar,
         ]);
     }
+    
+    public function viewContact(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
+            [ $args ]);
+
+            if ($contact) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
+
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the contacts view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/contacts')->withStatus(302);
+                    }
+                }
+                
+                $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                $contactLinked = $db->selectRow('SELECT domain_id, type FROM domain_contact_map WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
+                [ $contact['id'] ]);
+
+                return view($response,'admin/contacts/viewContact.twig', [
+                    'contact' => $contact,
+                    'contactStatus' => $contactStatus,
+                    'contactLinked' => $contactLinked,
+                    'contactAuth' => $contactAuth,
+                    'contactPostal' => $contactPostal,
+                    'registrars' => $registrars,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Contact does not exist, redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the contacts view
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
+    }
 }

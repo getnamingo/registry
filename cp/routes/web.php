@@ -49,10 +49,11 @@ $app->group('', function ($route) {
 
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
+    $route->get('/contact/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
     
     $route->get('/hosts', HostsController::class .':view')->setName('hosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
-    $route->get('/host/{domain}', HostsController::class . ':viewHost')->setName('viewHost');
+    $route->get('/host/{host}', HostsController::class . ':viewHost')->setName('viewHost');
 
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
