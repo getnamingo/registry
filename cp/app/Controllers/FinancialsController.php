@@ -26,7 +26,28 @@ class FinancialsController extends Controller
     public function deposit(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
-            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+            if ($request->getMethod() === 'POST') {
+                // Retrieve POST data
+                $data = $request->getParsedBody();
+                $db = $this->container->get('db');
+                $balance = $db->selectRow('SELECT name, email, accountBalance, creditLimit FROM registrar WHERE id = ?',
+                [ $_SESSION["auth_registrar_id"] ]
+                );
+                echo "Payment here";
+                
+                return view($response,'admin/financials/deposit-registrar.twig', [
+                    'balance' => $balance
+                ]);
+            }
+
+            $db = $this->container->get('db');
+            $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+            [ $_SESSION["auth_registrar_id"] ]
+            );
+
+            return view($response,'admin/financials/deposit-registrar.twig', [
+                'balance' => $balance
+            ]);
         }
 
         if ($request->getMethod() === 'POST') {
