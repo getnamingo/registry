@@ -26,20 +26,6 @@ class FinancialsController extends Controller
     public function deposit(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
-            if ($request->getMethod() === 'POST') {
-                // Retrieve POST data
-                $data = $request->getParsedBody();
-                $db = $this->container->get('db');
-                $balance = $db->selectRow('SELECT name, email, accountBalance, creditLimit FROM registrar WHERE id = ?',
-                [ $_SESSION["auth_registrar_id"] ]
-                );
-                echo "Payment here";
-                
-                return view($response,'admin/financials/deposit-registrar.twig', [
-                    'balance' => $balance
-                ]);
-            }
-
             $db = $this->container->get('db');
             $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
             [ $_SESSION["auth_registrar_id"] ]
@@ -126,5 +112,143 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/deposit.twig', [
             'registrars' => $registrars
         ]);
+    }
+    
+    public function createPayment(Request $request, Response $response)
+    {
+        $postData = $request->getParsedBody();
+        $amount = $postData['amount']; // Make sure to validate and sanitize this amount
+
+        // Set Stripe's secret key
+        \Stripe\Stripe::setApiKey(envi('STRIPE_SECRET_KEY'));
+
+        // Convert amount to cents (Stripe expects the amount in the smallest currency unit)
+        $amountInCents = $amount * 100;
+
+        // Create Stripe Checkout session
+        $checkout_session = \Stripe\Checkout\Session::create([
+            'payment_method_types' => ['card', 'paypal'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => $_SESSION['_currency'],
+                    'product_data' => [
+                        'name' => 'Registrar Balance Deposit',
+                    ],
+                    'unit_amount' => $amountInCents,
+                ],
+                'quantity' => 1,
+            ]],
+            'mode' => 'payment',
+            'success_url' => envi('APP_URL').'/payment-success?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => envi('APP_URL').'/payment-cancel',
+        ]);
+
+        // Return session ID to the frontend
+        $response->getBody()->write(json_encode(['id' => $checkout_session->id]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    public function success(Request $request, Response $response)
+    {
+        $session_id = $request->getQueryParams()['session_id'] ?? null;
+        $db = $this->container->get('db');
+            
+        if ($session_id) {
+            \Stripe\Stripe::setApiKey(envi('STRIPE_SECRET_KEY'));
+
+            try {
+                $session = \Stripe\Checkout\Session::retrieve($session_id);
+                $amountPaid = $session->amount_total; // Amount paid, in cents
+                $amount = $amountPaid / 100;
+                $amountPaidFormatted = number_format($amount, 2, '.', '');
+                $paymentIntentId = $session->payment_intent;
+
+                $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
+
+                if ($isPositiveNumberWithTwoDecimals) {
+                    $db->beginTransaction();
+
+                    try {
+                        $currentDateTime = new \DateTime();
+                        $date = $currentDateTime->format('Y-m-d H:i:s.v');
+                        $db->insert(
+                            'statement',
+                            [
+                                'registrar_id' => $_SESSION['auth_registrar_id'],
+                                'date' => $date,
+                                'command' => 'create',
+                                'domain_name' => 'deposit',
+                                'length_in_months' => 0,
+                                'from' => $date,
+                                'to' => $date,
+                                'amount' => $amount
+                            ]
+                        );
+
+                        $db->insert(
+                            'payment_history',
+                            [
+                                'registrar_id' => $_SESSION['auth_registrar_id'],
+                                'date' => $date,
+                                'description' => 'Registrar Balance Deposit via Stripe ('.$paymentIntentId.')',
+                                'amount' => $amount
+                            ]
+                        );
+                        
+                        $db->exec(
+                            'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
+                            [
+                                $amount,
+                                $_SESSION['auth_registrar_id'],
+                            ]
+                        );
+                        
+                        $db->commit();
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+                            [ $_SESSION["auth_registrar_id"] ]
+                        );
+                        
+                        return view($response, 'admin/financials/deposit-registrar.twig', [
+                            'error' => $e->getMessage(),
+                            'balance' => $balance
+                        ]);
+                    }
+                    
+                    $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+                        [ $_SESSION["auth_registrar_id"] ]
+                    );
+
+                    return view($response, 'admin/financials/deposit-registrar.twig', [
+                        'deposit' => $amount,
+                        'balance' => $balance
+                    ]);
+                } else {
+                    $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+                        [ $_SESSION["auth_registrar_id"] ]
+                    );
+                    
+                    return view($response, 'admin/financials/deposit-registrar.twig', [
+                        'error' => 'Invalid entry: Deposit amount must be positive. Please enter a valid amount.',
+                        'balance' => $balance
+                    ]);
+                }
+            } catch (\Exception $e) {
+                $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+                    [ $_SESSION["auth_registrar_id"] ]
+                );
+                
+                return view($response, 'admin/financials/deposit-registrar.twig', [
+                    'error' => 'We encountered an issue while processing your payment. Please check your payment details and try again.',
+                     'balance' => $balance
+                ]);
+            }
+        }
+    }
+    
+    public function cancel(Request $request, Response $response)
+    {
+        return view($response,'admin/financials/cancel.twig');
     }
 }

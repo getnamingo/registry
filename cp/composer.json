@@ -1,8 +1,8 @@
 {
     "name": "pinga/pinga-panel",
-    "description": "Pinga Framework Boilerplate",
+    "description": "Namingo Registry Control Panel",
     "type": "project",
-    "keywords": ["slim", "slim 4", "skeleton", "authentication", "template", "orm","pinga"],
+    "keywords": ["slim", "slim 4", "domain", "registry", "panel"],
     "homepage": "https://github.com/getpinga/pinga-panel",
     "license": "MIT",
     "authors": [
@@ -34,11 +34,12 @@
         "mevdschee/php-crud-api": "^2.14",
         "gettext/gettext": "^5.7",
         "punic/punic": "^3.8",
-        "league/iso3166": "^4.3"
+        "league/iso3166": "^4.3",
+        "stripe/stripe-php": "^13.3"
     },
     "autoload": {
-    	"psr-4": {
-    		"App\\": "app/"
-    	}
+        "psr-4": {
+            "App\\": "app/"
+        }
     }
 }

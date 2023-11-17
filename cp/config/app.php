@@ -72,4 +72,7 @@ return [
         'api_key' => $_ENV['MAIL_API_KEY'] ?? 'test-api-key',
         'api_provider' => $_ENV['MAIL_API_PROVIDER'] ?? 'sendgrid',
     ],
+    'payment' => [
+        'stripe' => $_ENV['STRIPE_SECRET_KEY'] ?? 'stripe-secret-key',
+    ],
 ];

@@ -69,6 +69,9 @@ $app->group('', function ($route) {
     
     $route->get('/invoices', FinancialsController::class .':invoices')->setName('invoices');
     $route->map(['GET', 'POST'], '/deposit', FinancialsController::class .':deposit')->setName('deposit');
+    $route->map(['GET', 'POST'], '/create-payment', FinancialsController::class .':createPayment')->setName('createPayment');
+    $route->map(['GET', 'POST'], '/payment-success', FinancialsController::class .':success')->setName('success');
+    $route->map(['GET', 'POST'], '/payment-cancel', FinancialsController::class .':cancel')->setName('cancel');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
     
