@@ -119,7 +119,7 @@
                         <div class="card-body">
                             <p>Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.</p>
                             <!-- Connect WebAuthn Button -->
-                            <button type="button" class="btn btn-success">Connect WebAuthn Device</button>
+                            <button type="button" class="btn btn-success" id="connectWebAuthnButton">Connect WebAuthn Device</button>
                             <!-- WebAuthn Devices Table -->
                             <div class="table-responsive mt-4">
                                 <table class="table table-striped">
@@ -156,4 +156,51 @@
           </div>
         </footer>
       </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const connectButton = document.getElementById('connectWebAuthnButton');
+    
+    connectButton.addEventListener('click', function() {
+        // Step 1: Get the registration challenge from the server
+        fetch('/webauthn/register/challenge')
+            .then(response => response.json())
+            .then(data => {
+                // Step 2: Call WebAuthn API to create credentials
+                return navigator.credentials.create({
+                    publicKey: data
+                });
+            })
+            .then(credentials => {
+                // Step 3: Send the credentials back to the server for verification
+                const publicKeyCredential = {
+                    id: credentials.id,
+                    rawId: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.rawId))),
+                    type: credentials.type,
+                    response: {
+                        attestationObject: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.response.attestationObject))),
+                        clientDataJSON: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.response.clientDataJSON)))
+                    }
+                };
+
+                return fetch('/webauthn/register/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(publicKeyCredential)
+                });
+            })
+            .then(response => {
+                if(response.ok) {
+                    // Handle successful registration, e.g., update the UI
+                } else {
+                    // Handle registration error
+                }
+            })
+            .catch(error => {
+                console.error('Error during WebAuthn registration:', error);
+            });
+    });
+});
+</script>
 {% endblock %}

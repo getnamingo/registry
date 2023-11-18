@@ -35,7 +35,9 @@
         "gettext/gettext": "^5.7",
         "punic/punic": "^3.8",
         "league/iso3166": "^4.3",
-        "stripe/stripe-php": "^13.3"
+        "stripe/stripe-php": "^13.3",
+        "robthree/twofactorauth": "^2.1",
+        "lbuchs/webauthn": "^2.1"
     },
     "autoload": {
         "psr-4": {

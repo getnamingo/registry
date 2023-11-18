@@ -83,6 +83,9 @@ $app->group('', function ($route) {
     $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
     
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
+    $route->get('/webauthn/register/challenge', ProfileController::class . ':getRegistrationChallenge')->setName('webauthn.register.challenge');
+    $route->post('/webauthn/register/verify', ProfileController::class . ':verifyRegistration')->setName('webauthn.register.verify');
+
     $route->get('/mode', HomeController::class .':mode')->setName('mode');
     $route->get('/lang', HomeController::class .':lang')->setName('lang');
     $route->get('/avatar', HomeController::class .':avatar')->setName('avatar');
