@@ -174,17 +174,17 @@ CREATE TABLE IF NOT EXISTS `registry`.`statement` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='financial statement';
 
 CREATE TABLE IF NOT EXISTS `registry`.`invoices` (
-    id INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    invoice_number VARCHAR(20),
-    registrar_id INT(10) UNSIGNED,
-    billing_contact_id INT(10) UNSIGNED,
-    issue_date DATETIME(3),
-    due_date DATETIME(3) default NULL,
-    total_amount DECIMAL(10,2),
-    payment_status ENUM('unpaid', 'paid', 'overdue', 'cancelled') DEFAULT 'unpaid',
-    notes TEXT default NULL,
-    created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
-    updated_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    `id` INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `invoice_number` VARCHAR(20),
+    `registrar_id` INT(10) UNSIGNED,
+    `billing_contact_id` INT(10) UNSIGNED,
+    `issue_date` DATETIME(3),
+    `due_date` DATETIME(3) default NULL,
+    `total_amount` DECIMAL(10,2),
+    `payment_status` ENUM('unpaid', 'paid', 'overdue', 'cancelled') DEFAULT 'unpaid',
+    `notes` TEXT default NULL,
+    `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     FOREIGN KEY (registrar_id) REFERENCES registrar(id),
     FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='invoices';
@@ -469,79 +469,95 @@ CREATE TABLE IF NOT EXISTS `registry`.`statistics` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Statistics';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` tinyint(2) unsigned NOT NULL DEFAULT '0',
-  `verified` tinyint(1) unsigned NOT NULL DEFAULT '0',
-  `resettable` tinyint(1) unsigned NOT NULL DEFAULT '1',
-  `roles_mask` int(10) unsigned NOT NULL DEFAULT '0',
-  `registered` int(10) unsigned NOT NULL,
-  `last_login` int(10) unsigned DEFAULT NULL,
-  `force_logout` mediumint(7) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `password` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `status` tinyint(2) unsigned NOT NULL DEFAULT '0',
+    `verified` tinyint(1) unsigned NOT NULL DEFAULT '0',
+    `resettable` tinyint(1) unsigned NOT NULL DEFAULT '1',
+    `roles_mask` int(10) unsigned NOT NULL DEFAULT '0',
+    `registered` int(10) unsigned NOT NULL,
+    `last_login` int(10) unsigned DEFAULT NULL,
+    `force_logout` mediumint(7) unsigned NOT NULL DEFAULT '0',
+    `tfa_secret` VARCHAR(32),
+    `tfa_enabled` TINYINT DEFAULT 0,
+    `auth_method` ENUM('password', '2fa', 'webauthn') DEFAULT 'password',
+    `backup_codes` TEXT,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_confirmations` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int(10) unsigned NOT NULL,
-  `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `selector` varchar(16) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `expires` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `selector` (`selector`),
-  KEY `email_expires` (`email`,`expires`),
-  KEY `user_id` (`user_id`)
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` int(10) unsigned NOT NULL,
+    `email` varchar(249) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `selector` varchar(16) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `expires` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `selector` (`selector`),
+    KEY `email_expires` (`email`,`expires`),
+    KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Confirmations';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_remembered` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `user` int(10) unsigned NOT NULL,
-  `selector` varchar(24) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `expires` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `selector` (`selector`),
-  KEY `user` (`user`)
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    `user` int(10) unsigned NOT NULL,
+    `selector` varchar(24) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `expires` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `selector` (`selector`),
+    KEY `user` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Remember';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_resets` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `user` int(10) unsigned NOT NULL,
-  `selector` varchar(20) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `expires` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `selector` (`selector`),
-  KEY `user_expires` (`user`,`expires`)
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    `user` int(10) unsigned NOT NULL,
+    `selector` varchar(20) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `expires` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `selector` (`selector`),
+    KEY `user_expires` (`user`,`expires`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Reset';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_throttling` (
-  `bucket` varchar(44) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
-  `tokens` float unsigned NOT NULL,
-  `replenished_at` int(10) unsigned NOT NULL,
-  `expires_at` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`bucket`),
-  KEY `expires_at` (`expires_at`)
+    `bucket` varchar(44) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
+    `tokens` float unsigned NOT NULL,
+    `replenished_at` int(10) unsigned NOT NULL,
+    `expires_at` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`bucket`),
+    KEY `expires_at` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Flags';
 
+CREATE TABLE IF NOT EXISTS `registry`.`users_webauthn` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `credential_id` VARBINARY(255) NOT NULL,
+    `public_key` TEXT NOT NULL,
+    `attestation_object` BLOB,
+    `sign_count` BIGINT NOT NULL,
+    `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP,
+    `last_used_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users WebAuthn Data';
+
 CREATE TABLE IF NOT EXISTS `registry`.`registrar_users` (
-  `registrar_id` int(10) unsigned NOT NULL,
-  `user_id` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`registrar_id`, `user_id`),
-  FOREIGN KEY (`registrar_id`) REFERENCES `registrar`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    `registrar_id` int(10) unsigned NOT NULL,
+    `user_id` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`registrar_id`, `user_id`),
+    FOREIGN KEY (`registrar_id`) REFERENCES `registrar`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Linking Registrars with Panel Users';
 
 CREATE TABLE IF NOT EXISTS `registry`.`urs_actions` (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    domain_name VARCHAR(255) NOT NULL,
-    urs_provider VARCHAR(255) NOT NULL,
-    action_date DATE NOT NULL,
-    status VARCHAR(255) NOT NULL
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `domain_name` VARCHAR(255) NOT NULL,
+    `urs_provider` VARCHAR(255) NOT NULL,
+    `action_date` DATE NOT NULL,
+    `status` VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='URS Actions';
 
 CREATE TABLE IF NOT EXISTS `registry`.`rde_escrow_deposits` (
@@ -597,36 +613,36 @@ CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_pricing` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
 
 CREATE TABLE IF NOT EXISTS `registry`.`ticket_categories` (
-    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `description` TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Categories';
 
 CREATE TABLE IF NOT EXISTS `registry`.`support_tickets` (
-    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT(11) UNSIGNED NOT NULL, 
-    category_id INT(11) UNSIGNED NOT NULL,
-    subject VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    status ENUM('Open', 'In Progress', 'Resolved', 'Closed') DEFAULT 'Open',
-    priority ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
-    reported_domain VARCHAR(255) DEFAULT NULL,
-    nature_of_abuse TEXT DEFAULT NULL,
-    evidence TEXT DEFAULT NULL,
-    relevant_urls TEXT DEFAULT NULL,
-    date_of_incident DATE DEFAULT NULL,
-    date_created datetime(3) DEFAULT CURRENT_TIMESTAMP,
-    last_updated datetime(3) DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT(11) UNSIGNED NOT NULL, 
+    `category_id` INT(11) UNSIGNED NOT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `message` TEXT NOT NULL,
+    `status` ENUM('Open', 'In Progress', 'Resolved', 'Closed') DEFAULT 'Open',
+    `priority` ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
+    `reported_domain` VARCHAR(255) DEFAULT NULL,
+    `nature_of_abuse` TEXT DEFAULT NULL,
+    `evidence` TEXT DEFAULT NULL,
+    `relevant_urls` TEXT DEFAULT NULL,
+    `date_of_incident` DATE DEFAULT NULL,
+    `date_created` datetime(3) DEFAULT CURRENT_TIMESTAMP,
+    `last_updated` datetime(3) DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES ticket_categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Support Tickets';
 
 CREATE TABLE IF NOT EXISTS `registry`.`ticket_responses` (
-    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    ticket_id INT(11) UNSIGNED NOT NULL,
-    responder_id INT(11) UNSIGNED NOT NULL,
-    response TEXT NOT NULL,
-    date_created datetime(3) DEFAULT CURRENT_TIMESTAMP,
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT(11) UNSIGNED NOT NULL,
+    `responder_id` INT(11) UNSIGNED NOT NULL,
+    `response` TEXT NOT NULL,
+    `date_created` datetime(3) DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Responses';
 

@@ -179,18 +179,17 @@ CREATE TABLE registry.statement (
 );
 
 CREATE TABLE registry.invoices (
-    id SERIAL PRIMARY KEY,
-    invoice_number VARCHAR(20),
-    registrar_id INT,
-    billing_contact_id INT,
-    issue_date TIMESTAMP(3),
-    due_date TIMESTAMP(3) DEFAULT NULL,
-    total_amount NUMERIC(10,2),
-    payment_status VARCHAR(10) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'overdue', 'cancelled')),
-    notes TEXT DEFAULT NULL,
-    created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-
+     "id" SERIAL PRIMARY KEY,
+     "invoice_number" VARCHAR(20),
+     "registrar_id" INT,
+     "billing_contact_id" INT,
+     "issue_date" TIMESTAMP(3),
+     "due_date" TIMESTAMP(3) DEFAULT NULL,
+     "total_amount" NUMERIC(10,2),
+     "payment_status" VARCHAR(10) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'overdue', 'cancelled')),
+     "notes" TEXT DEFAULT NULL,
+     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+     "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (registrar_id) REFERENCES registrar(id),
     FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
 );
@@ -445,7 +444,7 @@ CREATE TABLE registry.statistics (
      "deleted_domains" int CHECK ("deleted_domains" >= 0) NOT NULL DEFAULT '0',
      "restored_domains" int CHECK ("restored_domains" >= 0) NOT NULL DEFAULT '0',
      primary key ("id"),
-unique ("date") 
+     unique ("date") 
 );
 
 CREATE TABLE IF NOT EXISTS registry.users (
@@ -459,7 +458,11 @@ CREATE TABLE IF NOT EXISTS registry.users (
     "roles_mask" INTEGER NOT NULL DEFAULT '0' CHECK ("roles_mask" >= 0),
     "registered" INTEGER NOT NULL CHECK ("registered" >= 0),
     "last_login" INTEGER DEFAULT NULL CHECK ("last_login" >= 0),
-    "force_logout" INTEGER NOT NULL DEFAULT '0' CHECK ("force_logout" >= 0)
+    "force_logout" INTEGER NOT NULL DEFAULT '0' CHECK ("force_logout" >= 0),
+    "tfa_secret" VARCHAR(32),
+    "tfa_enabled" BOOLEAN DEFAULT false,
+    "auth_method" VARCHAR(255) DEFAULT 'password',
+    "backup_codes" TEXT,
 );
 
 CREATE TABLE IF NOT EXISTS registry.users_confirmations (
@@ -499,12 +502,24 @@ CREATE TABLE IF NOT EXISTS registry.users_throttling (
 );
 CREATE INDEX IF NOT EXISTS "expires_at" ON registry.users_throttling ("expires_at");
 
+CREATE TABLE IF NOT EXISTS registry.users_webauthn (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "credential_id" BYTEA NOT NULL,
+    "public_key" TEXT NOT NULL,
+    "attestation_object" BYTEA,
+    "sign_count" BIGINT NOT NULL,
+    "created_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS registry.registrar_users (
-  registrar_id int NOT NULL,
-  user_id int NOT NULL,
-  PRIMARY KEY (registrar_id, user_id),
-  FOREIGN KEY (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+     "registrar_id" int NOT NULL,
+     "user_id" int NOT NULL,
+     "PRIMARY KEY" (registrar_id, user_id),
+     "FOREIGN KEY" (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE,
+     "FOREIGN KEY" (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) WITH (OIDS=FALSE);
 COMMENT ON TABLE registrar_users IS 'Linking Registrars with Panel Users';
 
@@ -580,36 +595,36 @@ CREATE TYPE ticket_status AS ENUM ('Open', 'In Progress', 'Resolved', 'Closed');
 CREATE TYPE ticket_priority AS ENUM ('Low', 'Medium', 'High', 'Critical');
 
 CREATE TABLE registry.ticket_categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT
+    "id" SERIAL PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL,
+    "description" TEXT
 );
 
 CREATE TABLE registry.support_tickets (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL, 
-    category_id INTEGER NOT NULL,
-    subject VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    status ticket_status DEFAULT 'Open',
-    priority ticket_priority DEFAULT 'Medium',
-    reported_domain VARCHAR(255) DEFAULT NULL,
-    nature_of_abuse TEXT DEFAULT NULL,
-    evidence TEXT DEFAULT NULL,
-    relevant_urls TEXT DEFAULT NULL,
-    date_of_incident DATE DEFAULT NULL,
-    date_created TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_updated TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL, 
+    "category_id" INTEGER NOT NULL,
+    "subject" VARCHAR(255) NOT NULL,
+    "message" TEXT NOT NULL,
+    "status" ticket_status DEFAULT 'Open',
+    "priority" ticket_priority DEFAULT 'Medium',
+    "reported_domain" VARCHAR(255) DEFAULT NULL,
+    "nature_of_abuse" TEXT DEFAULT NULL,
+    "evidence" TEXT DEFAULT NULL,
+    "relevant_urls" TEXT DEFAULT NULL,
+    "date_of_incident" DATE DEFAULT NULL,
+    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "last_updated" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES registry.users(id),
     FOREIGN KEY (category_id) REFERENCES registry.ticket_categories(id)
 );
 
 CREATE TABLE ticket_responses (
-    id SERIAL PRIMARY KEY,
-    ticket_id INTEGER NOT NULL,
-    responder_id INTEGER NOT NULL,
-    response TEXT NOT NULL,
-    date_created TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL PRIMARY KEY,
+    "ticket_id" INTEGER NOT NULL,
+    "responder_id" INTEGER NOT NULL,
+    "response" TEXT NOT NULL,
+    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 );
 
