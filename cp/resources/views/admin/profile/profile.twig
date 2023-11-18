@@ -24,57 +24,121 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="card">
-                  <div class="card-body">
-                <form action="{{route('change.password')}}" name="register" method="post">
-                    {{ csrf.field | raw }}
-                    <h5 class="card-title">{{ __('Details') }}</h5>
-                    <div class="row g-3">
-                      <div class="col-md">
-                        <div class="form-label">{{ __('User Name') }}</div>
-                        <div class="form-control-plaintext">{{ username }}</div>
+              <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+                  <li class="nav-item">
+                    <a href="#tabs-details" class="nav-link active" data-bs-toggle="tab">Details</a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="#tabs-2fa" class="nav-link" data-bs-toggle="tab">2FA</a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="#tabs-webauthn" class="nav-link" data-bs-toggle="tab">WebAuthn</a>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-body">
+                <div class="tab-content">
+                  <div class="tab-pane active show" id="tabs-details">
+                    <h4 class="card-title">{{ __('Details') }}</h4>
+                    <div class="card">
+                      <div class="card-body">
+                        <form action="{{route('change.password')}}" name="register" method="post">
+                            {{ csrf.field | raw }}
+                            <div class="row g-3">
+                              <div class="col-md">
+                                <div class="form-label">{{ __('User Name') }}</div>
+                                <div class="form-control-plaintext">{{ username }}</div>
+                              </div>
+                              <div class="col-md">
+                                <div class="form-label">{{ __('Email') }}</div>
+                                <div class="form-control-plaintext">{{ email }}</div>
+                              </div>
+                              <div class="col-md">
+                                <div class="form-label">{{ __('Status') }}</div>
+                                <span class="badge bg-green text-bg-green mt-2">{{ status }}</span>
+                              </div>
+                              <div class="col-md">
+                                <div class="form-label">{{ __('Role') }}</div>
+                                <span class="badge bg-blue text-bg-blue mt-2">{{ role }}</span>
+                              </div>
+                            </div>
+                            <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
+                            <div class="row g-3">
+                              <div class="col-md">
+                                <div class="form-label required">{{ __('Old Password') }}</div>
+                                <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="Enter old password" required>
+                                {% if errors.old_password %}
+                                    <small class="form-hint">{{ errors.old_password | first }}</small>
+                                {% endif %}
+                              </div>
+                              <div class="col-md">
+                                <div class="form-label required">{{ __('New Password') }}</div>
+                                <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="Enter new password" required>
+                                {% if errors.new_password %}
+                                    <small class="form-hint">{{ errors.new_password | first }}</small>
+                                {% endif %}
+                              </div>
+                            </div>
                       </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Email') }}</div>
-                        <div class="form-control-plaintext">{{ email }}</div>
+                      <div class="card-footer bg-transparent mt-auto">
+                        <div class="btn-list justify-content-end">
+                          <a href="{{route('home')}}" class="btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1"></path></svg> {{ __('Back') }}
+                          </a>
+                          <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
+                          </button>
+                        </div>
                       </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Status') }}</div>
-                        <span class="badge bg-green text-bg-green mt-2">{{ status }}</span>
-                      </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Role') }}</div>
-                        <span class="badge bg-blue text-bg-blue mt-2">{{ role }}</span>
-                      </div>
-                    </div>
-                    <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
-                    <div class="row g-3">
-                      <div class="col-md">
-                        <div class="form-label required">{{ __('Old Password') }}</div>
-                        <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="Enter old password" required>
-                        {% if errors.old_password %}
-                            <small class="form-hint">{{ errors.old_password | first }}</small>
-                        {% endif %}
-                      </div>
-                      <div class="col-md">
-                        <div class="form-label required">{{ __('New Password') }}</div>
-                        <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="Enter new password" required>
-                        {% if errors.new_password %}
-                            <small class="form-hint">{{ errors.new_password | first }}</small>
-                        {% endif %}
-                      </div>
+                      </form>
                     </div>
                   </div>
-                  <div class="card-footer bg-transparent mt-auto">
-                    <div class="btn-list justify-content-end">
-                      <a href="{{route('home')}}" class="btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1"></path></svg> {{ __('Back') }}
-                      </a>
-                      <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
-                      </button>
+                  <div class="tab-pane" id="tabs-2fa">
+                    <h4 class="card-title">Two-Factor Authentication (2FA)</h4>
+                        <div class="card">
+                            <div class="card-body">
+                                <p>Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify.</p>
+                                <!-- QR Code Placeholder -->
+                                <div class="mb-3">
+                                    <img src="path/to/qr-code.png" alt="2FA QR Code" class="img-fluid">
+                                </div>
+                                <!-- Verification Code Input -->
+                                <div class="mb-3">
+                                    <label for="verificationCode" class="form-label">Verification Code</label>
+                                    <input type="text" class="form-control" id="verificationCode" placeholder="Enter code">
+                                </div>
+                                <!-- Save Button -->
+                                <button type="button" class="btn btn-primary">Save 2FA Settings</button>
+                            </div>
+                        </div>
+                  </div>
+                  <div class="tab-pane" id="tabs-webauthn">
+                    <h4 class="card-title">WebAuthn Authentication</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <p>Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.</p>
+                            <!-- Connect WebAuthn Button -->
+                            <button type="button" class="btn btn-success">Connect WebAuthn Device</button>
+                            <!-- WebAuthn Devices Table -->
+                            <div class="table-responsive mt-4">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Device Name</th>
+                                            <th>Registration Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamically populated rows go here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                   </div>
-                  </form>
+                </div>
             </div>
           </div>
         </div>
