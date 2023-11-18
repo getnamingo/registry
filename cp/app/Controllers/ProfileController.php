@@ -5,9 +5,22 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use lbuchs\WebAuthn\WebAuthn;
 
 class ProfileController extends Controller
 {
+    private $webAuthn;
+
+    public function __construct() {
+        $rpName = 'Namingo';
+        $rpId = envi('APP_DOMAIN');
+
+        $this->webAuthn = new Webauthn($rpName, $rpId);
+
+        // Additional configuration for Webauthn can go here
+        // Example: setting the public key credential parameters, user verification level, etc.
+    }
+
     public function profile(Request $request, Response $response)
     {
         $username = $_SESSION['auth_username'];
@@ -30,9 +43,8 @@ class ProfileController extends Controller
     
     public function getRegistrationChallenge(Request $request, Response $response)
     {
-        $user = $request->getAttribute('user'); // Assuming you have the user info
-        $username = $user->getUsername(); // Replace with your method to get the username
-        $userEmail = $user->getEmail(); // Replace with your method to get the user's email
+        $username = $_SESSION['auth_username'];
+        $userEmail = $_SESSION['auth_email'];
 
         $challenge = $this->webAuthn->prepareChallengeForRegistration($username, $userEmail);
         $_SESSION['webauthn_challenge'] = $challenge; // Store the challenge in the session
@@ -48,9 +60,28 @@ class ProfileController extends Controller
         try {
             $credential = $this->webAuthn->processCreate($data, $_SESSION['webauthn_challenge']);
             unset($_SESSION['webauthn_challenge']);
-
-            // Store the credential data in the database
-            // $user->addWebAuthnCredential($credential);
+            
+            $db = $this->container->get('db');
+            
+            try {
+                $db->insert(
+                    'users_webauthn',
+                    [
+                        'user_id' => $_SESSION['auth_user_id'],
+                        'credential_id' => $credential->getCredentialId(), // Binary data
+                        'public_key' => $credential->getPublicKey(), // Text data
+                        'attestation_object' => $credential->getAttestationObject(), // Binary data
+                        'sign_count' => $credential->getSignCount() // Integer
+                    ]
+                );
+            } catch (IntegrityConstraintViolationException $e) {
+                // Handle the case where the insert operation violates a constraint
+                // For example, a duplicate credential_id
+                throw new \Exception('Could not store WebAuthn credentials: ' . $e->getMessage());
+            } catch (Error $e) {
+                // Handle other database errors
+                throw new \Exception('Database error: ' . $e->getMessage());
+            }
 
             $response->getBody()->write(json_encode(['success' => true]));
             return $response->withHeader('Content-Type', 'application/json');

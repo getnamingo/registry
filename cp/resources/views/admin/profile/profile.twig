@@ -193,8 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => {
                 if(response.ok) {
                     // Handle successful registration, e.g., update the UI
+                    alert('Registration successful!');
+                    window.location.reload();
                 } else {
                     // Handle registration error
+                    alert('Registration failed: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
