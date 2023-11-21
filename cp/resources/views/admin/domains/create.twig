@@ -55,7 +55,7 @@
                         {{ csrf.field | raw }}
                             <div class="mb-3">
                                 <label for="domainName" class="form-label required">{{ __('Your Domain Name') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required">
+                                <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required" autocapitalize="none">
                             </div>
                             
                             {% if registrars and not registrar %}
@@ -96,25 +96,25 @@
 
                                 <div class="nameserver-group mb-1 row">
                                     <div class="col-md-4">
-                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1" name="nameserver[]" required>
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1" name="nameserver[]" required autocapitalize="none">
                                     </div>
                                     <div class="col-md-4">
                                         <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1 - IPv4" name="nameserver_ipv4[]">
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1 - IPv6" name="nameserver_ipv6[]">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 1 - IPv6" name="nameserver_ipv6[]" autocapitalize="none">
                                     </div>
                                 </div>
 
                                 <div class="nameserver-group mb-1 row">
                                     <div class="col-md-4">
-                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2" name="nameserver[]" required>
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2" name="nameserver[]" required autocapitalize="none">
                                     </div>
                                     <div class="col-md-4">
                                         <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2 - IPv4" name="nameserver_ipv4[]">
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2 - IPv6" name="nameserver_ipv6[]">
+                                        <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} 2 - IPv6" name="nameserver_ipv6[]" autocapitalize="none">
                                     </div>
                                 </div>
                             </div>

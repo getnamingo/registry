@@ -57,7 +57,7 @@
                     <form action="/domain/check" method="POST">
                     {{ csrf.field | raw }}
                       <div class="input-group mb-3">
-                        <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required">
+                        <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required" autocapitalize="none">
                         <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
                       </div>
                     </form>
