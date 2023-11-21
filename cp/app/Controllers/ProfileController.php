@@ -23,9 +23,14 @@ class ProfileController extends Controller
 
     public function profile(Request $request, Response $response)
     {
+        global $container;
+
         $username = $_SESSION['auth_username'];
         $email = $_SESSION['auth_email'];
+        $userId = $_SESSION['auth_user_id'];
         $status = $_SESSION['auth_status'];
+
+        $db = $container->get('db');
         $tfa = new \RobThree\Auth\TwoFactorAuth('Namingo');
         $secret = $tfa->createSecret();
         $qrcodeDataUri = $tfa->getQRCodeImageAsDataUri($email, $secret);
@@ -40,17 +45,79 @@ class ProfileController extends Controller
             $role = "Admin";
         } else {
             $role = "Unknown";
-        }    
-    
-        global $container;
+        }
+
         $csrfName = $container->get('csrf')->getTokenName();
         $csrfValue = $container->get('csrf')->getTokenValue();
         
-        return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+        $_SESSION['2fa_secret'] = $secret;
+        
+        $is_2fa_activated = $db->selectValue(
+            'SELECT tfa_enabled FROM users WHERE id = ? LIMIT 1',
+            [$userId]
+        );
+        if ($is_2fa_activated) {
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+        } else {
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+        }
+
+    }
+    
+    public function activate2fa(Request $request, Response $response)
+    {
+        global $container;
+        
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $container->get('db');
+            $verificationCode = $data['verificationCode'] ?? null;
+            $userId = $_SESSION['auth_user_id'];
+            $secret = $_SESSION['2fa_secret'];
+
+            $csrfName = $container->get('csrf')->getTokenName();
+            $csrfValue = $container->get('csrf')->getTokenValue();
+            $username = $_SESSION['auth_username'];
+            $email = $_SESSION['auth_email'];
+            $status = $_SESSION['auth_status'];
+
+            if ($status == 0) {
+                $status = "Confirmed";
+            } else {
+                $status = "Unknown";
+            }
+            $roles = $_SESSION['auth_roles'];
+            if ($roles == 0) {
+                $role = "Admin";
+            } else {
+                $role = "Unknown";
+            }
+            
+            try {
+                $db->update(
+                    'users',
+                    [
+                        'tfa_secret' => $secret,
+                        'tfa_enabled' => 1,
+                        'auth_method' => '2fa',
+                        'backup_codes' => null
+                    ],
+                    [
+                        'id' => $userId
+                    ]
+                );
+            } catch (Exception $e) {
+                return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            }
+
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+        }
     }
     
     public function getRegistrationChallenge(Request $request, Response $response)
     {
+        global $container;
         $userName = $_SESSION['auth_username'];
         $userEmail = $_SESSION['auth_email'];
         $userId = $_SESSION['auth_user_id'];
@@ -86,6 +153,7 @@ class ProfileController extends Controller
     
     public function verifyRegistration(Request $request, Response $response)
     {
+        global $container;
         $data = json_decode($request->getBody()->getContents());
 
         try {
@@ -100,7 +168,7 @@ class ProfileController extends Controller
             $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, true, true, false);
 
             // Store the credential data in the database
-            $db = $this->container->get('db');
+            $db = $container->get('db');
             $db->insert(
                 'users_webauthn',
                 [
