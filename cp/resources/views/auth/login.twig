@@ -18,7 +18,7 @@
                 <label class="form-label">Email address</label>
                 <input name="email" type="email" class="form-control" placeholder="your@email.com" autocomplete="off">
               </div>
-              <div class="mb-2">
+              <div class="mb-3">
                 <label class="form-label">
                   Password
                   <span class="form-label-description">
@@ -34,6 +34,10 @@
                 </div>
               </div>
               <div class="mb-2">
+                <label class="form-label">2FA Code</label>
+                <input name="code" type="number" class="form-control" autocomplete="off">
+              </div>
+              <div class="mb-2">
                 <label class="form-check">
                   <input name="remember" value="remember" id="remember" type="checkbox" class="form-check-input"/>
                   <span class="form-check-label">Remember me on this device</span>
@@ -44,29 +48,35 @@
               </div>
             </form>
           </div>
-        </div>
-        <div class="text-center text-muted mt-3">
-          Don't have account yet? <a href="{{route('register')}}" tabindex="-1">Sign up</a>
+          <div class="hr-text">or</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col"><a href="#" class="btn btn-secondary w-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" /></svg>
+                  Login with WebAuthn
+                </a></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-	<script>const passwordInput = document.querySelector('input[name="password"]');
-	const togglePasswordBtn = document.querySelector('.input-group-text a');
+    <script>const passwordInput = document.querySelector('input[name="password"]');
+    const togglePasswordBtn = document.querySelector('.input-group-text a');
 
-	togglePasswordBtn.addEventListener('click', function() {
-	  const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-	  passwordInput.setAttribute('type', type);
-	  
-	  const svg = togglePasswordBtn.querySelector('svg');
-	  const title = togglePasswordBtn.getAttribute('title');
-	  
-	  if (type === 'text') {
-		svg.innerHTML = '<path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 3l18 18"></path><path d="M10.584 10.587a2 2 0 0 0 2.828 2.83"></path><path d="M9.363 5.365a9.466 9.466 0 0 1 2.637 -.365c4 0 7.333 2.333 10 7c-.778 1.361 -1.612 2.524 -2.503 3.488m-2.14 1.861c-1.631 1.1 -3.415 1.651 -5.357 1.651c-4 0 -7.333 -2.333 -10 -7c1.369 -2.395 2.913 -4.175 4.632 -5.341"></path>';
-		togglePasswordBtn.setAttribute('title', 'Hide password');
-	  } else {
-		svg.innerHTML = '<path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"></path>';
-		togglePasswordBtn.setAttribute('title', 'Show password');
-	  }
-	});
-	</script>
+    togglePasswordBtn.addEventListener('click', function() {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      
+      const svg = togglePasswordBtn.querySelector('svg');
+      const title = togglePasswordBtn.getAttribute('title');
+      
+      if (type === 'text') {
+        svg.innerHTML = '<path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 3l18 18"></path><path d="M10.584 10.587a2 2 0 0 0 2.828 2.83"></path><path d="M9.363 5.365a9.466 9.466 0 0 1 2.637 -.365c4 0 7.333 2.333 10 7c-.778 1.361 -1.612 2.524 -2.503 3.488m-2.14 1.861c-1.631 1.1 -3.415 1.651 -5.357 1.651c-4 0 -7.333 -2.333 -10 -7c1.369 -2.395 2.913 -4.175 4.632 -5.341"></path>';
+        togglePasswordBtn.setAttribute('title', 'Hide password');
+      } else {
+        svg.innerHTML = '<path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"></path>';
+        togglePasswordBtn.setAttribute('title', 'Show password');
+      }
+    });
+    </script>
 {% endblock %}
