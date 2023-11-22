@@ -128,7 +128,7 @@ class Auth
      * @throws \Pinga\Auth\AttemptCancelledException
      * @throws \Pinga\Auth\AuthError
      */
-    public static function login($email, $password, $remember=null){
+    public static function login($email, $password, $remember=null, $code=null){
         $auth = self::$auth;
         try {
             if ($remember !='') {
@@ -140,8 +140,28 @@ class Auth
                 $rememberDuration = null;
             }
 
-            $auth->login($email, $password,$rememberDuration);
-            return true;
+            $auth->login($email, $password, $rememberDuration);
+
+            global $container;
+            $db = $container->get('db');
+            $tfa = $db->selectRow('SELECT tfa_enabled, tfa_secret FROM users WHERE id = ?', [$auth->getUserId()]);
+
+            if ($tfa) {
+                if ($tfa['tfa_enabled'] == 1) {
+                    $tfaService = new \RobThree\Auth\TwoFactorAuth('Namingo');
+                        if ($tfaService->verifyCode($tfa['tfa_secret'], $code) === true) {
+                            return true;
+                        } else {
+                            self::$auth->logOut();
+                            redirect()->route('login')->with('error','Incorrect 2FA Code. Please check and enter the correct code. 2FA codes are time-sensitive. For continuous issues, contact support.');
+                        }
+                } elseif ($tfa['tfa_enabled'] == 0) {
+                    return true;
+                }
+            } else {
+                self::$auth->logOut();
+                redirect()->route('login')->with('error','Temporary Database Issue. Please try again shortly. If this problem persists, kindly reach out to our support team for assistance.');
+            }
         }
         catch (InvalidEmailException $e) {
             redirect()->route('login')->with('error','Wrong email address');

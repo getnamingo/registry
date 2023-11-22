@@ -39,7 +39,12 @@ class AuthController extends Controller
         }else{
             $remember = null;
         }
-        $login = Auth::login($data['email'], $data['password'], $remember);
+        if(isset($data['code'])){
+            $code = $data['code'];
+        }else{
+            $code = null;
+        }
+        $login = Auth::login($data['email'], $data['password'], $remember, $code);
         if($login===true)
             redirect()->route('home');
     }
@@ -48,8 +53,8 @@ class AuthController extends Controller
      * @throws \Pinga\Auth\AuthError
      */
     public function logout()
-	{
-		Auth::logout();
-		redirect()->route('login');
-	}
+    {
+        Auth::logout();
+        redirect()->route('login');
+    }
 }

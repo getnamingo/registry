@@ -102,7 +102,7 @@
                             {{ csrf.field | raw }}
                             <div class="card-body">
                                 <p>Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify.</p>
-                                <!-- QR Code Placeholder -->
+                                <!-- QR Code -->
                                 <div class="mb-3">
                                     <img src="{{ qrcodeDataUri }}" alt="2FA QR Code" class="img-fluid">
                                 </div>
@@ -128,7 +128,13 @@
                             </form>
                             {% else %}
                             <div class="card-body">
-                                <p>2FA active</p>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-green text-green-fg me-3"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg></span>
+                                    <div>
+                                        <h5 class="card-title mb-1">Your account is secured with an additional layer of protection.</h5>
+                                        <p class="text-muted mb-2">2FA is currently <strong>enabled</strong> for your account. If you encounter any issues or need to disable 2FA, please contact our support team for assistance.</p>
+                                    </div>
+                                </div>
                             </div>
                             {% endif %}
                         </div>
