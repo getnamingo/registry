@@ -76,7 +76,7 @@ class ProfileController extends Controller
         if ($is_2fa_activated) {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         } else if ($is_weba_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
         } else {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         }
