@@ -13,6 +13,7 @@ return [
     'name' => $_ENV['APP_NAME'] ?? 'CP',
     'url' => $_ENV['APP_URL'] ?? 'http://localhost',
     'domain' => $_ENV['APP_DOMAIN'] ?? 'example.com',
+    'root' => $_ENV['APP_ROOT'] ?? '/var/www/cp',
     'timezone' => $_ENV['TIME_ZONE'] ?? 'UTC',
     'default' => $_ENV['DB_DRIVER'] ?? 'mysql',
     'connections' => [

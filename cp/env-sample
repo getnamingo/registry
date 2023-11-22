@@ -2,6 +2,7 @@ APP_NAME='CP'
 APP_ENV=public
 APP_URL=https://cp.example.com
 APP_DOMAIN=example.com
+APP_ROOT=/var/www/cp
 
 DB_DRIVER=mysql
 DB_HOST=localhost

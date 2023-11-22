@@ -539,6 +539,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`users_webauthn` (
     `public_key` TEXT NOT NULL,
     `attestation_object` BLOB,
     `sign_count` BIGINT NOT NULL,
+    `user_agent` VARCHAR(512),
     `created_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP,
     `last_used_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)

@@ -151,13 +151,25 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th>Device Name</th>
+                                            <th>Device/Browser Info</th>
                                             <th>Registration Date</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- Dynamically populated rows go here -->
+									{% for device in weba %}
+										<tr>
+											<td>{{ device.user_agent }}</td>
+											<td>{{ device.created_at }}</td>
+											<td>
+												<a href="/path/to/action?deviceId={{ device.id }}">Edit</a>
+											</td>
+										</tr>
+									{% else %}
+										<tr>
+											<td colspan="3">No devices found.</td>
+										</tr>
+									{% endfor %}
                                     </tbody>
                                 </table>
                             </div>
@@ -188,56 +200,102 @@ document.addEventListener('DOMContentLoaded', function() {
 
     connectButton.addEventListener('click', async function() {
         try {
-            // Step 1: Get the registration challenge from the server
-            const response = await fetch('/webauthn/register/challenge');
-            const data = await response.json();
 
-            // Decode the challenge and user ID from Base64 to Uint8Array
-            const challenge = Uint8Array.from(atob(data.publicKey.challenge), c => c.charCodeAt(0));
-            const userId = Uint8Array.from(atob(data.publicKey.user.id), c => c.charCodeAt(0));
+            // check browser support
+            if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
+                throw new Error('Browser not supported.');
+            }
 
-            // Modify the data object to use the decoded challenge and user ID
-            data.publicKey.challenge = challenge;
-            data.publicKey.user.id = userId;
+            // get create args
+            let rep = await window.fetch('/webauthn/register/challenge', {method:'GET', cache:'no-cache'});
+            const createArgs = await rep.json();
 
-            // Step 2: Call WebAuthn API to create credentials
-            const credentials = await navigator.credentials.create(data);
+            // error handling
+            if (createArgs.success === false) {
+                throw new Error(createArgs.msg || 'unknown error occured');
+            }
 
-            // Prepare credentials response
-            const publicKeyCredential = {
-                id: credentials.id,
-                rawId: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.rawId))),
-                type: credentials.type,
-                response: {
-                    attestationObject: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.response.attestationObject))),
-                    clientDataJSON: btoa(String.fromCharCode.apply(null, new Uint8Array(credentials.response.clientDataJSON)))
-                },
-                // Include CSRF tokens in the payload
-                csrf_name: '{{ csrf_name }}',
-                csrf_value: '{{ csrf_value }}'
+            // replace binary base64 data with ArrayBuffer. a other way to do this
+            // is the reviver function of JSON.parse()
+            recursiveBase64StrToArrayBuffer(createArgs);
+
+            // create credentials
+            const cred = await navigator.credentials.create(createArgs);
+
+            // create object
+            const authenticatorAttestationResponse = {
+                transports: cred.response.getTransports  ? cred.response.getTransports() : null,
+                clientDataJSON: cred.response.clientDataJSON  ? arrayBufferToBase64(cred.response.clientDataJSON) : null,
+                attestationObject: cred.response.attestationObject ? arrayBufferToBase64(cred.response.attestationObject) : null
             };
 
-            // Step 3: Send the credentials back to the server for verification
-            const verificationResponse = await fetch('/webauthn/register/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(publicKeyCredential)
+            // check auth on server side
+            rep = await window.fetch('/webauthn/register/verify', {
+                method  : 'POST',
+                body    : JSON.stringify(authenticatorAttestationResponse),
+                cache   : 'no-cache'
             });
+            const authenticatorAttestationServerResponse = await rep.json();
 
-            if(verificationResponse.ok) {
-                alert('Registration successful!');
-                window.location.reload();
+            // prompt server response
+            if (authenticatorAttestationServerResponse.success) {
+                //location.reload();
+                window.alert(authenticatorAttestationServerResponse.msg || 'registration success');
             } else {
-                const errorData = await verificationResponse.json();
-                alert('Registration failed: ' + (errorData.error || 'Unknown error'));
+                throw new Error(authenticatorAttestationServerResponse.msg);
             }
-        } catch (error) {
-            console.error('Error during WebAuthn registration:', error);
-            alert('Error during registration: ' + error.message);
+
+        } catch (err) {
+            //location.reload();
+            window.alert(err.message || 'unknown error occured');
         }
+
     });
+    
+        /**
+         * convert RFC 1342-like base64 strings to array buffer
+         * @param {mixed} obj
+         * @returns {undefined}
+         */
+        function recursiveBase64StrToArrayBuffer(obj) {
+            let prefix = '=?BINARY?B?';
+            let suffix = '?=';
+            if (typeof obj === 'object') {
+                for (let key in obj) {
+                    if (typeof obj[key] === 'string') {
+                        let str = obj[key];
+                        if (str.substring(0, prefix.length) === prefix && str.substring(str.length - suffix.length) === suffix) {
+                            str = str.substring(prefix.length, str.length - suffix.length);
+
+                            let binary_string = window.atob(str);
+                            let len = binary_string.length;
+                            let bytes = new Uint8Array(len);
+                            for (let i = 0; i < len; i++)        {
+                                bytes[i] = binary_string.charCodeAt(i);
+                            }
+                            obj[key] = bytes.buffer;
+                        }
+                    } else {
+                        recursiveBase64StrToArrayBuffer(obj[key]);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Convert a ArrayBuffer to Base64
+         * @param {ArrayBuffer} buffer
+         * @returns {String}
+         */
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            let bytes = new Uint8Array(buffer);
+            let len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode( bytes[ i ] );
+            }
+            return window.btoa(binary);
+        }
 });
 </script>
 {% endblock %}

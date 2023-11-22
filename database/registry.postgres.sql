@@ -509,6 +509,7 @@ CREATE TABLE IF NOT EXISTS registry.users_webauthn (
     "public_key" TEXT NOT NULL,
     "attestation_object" BYTEA,
     "sign_count" BIGINT NOT NULL,
+    "user_agent" TEXT,
     "created_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)

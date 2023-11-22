@@ -5,7 +5,6 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
-use lbuchs\WebAuthn\WebAuthn;
 
 class ProfileController extends Controller
 {
@@ -14,11 +13,25 @@ class ProfileController extends Controller
     public function __construct() {
         $rpName = 'Namingo';
         $rpId = envi('APP_DOMAIN');
+        $formats = [
+            'android-key',
+            'android-safetynet',
+            'apple',
+            'fido-u2f',
+            'none',
+            'packed',
+            'tpm'
+        ];
 
-        $this->webAuthn = new Webauthn($rpName, $rpId);
-
-        // Additional configuration for Webauthn can go here
-        // Example: setting the public key credential parameters, user verification level, etc.
+        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, $formats);
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/solo.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/apple.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/yubico.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/hypersecu.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/globalSign.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/googleHardware.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/microsoftTpmCollection.pem');
+        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/mds');
     }
 
     public function profile(Request $request, Response $response)
@@ -56,8 +69,14 @@ class ProfileController extends Controller
             'SELECT tfa_enabled FROM users WHERE id = ? LIMIT 1',
             [$userId]
         );
+        $is_weba_activated = $db->select(
+            'SELECT * FROM users_webauthn WHERE user_id = ?',
+            [$userId]
+        );
         if ($is_2fa_activated) {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+        } else if ($is_weba_activated) {
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
         } else {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         }
@@ -117,71 +136,76 @@ class ProfileController extends Controller
     
     public function getRegistrationChallenge(Request $request, Response $response)
     {
-        global $container;
         $userName = $_SESSION['auth_username'];
         $userEmail = $_SESSION['auth_email'];
         $userId = $_SESSION['auth_user_id'];
-        
-        // Convert the user ID to a hexadecimal string
-        $userIdHex = dechex($userId);
-        // Pad with a leading zero if the length is odd
-        if (strlen($userIdHex) % 2 !== 0) {
-            $userIdHex = '0' . $userIdHex;
+        $hexUserId = dechex($userId);
+        // Ensure even length for the hexadecimal string
+        if(strlen($hexUserId) % 2 != 0){
+            $hexUserId = '0' . $hexUserId;
         }
+        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userName, $userName, 60*4, true, 'required', null);
 
-        // Convert the padded hexadecimal string to binary, then encode in Base64
-        $userIdBin = hex2bin($userIdHex);
-        $userIdBase64 = base64_encode($userIdBin);
-        
-        // Generate the create arguments using the WebAuthn library
-        $createArgs = $this->webAuthn->getCreateArgs($userIdBase64, $userName, $userEmail, 60 * 4, 0, 'required', null);
-
-        // Encode the challenge in Base64
-        $base64Challenge = base64_encode($this->webAuthn->getChallenge());
-
-        // Set the challenge and user ID in the createArgs object
-        $createArgs->publicKey->challenge = $base64Challenge;
-        $createArgs->publicKey->user->id = $userIdBase64;
-
-        // Store the challenge in the session
-        $_SESSION['webauthn_challenge'] = $base64Challenge;
-
-        // Send the modified $createArgs to the client
         $response->getBody()->write(json_encode($createArgs));
+        $challenge = $this->webAuthn->getChallenge();
+        $_SESSION['challenge_data'] = $challenge->getBinaryString();
+
         return $response->withHeader('Content-Type', 'application/json');
     }
     
     public function verifyRegistration(Request $request, Response $response)
     {
+        $challengeData = $_SESSION['challenge_data'];
+        $challenge = new \lbuchs\WebAuthn\Binary\ByteBuffer($challengeData);
+
         global $container;
-        $data = json_decode($request->getBody()->getContents());
+        $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
+        $userName = $_SESSION['auth_username'];
+        $userEmail = $_SESSION['auth_email'];
+        $userId = $_SESSION['auth_user_id'];
 
         try {
             // Decode the incoming data
-            $clientDataJSON = base64_decode($data->response->clientDataJSON);
-            $attestationObject = base64_decode($data->response->attestationObject);
+            $clientDataJSON = base64_decode($data->clientDataJSON);
+            $attestationObject = base64_decode($data->attestationObject);
 
             // Retrieve the challenge from the session
-            $challenge = $_SESSION['webauthn_challenge'];
+            //$challenge = $_SESSION['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, true, true, false);
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'required', true, false);
+            
+            // add user infos
+            $credential->userId = $userId;
+            $credential->userName = $userName;
+            $credential->userDisplayName = $userName;
 
             // Store the credential data in the database
             $db = $container->get('db');
+            $counter = is_null($credential->signatureCounter) ? 0 : $credential->signatureCounter;
             $db->insert(
                 'users_webauthn',
                 [
                     'user_id' => $_SESSION['auth_user_id'],
-                    'credential_id' => base64_encode($credential->credentialId), // Binary data encoded in Base64
-                    'public_key' => $credential->publicKey, // Text data
-                    'attestation_object' => base64_encode($credential->attestationObject), // Binary data encoded in Base64
-                    'sign_count' => $credential->signCount // Integer
+                    'credential_id' => base64_encode($credential->credentialId),
+                    'public_key' => $credential->credentialPublicKey,
+                    'attestation_object' => base64_encode($attestationObject),
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'sign_count' => $counter
                 ]
             );
+            
+            $msg = 'registration success.';
+            if ($credential->rootValid === false) {
+                $msg = 'registration ok, but certificate does not match any of the selected root ca.';
+            }
+
+            $return = new \stdClass();
+            $return->success = true;
+            $return->msg = $msg;
 
             // Send success response
-            $response->getBody()->write(json_encode(['success' => true]));
+            $response->getBody()->write(json_encode($return));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
             // Handle error, return an appropriate response
