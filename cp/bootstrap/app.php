@@ -183,14 +183,30 @@ $container->set('validator', function ($container) {
 });
 
 $container->set('csrf', function($container) use ($responseFactory) {
-    return new Guard($responseFactory);
+    return new Slim\Csrf\Guard($responseFactory);
 });
 
 $app->add(new \App\Middleware\ValidationErrorsMiddleware($container));
 $app->add(new \App\Middleware\OldInputMiddleware($container));
 $app->add(new \App\Middleware\CsrfViewMiddleware($container));
 
-$app->add('csrf');
+$csrfMiddleware = function ($request, $handler) use ($container) {
+    $uri = $request->getUri();
+    $path = $uri->getPath();
+
+    // Get the CSRF Guard instance from the container
+    $csrf = $container->get('csrf');
+
+    // Skip CSRF for the specific path
+    if ($path && $path === '/webauthn/register/verify') {
+        return $handler->handle($request);
+    }
+
+    // If not skipped, apply the CSRF Guard
+    return $csrf->process($request, $handler);
+};
+
+$app->add($csrfMiddleware);
 $app->setBasePath(routePath());
 
 require __DIR__ . '/../routes/web.php';
