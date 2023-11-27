@@ -7,7 +7,7 @@
 59 * * * * root /usr/bin/php8.2 /opt/registry/automation/statistics.php >> /var/log/namingo/statistics.log
 
 # run backup at 59 min, every hour
-59 * * * * /opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.xml
+59 * * * * /opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json
 
 # run change-domain-status.php every hour
 30 * * * * root /usr/bin/php8.2 /opt/registry/automation/change-domain-status.php >> /var/log/namingo/change-domain-status.log

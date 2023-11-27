@@ -1,0 +1,88 @@
+{
+  "verbose": true,
+  "logging": [
+    {
+      "type": "json",
+      "target": "/var/log/namingo/backup.log"
+    }
+  ],
+  "backups": [
+    {
+      "name": "Database",
+      "source": {
+        "type": "mysqldump",
+        "options": {
+          "databases": "your_database_name",
+          "user": "your_username",
+          "password": "your_password"
+        }
+      },
+      "target": {
+        "dirname": "/opt/namingobackup",
+        "filename": "database-%Y%m%d-%H%i.sql",
+        "compress": "bzip2"
+      },
+      "checks": [
+        {
+          "type": "sizemin",
+          "value": "10M"
+        }
+      ],
+      "syncs": [
+        {
+          "type": "sftp",
+          "options": {
+            "host": "backup.example.com",
+            "user": "user.name",
+            "password": "topsecret",
+            "path": "backup/someName"
+          }
+        }
+      ],
+      "cleanup": {
+        "type": "Capacity",
+        "options": {
+          "size": "750M"
+        }
+      }
+    },
+    {
+      "name": "Files",
+      "source": {
+        "type": "tar",
+        "options": {
+          "path": "/opt/registry",
+          "throttle": "5m"
+        }
+      },
+      "target": {
+        "dirname": "/opt/namingobackup",
+        "filename": "files-%Y%m%d-%H%i.sql",
+        "compress": "bzip2"
+      },
+      "checks": [
+        {
+          "type": "sizemin",
+          "value": "10M"
+        }
+      ],
+      "syncs": [
+        {
+          "type": "sftp",
+          "options": {
+            "host": "backup.example.com",
+            "user": "user.name",
+            "password": "topsecret",
+            "path": "backup/someName"
+          }
+        }
+      ],
+      "cleanup": {
+        "type": "Capacity",
+        "options": {
+          "size": "750M"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,244 @@
+{
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "user": "your_username",
+        "password": "your_password",
+        "data_schema": "registry",
+        "audit_schema": "registryAudit"
+    },
+    "audit_columns": [
+        {
+            "column_name": "audit_timestamp",
+            "column_type": "timestamp not null default now()",
+            "expression": "now()"
+        },
+        {
+            "column_name": "audit_statement",
+            "column_type": "enum('INSERT','DELETE','UPDATE') character set ascii collate ascii_general_ci not null",
+            "value_type": "ACTION"
+        },
+        {
+            "column_name": "audit_type",
+            "column_type": "enum('OLD','NEW') character set ascii collate ascii_general_ci not null",
+            "value_type": "STATE"
+        },
+        {
+            "column_name": "audit_uuid",
+            "column_type": "bigint(20) unsigned not null",
+            "expression": "@audit_uuid"
+        },
+        {
+            "column_name": "audit_rownum",
+            "column_type": "int(10) unsigned not null",
+            "expression": "@audit_rownum"
+        },
+        {
+            "column_name": "audit_user",
+            "column_type": "varchar(80) character set utf8 collate utf8_bin not null",
+            "expression": "user()"
+        },
+        {
+            "column_name": "audit_ses_id",
+            "column_type": "int(10) unsigned",
+            "expression": "@audit_ses_id"
+        },
+        {
+            "column_name": "audit_usr_id",
+            "column_type": "int(10) unsigned",
+            "expression": "@audit_usr_id"
+        }
+    ],
+    "additional_sql": [
+        "if (@audit_uuid is null) then",
+        "  set @audit_uuid = uuid_short();",
+        "end if;",
+        "set @audit_rownum = ifnull(@audit_rownum, 0) + 1;"
+    ],
+    "tables": {
+        "domain_tld": {
+            "audit": true,
+            "skip": null
+        },
+        "settings": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_price": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_restore_price": {
+            "audit": true,
+            "skip": null
+        },
+        "error_log": {
+            "audit": null,
+            "skip": null
+        },
+        "domain_price": {
+            "audit": true,
+            "skip": null
+        },
+        "reserved_domain_names": {
+            "audit": true,
+            "skip": null
+        },
+        "registrar": {
+            "audit": true,
+            "skip": null
+        },
+        "registrar_whitelist": {
+            "audit": true,
+            "skip": null
+        },
+        "registrar_contact": {
+            "audit": true,
+            "skip": null
+        },
+        "registrar_ote": {
+            "audit": true,
+            "skip": null
+        },
+        "poll": {
+            "audit": true,
+            "skip": null
+        },
+        "payment_history": {
+            "audit": null,
+            "skip": null
+        },
+        "statement": {
+            "audit": null,
+            "skip": null
+        },
+        "invoices": {
+            "audit": null,
+            "skip": null
+        },
+        "contact": {
+            "audit": true,
+            "skip": null
+        },
+        "contact_postalInfo": {
+            "audit": true,
+            "skip": null
+        },
+        "contact_authInfo": {
+            "audit": true,
+            "skip": null
+        },
+        "contact_status": {
+            "audit": true,
+            "skip": null
+        },
+        "domain": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_contact_map": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_authInfo": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_status": {
+            "audit": true,
+            "skip": null
+        },
+        "secdns": {
+            "audit": true,
+            "skip": null
+        },
+        "host": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_host_map": {
+            "audit": true,
+            "skip": null
+        },
+        "host_addr": {
+            "audit": true,
+            "skip": null
+        },
+        "host_status": {
+            "audit": true,
+            "skip": null
+        },
+        "domain_auto_approve_transfer": {
+            "audit": true,
+            "skip": null
+        },
+        "contact_auto_approve_transfer": {
+            "audit": true,
+            "skip": null
+        },
+        "statistics": {
+            "audit": null,
+            "skip": null
+        },
+        "users": {
+            "audit": true,
+            "skip": null
+        },
+        "users_confirmations": {
+            "audit": null,
+            "skip": null
+        },
+        "users_remembered": {
+            "audit": null,
+            "skip": null
+        },
+        "users_resets": {
+            "audit": null,
+            "skip": null
+        },
+        "users_throttling": {
+            "audit": null,
+            "skip": null
+        },
+        "users_webauthn": {
+            "audit": true,
+            "skip": null
+        },
+        "registrar_users": {
+            "audit": true,
+            "skip": null
+        },
+        "urs_actions": {
+            "audit": null,
+            "skip": null
+        },
+        "rde_escrow_deposits": {
+            "audit": null,
+            "skip": null
+        },
+        "icann_reports": {
+            "audit": true,
+            "skip": null
+        },
+        "promotion_pricing": {
+            "audit": true,
+            "skip": null
+        },
+        "premium_domain_pricing": {
+            "audit": true,
+            "skip": null
+        },
+        "ticket_categories": {
+            "audit": null,
+            "skip": null
+        },
+        "support_tickets": {
+            "audit": null,
+            "skip": null
+        },
+        "ticket_responses": {
+            "audit": null,
+            "skip": null
+        }
+    }
+}

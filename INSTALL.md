@@ -9,7 +9,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stabl
 gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 apt update && apt upgrade
-apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml unzip wget whois
+apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml pv unzip wget whois
 ```
 
 ### Configure OPcache
@@ -211,10 +211,10 @@ Navigate to the automation directory in your command line interface.
 Execute the following command to install the necessary dependencies:
 
 ```bash
-composer require badcow/dns phpseclib/phpseclib phpbu/phpbu
+composer require badcow/dns phpseclib/phpseclib phpbu/phpbu setbased/php-audit
 ```
 
-This command will install the ```badcow/dns``` and ```phpseclib/phpseclib``` packages which are essential for the automation script to function correctly.
+This command will install the essential packages for the automation scripts to function correctly.
 
 ### Install Optional Dependencies:
 
@@ -239,6 +239,18 @@ To set up automated tasks for Namingo, open the example crontab file located at 
 ### Running the `notifications.php` Script in the Background
 
 To run the notifications.php script as a background process, execute the following command: ```/usr/bin/php /opt/registry/automation/notifications.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
+
+### Setting Up an Audit Trail Database for Namingo
+
+To create an audit trail database for Namingo, start by editing the configuration file located at `/opt/registry/automation/audit.json` with the correct database details. This includes specifying the database connection parameters such as host, username, and password. Once your configuration is set up, create a new database named `registryAudit`. After the database is created, run the command:
+
+```bash
+/opt/registry/automation/vendor/bin/audit -v audit /opt/registry/automation/audit.json
+```
+
+This will initialize and configure the audit trail functionality. This process ensures that all necessary tables and structures are set up in the registryAudit database, enabling comprehensive auditing of Namingo's operations.
+
+**Currently, the audit trail setup for Namingo is supported only with MySQL or MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgAudit](https://minervadb.com/index.php/pgaudit-open-source-postgresql-audit-logging/), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
 
 ## 11. RDE (Registry data escrow) configuration:
 
