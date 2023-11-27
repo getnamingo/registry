@@ -47,6 +47,7 @@ $server->set([
     'ssl_verify_peer' => false,
     'ssl_allow_self_signed' => false,
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
+    'ssl_ciphers' => 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384',
 ]);
 
 $server->handle(function (Connection $conn) use ($table, $db, $c) {
