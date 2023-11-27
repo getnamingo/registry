@@ -57,7 +57,7 @@ $stmt->bindParam(':data', $encryptedData);
 $stmt->execute();
 ```
 
-## 4. Database installation (please choose one):
+## 4. Using the Key for Select Operations
 
 ```php
 // Assuming $pdo is your PDO instance
