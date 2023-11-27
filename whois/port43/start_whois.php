@@ -11,7 +11,7 @@ $server->set([
     'log_file' => '/var/log/whois/whois.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file' => '/var/log/whois/whois.pid',
+    'pid_file' => '/var/run/whois.pid',
     'max_request' => 1000,
     'dispatch_mode' => 2,
     'open_tcp_nodelay' => true,

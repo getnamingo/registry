@@ -129,8 +129,9 @@ function processDomainCheck($conn, $db, $xml, $trans) {
             $domainEntry[] = 'In use';
         } else {
             // Check if the domain is reserved
+            $parts = explode('.', $domainName);
             $stmt = $db->prepare("SELECT type FROM reserved_domain_names WHERE name = :domainName LIMIT 1");
-            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+            $stmt->bindParam(':domainName', $parts[0], PDO::PARAM_STR);
             $stmt->execute();
             $reserved = $stmt->fetchColumn();
 

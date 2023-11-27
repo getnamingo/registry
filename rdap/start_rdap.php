@@ -63,7 +63,7 @@ $http->set([
     'log_file' => '/var/log/rdap/rdap.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file' => '/var/log/rdap/rdap.pid',
+    'pid_file' => '/var/run/rdap.pid',
     'max_request' => 1000,
     'dispatch_mode' => 1,
     'open_tcp_nodelay' => true,
@@ -397,13 +397,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                 [
                     mapContactToVCard($registrantDetails, 'registrant', $c)
                 ],
-                array_map(function ($contact) {
+                array_map(function ($contact) use ($c) {
                     return mapContactToVCard($contact, 'admin', $c);
                 }, $adminDetails),
-                array_map(function ($contact) {
+                array_map(function ($contact) use ($c) {
                     return mapContactToVCard($contact, 'tech', $c);
                 }, $techDetails),
-                array_map(function ($contact) {
+                array_map(function ($contact) use ($c) {
                     return mapContactToVCard($contact, 'billing', $c);
                 }, $billingDetails)
             ),
@@ -422,7 +422,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                     'type' => 'application/rdap+json',
                 ]
             ],
-            'nameservers' => array_map(function ($nameserverDetails) {
+            'nameservers' => array_map(function ($nameserverDetails) use ($c) {
                 return [
                     'objectClassName' => 'nameserver',
                     'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $c['roid'] . '',
