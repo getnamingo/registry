@@ -69,7 +69,7 @@ foreach ($tlds as $tld) {
     foreach ($domains as $domain) {
         $xml->startElement('rdeDom:domain');
         $xml->writeElement('rdeDom:name', $domain['name']);
-        $xml->writeElement('rdeDom:roid', $domain['id']);
+        $xml->writeElement('rdeDom:roid', 'D' . $domain['id']);
         $xml->writeElement('rdeDom:uName', $domain['name']);
         $xml->writeElement('rdeDom:idnTableId', 'Latn');
 
@@ -168,7 +168,7 @@ foreach ($tlds as $tld) {
     foreach ($hosts as $host) {
         $xml->startElement('rdeHost:host');
         $xml->writeElement('rdeHost:name', $host['name']);
-        $xml->writeElement('rdeHost:roid', $host['id']);
+        $xml->writeElement('rdeHost:roid', 'H' . $host['id']);
         
         $xml->startElement('rdeHost:status');
         $xml->writeAttribute('s', 'ok');
@@ -190,7 +190,7 @@ foreach ($tlds as $tld) {
     foreach ($contacts as $contact) {
         $xml->startElement('rdeContact:contact');
         $xml->writeElement('rdeContact:id', $contact['identifier']);
-        $xml->writeElement('rdeContact:roid', $contact['id']);
+        $xml->writeElement('rdeContact:roid', 'C' . $contact['id']);
         $xml->startElement('rdeContact:status');
         $xml->writeAttribute('s', 'ok');
         $xml->text('ok');

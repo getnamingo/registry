@@ -6,5 +6,8 @@ return [
     'db_port' => 3306,
     'db_database' => 'your_database_name',
     'db_username' => 'your_username',
-    'db_password' => 'your_password'
+    'db_password' => 'your_password',
+    'roid' => 'XX',
+    'registry_url' => 'https://example.com/rdap-terms',
+    'rdap_url' => 'https://rdap.example.com',
 ];

@@ -4,10 +4,10 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
-function mapContactToVCard($contactDetails, $role) {
+function mapContactToVCard($contactDetails, $role, $c) {
     return [
         'objectClassName' => 'entity',
-        'handle' => [$contactDetails['identifier']],
+        'handle' => ['C' . $contactDetails['identifier'] . '-' . $c['roid']],
         'roles' => [$role],
         'remarks' => [
             [
@@ -96,26 +96,26 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
     // Handle domain query
     if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
         $domainName = $matches[1];
-        handleDomainQuery($request, $response, $pdo, $domainName);
+        handleDomainQuery($request, $response, $pdo, $domainName, $c);
     }
     // Handle entity (contacts) query
     elseif (preg_match('#^/entity/([^/?]+)#', $requestPath, $matches)) {
         $entityHandle = $matches[1];
-        handleEntityQuery($request, $response, $pdo, $entityHandle);
+        handleEntityQuery($request, $response, $pdo, $entityHandle, $c);
     }
     // Handle nameserver query
     elseif (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $matches)) {
         $nameserverHandle = $matches[1];
-        handleNameserverQuery($request, $response, $pdo, $nameserverHandle);
+        handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c);
     }
     // Handle help query
     elseif ($requestPath === '/help') {
-        handleHelpQuery($request, $response, $pdo);
+        handleHelpQuery($request, $response, $pdo, $c);
     }
     // Handle search query (e.g., search for domains by pattern)
     elseif (preg_match('#^/domains\?name=([^/?]+)#', $requestPath, $matches)) {
         $searchPattern = $matches[1];
-        handleSearchQuery($request, $response, $pdo, $searchPattern);
+        handleSearchQuery($request, $response, $pdo, $searchPattern, $c);
     }
     else {
         $response->header('Content-Type', 'application/json');
@@ -130,7 +130,7 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
 // Start the server
 $http->start();
 
-function handleDomainQuery($request, $response, $pdo, $domainName) {
+function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
     // Extract and validate the domain name from the request
     $domain = trim($domainName);
     
@@ -354,7 +354,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                     "handle" => $registrarDetails['iana_id'],
                     "links" => [
                         [
-                            "href" => "https://rdap.example.com/entity/" . $registrarDetails['iana_id'],
+                            "href" => $c['rdap_url'] . "/entity/" . $registrarDetails['iana_id'],
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
@@ -383,29 +383,29 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                     ],
                 ],
                 [
-                    mapContactToVCard($registrantDetails, 'registrant')
+                    mapContactToVCard($registrantDetails, 'registrant', $c)
                 ],
                 array_map(function ($contact) {
-                    return mapContactToVCard($contact, 'admin');
+                    return mapContactToVCard($contact, 'admin', $c);
                 }, $adminDetails),
                 array_map(function ($contact) {
-                    return mapContactToVCard($contact, 'tech');
+                    return mapContactToVCard($contact, 'tech', $c);
                 }, $techDetails),
                 array_map(function ($contact) {
-                    return mapContactToVCard($contact, 'billing');
+                    return mapContactToVCard($contact, 'billing', $c);
                 }, $billingDetails)
             ),
             'events' => $events,
-            'handle' => $domainDetails['id'] . '',
+            'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
             'ldhName' => $domain,
             'links' => [
                 [
-                    'href' => 'https://rdap.example.com/domain/' . $domain,
+                    'href' => $c['rdap_url'] . '/domain/' . $domain,
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => 'https://rdap.registrar.com/domain/' . $domain,
+                    'href' => 'https://' . $registrarDetails['rdap_server'] . '/domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -413,11 +413,11 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
             'nameservers' => array_map(function ($nameserverDetails) {
                 return [
                     'objectClassName' => 'nameserver',
-                    'handle' => $nameserverDetails['host_id'] . '',
+                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $c['roid'] . '',
                     'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
-                            'href' => 'https://rdap.example.com/nameserver/' . $nameserverDetails['name'],
+                            'href' => $c['rdap_url'] . '/nameserver/' . $nameserverDetails['name'],
                             'rel' => 'self',
                             'type' => 'application/rdap+json',
                         ],
@@ -450,12 +450,12 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
                 ],
                     "links" => [
                     [
-                        "href" => "https://rdap.example.com/help",
+                        "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
-                        "href" => "https://example.com/rdap-terms",
+                        "href" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -508,7 +508,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName) {
     }
 }
 
-function handleEntityQuery($request, $response, $pdo, $entityHandle) {
+function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
     // Extract and validate the entity handle from the request
     $entity = trim($entityHandle);
 
@@ -588,7 +588,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
             'events' => $events,
             'links' => [
                 [
-                    'href' => 'https://rdap.example.com/entity/' . $registrarDetails['iana_id'],
+                    'href' => $c['rdap_url'] . '/entity/' . $registrarDetails['iana_id'],
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]
@@ -630,12 +630,12 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
                 ],
                     "links" => [
                     [
-                        "href" => "https://rdap.example.com/help",
+                        "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
-                        "href" => "https://example.com/rdap-terms",
+                        "href" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -688,7 +688,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle) {
     }
 }
 
-function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
+function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c) {
     // Extract and validate the nameserver handle from the request
     $ns = trim($nameserverHandle);
 
@@ -835,7 +835,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
                     "handle" => $registrarDetails['iana_id'],
                     "links" => [
                         [
-                            "href" => "https://rdap.example.com/entity/" . $registrarDetails['iana_id'],
+                            "href" => $c['rdap_url'] . "/entity/" . $registrarDetails['iana_id'],
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
@@ -864,13 +864,13 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
                     ],
                 ],
             ),
-            'handle' => $hostDetails['id'] . '',
+            'handle' => 'H' . $hostDetails['id'] . '-' . $c['roid'] . '',
             'ipAddresses' => $ipAddresses,
             'events' => $events,
             'ldhName' => $hostDetails['name'],
             'links' => [
                 [
-                    'href' => 'https://rdap.example.com/nameserver/' . $hostDetails['name'],
+                    'href' => $c['rdap_url'] . '/nameserver/' . $hostDetails['name'],
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]
@@ -888,12 +888,12 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
                 ],
                     "links" => [
                     [
-                        "href" => "https://rdap.example.com/help",
+                        "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
-                        "href" => "https://example.com/rdap-terms",
+                        "href" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -946,7 +946,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle) {
     }
 }
 
-function handleHelpQuery($request, $response, $pdo) {
+function handleHelpQuery($request, $response, $pdo, $c) {
     // Set the RDAP conformance levels
     $rdapConformance = [
         "rdap_level_0",
@@ -971,7 +971,7 @@ function handleHelpQuery($request, $response, $pdo) {
         ],
         'links' => [
             [
-                'href' => 'https://rdap.example.com/help',
+                'href' => $c['rdap_url'] . '/help',
                 'rel' => 'self',
                 'type' => 'application/rdap+json',
             ],
@@ -996,12 +996,12 @@ function handleHelpQuery($request, $response, $pdo) {
         ],
         "links" => [
         [
-            "href" => "https://rdap.example.com/help",
+            "href" => $c['rdap_url'] . "/help",
             "rel" => "self",
             "type" => "application/rdap+json"
         ],
         [
-            "href" => "https://example.com/rdap-terms",
+            "href" => $c['registry_url'],
             "rel" => "alternate",
             "type" => "text/html"
         ],

@@ -358,7 +358,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 $clidF = $stmt3->fetch(PDO::FETCH_ASSOC);
 
                 $res = "Domain Name: ".strtoupper($f['name'])
-                    ."\nRegistry Domain ID: ".$f['id']
+                    ."\nRegistry Domain ID: D".$f['id']."-".$c['roid']
                     ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
                     ."\nRegistrar URL: ".$clidF['url']
                     ."\nUpdated Date: ".$f['update']
@@ -400,7 +400,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nRegistrant Fax: REDACTED FOR PRIVACY"
                     ."\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                 } else {
-                $res .= "\nRegistry Registrant ID: ".$f2['identifier']
+                $res .= "\nRegistry Registrant ID: C".$f2['identifier']."-".$c['roid']
                     ."\nRegistrant Name: ".$f2['name']
                     ."\nRegistrant Organization: ".$f2['org']
                     ."\nRegistrant Street: ".$f2['street1']
@@ -437,7 +437,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nAdmin Fax: REDACTED FOR PRIVACY"
                     ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                 } else {
-                $res .= "\nRegistry Admin ID: ".$f2['identifier']
+                $res .= "\nRegistry Admin ID: C".$f2['identifier']."-".$c['roid']
                     ."\nAdmin Name: ".$f2['name']
                     ."\nAdmin Organization: ".$f2['org']
                     ."\nAdmin Street: ".$f2['street1']
@@ -474,7 +474,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nBilling Fax: REDACTED FOR PRIVACY"
                     ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                 } else {
-                $res .= "\nRegistry Billing ID: ".$f2['identifier']
+                $res .= "\nRegistry Billing ID: C".$f2['identifier']."-".$c['roid']
                     ."\nBilling Name: ".$f2['name']
                     ."\nBilling Organization: ".$f2['org']
                     ."\nBilling Street: ".$f2['street1']
@@ -511,7 +511,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                     ."\nTech Fax: REDACTED FOR PRIVACY"
                     ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                 } else {
-                $res .= "\nRegistry Tech ID: ".$f2['identifier']
+                $res .= "\nRegistry Tech ID: C".$f2['identifier']."-".$c['roid']
                     ."\nTech Name: ".$f2['name']
                     ."\nTech Organization: ".$f2['org']
                     ."\nTech Street: ".$f2['street1']

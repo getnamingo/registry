@@ -7,5 +7,6 @@ return [
     'db_database' => 'your_database_name',
     'db_username' => 'your_username',
     'db_password' => 'your_password',
-    'privacy' => false
+    'privacy' => false,
+    'roid' => 'XX',
 ];
