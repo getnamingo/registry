@@ -34,7 +34,7 @@ function processContactCheck($conn, $db, $xml, $trans) {
     
         $ids[] = $entry;
     }
-	
+    
     $svTRID = generateSvTRID();
     $response = [
         'command' => 'check_contact',
@@ -64,10 +64,10 @@ function processHostCheck($conn, $db, $xml, $trans) {
         $host = (string)$host;
 
         // Validation for host name
-		if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $host) && strlen($host) > 254) {
+        if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $host) && strlen($host) > 254) {
             sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
             return;
-		}
+        }
 
         $stmt = $db->prepare("SELECT 1 FROM host WHERE name = :name");
         $stmt->execute(['name' => $host]);
@@ -112,29 +112,41 @@ function processDomainCheck($conn, $db, $xml, $trans) {
     $names = [];
     foreach ($domains as $domain) {
         $domainName = (string) $domain;
+
+        // Check if the domain is already taken
         $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName");
         $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
         $stmt->execute();
-        $availability = $stmt->fetchColumn();
-		
-        // Convert the DB result into a boolean '0' or '1'
-        $availability = $availability ? '0' : '1';
-		
-        $invalid_label = validate_label($domainName, $db);
-		
-        // Initialize a new domain entry with the domain name and its availability
+        $taken = $stmt->fetchColumn();
+        $availability = $taken ? '0' : '1';
+
+        // Initialize a new domain entry with the domain name
         $domainEntry = [$domainName];
 
-        // Check if the domain is Invalid
-        if ($invalid_label) {
-            $domainEntry[] = 0;  // Set status to unavailable
-            $domainEntry[] = $invalid_label;
+        if ($availability === '0') {
+            // Domain is taken
+            $domainEntry[] = 0; // Set status to unavailable
+            $domainEntry[] = 'In use';
         } else {
-            $domainEntry[] = $availability;
+            // Check if the domain is reserved
+            $stmt = $db->prepare("SELECT type FROM reserved_domain_names WHERE name = :domainName LIMIT 1");
+            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+            $stmt->execute();
+            $reserved = $stmt->fetchColumn();
 
-            // Check if the domain is unavailable
-            if ($availability === '0') {
-                $domainEntry[] = 'In use';
+            if ($reserved) {
+                $domainEntry[] = 0; // Set status to unavailable
+                $domainEntry[] = ucfirst($reserved); // Capitalize the first letter
+            } else {
+                $invalid_label = validate_label($domainName, $db);
+
+                // Check if the domain is Invalid
+                if ($invalid_label) {
+                    $domainEntry[] = 0;  // Set status to unavailable
+                    $domainEntry[] = ucfirst($invalid_label); // Capitalize the first letter
+                } else {
+                    $domainEntry[] = 1; // Domain is available
+                }
             }
         }
 

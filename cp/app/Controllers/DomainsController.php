@@ -22,6 +22,13 @@ class DomainsController extends Controller
             $domainName = $data['domain_name'] ?? null;
 
             if ($domainName) {
+                $domainParts = explode('.', $domainName);
+
+                if (count($domainParts) > 2) {
+                    // Remove the leftmost part (subdomain)
+                    array_shift($domainParts);
+                }
+
                 $domainModel = new Domain($this->container->get('db'));
                 $availability = $domainModel->getDomainByName($domainName);
 
@@ -35,11 +42,19 @@ class DomainsController extends Controller
                     $status = $invalid_label;
                     $isAvailable = 0;
                 } else {
-                    $isAvailable = $availability;
-                    $status = null; 
+                    // If the domain is not taken, check if it's reserved
+                    if ($availability === '1') {
+                        $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$domainParts[0]]);
 
-                    // Check if the domain is unavailable
-                    if ($availability === '0') {
+                        if ($domain_already_reserved) {
+                            $isAvailable = 0;
+                            $status = ucfirst($domain_already_reserved['type']);
+                        } else {
+                            $isAvailable = $availability;
+                            $status = $availability === '0' ? 'In use' : null;
+                        }
+                    } else {
+                        $isAvailable = $availability;
                         $status = 'In use';
                     }
                 }

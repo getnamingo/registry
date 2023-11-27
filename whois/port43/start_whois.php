@@ -307,6 +307,17 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
             $server->close($fd);
             return;
         }
+        
+        // Check if domain is reserved
+        $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+        $stmtReserved->execute([$parts[0]]);
+        $domain_already_reserved = $stmtReserved->fetchColumn();
+
+        if ($domain_already_reserved) {
+            $server->send($fd, "Domain name is reserved or restricted");
+            $server->close($fd);
+            return;
+        }
 
         // Fetch the IDN regex for the given TLD
         $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");

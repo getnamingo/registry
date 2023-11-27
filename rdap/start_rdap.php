@@ -175,6 +175,18 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
         return;
     }
     
+    // Check if domain is reserved
+    $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+    $stmtReserved->execute([$parts[0]]);
+    $domain_already_reserved = $stmtReserved->fetchColumn();
+
+    if ($domain_already_reserved) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
+        return;
+    }
+    
     // Fetch the IDN regex for the given TLD
     $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
     $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
