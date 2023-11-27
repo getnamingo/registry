@@ -24,6 +24,13 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 $server = new Server("127.0.0.1", 8250);
+$server->set([
+    'daemonize' => false,
+    'log_file' => '/var/log/namingo/notifications.log',
+    'log_level' => SWOOLE_LOG_INFO,
+    'worker_num' => swoole_cpu_num() * 2,
+    'pid_file' => '/var/run/notifications.pid'
+]);
 
 $server->on("request", function (Request $request, Response $response) use ($c) {
     // Parse the received data

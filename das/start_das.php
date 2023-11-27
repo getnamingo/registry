@@ -8,7 +8,7 @@ if (!extension_loaded('swoole')) {
 $server = new Swoole\Server('0.0.0.0', 1043);
 $server->set([
     'daemonize' => false,
-    'log_file' => '/var/log/das/das.log',
+    'log_file' => '/var/log/namingo/das.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/das.pid',

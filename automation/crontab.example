@@ -1,0 +1,36 @@
+#----------> Crontab Configuration for Namingo <--------------------------------#
+
+# run write-zone.php every 15 min.
+*/15 * * * * root /usr/bin/php8.2 /opt/registry/automation/write-zone.php >> /var/log/namingo/write-zone.log
+
+# run statistics.php at 59 min, every hour
+59 * * * * root /usr/bin/php8.2 /opt/registry/automation/statistics.php >> /var/log/namingo/statistics.log
+
+# run backup at 59 min, every hour
+59 * * * * /opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.xml
+
+# run change-domain-status.php every hour
+30 * * * * root /usr/bin/php8.2 /opt/registry/automation/change-domain-status.php >> /var/log/namingo/change-domain-status.log
+
+# run auto-approve-transfer.php every hour
+45 * * * * root /usr/bin/php8.2 /opt/registry/automation/auto-approve-transfer.php >> /var/log/namingo/auto-approve-transfer.log
+
+# run send-invoice.php every 1st day
+1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/send-invoice.php >> /var/log/namingo/send-invoice.log
+
+# run auto-clean-unused-contact-and-host.php every day
+5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/auto-clean-unused-contact-and-host.php >> /var/log/namingo/auto-clean-unused-contact-and-host.log
+
+# run tmch.php every day
+5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/tmch.php >> /var/log/namingo/tmch.log
+
+# run escrow.php every day
+5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/escrow.php >> /var/log/namingo/escrow.log
+
+# run reporting.php every 1st day
+1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/reporting.php >> /var/log/namingo/reporting.log
+
+# run urs.php every hour
+45 * * * * root /usr/bin/php8.2 /opt/registry/automation/urs.php >> /var/log/namingo/urs.log
+
+#----------> End Crontab Configuration for Namingo <----------------------------#

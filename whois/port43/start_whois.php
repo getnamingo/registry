@@ -8,7 +8,7 @@ if (!extension_loaded('swoole')) {
 $server = new Swoole\Server('0.0.0.0', 43);
 $server->set([
     'daemonize' => false,
-    'log_file' => '/var/log/whois/whois.log',
+    'log_file' => '/var/log/namingo/whois.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/whois.pid',

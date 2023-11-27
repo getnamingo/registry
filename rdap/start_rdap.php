@@ -60,7 +60,7 @@ function mapContactToVCard($contactDetails, $role, $c) {
 $http = new Swoole\Http\Server('0.0.0.0', 7500);
 $http->set([
     'daemonize' => false,
-    'log_file' => '/var/log/rdap/rdap.log',
+    'log_file' => '/var/log/namingo/rdap.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/rdap.pid',

@@ -31,7 +31,7 @@ Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port']);
 $server->set([
     'enable_coroutine' => true,
-    'log_file' => '/var/log/epp/epp.log',
+    'log_file' => '/var/log/namingo/epp.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 4,
     'pid_file' => $c['epp_pid'],
