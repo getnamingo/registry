@@ -130,6 +130,10 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
                 $response->status(404);
                 $response->end(json_encode(['error' => 'Object not found']));
             }
+        } else {
+                $response->header('Content-Type', 'application/json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Object not found']));
         }
     }
     // Handle entity search query
