@@ -67,7 +67,7 @@ $http->set([
     'max_request' => 1000,
     'dispatch_mode' => 1,
     'open_tcp_nodelay' => true,
-    'max_conn' => 10000,
+    'max_conn' => 1024,
     'buffer_output_size' => 2 * 1024 * 1024,  // 2MB
     'heartbeat_check_interval' => 60,
     'heartbeat_idle_time' => 600,  // 10 minutes
@@ -184,7 +184,7 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
     else {
         $response->header('Content-Type', 'application/json');
         $response->status(404);
-        $response->end(json_encode(['error' => 'Endpoint not found']));
+        $response->end(json_encode(['errorCode' => 404,'title' => 'Not Found','error' => 'Endpoint not found']));
     }
 
     // Close the connection
@@ -289,7 +289,63 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                 'errorCode' => 404,
                 'title' => 'Not Found',
                 'description' => 'The requested domain was not found in the RDAP database.',
-            ]));
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
             // Close the connection
             $pdo = null;
             return;
@@ -316,7 +372,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
         $isZoneSigned = ($stmt2b->fetchColumn() == 1);
 
         // Query 3: Get registrar details
-        $stmt3 = $pdo->prepare("SELECT name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
+        $stmt3 = $pdo->prepare("SELECT id,name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
         $stmt3->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
         $stmt3->execute();
         $registrarDetails = $stmt3->fetch(PDO::FETCH_ASSOC);
@@ -429,17 +485,17 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                         ],
                     ],
                     ],
-                    "handle" => $registrarDetails['iana_id'],
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
                     "links" => [
                         [
-                            "href" => $c['rdap_url'] . "/entity/" . $registrarDetails['iana_id'],
+                            "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
                     ],
                     "publicIds" => [
                         [
-                            "identifier" => $registrarDetails['iana_id'],
+                            "identifier" => (string)$registrarDetails['iana_id'],
                             "type" => "IANA Registrar ID"
                         ]
                     ],
@@ -526,7 +582,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                         "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
                         "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
                 ],
-                    "links" => [
+                "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
@@ -541,15 +597,15 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                     "title" => "RDAP Terms of Service"
                 ],
                 [
-            "description" => [
-                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                "description" => [
+                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                 ]
                 ],
                 [
-            "description" => [
-                "For more information on domain status codes, please visit https://icann.org/epp"
+                "description" => [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
                 ],
-              "links" => [
+                "links" => [
                     [
                         "href" => "https://icann.org/epp",
                         "rel" => "alternate",
@@ -559,16 +615,16 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
                     "title" => "Status Codes"
                 ],
                 [
-            "description" => [
-                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                ],
-              "links" => [
+                    "description" => [
+                        "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                    ],
+                    "links" => [
                     [
                         "href" => "https://icann.org/wicf",
                         "rel" => "alternate",
                         "type" => "text/html"
                     ]
-                ],
+                    ],
                     "title" => "RDDS Inaccuracy Complaint Form"
                 ],
             ]
@@ -608,11 +664,91 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
 
     // Perform the RDAP lookup
     try {
+        // Validate $entity to ensure it is numeric and contains only digits
+        if (!is_numeric($entity)) {
+            // Return a 404 response if $entity is not a purely numeric string
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested entity was not found in the RDAP database.',
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
+
         // Query 1: Get registrar details
         $stmt1 = $pdo->prepare("SELECT id,name,clid,iana_id,whois_server,rdap_server,url,email,abuse_email,abuse_phone FROM registrar WHERE iana_id = :iana_id");
         $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
         $stmt1->execute();
         $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+        
+        // Check if the first query returned a result
+        if (!$registrarDetails) {
+            // Query 2: Get registrar details by id as a fallback for ccTLDs without iana_id
+            $stmt2 = $pdo->prepare("SELECT id, name, clid, iana_id, whois_server, rdap_server, url, email, abuse_email, abuse_phone FROM registrar WHERE id = :id");
+            $stmt2->bindParam(':id', $entity, PDO::PARAM_INT);
+            $stmt2->execute();
+            $registrarDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
+        }
         
         // Check if the entity exists
         if (!$registrarDetails) {
@@ -629,15 +765,15 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
             return;
         }
 
-        // Query 2: Get registrar abuse details
-        $stmt2 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
-        $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        // Query 2: Fetch all contact types for a registrar
+        $stmt2 = $pdo->prepare("SELECT type, first_name, last_name, voice, email FROM registrar_contact WHERE registrar_id = :clid");
+        $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
-        $registrarAbuseDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $contacts = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
         // Query 3: Get registrar abuse details
         $stmt3 = $pdo->prepare("SELECT org,street1,street2,city,sp,pc,cc FROM registrar_contact WHERE registrar_id = :clid AND type = 'owner'");
-        $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_INT);
         $stmt3->execute();
         $registrarContact = $stmt3->fetch(PDO::FETCH_ASSOC);
 
@@ -646,7 +782,37 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
             ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
-        $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+        // Initialize an array to hold entity blocks
+        $entityBlocks = [];
+        // Define an array of allowed contact types
+        $allowedTypes = ['owner', 'tech', 'abuse'];
+
+        foreach ($contacts as $contact) {
+            // Check if the contact type is one of the allowed types
+            if (in_array($contact['type'], $allowedTypes)) {
+                // Build the full name
+                $fullName = $contact['first_name'] . ' ' . $contact['last_name'];
+
+                // Create an entity block for each allowed contact type
+                $entityBlock = [
+                    'objectClassName' => 'entity',
+                    'roles' => [$contact['type']],
+                    "status" => ["active"],
+                    "vcardArray" => [
+                        "vcard",
+                        [
+                            ['version', new stdClass(), 'text', '4.0'],
+                            ["fn", new stdClass(), "text", $fullName],
+                            ["tel", ["type" => ["voice"]], "uri", "tel:" . $contact['voice']],
+                            ["email", new stdClass(), "text", $contact['email']]
+                        ]
+                    ],
+                ];
+
+                // Add the entity block to the array
+                $entityBlocks[] = $entityBlock;
+            }
+        }
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -656,41 +822,19 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
                 'icann_rdap_technical_implementation_guide_0',
             ],
             'objectClassName' => 'entity',
-            'entities' => array_merge(
-                [
-                [
-                    'objectClassName' => 'entity',
-                    'entities' => [
-                    [
-                        'objectClassName' => 'entity',
-                        'roles' => ["abuse"],
-                        "status" => ["active"],
-                        "vcardArray" => [
-                            "vcard",
-                            [
-                                ['version', new stdClass(), 'text', '4.0'],
-                                ["fn", new stdClass(), "text", $abuseContactName],
-                                ["tel", ["type" => ["voice"]], "uri", "tel:" . $registrarDetails['abuse_phone']],
-                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
-                            ]
-                        ],
-                    ],
-                    ],
-                    ],
-                ],
-            ),
-            "handle" => $registrarDetails['iana_id'],
+            'entities' => $entityBlocks,
+            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
             'events' => $events,
             'links' => [
                 [
-                    'href' => $c['rdap_url'] . '/entity/' . $registrarDetails['iana_id'],
+                    'href' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]
             ],
             "publicIds" => [
                 [
-                    "identifier" => $registrarDetails['iana_id'],
+                    "identifier" => (string)$registrarDetails['iana_id'],
                     "type" => "IANA Registrar ID"
                 ]
             ],
@@ -714,61 +858,61 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
                 ]
             ],
             "notices" => [
-                [
-                    "description" => [
-                        "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
-                        "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
-                        "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
-                        "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
-                        "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
-                        "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
-                ],
+                    [
+                        "description" => [
+                            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
                     "links" => [
-                    [
-                        "href" => $c['rdap_url'] . "/help",
-                        "rel" => "self",
-                        "type" => "application/rdap+json"
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
                     ],
                     [
-                        "href" => $c['registry_url'],
-                        "rel" => "alternate",
-                        "type" => "text/html"
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
                     ],
-                ],
-                    "title" => "RDAP Terms of Service"
-                ],
-                [
-            "description" => [
-                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
                 ]
-                ],
-                [
-            "description" => [
-                "For more information on domain status codes, please visit https://icann.org/epp"
-                ],
-              "links" => [
-                    [
-                        "href" => "https://icann.org/epp",
-                        "rel" => "alternate",
-                        "type" => "text/html"
-                    ]
-                ],
-                    "title" => "Status Codes"
-                ],
-                [
-            "description" => [
-                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                ],
-              "links" => [
-                    [
-                        "href" => "https://icann.org/wicf",
-                        "rel" => "alternate",
-                        "type" => "text/html"
-                    ]
-                ],
-                    "title" => "RDDS Inaccuracy Complaint Form"
-                ],
-            ]
         ];
 
         // Send the RDAP response
@@ -838,7 +982,63 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
                 'errorCode' => 404,
                 'title' => 'Not Found',
                 'description' => 'The requested nameserver was not found in the RDAP database.',
-            ]));
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
             // Close the connection
             $pdo = null;
             return;
@@ -863,7 +1063,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
         $ipDetails = $stmt3->fetchAll(PDO::FETCH_COLUMN, 0);
 
         // Query 4: Get registrar details
-        $stmt4 = $pdo->prepare("SELECT name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
+        $stmt4 = $pdo->prepare("SELECT id,name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
         $stmt4->bindParam(':clid', $hostDetails['clid'], PDO::PARAM_INT);
         $stmt4->execute();
         $registrarDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
@@ -929,17 +1129,17 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
                         ],
                     ],
                     ],
-                    "handle" => $registrarDetails['iana_id'],
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
                     "links" => [
                         [
-                            "href" => $c['rdap_url'] . "/entity/" . $registrarDetails['iana_id'],
+                            "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
                     ],
                     "publicIds" => [
                         [
-                            "identifier" => $registrarDetails['iana_id'],
+                            "identifier" => (string)$registrarDetails['iana_id'],
                             "type" => "IANA Registrar ID"
                         ]
                     ],
@@ -983,7 +1183,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
                         "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
                         "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
                 ],
-                    "links" => [
+                "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
@@ -998,15 +1198,15 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
                     "title" => "RDAP Terms of Service"
                 ],
                 [
-            "description" => [
-                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                "description" => [
+                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                 ]
                 ],
                 [
-            "description" => [
-                "For more information on domain status codes, please visit https://icann.org/epp"
+                "description" => [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
                 ],
-              "links" => [
+                "links" => [
                     [
                         "href" => "https://icann.org/epp",
                         "rel" => "alternate",
@@ -1016,16 +1216,498 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
                     "title" => "Status Codes"
                 ],
                 [
-            "description" => [
-                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                ],
-              "links" => [
+                    "description" => [
+                        "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                    ],
+                    "links" => [
                     [
                         "href" => "https://icann.org/wicf",
                         "rel" => "alternate",
                         "type" => "text/html"
                     ]
+                    ],
+                    "title" => "RDDS Inaccuracy Complaint Form"
                 ],
+            ]
+        ];
+
+        // Send the RDAP response
+        $response->header('Content-Type', 'application/json');
+        $response->status(200);
+        $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
+    } catch (PDOException $e) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(503);
+        $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
+        return;
+    }
+}
+
+function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType) {
+    // Extract and validate the domain name from the request
+    $domain = trim($searchPattern);
+    
+    // Empty domain check
+    if (!$domain) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Please enter a domain name']));
+        return;
+    }
+    
+    switch ($searchType) {
+        case 'name':
+            // Search by domain name
+            break;
+        case 'nsLdhName':
+            // Search by nameserver LDH name
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested nameserver was not found in the RDAP database.',
+            ]));
+            // Close the connection
+            $pdo = null;
+            return;
+        case 'nsIp':
+            // Search by nameserver IP address
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested IP was not found in the RDAP database.',
+            ]));
+            // Close the connection
+            $pdo = null;
+            return;
+    }
+    
+    // Check domain length
+    if (strlen($domain) > 68) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name is too long']));
+        return;
+    }
+    
+    // Check for prohibited patterns in domain names
+    if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        return;
+    }
+    
+    // Extract TLD from the domain
+    $parts = explode('.', $domain);
+    $tld = "." . end($parts);
+
+    // Check if the TLD exists in the domain_tld table
+    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
+    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtTLD->execute();
+    $tldExists = $stmtTLD->fetchColumn();
+
+    if (!$tldExists) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Invalid TLD. Please search only allowed TLDs']));
+        return;
+    }
+    
+    // Check if domain is reserved
+    $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+    $stmtReserved->execute([$parts[0]]);
+    $domain_already_reserved = $stmtReserved->fetchColumn();
+
+    if ($domain_already_reserved) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
+        return;
+    }
+    
+    // Fetch the IDN regex for the given TLD
+    $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
+    $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtRegex->execute();
+    $idnRegex = $stmtRegex->fetchColumn();
+
+    if (!$idnRegex) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Failed to fetch domain IDN table']));
+        return;
+    }
+
+    // Check for invalid characters using fetched regex
+    if (!preg_match($idnRegex, $domain)) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        return;
+    }
+
+    // Perform the RDAP lookup
+    try {
+        // Query 1: Get domain details
+        $stmt1 = $pdo->prepare("SELECT * FROM domain WHERE name = :domain");
+        $stmt1->bindParam(':domain', $domain, PDO::PARAM_STR);
+        $stmt1->execute();
+        $domainDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+
+        // Check if the domain exists
+        if (!$domainDetails) {
+            // Domain not found, respond with a 404 error
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested domain was not found in the RDAP database.',
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
+        
+        $domainDetails['crdate'] = (new DateTime($domainDetails['crdate']))->format('Y-m-d\TH:i:s.v\Z');
+        $domainDetails['exdate'] = (new DateTime($domainDetails['exdate']))->format('Y-m-d\TH:i:s.v\Z');
+
+        // Query 2: Get status details
+        $stmt2 = $pdo->prepare("SELECT status FROM domain_status WHERE domain_id = :domain_id");
+        $stmt2->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmt2->execute();
+        $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
+        
+        // Query: Get DNSSEC details
+        $stmt2a = $pdo->prepare("SELECT interface FROM secdns WHERE domain_id = :domain_id");
+        $stmt2a->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmt2a->execute();
+        $isDelegationSigned = $stmt2a->fetchColumn() > 0;
+
+        $stmt2b = $pdo->prepare("SELECT secure FROM domain_tld WHERE tld = :tld");
+        $stmt2b->bindParam(':tld', $tld, PDO::PARAM_STR);
+        $stmt2b->execute();
+        $isZoneSigned = ($stmt2b->fetchColumn() == 1);
+
+        // Query 3: Get registrar details
+        $stmt3 = $pdo->prepare("SELECT id,name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
+        $stmt3->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
+        $stmt3->execute();
+        $registrarDetails = $stmt3->fetch(PDO::FETCH_ASSOC);
+        
+        // Query: Get registrar abuse details
+        $stmt3a = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
+        $stmt3a->bindParam(':clid', $domainDetails['clid'], PDO::PARAM_INT);
+        $stmt3a->execute();
+        $registrarAbuseDetails = $stmt3a->fetch(PDO::FETCH_ASSOC);
+
+        // Query 4: Get registrant details
+        $stmt4 = $pdo->prepare("SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.voice_x,contact.fax,contact.fax_x,contact.email FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id");
+        $stmt4->bindParam(':registrant', $domainDetails['registrant'], PDO::PARAM_INT);
+        $stmt4->execute();
+        $registrantDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
+
+        // Query 5: Get admin, billing and tech contacts        
+        $stmtMap = $pdo->prepare("SELECT contact_id, type FROM domain_contact_map WHERE domain_id = :domain_id");
+        $stmtMap->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmtMap->execute();
+        $contactMap = $stmtMap->fetchAll(PDO::FETCH_ASSOC);
+        
+        $adminDetails = [];
+        $techDetails = [];
+        $billingDetails = [];
+
+        foreach ($contactMap as $map) {
+            $stmtDetails = $pdo->prepare("SELECT contact.identifier, contact_postalInfo.name, contact_postalInfo.org, contact_postalInfo.street1, contact_postalInfo.street2, contact_postalInfo.street3, contact_postalInfo.city, contact_postalInfo.sp, contact_postalInfo.pc, contact_postalInfo.cc, contact.voice, contact.voice_x, contact.fax, contact.fax_x, contact.email FROM contact, contact_postalInfo WHERE contact.id = :contact_id AND contact_postalInfo.contact_id = contact.id");
+            $stmtDetails->bindParam(':contact_id', $map['contact_id'], PDO::PARAM_INT);
+            $stmtDetails->execute();
+    
+            $contactDetails = $stmtDetails->fetch(PDO::FETCH_ASSOC);
+    
+            switch ($map['type']) {
+                case 'admin':
+                    $adminDetails[] = $contactDetails;
+                    break;
+                case 'tech':
+                    $techDetails[] = $contactDetails;
+                    break;
+                case 'billing':
+                    $billingDetails[] = $contactDetails;
+                    break;
+            }
+        }
+
+        // Query 6: Get nameservers
+        $stmt6 = $pdo->prepare("
+            SELECT host.name, host.id as host_id 
+            FROM domain_host_map, host 
+            WHERE domain_host_map.domain_id = :domain_id 
+            AND domain_host_map.host_id = host.id
+        ");
+        $stmt6->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
+        $stmt6->execute();
+        $nameservers = $stmt6->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Define the basic events
+        $events = [
+            ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
+            ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
+            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+        ];
+
+        // Check if domain last update is set and not empty
+        if (isset($domainDetails['update']) && !empty($domainDetails['update'])) {
+            $updateDateTime = new DateTime($domainDetails['update']);
+            $events[] = [
+                'eventAction' => 'last domain update',
+                'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
+            ];
+        }
+
+        // Check if domain transfer date is set and not empty
+        if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
+            $transferDateTime = new DateTime($domainDetails['trdate']);
+            $events[] = [
+                'eventAction' => 'domain transfer',
+                'eventDate' => $transferDateTime->format('Y-m-d\TH:i:s.v\Z')
+            ];
+        }
+        
+        $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+
+        // Construct the RDAP response in JSON format
+        $rdapResponse = [
+            'rdapConformance' => [
+                'rdap_level_0',
+                'icann_rdap_response_profile_0',
+                'icann_rdap_technical_implementation_guide_0',
+            ],
+            'domainSearchResults' => [
+            [
+            'objectClassName' => 'domain',
+            'entities' => array_merge(
+                [
+                [
+                    'objectClassName' => 'entity',
+                    'entities' => [
+                    [
+                        'objectClassName' => 'entity',
+                        'roles' => ["abuse"],
+                        "status" => ["active"],
+                        "vcardArray" => [
+                            "vcard",
+                            [
+                                ['version', new stdClass(), 'text', '4.0'],
+                                ["fn", new stdClass(), "text", $abuseContactName],
+                                ["tel", ["type" => ["voice"]], "uri", "tel:" . $registrarDetails['abuse_phone']],
+                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
+                            ]
+                        ],
+                    ],
+                    ],
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ]
+                    ],
+                    "publicIds" => [
+                        [
+                            "identifier" => (string)$registrarDetails['iana_id'],
+                            "type" => "IANA Registrar ID"
+                        ]
+                    ],
+                    "remarks" => [
+                        [
+                            "description" => ["This record contains only a summary. For detailed information, please submit a query specifically for this object."],
+                            "title" => "Incomplete Data",
+                            "type" => "object truncated"
+                        ]
+                    ],
+                    "roles" => ["registrar"],
+                    "vcardArray" => [
+                        "vcard",
+                        [
+                            ['version', new stdClass(), 'text', '4.0'],
+                            ["fn", new stdClass(), "text", $registrarDetails['name']]
+                        ]
+                    ],
+                    ],
+                ],
+                [
+                    mapContactToVCard($registrantDetails, 'registrant', $c)
+                ],
+                array_map(function ($contact) use ($c) {
+                    return mapContactToVCard($contact, 'admin', $c);
+                }, $adminDetails),
+                array_map(function ($contact) use ($c) {
+                    return mapContactToVCard($contact, 'tech', $c);
+                }, $techDetails),
+                array_map(function ($contact) use ($c) {
+                    return mapContactToVCard($contact, 'billing', $c);
+                }, $billingDetails)
+            ),
+            'events' => $events,
+            'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
+            'ldhName' => $domain,
+            'links' => [
+                [
+                    'href' => $c['rdap_url'] . '/domain/' . $domain,
+                    'rel' => 'self',
+                    'type' => 'application/rdap+json',
+                ],
+                [
+                    'href' => 'https://' . $registrarDetails['rdap_server'] . '/domain/' . $domain,
+                    'rel' => 'related',
+                    'type' => 'application/rdap+json',
+                ]
+            ],
+            'nameservers' => array_map(function ($nameserverDetails) use ($c) {
+                return [
+                    'objectClassName' => 'nameserver',
+                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $c['roid'] . '',
+                    'ldhName' => $nameserverDetails['name'],
+                    'links' => [
+                        [
+                            'href' => $c['rdap_url'] . '/nameserver/' . $nameserverDetails['name'],
+                            'rel' => 'self',
+                            'type' => 'application/rdap+json',
+                        ],
+                    ],
+                    'remarks' => [
+                        [
+                            "description" => [
+                                "This record contains only a brief summary. To access the full details, please initiate a specific query targeting this entity."
+                            ],
+                            "title" => "Incomplete Data",
+                            "type" => "The object's information is incomplete due to reasons not currently understood."
+                        ],
+                    ],
+                ];
+            }, $nameservers),
+            "secureDNS" => [
+                "delegationSigned" => $isDelegationSigned,
+                "zoneSigned" => $isZoneSigned
+            ],
+            'status' => $statuses,
+            ],
+            ],
+            "notices" => [
+                [
+                    "description" => [
+                        "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                        "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                        "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                        "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                        "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                        "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                ],
+                "links" => [
+                    [
+                        "href" => $c['rdap_url'] . "/help",
+                        "rel" => "self",
+                        "type" => "application/rdap+json"
+                    ],
+                    [
+                        "href" => $c['registry_url'],
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ],
+                ],
+                    "title" => "RDAP Terms of Service"
+                ],
+                [
+                "description" => [
+                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                ]
+                ],
+                [
+                "description" => [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                ],
+                "links" => [
+                    [
+                        "href" => "https://icann.org/epp",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                    "title" => "Status Codes"
+                ],
+                [
+                    "description" => [
+                        "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                    ],
+                    "links" => [
+                    [
+                        "href" => "https://icann.org/wicf",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                    ],
                     "title" => "RDDS Inaccuracy Complaint Form"
                 ],
             ]
@@ -1139,7 +1821,63 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 'errorCode' => 404,
                 'title' => 'Not Found',
                 'description' => 'The requested nameserver was not found in the RDAP database.',
-            ]));
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
             // Close the connection
             $pdo = null;
             return;
@@ -1227,14 +1965,14 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 "notices" => [
                     [
                         "description" => [
-                            "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
                             "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
                             "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
                             "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
                             "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
                             "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
                     ],
-                        "links" => [
+                    "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
                             "rel" => "self",
@@ -1249,15 +1987,15 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "title" => "RDAP Terms of Service"
                     ],
                     [
-                "description" => [
-                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                     ]
                     ],
                     [
-                "description" => [
-                    "For more information on domain status codes, please visit https://icann.org/epp"
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
                     ],
-                  "links" => [
+                    "links" => [
                         [
                             "href" => "https://icann.org/epp",
                             "rel" => "alternate",
@@ -1267,16 +2005,16 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "title" => "Status Codes"
                     ],
                     [
-                "description" => [
-                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                    ],
-                  "links" => [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
                         [
                             "href" => "https://icann.org/wicf",
                             "rel" => "alternate",
                             "type" => "text/html"
                         ]
-                    ],
+                        ],
                         "title" => "RDDS Inaccuracy Complaint Form"
                     ],
                 ]
@@ -1301,7 +2039,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $ipDetails = $stmt3->fetchAll(PDO::FETCH_COLUMN, 0);
 
             // Query 4: Get registrar details
-            $stmt4 = $pdo->prepare("SELECT name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
+            $stmt4 = $pdo->prepare("SELECT id,name,iana_id,whois_server,rdap_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid");
             $stmt4->bindParam(':clid', $hostDetails['clid'], PDO::PARAM_INT);
             $stmt4->execute();
             $registrarDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
@@ -1369,17 +2107,17 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                             ],
                         ],
                         ],
-                        "handle" => $registrarDetails['iana_id'],
+                        "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
                         "links" => [
                             [
-                                "href" => $c['rdap_url'] . "/entity/" . $registrarDetails['iana_id'],
+                                "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                                 "rel" => "self",
                                 "type" => "application/rdap+json"
                             ]
                         ],
                         "publicIds" => [
                             [
-                                "identifier" => $registrarDetails['iana_id'],
+                                "identifier" => (string)$registrarDetails['iana_id'],
                                 "type" => "IANA Registrar ID"
                             ]
                         ],
@@ -1425,7 +2163,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                             "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
                             "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
                     ],
-                        "links" => [
+                    "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
                             "rel" => "self",
@@ -1440,15 +2178,15 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "title" => "RDAP Terms of Service"
                     ],
                     [
-                "description" => [
-                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                     ]
                     ],
                     [
-                "description" => [
-                    "For more information on domain status codes, please visit https://icann.org/epp"
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
                     ],
-                  "links" => [
+                    "links" => [
                         [
                             "href" => "https://icann.org/epp",
                             "rel" => "alternate",
@@ -1458,16 +2196,16 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "title" => "Status Codes"
                     ],
                     [
-                "description" => [
-                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                    ],
-                  "links" => [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
                         [
                             "href" => "https://icann.org/wicf",
                             "rel" => "alternate",
                             "type" => "text/html"
                         ]
-                    ],
+                        ],
                         "title" => "RDDS Inaccuracy Complaint Form"
                     ],
                 ]
@@ -1518,16 +2256,10 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 // Assuming $entity is set somewhere above
                 break;
         }
-
-        // Query 1: Get registrar details
-        $stmt1 = $pdo->prepare("SELECT id,name,clid,iana_id,whois_server,rdap_server,url,email,abuse_email,abuse_phone FROM registrar WHERE iana_id = :iana_id");
-        $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
-        $stmt1->execute();
-        $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
         
-        // Check if the entity exists
-        if (!$registrarDetails) {
-            // Entity not found, respond with a 404 error
+        // Validate $entity to ensure it is numeric and contains only digits
+        if (!is_numeric($entity)) {
+            // Return a 404 response if $entity is not a purely numeric string
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -1540,15 +2272,101 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             return;
         }
 
-        // Query 2: Get registrar abuse details
-        $stmt2 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
-        $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        // Query 1: Get registrar details
+        $stmt1 = $pdo->prepare("SELECT id,name,clid,iana_id,whois_server,rdap_server,url,email,abuse_email,abuse_phone FROM registrar WHERE iana_id = :iana_id");
+        $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
+        $stmt1->execute();
+        $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+        
+        // Check if the first query returned a result
+        if (!$registrarDetails) {
+            // Query 2: Get registrar details by id as a fallback for ccTLDs without iana_id
+            $stmt2 = $pdo->prepare("SELECT id, name, clid, iana_id, whois_server, rdap_server, url, email, abuse_email, abuse_phone FROM registrar WHERE id = :id");
+            $stmt2->bindParam(':id', $entity, PDO::PARAM_INT);
+            $stmt2->execute();
+            $registrarDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        // Check if the entity exists
+        if (!$registrarDetails) {
+            // Entity not found, respond with a 404 error
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested entity was not found in the RDAP database.',
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
+
+        // Query 2: Fetch all contact types for a registrar
+        $stmt2 = $pdo->prepare("SELECT type, first_name, last_name, voice, email FROM registrar_contact WHERE registrar_id = :clid");
+        $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
-        $registrarAbuseDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $contacts = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
         // Query 3: Get registrar abuse details
         $stmt3 = $pdo->prepare("SELECT org,street1,street2,city,sp,pc,cc FROM registrar_contact WHERE registrar_id = :clid AND type = 'owner'");
-        $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_INT);
         $stmt3->execute();
         $registrarContact = $stmt3->fetch(PDO::FETCH_ASSOC);
 
@@ -1557,7 +2375,37 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
-        $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+        // Initialize an array to hold entity blocks
+        $entityBlocks = [];
+        // Define an array of allowed contact types
+        $allowedTypes = ['owner', 'tech', 'abuse'];
+
+        foreach ($contacts as $contact) {
+            // Check if the contact type is one of the allowed types
+            if (in_array($contact['type'], $allowedTypes)) {
+                // Build the full name
+                $fullName = $contact['first_name'] . ' ' . $contact['last_name'];
+
+                // Create an entity block for each allowed contact type
+                $entityBlock = [
+                    'objectClassName' => 'entity',
+                    'roles' => [$contact['type']],
+                    "status" => ["active"],
+                    "vcardArray" => [
+                        "vcard",
+                        [
+                            ['version', new stdClass(), 'text', '4.0'],
+                            ["fn", new stdClass(), "text", $fullName],
+                            ["tel", ["type" => ["voice"]], "uri", "tel:" . $contact['voice']],
+                            ["email", new stdClass(), "text", $contact['email']]
+                        ]
+                    ],
+                ];
+
+                // Add the entity block to the array
+                $entityBlocks[] = $entityBlock;
+            }
+        }
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -1566,42 +2414,22 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 'icann_rdap_response_profile_0',
                 'icann_rdap_technical_implementation_guide_0',
             ],
+            'entitySearchResults' => [
+            [
             'objectClassName' => 'entity',
-            'entities' => array_merge(
-                [
-                [
-                    'objectClassName' => 'entity',
-                    'entities' => [
-                    [
-                        'objectClassName' => 'entity',
-                        'roles' => ["abuse"],
-                        "status" => ["active"],
-                        "vcardArray" => [
-                            "vcard",
-                            [
-                                ['version', new stdClass(), 'text', '4.0'],
-                                ["fn", new stdClass(), "text", $abuseContactName],
-                                ["tel", ["type" => ["voice"]], "uri", "tel:" . $registrarDetails['abuse_phone']],
-                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
-                            ]
-                        ],
-                    ],
-                    ],
-                    ],
-                ],
-            ),
-            "handle" => $registrarDetails['iana_id'],
+            'entities' => $entityBlocks,
+            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
             'events' => $events,
             'links' => [
                 [
-                    'href' => $c['rdap_url'] . '/entity/' . $registrarDetails['iana_id'],
+                    'href' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]
             ],
             "publicIds" => [
                 [
-                    "identifier" => $registrarDetails['iana_id'],
+                    "identifier" => (string)$registrarDetails['iana_id'],
                     "type" => "IANA Registrar ID"
                 ]
             ],
@@ -1624,17 +2452,19 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     ["email", $registrarDetails['email']],
                 ]
             ],
+            ],
+            ],
             "notices" => [
                 [
                     "description" => [
-                        "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                        "Access to " . strtoupper($tld) . " RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
                         "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
                         "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
                         "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
                         "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
                         "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
                 ],
-                    "links" => [
+                "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
                         "rel" => "self",
@@ -1649,15 +2479,15 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "title" => "RDAP Terms of Service"
                 ],
                 [
-            "description" => [
-                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                "description" => [
+                    "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
                 ]
                 ],
                 [
-            "description" => [
-                "For more information on domain status codes, please visit https://icann.org/epp"
+                "description" => [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
                 ],
-              "links" => [
+                "links" => [
                     [
                         "href" => "https://icann.org/epp",
                         "rel" => "alternate",
@@ -1667,16 +2497,16 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "title" => "Status Codes"
                 ],
                 [
-            "description" => [
-                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                ],
-              "links" => [
+                    "description" => [
+                        "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                    ],
+                    "links" => [
                     [
                         "href" => "https://icann.org/wicf",
                         "rel" => "alternate",
                         "type" => "text/html"
                     ]
-                ],
+                    ],
                     "title" => "RDDS Inaccuracy Complaint Form"
                 ],
             ]
