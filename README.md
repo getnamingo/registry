@@ -3,11 +3,9 @@ Open-source domain registry platform. Revolutionizing ccTLD and gTLD management 
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD and gTLD domain registries, brand registries, and ICANN accredited registrars. It's a fusion of innovation and imagination, designed to be more than a tool; it's a vision of a world where names breathe, sing, and resonate with meaning.
+Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023, it adheres to the latest standards, ensuring a cutting-edge experience. 
 
-Though we're still spreading our wings, our commitment to excellence ensures that Namingo is on an evolutionary journey. Gradually, we are expanding our capabilities, and before the launch of our first full version, support for a comprehensive range of services will be seamlessly integrated.
-
-Fully primed to support gTLDs for the next ICANN application round, Namingo stands at the forefront of domain innovation, ready to embrace the next wave of digital transformation.
+Namingo is optimally designed for the upcoming ICANN application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
 ## Get Involved
 
@@ -15,7 +13,9 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-**WHOIS**, **DAS**, and **RDAP servers** are implemented but require further security testing. RDAP will soon include additional search capabilities. The **EPP server** is ready, subject to security evaluations, with development in progress for fee (RFC8748) and launch phase (RFC8334) extensions. **Automation scripts** for ccTLDs are prepared for testing; gTLD scripts need more enhancement. The **control panel**, currently with basic functionalities, is set for completion by the end of 2023.
+Namingo is nearing its full launch, with the majority of its system components already in place. The WHOIS, DAS, EPP and RDAP servers are implemented and are currently undergoing advanced security testing.
+
+Our development focus is now on two key areas: integrating support for the fee extension (RFC8748) and the launch phase extension (RFC8334). The control panel, offering basic functionalities at present, is on track for full completion by the end of 2023.
 
 Feel free to dive into our issues to see where you can help or reach out to us directly to discuss how you can contribute.
 
@@ -31,7 +31,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
   
-- **Control Panel**: An intuitive and modern interface designed for streamlined domain management and administration. Built on the API-first principle, it ensures seamless integration and adaptability. Additionally, it supports multiple languages for enhanced user accessibility.
+- **Control Panel**: An intuitive and modern interface designed for streamlined domain management and administration. This control panel supports advanced security features like Two-Factor Authentication (2FA) and WebAuthn, ensuring a high level of account security for users. Notably, it includes a feature for registrars to directly make deposit payments through Stripe, providing a straightforward and secure method for managing financial transactions. Additionally, the control panel is multilingual, making it accessible to a diverse global user base.
 
 - **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
   
@@ -43,7 +43,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 ## Installation Instructions
 
-The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [INSTALL.md](INSTALL.md).
+The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [INSTALL.md](docs/INSTALL.md).
 
 ## Support
 
