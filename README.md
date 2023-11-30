@@ -38,12 +38,14 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 - **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
   
 - **API Integration**: Control panel integrated with a powerful API, facilitating direct access to the registry database.
+
+- **Database Compatibility**: Our system is versatile in its database support, accommodating both MySQL/MariaDB and PostgreSQL databases. This flexibility allows users to choose the database solution that best fits their technical preferences and existing infrastructure, ensuring seamless integration and optimal performance.
   
 - **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Advanced scripting capabilities also facilitate the generation of RDE deposits, the creation of ICANN's monthly reports, and ensure full compliance with other ICANN gTLD requirements for streamlined regulatory adherence.
 
 ## Installation Instructions
 
-The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [INSTALL.md](docs/INSTALL.md).
+The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [INSTALL.md](docs/install.md).
 
 ## Support
 
