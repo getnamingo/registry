@@ -109,10 +109,29 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
         handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c);
     }
     // Handle domain search query
-    elseif (preg_match('#^/domains/([^/?]+)#', $requestPath, $matches)) {
-        $searchType = $matches[1];
-        $searchPattern = $matches[2];
-        handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType);
+    elseif ($requestPath === '/domains') {
+        if (isset($request->server['query_string'])) {
+            parse_str($request->server['query_string'], $queryParams);
+
+            if (isset($queryParams['name'])) {
+                $searchPattern = $queryParams['name'];
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'name');
+            } elseif (isset($queryParams['nsLdhName'])) {
+                $searchPattern = $queryParams['nsLdhName'];
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'nsLdhName');
+            } elseif (isset($queryParams['nsIp'])) {
+                $searchPattern = $queryParams['nsIp'];
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'nsIp');
+            } else {
+                $response->header('Content-Type', 'application/json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Object not found']));
+            }
+        } else {
+                $response->header('Content-Type', 'application/json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Object not found']));
+        }
     }
     // Handle nameserver search query
     elseif ($requestPath === '/nameservers') {
@@ -137,10 +156,26 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
         }
     }
     // Handle entity search query
-    elseif (preg_match('#^/entities/([^/?]+)#', $requestPath, $matches)) {
-        $searchType = $matches[1];
-        $searchPattern = $matches[2];
-        handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType);
+    elseif ($requestPath === '/entities') {
+        if (isset($request->server['query_string'])) {
+            parse_str($request->server['query_string'], $queryParams);
+
+            if (isset($queryParams['fn'])) {
+                $searchPattern = $queryParams['fn'];
+                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 'fn');
+            } elseif (isset($queryParams['handle'])) {
+                $searchPattern = $queryParams['handle'];
+                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 'handle');
+            } else {
+                $response->header('Content-Type', 'application/json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Object not found']));
+            }
+        } else {
+                $response->header('Content-Type', 'application/json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Object not found']));
+        }
     }
     // Handle help query
     elseif ($requestPath === '/help') {
@@ -578,6 +613,21 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
         $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
         $stmt1->execute();
         $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+        
+        // Check if the entity exists
+        if (!$registrarDetails) {
+            // Entity not found, respond with a 404 error
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested entity was not found in the RDAP database.',
+            ]));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
 
         // Query 2: Get registrar abuse details
         $stmt2 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
@@ -1423,6 +1473,214 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 ]
             ];
         }
+
+        // Send the RDAP response
+        $response->header('Content-Type', 'application/json');
+        $response->status(200);
+        $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
+    } catch (PDOException $e) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(503);
+        $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
+        return;
+    }
+}
+
+function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType) {
+    // Extract and validate the entity handle from the request
+    $entity = trim($searchPattern);
+
+    // Empty entity check
+    if (!$entity) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Please enter an entity']));
+        return;
+    }
+    
+    // Check for prohibited patterns in RDAP entity handle
+    if (!preg_match("/^[A-Za-z0-9]+$/", $entity)) {
+        $response->header('Content-Type', 'application/json');
+        $response->status(400); // Bad Request
+        $response->end(json_encode(['error' => 'Entity handle invalid format']));
+        return;
+    }
+
+    // Perform the RDAP lookup
+    try {
+        switch ($searchType) {
+            case 'fn':
+                // Invalidate the search when searching by first name
+                $entity = null; // Setting to null or an unlikely value to match
+                break;
+            case 'handle':
+                // Handle search by handle
+                // Assuming $entity is set somewhere above
+                break;
+        }
+
+        // Query 1: Get registrar details
+        $stmt1 = $pdo->prepare("SELECT id,name,clid,iana_id,whois_server,rdap_server,url,email,abuse_email,abuse_phone FROM registrar WHERE iana_id = :iana_id");
+        $stmt1->bindParam(':iana_id', $entity, PDO::PARAM_INT);
+        $stmt1->execute();
+        $registrarDetails = $stmt1->fetch(PDO::FETCH_ASSOC);
+        
+        // Check if the entity exists
+        if (!$registrarDetails) {
+            // Entity not found, respond with a 404 error
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode([
+                'errorCode' => 404,
+                'title' => 'Not Found',
+                'description' => 'The requested entity was not found in the RDAP database.',
+            ]));
+            // Close the connection
+            $pdo = null;
+            return;
+        }
+
+        // Query 2: Get registrar abuse details
+        $stmt2 = $pdo->prepare("SELECT first_name,last_name FROM registrar_contact WHERE registrar_id = :clid AND type = 'abuse'");
+        $stmt2->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        $stmt2->execute();
+        $registrarAbuseDetails = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+        // Query 3: Get registrar abuse details
+        $stmt3 = $pdo->prepare("SELECT org,street1,street2,city,sp,pc,cc FROM registrar_contact WHERE registrar_id = :clid AND type = 'owner'");
+        $stmt3->bindParam(':clid', $registrarDetails['id'], PDO::PARAM_STR);
+        $stmt3->execute();
+        $registrarContact = $stmt3->fetch(PDO::FETCH_ASSOC);
+
+        // Define the basic events
+        $events = [
+            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+        ];
+
+        $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+
+        // Construct the RDAP response in JSON format
+        $rdapResponse = [
+            'rdapConformance' => [
+                'rdap_level_0',
+                'icann_rdap_response_profile_0',
+                'icann_rdap_technical_implementation_guide_0',
+            ],
+            'objectClassName' => 'entity',
+            'entities' => array_merge(
+                [
+                [
+                    'objectClassName' => 'entity',
+                    'entities' => [
+                    [
+                        'objectClassName' => 'entity',
+                        'roles' => ["abuse"],
+                        "status" => ["active"],
+                        "vcardArray" => [
+                            "vcard",
+                            [
+                                ['version', new stdClass(), 'text', '4.0'],
+                                ["fn", new stdClass(), "text", $abuseContactName],
+                                ["tel", ["type" => ["voice"]], "uri", "tel:" . $registrarDetails['abuse_phone']],
+                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
+                            ]
+                        ],
+                    ],
+                    ],
+                    ],
+                ],
+            ),
+            "handle" => $registrarDetails['iana_id'],
+            'events' => $events,
+            'links' => [
+                [
+                    'href' => $c['rdap_url'] . '/entity/' . $registrarDetails['iana_id'],
+                    'rel' => 'self',
+                    'type' => 'application/rdap+json',
+                ]
+            ],
+            "publicIds" => [
+                [
+                    "identifier" => $registrarDetails['iana_id'],
+                    "type" => "IANA Registrar ID"
+                ]
+            ],
+            "roles" => ["registrar"],
+            "status" => ["active"],  
+            'vcardArray' => [
+                "vcard",
+                [
+                    ['version', new stdClass(), 'text', '4.0'],
+                    ["fn", new stdClass(), 'text', $registrarContact['org']],
+                    ["adr", [
+                        "", // Post office box
+                        $registrarContact['street1'], // Extended address
+                        $registrarContact['street2'], // Street address
+                        $registrarContact['city'], // Locality
+                        $registrarContact['sp'], // Region
+                        $registrarContact['pc'], // Postal code
+                        $registrarContact['cc']  // Country name
+                    ]],
+                    ["email", $registrarDetails['email']],
+                ]
+            ],
+            "notices" => [
+                [
+                    "description" => [
+                        "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                        "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                        "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                        "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                        "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                        "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                ],
+                    "links" => [
+                    [
+                        "href" => $c['rdap_url'] . "/help",
+                        "rel" => "self",
+                        "type" => "application/rdap+json"
+                    ],
+                    [
+                        "href" => $c['registry_url'],
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ],
+                ],
+                    "title" => "RDAP Terms of Service"
+                ],
+                [
+            "description" => [
+                "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                ]
+                ],
+                [
+            "description" => [
+                "For more information on domain status codes, please visit https://icann.org/epp"
+                ],
+              "links" => [
+                    [
+                        "href" => "https://icann.org/epp",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                    "title" => "Status Codes"
+                ],
+                [
+            "description" => [
+                "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                ],
+              "links" => [
+                    [
+                        "href" => "https://icann.org/wicf",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                    "title" => "RDDS Inaccuracy Complaint Form"
+                ],
+            ]
+        ];
 
         // Send the RDAP response
         $response->header('Content-Type', 'application/json');
