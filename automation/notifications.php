@@ -141,7 +141,7 @@ $server->start();
 /* USAGE
 
 $url = 'http://127.0.0.1:8250';
-$data = ['type' => 'sendgrid', 'other_params' => '...'];
+$data = ['type' => 'sendmail', 'other_params' => '...'];
 
 $options = [
     CURLOPT_RETURNTRANSFER => true,
