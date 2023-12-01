@@ -13,7 +13,7 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-Namingo is nearing its full launch, with the majority of its system components already in place. The WHOIS, DAS, EPP and RDAP servers are implemented and are currently undergoing advanced security testing.
+Namingo is nearing its full launch, with the majority of its system components already in place. The WHOIS, DAS, EPP and RDAP servers are implemented.
 
 Our development focus is now on two key areas: integrating support for the fee extension (RFC8748) and the launch phase extension (RFC8334). The control panel, offering basic functionalities at present, is on track for full completion by the end of 2023.
 
