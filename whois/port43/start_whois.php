@@ -4,18 +4,22 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
+require_once 'helpers.php';
+$logFilePath = '/var/log/namingo/whois.log';
+$log = setupLogger($logFilePath, 'WHOIS');
+
 // Create a Swoole TCP server
 $server = new Swoole\Server('0.0.0.0', 43);
 $server->set([
     'daemonize' => false,
-    'log_file' => '/var/log/namingo/whois.log',
+    'log_file' => '/var/log/namingo/whois_application.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/whois.pid',
     'max_request' => 1000,
     'dispatch_mode' => 2,
     'open_tcp_nodelay' => true,
-    'max_conn' => 10000,
+    'max_conn' => 1024,
     'heartbeat_check_interval' => 60,
     'heartbeat_idle_time' => 120,
     'buffer_output_size' => 2 * 1024 * 1024, // 2MB
@@ -24,6 +28,7 @@ $server->set([
     'open_eof_check' => true,
     'package_eof' => "\r\n"
 ]);
+$log->info('server started.');
 
 // Connect to the database
 try {
@@ -31,17 +36,18 @@ try {
     $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
+    $log->error('DB Connection failed: ' . $e->getMessage());
     $server->send($fd, "Error connecting to database");
     $server->close($fd);
 }
 
 // Register a callback to handle incoming connections
-$server->on('connect', function ($server, $fd) {
-    echo "Client connected: {$fd}\r\n";
+$server->on('connect', function ($server, $fd) use ($log) {
+    $log->info('new client connected: ' . $fd);
 });
 
 // Register a callback to handle incoming requests
-$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo) {
+$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo, $log) {
     $privacy = $c['privacy'];
     
     // Validate and sanitize the data
@@ -133,35 +139,60 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 ."\nyou agree to abide by this policy."
                 ."\n";
                 $server->send($fd, $res . "");
-
-                if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $nameserver . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $nameserver . ' | FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+
                 $server->close($fd);
             } else {
                 //NOT FOUND or No match for;
                 $server->send($fd, "NOT FOUND");
-
-                if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $nameserver . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $nameserver . ' | NOT FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+                
                 $server->close($fd);
             }
             
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $server->send($fd, "Error connecting to the whois database");
+        $server->close($fd);
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
         $server->close($fd);
     }
     
@@ -241,35 +272,60 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 ."\nyou agree to abide by this policy."
                 ."\n";
                 $server->send($fd, $res . "");
-
-                if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $registrar . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $registrar . ' | FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+                
                 $server->close($fd);
             } else {
                 //NOT FOUND or No match for;
                 $server->send($fd, "NOT FOUND");
-
-                if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $registrar . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $registrar . ' | NOT FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+                
                 $server->close($fd);
             }
             
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $server->send($fd, "Error connecting to the whois database");
+        $server->close($fd);
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
         $server->close($fd);
     }
 
@@ -587,34 +643,59 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
                 ."\nyou agree to abide by this policy."
                 ."\n";
                 $server->send($fd, $res . "");
-
-                if ($fp = @fopen("/var/log/whois/whois_request.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+                
                 $server->close($fd);
             } else {
                 //NOT FOUND or No match for;
                 $server->send($fd, "NOT FOUND");
-
-                if ($fp = @fopen("/var/log/whois/whois_not_found.log",'a')) {
-                    $clientInfo = $server->getClientInfo($fd);
-                    $remoteAddr = $clientInfo['remote_ip'];
-                    $currentDateTime = new DateTime();
-                    $milliseconds = $currentDateTime->format("v");
-                    $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                    fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
-                    fclose($fp);
+                
+                $clientInfo = $server->getClientInfo($fd);
+                $remoteAddr = $clientInfo['remote_ip'];
+                $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | NOT FOUND');
+                
+                try {
+                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $settingName = 'whois-43-queries';
+                    $stmt->bindParam(':name', $settingName);
+                    $stmt->execute();
+                } catch (PDOException $e) {
+                    $log->error('DB Connection failed: ' . $e->getMessage());
+                    $server->send($fd, "Error connecting to the whois database");
+                    $server->close($fd);
+                } catch (Throwable $e) {
+                    $log->error('Error: ' . $e->getMessage());
+                    $server->send($fd, "General error");
+                    $server->close($fd);
                 }
+                
                 $server->close($fd);
             }
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $server->send($fd, "Error connecting to the whois database");
+        $server->close($fd);
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
         $server->close($fd);
     }
     }
@@ -624,8 +705,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
 });
 
 // Register a callback to handle client disconnections
-$server->on('close', function ($server, $fd) {
-    echo "Client disconnected: {$fd}\r\n";
+$server->on('close', function ($server, $fd) use ($log) {
+    $log->info('client ' . $fd . ' connected.');
 });
 
 // Start the server

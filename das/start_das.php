@@ -4,18 +4,22 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
+require_once 'helpers.php';
+$logFilePath = '/var/log/namingo/das.log';
+$log = setupLogger($logFilePath, 'DAS');
+
 // Create a Swoole TCP server
 $server = new Swoole\Server('0.0.0.0', 1043);
 $server->set([
     'daemonize' => false,
-    'log_file' => '/var/log/namingo/das.log',
+    'log_file' => '/var/log/namingo/das_application.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/das.pid',
     'max_request' => 1000,
     'dispatch_mode' => 2,
     'open_tcp_nodelay' => true,
-    'max_conn' => 10000,
+    'max_conn' => 1024,
     'heartbeat_check_interval' => 60,
     'heartbeat_idle_time' => 120,
     'buffer_output_size' => 2 * 1024 * 1024, // 2MB
@@ -24,6 +28,7 @@ $server->set([
     'open_eof_check' => true,
     'package_eof' => "\r\n"
 ]);
+$log->info('server started.');
 
 // Connect to the database
 try {
@@ -31,17 +36,18 @@ try {
     $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
+    $log->error('DB Connection failed: ' . $e->getMessage());
     $server->send($fd, "Error connecting to database");
     $server->close($fd);
 }
 
 // Register a callback to handle incoming connections
-$server->on('connect', function ($server, $fd) {
-    echo "Client connected: {$fd}\r\n";
+$server->on('connect', function ($server, $fd) use ($log) {
+    $log->info('new client connected: ' . $fd);
 });
 
 // Register a callback to handle incoming requests
-$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo) {
+$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo, $log) {
 
     // Validate and sanitize the domain name
     $domain = trim($data);
@@ -74,7 +80,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
         $server->close($fd);
         return;
     }
-	
+    
     // Check if domain is reserved
     $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
     $stmtReserved->execute([$parts[0]]);
@@ -115,32 +121,25 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
         if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $server->send($fd, "1");
 
-            if ($fp = @fopen("/var/log/das/das_request.log",'a')) {
-                $clientInfo = $server->getClientInfo($fd);
-                $remoteAddr = $clientInfo['remote_ip'];
-                $currentDateTime = new DateTime();
-                $milliseconds = $currentDateTime->format("v");
-                $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
-                fclose($fp);
-            }
+            $clientInfo = $server->getClientInfo($fd);
+            $remoteAddr = $clientInfo['remote_ip'];
+            $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | FOUND');
             $server->close($fd);
         } else {
             $server->send($fd, "0");
 
-            if ($fp = @fopen("/var/log/das/das_not_found.log",'a')) {
-                $clientInfo = $server->getClientInfo($fd);
-                $remoteAddr = $clientInfo['remote_ip'];
-                $currentDateTime = new DateTime();
-                $milliseconds = $currentDateTime->format("v");
-                $timestampWithMilliseconds = $currentDateTime->format("Y-m-d H:i:s") . '.' . $milliseconds;
-                fwrite($fp, $timestampWithMilliseconds . "\t-\t" . $remoteAddr . "\t-\t" . $domain . "\n");
-                fclose($fp);
-            }
+            $clientInfo = $server->getClientInfo($fd);
+            $remoteAddr = $clientInfo['remote_ip'];
+            $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | NOT FOUND');
             $server->close($fd);
         }
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $server->send($fd, "Error connecting to the das database");
+        $server->close($fd);
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
         $server->close($fd);
     }
 
@@ -149,8 +148,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pdo)
 });
 
 // Register a callback to handle client disconnections
-$server->on('close', function ($server, $fd) {
-    echo "Client disconnected: {$fd}\r\n";
+$server->on('close', function ($server, $fd) use ($log) {
+    $log->info('client ' . $fd . ' connected.');
 });
 
 // Start the server
