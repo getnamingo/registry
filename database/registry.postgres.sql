@@ -180,7 +180,6 @@ CREATE TABLE registry.statement (
 
 CREATE TABLE registry.invoices (
      "id" SERIAL PRIMARY KEY,
-     "invoice_number" VARCHAR(20),
      "registrar_id" INT,
      "billing_contact_id" INT,
      "issue_date" TIMESTAMP(3),

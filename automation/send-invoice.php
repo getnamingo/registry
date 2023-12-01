@@ -113,7 +113,7 @@ try {
             $response = curl_exec($curl);
 
             if ($response === false) {
-                $log->error('Curl error: ' . curl_error($curl) . curl_errno($curl));
+                throw new Exception(curl_error($curl), curl_errno($curl));
             }
 
             curl_close($curl);
@@ -123,4 +123,6 @@ try {
     }
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
+} catch (Throwable $e) {
+    $log->error('Error: ' . $e->getMessage());
 }
