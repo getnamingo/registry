@@ -4,6 +4,10 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
+require_once 'helpers.php';
+$logFilePath = '/var/log/namingo/rdap.log';
+$log = setupLogger($logFilePath, 'RDAP');
+
 function mapContactToVCard($contactDetails, $role, $c) {
     return [
         'objectClassName' => 'entity',
@@ -60,7 +64,7 @@ function mapContactToVCard($contactDetails, $role, $c) {
 $http = new Swoole\Http\Server('0.0.0.0', 7500);
 $http->set([
     'daemonize' => false,
-    'log_file' => '/var/log/namingo/rdap.log',
+    'log_file' => '/var/log/namingo/rdap_application.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
     'pid_file' => '/var/run/rdap.pid',
@@ -75,6 +79,7 @@ $http->set([
     'reload_async' => true,
     'http_compression' => true
 ]);
+$log->info('server started.');
 
 // Connect to the database
 try {
@@ -82,13 +87,14 @@ try {
     $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
+    $log->error('DB Connection failed: ' . $e->getMessage());
     $response->header('Content-Type', 'application/json');
     $response->end(json_encode(['error' => 'Error connecting to database']));
     return;
 }
 
 // Register a callback to handle incoming requests
-$http->on('request', function ($request, $response) use ($c, $pdo) {
+$http->on('request', function ($request, $response) use ($c, $pdo, $log) {
     
     // Extract the request path
     $requestPath = $request->server['request_uri'];
@@ -96,17 +102,17 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
     // Handle domain query
     if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
         $domainName = $matches[1];
-        handleDomainQuery($request, $response, $pdo, $domainName, $c);
+        handleDomainQuery($request, $response, $pdo, $domainName, $c, $log);
     }
     // Handle entity (contacts) query
     elseif (preg_match('#^/entity/([^/?]+)#', $requestPath, $matches)) {
         $entityHandle = $matches[1];
-        handleEntityQuery($request, $response, $pdo, $entityHandle, $c);
+        handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log);
     }
     // Handle nameserver query
     elseif (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $matches)) {
         $nameserverHandle = $matches[1];
-        handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c);
+        handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c, $log);
     }
     // Handle domain search query
     elseif ($requestPath === '/domains') {
@@ -115,13 +121,13 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
 
             if (isset($queryParams['name'])) {
                 $searchPattern = $queryParams['name'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'name');
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
             } elseif (isset($queryParams['nsLdhName'])) {
                 $searchPattern = $queryParams['nsLdhName'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'nsLdhName');
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsLdhName');
             } elseif (isset($queryParams['nsIp'])) {
                 $searchPattern = $queryParams['nsIp'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 'nsIp');
+                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsIp');
             } else {
                 $response->header('Content-Type', 'application/json');
                 $response->status(404);
@@ -140,10 +146,10 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
 
             if (isset($queryParams['name'])) {
                 $searchPattern = $queryParams['name'];
-                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, 'name');
+                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
             } elseif (isset($queryParams['ip'])) {
                 $searchPattern = $queryParams['ip'];
-                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, 'ip');
+                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'ip');
             } else {
                 $response->header('Content-Type', 'application/json');
                 $response->status(404);
@@ -162,10 +168,10 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
 
             if (isset($queryParams['fn'])) {
                 $searchPattern = $queryParams['fn'];
-                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 'fn');
+                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'fn');
             } elseif (isset($queryParams['handle'])) {
                 $searchPattern = $queryParams['handle'];
-                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 'handle');
+                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'handle');
             } else {
                 $response->header('Content-Type', 'application/json');
                 $response->status(404);
@@ -194,7 +200,7 @@ $http->on('request', function ($request, $response) use ($c, $pdo) {
 // Start the server
 $http->start();
 
-function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
+function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     // Extract and validate the domain name from the request
     $domain = trim($domainName);
     
@@ -283,6 +289,20 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
         // Check if the domain exists
         if (!$domainDetails) {
             // Domain not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -631,18 +651,37 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c) {
         ];
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
-function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
+function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
     // Extract and validate the entity handle from the request
     $entity = trim($entityHandle);
 
@@ -667,6 +706,20 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
         // Validate $entity to ensure it is numeric and contains only digits
         if (!is_numeric($entity)) {
             // Return a 404 response if $entity is not a purely numeric string
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -753,6 +806,20 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
         // Check if the entity exists
         if (!$registrarDetails) {
             // Entity not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -916,18 +983,37 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c) {
         ];
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
-function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c) {
+function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c, $log) {
     // Extract and validate the nameserver handle from the request
     $ns = trim($nameserverHandle);
 
@@ -976,6 +1062,20 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
         // Check if the nameserver exists
         if (!$hostDetails) {
             // Nameserver not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -1232,18 +1332,37 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c)
         ];
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
-function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType) {
+function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, $searchType) {
     // Extract and validate the domain name from the request
     $domain = trim($searchPattern);
     
@@ -1261,6 +1380,20 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             break;
         case 'nsLdhName':
             // Search by nameserver LDH name
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -1273,6 +1406,20 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             return;
         case 'nsIp':
             // Search by nameserver IP address
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -1362,6 +1509,20 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         // Check if the domain exists
         if (!$domainDetails) {
             // Domain not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -1714,18 +1875,37 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         ];
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
-function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType) {
+function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, $searchType) {
     // Extract and validate the nameserver handle from the request
     $ns = trim($searchPattern);
 
@@ -1815,6 +1995,20 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         // Check if the nameserver exists
         if (!$hostDetails) {
             // Nameserver not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -2213,18 +2407,37 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         }
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
-function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $searchType) {
+function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, $searchType) {
     // Extract and validate the entity handle from the request
     $entity = trim($searchPattern);
 
@@ -2290,6 +2503,20 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         // Check if the entity exists
         if (!$registrarDetails) {
             // Entity not found, respond with a 404 error
+            try {
+                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $settingName = 'web-whois-queries';
+                $stmt->bindParam(':name', $settingName);
+                $stmt->execute();
+            } catch (PDOException $e) {
+                $log->error('DB Connection failed: ' . $e->getMessage());
+                $server->send($fd, "Error connecting to the whois database");
+                $server->close($fd);
+            } catch (Throwable $e) {
+                $log->error('Error: ' . $e->getMessage());
+                $server->send($fd, "General error");
+                $server->close($fd);
+            }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
@@ -2513,14 +2740,33 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         ];
 
         // Send the RDAP response
+        try {
+            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $settingName = 'web-whois-queries';
+            $stmt->bindParam(':name', $settingName);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $log->error('DB Connection failed: ' . $e->getMessage());
+            $server->send($fd, "Error connecting to the RDAP database");
+            $server->close($fd);
+        } catch (Throwable $e) {
+            $log->error('Error: ' . $e->getMessage());
+            $server->send($fd, "General error");
+            $server->close($fd);
+        }
         $response->header('Content-Type', 'application/json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
+        $log->error('DB Connection failed: ' . $e->getMessage());
         $response->header('Content-Type', 'application/json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "General error");
+        $server->close($fd);
     }
 }
 
