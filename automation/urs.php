@@ -76,7 +76,8 @@ try {
     $log->info('job finished successfully.');
 } catch (Exception $e) {
     $log->error('IMAP connection error: ' . $e->getMessage());
-    return;
+} catch (Throwable $e) {
+    $log->error('Error: ' . $e->getMessage());
 }
 
 function extractDomainNameFromEmail($emailBody) {

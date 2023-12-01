@@ -19,176 +19,182 @@ try {
     $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
-// Fetch all TLDs
-$query = "SELECT tld FROM domain_tld";
-$tlds = $dbh->query($query)->fetchAll(PDO::FETCH_COLUMN);
+try {
+    // Fetch all TLDs
+    $query = "SELECT tld FROM domain_tld";
+    $tlds = $dbh->query($query)->fetchAll(PDO::FETCH_COLUMN);
 
-foreach ($tlds as $tld) {
-    // Skip TLDs with a dot inside, apart from the beginning
-    if (strpos(substr($tld, 1), '.') !== false) {
-        continue; // Skip this iteration if an additional dot is found
-    }
-    
-    // Initialize activity and transaction data arrays for each TLD
-    $activityData = []; 
-    $transactionData = [];
+    foreach ($tlds as $tld) {
+        // Skip TLDs with a dot inside, apart from the beginning
+        if (strpos(substr($tld, 1), '.') !== false) {
+            continue; // Skip this iteration if an additional dot is found
+        }
+        
+        // Initialize activity and transaction data arrays for each TLD
+        $activityData = []; 
+        $transactionData = [];
 
-    // Construct activity data for each TLD
-    $activityData[] = [
-        'operational-registrars' => getOperationalRegistrars($dbh),
-        'zfa-passwords' => getZfaPasswords($dbh),
-        'whois-43-queries' => getWhois43Queries($dbh),
-        'web-whois-queries' => getWebWhoisQueries($dbh),
-        'searchable-whois-queries' => getSearchableWhoisQueries($dbh),
-        'dns-udp-queries-received' => getDnsUdpQueriesReceived($dbh),
-        'dns-udp-queries-responded' => getDnsUdpQueriesResponded($dbh),
-        'dns-tcp-queries-received' => getDnsTcpQueriesReceived($dbh),
-        'dns-tcp-queries-responded' => getDnsTcpQueriesResponded($dbh),
-        'srs-dom-check' => getSrsCommand($dbh, 'check', 'domain'),
-        'srs-dom-create' => getSrsCommand($dbh, 'create', 'domain'),
-        'srs-dom-delete' => getSrsCommand($dbh, 'delete', 'domain'),
-        'srs-dom-info' => getSrsCommand($dbh, 'info', 'domain'),
-        'srs-dom-renew' => getSrsCommand($dbh, 'renew', 'domain'),
-        'srs-dom-rgp-restore-report' => getSrsDomRgpRestoreReport($dbh),
-        'srs-dom-rgp-restore-request' => getSrsDomRgpRestoreRequest($dbh),
-        'srs-dom-transfer-approve' => getSrsDomTransferApprove($dbh),
-        'srs-dom-transfer-cancel' => getSrsDomTransferCancel($dbh),
-        'srs-dom-transfer-query' => getSrsDomTransferQuery($dbh),
-        'srs-dom-transfer-reject' => getSrsDomTransferReject($dbh),
-        'srs-dom-transfer-request' => getSrsDomTransferRequest($dbh),
-        'srs-dom-update' => getSrsCommand($dbh, 'update', 'domain'),
-        'srs-host-check' => getSrsCommand($dbh, 'check', 'host'),
-        'srs-host-create' => getSrsCommand($dbh, 'create', 'host'),
-        'srs-host-delete' => getSrsCommand($dbh, 'delete', 'host'),
-        'srs-host-info' => getSrsCommand($dbh, 'info', 'host'),
-        'srs-host-update' => getSrsCommand($dbh, 'update', 'host'),
-        'srs-cont-check' => getSrsCommand($dbh, 'check', 'contact'),
-        'srs-cont-create' => getSrsCommand($dbh, 'create', 'contact'),
-        'srs-cont-delete' => getSrsCommand($dbh, 'delete', 'contact'),
-        'srs-cont-info' => getSrsCommand($dbh, 'info', 'contact'),
-        'srs-cont-transfer-approve' => getSrsContTransferApprove($dbh),
-        'srs-cont-transfer-cancel' => getSrsContTransferCancel($dbh),
-        'srs-cont-transfer-query' => getSrsContTransferQuery($dbh),
-        'srs-cont-transfer-reject' => getSrsContTransferReject($dbh),
-        'srs-cont-transfer-request' => getSrsContTransferRequest($dbh),
-        'srs-cont-update' => getSrsCommand($dbh, 'update', 'contact'),
-    ];
-
-    // Loop through registrars and get transaction data
-    $registrars = getRegistrars($dbh);
-    foreach ($registrars as $registrar) {
-        $transactionData[] = [
-            'registrar-name' => $registrar['name'],
-            'iana-id' => $registrar['iana_id'],
-            'total-domains' => getTotalDomains($dbh, $registrar),
-            'total-nameservers' => getTotalNameservers($dbh, $registrar),
-            'net-adds-1-yr' => getNetAddsByYear($dbh, $registrar, 1),
-            'net-adds-2-yr' => getNetAddsByYear($dbh, $registrar, 2),
-            'net-adds-3-yr' => getNetAddsByYear($dbh, $registrar, 3),
-            'net-adds-4-yr' => getNetAddsByYear($dbh, $registrar, 4),
-            'net-adds-5-yr' => getNetAddsByYear($dbh, $registrar, 5),
-            'net-adds-6-yr' => getNetAddsByYear($dbh, $registrar, 6),
-            'net-adds-7-yr' => getNetAddsByYear($dbh, $registrar, 7),
-            'net-adds-8-yr' => getNetAddsByYear($dbh, $registrar, 8),
-            'net-adds-9-yr' => getNetAddsByYear($dbh, $registrar, 9),
-            'net-adds-10-yr' => getNetAddsByYear($dbh, $registrar, 10),
-            'net-renews-1-yr' => getNetRenewsByYear($dbh, $registrar, 1),
-            'net-renews-2-yr' => getNetRenewsByYear($dbh, $registrar, 2),
-            'net-renews-3-yr' => getNetRenewsByYear($dbh, $registrar, 3),
-            'net-renews-4-yr' => getNetRenewsByYear($dbh, $registrar, 4),
-            'net-renews-5-yr' => getNetRenewsByYear($dbh, $registrar, 5),
-            'net-renews-6-yr' => getNetRenewsByYear($dbh, $registrar, 6),
-            'net-renews-7-yr' => getNetRenewsByYear($dbh, $registrar, 7),
-            'net-renews-8-yr' => getNetRenewsByYear($dbh, $registrar, 8),
-            'net-renews-9-yr' => getNetRenewsByYear($dbh, $registrar, 9),
-            'net-renews-10-yr' => getNetRenewsByYear($dbh, $registrar, 10),
-            'transfer-gaining-successful' => getTransferGainingSuccessful($dbh, $registrar),
-            'transfer-gaining-nacked' => getTransferGainingNacked($dbh, $registrar),
-            'transfer-losing-successful' => getTransferLosingSuccessful($dbh, $registrar),
-            'transfer-losing-nacked' => getTransferLosingNacked($dbh, $registrar),
-            'transfer-disputed-won' => getTransferDisputedWon($dbh, $registrar),
-            'transfer-disputed-lost' => getTransferDisputedLost($dbh, $registrar),
-            'transfer-disputed-nodecision' => getTransferDisputedNoDecision($dbh, $registrar),
-            'deleted-domains-grace' => getDeletedDomainsGrace($dbh, $registrar),
-            'deleted-domains-nograce' => getDeletedDomainsNoGrace($dbh, $registrar),
-            'restored-domains' => getRestoredDomains($dbh, $registrar),
-            'restored-noreport' => getRestoredNoReport($dbh, $registrar),
-            'agp-exemption-requests' => getAgpExemptionRequests($dbh, $registrar),
-            'agp-exemptions-granted' => getAgpExemptionsGranted($dbh, $registrar),
-            'agp-exempted-domains' => getAgpExemptedDomains($dbh, $registrar),
-            'attempted-adds' => getAttemptedAdds($dbh, $registrar),
+        // Construct activity data for each TLD
+        $activityData[] = [
+            'operational-registrars' => getOperationalRegistrars($dbh),
+            'zfa-passwords' => getZfaPasswords($dbh),
+            'whois-43-queries' => getWhois43Queries($dbh),
+            'web-whois-queries' => getWebWhoisQueries($dbh),
+            'searchable-whois-queries' => getSearchableWhoisQueries($dbh),
+            'dns-udp-queries-received' => getDnsUdpQueriesReceived($dbh),
+            'dns-udp-queries-responded' => getDnsUdpQueriesResponded($dbh),
+            'dns-tcp-queries-received' => getDnsTcpQueriesReceived($dbh),
+            'dns-tcp-queries-responded' => getDnsTcpQueriesResponded($dbh),
+            'srs-dom-check' => getSrsCommand($dbh, 'check', 'domain'),
+            'srs-dom-create' => getSrsCommand($dbh, 'create', 'domain'),
+            'srs-dom-delete' => getSrsCommand($dbh, 'delete', 'domain'),
+            'srs-dom-info' => getSrsCommand($dbh, 'info', 'domain'),
+            'srs-dom-renew' => getSrsCommand($dbh, 'renew', 'domain'),
+            'srs-dom-rgp-restore-report' => getSrsDomRgpRestoreReport($dbh),
+            'srs-dom-rgp-restore-request' => getSrsDomRgpRestoreRequest($dbh),
+            'srs-dom-transfer-approve' => getSrsDomTransferApprove($dbh),
+            'srs-dom-transfer-cancel' => getSrsDomTransferCancel($dbh),
+            'srs-dom-transfer-query' => getSrsDomTransferQuery($dbh),
+            'srs-dom-transfer-reject' => getSrsDomTransferReject($dbh),
+            'srs-dom-transfer-request' => getSrsDomTransferRequest($dbh),
+            'srs-dom-update' => getSrsCommand($dbh, 'update', 'domain'),
+            'srs-host-check' => getSrsCommand($dbh, 'check', 'host'),
+            'srs-host-create' => getSrsCommand($dbh, 'create', 'host'),
+            'srs-host-delete' => getSrsCommand($dbh, 'delete', 'host'),
+            'srs-host-info' => getSrsCommand($dbh, 'info', 'host'),
+            'srs-host-update' => getSrsCommand($dbh, 'update', 'host'),
+            'srs-cont-check' => getSrsCommand($dbh, 'check', 'contact'),
+            'srs-cont-create' => getSrsCommand($dbh, 'create', 'contact'),
+            'srs-cont-delete' => getSrsCommand($dbh, 'delete', 'contact'),
+            'srs-cont-info' => getSrsCommand($dbh, 'info', 'contact'),
+            'srs-cont-transfer-approve' => getSrsContTransferApprove($dbh),
+            'srs-cont-transfer-cancel' => getSrsContTransferCancel($dbh),
+            'srs-cont-transfer-query' => getSrsContTransferQuery($dbh),
+            'srs-cont-transfer-reject' => getSrsContTransferReject($dbh),
+            'srs-cont-transfer-request' => getSrsContTransferRequest($dbh),
+            'srs-cont-update' => getSrsCommand($dbh, 'update', 'contact'),
         ];
-    }
-    
-    $totals = [
-        'registrar-name' => 'Totals',
-        'iana-id' => '',
-        'total-domains' => getTotalDomainsAllRegistrars($dbh),
-        'total-nameservers' => getTotalNameserversAllRegistrars($dbh),
-        'net-adds-1-yr' => getNetAddsByYearAllRegistrars($dbh, 1),
-        'net-adds-2-yr' => getNetAddsByYearAllRegistrars($dbh, 2),
-        'net-adds-3-yr' => getNetAddsByYearAllRegistrars($dbh, 3),
-        'net-adds-4-yr' => getNetAddsByYearAllRegistrars($dbh, 4),
-        'net-adds-5-yr' => getNetAddsByYearAllRegistrars($dbh, 5),
-        'net-adds-6-yr' => getNetAddsByYearAllRegistrars($dbh, 6),
-        'net-adds-7-yr' => getNetAddsByYearAllRegistrars($dbh, 7),
-        'net-adds-8-yr' => getNetAddsByYearAllRegistrars($dbh, 8),
-        'net-adds-9-yr' => getNetAddsByYearAllRegistrars($dbh, 9),
-        'net-adds-10-yr' => getNetAddsByYearAllRegistrars($dbh, 10),
-        'net-renews-1-yr' => getNetRenewsByYearAllRegistrars($dbh, 1),
-        'net-renews-2-yr' => getNetRenewsByYearAllRegistrars($dbh, 2),
-        'net-renews-3-yr' => getNetRenewsByYearAllRegistrars($dbh, 3),
-        'net-renews-4-yr' => getNetRenewsByYearAllRegistrars($dbh, 4),
-        'net-renews-5-yr' => getNetRenewsByYearAllRegistrars($dbh, 5),
-        'net-renews-6-yr' => getNetRenewsByYearAllRegistrars($dbh, 6),
-        'net-renews-7-yr' => getNetRenewsByYearAllRegistrars($dbh, 7),
-        'net-renews-8-yr' => getNetRenewsByYearAllRegistrars($dbh, 8),
-        'net-renews-9-yr' => getNetRenewsByYearAllRegistrars($dbh, 9),
-        'net-renews-10-yr' => getNetRenewsByYearAllRegistrars($dbh, 10),
-        'transfer-gaining-successful' => getTransferGainingSuccessfulAllRegistrars($dbh),
-        'transfer-gaining-nacked' => getTransferGainingNackedAllRegistrars($dbh),
-        'transfer-losing-successful' => getTransferLosingSuccessfulAllRegistrars($dbh),
-        'transfer-losing-nacked' => getTransferLosingNackedAllRegistrars($dbh),
-        'transfer-disputed-won' => getTransferDisputedWonAllRegistrars($dbh),
-        'transfer-disputed-lost' => getTransferDisputedLostAllRegistrars($dbh),
-        'transfer-disputed-nodecision' => getTransferDisputedNoDecisionAllRegistrars($dbh),
-        'deleted-domains-grace' => getDeletedDomainsGraceAllRegistrars($dbh),
-        'deleted-domains-nograce' => getDeletedDomainsNoGraceAllRegistrars($dbh),
-        'restored-domains' => getRestoredDomainsAllRegistrars($dbh),
-        'restored-noreport' => getRestoredNoReportAllRegistrars($dbh),
-        'agp-exemption-requests' => getAgpExemptionRequestsAllRegistrars($dbh),
-        'agp-exemptions-granted' => getAgpExemptionsGrantedAllRegistrars($dbh),
-        'agp-exempted-domains' => getAgpExemptedDomainsAllRegistrars($dbh),
-        'attempted-adds' => getAttemptedAddsAllRegistrars($dbh),
-    ];
 
-    $transactionData[] = $totals;
+        // Loop through registrars and get transaction data
+        $registrars = getRegistrars($dbh);
+        foreach ($registrars as $registrar) {
+            $transactionData[] = [
+                'registrar-name' => $registrar['name'],
+                'iana-id' => $registrar['iana_id'],
+                'total-domains' => getTotalDomains($dbh, $registrar),
+                'total-nameservers' => getTotalNameservers($dbh, $registrar),
+                'net-adds-1-yr' => getNetAddsByYear($dbh, $registrar, 1),
+                'net-adds-2-yr' => getNetAddsByYear($dbh, $registrar, 2),
+                'net-adds-3-yr' => getNetAddsByYear($dbh, $registrar, 3),
+                'net-adds-4-yr' => getNetAddsByYear($dbh, $registrar, 4),
+                'net-adds-5-yr' => getNetAddsByYear($dbh, $registrar, 5),
+                'net-adds-6-yr' => getNetAddsByYear($dbh, $registrar, 6),
+                'net-adds-7-yr' => getNetAddsByYear($dbh, $registrar, 7),
+                'net-adds-8-yr' => getNetAddsByYear($dbh, $registrar, 8),
+                'net-adds-9-yr' => getNetAddsByYear($dbh, $registrar, 9),
+                'net-adds-10-yr' => getNetAddsByYear($dbh, $registrar, 10),
+                'net-renews-1-yr' => getNetRenewsByYear($dbh, $registrar, 1),
+                'net-renews-2-yr' => getNetRenewsByYear($dbh, $registrar, 2),
+                'net-renews-3-yr' => getNetRenewsByYear($dbh, $registrar, 3),
+                'net-renews-4-yr' => getNetRenewsByYear($dbh, $registrar, 4),
+                'net-renews-5-yr' => getNetRenewsByYear($dbh, $registrar, 5),
+                'net-renews-6-yr' => getNetRenewsByYear($dbh, $registrar, 6),
+                'net-renews-7-yr' => getNetRenewsByYear($dbh, $registrar, 7),
+                'net-renews-8-yr' => getNetRenewsByYear($dbh, $registrar, 8),
+                'net-renews-9-yr' => getNetRenewsByYear($dbh, $registrar, 9),
+                'net-renews-10-yr' => getNetRenewsByYear($dbh, $registrar, 10),
+                'transfer-gaining-successful' => getTransferGainingSuccessful($dbh, $registrar),
+                'transfer-gaining-nacked' => getTransferGainingNacked($dbh, $registrar),
+                'transfer-losing-successful' => getTransferLosingSuccessful($dbh, $registrar),
+                'transfer-losing-nacked' => getTransferLosingNacked($dbh, $registrar),
+                'transfer-disputed-won' => getTransferDisputedWon($dbh, $registrar),
+                'transfer-disputed-lost' => getTransferDisputedLost($dbh, $registrar),
+                'transfer-disputed-nodecision' => getTransferDisputedNoDecision($dbh, $registrar),
+                'deleted-domains-grace' => getDeletedDomainsGrace($dbh, $registrar),
+                'deleted-domains-nograce' => getDeletedDomainsNoGrace($dbh, $registrar),
+                'restored-domains' => getRestoredDomains($dbh, $registrar),
+                'restored-noreport' => getRestoredNoReport($dbh, $registrar),
+                'agp-exemption-requests' => getAgpExemptionRequests($dbh, $registrar),
+                'agp-exemptions-granted' => getAgpExemptionsGranted($dbh, $registrar),
+                'agp-exempted-domains' => getAgpExemptedDomains($dbh, $registrar),
+                'attempted-adds' => getAttemptedAdds($dbh, $registrar),
+            ];
+        }
+        
+        $totals = [
+            'registrar-name' => 'Totals',
+            'iana-id' => '',
+            'total-domains' => getTotalDomainsAllRegistrars($dbh),
+            'total-nameservers' => getTotalNameserversAllRegistrars($dbh),
+            'net-adds-1-yr' => getNetAddsByYearAllRegistrars($dbh, 1),
+            'net-adds-2-yr' => getNetAddsByYearAllRegistrars($dbh, 2),
+            'net-adds-3-yr' => getNetAddsByYearAllRegistrars($dbh, 3),
+            'net-adds-4-yr' => getNetAddsByYearAllRegistrars($dbh, 4),
+            'net-adds-5-yr' => getNetAddsByYearAllRegistrars($dbh, 5),
+            'net-adds-6-yr' => getNetAddsByYearAllRegistrars($dbh, 6),
+            'net-adds-7-yr' => getNetAddsByYearAllRegistrars($dbh, 7),
+            'net-adds-8-yr' => getNetAddsByYearAllRegistrars($dbh, 8),
+            'net-adds-9-yr' => getNetAddsByYearAllRegistrars($dbh, 9),
+            'net-adds-10-yr' => getNetAddsByYearAllRegistrars($dbh, 10),
+            'net-renews-1-yr' => getNetRenewsByYearAllRegistrars($dbh, 1),
+            'net-renews-2-yr' => getNetRenewsByYearAllRegistrars($dbh, 2),
+            'net-renews-3-yr' => getNetRenewsByYearAllRegistrars($dbh, 3),
+            'net-renews-4-yr' => getNetRenewsByYearAllRegistrars($dbh, 4),
+            'net-renews-5-yr' => getNetRenewsByYearAllRegistrars($dbh, 5),
+            'net-renews-6-yr' => getNetRenewsByYearAllRegistrars($dbh, 6),
+            'net-renews-7-yr' => getNetRenewsByYearAllRegistrars($dbh, 7),
+            'net-renews-8-yr' => getNetRenewsByYearAllRegistrars($dbh, 8),
+            'net-renews-9-yr' => getNetRenewsByYearAllRegistrars($dbh, 9),
+            'net-renews-10-yr' => getNetRenewsByYearAllRegistrars($dbh, 10),
+            'transfer-gaining-successful' => getTransferGainingSuccessfulAllRegistrars($dbh),
+            'transfer-gaining-nacked' => getTransferGainingNackedAllRegistrars($dbh),
+            'transfer-losing-successful' => getTransferLosingSuccessfulAllRegistrars($dbh),
+            'transfer-losing-nacked' => getTransferLosingNackedAllRegistrars($dbh),
+            'transfer-disputed-won' => getTransferDisputedWonAllRegistrars($dbh),
+            'transfer-disputed-lost' => getTransferDisputedLostAllRegistrars($dbh),
+            'transfer-disputed-nodecision' => getTransferDisputedNoDecisionAllRegistrars($dbh),
+            'deleted-domains-grace' => getDeletedDomainsGraceAllRegistrars($dbh),
+            'deleted-domains-nograce' => getDeletedDomainsNoGraceAllRegistrars($dbh),
+            'restored-domains' => getRestoredDomainsAllRegistrars($dbh),
+            'restored-noreport' => getRestoredNoReportAllRegistrars($dbh),
+            'agp-exemption-requests' => getAgpExemptionRequestsAllRegistrars($dbh),
+            'agp-exemptions-granted' => getAgpExemptionsGrantedAllRegistrars($dbh),
+            'agp-exempted-domains' => getAgpExemptedDomainsAllRegistrars($dbh),
+            'attempted-adds' => getAttemptedAddsAllRegistrars($dbh),
+        ];
 
-    // Write data to CSV
-    $tld_save = strtolower(ltrim($tld, '.'));
-    writeCSV("{$c['reporting_path']}/{$tld_save}-activity-" . date('Ym') . "-en.csv", $activityData);
-    writeCSV("{$c['reporting_path']}/{$tld_save}-transactions-" . date('Ym') . "-en.csv", $transactionData);
-    
-    // Upload if the $c['reporting_upload'] variable is true
-    if ($c['reporting_upload']) {
-        // Calculate the period (previous month from now)
-        $previousMonth = date('Ym', strtotime('-1 month'));
-    
-        // Paths to the files you created
-        $activityFile = "{$tld_save}-activity-" . $previousMonth . "-en.csv";
-        $transactionFile = "{$tld_save}-transactions-" . $previousMonth . "-en.csv";
-    
-        // URLs for upload
-        $activityUploadUrl = 'https://ry-api.icann.org/report/registry-functions-activity/' . $tld_save . '/' . $previousMonth;
-        $transactionUploadUrl = 'https://ry-api.icann.org/report/registrar-transactions/' . $tld_save . '/' . $previousMonth;
-    
-        // Perform the upload
-        //uploadFile($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password'], $log);
-        //uploadFile($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password'], $log);
+        $transactionData[] = $totals;
+
+        // Write data to CSV
+        $tld_save = strtolower(ltrim($tld, '.'));
+        writeCSV("{$c['reporting_path']}/{$tld_save}-activity-" . date('Ym') . "-en.csv", $activityData);
+        writeCSV("{$c['reporting_path']}/{$tld_save}-transactions-" . date('Ym') . "-en.csv", $transactionData);
+        
+        // Upload if the $c['reporting_upload'] variable is true
+        if ($c['reporting_upload']) {
+            // Calculate the period (previous month from now)
+            $previousMonth = date('Ym', strtotime('-1 month'));
+        
+            // Paths to the files you created
+            $activityFile = "{$tld_save}-activity-" . $previousMonth . "-en.csv";
+            $transactionFile = "{$tld_save}-transactions-" . $previousMonth . "-en.csv";
+        
+            // URLs for upload
+            $activityUploadUrl = 'https://ry-api.icann.org/report/registry-functions-activity/' . $tld_save . '/' . $previousMonth;
+            $transactionUploadUrl = 'https://ry-api.icann.org/report/registrar-transactions/' . $tld_save . '/' . $previousMonth;
+        
+            // Perform the upload
+            uploadFile($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password']);
+            uploadFile($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password']);
+        }
+        
     }
-    
+    $log->info('job finished successfully.');
+} catch (PDOException $e) {
+    $log->error('DB Connection failed: ' . $e->getMessage());
+} catch (Throwable $e) {
+    $log->error('Error: ' . $e->getMessage());
 }
-$log->info('job finished successfully.');
 
 // HELPER FUNCTIONS
 function getOperationalRegistrars($dbh) {
@@ -202,12 +208,25 @@ function getRegistrars($dbh) {
 }
 
 function writeCSV($filename, $data) {
+    if (!is_array($data) || empty($data)) {
+        throw new Exception("Data for CSV writing must be a non-empty array.");
+    }
+
     $file = fopen($filename, 'w');
+    if ($file === false) {
+        throw new Exception("Unable to open file '{$filename}' for writing.");
+    }
+
     fputcsv($file, array_keys($data[0]));
     foreach ($data as $row) {
-        fputcsv($file, $row);
+        if (false === fputcsv($file, $row)) {
+            throw new Exception("Failed to write data to CSV file.");
+        }
     }
-    fclose($file);
+
+    if (false === fclose($file)) {
+        throw new Exception("Unable to close the file '{$filename}'.");
+    }
 }
 
 function getZfaPasswords($dbh) {
@@ -566,7 +585,7 @@ function getAttemptedAddsAllRegistrars($dbh) {
 }
 
 // Upload function using cURL
-function uploadFile($url, $filePath, $username, $password, $log) {
+function uploadFile($url, $filePath, $username, $password) {
     $ch = curl_init();
     
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -578,7 +597,7 @@ function uploadFile($url, $filePath, $username, $password, $log) {
     
     $response = curl_exec($ch);
     if (curl_errno($ch)) {
-        $log->error('Report upload error: ' . curl_error($ch));
+        throw new Exception('Report upload error: ' . curl_error($ch));
     }
     
     curl_close($ch);

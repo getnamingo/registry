@@ -60,9 +60,7 @@ try {
     $log->info('job finished successfully.');
 
 } catch (PDOException $e) {
-    // Handle database errors
     $log->error('Database error: ' . $e->getMessage());
-} catch (Exception $e) {
-    // Handle other types of errors
+} catch (Throwable $e) {
     $log->error('Error: ' . $e->getMessage());
 }

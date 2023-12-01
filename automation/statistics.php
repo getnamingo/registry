@@ -34,6 +34,6 @@ try {
     
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $log->error('Error: ' . $e->getMessage());
 }
