@@ -237,21 +237,42 @@ function getWhois43Queries($dbh) {
     $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
     $stmt->bindValue(':settingName', 'whois-43-queries');
     $stmt->execute();
-    return $stmt->fetchColumn();
+    $value = $stmt->fetchColumn();
+
+    // Resetting the value in the database
+    $resetStmt = $dbh->prepare("UPDATE settings SET value = 0 WHERE name = :settingName");
+    $resetStmt->bindValue(':settingName', 'whois-43-queries');
+    $resetStmt->execute();
+
+    return $value;
 }
 
 function getWebWhoisQueries($dbh) {
     $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
     $stmt->bindValue(':settingName', 'web-whois-queries');
     $stmt->execute();
-    return $stmt->fetchColumn();
+    $value = $stmt->fetchColumn();
+
+    // Resetting the value in the database
+    $resetStmt = $dbh->prepare("UPDATE settings SET value = 0 WHERE name = :settingName");
+    $resetStmt->bindValue(':settingName', 'web-whois-queries');
+    $resetStmt->execute();
+
+    return $value;
 }
 
 function getSearchableWhoisQueries($dbh) {
     $stmt = $dbh->prepare("SELECT value FROM settings WHERE name = :settingName");
     $stmt->bindValue(':settingName', 'searchable-whois-queries');
     $stmt->execute();
-    return $stmt->fetchColumn();
+    $value = $stmt->fetchColumn();
+
+    // Resetting the value in the database
+    $resetStmt = $dbh->prepare("UPDATE settings SET value = 0 WHERE name = :settingName");
+    $resetStmt->bindValue(':settingName', 'searchable-whois-queries');
+    $resetStmt->execute();
+
+    return $value;
 }
 
 function getDnsUdpQueriesReceived($dbh) {
