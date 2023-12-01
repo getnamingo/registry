@@ -14,6 +14,7 @@ return [
     'escrow_deleteXML' => false,
     'escrow_RDEupload' => false,
     'escrow_BRDAupload' => false,
+    'escrow_BRDAday' => 'Tuesday',
     'escrow_keyPath' => '/opt/escrow/escrowKey.asc',
     'escrow_keyPath_brda' => '/opt/escrow/icann-brda-gpg.pub',
     'escrow_privateKey' => '/opt/escrow/privatekey.asc',
