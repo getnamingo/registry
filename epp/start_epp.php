@@ -1,6 +1,5 @@
 <?php
 
-//require 'vendor/autoload.php';
 global $c;
 $c = require_once 'config.php';
 require_once 'src/EppWriter.php';
@@ -13,6 +12,9 @@ require_once 'src/epp-renew.php';
 require_once 'src/epp-poll.php';
 require_once 'src/epp-transfer.php';
 require_once 'src/epp-delete.php';
+
+$logFilePath = '/var/log/namingo/epp.log';
+$log = setupLogger($logFilePath, 'EPP');
 
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
@@ -31,14 +33,14 @@ Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port']);
 $server->set([
     'enable_coroutine' => true,
-    'log_file' => '/var/log/namingo/epp.log',
+    'log_file' => '/var/log/namingo/epp_application.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 4,
     'pid_file' => $c['epp_pid'],
     'tcp_user_timeout' => 10,
     'max_request' => 1000,
     'open_tcp_nodelay' => true,
-    'max_conn' => 10000,
+    'max_conn' => 1024,
     'heartbeat_check_interval' => 60,
     'heartbeat_idle_time' => 120,
     'open_ssl' => true,
@@ -49,9 +51,10 @@ $server->set([
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
     'ssl_ciphers' => 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384',
 ]);
+$log->info('server started.');
 
-$server->handle(function (Connection $conn) use ($table, $db, $c) {
-    echo "Client connected.\n";
+$server->handle(function (Connection $conn) use ($table, $db, $c, $log) {
+    $log->info('new client connected');
     sendGreeting($conn);
   
     while (true) {
@@ -494,10 +497,11 @@ $server->handle(function (Connection $conn) use ($table, $db, $c) {
     }
 
     sendEppError($conn, $db, 2100, 'Unknown command');
-    echo "Client disconnected.\n";
+    $log->info('client disconnected');
 });
 
-echo "Namingo EPP server started.\n";
+$log->info('Namingo EPP server started');
+
 Swoole\Coroutine::create(function () use ($server) {
     $server->start();
 });
