@@ -42,8 +42,16 @@ function setupLogger($logFilePath, $channelName = 'app') {
 }
 
 function fetchCount($pdo, $tableName) {
-    $stmt = $pdo->prepare("SELECT count(id) AS count FROM {$tableName};");
+    // Calculate the end of the previous day
+    $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
+
+    // Prepare the SQL query
+    $query = "SELECT COUNT(id) AS count FROM {$tableName} WHERE crdate <= :endOfPreviousDay";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
     $stmt->execute();
+
+    // Fetch and return the count
     $result = $stmt->fetch();
     return $result['count'];
 }

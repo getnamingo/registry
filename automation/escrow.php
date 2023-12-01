@@ -33,19 +33,24 @@ try {
     $stmt = $dbh->query("SELECT id,tld FROM domain_tld;");
     $tlds = $stmt->fetchAll();
 
-    // Fetching details from rde_escrow_deposits table
-    $stmt = $dbh->prepare("SELECT deposit_id, revision FROM rde_escrow_deposits;");
+    // Prepare the SQL query with a condition for the previous day
+    $stmt = $dbh->prepare("SELECT revision FROM rde_escrow_deposits WHERE deposit_date = :previousDay ORDER BY revision DESC LIMIT 1");
+    $date = date('Y-m-d');
+    $stmt->bindParam(':previousDay', $date);
     $stmt->execute();
-    $deposit_id = $stmt->fetch();
 
-    // Determine the next revision number
-    $nextRevisionNumber = is_null($deposit_id['deposit_id']) ? 1 : ($deposit_id['revision'] + 1);
+    // Fetch the result
+    $deposit_id = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Format the revision number (001, 002, 003, ..., 010, ...)
-    $finalDepositId = str_pad($nextRevisionNumber, 3, '0', STR_PAD_LEFT);
+    if ($deposit_id) {
+        $finalDepositId = (int) $deposit_id['revision'] + 1;
+    } else {
+        $finalDepositId = 0;
+    }
 
     foreach ($tlds as $tld) {
         $tldname = strtoupper(ltrim($tld['tld'], '.'));
+        $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
         
         // Skip subdomains
         if (strpos($tldname, '.') !== false) {
@@ -57,16 +62,110 @@ try {
         $xml = new XMLWriter();
         $xml->openMemory();
         $xml->startDocument('1.0', 'UTF-8');
+
+        // Start the rde:deposit element with the necessary attributes
         $xml->startElementNS('rde', 'deposit', 'urn:ietf:params:xml:ns:rde-1.0');
+        $xml->writeAttribute('type', 'FULL');
+        $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
+        $depositId = date('Ymd') . $paddedFinalDepositId;
+        $xml->writeAttribute('id', $depositId);
+
+        // Add the necessary XML namespaces
+        $xml->writeAttributeNS('xmlns', 'domain', null, 'urn:ietf:params:xml:ns:domain-1.0');
+        $xml->writeAttributeNS('xmlns', 'contact', null, 'urn:ietf:params:xml:ns:contact-1.0');
+        $xml->writeAttributeNS('xmlns', 'secDNS', null, 'urn:ietf:params:xml:ns:secDNS-1.1');
         $xml->writeAttributeNS('xmlns', 'rdeHeader', null, 'urn:ietf:params:xml:ns:rdeHeader-1.0');
-        $xml->writeAttributeNS('xmlns', 'rdeDom', null, 'urn:ietf:params:xml:ns:rdeDomain-1.0');
-        $xml->writeAttributeNS('xmlns', 'rdeContact', null, 'urn:ietf:params:xml:ns:rdeContact-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdeDomain', null, 'urn:ietf:params:xml:ns:rdeDomain-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeHost', null, 'urn:ietf:params:xml:ns:rdeHost-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdeContact', null, 'urn:ietf:params:xml:ns:rdeContact-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeRegistrar', null, 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdeIDN', null, 'urn:ietf:params:xml:ns:rdeIDN-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdeNNDN', null, 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdeEppParams', null, 'urn:ietf:params:xml:ns:rdeEppParams-1.0');
+        $xml->writeAttributeNS('xmlns', 'rdePolicy', null, 'urn:ietf:params:xml:ns:rdePolicy-1.0');
+        $xml->writeAttributeNS('xmlns', 'epp', null, 'urn:ietf:params:xml:ns:epp-1.0');
+
+        $xml->startElementNS('rde', 'watermark', null);
+        $previousDayWatermark = date('Y-m-d', strtotime('-1 day')) . 'T23:59:59Z';
+        $xml->text($previousDayWatermark);
+        $xml->endElement(); // End rde:watermark
+
+        // Start the rde:rdeMenu element
+        $xml->startElementNS('rde', 'rdeMenu', null);
+
+        // Write the rde:version element
+        $xml->startElementNS('rde', 'version', null);
+        $xml->text('1.0');
+        $xml->endElement(); // End rde:version
+
+        // Array of objURI values
+        $objURIs = [
+            'urn:ietf:params:xml:ns:rdeHeader-1.0',
+            'urn:ietf:params:xml:ns:rdeContact-1.0',
+            'urn:ietf:params:xml:ns:rdeHost-1.0',
+            'urn:ietf:params:xml:ns:rdeDomain-1.0',
+            'urn:ietf:params:xml:ns:rdeRegistrar-1.0',
+            'urn:ietf:params:xml:ns:rdeIDN-1.0',
+            'urn:ietf:params:xml:ns:rdeNNDN-1.0',
+            'urn:ietf:params:xml:ns:rdeEppParams-1.0'
+        ];
+
+        // Write each rde:objURI element
+        foreach ($objURIs as $objURI) {
+            $xml->startElementNS('rde', 'objURI', null);
+            $xml->text($objURI);
+            $xml->endElement(); // End rde:objURI
+        }
+
+        // End the rde:rdeMenu element
+        $xml->endElement(); // End rde:rdeMenu
+        
+        $xml->startElementNS('rde', 'contents', null);
+        
+        $xml->startElement('rdeHeader:header');
+        $xml->writeElement('rdeHeader:tld', $tld['tld']);
+        
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeDomain-1.0');
+        $xml->text($domainCount);
+        $xml->endElement();
+
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeHost-1.0');
+        $xml->text($hostCount);
+        $xml->endElement();
+        
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeContact-1.0');
+        $xml->text($contactCount);
+        $xml->endElement();
+
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
+        $xml->text($registrarCount);
+        $xml->endElement();
+        
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
+        $xml->text('0');
+        $xml->endElement();
+
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
+        $xml->text('0');
+        $xml->endElement();
+        
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeEppParams-1.0');
+        $xml->text('0');
+        $xml->endElement();
+
+        $xml->endElement();  // Closing rdeHeader:header
 
         // Fetch domain details for this TLD
-        $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid;");
+        $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate <= :endOfPreviousDay");
         $stmt->bindParam(':tldid', $tld['id']);
+        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $domains = $stmt->fetchAll();
 
@@ -119,53 +218,9 @@ try {
             $xml->endElement();  // Closing rdeDom:domain
         }
 
-        // Fetch and incorporate registrar details
-        $stmt = $dbh->prepare("SELECT * FROM registrar;");
-        $stmt->execute();
-        $registrars = $stmt->fetchAll();
-
-        $xml->startElement('rdeRegistrar:registrar');
-        foreach ($registrars as $registrar) {
-            $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
-            $xml->writeElement('rdeRegistrar:name', $registrar['name']);
-            $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
-            $xml->writeElement('rdeRegistrar:status', 'ok');
-
-            // Fetch and incorporate registrar contact details
-            $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
-            $stmt->bindParam(':registrar_id', $registrar['id']);
-            $stmt->execute();
-            $registrar_contacts = $stmt->fetchAll();
-
-            foreach ($registrar_contacts as $contact) {
-                $xml->startElement('rdeRegistrar:postalInfo');
-                $xml->writeAttribute('type', 'int');
-                $xml->startElement('rdeRegistrar:addr');
-                $xml->writeElement('rdeRegistrar:street', $contact['street1']);
-                $xml->writeElement('rdeRegistrar:city', $contact['city']);
-                $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
-                $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
-                $xml->endElement();  // Closing rdeRegistrar:addr
-                $xml->endElement();  // Closing rdeRegistrar:postalInfo
-                
-                $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
-                $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
-                $xml->writeElement('rdeRegistrar:email', $contact['email']);
-            }
-
-            $xml->writeElement('rdeRegistrar:url', $registrar['url']);
-            $xml->startElement('rdeRegistrar:whoisInfo');
-            $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-            $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-            $xml->endElement();  // Closing rdeRegistrar:whoisInfo
-
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
-            $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
-        }
-        $xml->endElement();  // Closing rdeRegistrar:registrar
-
         // Fetch and incorporate host details
-        $stmt = $dbh->prepare("SELECT * FROM host;");
+        $stmt = $dbh->prepare("SELECT * FROM host WHERE crdate <= :endOfPreviousDay");
+        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $hosts = $stmt->fetchAll();
 
@@ -187,7 +242,8 @@ try {
         }
 
         // Fetch and incorporate contact details
-        $stmt = $dbh->prepare("SELECT * FROM contact;");
+        $stmt = $dbh->prepare("SELECT * FROM contact WHERE crdate <= :endOfPreviousDay");
+        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $contacts = $stmt->fetchAll();
 
@@ -235,50 +291,141 @@ try {
             $xml->endElement();  // Closing rdeContact:contact
         }
         
-        // Writing the rdeHeader section to XML
+        // Fetch and incorporate registrar details
+        $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate <= :endOfPreviousDay");
+        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+        $stmt->execute();
+        $registrars = $stmt->fetchAll();
+
+        $xml->startElement('rdeRegistrar:registrar');
+        foreach ($registrars as $registrar) {
+            $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
+            $xml->writeElement('rdeRegistrar:name', $registrar['name']);
+            $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
+            $xml->writeElement('rdeRegistrar:status', 'ok');
+
+            // Fetch and incorporate registrar contact details
+            $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
+            $stmt->bindParam(':registrar_id', $registrar['id']);
+            $stmt->execute();
+            $registrar_contacts = $stmt->fetchAll();
+
+            foreach ($registrar_contacts as $contact) {
+                $xml->startElement('rdeRegistrar:postalInfo');
+                $xml->writeAttribute('type', 'int');
+                $xml->startElement('rdeRegistrar:addr');
+                $xml->writeElement('rdeRegistrar:street', $contact['street1']);
+                $xml->writeElement('rdeRegistrar:city', $contact['city']);
+                $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
+                $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
+                $xml->endElement();  // Closing rdeRegistrar:addr
+                $xml->endElement();  // Closing rdeRegistrar:postalInfo
+                
+                $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
+                $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
+                $xml->writeElement('rdeRegistrar:email', $contact['email']);
+            }
+
+            $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+            $xml->startElement('rdeRegistrar:whoisInfo');
+            $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+            $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+            $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+
+            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+            $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+        }
+        $xml->endElement();  // Closing rdeRegistrar:registrar
+        
+        // Writing the idnTableRef section
         $xml->startElement('rdeIDN:idnTableRef');
         $xml->writeAttribute('id', 'Latn');
         $xml->writeElement('rdeIDN:url', 'https://namingo.org');
         $xml->writeElement('rdeIDN:urlPolicy', 'https://namingo.org');
         $xml->endElement();  // Closing rdeIDN:idnTableRef
         
-        $xml->startElement('rdeHeader:header');
-        $xml->writeElement('rdeHeader:tld', $tld['tld']);
+        // Start of rdeEppParams:eppParams
+        $xml->startElementNS('rdeEppParams', 'eppParams', null);
+
+        // Add version and lang elements
+        $xml->writeElementNS('rdeEppParams', 'version', null, '1.0');
+        $xml->writeElementNS('rdeEppParams', 'lang', null, 'en');
+
+        // Add objURI elements
+        $uriArray = [
+            'urn:ietf:params:xml:ns:domain-1.0',
+            'urn:ietf:params:xml:ns:contact-1.0',
+            'urn:ietf:params:xml:ns:host-1.0'
+        ];
+
+        foreach ($uriArray as $uri) {
+            $xml->writeElementNS('rdeEppParams', 'objURI', null, $uri);
+        }
+
+        // Start of svcExtension
+        $xml->startElementNS('rdeEppParams', 'svcExtension', null);
+
+        // Add extURI elements
+        $extUriArray = [
+            'urn:ietf:params:xml:ns:rgp-1.0',
+            'urn:ietf:params:xml:ns:secDNS-1.1'
+        ];
+
+        foreach ($extUriArray as $extUri) {
+            $xml->writeElementNS('epp', 'extURI', null, $extUri);
+        }
+
+        // End of svcExtension
+        $xml->endElement();
+
+        // Start of dcp
+        $xml->startElementNS('rdeEppParams', 'dcp', null);
+
+        // Add access
+        $xml->startElementNS('epp', 'access', null);
+        $xml->writeElementNS('epp', 'all', null);
+        $xml->endElement();
+
+        // Start of statement
+        $xml->startElementNS('epp', 'statement', null);
+
+        // Add purpose
+        $xml->startElementNS('epp', 'purpose', null);
+        $xml->writeElementNS('epp', 'admin', null);
+        $xml->writeElementNS('epp', 'prov', null);
+        $xml->endElement();
+
+        // Add recipient
+        $xml->startElementNS('epp', 'recipient', null);
+        $xml->writeElementNS('epp', 'ours', null);
+        $xml->writeElementNS('epp', 'public', null);
+        $xml->endElement();
+
+        // Add retention
+        $xml->startElementNS('epp', 'retention', null);
+        $xml->writeElementNS('epp', 'stated', null);
+        $xml->endElement();
+
+        // End of statement
+        $xml->endElement();
+
+        // End of dcp
+        $xml->endElement();
+
+        // End of rdeEppParams:eppParams
+        $xml->endElement();
+
+        // rdePolicy:policy element
+        $xml->startElementNS('rdePolicy', 'policy', null);
+        $xml->writeAttribute('scope', '//rde:deposit/rde:contents/rdeDomain:domain');
+        $xml->writeAttribute('element', 'rdeDomain:registrant');
+        $xml->endElement();
         
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeDomain-1.0');
-        $xml->text($domainCount);
-        $xml->endElement();
-
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeHost-1.0');
-        $xml->text($hostCount);
-        $xml->endElement();
-
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
-        $xml->text($registrarCount);
-        $xml->endElement();
-
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeContact-1.0');
-        $xml->text($contactCount);
-        $xml->endElement();
-
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
-        $xml->text('0');
-        $xml->endElement();
-
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-        $xml->text('0');
-        $xml->endElement();
-
-        $xml->endElement();  // Closing rdeHeader:header
-        
+        // End the rde:contents element
+        $xml->endElement(); // End rde:contents
+    
         $xml->endElement();  // Closing the 'rde:deposit' element
-        $es = $xml->outputMemory();
+        $deposit = $xml->outputMemory();
 
         // Define the base name without the extension
         $baseFileName = "{$tldname}_".date('Y-m-d')."_full_S1_R{$finalDepositId}";
@@ -289,7 +436,7 @@ try {
         $gzipFileName = $baseFileName . ".tar.gz";
 
         // Save the main XML file
-        file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $es, LOCK_EX);
+        file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX);
 
         // Compress the XML file using tar
         $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
@@ -377,16 +524,19 @@ try {
         $reportXML->writeAttribute('xmlns:rdeReport', 'urn:ietf:params:xml:ns:rdeReport-1.0');
         $reportXML->writeAttribute('xmlns:rdeHeader', 'urn:ietf:params:xml:ns:rdeHeader-1.0');
 
-        $reportXML->writeElement('rdeReport:id', $finalDepositId);
+        $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
+        $depositId = date('Ymd') . $paddedFinalDepositId;
+        $reportXML->writeElement('rdeReport:id', $depositId);
         $reportXML->writeElement('rdeReport:version', '1');
         $reportXML->writeElement('rdeReport:rydeSpecEscrow', 'RFC8909');
         $reportXML->writeElement('rdeReport:rydeSpecMapping', 'RFC9022');
-        $reportXML->writeElement('rdeReport:resend', '0');
+        $reportXML->writeElement('rdeReport:resend', $deposit_id['revision']);
         $currentDateTime = new DateTime();
         $crDateWithMilliseconds = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
         $reportXML->writeElement('rdeReport:crDate', $crDateWithMilliseconds);
         $reportXML->writeElement('rdeReport:kind', 'FULL');
-        $reportXML->writeElement('rdeReport:watermark', date('Y-m-d\\T00:00:00.000\\Z'));
+        $previousDayWatermark = date('Y-m-d', strtotime('-1 day')) . 'T23:59:59Z';
+        $reportXML->writeElement('rdeReport:watermark', $previousDayWatermark);
 
         $reportXML->startElement('rdeHeader:header');
         $reportXML->writeElement('rdeHeader:tld', $tld['tld']);
@@ -492,6 +642,39 @@ try {
 
             curl_close($ch);
             
+        }
+        
+        $depositDate = date('Y-m-d');
+        $fileName = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
+        $fileFormat = 'XML';
+        $encryptionMethod = 'GnuPG';
+        $depositType = 'Full';
+        $status = 'Deposited';
+        $verificationStatus = 'Pending';
+
+        // Prepare the INSERT statement
+        $stmt = $dbh->prepare("INSERT INTO rde_escrow_deposits (deposit_id, deposit_date, file_name, file_format, encryption_method, deposit_type, status, verification_status, revision) VALUES (:deposit_id, :deposit_date, :file_name, :file_format, :encryption_method, :deposit_type, :status, :verification_status, :revision)");
+
+        $previousDayFormatted = date('Ymd');
+        $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
+        $depositId = $previousDayFormatted . $paddedFinalDepositId;
+
+        // Bind the parameters
+        $stmt->bindParam(':deposit_id', $depositId);
+        $stmt->bindParam(':deposit_date', $depositDate);
+        $stmt->bindParam(':file_name', $fileName);
+        $stmt->bindParam(':file_format', $fileFormat);
+        $stmt->bindParam(':encryption_method', $encryptionMethod);
+        $stmt->bindParam(':deposit_type', $depositType);
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':verification_status', $verificationStatus);
+        $stmt->bindParam(':revision', $finalDepositId, PDO::PARAM_INT);
+
+        // Execute the statement
+        if (!$stmt->execute()) {
+            // Handle error here
+            $errorInfo = $stmt->errorInfo();
+            $log->error('Database error: ' . $errorInfo[2]);
         }
 
     }
