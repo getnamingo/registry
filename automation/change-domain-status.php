@@ -5,12 +5,15 @@ require_once 'helpers.php';
 
 // Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/change_domain_status.log';
+$log = setupLogger($logFilePath, 'Change_Domain_Status');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 // Auto-Renew Grace Period
@@ -59,8 +62,7 @@ if ($auto_renew) {
                 $dbh->exec("INSERT INTO domain_status (domain_id, status) VALUES('$domain_id', 'pendingDelete')");
             }
         }
-        $currentDateTime = new DateTime();
-        echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:autoRenewPeriod exdate:$exdate\n";
+        $log->info($name . ' (ID ' . $domain_id . ') rgpStatus:autoRenewPeriod exdate: ' . $exdate);
     }
 } else {
     $grace_period = 30;
@@ -88,8 +90,7 @@ if ($auto_renew) {
             $dbh->exec("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(exdate, INTERVAL $grace_period DAY) WHERE id = '$domain_id'");
             $dbh->exec("INSERT INTO domain_status (domain_id, status) VALUES('$domain_id', 'pendingDelete')");
         }
-        $currentDateTime = new DateTime();
-        echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:redemptionPeriod exdate:$exdate\n";
+        $log->info($name . ' (ID ' . $domain_id . ') rgpStatus:redemptionPeriod exdate: ' . $exdate);
     }
 }
 
@@ -111,7 +112,7 @@ try {
     $dbh->exec($sql4);
 
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    $log->error('DB Error: ' . $e->getMessage());
 }
 
 // Pending Delete
@@ -139,8 +140,7 @@ while ($row = $sth_pendingdelete->fetch(PDO::FETCH_ASSOC)) {
     if ($set_pendingDelete) {
         $dbh->exec("UPDATE domain SET rgpstatus = 'pendingDelete' WHERE id = '$domain_id'");
     }
-    $currentDateTime = new DateTime();
-    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\trgpStatus:pendingDelete exdate:$exdate\n";
+    $log->info($name . ' (ID ' . $domain_id . ') rgpStatus:pendingDelete exdate: ' . $exdate);
 }
 
 // Pending Restore
@@ -153,9 +153,8 @@ while ($row = $sth_pendingRestore->fetch(PDO::FETCH_ASSOC)) {
     $exdate = $row['exdate'];
 
     $dbh->exec("UPDATE domain SET rgpstatus = 'redemptionPeriod' WHERE id = '$domain_id'");
-
-    $currentDateTime = new DateTime();
-    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\tback to redemptionPeriod from pendingRestore exdate:$exdate\n";
+    
+    $log->info($name . ' (ID ' . $domain_id . ') back to redemptionPeriod from pendingRestore exdate: ' . $exdate);
 }
 
 // Domain Deletion
@@ -203,7 +202,7 @@ while ($row = $sth_delete->fetch(PDO::FETCH_ASSOC)) {
         $sth->execute([$domain_id]);
         if ($sth->errorCode() !== '00000') {
             $errorInfo = $sth->errorInfo();
-            echo 'Numele de domeniu nu a fost sters cred ca este vre-o legatura cu alte obiecte: ' . $errorInfo[2];
+            $log->error($domain_id . '|' . $name . ' The domain name has not been deleted, there is a database issue: ' . $errorInfo[2]);
         } else {
             if (!$dbh->query("SELECT id FROM statistics WHERE date = CURDATE()")->fetchColumn()) {
                 $dbh->exec("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
@@ -211,6 +210,6 @@ while ($row = $sth_delete->fetch(PDO::FETCH_ASSOC)) {
             $dbh->exec("UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()");
         }
     }
-    $currentDateTime = new DateTime();
-    echo $currentDateTime->format("Y-m-d H:i:s.v") . " - $domain_id\t|\t$name\t|\tdomain:Deleted exdate:$exdate\n";
+    $log->info($name . ' (ID ' . $domain_id . ') domain:Deleted exdate: ' . $exdate);
 }
+$log->info('job finished successfully.');

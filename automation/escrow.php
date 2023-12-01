@@ -13,11 +13,14 @@ $options = [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
+$logFilePath = '/var/log/namingo/escrow.log';
+$log = setupLogger($logFilePath, 'Escrow');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 $domainCount = fetchCount($dbh, 'domain');
@@ -327,7 +330,7 @@ foreach ($tlds as $tld) {
     $encryptedData = gnupg_encrypt($res, $fileData);
 
     if (!$encryptedData) {
-        die("Error encrypting data: " . gnupg_geterror($res));
+        $log->error('Error encrypting data: ' . gnupg_geterror($res));
     }
 
     // Save the encrypted data to a new file
@@ -436,7 +439,7 @@ foreach ($tlds as $tld) {
 
         // Login with username and password
         if (!$sftp->login($c['escrow_sftp_username'], $c['escrow_sftp_password'])) {
-            die('Login failed');
+            $log->error('SFTP Login failed');
         }
 
         // Define the remote directory where you want to upload the files
@@ -452,9 +455,9 @@ foreach ($tlds as $tld) {
         foreach ($filesToUpload as $filePath) {
             $remoteFile = $remoteDir . basename($filePath);
             if (!$sftp->put($remoteFile, $filePath, SFTP::SOURCE_LOCAL_FILE)) {
-                echo "Failed to upload " . basename($filePath) . "\n";
+                $log->error('Failed to upload ' . basename($filePath));
             } else {
-                echo "Successfully uploaded " . basename($filePath) . "\n";
+                $log->info('Successfully uploaded ' . basename($filePath));
             }
         }
         
@@ -476,14 +479,14 @@ foreach ($tlds as $tld) {
         $response = curl_exec($ch);
 
         if ($response === false) {
-            die('Error occurred: ' . curl_error($ch));
+            $log->error('Upload error occurred: ' . curl_error($ch));
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         if ($httpCode >= 200 && $httpCode < 300) {
-            echo "File uploaded successfully.\n";
+            $log->info('Escrow deposit uploaded successfully');
         } else {
-            echo "Failed to upload file. HTTP Status Code: " . $httpCode . "\n";
+            $log->error('Failed to upload escrow deposit. HTTP Status Code: ' . $httpCode);
         }
 
         curl_close($ch);
@@ -491,3 +494,4 @@ foreach ($tlds as $tld) {
     }
 
 }
+$log->info('job finished successfully.');

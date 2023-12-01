@@ -5,12 +5,15 @@ require_once 'helpers.php';
 
 // Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/statistics.log';
+$log = setupLogger($logFilePath, 'Statistics');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 try {
@@ -27,11 +30,10 @@ try {
 
     // Update the statistics table with the total number of domains for the current date
     $dbh->exec("UPDATE statistics SET total_domains = '$total_domains' WHERE date = CURDATE()");
-
+    $log->info('job finished successfully.');
+    
 } catch (PDOException $e) {
-    // Handle database errors
-    die("Database error: " . $e->getMessage());
+    $log->error('Database error: ' . $e->getMessage());
 } catch (Exception $e) {
-    // Handle other types of errors
-    die("Error: " . $e->getMessage());
+    $log->error('Error: ' . $e->getMessage());
 }

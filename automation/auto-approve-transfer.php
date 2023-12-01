@@ -5,12 +5,15 @@ require_once 'helpers.php';
 
 // Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/auto_approve_transfer.log';
+$log = setupLogger($logFilePath, 'Auto_Approve_Transfer');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 $query_domain = "SELECT id, name, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'";
@@ -47,8 +50,7 @@ while ($row = $stmt_domain->fetch(PDO::FETCH_ASSOC)) {
         [$price] = $dbh->query("SELECT m$date_add FROM domain_price WHERE tldid = '$tld_id' AND command = 'transfer' LIMIT 1")->fetch(PDO::FETCH_NUM);
 
         if (($registrar_balance + $creditLimit) < $price) {
-            $echo = 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request';
-            shell_exec("echo '$name - $echo' >> /var/log/epp/domain_auto_approve_transfer.log");
+            $log->notice($name . ': The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
             continue;
         }
     }
@@ -62,9 +64,7 @@ while ($row = $stmt_domain->fetch(PDO::FETCH_ASSOC)) {
     $stmt_update_host->execute();
 
     if ($stmt_update->errorCode() != "00000") {
-        $err = 'UPDATE failed: ' . implode(", ", $stmt_update->errorInfo());
-        $echo = "The transfer was not successful, something is wrong | $err";
-        shell_exec("echo '$name - $echo' >> /var/log/epp/domain_auto_approve_transfer.log");
+        $log->error($name . ': The domain transfer was not successful, something is wrong | DB Update failed:' . implode(", ", $stmt_update->errorInfo()));
         continue;
     } else {
         $dbh->exec("UPDATE registrar SET accountBalance = (accountBalance - $price) WHERE id = '$reid'");
@@ -98,9 +98,7 @@ while ($contact_data = $stmt_contact->fetch(PDO::FETCH_ASSOC)) {
     $stmt_update_contact->execute([$reid, $contact_id]);
 
     if ($stmt_update_contact->errorCode() != "00000") {
-        $err = 'UPDATE failed: ' . implode(", ", $stmt_update_contact->errorInfo());
-        $echo = "The transfer was not successful, something is wrong | $err";
-        shell_exec("echo '$contact_id - $echo' >> /var/log/epp/contact_auto_approve_transfer.log");
+        $log->error($contact_id . ': The contact transfer was not successful, something is wrong | DB Update failed:' . implode(", ", $stmt_update_contact->errorInfo()));
         continue;
     } else {
         $stmt_select_contact = $dbh->prepare("SELECT identifier, crid, crdate, upid, `update`, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = ? LIMIT 1");
@@ -112,3 +110,4 @@ while ($contact_data = $stmt_contact->fetch(PDO::FETCH_ASSOC)) {
     }
 }
 $stmt_contact = null;
+$log->info('job finished successfully.');

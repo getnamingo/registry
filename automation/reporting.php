@@ -9,11 +9,14 @@ $options = [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
+$logFilePath = '/var/log/namingo/reporting.log';
+$log = setupLogger($logFilePath, 'ICANN_Reporting');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 // Fetch all TLDs
@@ -180,11 +183,12 @@ foreach ($tlds as $tld) {
         $transactionUploadUrl = 'https://ry-api.icann.org/report/registrar-transactions/' . $tld_save . '/' . $previousMonth;
     
         // Perform the upload
-        //uploadFile($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password']);
-        //uploadFile($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password']);
+        //uploadFile($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password'], $log);
+        //uploadFile($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password'], $log);
     }
     
 }
+$log->info('job finished successfully.');
 
 // HELPER FUNCTIONS
 function getOperationalRegistrars($dbh) {
@@ -562,7 +566,7 @@ function getAttemptedAddsAllRegistrars($dbh) {
 }
 
 // Upload function using cURL
-function uploadFile($url, $filePath, $username, $password) {
+function uploadFile($url, $filePath, $username, $password, $log) {
     $ch = curl_init();
     
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -574,7 +578,7 @@ function uploadFile($url, $filePath, $username, $password) {
     
     $response = curl_exec($ch);
     if (curl_errno($ch)) {
-        echo 'Error:' . curl_error($ch);
+        $log->error('Report upload error: ' . curl_error($ch));
     }
     
     curl_close($ch);

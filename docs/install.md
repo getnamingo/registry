@@ -9,7 +9,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stabl
 gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 apt update && apt upgrade
-apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml pv unzip wget whois
+apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml pv unzip wget whois
 ```
 
 ### Configure OPcache
@@ -206,12 +206,10 @@ Open the file in a text editor and carefully review and update all the values to
 
 ### Install Required Dependencies:
 
-Navigate to the automation directory in your command line interface.
-
-Execute the following command to install the necessary dependencies:
+Execute the following command from the ```automation``` directory to install the necessary dependencies:
 
 ```bash
-composer require badcow/dns phpseclib/phpseclib phpbu/phpbu setbased/php-audit
+composer install
 ```
 
 This command will install the essential packages for the automation scripts to function correctly.

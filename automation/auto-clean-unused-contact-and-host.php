@@ -5,12 +5,15 @@ require_once 'helpers.php';
 
 // Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/auto_clean_unused_contact_and_host.log';
+$log = setupLogger($logFilePath, 'Auto_Clean_Unused_Contact_And_Host');
+$log->info('job started.');
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password']);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 try {
@@ -53,11 +56,13 @@ try {
         $dbh->prepare("DELETE FROM contact_authInfo WHERE contact_id IN ($placeholders)")->execute($contact_ids);
         $dbh->prepare("DELETE FROM contact WHERE id IN ($placeholders)")->execute($contact_ids);
     }
+    
+    $log->info('job finished successfully.');
 
 } catch (PDOException $e) {
     // Handle database errors
-    die("Database error: " . $e->getMessage());
+    $log->error('Database error: ' . $e->getMessage());
 } catch (Exception $e) {
     // Handle other types of errors
-    die("Error: " . $e->getMessage());
+    $log->error('Error: ' . $e->getMessage());
 }

@@ -5,12 +5,15 @@ require_once 'helpers.php';
 
 // Connect to the database
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/send_invoice.log';
+$log = setupLogger($logFilePath, 'Invoice_Generator');
+$log->info('job started.');
 
 try {
     $pdo = new PDO($dsn, $c['db_username'], $c['db_password']);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 $previous = date("Y-m", strtotime("first day of previous month"));
@@ -110,15 +113,14 @@ try {
             $response = curl_exec($curl);
 
             if ($response === false) {
-                throw new Exception(curl_error($curl), curl_errno($curl));
+                $log->error('Curl error: ' . curl_error($curl) . curl_errno($curl));
             }
 
             curl_close($curl);
 
-            print_r($response);
+            $log->info('job finished successfully.');
         }
     }
 } catch (PDOException $e) {
-    // Handle any PDO exceptions here
-    echo "Database error: " . $e->getMessage();
+    $log->error('Database error: ' . $e->getMessage());
 }

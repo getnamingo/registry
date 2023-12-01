@@ -12,12 +12,15 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+$logFilePath = '/var/log/namingo/write_zone.log';
+$log = setupLogger($logFilePath, 'Zone_Generator');
+$log->info('job started.');
 
 try {
     $db = new PDO($dsn, $c['db_username'], $c['db_password']);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 $timestamp = time();
@@ -177,42 +180,43 @@ while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
     }
 
     file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
+    $log->info('job finished successfully.');
 }
 
 if ($c['dns_server'] == 'bind') {
     exec("rndc reload .{$cleanedTld}", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to reload BIND. $return_var \n";
+        $log->error('Failed to reload BIND. ' . $return_var);
     }
 
     exec("rndc notify .{$cleanedTld}", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to notify secondary servers. $return_var \n";
+        $log->error('Failed to notify secondary servers. ' . $return_var);
     }
 } elseif ($c['dns_server'] == 'nsd') {
     exec("nsd-control reload", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to reload NSD. $return_var \n";
+        $log->error('Failed to reload NSD. ' . $return_var);
     }
 } elseif ($c['dns_server'] == 'knot') {
     exec("knotc reload", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to reload Knot DNS. $return_var \n";
+        $log->error('Failed to reload Knot DNS. ' . $return_var);
     }
 
     exec("knotc zone-notify .{$cleanedTld}", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to notify secondary servers. $return_var \n";
+        $log->error('Failed to notify secondary servers. ' . $return_var);
     }
 } else {
     // Default
     exec("rndc reload .{$cleanedTld}", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to reload BIND. $return_var \n";
+        $log->error('Failed to reload BIND. ' . $return_var);
     }
 
     exec("rndc notify .{$cleanedTld}", $output, $return_var);
     if ($return_var != 0) {
-        print "Failed to notify secondary servers. $return_var \n";
+        $log->error('Failed to notify secondary servers. ' . $return_var);
     }
 }
