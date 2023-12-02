@@ -12,7 +12,7 @@ apt update && apt upgrade
 apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml pv unzip wget whois
 ```
 
-### Configure PHP
+### Configure PHP:
 
 Edit the PHP Configuration Files:
 
@@ -46,6 +46,26 @@ systemctl restart php8.2-fpm
 ### 2a. Install and configure MariaDB:
 
 ```bash
+curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
+```
+
+Place the following in ```/etc/apt/sources.list.d/mariadb.sources```:
+
+```bash
+# MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
+# https://mariadb.org/download/
+X-Repolib-Name: MariaDB
+Types: deb
+# deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
+# URIs: https://deb.mariadb.org/10.11/ubuntu
+URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/ubuntu
+Suites: jammy
+Components: main main/debug
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+```
+
+```bash
+apt-get update
 apt install -y mariadb-client mariadb-server php8.2-mysql
 mysql_secure_installation
 ```
@@ -92,7 +112,28 @@ Next, create the directory for Namingo logs. This directory will be used to stor
 mkdir -p /var/log/namingo
 ```
 
-## 5. Edit ```/etc/caddy/Caddyfile``` and place the following content:
+Import the provided database file for your database type.
+
+## 5. Configuring UFW Firewall:
+
+To securely set up the UFW (Uncomplicated Firewall) for your registry, follow these commands:
+
+```bash
+ufw allow 80/tcp
+ufw allow 80/udp
+ufw allow 443/tcp
+ufw allow 443/udp
+ufw allow 700/tcp
+ufw allow 700/udp
+ufw allow 43/tcp
+ufw allow 43/udp
+ufw allow 53/tcp
+ufw allow 53/udp
+```
+
+## 6. Configure Caddy webserver:
+
+Edit ```/etc/caddy/Caddyfile``` and place the following content:
 
 ```
 rdap.example.com {
@@ -134,7 +175,7 @@ whois.example.com {
 
 cp.example.com {
     bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
-    root * /var/www/cp
+    root * /var/www/cp/public
     php_fastcgi unix//run/php/php8.2-fpm.sock
     encode gzip
     file_server
@@ -165,37 +206,46 @@ cp.example.com {
 }
 ```
 
-## 6. Control Panel Setup
+Activate and reload Caddy:
+
+```bash
+systemctl enable caddy
+systemctl restart caddy
+```
+
+## 7. Control Panel Setup:
 
 Use a file management tool or command line to copy the entire ```registry/cp/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/cp/```.
 
+```bash
+cp -r /path/to/registry/cp /var/www/
+```
+
 ### Configure Environment File:
 
-Locate the file named ```env-sample``` in the control panel (```cp```) directory.
+Open your command line interface and navigate to the ```cp``` (control panel) directory.
 
-Rename this file to ```.env```.
+Locate the file named ```env-sample``` (```/var/www/cp/env-sample```) in the control panel (```cp```) directory.
 
-### Edit Environment Settings:
-
-Open the ```.env``` file in a text editor.
-
-Update the settings within this file to suit your specific environment and application needs.
+Rename this file to ```.env``` and update the settings within this file to suit your specific environment and application needs.
 
 ### Install Dependencies:
-
-Open your command line interface and navigate to the ```cp``` (control panel) directory.
 
 Run the following command to install the required dependencies:
 
 ```bash
-composer update
+composer install
 ```
 
-This command will update and install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
+This command will install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
 
-## 7. WHOIS setup
+## 8. Setup Web WHOIS:
 
-Use a file management tool or command line to copy the entire ```registry/whois/web/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/whois/```.
+```bash
+mkdir -p /var/www/whois
+cd /path/to/registry/whois/web
+cp -r * /var/www/whois
+```
 
 Change your working directory to ```/var/www/whois/``` using a command line interface. This can be done with the command ```cd /var/www/whois/```.
 
@@ -207,47 +257,45 @@ composer require gregwar/captcha
 
 This command will install the **gregwar/captcha** package, which is required for the WHOIS web interface functionality.
 
-## 8. Configure registry
-
-Each component in the project comes with its own configuration file. Before getting started:
-1. Edit database settings to match your setup.
-2. Update IP addresses as necessary.
-3. Adjust certificate paths to point to the correct locations.
-
-Once all configurations are set, initiate the application by executing:
+## 9. Setup WHOIS:
 
 ```bash
-php app.php
-```
-
-## 9. Reload Caddy:
-
-```bash
-systemctl enable caddy
-systemctl restart caddy
-```
-
-## 10. Initial Setup for Automation Scripts
-
-Before you continue, it is essential to configure the automation scripts properly. Please follow these steps to set up your environment:
-
-### Rename Configuration File:
-
-Locate the file named ```config.php.dist``` in the automation directory and rename it to ```config.php```.
-
-### Edit Configuration Settings:
-
-Open the file in a text editor and carefully review and update all the values to match your specific requirements.
-
-### Install Required Dependencies:
-
-Execute the following command from the ```automation``` directory to install the necessary dependencies:
-
-```bash
+cd /opt/registry/whois/port43
 composer install
+mv config.php.dist config.php
 ```
 
-This command will install the essential packages for the automation scripts to function correctly.
+Configure all options in ```config.php``` and run ```php start_whois.php &```
+
+## 10. Setup RDAP:
+
+```bash
+cd /opt/registry/rdap
+composer install
+mv config.php.dist config.php
+```
+
+Configure all options in ```config.php``` and run ```php start_rdap.php &```
+
+## 11. Setup EPP:
+
+```bash
+cd /opt/registry/epp
+composer install
+mv config.php.dist config.php
+```
+
+Configure all options in ```config.php``` and run ```php start_epp.php &```
+
+## 12. Setup Automation Scripts:
+
+```bash
+cd /opt/registry/automation
+composer install
+mv config.php.dist config.php
+```
+
+Configure all options in ```config.php```.
 
 ### Install Optional Dependencies:
 
@@ -285,9 +333,13 @@ This will initialize and configure the audit trail functionality. This process e
 
 **Currently, the audit trail setup for Namingo is supported only with MySQL or MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgAudit](https://minervadb.com/index.php/pgaudit-open-source-postgresql-audit-logging/), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
 
-## 11. RDE (Registry data escrow) configuration:
+### Setup Backup
 
-### Generate the Key Pair:
+***TODO***
+
+### RDE (Registry data escrow) configuration:
+
+#### Generate the Key Pair:
 
 Create a configuration file, say key-config, with the following content:
 
@@ -316,7 +368,7 @@ gpg2 --batch --generate-key key-config
 
 Your GPG key pair will now be generated.
 
-### Exporting Your Keys:
+#### Exporting Your Keys:
 
 Public key:
 
@@ -332,10 +384,20 @@ Private key:
 gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
 ```
 
-### Secure Your Private Key:
+#### Secure Your Private Key:
 
 Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
 
-### Use in RDE deposit generation:
+#### Use in RDE deposit generation:
 
 Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
+
+## 13. Setup DAS:
+
+```bash
+cd /opt/registry/das
+composer install
+mv config.php.dist config.php
+```
+
+Configure all options in ```config.php``` and run ```php start_das.php &```

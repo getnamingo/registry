@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `creditLimit` decimal(8,2) NOT NULL default '0.00',
     `creditThreshold` decimal(8,2) NOT NULL default '0.00',
     `thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
-    `currency` varchar(5) NOT NULL,
+    `currency` varchar(5) NOT NULL default 'USD',
     `crdate` datetime(3) NOT NULL,
     `update` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -646,11 +646,11 @@ CREATE TABLE IF NOT EXISTS `registry`.`ticket_responses` (
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Responses';
 
-INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO `registry`.`domain_tld` VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO `registry`.`domain_tld` VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO `registry`.`domain_tld` VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO `registry`.`domain_tld` VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO `registry`.`domain_tld` VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO `registry`.`domain_tld` VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO `registry`.`domain_tld` VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
 
 INSERT INTO `registry`.`domain_price` VALUES('1','1','create','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
 INSERT INTO `registry`.`domain_price` VALUES('2','1','renew','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');

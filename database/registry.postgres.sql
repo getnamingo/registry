@@ -77,7 +77,7 @@ CREATE TABLE registry.registrar (
      "creditlimit"   decimal(8,2) NOT NULL default '0.00',
      "creditthreshold"   decimal(8,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
-     "currency"   varchar(5) NOT NULL,
+     "currency"   varchar(5) NOT NULL default 'USD',
      "crdate"   timestamp(3) without time zone NOT NULL,
      "update"   timestamp(3),
      primary key ("id"),
@@ -628,11 +628,11 @@ CREATE TABLE ticket_responses (
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 );
 
-INSERT INTO registry.domain_tld VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO registry.domain_tld VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO registry.domain_tld VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO registry.domain_tld VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
-INSERT INTO registry.domain_tld VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i');
+INSERT INTO registry.domain_tld VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
 
 INSERT INTO registry.domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO registry.domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
