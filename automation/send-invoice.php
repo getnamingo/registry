@@ -65,8 +65,14 @@ try {
             $insertStmt->execute();
             
             $invoiceNumber = $pdo->lastInsertId();
-            $currentDateFormatted = date("Ymd"); // This will format the date as 'YYYYMMDD'
+            $currentDateFormatted = date("Ymd");
             $invoiceIdFormatted = "I" . $invoiceNumber . "-" . $currentDateFormatted;
+            
+            $updateQuery = "UPDATE invoices SET invoice_number = :invoiceIdFormatted WHERE id = :invoiceNumber";
+            $stmt = $pdo->prepare($updateQuery);
+            $stmt->bindParam(':invoiceIdFormatted', $invoiceIdFormatted, PDO::PARAM_STR);
+            $stmt->bindParam(':invoiceNumber', $invoiceNumber, PDO::PARAM_INT);
+            $stmt->execute();
 
             $issueDate = date("Y-m-d");
             $dueDate = date("Y-m-d", strtotime("+30 days"));
