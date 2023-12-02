@@ -1,6 +1,6 @@
 <?php
 
-require_once '../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -135,21 +135,21 @@ function generateSvTRID() {
     return $svTRID;
 }
 
-function getRegistrarClid(PDO $db, $id) {
+function getRegistrarClid(Swoole\Database\PDOProxy $db, $id) {
     $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :id");
     $stmt->execute([':id' => $id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     return $result['clid'] ?? null;  // Return the clid if found, otherwise return null
 }
 
-function getContactIdentifier(PDO $db, $id) {
+function getContactIdentifier(Swoole\Database\PDOProxy $db, $id) {
     $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
     $stmt->execute([':id' => $id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     return $result['identifier'] ?? null;  // Return the identifier if found, otherwise return null
 }
 
-function getHost(PDO $db, $id) {
+function getHost(Swoole\Database\PDOProxy $db, $id) {
     $stmt = $db->prepare("SELECT name FROM host WHERE id = :id");
     $stmt->execute([':id' => $id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -320,7 +320,7 @@ function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, 
     return true;
 }
 
-function getClid(PDO $db, string $clid): ?int {
+function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
