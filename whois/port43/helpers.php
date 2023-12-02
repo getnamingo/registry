@@ -40,3 +40,15 @@ function setupLogger($logFilePath, $channelName = 'app') {
 
     return $log;
 }
+
+function parseQuery($data) {
+    $data = trim($data);
+
+    if (strpos($data, 'nameserver ') === 0) {
+        return ['type' => 'nameserver', 'data' => substr($data, 11)];
+    } elseif (strpos($data, 'registrar ') === 0) {
+        return ['type' => 'registrar', 'data' => substr($data, 10)];
+    } else {
+        return ['type' => 'domain', 'data' => $data];
+    }
+}
