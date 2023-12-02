@@ -40,3 +40,55 @@ function setupLogger($logFilePath, $channelName = 'app') {
 
     return $log;
 }
+
+function mapContactToVCard($contactDetails, $role, $c) {
+    return [
+        'objectClassName' => 'entity',
+        'handle' => ['C' . $contactDetails['identifier'] . '-' . $c['roid']],
+        'roles' => [$role],
+        'remarks' => [
+            [
+                "description" => [
+                    "This object's data has been partially omitted for privacy.",
+                    "Only the registrar managing the record can view personal contact data."
+                ],
+                "links" => [
+                    [
+                        "href" => "https://namingo.org",
+                        "rel" => "alternate",
+                        "type" => "text/html"
+                    ]
+                ],
+                "title" => "REDACTED FOR PRIVACY",
+                "type" => "Details are withheld due to privacy restrictions."
+            ],
+            [
+                "description" => [
+                    "To obtain contact information for the domain registrant, please refer to the Registrar of Record's RDDS service as indicated in this report."
+                ],
+                "title" => "EMAIL REDACTED FOR PRIVACY",
+                "type" => "Details are withheld due to privacy restrictions."
+            ],
+        ],
+        'vcardArray' => [
+            "vcard",
+            [
+                ['version', new stdClass(), 'text', '4.0'],
+                ["fn", new stdClass(), 'text', $contactDetails['name']],
+                ["org", $contactDetails['org']],
+                ["adr", [
+                    "", // Post office box
+                    $contactDetails['street1'], // Extended address
+                    $contactDetails['street2'], // Street address
+                    $contactDetails['city'], // Locality
+                    $contactDetails['sp'], // Region
+                    $contactDetails['pc'], // Postal code
+                    $contactDetails['cc']  // Country name
+                ]],
+                ["tel", $contactDetails['voice'], ["type" => "voice"]],
+                ["tel", $contactDetails['fax'], ["type" => "fax"]],
+                ["email", $contactDetails['email']],
+            ]
+        ],
+    ];
+}

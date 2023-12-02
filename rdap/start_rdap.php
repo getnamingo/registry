@@ -4,64 +4,29 @@ if (!extension_loaded('swoole')) {
     die('Swoole extension must be installed');
 }
 
+use Swoole\Http\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+
+$c = require_once 'config.php';
 require_once 'helpers.php';
 $logFilePath = '/var/log/namingo/rdap.log';
 $log = setupLogger($logFilePath, 'RDAP');
 
-function mapContactToVCard($contactDetails, $role, $c) {
-    return [
-        'objectClassName' => 'entity',
-        'handle' => ['C' . $contactDetails['identifier'] . '-' . $c['roid']],
-        'roles' => [$role],
-        'remarks' => [
-            [
-                "description" => [
-                    "This object's data has been partially omitted for privacy.",
-                    "Only the registrar managing the record can view personal contact data."
-                ],
-                "links" => [
-                    [
-                        "href" => "https://namingo.org",
-                        "rel" => "alternate",
-                        "type" => "text/html"
-                    ]
-                ],
-                "title" => "REDACTED FOR PRIVACY",
-                "type" => "Details are withheld due to privacy restrictions."
-            ],
-            [
-                "description" => [
-                    "To obtain contact information for the domain registrant, please refer to the Registrar of Record's RDDS service as indicated in this report."
-                ],
-                "title" => "EMAIL REDACTED FOR PRIVACY",
-                "type" => "Details are withheld due to privacy restrictions."
-            ],
-        ],
-        'vcardArray' => [
-            "vcard",
-            [
-                ['version', new stdClass(), 'text', '4.0'],
-                ["fn", new stdClass(), 'text', $contactDetails['name']],
-                ["org", $contactDetails['org']],
-                ["adr", [
-                    "", // Post office box
-                    $contactDetails['street1'], // Extended address
-                    $contactDetails['street2'], // Street address
-                    $contactDetails['city'], // Locality
-                    $contactDetails['sp'], // Region
-                    $contactDetails['pc'], // Postal code
-                    $contactDetails['cc']  // Country name
-                ]],
-                ["tel", $contactDetails['voice'], ["type" => "voice"]],
-                ["tel", $contactDetails['fax'], ["type" => "fax"]],
-                ["email", $contactDetails['email']],
-            ]
-        ],
-    ];
-}
+// Initialize the PDO connection pool
+$pool = new Swoole\Database\PDOPool(
+    (new Swoole\Database\PDOConfig())
+        ->withDriver($c['db_type'])
+        ->withHost($c['db_host'])
+        ->withPort($c['db_port'])
+        ->withDbName($c['db_database'])
+        ->withUsername($c['db_username'])
+        ->withPassword($c['db_password'])
+        ->withCharset('utf8mb4')
+);
 
 // Create a Swoole HTTP server
-$http = new Swoole\Http\Server('0.0.0.0', 7500);
+$http = new Server('0.0.0.0', 7500);
 $http->set([
     'daemonize' => false,
     'log_file' => '/var/log/namingo/rdap_application.log',
@@ -81,120 +46,125 @@ $http->set([
 ]);
 $log->info('server started.');
 
-// Connect to the database
-try {
-    $c = require_once 'config.php';
-    $pdo = new PDO("{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}", $c['db_username'], $c['db_password']);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    $log->error('DB Connection failed: ' . $e->getMessage());
-    $response->header('Content-Type', 'application/json');
-    $response->end(json_encode(['error' => 'Error connecting to database']));
-    return;
-}
-
-// Register a callback to handle incoming requests
-$http->on('request', function ($request, $response) use ($c, $pdo, $log) {
+// Handle incoming HTTP requests
+$http->on('request', function ($request, $response) use ($c, $pool, $log) {
+    // Get a PDO connection from the pool
+    $pdo = $pool->get();
     
-    // Extract the request path
-    $requestPath = $request->server['request_uri'];
+    try {
+        // Extract the request path
+        $requestPath = $request->server['request_uri'];
 
-    // Handle domain query
-    if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
-        $domainName = $matches[1];
-        handleDomainQuery($request, $response, $pdo, $domainName, $c, $log);
-    }
-    // Handle entity (contacts) query
-    elseif (preg_match('#^/entity/([^/?]+)#', $requestPath, $matches)) {
-        $entityHandle = $matches[1];
-        handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log);
-    }
-    // Handle nameserver query
-    elseif (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $matches)) {
-        $nameserverHandle = $matches[1];
-        handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c, $log);
-    }
-    // Handle domain search query
-    elseif ($requestPath === '/domains') {
-        if (isset($request->server['query_string'])) {
-            parse_str($request->server['query_string'], $queryParams);
-
-            if (isset($queryParams['name'])) {
-                $searchPattern = $queryParams['name'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
-            } elseif (isset($queryParams['nsLdhName'])) {
-                $searchPattern = $queryParams['nsLdhName'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsLdhName');
-            } elseif (isset($queryParams['nsIp'])) {
-                $searchPattern = $queryParams['nsIp'];
-                handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsIp');
-            } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
-            }
-        } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
+        // Handle domain query
+        if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
+            $domainName = $matches[1];
+            handleDomainQuery($request, $response, $pdo, $domainName, $c, $log);
         }
-    }
-    // Handle nameserver search query
-    elseif ($requestPath === '/nameservers') {
-        if (isset($request->server['query_string'])) {
-            parse_str($request->server['query_string'], $queryParams);
-
-            if (isset($queryParams['name'])) {
-                $searchPattern = $queryParams['name'];
-                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
-            } elseif (isset($queryParams['ip'])) {
-                $searchPattern = $queryParams['ip'];
-                handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'ip');
-            } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
-            }
-        } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
+        // Handle entity (contacts) query
+        elseif (preg_match('#^/entity/([^/?]+)#', $requestPath, $matches)) {
+            $entityHandle = $matches[1];
+            handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log);
         }
-    }
-    // Handle entity search query
-    elseif ($requestPath === '/entities') {
-        if (isset($request->server['query_string'])) {
-            parse_str($request->server['query_string'], $queryParams);
-
-            if (isset($queryParams['fn'])) {
-                $searchPattern = $queryParams['fn'];
-                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'fn');
-            } elseif (isset($queryParams['handle'])) {
-                $searchPattern = $queryParams['handle'];
-                handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'handle');
-            } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
-            }
-        } else {
-                $response->header('Content-Type', 'application/json');
-                $response->status(404);
-                $response->end(json_encode(['error' => 'Object not found']));
+        // Handle nameserver query
+        elseif (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $matches)) {
+            $nameserverHandle = $matches[1];
+            handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c, $log);
         }
-    }
-    // Handle help query
-    elseif ($requestPath === '/help') {
-        handleHelpQuery($request, $response, $pdo, $c);
-    }
-    else {
+        // Handle domain search query
+        elseif ($requestPath === '/domains') {
+            if (isset($request->server['query_string'])) {
+                parse_str($request->server['query_string'], $queryParams);
+
+                if (isset($queryParams['name'])) {
+                    $searchPattern = $queryParams['name'];
+                    handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
+                } elseif (isset($queryParams['nsLdhName'])) {
+                    $searchPattern = $queryParams['nsLdhName'];
+                    handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsLdhName');
+                } elseif (isset($queryParams['nsIp'])) {
+                    $searchPattern = $queryParams['nsIp'];
+                    handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsIp');
+                } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+                }
+            } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+            }
+        }
+        // Handle nameserver search query
+        elseif ($requestPath === '/nameservers') {
+            if (isset($request->server['query_string'])) {
+                parse_str($request->server['query_string'], $queryParams);
+
+                if (isset($queryParams['name'])) {
+                    $searchPattern = $queryParams['name'];
+                    handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'name');
+                } elseif (isset($queryParams['ip'])) {
+                    $searchPattern = $queryParams['ip'];
+                    handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'ip');
+                } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+                }
+            } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+            }
+        }
+        // Handle entity search query
+        elseif ($requestPath === '/entities') {
+            if (isset($request->server['query_string'])) {
+                parse_str($request->server['query_string'], $queryParams);
+
+                if (isset($queryParams['fn'])) {
+                    $searchPattern = $queryParams['fn'];
+                    handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'fn');
+                } elseif (isset($queryParams['handle'])) {
+                    $searchPattern = $queryParams['handle'];
+                    handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'handle');
+                } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+                }
+            } else {
+                    $response->header('Content-Type', 'application/json');
+                    $response->status(404);
+                    $response->end(json_encode(['error' => 'Object not found']));
+            }
+        }
+        // Handle help query
+        elseif ($requestPath === '/help') {
+            handleHelpQuery($request, $response, $pdo, $c);
+        }
+        else {
+            $response->header('Content-Type', 'application/json');
+            $response->status(404);
+            $response->end(json_encode(['errorCode' => 404,'title' => 'Not Found','error' => 'Endpoint not found']));
+        }
+    } catch (PDOException $e) {
+        // Handle database exceptions
+        $log->error('Database error: ' . $e->getMessage());
+        $response->status(500);
         $response->header('Content-Type', 'application/json');
-        $response->status(404);
-        $response->end(json_encode(['errorCode' => 404,'title' => 'Not Found','error' => 'Endpoint not found']));
+        $response->end(json_encode(['Database error:' => $e->getMessage()]));
+    } catch (Throwable $e) {
+        // Catch any other exceptions or errors
+        $log->error('Error: ' . $e->getMessage());
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['Error:' => $e->getMessage()]));
+    } finally {
+        // Return the connection to the pool
+        $pool->put($pdo);
     }
 
-    // Close the connection
-    $pdo = null;
 });
 
 // Start the server
