@@ -2,8 +2,11 @@
 <link href="/assets/css/tabler-flags.min.css" rel="stylesheet"/>
 <link href="/assets/css/tabler-payments.min.css" rel="stylesheet"/>
 <link href="/assets/css/tabler-vendors.min.css" rel="stylesheet"/>
+{% if screen_mode == 'dark' %}
+<link href="/assets/css/tabulator-dark.min.css" rel="stylesheet">
+{% else %}
 <link href="/assets/css/tabulator.min.css" rel="stylesheet">
-<link href="/assets/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+{% endif %}
 <style>
     .small-dropdown .dropdown-item {
         padding: 0.25rem 1.5rem;
