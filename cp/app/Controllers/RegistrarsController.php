@@ -115,7 +115,7 @@ class RegistrarsController extends Controller
                     $randomPrefix .= $characters[rand(0, strlen($characters) - 1)];
                 }
                 $currency = $_SESSION['_currency'] ?? 'USD';
-                $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 2048, 'time_cost' => 4, 'threads' => 4]);
+                $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
                 
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
@@ -220,7 +220,7 @@ class RegistrarsController extends Controller
                     }
                 }
                 
-                $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 2048, 'time_cost' => 4, 'threads' => 4]);
+                $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
 
                 $db->insert(
                     'users',

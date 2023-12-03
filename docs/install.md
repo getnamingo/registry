@@ -70,6 +70,8 @@ apt install -y mariadb-client mariadb-server php8.2-mysql
 mysql_secure_installation
 ```
 
+(Tune your MariaDB)[https://github.com/major/MySQLTuner-perl]
+
 ### 2b. Install and configure PostgreSQL:
 
 ```bash
@@ -89,6 +91,8 @@ postgres=# ALTER USER postgres PASSWORD 'demoPassword';
 postgres=# CREATE DATABASE registry;
 postgres=# \q
 ```
+
+(Tune your PostgreSQL)[https://pgtune.leopard.in.ua/]
 
 ## 3. Install Adminer:
 
@@ -238,6 +242,18 @@ composer install
 ```
 
 This command will install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
+
+### Creating an Admin User:
+
+1. Navigate to the 'bin' Directory: Change to the 'bin' subdirectory where the admin user creation script is located. (```create_admin_user.php```)
+
+2. Update Admin User Details: Open the script and enter the desired details for the admin user, such as email, username, and password.
+
+3. Execute the Script: Run the script to create the admin user in your system.
+
+4. Verify Admin Access: Attempt to log in with the new admin credentials to ensure they are functioning correctly.
+
+5. Remove the Script: Once verified, delete the script to maintain system security.
 
 ## 8. Setup Web WHOIS:
 
