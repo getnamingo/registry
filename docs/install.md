@@ -12,6 +12,21 @@ apt update && apt upgrade
 apt install -y bzip2 caddy composer curl gettext git gnupg2 net-tools php8.2 php8.2-bcmath php8.2-cli php8.2-common php8.2-curl php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-swoole php8.2-xml pv unzip wget whois
 ```
 
+### Configure time:
+
+Make sure your server is set to UTC:
+
+```bash
+timedatectl status
+```
+
+If your server is not set to UTC, you can change it using the ```timedatectl``` command:
+
+```bash
+timedatectl set-timezone UTC
+timedatectl status
+```
+
 ### Configure PHP:
 
 Edit the PHP Configuration Files:
@@ -303,6 +318,13 @@ mv config.php.dist config.php
 ```
 
 Configure all options in ```config.php``` and run ```php start_epp.php &```
+
+To create test certificates (cert.pem and key.pem):
+
+```bash
+openssl genrsa -out key.pem 2048
+openssl req -new -x509 -key key.pem -out cert.pem -days 365
+```
 
 ## 12. Setup Automation Scripts:
 
