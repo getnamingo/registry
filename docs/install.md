@@ -50,6 +50,20 @@ session.cookie_samesite = "Strict"
 session.cookie_domain = example.com
 ```
 
+In ```/etc/php/8.2/fpm/php.ini``` make one additional change.
+
+If you have about 10000 domains, use:
+
+```bash
+memory_limit = 512M
+```
+
+If you have 50000 or more domains, use:
+
+```bash
+memory_limit = -1
+```
+
 After configuring PHP, restart the service to apply changes:
 
 ```bash
