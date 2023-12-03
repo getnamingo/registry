@@ -70,7 +70,7 @@ apt install -y mariadb-client mariadb-server php8.2-mysql
 mysql_secure_installation
 ```
 
-(Tune your MariaDB)[https://github.com/major/MySQLTuner-perl]
+[Tune your MariaDB](https://github.com/major/MySQLTuner-perl)
 
 ### 2b. Install and configure PostgreSQL:
 
@@ -92,7 +92,7 @@ postgres=# CREATE DATABASE registry;
 postgres=# \q
 ```
 
-(Tune your PostgreSQL)[https://pgtune.leopard.in.ua/]
+[Tune your PostgreSQL](https://pgtune.leopard.in.ua/)
 
 ## 3. Install Adminer:
 
