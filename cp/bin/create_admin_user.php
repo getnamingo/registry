@@ -31,7 +31,7 @@ try {
 
     // SQL query
     $sql = "INSERT INTO users (email, password, username, status, verified, resettable, roles_mask, registered, last_login, force_logout, tfa_secret, tfa_enabled, auth_method, backup_codes) 
-            VALUES (:email, :password, :username, 1, 1, 1, 0, 1, NULL, 0, NULL, 0, 'password', NULL)";
+            VALUES (:email, :password, :username, 0, 1, 1, 0, 1, NULL, 0, NULL, 0, 'password', NULL)";
 
     // Prepare and execute SQL statement
     $stmt = $pdo->prepare($sql);

@@ -26,7 +26,13 @@
             <div class="col-12">
               <div class="card mb-3">
                 <div class="card-header">
-                  <h3 class="card-title">Domain {{ domain.name }}&nbsp;<span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;<span class="status status-info" title="Status">{{ domain.rgpstatus }}</span></h3>
+                    <h3 class="card-title">
+                        Domain {{ domain.name }}&nbsp;
+                        {% if domainStatus.status %}
+                            <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                        {% endif %}
+                        <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                    </h3>
                 </div>
                 <div class="card-body">
                   <div class="datagrid">
@@ -79,26 +85,26 @@
                   <div class="card h-100">
                     <div class="card-body">
                       <h5 class="card-title">DNSSEC Data</h5>
-					  <div class="table-responsive">
-						<table class="table table-vcenter card-table table-striped">
-							{% for row in domainSecdns %}
-								<tr>
-									{% for key, value in row %}
-										{% if key not in ['id', 'domain_id', 'maxsiglife'] %}
-											<th>{{ key }}</th>
-										{% endif %}
-									{% endfor %}
-								</tr>
-								<tr>
-									{% for key, value in row %}
-										{% if key not in ['id', 'domain_id', 'maxsiglife'] %}
-											<td>{{ value }}</td>
-										{% endif %}
-									{% endfor %}
-								</tr>
-							{% endfor %}
-						</table>
-					  </div>
+                      <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                            {% for row in domainSecdns %}
+                                <tr>
+                                    {% for key, value in row %}
+                                        {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+                                            <th>{{ key }}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    {% for key, value in row %}
+                                        {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+                                            <td>{{ value }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
