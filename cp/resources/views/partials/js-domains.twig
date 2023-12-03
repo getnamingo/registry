@@ -39,14 +39,79 @@
         }
         return "";
     }
+    
+    var searchTerm = ""; // global variable to hold the search term
+
+    function updateSearchTerm(term) {
+        searchTerm = term;
+        table.replaceData();
+    }
 
     table = new Tabulator("#domainTable", {
-        ajaxURL:"/api/records/domain?join=contact&join=domain_status", // Set the URL for your JSON data
-        ajaxConfig:"GET",
-        pagination:"local",
-        paginationSize:10,
-        ajaxResponse:function(url, params, response){
-            return response.records;
+        pagination: true,
+        paginationMode: "remote",
+        paginationSize: 10,
+        ajaxURL: "/api/records/domain",
+        ajaxParams: {
+            join: "contact",
+            join: "domain_status"
+        },
+        ajaxURLGenerator: function(url, config, params) {
+            var queryParts = ["join=contact", "join=domain_status"];
+
+            // Handle search term
+            if (searchTerm) {
+                queryParts.push("filter1=name,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter2=crdate,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter3=exdate,cs," + encodeURIComponent(searchTerm));
+            }
+
+            // Handle sorting
+            if (params.sorters && params.sorters.length) {
+                params.sorters.forEach(function(sorter) {
+                    queryParts.push("order=" + sorter.field + "," + sorter.dir);
+                });
+            } else {
+                queryParts.push("order=id"); // default sorting
+            }
+
+            // Include pagination parameters
+            if (params.page) {
+                queryParts.push("page=" + params.page + "," + params.size);
+            }
+
+            return url + "?" + queryParts.join("&");
+        },
+        ajaxResponse: function(url, params, response) {
+            if (response && Array.isArray(response.records) && typeof response.results === 'number') {
+                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                return {
+                    last_page: lastPage, // Calculated total number of pages
+                    data: response.records, // Data for the current page
+                };
+            } else {
+                console.error('Unexpected response format', response);
+                return { last_page: 1, data: [] };
+            }
+        },
+        dataReceiveParams: {
+            "last_page": "results", // Mapping 'results' to 'last_page'
+        },
+        sortMode: "remote",
+        columnSorted:function(column, dir, sorters){
+            table.setData();
+        },
+        headerSortElement: function(column, dir){
+            switch(dir){
+                case "asc":
+                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 15l6 -6l6 6" /></svg>';
+                break;
+                case "desc":
+                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>';
+                break;
+                default:
+                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 9l4 -4l4 4m-4 -4v14" /><path d="M21 15l-4 4l-4 -4m4 4v-14" /></svg>';
+            }
         },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
@@ -67,18 +132,7 @@
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {
-        var term = searchInput.value;
-
-        table.setFilter(function (data) {
-            // Convert data fields to strings and check if they include the term
-            return (
-                String(data.name).toLowerCase().includes(term.toLowerCase()) ||
-                String(data['registrant.identifier']).toLowerCase().includes(term.toLowerCase()) ||
-                String(data.crdate).toLowerCase().includes(term.toLowerCase()) ||
-                String(data.exdate).toLowerCase().includes(term.toLowerCase()) ||
-                String(data.domain_status).toLowerCase().includes(term.toLowerCase())
-            );
-        });
+        updateSearchTerm(searchInput.value);
     });
     });
    
