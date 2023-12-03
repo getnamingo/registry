@@ -114,6 +114,7 @@ Next, create the directory for Namingo logs. This directory will be used to stor
 
 ```bash
 mkdir -p /var/log/namingo
+chown -R www-data:www-data /var/log/namingo
 ```
 
 Import the provided database file for your database type.
