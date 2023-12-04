@@ -961,6 +961,9 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'Please provide registrant identifier');
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
             if ($contactAdmin) {
@@ -976,6 +979,9 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'Please provide admin contact identifier');
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
             if ($contactTech) {
@@ -991,6 +997,9 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'Please provide tech contact identifier');
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
             if ($contactBilling) {
@@ -1006,6 +1015,9 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'Please provide billing contact identifier');
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
             if (!$authInfo) {
@@ -1164,14 +1176,19 @@ class DomainsController extends Controller
                                 ]
                             );
                         } else {
-                            $currentDateTime = new \DateTime();
-                            $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
-                            $db->insert(
-                                'error_log',
+                            $host_map_id = $db->selectValue(
+                                'SELECT id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1',
+                                [$domain_id, $hostName_already_exist]
+                            );
+                            
+                            $db->update(
+                                'domain_host_map',
                                 [
-                                    'registrar_id' => $clid,
-                                    'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
-                                    'date' => $logdate
+                                    'host_id' => $hostName_already_exist
+                                ],
+                                [
+                                    'domain_id' => $domain_id,
+                                    'id' => $host_map_id
                                 ]
                             );
                         }
@@ -1225,7 +1242,7 @@ class DomainsController extends Controller
                         
                     }
                 }
-                
+
                 $contacts = [
                     'admin' => $data['contactAdmin'] ?? null,
                     'tech' => $data['contactTech'] ?? null,
@@ -1239,6 +1256,11 @@ class DomainsController extends Controller
                             [$contact]
                         );
 
+                        $contact_map_id = $db->selectRow(
+                            'SELECT * FROM domain_contact_map WHERE domain_id = ? AND type = ?',
+                            [$domain_id, $type]
+                        );
+
                         // Check if $contact_id is not null before update
                         if ($contact_id !== null) {
                             $db->update(
@@ -1247,8 +1269,7 @@ class DomainsController extends Controller
                                     'contact_id' => $contact_id,
                                 ],
                                 [
-                                    'domain_id' => $domain_id,
-                                    'type' => $type
+                                    'id' => $contact_map_id['id']
                                 ]
                             );
                         }

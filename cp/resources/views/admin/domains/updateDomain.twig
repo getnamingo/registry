@@ -66,8 +66,8 @@
                         <!-- Fields for 4 contacts with roles -->
                         <div class="col">
                             <div class="mb-3">
-                                <label for="contactRegistrant" class="form-label required">{{ __('Contacts') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required="required">
+                                <label for="contactRegistrant" class="form-label required">{{ __('Registrant Contact') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
                                         
                                 {% set contactAdmin = '' %}
                                 {% set contactTech = '' %}
@@ -82,22 +82,20 @@
                                         {% set contactBilling = contact.identifier %}
                                     {% endif %}
                                 {% endfor %}
-
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" value="{{ contactAdmin }}">
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech" value="{{ contactTech }}">
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" value="{{ contactBilling }}">
-                            </div>
-                            <!-- AuthInfo -->
-                            <div class="mb-3">
-                                <label for="authInfo" class="form-label">{{ __('Auth Info') }}</label>
-                                <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ domainAuth.authinfo }}">
+                                
+                                <label for="contactAdmin" class="form-label required">{{ __('Admin Contact') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" id="contactAdmin" value="{{ contactAdmin }}" required>
+                                <label for="contactTech" class="form-label required">{{ __('Tech Contact') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech" id="contactTech" value="{{ contactTech }}" required>
+                                <label for="contactBilling" class="form-label required">{{ __('Billing Contact') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}" required>
                             </div>
                         </div>
                                 
                         <!-- Fields for nameservers -->
                         <div class="col">
                             <div id="nameserverFields">
-                                <label class="form-label">{{ __('Nameservers') }}</label>
+                                <label class="form-label">{{ __('Nameservers') }}&nbsp;<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>&nbsp;<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button></label>
                                 {% for host in domainHosts %}
                                     <div class="nameserver-group mb-1 row">
                                         <!-- Nameserver -->
@@ -107,8 +105,12 @@
                                     </div>
                                 {% endfor %}
                             </div>
-                            <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
-                            <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
+
+                            <!-- AuthInfo -->
+                            <div class="mb-3 mt-3">
+                                <label for="authInfo" class="form-label required">{{ __('Auth Info') }}</label>
+                                <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ domainAuth.authinfo }}" required>
+                            </div>
                         </div>
                     </div>
 
