@@ -20,8 +20,8 @@
    
     function actionsFormatter(cell, formatterParams, onRendered) {
         return `
-            <a class="btn btn-primary btn-icon update-btn" href="domain/update/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a>
-            <a class="btn btn-secondary btn-icon renew-btn" href="domain/renew/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></a>
+            <a class="btn btn-primary btn-icon" href="domain/update/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a>
+            <a class="btn btn-secondary btn-icon" href="domain/renew/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></a>
             <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
         `;
     }
@@ -102,9 +102,9 @@
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"Name", field:"name", width:200, headerSort:false, formatter: domainLinkFormatter, responsive:0},
             {title:"Registrant", width:200, field:"registrant.identifier", headerSort:false, responsive:2},
-            {title:"Creation Date", width:200, field:"crdate", headerSort:false, responsive:2},
-            {title:"Expiration Date", width:250, field:"exdate", headerSort:false, responsive:2},
-            {title:"Status", width:200, field:"domain_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
+            {title:"Creation Date", width:250, minWidth:150, field:"crdate", headerSort:false, responsive:2},
+            {title:"Expiration Date", width:250, minWidth:150, field:"exdate", headerSort:false, responsive:2},
+            {title:"Status", width:150, field:"domain_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){
@@ -117,16 +117,8 @@
     });
     });
    
-    function updateRecord(id) {
-        console.log("Updating record with ID: " + id);
-    }
-   
     function deleteRecord(id) {
         console.log("Deleting record with ID: " + id);
-    }
-   
-    function renewDomain(id) {
-        console.log("Renewing domain with ID: " + id);
     }
    
     function downloadCSV() {

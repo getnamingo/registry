@@ -92,7 +92,7 @@
 
                             <!-- Fields for nameservers -->
                             <div id="nameserverFields">
-                                <label class="form-label">{{ __('Nameservers') }}</label>
+                                <label class="form-label">{{ __('Nameservers') }}                             <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button> <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button></label>
 
                                 <div class="nameserver-group mb-1 row">
                                     <div class="col-md-4">
@@ -118,11 +118,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
-                            <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
 
                             <!-- DNSSEC Data with checkbox -->
-                            <div class="mb-3 form-check">
+                            <div class="mb-3 mt-2 form-check">
                                 <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
                                 <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
                             </div>

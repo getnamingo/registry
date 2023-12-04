@@ -40,7 +40,8 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':checkDomain')->setName('checkDomain');
     $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':createDomain')->setName('createDomain');
     $route->get('/domain/view/{domain}', DomainsController::class . ':viewDomain')->setName('viewDomain');
-    $route->map(['GET', 'POST'], '/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
+    $route->get('/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
+    $route->post('/domain/update', DomainsController::class . ':updateDomainProcess')->setName('updateDomainProcess');
     $route->map(['GET', 'POST'], '/domain/renew/{domain}', DomainsController::class . ':renewDomain')->setName('renewDomain');
     $route->map(['GET', 'POST'], '/domain/delete/{domain}', DomainsController::class . ':deleteDomain')->setName('deleteDomain');
     
@@ -50,13 +51,19 @@ $app->group('', function ($route) {
     $route->post('/transfer/reject', DomainsController::class . ':rejectTransfer')->setName('rejectTransfer');
     $route->post('/transfer/cancel', DomainsController::class . ':cancelTransfer')->setName('cancelTransfer');
 
-    $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
-    $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
+    $route->get('/contacts', ContactsController::class .':listContacts')->setName('listContacts');
+    $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':createContact')->setName('createContact');
     $route->get('/contact/view/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
+    $route->get('/contact/update/{contact}', ContactsController::class . ':updateContact')->setName('updateContact');
+    $route->post('/contact/update', ContactsController::class . ':updateContactProcess')->setName('updateContactProcess');
+    $route->map(['GET', 'POST'], '/contact/delete/{contact}', ContactsController::class . ':deleteContact')->setName('deleteContact');
     
-    $route->get('/hosts', HostsController::class .':view')->setName('hosts');
-    $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':create')->setName('hostcreate');
+    $route->get('/hosts', HostsController::class .':listHosts')->setName('listHosts');
+    $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':createHost')->setName('createHost');
     $route->get('/host/view/{host}', HostsController::class . ':viewHost')->setName('viewHost');
+    $route->get('/host/update/{host}', HostsController::class . ':updateHost')->setName('updateHost');
+    $route->post('/host/update', HostsController::class . ':updateHostProcess')->setName('updateHostProcess');
+    $route->map(['GET', 'POST'], '/host/delete/{host}', HostsController::class . ':deleteHost')->setName('deleteHost');
 
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
