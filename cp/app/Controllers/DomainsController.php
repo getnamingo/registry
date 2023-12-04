@@ -936,18 +936,6 @@ class DomainsController extends Controller
             
             $authInfo = $data['authInfo'] ?? null;
             
-            foreach ($nameservers as $index => $nameserver) {
-                if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-                
-                if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-            }
-            
             if ($contactRegistrant) {
                 $validRegistrant = validate_identifier($contactRegistrant);
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactRegistrant]);
@@ -1098,9 +1086,9 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
                 $validDigests = [
-                1 => 40,  // SHA-1
-                2 => 64,  // SHA-256
-                4 => 96   // SHA-384
+                    1 => 40,  // SHA-1
+                    2 => 64,  // SHA-256
+                    4 => 96   // SHA-384
                 ];
                 if (!empty($validDigests[$dsDigestType])) {
                     $this->container->get('flash')->addMessage('error', 'Unsupported digest type');
@@ -1154,8 +1142,18 @@ class DomainsController extends Controller
                         'pubkey' => $dnskeyPubKey ?? null
                     ]);
                 }
-                             
+   
                 foreach ($nameservers as $index => $nameserver) {
+                    if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid hostName');
+                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                    }
+                    
+                    if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid hostName');
+                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                    }
+                
                     $hostName_already_exist = $db->selectValue(
                         'SELECT id FROM host WHERE name = ? LIMIT 1',
                         [$nameserver]
