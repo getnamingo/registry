@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}{{ __('Create Contact') }}{% endblock %}
+{% block title %}{{ __('Update Contact') }} {{ contact.identifier }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,7 +14,7 @@
                   Overview
                 </div>
                 <h2 class="page-title">
-                  {{ __('Create Contact') }}
+                  {{ __('Update Contact') }} {{ contact.identifier }}
                 </h2>
               </div>
             </div>
@@ -24,35 +24,21 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              {% if contactID is defined and crdate is defined %}
-                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Contact') }} <strong>{{ contactID }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% elseif error is defined %}
-                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Contact') }} <strong>{{ contactID }}</strong> {{ __('can not be created') }}: <strong>{{ error }}</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% endif %}
+            {% include 'partials/flash.twig' %}
                 <div class="card">
                     <div class="card-body">
-                        <form action="/contact/create" method="post">
-                        {{ csrf.field | raw }}
+                        <form action="/contact/update" method="post">
+                        {{ csrf.field | raw }}<input type="hidden" name="identifier" value="{{ contact.identifier }}">
+                        {% set postal_int = null %}
+                        {% set postal_loc = null %}
+
+                        {% for postal in contactPostal %}
+                            {% if postal.type == 'int' %}
+                                {% set postal_int = postal %}
+                            {% elseif postal.type == 'loc' %}
+                                {% set postal_loc = postal %}
+                            {% endif %}
+                        {% endfor %}
                             <div class="row">
                                 <!-- First Column: General & Internationalized Info -->
                                 <div class="col-md-6">
@@ -61,30 +47,19 @@
                                     <!-- Internationalized Name -->
                                     <div class="mb-3">
                                         <label for="intName" class="form-label required">Name</label>
-                                        <input type="text" class="form-control" id="intName" name="intName" required="required">
+                                        <input type="text" class="form-control" id="intName" name="intName" required="required" value="{{ postal_int.name }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseNameInt" name="disclose_name_int">
+                                          <input class="form-check-input" type="checkbox" id="discloseNameInt" name="disclose_name_int" {% if postal_int.disclose_name_int == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseNameInt">Disclose in WHOIS</span>
                                         </label>
                                     </div>
                                     
-                                    {% if registrars and not registrar %}
-                                        <div class="form-group mb-3">
-                                            <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
-                                            <select id="registrarDropdown" name="registrar" class="form-control">
-                                                {% for registrar in registrars %}
-                                                    <option value="{{ registrar.id }}">{{ registrar.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    {% endif %}
-
                                     <!-- Internationalized Organization -->
                                     <div class="mb-3">
                                         <label for="intOrg" class="form-label required">Organization</label>
-                                        <input type="text" class="form-control" id="intOrg" name="org" required="required">
+                                        <input type="text" class="form-control" id="intOrg" name="org" required="required" value="{{ postal_int.org }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseOrgInt" name="disclose_org_int">
+                                          <input class="form-check-input" type="checkbox" id="discloseOrgInt" name="disclose_org_int" {% if postal_int.disclose_org_int == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseOrgInt">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -92,40 +67,40 @@
                                     <!-- Internationalized Address: Street Details -->
                                     <div class="mb-3">
                                         <label for="street1" class="form-label required">Street 1</label>
-                                        <input type="text" class="form-control" id="street1" name="street1" required="required">
+                                        <input type="text" class="form-control" id="street1" name="street1" required="required" value="{{ postal_int.street1 }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="street2" class="form-label">Street 2</label>
-                                        <input type="text" class="form-control" id="street2" name="street2">
+                                        <input type="text" class="form-control" id="street2" name="street2" value="{{ postal_int.street2 }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="street3" class="form-label">Street 3</label>
-                                        <input type="text" class="form-control" id="street3" name="street3">
+                                        <input type="text" class="form-control" id="street3" name="street3" value="{{ postal_int.street3 }}">
                                     </div>
 
                                     <!-- Internationalized Address: City, SP, PC, CC -->
                                     <div class="mb-3">
                                         <label for="city" class="form-label required">City</label>
-                                        <input type="text" class="form-control" id="city" name="city"  required="required">
+                                        <input type="text" class="form-control" id="city" name="city"  required="required" value="{{ postal_int.city }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="sp" class="form-label">State/Province</label>
-                                        <input type="text" class="form-control" id="sp" name="sp">
+                                        <input type="text" class="form-control" id="sp" name="sp" value="{{ postal_int.sp }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="pc" class="form-label">Postal Code</label>
-                                        <input type="text" class="form-control" id="pc" name="pc">
+                                        <input type="text" class="form-control" id="pc" name="pc" value="{{ postal_int.pc }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="cc" class="form-label required">Country</label>
                                         <select class="form-select" id="cc" name="cc" required="required">
                                             {% for country in countries %}
-                                                <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
+                                                <option value="{{ country.alpha2|lower }}" {% if postal_int.cc == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>            
                                     <label class="form-check form-switch mt-1">
-                                      <input class="form-check-input" type="checkbox" id="discloseAddrInt" name="disclose_addr_int">
+                                      <input class="form-check-input" type="checkbox" id="discloseAddrInt" name="disclose_addr_int" {% if postal_int.disclose_addr_int == '1' %}checked{% endif %}>
                                       <span class="form-check-label" for="discloseAddrInt">Disclose Address in WHOIS</span>
                                     </label>
                                 </div>
@@ -134,18 +109,12 @@
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Contact Details</h6>
                                     
-                                    <!-- Contact ID -->
-                                    <div class="mb-3">
-                                        <label for="contactid" class="form-label required">Contact ID</label>
-                                        <input type="text" class="form-control" id="contactid" name="contactid" required="required">
-                                    </div>
-
                                     <!-- Voice -->
                                     <div class="mb-3">
                                         <label for="voice" class="form-label required">Voice</label>
-                                        <input type="tel" class="form-control" id="voice" name="voice" required="required">
+                                        <input type="tel" class="form-control" id="voice" name="voice" required="required" value="{{ contact.voice }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseVoice" name="disclose_voice">
+                                          <input class="form-check-input" type="checkbox" id="discloseVoice" name="disclose_voice" {% if contact.disclose_voice == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseVoice">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -153,9 +122,9 @@
                                     <!-- Fax -->
                                     <div class="mb-3">
                                         <label for="fax" class="form-label">Fax</label>
-                                        <input type="tel" class="form-control" id="fax" name="fax">
+                                        <input type="tel" class="form-control" id="fax" name="fax" value="{{ contact.fax }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseFax" name="disclose_fax">
+                                          <input class="form-check-input" type="checkbox" id="discloseFax" name="disclose_fax" {% if contact.disclose_fax == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseFax">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -163,9 +132,9 @@
                                     <!-- Email -->
                                     <div class="mb-3">
                                         <label for="email" class="form-label required">Email</label>
-                                        <input type="email" class="form-control" id="email" name="email"  required="required" autocapitalize="none">
+                                        <input type="email" class="form-control" id="email" name="email"  required="required" autocapitalize="none" value="{{ contact.email }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email">
+                                          <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email" {% if contact.disclose_email == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseEmail">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -173,14 +142,14 @@
                                     <!-- AuthInfo for Contact -->
                                     <div class="mb-3">
                                         <label for="authInfo" class="form-label required">Contact AuthInfo</label>
-                                        <input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
-                                        <small class="form-text text-muted">Auto-generated authentication information for the contact.</small>
+                                        <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ contactAuth.authinfo }}">
+                                        <small class="form-text text-muted">Authentication information for the contact.</small>
                                     </div>
 
                                     <!-- NIN - National Identification Number -->
                                     <div class="mb-3">
                                         <label for="nin" class="form-label">NIN - National Identification Number</label>
-                                        <input type="text" class="form-control" id="nin" name="nin">
+                                        <input type="text" class="form-control" id="nin" name="nin" value="{{ contact.nin }}">
                                     </div>
 
                                     <!-- Personal or Business Checkbox -->
@@ -213,7 +182,7 @@
                             <!-- Localized Info Checkbox -->
                             <div class="mb-3">
                                 <label class="form-check form-switch">
-                                  <input class="form-check-input" type="checkbox" id="toggleLoc">
+                                  <input class="form-check-input" type="checkbox" id="toggleLoc" {% if postal_loc.cc %}checked{% endif %}>
                                   <span class="form-check-label" for="toggleLoc">Include Localized Info</span>
                                 </label>
                             </div>
@@ -227,9 +196,9 @@
                                     <!-- Localized Name -->
                                     <div class="mb-3">
                                         <label for="locName" class="form-label">Name</label>
-                                        <input type="text" class="form-control" id="locName" name="locName">
+                                        <input type="text" class="form-control" id="locName" name="locName" value="{{ postal_loc.name }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseNameLoc" name="disclose_name_loc">
+                                          <input class="form-check-input" type="checkbox" id="discloseNameLoc" name="disclose_name_loc" {% if postal_loc.disclose_name_loc == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseNameLoc">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -237,9 +206,9 @@
                                     <!-- Localized Organization -->
                                     <div class="mb-3">
                                         <label for="locOrg" class="form-label">Organization</label>
-                                        <input type="text" class="form-control" id="locOrg" name="locOrg">
+                                        <input type="text" class="form-control" id="locOrg" name="locOrg" value="{{ postal_loc.org }}">
                                         <label class="form-check form-switch mt-1">
-                                          <input class="form-check-input" type="checkbox" id="discloseOrgLoc" name="disclose_org_loc">
+                                          <input class="form-check-input" type="checkbox" id="discloseOrgLoc" name="disclose_org_loc" {% if postal_loc.disclose_org_loc == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseOrgLoc">Disclose in WHOIS</span>
                                         </label>
                                     </div>
@@ -247,11 +216,11 @@
                                     <!-- Localized Street Details -->
                                     <div class="mb-3">
                                         <label for="locStreet1" class="form-label">Street 1</label>
-                                        <input type="text" class="form-control" id="locStreet1" name="locStreet1">
+                                        <input type="text" class="form-control" id="locStreet1" name="locStreet1" value="{{ postal_loc.street1 }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="locStreet2" class="form-label">Street 2</label>
-                                        <input type="text" class="form-control" id="locStreet2" name="locStreet2">
+                                        <input type="text" class="form-control" id="locStreet2" name="locStreet2" value="{{ postal_loc.street2 }}">
                                     </div>
                                 </div>
 
@@ -262,32 +231,32 @@
                                     <!-- Continued Localized Street Detail -->
                                     <div class="mb-3">
                                         <label for="locStreet3" class="form-label">Street 3</label>
-                                        <input type="text" class="form-control" id="locStreet3" name="locStreet3">
+                                        <input type="text" class="form-control" id="locStreet3" name="locStreet3" value="{{ postal_loc.street3 }}">
                                     </div>
 
                                     <!-- Localized City, SP, PC, CC -->
                                     <div class="mb-3">
                                         <label for="locCity" class="form-label">City</label>
-                                        <input type="text" class="form-control" id="locCity" name="locCity">
+                                        <input type="text" class="form-control" id="locCity" name="locCity" value="{{ postal_loc.city }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="locSP" class="form-label">State/Province</label>
-                                        <input type="text" class="form-control" id="locSP" name="locSP">
+                                        <input type="text" class="form-control" id="locSP" name="locSP" value="{{ postal_loc.sp }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="locPC" class="form-label">Postal Code</label>
-                                        <input type="text" class="form-control" id="locPC" name="locPC">
+                                        <input type="text" class="form-control" id="locPC" name="locPC" value="{{ postal_loc.pc }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="locCC" class="form-label">Country</label>
                                         <select class="form-select" id="locCC" name="locCC">
                                             {% for country in countries %}
-                                                <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
+                                                <option value="{{ country.alpha2|lower }}" {% if postal_loc.cc == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>                        
                                     <label class="form-check form-switch mt-1">
-                                      <input class="form-check-input" type="checkbox" id="discloseAddrLoc" name="disclose_addr_loc">
+                                      <input class="form-check-input" type="checkbox" id="discloseAddrLoc" name="disclose_addr_loc" {% if postal_loc.disclose_addr_loc == '1' %}checked{% endif %}>
                                       <span class="form-check-label" for="discloseAddrLoc">Disclose Address in WHOIS</span>
                                     </label>
                                 </div>
@@ -296,7 +265,7 @@
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">Create Contact</button>
+                      <button type="submit" class="btn btn-primary">Update Contact</button>
                     </div>
                   </div>
                 </div>
@@ -323,28 +292,20 @@ document.addEventListener("DOMContentLoaded", function() {
     const toggleLocCheckbox = document.getElementById('toggleLoc');
     const localizedSection = document.getElementById('localizedInfo');
 
-    toggleLocCheckbox.addEventListener('change', function() {
+    // Function to toggle the visibility of the extra data
+    function toggleLocalizedSection() {
         if (toggleLocCheckbox.checked) {
             localizedSection.style.display = "flex";
         } else {
             localizedSection.style.display = "none";
         }
-    });
-    
-    // Generate authInfo for Contact
-    const authInfoInput = document.getElementById('authInfo');
-    authInfoInput.value = generateAuthInfo();
-
-    function generateAuthInfo() {
-        const length = 16;
-        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        let retVal = "";
-        for (let i = 0; i < length; i++) {
-            const randomIndex = Math.floor(Math.random() * charset.length);
-            retVal += charset.charAt(randomIndex);
-        }
-        return retVal;
     }
+
+    // Event listener for checkbox state change
+    toggleLocCheckbox.addEventListener('change', toggleLocalizedSection);
+
+    // Call the function on page load to set the initial state
+    toggleLocalizedSection();
 });
 </script>
 {% endblock %}
