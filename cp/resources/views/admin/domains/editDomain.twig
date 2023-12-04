@@ -1,0 +1,291 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Editing Domain') }} {{ domain.name }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  Overview
+                </div>
+                <h2 class="page-title">
+                  {{ __('Editing Domain') }} {{ domain.name }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <form id="domainCreateForm" action="/domain/update" method="post">
+            {{ csrf.field | raw }}
+              <div class="col-12">
+              {% if domainName is defined and crdate is defined %}
+                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Domain') }} <strong>{{ domainName }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% elseif error is defined %}
+                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
+                    <div class="d-flex">
+                      <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                      </div>
+                      <div>
+                        &nbsp;{{ __('Domain') }} <strong>{{ domainName }}</strong> {{ __('can not be created') }}: <strong>{{ error }}</strong>
+                      </div>
+                    </div>
+                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                  </div>
+              {% endif %}
+                <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        Domain {{ domain.name }}&nbsp;
+                                        {% if domainStatus.status %}
+                                            <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                                        {% endif %}
+                                        <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                  <div class="datagrid">
+                                    <div class="datagrid-item">
+                                      <div class="datagrid-title">Registered On</div>
+                                      <div class="datagrid-content">{{ domain.crdate }}</div>
+                                    </div>
+                                    <div class="datagrid-item">
+                                      <div class="datagrid-title">Last Updated</div>
+                                      <div class="datagrid-content">{{ domain.update }}</div>
+                                    </div>
+                                    <div class="datagrid-item">
+                                      <div class="datagrid-title">Expiration Date</div>
+                                      <div class="datagrid-content">{{ domain.exdate }}</div>
+                                    </div>
+                                    <div class="datagrid-item">
+                                      <div class="datagrid-title">Registrar</div>
+                                      <div class="datagrid-content">{{ registrar.name }}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+              </div>
+              <div class="col-12">
+                <div class="card">
+                  <div class="card-body">
+                    <div class="row">
+                        <!-- Fields for 4 contacts with roles -->
+                        <div class="col">
+                            <div class="mb-3">
+                                <label for="contactRegistrant" class="form-label required">{{ __('Contacts') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required="required">
+                                        
+                                {% set contactAdmin = '' %}
+                                {% set contactTech = '' %}
+                                {% set contactBilling = '' %}
+
+                                {% for contact in domainContacts %}
+                                    {% if contact.type == 'admin' %}
+                                        {% set contactAdmin = contact.identifier %}
+                                    {% elseif contact.type == 'tech' %}
+                                        {% set contactTech = contact.identifier %}
+                                    {% elseif contact.type == 'billing' %}
+                                        {% set contactBilling = contact.identifier %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" value="{{ contactAdmin }}">
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech" value="{{ contactTech }}">
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" value="{{ contactBilling }}">
+                            </div>
+                            <!-- AuthInfo -->
+                            <div class="mb-3">
+                                <label for="authInfo" class="form-label">{{ __('Auth Info') }}</label>
+                                <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ domainAuth.authinfo }}">
+                            </div>
+                        </div>
+                                
+                        <!-- Fields for nameservers -->
+                        <div class="col">
+                            <div id="nameserverFields">
+                                <label class="form-label">{{ __('Nameservers') }}</label>
+                                {% for host in domainHosts %}
+                                    <div class="nameserver-group mb-1 row">
+                                        <!-- Nameserver -->
+                                        <div class="col-md-12">
+                                            <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} {{ loop.index }}" name="nameserver[]" value="{{ host.name }}" required autocapitalize="none">
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>
+                            <button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button>
+                        </div>
+                    </div>
+
+                    {% if domainSecdns|length > 0 %}
+                        <!-- DNSSEC data is available, display the form directly -->
+                        <div id="dnssecData" class="mb-3">
+                            <label for="authInfo" class="form-label">{{ __('DNSSEC Data') }}</label>
+                            <div class="table-responsive">
+                                <table class="table table-vcenter card-table table-striped">
+                                {% for row in domainSecdns %}
+                                    <tr>
+                                        {% for key, value in row %}
+                                            {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+                                                <th>{{ key }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                    <tr>
+                                        {% for key, value in row %}
+                                            {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
+                                                <td>{{ value }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- DNSSEC Data with checkbox -->
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
+                            <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
+                        </div>
+                        <div id="dnssecData" style="display: none;">
+                            <div class="mb-3">
+                                <label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
+                                <select class="form-control mb-2" name="dsAlg">
+                                    <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+                                    <option value="1">RSA/MD5 (deprecated)</option>
+                                    <option value="3">DSA/SHA1</option>
+                                    <option value="5">RSA/SHA-1</option>
+                                    <!-- Add other algorithms as required -->
+                                </select>
+                                <select class="form-control mb-2" name="dsDigestType">
+                                    <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
+                                    <option value="1">SHA-1</option>
+                                    <option value="2">SHA-256</option>
+                                    <!-- Add other digest types as required -->
+                                </select>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
+                            </div>
+                                    
+                            <div class="mb-3">
+                                <label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
+                                <input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
+                                <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+                                <select class="form-control mb-2" name="dnskeyAlg">
+                                    <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+                                    <option value="1">RSA/MD5 (deprecated)</option>
+                                    <option value="3">DSA/SHA1</option>
+                                    <option value="5">RSA/SHA-1</option>
+                                    <!-- Add other algorithms as required -->
+                                </select>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
+                            </div>
+                        </div>
+                    {% endif %}
+                  </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">{{ __('Update Domain') }}</button>
+                    </div>
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const addNameserverBtn = document.getElementById('addNameserver');
+    const removeNameserverBtn = document.getElementById('removeNameserver');
+    const nameserverFields = document.getElementById('nameserverFields');
+
+    function createNameserverGroup(count) {
+        const group = document.createElement('div');
+        group.className = 'nameserver-group mb-1 row';
+
+        const nameserverCol = document.createElement('div');
+        nameserverCol.className = 'col-md-12';
+        const nameserverField = document.createElement('input');
+        nameserverField.type = 'text';
+        nameserverField.className = 'form-control mb-1';
+        nameserverField.placeholder = `{{ __('Nameserver') }} ${count}`;
+        nameserverField.name = `nameserver[]`;
+        nameserverCol.appendChild(nameserverField);
+
+        group.appendChild(nameserverCol);
+
+        return group;
+    }
+
+    // Add nameserver fields
+    let nameserverCount = {{ domainHosts|length }};  // Initialize count based on the number of domain hosts
+
+    addNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount < 13) {
+            nameserverCount++;
+            const nameserverGroup = createNameserverGroup(nameserverCount);
+            nameserverFields.appendChild(nameserverGroup);
+        }
+    });
+
+    // Remove nameserver group
+    removeNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount > 2) {
+            const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
+            if (lastGroup) {
+                nameserverFields.removeChild(lastGroup);
+                nameserverCount--;
+            }
+        }
+    });
+
+    // Display DNSSEC data when the checkbox is ticked
+    document.getElementById('addDnssec').addEventListener('change', function() {
+        const dnssecData = document.getElementById('dnssecData');
+        if (this.checked) {
+            dnssecData.style.display = 'block';
+        } else {
+            dnssecData.style.display = 'none';
+        }
+    });
+    
+});
+</script>
+{% endblock %}

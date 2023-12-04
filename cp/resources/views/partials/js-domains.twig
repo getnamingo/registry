@@ -6,15 +6,9 @@
 <script>
     var table;
     document.querySelector("#domainTable").addEventListener('click', function(e) {
-        if (e.target.matches('.update-btn')) {
-            let id = e.target.getAttribute('data-id');
-            updateRecord(id);
-        } else if (e.target.matches('.delete-btn')) {
+        if (e.target.matches('.delete-btn')) {
             let id = e.target.getAttribute('data-id');
             deleteRecord(id);
-        } else if (e.target.matches('.renew-btn')) {
-            let id = e.target.getAttribute('data-id');
-            renewDomain(id);
         }
     });
    
@@ -26,18 +20,28 @@
    
     function actionsFormatter(cell, formatterParams, onRendered) {
         return `
-            <button class="btn btn-primary btn-icon update-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></button>
-            <button class="btn btn-secondary btn-icon renew-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></button>
+            <a class="btn btn-primary btn-icon update-btn" href="domain/update/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a>
+            <a class="btn btn-secondary btn-icon renew-btn" href="domain/renew/${cell.getRow().getData().name}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></a>
             <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
         `;
     }
 
     function statusFormatter(cell) {
         var statusArray = cell.getValue();
-        if (statusArray && Array.isArray(statusArray)) {
-            return statusArray.map(item => item.status).join(', ');
+        var rowData = cell.getRow().getData(); // Get the entire row data
+
+        // Function to create a badge
+        function createBadge(text, badgeClass) {
+            return `<span class="badge bg-${badgeClass}-lt">${text}</span>`;
         }
-        return "";
+
+        // Check if statusArray is empty or not
+        if (statusArray && Array.isArray(statusArray) && statusArray.length > 0) {
+            return statusArray.map(item => createBadge(item.status, 'azure')).join(' ');
+        } else {
+            // Fallback to rgpstatus column if statusArray is empty
+            return rowData.rgpstatus ? createBadge(rowData.rgpstatus, 'lime') : "";
+        }
     }
     
     var searchTerm = ""; // global variable to hold the search term
@@ -66,14 +70,7 @@
                 queryParts.push("filter3=exdate,cs," + encodeURIComponent(searchTerm));
             }
 
-            // Handle sorting
-            if (params.sorters && params.sorters.length) {
-                params.sorters.forEach(function(sorter) {
-                    queryParts.push("order=" + sorter.field + "," + sorter.dir);
-                });
-            } else {
-                queryParts.push("order=id"); // default sorting
-            }
+            queryParts.push("order=id");
 
             // Include pagination parameters
             if (params.page) {
@@ -97,32 +94,16 @@
         dataReceiveParams: {
             "last_page": "results", // Mapping 'results' to 'last_page'
         },
-        sortMode: "remote",
-        columnSorted:function(column, dir, sorters){
-            table.setData();
-        },
-        headerSortElement: function(column, dir){
-            switch(dir){
-                case "asc":
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 15l6 -6l6 6" /></svg>';
-                break;
-                case "desc":
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>';
-                break;
-                default:
-                    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 9l4 -4l4 4m-4 -4v14" /><path d="M21 15l-4 4l-4 -4m4 4v-14" /></svg>';
-            }
-        },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Name", field:"name", width:150, headerSort:true, formatter: domainLinkFormatter, responsive:0},
-            {title:"Registrant", width:200, field:"registrant.identifier", headerSort:true, responsive:2},
-            {title:"Creation Date", width:250, field:"crdate", headerSort:true, responsive:2},
-            {title:"Expiration Date", width:250, field:"exdate", headerSort:true, responsive:2},
+            {title:"Name", field:"name", width:200, headerSort:false, formatter: domainLinkFormatter, responsive:0},
+            {title:"Registrant", width:200, field:"registrant.identifier", headerSort:false, responsive:2},
+            {title:"Creation Date", width:200, field:"crdate", headerSort:false, responsive:2},
+            {title:"Expiration Date", width:250, field:"exdate", headerSort:false, responsive:2},
             {title:"Status", width:200, field:"domain_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],

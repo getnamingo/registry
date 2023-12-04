@@ -36,11 +36,19 @@ $app->group('', function ($route) {
 $app->group('', function ($route) {
     $route->get('/dashboard', HomeController::class .':dashboard')->setName('home');
 
-    $route->get('/domains', DomainsController::class .':view')->setName('domains');
-    $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':check')->setName('domaincheck');
-    $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':create')->setName('domaincreate');
+    $route->get('/domains', DomainsController::class .':listDomains')->setName('listDomains');
+    $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':checkDomain')->setName('checkDomain');
+    $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':createDomain')->setName('createDomain');
     $route->get('/domain/view/{domain}', DomainsController::class . ':viewDomain')->setName('viewDomain');
-    $route->map(['GET', 'POST'], '/transfers', DomainsController::class . ':transfers')->setName('transfers');
+    $route->map(['GET', 'POST'], '/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
+    $route->map(['GET', 'POST'], '/domain/renew/{domain}', DomainsController::class . ':renewDomain')->setName('renewDomain');
+    $route->map(['GET', 'POST'], '/domain/delete/{domain}', DomainsController::class . ':deleteDomain')->setName('deleteDomain');
+    
+    $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');
+    $route->map(['GET', 'POST'], '/transfer/request', DomainsController::class . ':requestTransfer')->setName('requestTransfer');
+    $route->post('/transfer/approve', DomainsController::class . ':approveTransfer')->setName('approveTransfer');
+    $route->post('/transfer/reject', DomainsController::class . ':rejectTransfer')->setName('rejectTransfer');
+    $route->post('/transfer/cancel', DomainsController::class . ':cancelTransfer')->setName('cancelTransfer');
 
     $route->get('/contacts', ContactsController::class .':view')->setName('contacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':create')->setName('contactcreate');
