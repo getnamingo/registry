@@ -9,12 +9,12 @@ use Psr\Container\ContainerInterface;
 
 class HostsController extends Controller
 {
-    public function view(Request $request, Response $response)
+    public function listHosts(Request $request, Response $response)
     {
-        return view($response,'admin/hosts/view.twig');
+        return view($response,'admin/hosts/listHosts.twig');
     }
     
-    public function create(Request $request, Response $response)
+    public function createHost(Request $request, Response $response)
     {
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
@@ -37,7 +37,7 @@ class HostsController extends Controller
                 if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
                     $host_id_already_exist = $hostModel->getHostByNom($hostName);
                     if ($host_id_already_exist) {
-                        return view($response, 'admin/hosts/create.twig', [
+                        return view($response, 'admin/hosts/createHost.twig', [
                             'hostName' => $hostName,
                             'error' => 'host name already exists',
                             'registrars' => $registrars,
@@ -45,7 +45,7 @@ class HostsController extends Controller
                         ]);
                     }
                 } else {
-                    return view($response, 'admin/hosts/create.twig', [
+                    return view($response, 'admin/hosts/createHost.twig', [
                         'hostName' => $hostName,
                         'error' => 'Invalid host name',
                         'registrars' => $registrars,
@@ -64,7 +64,7 @@ class HostsController extends Controller
                 if ($ipv4) {
                     $ipv4 = normalize_v4_address($ipv4);
                     if (!filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                        return view($response, 'admin/hosts/create.twig', [
+                        return view($response, 'admin/hosts/createHost.twig', [
                             'hostName' => $hostName,
                             'error' => 'Invalid host addr v4',
                             'registrars' => $registrars,
@@ -76,7 +76,7 @@ class HostsController extends Controller
                 if ($ipv6) {
                     $ipv6 = normalize_v6_address($ipv6);
                     if (!filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                        return view($response, 'admin/hosts/create.twig', [
+                        return view($response, 'admin/hosts/createHost.twig', [
                             'hostName' => $hostName,
                             'error' => 'Invalid host addr v6',
                             'registrars' => $registrars,
@@ -114,7 +114,7 @@ class HostsController extends Controller
                     }
                     
                     if (!$domain_exist) {
-                        return view($response, 'admin/hosts/create.twig', [
+                        return view($response, 'admin/hosts/createHost.twig', [
                             'hostName' => $hostName,
                             'error' => 'A host name object can NOT be created in a repository for which no superordinate domain name object exists',
                             'registrars' => $registrars,
@@ -124,7 +124,7 @@ class HostsController extends Controller
                     
                     if ($_SESSION['auth_roles'] !== 0) {
                         if ($clid != $clid_domain) {
-                            return view($response, 'admin/hosts/create.twig', [
+                            return view($response, 'admin/hosts/createHost.twig', [
                                 'hostName' => $hostName,
                                 'error' => 'The domain name belongs to another registrar, you are not allowed to create hosts for it',
                                 'registrars' => $registrars,
@@ -151,7 +151,7 @@ class HostsController extends Controller
                         $host_id = $db->getLastInsertId();
 
                         if (!$ipv4 && !$ipv6) {
-                            return view($response, 'admin/hosts/create.twig', [
+                            return view($response, 'admin/hosts/createHost.twig', [
                                 'hostName' => $hostName,
                                 'error' => 'At least one of IPv4 or IPv6 must be provided',
                                 'registrars' => $registrars,
@@ -195,7 +195,7 @@ class HostsController extends Controller
                         $db->commit();
                     } catch (Exception $e) {
                         $db->rollBack();
-                        return view($response, 'admin/hosts/create.twig', [
+                        return view($response, 'admin/hosts/createHost.twig', [
                             'hostName' => $hostName,
                             'error' => $e->getMessage(),
                             'registrars' => $registrars,
@@ -208,7 +208,7 @@ class HostsController extends Controller
                         [$hostName]
                     );
                     
-                    return view($response, 'admin/hosts/create.twig', [
+                    return view($response, 'admin/hosts/createHost.twig', [
                         'hostName' => $hostName,
                         'crdate' => $crdate,
                         'registrars' => $registrars,
@@ -242,7 +242,7 @@ class HostsController extends Controller
                         [$hostName]
                     );
                     
-                    return view($response, 'admin/hosts/create.twig', [
+                    return view($response, 'admin/hosts/createHost.twig', [
                         'hostName' => $hostName,
                         'crdate' => $crdate,
                         'registrars' => $registrars,
@@ -261,7 +261,7 @@ class HostsController extends Controller
         }
 
         // Default view for GET requests or if POST data is not set
-        return view($response,'admin/hosts/create.twig', [
+        return view($response,'admin/hosts/createHost.twig', [
             'registrars' => $registrars,
             'registrar' => $registrar,
         ]);
@@ -333,6 +333,265 @@ class HostsController extends Controller
             // Redirect to the hosts view
             return $response->withHeader('Location', '/hosts')->withStatus(302);
         }
+
+    }
+    
+    public function updateHost(Request $request, Response $response, $args)
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        function isValidHostname($hostname) {
+            // Check for IDN and convert to ASCII if necessary
+            if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
+                $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
+            }
+
+            // Regular expression for validating a hostname (simplified version)
+            $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+
+            return preg_match($pattern, $hostname);
+        }
+
+        if ($args && isValidHostname($args)) {
+            $internal_host = false;
+
+            $query = "SELECT tld FROM domain_tld";
+            $result = $db->select($query);
+
+            foreach ($result as $row) {
+                if (preg_match("/" . preg_quote(strtoupper($row['tld']), '/') . "$/i", $args)) {
+                    $internal_host = true;
+                    break;
+                }
+            }
+
+            if (!$internal_host) {
+                $host = $db->selectRow('SELECT id, name, clid, crdate FROM host WHERE name = ?',
+                [ $args ]);
+                
+                if ($host) {            
+                    return view($response,'admin/hosts/updateInternalHost.twig', [
+                        'host' => $host
+                    ]);
+                    
+                } else {
+                    // Host does not exist, redirect to the hosts view
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
+            } else {
+                $host = $db->selectRow('SELECT id, name, clid, crdate FROM host WHERE name = ?',
+                [ $args ]);
+
+                if ($host) {
+                    $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$host['clid']]);
+
+                    // Check if the user is not an admin (assuming role 0 is admin)
+                    if ($_SESSION["auth_roles"] != 0) {
+                        $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                        // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                        $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                        // Check if the registrar's ID is in the user's list of registrar IDs
+                        if (!in_array($registrars['id'], $userRegistrarIds)) {
+                            // Redirect to the hosts view if the user is not authorized for this host
+                            return $response->withHeader('Location', '/hosts')->withStatus(302);
+                        }
+                    }
+
+                    $hostIPv4 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v4'",
+                    [ $host['id'] ]);
+                    $hostIPv6 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v6'",
+                    [ $host['id'] ]);
+
+                    return view($response,'admin/hosts/updateHost.twig', [
+                        'host' => $host,
+                        'hostIPv4' => $hostIPv4,
+                        'hostIPv6' => $hostIPv6,
+                        'registrars' => $registrars,
+                        'currentUri' => $uri
+                    ]);
+                } else {
+                    // Host does not exist, redirect to the hosts view
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
+            }
+        } else {
+            // Redirect to the hosts view
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+    }
+    
+    public function updateHostProcess(Request $request, Response $response)
+    {
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $hostName = $data['hostName'] ?? null;
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM host WHERE name = ?', [$hostName]);
+            }
+            
+            $ipv4 = $data['ipv4'] ?? null;
+            $ipv6 = $data['ipv6'] ?? null;
+      
+            try {
+                $db->beginTransaction();
+                
+                $host_id = $db->selectValue(
+                    'SELECT id FROM host WHERE name = ?',
+                    [$hostName]
+                );
+                
+                if (isset($ipv4) && !empty($ipv4)) {
+                    $ipv4 = normalize_v4_address($ipv4);
+                    
+                    $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v4'", [$host_id]);
+                    
+                    if ($does_it_exist) {
+                        $db->update(
+                            'host_addr',
+                            [
+                                'addr' => $ipv4
+                            ],
+                            [
+                                'host_id' => $host_id,
+                                'ip' => 'v4'
+                            ]
+                        );
+                    } else {
+                        $db->insert(
+                            'host_addr',
+                            [
+                                'addr' => $ipv4,
+                                'host_id' => $host_id,
+                                'ip' => 'v4'
+                            ]
+                        );
+                    }
+
+                }
+
+                if (isset($ipv6) && !empty($ipv6)) {
+                    $ipv6 = normalize_v6_address($ipv6);
+                            
+                    $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v6'", [$host_id]);
+                    
+                    if ($does_it_exist) {
+                        $db->update(
+                            'host_addr',
+                            [
+                                'addr' => $ipv6
+                            ],
+                            [
+                                'host_id' => $host_id,
+                                'ip' => 'v6'
+                            ]
+                        );
+                    } else {
+                        $db->insert(
+                            'host_addr',
+                            [
+                                'addr' => $ipv6,
+                                'host_id' => $host_id,
+                                'ip' => 'v6'
+                            ]
+                        );
+                    }
+                }
+                
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                $db->update('host', [
+                    'update' => $update,
+                    'upid' => $clid
+                ],
+                [
+                    'name' => $hostName
+                ]
+                );
+           
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
+            }
+   
+            $this->container->get('flash')->addMessage('success', 'Host ' . $hostName . ' has been updated successfully on ' . $update);
+            return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
+        }
+    }
+    
+    public function deleteHost(Request $request, Response $response, $args)
+    {
+       // if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+        
+            function isValidHostname($hostname) {
+                // Check for IDN and convert to ASCII if necessary
+                if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
+                    $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
+                }
+
+                // Regular expression for validating a hostname (simplified version)
+                $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+
+                return preg_match($pattern, $hostname);
+            }
+
+            if ($args && isValidHostname($args)) {
+                $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?',
+                [ $args ]);
+                
+                $is_linked = $db->selectRow('SELECT domain_id FROM domain_host_map WHERE host_id = ?',
+                [ $host_id ]);
+                
+                if ($is_linked) {
+                    $this->container->get('flash')->addMessage('error', 'It is not possible to delete ' . $args . ' because it is a dependency, it is used by some domain');
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                } else {
+                    $db->delete(
+                        'host_addr',
+                        [
+                            'host_id' => $host_id
+                        ]
+                    );
+                    
+                    $db->delete(
+                        'host_status',
+                        [
+                            'host_id' => $host_id
+                        ]
+                    );
+                    
+                    $db->delete(
+                        'host',
+                        [
+                            'id' => $host_id
+                        ]
+                    );
+                    
+                    $this->container->get('flash')->addMessage('success', 'Host ' . $args . ' deleted successfully');
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
+            } else {
+                // Redirect to the hosts view
+                return $response->withHeader('Location', '/hosts')->withStatus(302);
+            }
+        
+        //}
 
     }
 
