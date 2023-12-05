@@ -418,6 +418,7 @@ class RegistrarsController extends Controller
             $db = $this->container->get('db');
             $registrar = $data['reg_clid'] ?? null;
 
+            $data['ipAddress'] = array_filter($data['ipAddress']);
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
 
@@ -460,15 +461,9 @@ class RegistrarsController extends Controller
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
-                'accountBalance' => v::numericVal(),
                 'creditLimit' => v::numericVal(),
                 'creditThreshold' => v::numericVal(),
-                'thresholdType' => v::in(['fixed', 'percent']),
-                'ipAddress' => v::optional($ipAddressValidator),
-                'user_name' => v::stringType()->notEmpty()->length(1, 255),
-                'user_email' => v::email(),
-                'eppPassword' => v::stringType()->notEmpty(),
-                'panelPassword' => v::stringType()->notEmpty(),
+                'ipAddress' => v::optional($ipAddressValidator)
             ];
 
             $errors = [];
@@ -640,11 +635,11 @@ class RegistrarsController extends Controller
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                return $response->withHeader('Location', '/registrar/update/'.$data['clid'])->withStatus(302);
+                return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
             
             $this->container->get('flash')->addMessage('success', 'Registrar ' . $data['name'] . ' has been updated successfully on ' . $update);
-            return $response->withHeader('Location', '/registrar/update/'.$data['clid'])->withStatus(302);
+            return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
         }
     }
 
