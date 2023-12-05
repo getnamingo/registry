@@ -9,10 +9,10 @@ use Psr\Container\ContainerInterface;
 
 class UsersController extends Controller
 {
-    public function view(Request $request, Response $response)
+    public function listUsers(Request $request, Response $response)
     {
         $userModel = new User($this->container->get('db'));
         $users = $userModel->getAllUsers();
-        return view($response,'admin/users/index.twig', compact('users'));
+        return view($response,'admin/users/listUsers.twig', compact('users'));
     }
 }

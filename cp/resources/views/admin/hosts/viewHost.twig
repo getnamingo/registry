@@ -27,22 +27,31 @@
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">{{ host.name }}&nbsp;<span class="status status-green">{{ hostStatus.status }}</span>{% if hostLinked is not null %}&nbsp;<span class="status status-info">linked</span>{% endif %}</h3>
-
                 </div>
                 <div class="card-body">
                   <div class="datagrid">
                     <div class="datagrid-item">
                       <div class="datagrid-title">IPv4</div>
-                      <div class="datagrid-content">{% for ipv4 in hostIPv4 %}
-                        {{ ipv4.addr }}{% if not loop.last %}, {% endif %}
-                      {% endfor %}
+                      <div class="datagrid-content">
+                        {% if hostIPv4 is empty %}
+                          N/A
+                        {% else %}
+                          {% for ipv4 in hostIPv4 %}
+                            {{ ipv4.addr }}{% if not loop.last %}, {% endif %}
+                          {% endfor %}
+                        {% endif %}
                       </div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">IPv6</div>
-                      <div class="datagrid-content">{% for ipv6 in hostIPv6 %}
-                        {{ ipv6.addr }}{% if not loop.last %}, {% endif %}
-                      {% endfor %}
+                      <div class="datagrid-content">
+                        {% if hostIPv6 is empty %}
+                          N/A
+                        {% else %}
+                          {% for ipv6 in hostIPv6 %}
+                            {{ ipv6.addr }}{% if not loop.last %}, {% endif %}
+                          {% endfor %}
+                        {% endif %}
                       </div>
                     </div>
                     <div class="datagrid-item">

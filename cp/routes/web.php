@@ -68,8 +68,10 @@ $app->group('', function ($route) {
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
     $route->get('/registrar/view/{registrar}', RegistrarsController::class . ':viewRegistrar')->setName('viewRegistrar');
+    $route->get('/registrar/update/{registrar}', RegistrarsController::class . ':updateRegistrar')->setName('updateRegistrar');
+    $route->post('/registrar/update', RegistrarsController::class . ':updateRegistrarProcess')->setName('updateRegistrarProcess');
     
-    $route->get('/users', UsersController::class .':view')->setName('users');
+    $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
     $route->get('/poll', LogsController::class .':poll')->setName('poll');
