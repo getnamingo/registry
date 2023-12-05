@@ -378,7 +378,7 @@
                             <thead>
                               <tr>
                                 <th scope="col required">Username/CLID</th>
-                                <th scope="col">Login Email</th>
+                                <th scope="col">Login Email</th><input type="hidden" name="reg_email" value="{{ user.email }}">
                                 <th scope="col">Panel Password <span class="text-red">*</span></th>
                                 <th scope="col">EPP Password <span class="text-red">*</span></th>
                               </tr>
@@ -392,10 +392,20 @@
                                   {{ user.email ? user.email : 'N/A' }}
                                 </td>
                                 <td>
-                                  <input type="password" class="form-control form-control-sm" name="panelPassword" autocomplete="off" disabled>
+                                  <div class="d-flex align-items-center">
+                                    <input type="password" class="form-control form-control-sm me-2" name="panelPassword" id="panelPassword" autocomplete="off" disabled>
+                                    <div class="form-check mb-0">
+                                      <input class="form-check-input" type="checkbox" id="updatePanelPassword" title="Update Panel Password">
+                                    </div>
+                                  </div>
                                 </td>
                                 <td>
-                                  <input type="password" class="form-control form-control-sm" name="eppPassword" autocomplete="off" disabled>
+                                  <div class="d-flex align-items-center">
+                                    <input type="password" class="form-control form-control-sm me-2" name="eppPassword" id="eppPassword" autocomplete="off" disabled>
+                                    <div class="form-check mb-0">
+                                      <input class="form-check-input" type="checkbox" id="updateEppPassword" title="Update EPP Password">
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
                             </tbody>
@@ -495,6 +505,20 @@
       </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const updatePanelPasswordCheckbox = document.getElementById('updatePanelPassword');
+    const panelPasswordField = document.getElementById('panelPassword');
+
+    updatePanelPasswordCheckbox.addEventListener('change', function() {
+        panelPasswordField.disabled = !this.checked;
+    });
+
+    const updateEppPasswordCheckbox = document.getElementById('updateEppPassword');
+    const eppPasswordField = document.getElementById('eppPassword');
+
+    updateEppPasswordCheckbox.addEventListener('change', function() {
+        eppPasswordField.disabled = !this.checked;
+    });
+
     const ipForm = document.getElementById('ipWhitelistForm');
     const maxFields = 5;
 

@@ -357,4 +357,295 @@ class RegistrarsController extends Controller
         }
 
     }
+    
+    public function updateRegistrar(Request $request, Response $response, $args)
+    {
+        $db = $this->container->get('db');
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $registrar = $db->selectRow('SELECT * FROM registrar WHERE clid = ?',
+            [ $args ]);
+
+            if ($registrar) {
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    return $response->withHeader('Location', '/dashboard')->withStatus(302);
+                }
+
+                $contacts = $db->select("SELECT * FROM registrar_contact WHERE registrar_id = ?",
+                [ $registrar['id'] ]);
+                $ote = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
+                [ $registrar['id'] ]);
+                $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ?",
+                [ $registrar['id'] ]);
+                $user = $db->selectRow("SELECT email FROM users WHERE id = ?",
+                [ $user_id ]);
+                $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
+                [ $registrar['id'] ]);
+
+                    return view($response,'admin/registrars/updateRegistrar.twig', [
+                        'registrar' => $registrar,
+                        'contacts' => $contacts,
+                        'ote' => $ote,
+                        'user' => $user,
+                        'whitelist' => $whitelist,
+                        'currentUri' => $uri,
+                        'countries' => $countries
+                    ]);
+                } else {
+                    // Registrar does not exist, redirect to the registrars view
+                    return $response->withHeader('Location', '/registrars')->withStatus(302);
+                }
+        } else {
+            // Redirect to the registrars view
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+    }
+    
+    public function updateRegistrarProcess(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $registrar = $data['reg_clid'] ?? null;
+
+            $iso3166 = new ISO3166();
+            $countries = $iso3166->all();
+
+            $ipAddressValidator = v::when(
+                v::arrayType()->notEmpty(), // Condition: If it's a non-empty array
+                v::arrayType()->each(v::ip()), // Then: Each element must be a valid IP address
+                v::equals('') // Else: Allow it to be an empty string
+            );
+            
+            $data['owner']['cc'] = strtoupper($data['owner']['cc']);
+            $data['billing']['cc'] = strtoupper($data['billing']['cc']);
+            $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
+            
+            $phoneValidator = v::regex('/^\+\d{1,3}\.\d{2,12}$/');
+       
+            // Define validation for nested fields
+            $contactValidator = [
+                v::key('first_name', v::stringType()->notEmpty()->length(1, 255), true),
+                v::key('last_name', v::stringType()->notEmpty()->length(1, 255), true),
+                v::key('org', v::optional(v::stringType()->length(1, 255)), false),
+                v::key('street1', v::optional(v::stringType()), false),
+                v::key('city', v::stringType()->notEmpty(), true),
+                v::key('sp', v::optional(v::stringType()), false),
+                v::key('pc', v::optional(v::stringType()), false),
+                v::key('cc', v::countryCode(), true),
+                v::key('voice', v::optional($phoneValidator), false),
+                v::key('fax', v::optional(v::phone()), false),
+                v::key('email', v::email(), true)
+            ];
+            
+            $validators = [
+                'name' => v::stringType()->notEmpty()->length(1, 255),
+                'ianaId' => v::optional(v::positive()->length(1, 5)),
+                'email' => v::email(),
+                'owner' => v::optional(v::keySet(...$contactValidator)),
+                'billing' => v::optional(v::keySet(...$contactValidator)),
+                'abuse' => v::optional(v::keySet(...$contactValidator)),
+                'whoisServer' => v::domain(),
+                'rdapServer' => v::domain(),
+                'url' => v::url(),
+                'abuseEmail' => v::email(),
+                'abusePhone' => v::optional($phoneValidator),
+                'accountBalance' => v::numericVal(),
+                'creditLimit' => v::numericVal(),
+                'creditThreshold' => v::numericVal(),
+                'thresholdType' => v::in(['fixed', 'percent']),
+                'ipAddress' => v::optional($ipAddressValidator),
+                'user_name' => v::stringType()->notEmpty()->length(1, 255),
+                'user_email' => v::email(),
+                'eppPassword' => v::stringType()->notEmpty(),
+                'panelPassword' => v::stringType()->notEmpty(),
+            ];
+
+            $errors = [];
+            foreach ($validators as $field => $validator) {
+                try {
+                    $validator->assert(isset($data[$field]) ? $data[$field] : []);
+                } catch (\Respect\Validation\Exceptions\NestedValidationException $e) {
+                    $errors[$field] = $e->getMessages();
+                }
+            }
+
+            if (!empty($errors)) {
+                // Handle errors
+                $errorText = '';
+
+                foreach ($errors as $field => $messages) {
+                    $errorText .= ucfirst($field) . ' errors: ' . implode(', ', $messages) . '; ';
+                }
+
+                // Trim the final semicolon and space
+                $errorText = rtrim($errorText, '; ');
+                
+                $this->container->get('flash')->addMessage('error', $errorText);
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+            $db->beginTransaction();
+
+            try {
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v');
+                $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $randomPrefix = '';
+                for ($i = 0; $i < 2; $i++) {
+                    $randomPrefix .= $characters[rand(0, strlen($characters) - 1)];
+                }
+                $currency = $_SESSION['_currency'] ?? 'USD';
+                
+                if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
+                    $data['ianaId'] = null;
+                }
+                
+                $updateData = [
+                    'name' => $data['name'],
+                    'iana_id' => $data['ianaId'],
+                    'email' => $data['email'],
+                    'url' => $data['url'],
+                    'whois_server' => $data['whoisServer'],
+                    'rdap_server' => $data['rdapServer'],
+                    'abuse_email' => $data['abuseEmail'],
+                    'abuse_phone' => $data['abusePhone'],
+                    'creditLimit' => $data['creditLimit'],
+                    'creditThreshold' => $data['creditThreshold'],
+                    'currency' => $currency,
+                    'update' => $crdate
+                ];
+                
+                if (!empty($data['eppPassword'])) {
+                    $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $updateData['pw'] = $eppPassword;
+                }
+
+                $db->update(
+                    'registrar',
+                    $updateData,
+                    [
+                        'clid' => $registrar
+                    ]
+                );
+                $registrar_id = $db->selectValue(
+                    'SELECT id FROM registrar WHERE clid = ?',
+                    [$registrar]
+                );
+           
+                $db->update(
+                    'registrar_contact',
+                    [
+                        'first_name' => $data['owner']['first_name'],
+                        'last_name' => $data['owner']['last_name'],
+                        'org' => $data['owner']['org'],
+                        'street1' => $data['owner']['street1'],
+                        'city' => $data['owner']['city'],
+                        'sp' => $data['owner']['sp'],
+                        'pc' => $data['owner']['pc'],
+                        'cc' => strtolower($data['owner']['cc']),
+                        'voice' => $data['owner']['voice'],
+                        'email' => $data['owner']['email']
+                    ],
+                    [
+                        'registrar_id' => $registrar_id,
+                        'type' => 'owner'
+                    ]
+                );
+
+                $db->update(
+                    'registrar_contact',
+                    [
+                        'first_name' => $data['billing']['first_name'],
+                        'last_name' => $data['billing']['last_name'],
+                        'org' => $data['billing']['org'],
+                        'street1' => $data['billing']['street1'],
+                        'city' => $data['billing']['city'],
+                        'sp' => $data['billing']['sp'],
+                        'pc' => $data['billing']['pc'],
+                        'cc' => strtolower($data['billing']['cc']),
+                        'voice' => $data['billing']['voice'],
+                        'email' => $data['billing']['email']
+                    ],
+                    [
+                        'registrar_id' => $registrar_id,
+                        'type' => 'billing'
+                    ]
+                );
+                
+                $db->update(
+                    'registrar_contact',
+                    [
+                        'first_name' => $data['abuse']['first_name'],
+                        'last_name' => $data['abuse']['last_name'],
+                        'org' => $data['abuse']['org'],
+                        'street1' => $data['abuse']['street1'],
+                        'city' => $data['abuse']['city'],
+                        'sp' => $data['abuse']['sp'],
+                        'pc' => $data['abuse']['pc'],
+                        'cc' => strtolower($data['abuse']['cc']),
+                        'voice' => $data['abuse']['voice'],
+                        'email' => $data['abuse']['email']
+                    ],
+                    [
+                        'registrar_id' => $registrar_id,
+                        'type' => 'abuse'
+                    ]
+                );
+                             
+                if (!empty($data['ipAddress'])) {
+                    $db->delete(
+                        'registrar_whitelist',
+                        [
+                            'registrar_id' => $registrar_id
+                        ]
+                    );
+                
+                    foreach ($data['ipAddress'] as $ip) {
+                        $db->insert(
+                            'registrar_whitelist',
+                            [
+                                'registrar_id' => $registrar_id,
+                                'addr' => $ip
+                            ]
+                        );
+                    }
+                }
+                
+                if ($data['panelPassword']) {
+                    $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+
+                    $db->update(
+                        'users',
+                        [
+                            'password' => $panelPassword,
+                        ],
+                        [
+                            'email' => $data['reg_email']
+                        ]
+                    );
+                }
+          
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrar/update/'.$data['clid'])->withStatus(302);
+            }
+            
+            $this->container->get('flash')->addMessage('success', 'Registrar ' . $data['name'] . ' has been updated successfully on ' . $update);
+            return $response->withHeader('Location', '/registrar/update/'.$data['clid'])->withStatus(302);
+        }
+    }
+
 }
