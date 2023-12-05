@@ -13,11 +13,21 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-Namingo is nearing its full launch, with the majority of its system components already in place. The WHOIS, DAS, EPP and RDAP servers are implemented.
+Namingo is rapidly approaching its full launch, with key system components, including the WHOIS, DAS, EPP, and RDAP servers, already implemented and fully operational. These components, along with our control panel, have successfully passed basic security and penetration testing, ensuring a robust and secure experience for our users.
 
-Our development focus is now on two key areas: integrating support for the fee extension (RFC8748) and the launch phase extension (RFC8334). The control panel, offering basic functionalities at present, is on track for full completion by the end of 2023.
+We are now in the process of finalizing the control panel, aiming to refine its features and user interface. If you have expertise in detailed testing and optimization, your contribution would be highly valued. Please consider reaching out to us for this crucial phase.
 
-Feel free to dive into our issues to see where you can help or reach out to us directly to discuss how you can contribute.
+In terms of system performance, Namingo has been tested with up to 50,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and an 80GB SSD.
+
+Our development efforts are currently focused on:
+
+- Integrating support for the fee extension (RFC8748).
+
+- Implementing the launch phase extension (RFC8334).
+
+- Adding support for the Trademark Clearinghouse (TMCH).
+
+We welcome developers and contributors to explore our issues for opportunities to help, or to contact us directly to discuss how you can contribute to the success of Namingo.
 
 ## Features
 
