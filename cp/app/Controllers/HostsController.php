@@ -373,7 +373,8 @@ class HostsController extends Controller
                 
                 if ($host) {            
                     return view($response,'admin/hosts/updateInternalHost.twig', [
-                        'host' => $host
+                        'host' => $host,
+                        'currentUri' => $uri
                     ]);
                     
                 } else {

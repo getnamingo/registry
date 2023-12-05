@@ -620,7 +620,8 @@ class ContactsController extends Controller
                     'contactAuth' => $contactAuth,
                     'contactPostal' => $contactPostal,
                     'registrars' => $registrars,
-                    'countries' => $countries
+                    'countries' => $countries,
+                    'currentUri' => $uri
                 ]);
             } else {
                 // Contact does not exist, redirect to the contacts view
