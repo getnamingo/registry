@@ -2655,6 +2655,5 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             }
         }
-    }
 
 }
