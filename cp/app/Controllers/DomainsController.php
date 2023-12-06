@@ -1633,103 +1633,114 @@ class DomainsController extends Controller
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
                             
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
+                            try {
+                                $db->beginTransaction();
                             
-                            $description = "domain name is deleted by the registrar during grace addPeriod, the registry provides a credit for the cost of the registration domain $domainName for period $addPeriod MONTH";
-                            $db->exec(
-                                'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
-                                [$clid, $description, $price]
-                            );
-                            
-                            $hostIds = $db->select(
-                                'SELECT id FROM host WHERE domain_id = ?',
-                                [$domain_id]
-                            );
-                            
-                            foreach ($hostIds as $host) {
-                                $host_id = $host['id'];
-
-                                // Delete operations
-                                $db->delete(
-                                    'host_addr',
-                                    [
-                                        'host_id' => $host_id
-                                    ]
+                                $db->exec(
+                                    'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
+                                    [$price, $clid]
                                 );
+                                
+                                $description = "domain name is deleted by the registrar during grace addPeriod, the registry provides a credit for the cost of the registration domain $domainName for period $addPeriod MONTH";
+                                $db->exec(
+                                    'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
+                                    [$clid, $description, $price]
+                                );
+                                
+                                $hostIds = $db->select(
+                                    'SELECT id FROM host WHERE domain_id = ?',
+                                    [$domain_id]
+                                );
+                                
+                                foreach ($hostIds as $host) {
+                                    $host_id = $host['id'];
+
+                                    // Delete operations
+                                    $db->delete(
+                                        'host_addr',
+                                        [
+                                            'host_id' => $host_id
+                                        ]
+                                    );
+                                    $db->delete(
+                                        'host_status',
+                                        [
+                                            'host_id' => $host_id
+                                        ]
+                                    );
+                                    $db->delete(
+                                        'domain_host_map',
+                                        [
+                                            'host_id' => $host_id
+                                        ]
+                                    );
+                                }
+                                
+                                // Delete domain related records
                                 $db->delete(
-                                    'host_status',
+                                    'domain_contact_map',
                                     [
-                                        'host_id' => $host_id
+                                        'domain_id' => $domain_id
                                     ]
                                 );
                                 $db->delete(
                                     'domain_host_map',
                                     [
-                                        'host_id' => $host_id
+                                        'domain_id' => $domain_id
                                     ]
                                 );
-                            }
-                            
-                            // Delete domain related records
-                            $db->delete(
-                                'domain_contact_map',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'domain_host_map',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'domain_authInfo',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'domain_status',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'host',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'secdns',
-                                [
-                                    'domain_id' => $domain_id
-                                ]
-                            );
-                            $db->delete(
-                                'domain',
-                                [
-                                    'id' => $domain_id
-                                ]
-                            );
-                            
-                            $curdate_id = $db->selectValue(
-                                'SELECT id FROM statistics WHERE date = CURDATE()'
-                            );
-
-                            if (!$curdate_id) {
-                                $db->exec(
-                                    'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                                $db->delete(
+                                    'domain_authInfo',
+                                    [
+                                        'domain_id' => $domain_id
+                                    ]
                                 );
-                            }
+                                $db->delete(
+                                    'domain_status',
+                                    [
+                                        'domain_id' => $domain_id
+                                    ]
+                                );
+                                $db->delete(
+                                    'host',
+                                    [
+                                        'domain_id' => $domain_id
+                                    ]
+                                );
+                                $db->delete(
+                                    'secdns',
+                                    [
+                                        'domain_id' => $domain_id
+                                    ]
+                                );
+                                $db->delete(
+                                    'domain',
+                                    [
+                                        'id' => $domain_id
+                                    ]
+                                );
+                                
+                                $curdate_id = $db->selectValue(
+                                    'SELECT id FROM statistics WHERE date = CURDATE()'
+                                );
 
-                            $db->exec(
-                                'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()'
-                            );
+                                if (!$curdate_id) {
+                                    $db->exec(
+                                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                                    );
+                                }
+
+                                $db->exec(
+                                    'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()'
+                                );
+                            
+                                $db->commit();
+                            } catch (Exception $e) {
+                                $db->rollBack();
+                                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+                            }
+                            
                         }
                     } elseif ($rgpstatus === 'autoRenewPeriod') {
                         $autoRenewPeriod_id = $db->selectValue(
@@ -1841,6 +1852,264 @@ class DomainsController extends Controller
     
     public function requestTransfer(Request $request, Response $response)
     {
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $data['domainName'] ?? null;
+            $registrar = $data['registrar'] ?? null;
+            $authInfo = $data['authInfo'] ?? null;
+            $transferYears = $data['transferYears'] ?? null;
+
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, tldid, clid FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+            
+            $domain_id = $domain['id'];
+            $tldid = $domain['tldid'];
+            $registrar_id_domain = $domain['clid'];
+            
+            if (!$domain_id) {
+                $this->container->get('flash')->addMessage('error', 'Domain does not exist in registry');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+            }
+            
+            $days_from_registration = $db->selectValue(
+                 'SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = ? LIMIT 1',
+                [
+                    $domain_id
+                ]
+            );
+            
+            if ($days_from_registration < 60) {
+                $this->container->get('flash')->addMessage('error', 'The domain name must not be within 60 days of its initial registration');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            $last_transfer = $db->selectRow(
+                 'SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = ? LIMIT 1',
+                [
+                    $domain_id
+                ]
+            );
+            $last_trdate = $last_transfer["trdate"];
+            $days_from_last_transfer = $last_transfer["intval"];
+            
+            if ($last_trdate && $days_from_last_transfer < 60) {
+                $this->container->get('flash')->addMessage('error', 'The domain name must not be within 60 days of its last transfer from another registrar');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+
+            $days_from_expiry_date = $db->selectValue(
+                 'SELECT DATEDIFF(CURRENT_TIMESTAMP(3),exdate) FROM domain WHERE id = ? LIMIT 1',
+                [
+                    $domain_id
+                ]
+            );
+            
+            if ($days_from_expiry_date > 30) {
+                $this->container->get('flash')->addMessage('error', 'The domain name must not be more than 30 days past its expiry date');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+
+            $domain_authinfo_id = $db->selectValue(
+                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
+                [
+                    $domain_id, $authInfo
+                ]
+            );
+            
+            if (!$domain_authinfo_id) {
+                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            $results = $db->select(
+                'SELECT status FROM domain_status WHERE domain_id = ?',
+                [ $domain_id ]
+            );
+            foreach ($results as $row) {
+                $status = $row['status'];
+                if (preg_match('/.*(TransferProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow the transfer');
+                    return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                }
+            }
+
+            if ($clid !== $registrar_id_domain) {
+                $this->container->get('flash')->addMessage('error', 'Destination client of the transfer operation is the domain sponsoring client');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+            
+            $registrant = $domain['registrant'];
+            $crdate = $domain['crdate'];
+            $exdate = $domain['exdate'];
+            $update = $domain['update'];
+            $crid = $domain['crid'];
+            $upid = $domain['upid'];
+            $trdate = $domain['trdate'];
+            $trstatus = $domain['trstatus'];
+            $reid = $domain['reid'];
+            $redate = $domain['redate'];
+            $acid = $domain['acid'];
+            $acdate = $domain['acdate'];
+            
+            if (!$trstatus || $trstatus !== 'pending') {
+                
+                if (!$transferYears) {
+                    $this->container->get('flash')->addMessage('error', 'Please provide a year with the domain transfer');
+                    return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                }
+                
+                $date_add = 0;
+                $date_add = $transferYears * 12;
+
+                if ($date_add > 0) {
+                    $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+                    $registrar_balance = $result['accountBalance'];
+                    $creditLimit = $result['creditLimit'];
+
+                    $priceColumn = "m" . $date_add;
+                    $price = $db->selectValue(
+                        'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "transfer" LIMIT 1',
+                        [$tldid]
+                    );
+
+                    if (!$price) {
+                        $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
+                        return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                    }
+
+                    if (($registrar_balance + $creditLimit) < $price) {
+                        $this->container->get('flash')->addMessage('error', 'The registrar who wants to take over this domain has no money');
+                        return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                    }
+
+                    try {
+                        $db->beginTransaction();
+                        
+                        $waiting_period = 5;
+                        $db->exec(
+                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL ? MONTH) WHERE id = ?',
+                            ['pending', $clid, $registrar_id_domain, $waiting_period, $date_add, $domain_id]
+                        );
+
+                        $result = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = ? LIMIT 1',
+                        [ $domainName ]);
+                        
+                        list($domain_id, $registrant, $crdate, $exdate, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
+
+                        $reid_identifier = $db->selectValue(
+                            'SELECT clid FROM registrar WHERE id = ? LIMIT 1',
+                            [$reid]
+                        );
+                        
+                        $acid_identifier = $db->selectValue(
+                            'SELECT clid FROM registrar WHERE id = ? LIMIT 1',
+                            [$acid]
+                        );
+                        
+                        $currentDateTime = new \DateTime();
+                        $qdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                        
+                        // The current sponsoring registrar will receive a notification of a pending transfer
+                        $db->insert('poll', [
+                            'registrar_id' => $registrar_id_domain,
+                            'qdate' => $qdate,
+                            'msg' => 'Transfer requested.',
+                            'msg_type' => 'domainTransfer',
+                            'obj_name_or_id' => $domainName,
+                            'obj_trStatus' => 'pending',
+                            'obj_reID' => $reid_identifier,
+                            'obj_reDate' => $redate,
+                            'obj_acID' => $acid_identifier,
+                            'obj_acDate' => $acdate,
+                            'obj_exDate' => $transfer_exdate
+                        ]);
+                    
+                        $db->commit();
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/transfer/request/')->withStatus(302);
+                    }
+                                      
+                    $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
+                    return $response->withHeader('Location', '/transfers')->withStatus(302);
+                } else {
+                    try {
+                        $db->beginTransaction();
+                        
+                        $waiting_period = 5;
+                        $db->exec(
+                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY), transfer_exdate = NULL WHERE id = ?',
+                            ['pending', $clid, $registrar_id_domain, $waiting_period, $domain_id]
+                        );
+
+                        $result = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = ? LIMIT 1',
+                        [ $domainName ]);
+                        
+                        list($domain_id, $registrant, $crdate, $exdate, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
+
+                        $reid_identifier = $db->selectValue(
+                            'SELECT clid FROM registrar WHERE id = ? LIMIT 1',
+                            [$reid]
+                        );
+                        
+                        $acid_identifier = $db->selectValue(
+                            'SELECT clid FROM registrar WHERE id = ? LIMIT 1',
+                            [$acid]
+                        );
+                        
+                        $currentDateTime = new \DateTime();
+                        $qdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                        // The current sponsoring registrar will receive a notification of a pending transfer
+                        $db->insert('poll', [
+                            'registrar_id' => $registrar_id_domain,
+                            'qdate' => $qdate,
+                            'msg' => 'Transfer requested.',
+                            'msg_type' => 'domainTransfer',
+                            'obj_name_or_id' => $domainName,
+                            'obj_trStatus' => 'pending',
+                            'obj_reID' => $reid_identifier,
+                            'obj_reDate' => $redate,
+                            'obj_acID' => $acid_identifier,
+                            'obj_acDate' => $acdate,
+                            'obj_exDate' => $transfer_exdate
+                        ]);
+                    
+                        $db->commit();
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/transfer/request/')->withStatus(302);
+                    }
+                                      
+                    $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
+                    return $response->withHeader('Location', '/transfers')->withStatus(302);
+                }
+            } elseif ($trstatus === 'pending') {
+                $this->container->get('flash')->addMessage('error', 'Command failed as the domain is pending transfer');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+        }
+        
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
             
