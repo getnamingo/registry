@@ -2435,11 +2435,11 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
             
-            $temp_id_rgpstatus = $db->selectRow(
+            $temp_id_rgpstatus = $db->selectValue(
                 'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ? LIMIT 1',
                 ['redemptionPeriod', $domainName]
             );
-            
+
             if ($temp_id_rgpstatus == 0) {
                 $this->container->get('flash')->addMessage('error', 'pendingRestore can only be done if the domain is now in redemptionPeriod rgpStatus');
                 return $response->withHeader('Location', '/domains')->withStatus(302);
@@ -2450,7 +2450,7 @@ class DomainsController extends Controller
                 [$domainName]
             );
             
-            $temp_id_status = $db->selectRow(
+            $temp_id_status = $db->selectValue(
                 'SELECT COUNT(id) AS ids FROM domain_status WHERE status = ? AND `domain_id` = ? LIMIT 1',
                 ['pendingDelete', $domain_id]
             );
@@ -2460,7 +2460,7 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             }
 
-            $temp_id = $db->selectRow(
+            $temp_id = $db->selectValue(
                 'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND id = ?',
                 ['redemptionPeriod', $domain_id]
             );
@@ -2500,7 +2500,7 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
             
-            $temp_id = $db->selectRow(
+            $temp_id = $db->selectValue(
                 'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ? LIMIT 1',
                 ['pendingRestore', $domainName]
             );
@@ -2510,7 +2510,7 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             }
             
-            $temp_id = $db->selectRow(
+            $temp_id = $db->selectValue(
                 'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ?',
                 ['pendingRestore', $domainName]
             );
