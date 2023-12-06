@@ -173,7 +173,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2003, 'Please specify the domain name that will be deleted', $clTRID, $trans);
         return;
     }
-	
+    
     if ($database_type === 'mysql') {
         $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
     } elseif ($database_type === 'pgsql') {
@@ -285,6 +285,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $db->exec("DELETE FROM domain_host_map WHERE domain_id = $domain_id");
                 $db->exec("DELETE FROM domain_authInfo WHERE domain_id = $domain_id");
                 $db->exec("DELETE FROM domain_status WHERE domain_id = $domain_id");
+                $db->exec("DELETE FROM secdns WHERE domain_id = $domain_id");
                 $db->exec("DELETE FROM host WHERE domain_id = $domain_id");
 
                 $stmt = $db->prepare("DELETE FROM domain WHERE id = ?");
