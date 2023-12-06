@@ -2422,5 +2422,239 @@ class DomainsController extends Controller
             }
         }
     }
+    
+    public function restoreDomain(Request $request, Response $response, $args)
+    {
+        //if ($request->getMethod() === 'POST') {
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $args ?? null;
+            
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $temp_id_rgpstatus = $db->selectRow(
+                'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ? LIMIT 1',
+                ['redemptionPeriod', $domainName]
+            );
+            
+            if ($temp_id_rgpstatus == 0) {
+                $this->container->get('flash')->addMessage('error', 'pendingRestore can only be done if the domain is now in redemptionPeriod rgpStatus');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+            
+            $domain_id = $db->selectValue(
+                'SELECT id FROM domain WHERE name = ?',
+                [$domainName]
+            );
+            
+            $temp_id_status = $db->selectRow(
+                'SELECT COUNT(id) AS ids FROM domain_status WHERE status = ? AND `domain_id` = ? LIMIT 1',
+                ['pendingDelete', $domain_id]
+            );
+            
+            if ($temp_id_status == 0) {
+                $this->container->get('flash')->addMessage('error', 'pendingRestore can only be done if the domain is now in pendingDelete status');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
+            $temp_id = $db->selectRow(
+                'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND id = ?',
+                ['redemptionPeriod', $domain_id]
+            );
+            
+            if ($temp_id == 1) {
+                $currentDateTime = new \DateTime();
+                $date = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                
+                $db->update('domain', [
+                    'rgpstatus' => 'pendingRestore',
+                    'resTime' => $date,
+                    'update' => $date
+                ],
+                [
+                    'id' => $domain_id
+                ]
+                );
+                
+                $this->container->get('flash')->addMessage('success', 'Restore process for ' . $domainName . ' has started successfully');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'pendingRestore can only be done if the domain is now in redemptionPeriod');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+        //}
+    }
+    
+    public function reportDomain(Request $request, Response $response, $args)
+    {
+        //if ($request->getMethod() === 'POST') {
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $args ?? null;
+            
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $temp_id = $db->selectRow(
+                'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ? LIMIT 1',
+                ['pendingRestore', $domainName]
+            );
+            
+            if ($temp_id == 0) {
+                $this->container->get('flash')->addMessage('error', 'report can only be sent if the domain is in pendingRestore status');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+            
+            $temp_id = $db->selectRow(
+                'SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = ? AND name = ?',
+                ['pendingRestore', $domainName]
+            );
+            
+            if ($temp_id == 1) {
+                $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $result['registrar_id'];
+                } else {
+                    $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                }
+                
+                $domain = $db->selectRow('SELECT tldid, exdate FROM domain WHERE name = ? LIMIT 1',
+                [ $domainName ]);
+                $tldid = $domain['tldid'];
+                
+                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+
+                $registrar_balance = $result['accountBalance'];
+                $creditLimit = $result['creditLimit'];
+
+                $renew_price = $db->selectValue(
+                    'SELECT m12 FROM domain_price WHERE tldid = ? AND command = ? LIMIT 1',
+                    [$tldid, 'renew']
+                );
+                
+                $restore_price = $db->selectValue(
+                    'SELECT price FROM domain_restore_price WHERE tldid = ? LIMIT 1',
+                    [$tldid]
+                );
+
+                if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
+                    $this->container->get('flash')->addMessage('error', 'There is no money on the account for restore and renew');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $from = $domain['exdate'];
+                
+                try {
+                    $db->beginTransaction();
+                            
+                    $db->exec(
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), update = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                        [
+                            $domainName
+                        ]
+                    );
+                    $domain_id = $db->selectValue(
+                        'SELECT id FROM domain WHERE name = ?',
+                        [$domainName]
+                    );
+
+                    $db->delete(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id,
+                            'status' => 'pendingDelete'
+                        ]
+                    );
+
+                    $db->exec(
+                        'UPDATE registrar SET accountBalance = (accountBalance - ? - ?) WHERE id = ?',
+                        [$renew_price, $restore_price, $clid]
+                    );
+                    
+                    $db->exec(
+                        'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$clid, "restore domain $domainName", "-$restore_price"]
+                    );
+                    
+                    $db->exec(
+                        'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$clid, "renew domain $domainName for period 12 MONTH", "-$renew_price"]
+                    );
+
+                    $row = $db->selectRow(
+                        'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
+                        [$domainName]
+                    );
+                    $to = $row['exdate'];
+
+                    $currentDateTime = new \DateTime();
+                    $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $db->insert(
+                        'statement',
+                        [
+                            'registrar_id' => $clid,
+                            'date' => $stdate,
+                            'command' => 'restore',
+                            'domain_name' => $domainName,
+                            'length_in_months' => 0,
+                            'from' => $from,
+                            'to' => $from,
+                            'amount' => $restore_price
+                        ]
+                      );
+                      
+                    $db->insert(
+                        'statement',
+                        [
+                            'registrar_id' => $clid,
+                            'date' => $stdate,
+                            'command' => 'renew',
+                            'domain_name' => $domainName,
+                            'length_in_months' => 12,
+                            'from' => $from,
+                            'to' => $to,
+                            'amount' => $renew_price
+                        ]
+                      );
+
+                    $curdate_id = $db->selectValue(
+                        'SELECT id FROM statistics WHERE date = CURDATE()'
+                    );
+
+                    if (!$curdate_id) {
+                        $db->exec(
+                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                        );
+                    }
+
+                    $db->exec(
+                        'UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURDATE()'
+                    );
+                    
+                    $db->exec(
+                        'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()'
+                    );
+                     
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure during restore: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+               
+                $this->container->get('flash')->addMessage('success','Domain ' . $domainName . ' has been restored successfully');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'report can only be sent if the domain is in pendingRestore status');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+        }
+    }
 
 }

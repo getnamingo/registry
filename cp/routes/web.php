@@ -44,7 +44,9 @@ $app->group('', function ($route) {
     $route->post('/domain/update', DomainsController::class . ':updateDomainProcess')->setName('updateDomainProcess');
     $route->map(['GET', 'POST'], '/domain/renew/{domain}', DomainsController::class . ':renewDomain')->setName('renewDomain');
     $route->map(['GET', 'POST'], '/domain/delete/{domain}', DomainsController::class . ':deleteDomain')->setName('deleteDomain');
-    
+    $route->map(['GET', 'POST'], '/domain/restore/{domain}', DomainsController::class . ':restoreDomain')->setName('restoreDomain');
+    $route->map(['GET', 'POST'], '/domain/report/{domain}', DomainsController::class . ':reportDomain')->setName('reportDomain');
+
     $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');
     $route->map(['GET', 'POST'], '/transfer/request', DomainsController::class . ':requestTransfer')->setName('requestTransfer');
     $route->post('/transfer/approve', DomainsController::class . ':approveTransfer')->setName('approveTransfer');
