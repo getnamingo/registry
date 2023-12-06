@@ -1586,7 +1586,7 @@ class DomainsController extends Controller
                 foreach ($results as $row) {
                     $status = $row['status'];
                     if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-                        $this->container->get('flash')->addMessage('error', 'It has a status that does not allow renew, first change the status');
+                        $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
                         return $response->withHeader('Location', '/domains')->withStatus(302);
                     }
                 }
@@ -2350,6 +2350,7 @@ class DomainsController extends Controller
                 [
                     'name' => $domainName
                 ]
+                );
                 
                 $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been rejected successfully');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
@@ -2411,6 +2412,7 @@ class DomainsController extends Controller
                 [
                     'name' => $domainName
                 ]
+                );
                 
                 $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been cancelled successfully');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
