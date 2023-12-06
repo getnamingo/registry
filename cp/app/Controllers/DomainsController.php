@@ -2133,19 +2133,292 @@ class DomainsController extends Controller
         ]);
     }
     
-    public function approveTransfer(Request $request, Response $response)
+    public function approveTransfer(Request $request, Response $response, $args)
     {
-        return view($response,'admin/domains/approveTransfer.twig');
+       if ($request->getMethod() === 'POST') {
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $args ?? null;
+            $registrar = $data['registrar'] ?? null;
+            $authInfo = $data['authInfo'] ?? null;
+            $transferYears = $data['transferYears'] ?? null;
+
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, tldid, clid FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+            
+            $domain_id = $domain['id'];
+            $tldid = $domain['tldid'];
+            $registrar_id_domain = $domain['clid'];
+
+            $domain_authinfo_id = $db->selectValue(
+                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
+                [
+                    $domain_id, $authInfo
+                ]
+            );
+            
+            if ($clid !== $registrar_id_domain) {
+                $this->container->get('flash')->addMessage('error', 'Only LOSING REGISTRAR can approve');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            if (!$domain_authinfo_id) {
+                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod, transfer_exdate FROM domain WHERE name = ?',
+            [ $domainName ]);
+            
+            $domain_id = $domain['id'];
+            $registrant = $domain['registrant'];
+            $crdate = $domain['crdate'];
+            $exdate = $domain['exdate'];
+            $registrar_id_domain = $domain['clid'];
+            $crid = $domain['crid'];
+            $upid = $domain['upid'];
+            $trdate = $domain['trdate'];
+            $trstatus = $domain['trstatus'];
+            $reid = $domain['reid'];
+            $redate = $domain['redate'];
+            $acid = $domain['acid'];
+            $acdate = $domain['acdate'];
+            $rgpstatus = $domain['rgpstatus'];
+            $addPeriod = $domain['addPeriod'];
+            $autoRenewPeriod = $domain['autoRenewPeriod'];
+            $renewPeriod = $domain['renewPeriod'];
+            $renewedDate = $domain['renewedDate'];
+            $transferPeriod = $domain['transferPeriod'];
+            $transfer_exdate = $domain['transfer_exdate'];
+            
+            if ($domain && $trstatus === 'pending') {
+                $date_add = 0;
+                $price = 0;
+                
+                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$reid]);
+                $registrar_balance = $result['accountBalance'];
+                $creditLimit = $result['creditLimit'];
+                
+                if ($transfer_exdate) {
+                    $date_add = $db->selectRow(
+                         "SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1",
+                        [
+                            $domainName
+                        ]
+                    );
+                    
+                    $priceColumn = "m" . $date_add;
+                    $price = $db->selectValue(
+                        'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "transfer" LIMIT 1',
+                        [$tldid]
+                    );
+
+                    if (($registrar_balance + $creditLimit) < $price) {
+                        $this->container->get('flash')->addMessage('error', 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
+                        return $response->withHeader('Location', '/transfers')->withStatus(302);
+                    }
+                }
+                
+                try {
+                    $db->beginTransaction();
+                            
+                    $db->exec(
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), update = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
+                        [$date_add, $reid, $clid, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
+                    );
+
+                    $db->exec(
+                        'UPDATE host SET clid = ?, upid = ?, `update` = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?',
+                        [$reid, $clid, $domain_id]
+                    );
+
+                    $db->exec(
+                        'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
+                        [$price, $reid]
+                    );
+                    
+                    $db->exec(
+                        'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$reid, "transfer domain $domainName for period $date_add MONTH", "-$price"]
+                    );
+
+                    $row = $db->selectRow(
+                        'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
+                        [$domainName]
+                    );
+                    $to = $row['exdate'];
+
+                    $currentDateTime = new \DateTime();
+                    $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $db->insert(
+                        'statement',
+                        [
+                            'registrar_id' => $reid,
+                            'date' => $stdate,
+                            'command' => 'transfer',
+                            'domain_name' => $domainName,
+                            'length_in_months' => $date_add,
+                            'from' => $from,
+                            'to' => $to,
+                            'amount' => $price
+                        ]
+                      );
+
+                    $curdate_id = $db->selectValue(
+                        'SELECT id FROM statistics WHERE date = CURDATE()'
+                    );
+
+                    if (!$curdate_id) {
+                        $db->exec(
+                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                        );
+                    }
+
+                    $db->exec(
+                        'UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()'
+                    );
+
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/transfers')->withStatus(302);
+                }
+
+                $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been completed');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+        }
     }
     
-    public function rejectTransfer(Request $request, Response $response)
+    public function rejectTransfer(Request $request, Response $response, $args)
     {
-        return view($response,'admin/domains/rejectTransfer.twig');
+        if ($request->getMethod() === 'POST') {
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $args ?? null;
+            $registrar = $data['registrar'] ?? null;
+            $authInfo = $data['authInfo'] ?? null;
+            $transferYears = $data['transferYears'] ?? null;
+
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, tldid, clid FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+            
+            $domain_id = $domain['id'];
+            $tldid = $domain['tldid'];
+            $registrar_id_domain = $domain['clid'];
+
+            $domain_authinfo_id = $db->selectValue(
+                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
+                [
+                    $domain_id, $authInfo
+                ]
+            );
+            
+            if ($clid !== $registrar_id_domain) {
+                $this->container->get('flash')->addMessage('error', 'Only LOSING REGISTRAR can reject');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            if (!$domain_authinfo_id) {
+                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, trstatus FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+
+            $trstatus = $domain['trstatus'];
+            
+            if ($trstatus === 'pending') {
+                $db->update('domain', [
+                    'trstatus' => 'clientRejected'
+                ],
+                [
+                    'name' => $domainName
+                ]
+                
+                $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been rejected successfully');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+        }
     }
     
-    public function cancelTransfer(Request $request, Response $response)
+    public function cancelTransfer(Request $request, Response $response, $args)
     {
-        return view($response,'admin/domains/cancelTransfer.twig');
+        if ($request->getMethod() === 'POST') {
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $args ?? null;
+            $registrar = $data['registrar'] ?? null;
+            $authInfo = $data['authInfo'] ?? null;
+            $transferYears = $data['transferYears'] ?? null;
+
+            if (!$domainName) {
+                $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, tldid, clid FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+            
+            $domain_id = $domain['id'];
+            $tldid = $domain['tldid'];
+            $registrar_id_domain = $domain['clid'];
+
+            $domain_authinfo_id = $db->selectValue(
+                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
+                [
+                    $domain_id, $authInfo
+                ]
+            );
+            
+            if ($clid === $registrar_id_domain) {
+                $this->container->get('flash')->addMessage('error', 'Only the APPLICANT can cancel');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            if (!$domain_authinfo_id) {
+                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+            
+            $domain = $db->selectRow('SELECT id, trstatus FROM domain WHERE name = ? LIMIT 1',
+            [ $domainName ]);
+
+            $trstatus = $domain['trstatus'];
+            
+            if ($trstatus === 'pending') {
+                $db->update('domain', [
+                    'trstatus' => 'clientCancelled'
+                ],
+                [
+                    'name' => $domainName
+                ]
+                
+                $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been cancelled successfully');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
+            }
+        }
     }
 
 }
