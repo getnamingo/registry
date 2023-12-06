@@ -1494,13 +1494,27 @@ class DomainsController extends Controller
                 $expirationYear = (int)$expirationDate->format("Y");
                 $yearsUntilExpiration = $expirationYear - $currentYear;
                 $maxYears = 10 - $yearsUntilExpiration;
+                
+                $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
+                $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
+
+                $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
+                $formatter->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currency);
+
+                $symbol = $formatter->getSymbol(\NumberFormatter::CURRENCY_SYMBOL);
+                $pattern = $formatter->getPattern();
+
+                // Determine currency position (before or after)
+                $position = (strpos($pattern, '¤') < strpos($pattern, '#')) ? 'before' : 'after';
 
                 return view($response,'admin/domains/renewDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
                     'registrar' => $registrars,
                     'maxYears' => $maxYears,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'currencySymbol' => $symbol,
+                    'currencyPosition' => $position
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -1827,7 +1841,27 @@ class DomainsController extends Controller
     
     public function requestTransfer(Request $request, Response $response)
     {
-        return view($response,'admin/domains/requestTransfer.twig');
+        $db = $this->container->get('db');
+        $registrars = $db->select("SELECT id, clid, name FROM registrar");
+            
+        $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
+        $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
+
+        $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
+        $formatter->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currency);
+
+        $symbol = $formatter->getSymbol(\NumberFormatter::CURRENCY_SYMBOL);
+        $pattern = $formatter->getPattern();
+
+        // Determine currency position (before or after)
+        $position = (strpos($pattern, '¤') < strpos($pattern, '#')) ? 'before' : 'after';
+
+        // Default view for GET requests or if POST data is not set
+        return view($response,'admin/domains/requestTransfer.twig', [
+            'registrars' => $registrars,
+            'currencySymbol' => $symbol,
+            'currencyPosition' => $position,
+        ]);
     }
     
     public function approveTransfer(Request $request, Response $response)
