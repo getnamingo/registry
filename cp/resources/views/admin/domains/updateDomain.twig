@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Updating Domain') }} {{ domain.name }}
@@ -23,7 +23,7 @@
         <!-- Page body -->
         <div class="page-body">
           <div class="container-xl">
-            <form id="domainCreateForm" action="/domain/update" method="post">
+            <form id="domainUpdateForm" action="/domain/update" method="post">
             {{ csrf.field | raw }}
               <div class="col-12">
               {% include 'partials/flash.twig' %}

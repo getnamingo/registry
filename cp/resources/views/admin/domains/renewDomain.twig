@@ -1,0 +1,166 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Renew Domain') }} {{ domain.name }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Renew Domain') }} {{ domain.name }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+                <div class="card">
+                    <div class="card-body">
+                        <form id="domainRenewForm" action="/domain/renew/{{ domain.name }}" method="post">
+                        {{ csrf.field | raw }}
+                            <div class="mb-3">
+                                <label for="domainName" class="form-label">{{ __('Domain Name') }}</label>
+                                <div class="form-control-plaintext">{{ domain.name }}</div><input type="hidden" name="domainName" id="domainName" value="{{ domain.name }}">
+                            </div>
+                            
+                            <!-- Slider for years -->
+                            <div class="mb-3">
+                                <label for="renewalYears" class="form-label">{{ 'Renewal Years' }}</label>
+                                <input type="range" class="form-range" min="1" max="{{ maxYears }}" step="1" id="renewalYears" name="renewalYears" value="1">
+                                <span id="yearValue">1 Year</span>
+                            </div>
+                            
+                            <!-- Placeholder for displaying domain price -->
+                            <div class="mb-3" id="domainPriceDisplay" style="display:none;">
+                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
+                            </div>
+                    </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">{{ __('Renew Domain') }}</button>
+                    </div>
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    document.getElementById('renewalYears').addEventListener('input', function() {
+        document.getElementById('yearValue').textContent = this.value + ' Year' + (this.value > 1 ? 's' : '');
+    });
+
+    window.currencySymbol = "{{ currencySymbol }}";
+    window.currencyPosition = "{{ currencyPosition }}";
+
+    const yearSlider = document.getElementById('renewalYears');
+    const yearValueDisplay = document.getElementById('yearValue');
+
+    // Display year value from slider
+    yearSlider.addEventListener('input', function() {
+        yearValueDisplay.textContent = `${yearSlider.value} Year${yearSlider.value > 1 ? 's' : ''}`;
+    });
+ 
+    const domainInput = document.getElementById('domainName');
+    const yearInput = document.getElementById('renewalYears');
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+    const priceValue = document.getElementById('domainPrice');
+
+    function extractTLD(domain) {
+        const match = domain.match(/\.[a-zA-Z0-9]+$/);
+        return match ? match[0].toLowerCase() : null;
+    }
+
+    function getDomainPrice(domain, years) {
+        const tld = extractTLD(domain);
+        if (!tld) {
+            return Promise.reject("Invalid TLD");
+        }
+
+        // Call your API to get the domain price based on its TLD.
+        return fetch(`/api/records/domain_price?join=domain_tld`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    return Promise.reject("Failed to fetch domain prices");
+                }
+            })
+            .then(data => {
+                // Find the domain TLD and then get its price for the "renew" command
+                const tldData = data.records.find(record => 
+                    record.tldid && record.tldid.tld.toLowerCase() === tld.toLowerCase() && 
+                    record.command === 'renew'
+                );
+                if (tldData) {
+                    const priceField = `m${years * 12}`;
+                    const price = parseFloat(tldData[priceField]);
+                    if (!isNaN(price)) {
+                        return price;
+                    }
+                }
+                return Promise.reject("TLD price not found");
+            });
+    }
+
+    function formatPrice(price) {
+        switch(window.currencyPosition) {
+            case 'before':
+                return `${window.currencySymbol}${price.toFixed(2)}`;
+            case 'after':
+                return `${price.toFixed(2)} ${window.currencySymbol}`;
+            default:
+                return price.toFixed(2);
+        }
+    }
+
+    function updatePrice() {
+        if (domainInput.value) {
+            getDomainPrice(domainInput.value, yearInput.value).then(price => {
+                priceValue.innerText = formatPrice(price);
+                priceDisplay.style.display = 'block';
+            }).catch(error => {
+                console.error(error);
+                // Handle the error or display a message as needed
+            });
+        } else {
+            priceDisplay.style.display = 'none';
+        }
+    }
+
+    domainInput.addEventListener('input', updatePrice);
+    yearInput.addEventListener('input', updatePrice);
+    
+    updatePrice();
+});
+</script>
+{% endblock %}

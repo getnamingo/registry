@@ -541,7 +541,7 @@ class DomainsController extends Controller
                 );
 
                 $db->exec(
-                    'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP, ?, ?)',
+                    'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
                     [$clid, "create domain $domainName for period $date_add MONTH", "-$price"]
                 );
 
@@ -917,6 +917,23 @@ class DomainsController extends Controller
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
             
+            $domain_id = $db->selectValue(
+                'SELECT id FROM domain WHERE name = ?',
+                [$domainName]
+            );
+            $results = $db->select(
+                'SELECT status FROM domain_status WHERE domain_id = ?',
+                [ $domain_id ]
+            );
+
+            foreach ($results as $row) {
+                $status = $row['status'];
+                if (preg_match('/.*(serverUpdateProhibited)$/', $status) || preg_match('/^pendingTransfer/', $status)) {
+                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow renew, first change the status');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
+            }
+            
             $contactRegistrant = $data['contactRegistrant'] ?? null;
             $contactAdmin = $data['contactAdmin'] ?? null;
             $contactTech = $data['contactTech'] ?? null;
@@ -1286,9 +1303,214 @@ class DomainsController extends Controller
         }
     }
     
-    public function renewDomain(Request $request, Response $response)
+    public function renewDomain(Request $request, Response $response, $args)
     {
-        return view($response,'admin/domains/renewDomain.twig');
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            $domainName = $data['domainName'] ?? null;
+            $renewalYears = $data['renewalYears'] ?? null;
+            
+            list($label, $domain_extension) = explode('.', $domainName, 2);
+
+            $result = $db->select('SELECT id, tld FROM domain_tld');
+            foreach ($result as $row) {
+                if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                    $tld_id = $row['id'];
+                    break;
+                }
+            }
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+            }
+                
+            $date_add = 0;
+            $date_add = ($renewalYears * 12);
+            
+            $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+
+            $registrar_balance = $result['accountBalance'];
+            $creditLimit = $result['creditLimit'];
+
+            $priceColumn = "m" . $date_add;
+            $price = $db->selectValue(
+                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "renew" LIMIT 1',
+                [$tld_id]
+            );
+
+            if (!$price) {
+                $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
+                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+            }
+
+            if (($registrar_balance + $creditLimit) < $price) {
+                $this->container->get('flash')->addMessage('error', 'Low credit: minimum threshold reached');
+                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+            }
+            
+            $domain_id = $db->selectValue(
+                'SELECT id FROM domain WHERE name = ?',
+                [$domainName]
+            );
+            $results = $db->select(
+                'SELECT status FROM domain_status WHERE domain_id = ?',
+                [ $domain_id ]
+            );
+
+            foreach ($results as $row) {
+                $status = $row['status'];
+                if (preg_match('/.*(RenewProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow renew, first change the status');
+                    return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+                }
+            }
+            
+            try {
+                $db->beginTransaction();
+                        
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                
+                $row = $db->selectRow(
+                    'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
+                    [$domainName]
+                );
+                $from = $row['exdate'];
+                $rgpstatus = 'renewPeriod';
+                
+                $db->exec(
+                    'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                    [
+                        $date_add,
+                        $rgpstatus,
+                        $date_add,
+                        $domainName
+                    ]
+                );
+                $domain_id = $db->selectValue(
+                    'SELECT id FROM domain WHERE name = ?',
+                    [$domainName]
+                );
+
+                $db->exec(
+                    'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
+                    [$price, $clid]
+                );
+                
+                $db->exec(
+                    'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                    [$clid, "renew domain $domainName for period $date_add MONTH", "-$price"]
+                );
+
+                $row = $db->selectRow(
+                    'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
+                    [$domainName]
+                );
+                $to = $row['exdate'];
+
+                $currentDateTime = new \DateTime();
+                $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                $db->insert(
+                    'statement',
+                    [
+                        'registrar_id' => $clid,
+                        'date' => $stdate,
+                        'command' => 'renew',
+                        'domain_name' => $domainName,
+                        'length_in_months' => $date_add,
+                        'from' => $from,
+                        'to' => $to,
+                        'amount' => $price
+                    ]
+                  );
+
+                $curdate_id = $db->selectValue(
+                    'SELECT id FROM statistics WHERE date = CURDATE()'
+                );
+
+                if (!$curdate_id) {
+                    $db->exec(
+                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                    );
+                }
+
+                $db->exec(
+                    'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()'
+                );
+                 
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure during renew: ' . $e->getMessage());
+                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+            }
+           
+            $this->container->get('flash')->addMessage('success','Domain ' . $domainName . ' has been renewed for ' . $renewalYears . ' ' . ($renewalYears > 1 ? 'years' : 'year'));
+            return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        if ($_SESSION["auth_roles"] != 0) {
+            $registrar = true;
+        } else {
+            $registrar = null;
+        }
+        
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, `update`, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            [ $args ]);
+
+            if ($domain) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$domain['clid']]);
+
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the domains view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                    }
+                }
+                
+                $domainStatus = $db->select('SELECT status FROM domain_status WHERE domain_id = ?',
+                [ $domain['id'] ]);
+
+                $expirationDate = new \DateTime($domain['exdate']);
+                $currentYear = (int)date("Y");
+                $expirationYear = (int)$expirationDate->format("Y");
+                $yearsUntilExpiration = $expirationYear - $currentYear;
+                $maxYears = 10 - $yearsUntilExpiration;
+
+                return view($response,'admin/domains/renewDomain.twig', [
+                    'domain' => $domain,
+                    'domainStatus' => $domainStatus,
+                    'registrar' => $registrars,
+                    'maxYears' => $maxYears,
+                    'currentUri' => $uri
+               ]);
+            } else {
+                // Domain does not exist, redirect to the domains view
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the domains view
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
     }
     
     public function deleteDomain(Request $request, Response $response)
