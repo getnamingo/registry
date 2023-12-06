@@ -174,12 +174,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    if ($database_type === 'mysql') {
-        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
-    } elseif ($database_type === 'pgsql') {
-        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, \"update\", clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
-    }
-    
+    $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1"); 
     $stmt->execute([':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -193,7 +188,6 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $registrant = $result['registrant'];
     $crdate = $result['crdate'];
     $exdate = $result['exdate'];
-    $update = $result['update'];
     $registrar_id_domain = $result['clid'];
     $crid = $result['crid'];
     $upid = $result['upid'];

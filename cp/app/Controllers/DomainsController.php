@@ -1521,7 +1521,7 @@ class DomainsController extends Controller
             $uri = $request->getUri()->getPath();
         
             if ($args) {
-                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, update, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
                 [ $args ]);
             
                 $domainName = $domain['name'];
@@ -1530,7 +1530,6 @@ class DomainsController extends Controller
                 $registrant = $domain['registrant'];
                 $crdate = $domain['crdate'];
                 $exdate = $domain['exdate'];
-                $update = $domain['update'];
                 $registrar_id_domain = $domain['clid'];
                 $crid = $domain['crid'];
                 $upid = $domain['upid'];
@@ -1596,7 +1595,7 @@ class DomainsController extends Controller
                     'domain_status',
                     [
                         'domain_id' => $domain_id,
-                        'authinfo' => 'pendingDelete'
+                        'status' => 'pendingDelete'
                     ]
                 );
                     
