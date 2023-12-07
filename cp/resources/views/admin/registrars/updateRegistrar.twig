@@ -340,7 +340,7 @@
                   <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-body">
-                          <h5 class="card-title">IP Whitelisting</h5>
+                          <h5 class="card-title"> <span class="text-red">*</span></h5>
                           <p class="card-text">
                             Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added.
                           </p>
@@ -348,7 +348,7 @@
                             <div id="ipAddressFields">
                               {% for ip in whitelist %}
                                 <div class="mb-3 d-flex align-items-center">
-                                  <input type="text" class="form-control" name="ipAddress[]" value="{{ ip.addr }}" autocapitalize="none">
+                                  <input type="text" class="form-control" name="ipAddress[]" value="{{ ip.addr }}" autocapitalize="none" required>
                                   <button type="button" class="btn btn-danger ms-2 remove-ip">-</button>
                                 </div>
                               {% endfor %}

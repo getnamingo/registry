@@ -355,14 +355,14 @@
                   <div class="col-md-6">
                     <div class="card h-100">
                       <div class="card-body">
-                        <h5 class="card-title">IP Whitelisting</h5>
+                        <h5 class="card-title">IP Whitelisting <span class="text-red">*</span></h5>
                         <p class="card-text">
                           Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added.
                         </p>
                         <div id="ipWhitelistForm">
                           <div id="ipAddressFields">
                             <div class="mb-3 d-flex align-items-center">
-                              <input type="text" class="form-control" name="ipAddress[]" autocapitalize="none">
+                              <input type="text" class="form-control" name="ipAddress[]" autocapitalize="none" required>
                               <button type="button" class="btn btn-primary ms-2 add-ip">+</button>
                             </div>
                           </div>

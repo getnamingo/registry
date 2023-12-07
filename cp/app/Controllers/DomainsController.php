@@ -1857,7 +1857,7 @@ class DomainsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
-            $registrar = $data['registrar'] ?? null;
+            $registrar_id = $data['registrar'] ?? null;
             $authInfo = $data['authInfo'] ?? null;
             $transferYears = $data['transferYears'] ?? null;
 
@@ -1883,7 +1883,7 @@ class DomainsController extends Controller
             if ($_SESSION["auth_roles"] != 0) {
                 $clid = $result['registrar_id'];
             } else {
-                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                $clid = $registrar_id;
             }
             
             $days_from_registration = $db->selectValue(
@@ -1948,7 +1948,7 @@ class DomainsController extends Controller
                 }
             }
 
-            if ($clid !== $registrar_id_domain) {
+            if ($clid == $registrar_id_domain) {
                 $this->container->get('flash')->addMessage('error', 'Destination client of the transfer operation is the domain sponsoring client');
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
@@ -2135,13 +2135,10 @@ class DomainsController extends Controller
     
     public function approveTransfer(Request $request, Response $response, $args)
     {
-       if ($request->getMethod() === 'POST') {
+       //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $args ?? null;
-            $registrar = $data['registrar'] ?? null;
-            $authInfo = $data['authInfo'] ?? null;
-            $transferYears = $data['transferYears'] ?? null;
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2154,6 +2151,14 @@ class DomainsController extends Controller
             $domain_id = $domain['id'];
             $tldid = $domain['tldid'];
             $registrar_id_domain = $domain['clid'];
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+            }
 
             $domain_authinfo_id = $db->selectValue(
                  'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
@@ -2296,18 +2301,15 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-        }
+        //}
     }
     
     public function rejectTransfer(Request $request, Response $response, $args)
     {
-        if ($request->getMethod() === 'POST') {
+        //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $args ?? null;
-            $registrar = $data['registrar'] ?? null;
-            $authInfo = $data['authInfo'] ?? null;
-            $transferYears = $data['transferYears'] ?? null;
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2320,6 +2322,14 @@ class DomainsController extends Controller
             $domain_id = $domain['id'];
             $tldid = $domain['tldid'];
             $registrar_id_domain = $domain['clid'];
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+            }
 
             $domain_authinfo_id = $db->selectValue(
                  'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
@@ -2358,18 +2368,15 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-        }
+        //}
     }
     
     public function cancelTransfer(Request $request, Response $response, $args)
     {
-        if ($request->getMethod() === 'POST') {
+        //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $args ?? null;
-            $registrar = $data['registrar'] ?? null;
-            $authInfo = $data['authInfo'] ?? null;
-            $transferYears = $data['transferYears'] ?? null;
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2382,6 +2389,14 @@ class DomainsController extends Controller
             $domain_id = $domain['id'];
             $tldid = $domain['tldid'];
             $registrar_id_domain = $domain['clid'];
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $result['registrar_id'];
+            } else {
+                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+            }
 
             $domain_authinfo_id = $db->selectValue(
                  'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
@@ -2420,7 +2435,7 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'The domain is NOT pending transfer');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-        }
+        //}
     }
     
     public function restoreDomain(Request $request, Response $response, $args)
