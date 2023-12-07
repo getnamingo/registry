@@ -5,27 +5,59 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
     var table;
-    document.querySelector("#transferTable").addEventListener('click', function(e) {
-        if (e.target.matches('.update-btn')) {
-            let id = e.target.getAttribute('data-id');
-            updateRecord(id);
-        } else if (e.target.matches('.delete-btn')) {
-            let id = e.target.getAttribute('data-id');
-            deleteRecord(id);
-        }
-    });
-   
+  
     document.addEventListener("DOMContentLoaded", function(){
+    function domainLinkFormatter(cell){
+        var value = cell.getValue();
+        return `<a href="/domain/view/${value}" style="font-weight:bold;">${value}</a>`;
+    }
    
     function actionsFormatter(cell, formatterParams, onRendered) {
-        return `
-            <button class="btn btn-primary btn-icon update-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></button>
-            <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
-        `;
+        var rowData = cell.getRow().getData();
+        var actionButtons = '';
+
+        var hasPendingStatus = rowData.trstatus && rowData.trstatus.includes('pending');
+        var clidValue = document.getElementById('clid').value;
+   
+        if (hasPendingStatus) {
+            actionButtons += `<a class="btn btn-success btn-icon" href="transfer/approve/${cell.getRow().getData().name}" title="Approve Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg></a> `;
+        } else {
+            actionButtons += `<a class="btn btn-secondary btn-icon" href="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></a> `;
+            actionButtons += `<a class="btn btn-danger btn-icon" href="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></a>`;
+        }
+        
+        if (clidValue === '0') {
+            actionButtons += `<a class="btn btn-dark btn-icon" href="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M10 10l4 4m0 -4l-4 4" /></svg></a> `;
+            actionButtons += `<a class="btn btn-danger btn-icon" href="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a>`;
+        } else if (clidValue !== '' && clidValue !== null) {
+            // Code to execute if clidValue is not empty and not null
+            console.log('clidValue is not empty and not null');
+        } else {
+            // Code to execute if clidValue is empty or null
+            console.log('clidValue is empty or null');
+        }
+
+        return actionButtons;
+    }
+    
+    function statusFormatter(cell) {
+        var status = cell.getValue(); // Get the status value as a string
+        var rowData = cell.getRow().getData(); // Get the entire row data
+
+        // Function to create a badge
+        function createBadge(text, badgeClass) {
+            return `<span class="badge bg-${badgeClass}-lt">${text}</span>`;
+        }
+
+        // Check if status is not null or undefined
+        if (status) {
+            return createBadge(status, 'azure');
+        }
+        return ''; // Return an empty string if status is null or undefined
     }
 
     table = new Tabulator("#transferTable", {
-        ajaxURL:"/api/records/domain_auto_approve_transfer", // Set the URL for your JSON data
+        ajaxURL:"/api/records/domain?filter=trstatus,nis", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
         paginationSize:10,
@@ -38,10 +70,10 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Name", field:"name", headerSort:true, responsive:0},
-            {title:"Registrant", field:"registrant", headerSort:true, responsive:2},
-            {title:"Phone", field:"trdate", headerSort:true, responsive:2},
-            {title:"Status", field:"trstatus", headerSort:false, download:false, responsive:2},
+            {title:"Name", field:"name", width:300, minWidth:200, formatter: domainLinkFormatter, headerSort:true, responsive:0},
+            {title:"Initiated Date", field:"redate", width:250, minWidth:150, headerSort:true, responsive:2},
+            {title:"Expiry Date", field:"acdate", width:250, minWidth:150, headerSort:true, responsive:2},
+            {title:"Status", field:"trstatus", width:200, minWidth:150, headerSort:false, download:false, formatter: statusFormatter, responsive:0},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){
@@ -57,8 +89,8 @@
                 // Check if any of the fields contain the search term
                 return (
                     String(data.name).toLowerCase().includes(term) ||
-                    String(data.registrant).toLowerCase().includes(term) ||
-                    String(data.trdate).toLowerCase().includes(term) ||
+                    String(data.redate).toLowerCase().includes(term) ||
+                    String(data.acdate).toLowerCase().includes(term) ||
                     String(data.trstatus).toLowerCase().includes(term)
                 );
             });

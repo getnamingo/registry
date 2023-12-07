@@ -1848,10 +1848,21 @@ class DomainsController extends Controller
         
         //}
     }
-    
+
     public function listTransfers(Request $request, Response $response)
     {
-        return view($response,'admin/domains/listTransfers.twig');
+        $db = $this->container->get('db');
+        $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+        if ($_SESSION["auth_roles"] != 0) {
+            $clid = $result['registrar_id'];
+        } else {
+            $clid = 0;
+        }
+    
+        return view($response,'admin/domains/listTransfers.twig', [
+            'clid' => $clid
+        ]);
     }
     
     public function requestTransfer(Request $request, Response $response)
