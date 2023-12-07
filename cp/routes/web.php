@@ -49,9 +49,9 @@ $app->group('', function ($route) {
 
     $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');
     $route->map(['GET', 'POST'], '/transfer/request', DomainsController::class . ':requestTransfer')->setName('requestTransfer');
-    $route->post('/transfer/approve', DomainsController::class . ':approveTransfer')->setName('approveTransfer');
-    $route->post('/transfer/reject', DomainsController::class . ':rejectTransfer')->setName('rejectTransfer');
-    $route->post('/transfer/cancel', DomainsController::class . ':cancelTransfer')->setName('cancelTransfer');
+    $route->map(['GET', 'POST'], '/transfer/approve/{domain}', DomainsController::class . ':approveTransfer')->setName('approveTransfer');
+    $route->map(['GET', 'POST'], '/transfer/reject/{domain}', DomainsController::class . ':rejectTransfer')->setName('rejectTransfer');
+    $route->map(['GET', 'POST'], '/transfer/cancel/{domain}', DomainsController::class . ':cancelTransfer')->setName('cancelTransfer');
 
     $route->get('/contacts', ContactsController::class .':listContacts')->setName('listContacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':createContact')->setName('createContact');

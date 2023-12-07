@@ -475,6 +475,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     return;
                 }
             }
+			
+            $stmt = $db->prepare("SELECT `exdate` FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+            $stmt->execute(['domain_id' => $domain_id]);
+            $from = $stmt->fetchColumn();
 
             $stmt = $db->prepare("UPDATE `domain` SET `exdate` = DATE_ADD(`exdate`, INTERVAL ? MONTH), `update` = CURRENT_TIMESTAMP(3), `clid` = ?, `upid` = ?, `trdate` = CURRENT_TIMESTAMP(3), `trstatus` = 'clientApproved', `acdate` = CURRENT_TIMESTAMP(3), `transfer_exdate` = NULL, `rgpstatus` = 'transferPeriod', `transferPeriod` = ? WHERE `id` = ?");
             $stmt->execute([$date_add, $row["reid"], $clid, $date_add, $domain_id]);

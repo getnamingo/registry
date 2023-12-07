@@ -2175,23 +2175,11 @@ class DomainsController extends Controller
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
 
-            $domain_authinfo_id = $db->selectValue(
-                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
-                [
-                    $domain_id, $authInfo
-                ]
-            );
-            
             if ($clid !== $registrar_id_domain) {
                 $this->container->get('flash')->addMessage('error', 'Only LOSING REGISTRAR can approve');
-                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-            
-            if (!$domain_authinfo_id) {
-                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
-                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
-            }
-            
+        
             $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod, transfer_exdate FROM domain WHERE name = ?',
             [ $domainName ]);
             
@@ -2225,7 +2213,7 @@ class DomainsController extends Controller
                 $creditLimit = $result['creditLimit'];
                 
                 if ($transfer_exdate) {
-                    $date_add = $db->selectRow(
+                    $date_add = $db->selectValue(
                          "SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1",
                         [
                             $domainName
@@ -2243,12 +2231,18 @@ class DomainsController extends Controller
                         return $response->withHeader('Location', '/transfers')->withStatus(302);
                     }
                 }
-                
+
                 try {
                     $db->beginTransaction();
+                    
+                    $row = $db->selectRow(
+                        'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
+                        [$domainName]
+                    );
+                    $from = $row['exdate'];
                             
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), update = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), `update` = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
                         [$date_add, $reid, $clid, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
                     );
 
@@ -2346,23 +2340,11 @@ class DomainsController extends Controller
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
 
-            $domain_authinfo_id = $db->selectValue(
-                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
-                [
-                    $domain_id, $authInfo
-                ]
-            );
-            
             if ($clid !== $registrar_id_domain) {
                 $this->container->get('flash')->addMessage('error', 'Only LOSING REGISTRAR can reject');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-            
-            if (!$domain_authinfo_id) {
-                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
-                return $response->withHeader('Location', '/transfers')->withStatus(302);
-            }
-            
+          
             $domain = $db->selectRow('SELECT id, trstatus FROM domain WHERE name = ? LIMIT 1',
             [ $domainName ]);
 
@@ -2413,23 +2395,11 @@ class DomainsController extends Controller
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
 
-            $domain_authinfo_id = $db->selectValue(
-                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
-                [
-                    $domain_id, $authInfo
-                ]
-            );
-            
             if ($clid === $registrar_id_domain) {
                 $this->container->get('flash')->addMessage('error', 'Only the APPLICANT can cancel');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
-            
-            if (!$domain_authinfo_id) {
-                $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
-                return $response->withHeader('Location', '/transfers')->withStatus(302);
-            }
-            
+         
             $domain = $db->selectRow('SELECT id, trstatus FROM domain WHERE name = ? LIMIT 1',
             [ $domainName ]);
 
