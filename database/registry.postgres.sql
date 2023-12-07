@@ -47,9 +47,11 @@ CREATE TABLE registry.domain_restore_price (
 
 CREATE TABLE registry.error_log (
     "id" INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    "registrar_id" INT(11) NOT NULL,
+    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,,
     "log" TEXT NOT NULL,
-    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    primary key ("id"),
+    FOREIGN KEY (registrar_id) REFERENCES registrar(id)
 );
 
 CREATE TABLE registry.reserved_domain_names (
@@ -628,11 +630,8 @@ CREATE TABLE ticket_responses (
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 );
 
-INSERT INTO registry.domain_tld VALUES('1','.COM.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO registry.domain_tld VALUES('2','.ORG.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO registry.domain_tld VALUES('3','.INFO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO registry.domain_tld VALUES('4','.PRO.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO registry.domain_tld VALUES('5','.XX','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
 
 INSERT INTO registry.domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO registry.domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
@@ -640,27 +639,12 @@ INSERT INTO registry.domain_price VALUES (E'3',E'1',E'transfer',E'0.00',E'5.00',
 INSERT INTO registry.domain_price VALUES (E'4',E'2',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO registry.domain_price VALUES (E'5',E'2',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO registry.domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'7',E'3',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'8',E'3',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'9',E'3',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'10',E'4',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'11',E'4',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'12',E'4',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'13',E'5',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'14',E'5',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'15',E'5',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 
 INSERT INTO registry.domain_restore_price VALUES (E'1',E'1',E'50.00');
 INSERT INTO registry.domain_restore_price VALUES (E'2',E'2',E'50.00');
-INSERT INTO registry.domain_restore_price VALUES (E'3',E'3',E'50.00');
-INSERT INTO registry.domain_restore_price VALUES (E'4',E'4',E'50.00');
-INSERT INTO registry.domain_restore_price VALUES (E'5',E'5',E'50.00');
 
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Namingo Test',E'namingo',E'{SHA}MyVYFDDrSjD546LIF11cMPu93ss=',E'XP',E'info@namingo.org',E'whois.namingo.org',E'rdap.namingo.org',E'http://www.namingo.org/',E'abuse@namingo.org',E'+380.123123123',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Registrar 002',E'testregistrar1',E'{SHA}ELxnUq/+JQS9a7pCUIZQpUrA3bY=',E'AA',E'info@testregistrar1.com',E'whois.namingo.org',E'rdap.namingo.org',E'http://www.namingo.org/',E'abuse@namingo.org',E'+380.123123123',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Registrar 003',E'testregistrar2',E'{SHA}jkkAfdvdLH5vbkCeQLGJy77LEGM=',E'BB',E'info@testregistrar2.com',E'whois.namingo.org',E'rdap.namingo.org',E'http://www.namingo.org/',E'abuse@namingo.org',E'+380.123123123',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO registry.ticket_categories (name, description) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),
