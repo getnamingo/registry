@@ -1740,7 +1740,7 @@ class DomainsController extends Controller
                                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                                 return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
                             }
-                            
+                            $isImmediateDeletion = true;
                         }
                     } elseif ($rgpstatus === 'autoRenewPeriod') {
                         $autoRenewPeriod_id = $db->selectValue(
@@ -1835,7 +1835,11 @@ class DomainsController extends Controller
                     }
                 }
                     
-                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
+                if ($isImmediateDeletion) {
+                    $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
+                } else {
+                    $this->container->get('flash')->addMessage('info', 'Deletion process for domain ' . $domainName . ' has been initiated');
+                }
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             } else {
                 // Redirect to the domains view
@@ -2049,7 +2053,7 @@ class DomainsController extends Controller
                         return $response->withHeader('Location', '/transfer/request/')->withStatus(302);
                     }
                                       
-                    $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
+                    $this->container->get('flash')->addMessage('info', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
                     return $response->withHeader('Location', '/transfers')->withStatus(302);
                 } else {
                     try {
@@ -2101,7 +2105,7 @@ class DomainsController extends Controller
                         return $response->withHeader('Location', '/transfer/request/')->withStatus(302);
                     }
                                       
-                    $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
+                    $this->container->get('flash')->addMessage('info', 'Transfer for ' . $domainName . ' has been started successfully on ' . $qdate . ' An action is pending');
                     return $response->withHeader('Location', '/transfers')->withStatus(302);
                 }
             } elseif ($trstatus === 'pending') {
@@ -2494,7 +2498,7 @@ class DomainsController extends Controller
                 ]
                 );
                 
-                $this->container->get('flash')->addMessage('success', 'Restore process for ' . $domainName . ' has started successfully');
+                $this->container->get('flash')->addMessage('info', 'Restore process for ' . $domainName . ' has started successfully');
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             } else {
                 $this->container->get('flash')->addMessage('error', 'pendingRestore can only be done if the domain is now in redemptionPeriod');
@@ -2569,7 +2573,7 @@ class DomainsController extends Controller
                     $db->beginTransaction();
                             
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), update = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), `update` = CURRENT_TIMESTAMP(3) WHERE name = ?',
                         [
                             $domainName
                         ]
