@@ -46,6 +46,18 @@ msgstr "недоступний"
 msgid "Create Domain"
 msgstr "Створити домен"
 
+msgid "Your Domain Name"
+msgstr "Ваше доменне ім'я"
+
+msgid "Registration Years"
+msgstr "Реєстрація на скільки років"
+
+msgid "Nameservers"
+msgstr "Сервери імен"
+
+msgid "Add DNSSEC Data"
+msgstr "Додати дані DNSSEC"
+
 msgid "List Applications"
 msgstr "Список заяв"
 
@@ -54,6 +66,9 @@ msgstr "Створити заявку"
 
 msgid "Transfers"
 msgstr "Трансфери"
+
+msgid "Request Transfer"
+msgstr "Запит на перенесення"
 
 msgid "Contacts"
 msgstr "Контакти"
@@ -163,8 +178,8 @@ msgstr "Рахунки-фактури"
 msgid "Reports"
 msgstr "Звіти"
 
-msgid "System"
-msgstr "Система"
+msgid "Registry"
+msgstr "Реєстр"
 
 msgid "Settings"
 msgstr "Налаштування"
