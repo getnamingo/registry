@@ -46,9 +46,12 @@
         // Check if statusArray is empty or not
         if (statusArray && Array.isArray(statusArray) && statusArray.length > 0) {
             return statusArray.map(item => createBadge(item.status, 'azure')).join(' ');
-        } else {
+        } else if (rowData.rgpstatus) {
             // Fallback to rgpstatus column if statusArray is empty
-            return rowData.rgpstatus ? createBadge(rowData.rgpstatus, 'lime') : "";
+            return createBadge(rowData.rgpstatus, 'lime');
+        } else {
+            // Display 'ok' status with info badge if both statusArray and rgpstatus are empty
+            return createBadge('ok', 'info');
         }
     }
     

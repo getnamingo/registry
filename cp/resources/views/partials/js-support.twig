@@ -5,23 +5,61 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
     var table;
-    document.querySelector("#supportTable").addEventListener('click', function(e) {
-        if (e.target.matches('.update-btn')) {
-            let id = e.target.getAttribute('data-id');
-            updateRecord(id);
-        } else if (e.target.matches('.delete-btn')) {
-            let id = e.target.getAttribute('data-id');
-            deleteRecord(id);
-        }
-    });
-   
     document.addEventListener("DOMContentLoaded", function(){
    
+    function ticketLinkFormatter(cell){
+        var value = cell.getValue();
+        return `<a href="/ticket/${cell.getRow().getData().id}" style="font-weight:bold;">${value}</a>`;
+    }
+
     function actionsFormatter(cell, formatterParams, onRendered) {
         return `
-            <button class="btn btn-primary btn-icon update-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></button>
-            <button class="btn btn-danger btn-icon delete-btn" data-id="${cell.getRow().getData().id}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></button>
+            <a class="btn btn-outline-info btn-icon" href="/ticket/${cell.getRow().getData().id}" title="View Ticket"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg></a>
         `;
+    }
+    
+    function statusFormatter(cell) {
+        var status = cell.getValue();
+
+        // Function to create a badge with color based on status
+        function createBadge(text, badgeClass) {
+            return `<span class="badge bg-${badgeClass} text-${badgeClass}-fg">${text}</span>`;
+        }
+
+        switch (status) {
+            case 'Open':
+                return createBadge(status, 'primary');
+            case 'In Progress':
+                return createBadge(status, 'warning');
+            case 'Resolved':
+                return createBadge(status, 'success');
+            case 'Closed':
+                return createBadge(status, 'secondary');
+            default:
+                return "";
+        }
+    }
+    
+    function priorityFormatter(cell) {
+        var priority = cell.getValue();
+
+        // Function to create an outline badge with color based on priority
+        function createBadge(text, badgeClass) {
+            return `<span class="badge bg-${badgeClass}-lt">${text}</span>`;
+        }
+
+        switch (priority) {
+            case 'Low':
+                return createBadge(priority, 'info');
+            case 'Medium':
+                return createBadge(priority, 'secondary');
+            case 'High':
+                return createBadge(priority, 'warning');
+            case 'Critical':
+                return createBadge(priority, 'danger');
+            default:
+                return "";
+        }
     }
 
     table = new Tabulator("#supportTable", {
@@ -38,10 +76,10 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Subject", field:"subject", headerSort:true, responsive:0},
-            {title:"Status", field:"status", headerSort:true, responsive:2},
-            {title:"Priority", field:"priority", headerSort:true, responsive:2},
-            {title:"Category", field:"category_id.name", headerSort:true, responsive:2},
+            {title:"Subject", field:"subject", width:350, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
+            {title:"Category", field:"category_id.name", width:250, headerSort:true, responsive:0},
+            {title:"Status", field:"status", headerSort:true, width:200, formatter: statusFormatter, responsive:2},
+            {title:"Priority", field:"priority", headerSort:true, width:200, formatter: priorityFormatter, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){
@@ -67,15 +105,7 @@
         }
     });
     });
-   
-    function updateRecord(id) {
-        console.log("Updating record with ID: " + id);
-    }
-   
-    function deleteRecord(id) {
-        console.log("Deleting record with ID: " + id);
-    }
-   
+ 
     function downloadCSV() {
         table.download("csv", "data.csv");
     }
