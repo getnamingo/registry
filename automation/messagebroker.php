@@ -26,11 +26,14 @@ require_once 'helpers.php';
 $server = new Server("127.0.0.1", 8250);
 $server->set([
     'daemonize' => false,
-    'log_file' => '/var/log/namingo/notifications.log',
+    'log_file' => '/var/log/namingo/messagebroker_application.log',
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file' => '/var/run/notifications.pid'
+    'pid_file' => '/var/run/messagebroker.pid'
 ]);
+$logFilePath = '/var/log/namingo/messagebroker.log';
+$log = setupLogger($logFilePath, 'Message_Broker');
+$log->info('job started.');
 
 $server->on("request", function (Request $request, Response $response) use ($c) {
     // Parse the received data
@@ -132,7 +135,8 @@ $server->on("request", function (Request $request, Response $response) use ($c) 
             $response->end(json_encode(['status' => 'error', 'message' => 'Unknown action']));
             return;
     }
-
+    
+    $log->info('job finished successfully.');
     $response->end(json_encode(['status' => 'success']));
 });
 

@@ -364,15 +364,15 @@ or
 composer require phpmailer/phpmailer
 ```
 
-This command will install one of the packages which are essential for the notification script to function correctly.
+This command will install one of the packages which are essential for the message broker script to function correctly.
 
 ### Configuring the Crontab for Automation Scripts
 
 To set up automated tasks for Namingo, open the example crontab file located at ```/opt/registry/automation/crontab.example```. Review the contents and copy the relevant lines into your system's crontab file. Remember to adjust the paths and timings as necessary to suit your environment.
 
-### Running the `notifications.php` Script in the Background
+### Running the `messagebroker.php` Script in the Background
 
-To run the notifications.php script as a background process, execute the following command: ```/usr/bin/php /opt/registry/automation/notifications.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
+To run the messagebroker.php script as a background process, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
 
 ### Setting Up an Audit Trail Database for Namingo
 
