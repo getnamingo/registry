@@ -17,7 +17,7 @@ Namingo is rapidly approaching its full launch, with key system components, incl
 
 We are now in the process of finalizing the control panel, aiming to refine its features and user interface. If you have expertise in detailed testing and optimization, your contribution would be highly valued. Please consider reaching out to us for this crucial phase.
 
-In terms of system performance, Namingo has been tested with up to 50,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and an 80GB SSD.
+In terms of system performance, Namingo has been tested with up to 150,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD. Additionally, this volume of domains occupies just a bit more than 1 GB in the database.
 
 Our development efforts are currently focused on:
 
