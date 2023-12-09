@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') %}
+    {% if route_is('domains') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') %}
         {% include 'partials/css-tables.twig' %}
     {% else %}
         {% include 'partials/css.twig' %}
@@ -189,7 +189,7 @@
                     </a>
                   </div>
                 </li>
-                <li {{ is_current_url('epphistory') or is_current_url('poll') or is_current_url('log') or is_current_url('registry') or is_current_url('reports') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('epphistory') or is_current_url('poll') or is_current_url('log') or is_current_url('registry') or is_current_url('reports') or is_current_url('manageTlds') ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"></path> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path></svg>
                     </span>
@@ -200,6 +200,9 @@
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="{{route('registry')}}">
                       {{ __('Configuration') }}
+                    </a>
+                    <a class="dropdown-item" href="{{route('manageTlds')}}">
+                      {{ __('TLDs') }}
                     </a>
                     <a class="dropdown-item" href="{{route('reports')}}">
                       {{ __('Reports') }}
@@ -382,6 +385,8 @@
     {% include 'partials/js-log.twig' %}
 {% elseif route_is('invoices') %}
     {% include 'partials/js-invoices.twig' %}
+{% elseif route_is('registry/tlds') %}
+    {% include 'partials/js-tlds.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}
