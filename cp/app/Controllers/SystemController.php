@@ -40,4 +40,15 @@ class SystemController extends Controller
 
         return view($response,'admin/system/manageTlds.twig');
     }
+    
+    public function createTld(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        $db = $this->container->get('db');
+
+        return view($response,'admin/system/createTld.twig');
+    }
 }
