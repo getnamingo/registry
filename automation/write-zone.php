@@ -196,5 +196,8 @@ Coroutine::create(function () use ($pool, $log, $c) {
         $log->error('Database error: ' . $e->getMessage());
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
+    } finally {
+        // Return the connection to the pool
+        $pool->put($pdo);
     }
 });
