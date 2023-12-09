@@ -6,217 +6,195 @@ use Badcow\DNS\Zone;
 use Badcow\DNS\Rdata\Factory;
 use Badcow\DNS\ResourceRecord;
 use Badcow\DNS\Classes;
-use Badcow\DNS\AlignedBuilder;
+use Badcow\DNS\ZoneBuilder;
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
-$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
 $logFilePath = '/var/log/namingo/write_zone.log';
 $log = setupLogger($logFilePath, 'Zone_Generator');
 $log->info('job started.');
 
-try {
-    $db = new PDO($dsn, $c['db_username'], $c['db_password']);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    $log->error('DB Connection failed: ' . $e->getMessage());
-}
+use Swoole\Coroutine;
 
-$timestamp = time();
-$ns1 = 'ns1.namingo.org';
-$ns2 = 'ns2.namingo.org';
+// Initialize the PDO connection pool
+$pool = new Swoole\Database\PDOPool(
+    (new Swoole\Database\PDOConfig())
+        ->withDriver($c['db_type'])
+        ->withHost($c['db_host'])
+        ->withPort($c['db_port'])
+        ->withDbName($c['db_database'])
+        ->withUsername($c['db_username'])
+        ->withPassword($c['db_password'])
+        ->withCharset('utf8mb4')
+);
 
-$sth = $db->prepare('SELECT id, tld FROM domain_tld');
-$sth->execute();
+Swoole\Runtime::enableCoroutine();
 
-while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
-    $tldRE = preg_quote($tld, '/');
-    $cleanedTld = ltrim(strtolower($tld), '.');
-    $zone = new Zone('.');
-    $zone->setDefaultTtl(3600);
-    
-    $soa = new ResourceRecord;
-    $soa->setName($cleanedTld . '.');
-    $soa->setClass(Classes::INTERNET);
-    $soa->setRdata(Factory::Soa(
-        $ns1 . '.',
-        'postmaster.' . $cleanedTld . '.',
-        $timestamp, 
-        3600, 
-        14400, 
-        604800, 
-        3600
-    ));
-    $zone->addResourceRecord($soa);
+// Creating first coroutine
+Coroutine::create(function () use ($pool, $log, $c) {
+    try {
+        $pdo = $pool->get();
+        $sth = $pdo->prepare('SELECT id, tld FROM domain_tld');
+        $sth->execute();
+        $timestamp = time();
 
-    $nsRecord1 = new ResourceRecord;
-    $nsRecord1->setName($cleanedTld . '.');
-    $nsRecord1->setClass(Classes::INTERNET);
-    $nsRecord1->setRdata(Factory::Ns($ns1 . '.'));
-    $zone->addResourceRecord($nsRecord1);
+        while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
+            $tldRE = preg_quote($tld, '/');
+            $cleanedTld = ltrim(strtolower($tld), '.');
+            $zone = new Zone('.');
+            $zone->setDefaultTtl(3600);
+            
+            $soa = new ResourceRecord;
+            $soa->setName($cleanedTld . '.');
+            $soa->setClass(Classes::INTERNET);
+            $soa->setRdata(Factory::Soa(
+                $c['ns']['ns1'] . '.',
+                $c['dns_soa'] . '.',
+                $timestamp, 
+                3600, 
+                14400, 
+                604800, 
+                3600
+            ));
+            $zone->addResourceRecord($soa);
 
-    $nsRecord2 = new ResourceRecord;
-    $nsRecord2->setName($cleanedTld . '.');
-    $nsRecord2->setClass(Classes::INTERNET);
-    $nsRecord2->setRdata(Factory::Ns($ns2 . '.'));
-    $zone->addResourceRecord($nsRecord2);
+            foreach ($c['ns'] as $ns) {
+                $nsRecord = new ResourceRecord;
+                $nsRecord->setName($cleanedTld . '.');
+                $nsRecord->setClass(Classes::INTERNET);
+                $nsRecord->setRdata(Factory::Ns($ns . '.'));
+                $zone->addResourceRecord($nsRecord);
+            }
+            
+            // Fetch domains for this TLD
+            $sthDomains = $pdo->prepare('SELECT DISTINCT domain.id, domain.name FROM domain WHERE tldid = :id AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = \'pendingRestore\') ORDER BY domain.name');
+            
+            $domainIds = [];
+            $sthDomains->execute([':id' => $id]);
+            while ($row = $sthDomains->fetch(PDO::FETCH_ASSOC)) {
+                $domainIds[] = $row['id'];
+            }
 
-    $sth2 = $db->prepare('SELECT DISTINCT domain.id, domain.name, domain.rgpstatus, host.name
-                           FROM domain
-                           INNER JOIN domain_host_map ON domain.id = domain_host_map.domain_id
-                           INNER JOIN host ON domain_host_map.host_id = host.id
-                           LEFT JOIN host_addr ON host_addr.host_id = host.id
-                           WHERE domain.tldid = :id
-                           AND (
-                               host.domain_id IS NULL
-                               OR host_addr.addr IS NOT NULL
-                           )
-                           AND (
-                               domain.exdate > CURRENT_TIMESTAMP
-                               OR rgpstatus = \'pendingRestore\'
-                           )
-                           ORDER BY domain.name');
-    $sth2->execute([':id' => $id]);
+            $statuses = [];
+            if (count($domainIds) > 0) {
+                $placeholders = implode(',', array_fill(0, count($domainIds), '?'));
+                $sthStatus = $pdo->prepare("SELECT domain_id, id FROM domain_status WHERE domain_id IN ($placeholders) AND status LIKE '%Hold'");
+                $sthStatus->execute($domainIds);
+                while ($row = $sthStatus->fetch(PDO::FETCH_ASSOC)) {
+                    $statuses[$row['domain_id']] = $row['id'];
+                }
+            }
+            
+            $sthDomains->execute([':id' => $id]);
 
-    while (list($did, $dname, $rgp, $hname) = $sth2->fetch(PDO::FETCH_NUM)) {
-        $sthStatus = $db->prepare("SELECT id FROM domain_status WHERE domain_id = :did AND status LIKE '%Hold' LIMIT 1");
-        $sthStatus->bindParam(':did', $did, PDO::PARAM_INT);
-        $sthStatus->execute();
-        $status_id = $sthStatus->fetchColumn();
+            while (list($did, $dname) = $sthDomains->fetch(PDO::FETCH_NUM)) {
+                if (isset($statuses[$did])) continue;
 
-        if ($status_id) continue;
-    
-        $dname = trim($dname, "$tldRE.");
-        $dname = ($dname == "$tld.") ? '@' : $dname;
-    
-        $nsRecord = new ResourceRecord;
-        $nsRecord->setName($dname . '.');
-        $nsRecord->setClass(Classes::INTERNET);
-        $nsRecord->setRdata(Factory::Ns($hname . '.'));
-        $zone->addResourceRecord($nsRecord);
-    }
+                $dname_clean = trim($dname, "$tldRE.");
+                $dname_clean = ($dname_clean == "$tld.") ? '@' : $dname_clean;
 
-    $sth2 = $db->prepare("SELECT host.name, host.domain_id, host_addr.ip, host_addr.addr
-                           FROM domain
-                           INNER JOIN host ON domain.id = host.domain_id
-                           INNER JOIN host_addr ON host.id = host_addr.host_id
-                           WHERE domain.tldid = :id
-                           AND (domain.exdate > CURRENT_TIMESTAMP OR rgpstatus = 'pendingRestore')
-                           ORDER BY host.name");
-    $sth2->execute([':id' => $id]);
+                // NS records for the domain
+                $sthNsRecords = $pdo->prepare('SELECT DISTINCT host.name FROM domain_host_map INNER JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :did');
+                $sthNsRecords->execute([':did' => $did]);
+                while (list($hname) = $sthNsRecords->fetch(PDO::FETCH_NUM)) {
+                    $nsRecord = new ResourceRecord;
+                    $nsRecord->setName($dname_clean . '.');
+                    $nsRecord->setClass(Classes::INTERNET);
+                    $nsRecord->setRdata(Factory::Ns($hname . '.'));
+                    $zone->addResourceRecord($nsRecord);
+                }
 
-    while (list($hname, $did, $type, $addr) = $sth2->fetch(PDO::FETCH_NUM)) {
-        $sthStatus = $db->prepare("SELECT id FROM domain_status WHERE domain_id = :did AND status LIKE '%Hold' LIMIT 1");
-        $sthStatus->bindParam(':did', $did, PDO::PARAM_INT);
-        $sthStatus->execute();
-        $status_id = $sthStatus->fetchColumn();
-        
-        if ($status_id) continue;
+                // A/AAAA records for the domain
+                $sthHostRecords = $pdo->prepare("SELECT host.name, host_addr.ip, host_addr.addr FROM host INNER JOIN host_addr ON host.id = host_addr.host_id WHERE host.domain_id = :did ORDER BY host.name");
+                $sthHostRecords->execute([':did' => $did]);
+                while (list($hname, $type, $addr) = $sthHostRecords->fetch(PDO::FETCH_NUM)) {
+                    $hname_clean = trim($hname, "$tldRE.");
+                    $hname_clean = ($hname_clean == "$tld.") ? '@' : $hname_clean;
+                    $record = new ResourceRecord;
+                    $record->setName($hname_clean . '.');
+                    $record->setClass(Classes::INTERNET);
 
-        $hname = trim($hname, "$tldRE.");
-        $hname = ($hname == "$tld.") ? '@' : $hname;
+                    if ($type == 'v4') {
+                        $record->setRdata(Factory::A($addr));
+                    } else {
+                        $record->setRdata(Factory::AAAA($addr));
+                    }
 
-        $record = new ResourceRecord;
-        $record->setName($hname . '.');
-        $record->setClass(Classes::INTERNET);
+                    $zone->addResourceRecord($record);
+                }
 
-        if ($type == 'v4') {
-            $record->setRdata(Factory::A($addr));
+                // DS records for the domain
+                $sthDS = $pdo->prepare("SELECT keytag, alg, digesttype, digest FROM secdns WHERE domain_id = :did");
+                $sthDS->execute([':did' => $did]);
+                while (list($keytag, $alg, $digesttype, $digest) = $sthDS->fetch(PDO::FETCH_NUM)) {
+                    $dsRecord = new ResourceRecord;
+                    $dsRecord->setName($dname_clean . '.');
+                    $dsRecord->setClass(Classes::INTERNET);
+                    $dsRecord->setRdata(Factory::Ds($keytag, $alg, $digest, $digesttype));
+                    $zone->addResourceRecord($dsRecord);
+                }
+            }
+            
+            $builder = new ZoneBuilder();
+            $completed_zone = $builder->build($zone);
+
+            if ($c['dns_server'] == 'bind') {
+                $basePath = '/etc/bind/zones';
+            } elseif ($c['dns_server'] == 'nsd') {
+                $basePath = '/etc/nsd';
+            } elseif ($c['dns_server'] == 'knot') {
+                $basePath = '/etc/knot';
+            } else {
+                // Default path
+                $basePath = '/etc/bind/zones';
+            }
+
+            file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
+        }
+
+        if ($c['dns_server'] == 'bind') {
+            exec("rndc reload .{$cleanedTld}", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to reload BIND. ' . $return_var);
+            }
+
+            exec("rndc notify .{$cleanedTld}", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to notify secondary servers. ' . $return_var);
+            }
+        } elseif ($c['dns_server'] == 'nsd') {
+            exec("nsd-control reload", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to reload NSD. ' . $return_var);
+            }
+        } elseif ($c['dns_server'] == 'knot') {
+            exec("knotc reload", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to reload Knot DNS. ' . $return_var);
+            }
+
+            exec("knotc zone-notify .{$cleanedTld}", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to notify secondary servers. ' . $return_var);
+            }
         } else {
-            $record->setRdata(Factory::AAAA($addr));
+            // Default
+            exec("rndc reload .{$cleanedTld}", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to reload BIND. ' . $return_var);
+            }
+
+            exec("rndc notify .{$cleanedTld}", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to notify secondary servers. ' . $return_var);
+            }
         }
     
-        $zone->addResourceRecord($record);
+        $log->info('job finished successfully.');
+    } catch (PDOException $e) {
+        $log->error('Database error: ' . $e->getMessage());
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
     }
-    
-    // Fetch DS records for domains from the secdns table
-    $sthDS = $db->prepare("SELECT domain_id, keytag, alg, digesttype, digest 
-                            FROM secdns 
-                            WHERE domain_id IN (
-                                SELECT id FROM domain 
-                                WHERE tldid = :id 
-                                AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = 'pendingRestore')
-                            )");
-    $sthDS->execute([':id' => $id]);
-
-    while (list($did, $keytag, $alg, $digesttype, $digest) = $sthDS->fetch(PDO::FETCH_NUM)) {
-        $sthStatus = $db->prepare("SELECT id FROM domain_status WHERE domain_id = :did AND status LIKE '%Hold' LIMIT 1");
-        $sthStatus->bindParam(':did', $did, PDO::PARAM_INT);
-        $sthStatus->execute();
-        $status_id = $sthStatus->fetchColumn();
-
-        if ($status_id) continue;
-
-        // Fetch domain name based on domain_id for the DS record
-        $sthDomainName = $db->prepare("SELECT name FROM domain WHERE id = :did LIMIT 1");
-        $sthDomainName->bindParam(':did', $did, PDO::PARAM_INT);
-        $sthDomainName->execute();
-        $dname = $sthDomainName->fetchColumn();
-        
-        $dname = trim($dname, "$tldRE.");
-        $dname = ($dname == "$tld.") ? '@' : $dname;
-
-        $dsRecord = new ResourceRecord;
-        $dsRecord->setName($dname . '.');
-        $dsRecord->setClass(Classes::INTERNET);
-        $dsRecord->setRdata(Factory::Ds($keytag, $alg, $digest, $digesttype));
-
-        $zone->addResourceRecord($dsRecord);
-    }
-    
-    $builder = new AlignedBuilder();
-    $completed_zone = $builder->build($zone);
-
-    if ($c['dns_server'] == 'bind') {
-        $basePath = '/etc/bind/zones';
-    } elseif ($c['dns_server'] == 'nsd') {
-        $basePath = '/etc/nsd';
-    } elseif ($c['dns_server'] == 'knot') {
-        $basePath = '/etc/knot';
-    } else {
-        // Default path
-        $basePath = '/etc/bind/zones';
-    }
-
-    file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
-    $log->info('job finished successfully.');
-}
-
-if ($c['dns_server'] == 'bind') {
-    exec("rndc reload .{$cleanedTld}", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to reload BIND. ' . $return_var);
-    }
-
-    exec("rndc notify .{$cleanedTld}", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to notify secondary servers. ' . $return_var);
-    }
-} elseif ($c['dns_server'] == 'nsd') {
-    exec("nsd-control reload", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to reload NSD. ' . $return_var);
-    }
-} elseif ($c['dns_server'] == 'knot') {
-    exec("knotc reload", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to reload Knot DNS. ' . $return_var);
-    }
-
-    exec("knotc zone-notify .{$cleanedTld}", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to notify secondary servers. ' . $return_var);
-    }
-} else {
-    // Default
-    exec("rndc reload .{$cleanedTld}", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to reload BIND. ' . $return_var);
-    }
-
-    exec("rndc notify .{$cleanedTld}", $output, $return_var);
-    if ($return_var != 0) {
-        $log->error('Failed to notify secondary servers. ' . $return_var);
-    }
-}
+});

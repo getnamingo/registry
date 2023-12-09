@@ -38,6 +38,12 @@ return [
     
     // Zone Writer Configuration
     'dns_server' => 'bind',
+    'ns' => [
+        'ns1' => 'ns1.namingo.org',
+        'ns2' => 'ns2.namingo.org',
+        // ... more name servers as needed ...
+    ],
+    'dns_soa' => 'hostmaster.example.com',
     
     // URS Configuration
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX',
