@@ -15,6 +15,9 @@
 # run auto-approve-transfer.php every hour
 45 * * * * root /usr/bin/php8.2 /opt/registry/automation/auto-approve-transfer.php
 
+# run abusemonitor.php every hour
+30 * * * * root /usr/bin/php8.2 /opt/registry/automation/abusemonitor.php
+
 # run send-invoice.php every 1st day
 1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/send-invoice.php
 

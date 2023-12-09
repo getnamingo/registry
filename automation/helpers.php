@@ -6,6 +6,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
+use Ds\Map;
 
 /**
  * Sets up and returns a Logger instance.
@@ -54,4 +55,33 @@ function fetchCount($pdo, $tableName) {
     // Fetch and return the count
     $result = $stmt->fetch();
     return $result['count'];
+}
+
+// Function to check domain against Spamhaus SBL
+function checkSpamhaus($domain) {
+    // Append '.sbl.spamhaus.org' to the domain
+    $queryDomain = $domain . '.sbl.spamhaus.org';
+
+    // Check if the domain is listed in the SBL
+    return checkdnsrr($queryDomain, "A");
+}
+
+function getUrlhausData() {
+    $urlhausUrl = 'https://urlhaus.abuse.ch/downloads/json_recent/';
+    $json = file_get_contents($urlhausUrl);
+    $data = json_decode($json, true);
+    $map = new Map();
+
+    foreach ($data as $entry) {
+        foreach ($entry as $urlData) {
+            $domain = parse_url($urlData['url'], PHP_URL_HOST); // Extract domain from URL
+            $map->put($domain, $urlData); // Store data against domain
+        }
+    }
+
+    return $map;
+}
+
+function checkUrlhaus($domain, Map $urlhausData) {
+    return $urlhausData->get($domain, false);
 }
