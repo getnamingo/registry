@@ -7,6 +7,8 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
 use Ds\Map;
+use Swoole\Coroutine;
+use Swoole\Coroutine\Http\Client;
 
 /**
  * Sets up and returns a Logger instance.
@@ -68,9 +70,25 @@ function checkSpamhaus($domain) {
 
 function getUrlhausData() {
     $urlhausUrl = 'https://urlhaus.abuse.ch/downloads/json_recent/';
-    $json = file_get_contents($urlhausUrl);
-    $data = json_decode($json, true);
-    $map = new Map();
+    $data = [];
+
+    Coroutine::create(function () use ($urlhausUrl, &$data) {
+        $client = new Client('urlhaus.abuse.ch', 443, true); // SSL
+        $client->set(['timeout' => 5]); // 5 seconds timeout
+        $client->get('/downloads/json_recent/');
+
+        if ($client->statusCode == 200) {
+            $data = json_decode($client->body, true);
+        }
+
+        $client->close();
+    });
+
+    return processUrlhausData($data);
+}
+
+function processUrlhausData($data) {
+    $map = new \Ds\Map();
 
     foreach ($data as $entry) {
         foreach ($entry as $urlData) {

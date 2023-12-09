@@ -18,6 +18,9 @@
 # run abusemonitor.php every hour
 30 * * * * root /usr/bin/php8.2 /opt/registry/automation/abusemonitor.php
 
+# run abusereport.php every day
+5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/abusereport.php
+
 # run send-invoice.php every 1st day
 1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/send-invoice.php
 

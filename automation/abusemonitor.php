@@ -28,34 +28,12 @@ Coroutine::create(function () use ($pool, $log) {
     try {
         $pdo = $pool->get();
         $stmt = $pdo->query('SELECT name, clid FROM domain');
+        // Get URLhaus data
+        $urlhausData = getUrlhausData();
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $domain = $row['name'];
-
-            if (checkSpamhaus($domain)) {
-                $userStmt = $pdo->prepare('SELECT user_id FROM registrar_users WHERE registrar_id = ?');
-                $userStmt->execute([$row['clid']]);
-                $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
-
-                if ($userData) {
-                    // Prepare INSERT statement to add a ticket
-                    $insertStmt = $pdo->prepare('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (NULL, ?, 8, ?, ?, "Open", "High", ?, "Abuse", ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))');
-
-                    // Execute the prepared statement with appropriate values
-                    $insertStmt->execute([
-                        $userData['user_id'], // user_id
-                        "Abuse Report for $domain", // subject
-                        "Abuse detected for domain $domain.", // message
-                        $domain, // reported_domain
-                        "Link to Spamhaus", // evidence
-                        "http://www.spamhaus.org/query/domain/$domain", // relevant_urls
-                        date('Y-m-d H:i:s') // date_of_incident
-                    ]);
-                }
-            }
             
-            // Get URLhaus data
-            $urlhausData = getUrlhausData();
             $urlhausResult = checkUrlhaus($domain, $urlhausData);
 
             if ($urlhausResult) {
@@ -79,6 +57,29 @@ Coroutine::create(function () use ($pool, $log) {
                     ]);
                 }
             }
+
+            if (checkSpamhaus($domain)) {
+                $userStmt = $pdo->prepare('SELECT user_id FROM registrar_users WHERE registrar_id = ?');
+                $userStmt->execute([$row['clid']]);
+                $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($userData) {
+                    // Prepare INSERT statement to add a ticket
+                    $insertStmt = $pdo->prepare('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (NULL, ?, 8, ?, ?, "Open", "High", ?, "Abuse", ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))');
+
+                    // Execute the prepared statement with appropriate values
+                    $insertStmt->execute([
+                        $userData['user_id'], // user_id
+                        "Abuse Report for $domain", // subject
+                        "Abuse detected for domain $domain.", // message
+                        $domain, // reported_domain
+                        "Link to Spamhaus", // evidence
+                        "http://www.spamhaus.org/query/domain/$domain", // relevant_urls
+                        date('Y-m-d H:i:s') // date_of_incident
+                    ]);
+                }
+            }
+            
         }
         $log->info('job finished successfully.');
     } catch (PDOException $e) {
