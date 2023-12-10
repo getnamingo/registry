@@ -603,15 +603,24 @@ CREATE TABLE IF NOT EXISTS `registry`.`promotion_pricing` (
     FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Promotions';
 
+CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_categories` (
+    `category_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `category_name` varchar(255) NOT NULL,
+    `category_price` decimal(10,2) NOT NULL,
+    PRIMARY KEY (`category_id`),
+    UNIQUE KEY `category_name` (`category_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains Categories';
+
 CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_pricing` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `domain_name` VARCHAR(255) NOT NULL,
-    `tld_id` INT UNSIGNED NOT NULL,
-    `start_date` DATE NOT NULL,
-    `end_date` DATE,
-    `price` DECIMAL(10,2) NOT NULL,
-    `conditions` TEXT,
-    FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `domain_name` varchar(255) NOT NULL,
+    `tld_id` int(10) unsigned NOT NULL,
+    `category_id` int(10) unsigned DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `tld_id` (`tld_id`),
+    KEY `category_id` (`category_id`),
+    CONSTRAINT `premium_domain_pricing_ibfk_1` FOREIGN KEY (`tld_id`) REFERENCES `domain_tld` (`id`),
+    CONSTRAINT `premium_domain_pricing_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `premium_domain_categories` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
 
 CREATE TABLE IF NOT EXISTS `registry`.`ticket_categories` (

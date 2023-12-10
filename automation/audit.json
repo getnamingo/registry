@@ -224,6 +224,10 @@
             "audit": true,
             "skip": null
         },
+        "premium_domain_categories": {
+            "audit": true,
+            "skip": null
+        },
         "premium_domain_pricing": {
             "audit": true,
             "skip": null

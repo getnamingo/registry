@@ -581,15 +581,20 @@ CREATE TABLE registry.promotion_pricing (
     FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
 );
 
+CREATE TABLE registry.premium_domain_categories (
+    "category_id" serial8 PRIMARY KEY,
+    "category_name" VARCHAR(255) NOT NULL,
+    "category_price" NUMERIC(10, 2) NOT NULL,
+    UNIQUE (category_name)
+);
+
 CREATE TABLE registry.premium_domain_pricing (
     "id" serial8 PRIMARY KEY,
     "domain_name" VARCHAR(255) NOT NULL,
     "tld_id" INT CHECK ("tld_id" >= 0) NOT NULL,
-    "start_date" DATE NOT NULL,
-    "end_date" DATE,
-    "price" DECIMAL(10,2) NOT NULL,
-    "conditions" TEXT,
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
+    "category_id" INT,
+    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
+    FOREIGN KEY ("category_id") REFERENCES registry.premium_domain_categories("category_id")
 );
 
 -- Create custom types for status and priority

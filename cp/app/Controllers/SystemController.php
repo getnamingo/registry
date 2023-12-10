@@ -264,7 +264,70 @@ class SystemController extends Controller
                     ]
                 );
                 
-                //todo: add premium domains and price categories
+                for ($i = 1; $i <= 10; $i++) {
+                    $categoryNameKey = 'categoryName' . $i;
+                    $categoryPriceKey = 'categoryPrice' . $i;
+
+                    if (isset($data[$categoryNameKey]) && isset($data[$categoryPriceKey]) && $data[$categoryNameKey] !== '' && $data[$categoryPriceKey] !== '') {
+                        $db->exec(
+                            'INSERT INTO premium_domain_categories (category_name, category_price) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_price = VALUES(category_price)',
+                            [
+                                $data[$categoryNameKey],
+                                $data[$categoryPriceKey]
+                            ]
+                        );
+                    }
+                }
+
+                $uploadedFiles = $request->getUploadedFiles();
+
+                if (!empty($uploadedFiles['premiumNamesFile'])) {
+                    $file = $uploadedFiles['premiumNamesFile'];
+
+                    // Check if the upload was successful
+                    if ($file->getError() !== UPLOAD_ERR_OK) {
+                        $this->container->get('flash')->addMessage('error', 'Upload failed with error code ' . $file->getError());
+                        return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
+                    }
+
+                    // Validate file type and size
+                    if ($file->getClientMediaType() !== 'text/csv' || $file->getSize() > 5 * 1024 * 1024) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid file type or size');
+                        return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
+                    }
+
+                    // Process the CSV file
+                    $stream = $file->getStream();
+                    $csvContent = $stream->getContents();
+
+                    $lines = explode(PHP_EOL, $csvContent);
+                    foreach ($lines as $line) {
+                        $data = str_getcsv($line);
+                        if (count($data) >= 2) {
+                            $domainName = $data[0];
+                            $categoryName = $data[1];
+
+                            // Find the category ID
+                            $categoryResult = $this->db->select("SELECT id FROM premium_domain_categories WHERE category_name = :categoryName", ['categoryName' => $categoryName]);
+
+                            if ($categoryResult) {
+                                $categoryId = $categoryResult[0]['id'];
+
+                                // Insert into premium_domain_pricing
+                                $db->exec(
+                                    'INSERT INTO premium_domain_pricing (domain_name, category_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_id = VALUES(category_id)',
+                                    [
+                                        $domainName,
+                                        $categoryId
+                                    ]
+                                );
+                            } else {
+                                $this->container->get('flash')->addMessage('error', 'Premium names category ' . $categoryName . ' not found');
+                                return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
+                            }
+                        }
+                    }
+                }
 
                 $db->commit();
             } catch (Exception $e) {
