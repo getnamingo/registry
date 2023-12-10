@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}{{ __('Create TLD') }}{% endblock %}
+{% block title %}{{ __('Create New TLD') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,7 +14,7 @@
                   {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
-                  {{ __('Create TLD') }}
+                  {{ __('Create New TLD') }}
                 </h2>
               </div>
             </div>
@@ -24,147 +24,169 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              <form action="/registrar/create" method="post" autocomplete="off">
+            {% include 'partials/flash.twig' %}
+              <form action="/registry/tld/create" method="post" autocomplete="off">
               {{ csrf.field | raw }}
-                <!-- Registrar Details Card -->
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h5 class="card-title">New TLD Registration</h5>
+                  <div class="card-header">
+                    <h5 class="card-title">General Details</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                        <label for="tldName" class="form-label required">TLD Extension</label>
+                        <input type="text" class="form-control" id="tldExtension" name="extension" placeholder="Enter TLD" required>
+                        <small class="form-text text-muted">Enter the desired top-level domain (TLD) name, like '.test' or '.example'.</small>
                     </div>
-                    <div class="card-body">
-                        <form>
-                            <!-- TLD Field -->
-                            <div class="mb-3">
-                                <label for="tldName" class="form-label">TLD Extension</label>
-                                <input type="text" class="form-control" id="tldExtension" placeholder="Enter TLD">
-                                <small class="form-text text-muted">Enter the desired top-level domain (TLD) name, like '.test' or '.example'.</small>
-                            </div>
-
-                            <!-- DNSSEC Toggle Switch (Disabled) -->
-                            <div class="mb-3">
-                                <label class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="dnssecToggle" disabled>
-                                    <span class="form-check-label">DNSSEC</span>
-                                </label>
-                                <small class="form-text text-muted">DNSSEC is currently activated manually. This option is for display purposes only.</small>
-                            </div>
-
-                            <!-- TLD Type Selector (ccTLD or gTLD) -->
-                            <div class="mb-3">
-                                <label for="tldTypeSelector" class="form-label">TLD Type</label>
-                                <select class="form-select" id="tldTypeSelector">
-                                    <option value="ccTLD">ccTLD</option>
-                                    <option value="gTLD">gTLD</option>
-                                </select>
-                                <small class="form-text text-muted">Select the type of TLD: ccTLD (Country Code Top-Level Domain) or gTLD (Generic Top-Level Domain).</small>
-                            </div>
-
-                            <!-- Supported Script Dropdown -->
-                            <div class="mb-3">
-                                <label for="scriptDropdown" class="form-label">Supported Script</label>
-                                <select class="form-select" id="scriptDropdown">
-                                    <option selected>ASCII</option>
-                                    <option value="cyrillic">Cyrillic</option>
-                                    <option value="japanese">Japanese</option>
-                                    <option value="korean">Korean</option>
-                                </select>
-                                <small class="form-text text-muted">Choose the script type that the TLD will support. Options include ASCII, Cyrillic, Japanese, and Korean.</small>
-                            </div>
+                    <div class="mb-3">
+                        <label class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" id="dnssecToggle" disabled>
+                          <span class="form-check-label">DNSSEC</span>
+                        </label>
+                        <small class="form-text text-muted">DNSSEC is currently activated manually. This option is for display purposes only.</small>
                     </div>
+                    <div class="mb-3">
+                        <label for="tldTypeSelector" class="form-label required">TLD Type</label>
+                        <select class="form-select" id="tldTypeSelector" name="tldType" required>
+                          <option value="ccTLD">ccTLD</option>
+                          <option value="gTLD">gTLD</option>
+                        </select>
+                        <small class="form-text text-muted">Select the type of TLD: ccTLD (Country Code Top-Level Domain) or gTLD (Generic Top-Level Domain).</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scriptDropdown" class="form-label required">Supported Script</label>
+                        <select class="form-select" id="scriptDropdown" name="script" required>
+                          <option value="ascii" selected>ASCII</option>
+                          <option value="cyrillic">Cyrillic</option>
+                          <option value="japanese">Japanese</option>
+                          <option value="korean">Korean</option>
+                        </select>
+                        <small class="form-text text-muted">Choose the script type that the TLD will support. Options include ASCII, Cyrillic, Japanese, and Korean.</small>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h5 class="card-title">TLD Pricing</h5>
+                  <div class="card-header">
+                    <h5 class="card-title">Pricing</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Command</th>
+                          <th>Setup Fee</th>
+                          <th>1 Year <span class="text-red">*</span></th>
+                          <th>2 Years <span class="text-red">*</span></th>
+                          <th>3 Years <span class="text-red">*</span></th>
+                          <th>4 Years <span class="text-red">*</span></th>
+                          <th>5 Years <span class="text-red">*</span></th>
+                          <th>6 Years <span class="text-red">*</span></th>
+                          <th>7 Years <span class="text-red">*</span></th>
+                          <th>8 Years <span class="text-red">*</span></th>
+                          <th>9 Years <span class="text-red">*</span></th>
+                          <th>10 Years <span class="text-red">*</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Create</td>
+                          <td><input type="number" class="form-control" name="createm0" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm12" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm24" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm36" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm48" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm60" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm72" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm84" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm96" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm108" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="createm120" placeholder="0.00" required min="0"></td>
+                        </tr>
+                        <tr>
+                          <td>Renew</td>
+                          <td><input type="number" class="form-control" name="renewm0" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm12" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm24" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm36" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm48" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm60" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm72" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm84" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm96" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm108" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="renewm120" placeholder="0.00" required min="0"></td>
+                        </tr>
+                        <tr>
+                          <td>Transfer</td>
+                          <td><input type="number" class="form-control" name="transferm0" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm12" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm24" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm36" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm48" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm60" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm72" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm84" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm96" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm108" placeholder="0.00" required min="0"></td>
+                          <td><input type="number" class="form-control" name="transferm120" placeholder="0.00" required min="0"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <small class="form-text text-muted">When you type a price for 1 Year above, it will automatically get multiplied for subsequent years.</small>
                     </div>
-                    <div class="card-body">
-                        <!-- Pricing Table -->
-                        <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
-                            <thead>
-                                <tr>
-                                    <th>Command / Duration</th>
-                                    <th>Setup Fee</th>
-                                    <th>1 Year</th>
-                                    <th>2 Years</th>
-                                    <th>3 Year</th>
-                                    <th>4 Years</th>
-                                    <th>5 Year</th>
-                                    <th>6 Years</th>
-                                    <th>7 Year</th>
-                                    <th>8 Years</th>
-                                    <th>9 Years</th>
-                                    <th>10 Years</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Create Command Row -->
-                                <tr>
-                                    <td>Create</td>
-                                    <td><input type="number" class="form-control" name="createm0" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm12" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm24" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm36" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm48" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm60" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm72" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm84" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm96" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm108" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="createm120" placeholder="0.00"></td>
-                                </tr>
-                                <!-- Renew Command Row -->
-                                <tr>
-                                    <td>Renew</td>
-                                    <td><input type="number" class="form-control" name="renewm0" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm12" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm24" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm36" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm48" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm60" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm72" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm84" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm96" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm108" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="renewm120" placeholder="0.00"></td>
-                                </tr>
-                                <!-- Transfer Command Row -->
-                                <tr>
-                                    <td>Transfer</td>
-                                    <td><input type="number" class="form-control" name="transferm0" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm12" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm24" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm36" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm48" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm60" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm72" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm84" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm96" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm108" placeholder="0.00"></td>
-                                    <td><input type="number" class="form-control" name="transferm120" placeholder="0.00"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        </div>
-                        <!-- Restore Price Input -->
-                        <div class="mb-3 mt-3">
-                            <label for="restorePrice" class="form-label">Restore Price</label>
-                            <input type="number" class="form-control" id="restorePrice" placeholder="Enter Restore Price">
-                            <small class="form-text text-muted">Enter the price for restoring a TLD.</small>
-                        </div>
+                    <div class="mb-3 mt-3">
+                      <label for="restorePrice" class="form-label required">Restore Price</label>
+                      <input type="number" class="form-control" id="restorePrice" name="restorePrice" placeholder="0.00" required min="0">
+                      <small class="form-text text-muted">Enter the price for restoring the TLD.</small>
                     </div>
-                      <div class="card-footer">
-                        <div class="row align-items-center">
-                          <div class="col-auto">
-                            <button type="submit" class="btn btn-primary">Create Registrar</button>
-                          </div>
-                        </div>
+                  </div>
+                </div>
+                    
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">Premium Names</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                      <label for="premiumNamesFile" class="form-label">Upload CSV File</label>
+                      <input type="file" class="form-control" id="premiumNamesFile" name="premiumNamesFile" accept=".csv">
+                      <small class="form-text text-muted">
+                        Upload a CSV file with premium names. Each row should contain a name and its pricing category, separated by a comma.
+                      </small>
+                    </div>
+                            
+                    <hr>
+
+                    <h6 class="mt-4 mb-3">Set Premium Name Price Categories</h6>
+                    <table class="table" id="categoriesTable">
+                      <thead>
+                        <tr>
+                          <th>Category Name</th>
+                          <th>Price</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><input type="text" class="form-control" name="categoryName1" placeholder="Category 1"></td>
+                          <td><input type="number" class="form-control" name="categoryPrice1" placeholder="0.00" min="0"></td>
+                          <td><button type="button" class="btn btn-success add-category">+</button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Create TLD</button>
                       </div>
                     </div>
+                  </div>
+                </div>
               </form>
             </div>
           </div>
-        </div>
         <footer class="footer footer-transparent d-print-none">
           <div class="container-xl">
               <div class="col-12 col-lg-auto mt-3 mt-lg-0">
@@ -180,61 +202,68 @@
         </footer>
       </div>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ipForm = document.getElementById('ipWhitelistForm');
-    const maxFields = 5;
+  document.addEventListener('DOMContentLoaded', function() {
+    const createm12Input = document.querySelector('input[name="createm12"]');
+    const renewm12Input = document.querySelector('input[name="renewm12"]');
+    const transferm12Input = document.querySelector('input[name="transferm12"]');
 
-    ipForm.addEventListener('click', function(e) {
-        const target = e.target;
-
-        // Handle Add IP Button Click
-        if (target.classList.contains('add-ip')) {
-            const totalFields = ipForm.querySelectorAll('input[name="ipAddress[]"]').length;
-            if (totalFields < maxFields) {
-                const newField = target.parentElement.cloneNode(true);
-                newField.querySelector('input').value = '';
-                newField.querySelector('.add-ip').classList.replace('btn-primary', 'btn-danger');
-                newField.querySelector('.add-ip').textContent = '-';
-                newField.querySelector('.add-ip').classList.replace('add-ip', 'remove-ip');
-                ipForm.querySelector('#ipAddressFields').appendChild(newField);
-            }
+    const updateMultiplication = (input, startColumnIndex, baseInputName) => {
+      const inputValue = parseFloat(input.value);
+      if (!isNaN(inputValue)) {
+        for (let i = startColumnIndex; i <= 10; i++) {
+          const columnName = `${baseInputName}${12 * i}`;
+          const columnInput = document.querySelector(`input[name="${columnName}"]`);
+          if (columnInput) {
+            columnInput.value = (inputValue * i).toFixed(2);
+          }
         }
+      }
+    };
 
-        // Handle Remove IP Button Click
-        if (target.classList.contains('remove-ip')) {
-            target.parentElement.remove();
-        }
+    createm12Input.addEventListener('input', () => {
+      updateMultiplication(createm12Input, 2, 'createm');
+    });
+
+    renewm12Input.addEventListener('input', () => {
+      updateMultiplication(renewm12Input, 2, 'renewm');
+    });
+
+    transferm12Input.addEventListener('input', () => {
+      updateMultiplication(transferm12Input, 2, 'transferm');
+    });
+
+    const categoriesTable = document.getElementById('categoriesTable');
+    const addCategoryButton = document.querySelector('.add-category');
+    
+    const maxCategories = 10;
+    let categoryCount = 1;
+    
+    addCategoryButton.addEventListener('click', function() {
+      if (categoryCount < maxCategories) {
+        categoryCount++;
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td><input type="text" class="form-control" name="categoryName${categoryCount}" placeholder="Category ${categoryCount}"></td>
+          <td><input type="number" class="form-control" name="categoryPrice${categoryCount}" placeholder="0.00" min="0"></td>
+          <td><button type="button" class="btn btn-danger remove-category">-</button></td>
+        `;
+        categoriesTable.querySelector('tbody').appendChild(newRow);
+      }
+      
+      if (categoryCount >= maxCategories) {
+        addCategoryButton.style.display = 'none'; // Disable adding more categories after reaching the limit
+      }
     });
     
-    const copyCheckbox = document.getElementById('copyOwnerData');
-
-    // Function to copy data to another tab
-    function copyDataToTab(tabId) {
-        const ownerInputs = document.querySelectorAll('#owner input:not([type="checkbox"]), #owner select');
-        const targetFields = document.querySelectorAll(`${tabId} input:not([type='checkbox']), ${tabId} select`);
-
-        ownerInputs.forEach((input, index) => {
-            if (targetFields[index] && input.tagName === targetFields[index].tagName) {
-                targetFields[index].value = input.value;
-            }
-        });
-    }
-
-    copyCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            copyDataToTab('#billing');
-            copyDataToTab('#abuse');
-        } else {
-            // Clear fields when unchecked, if desired
-            ['#billing', '#abuse'].forEach(tabId => {
-                const fields = document.querySelectorAll(`${tabId} input:not([type='checkbox']), ${tabId} select`);
-                fields.forEach(field => {
-                    field.value = '';
-                });
-            });
-        }
+    categoriesTable.addEventListener('click', function(event) {
+      if (event.target.classList.contains('remove-category')) {
+        const row = event.target.closest('tr');
+        row.remove();
+        categoryCount--;
+        addCategoryButton.style.display = 'block'; // Enable adding more categories after removing one
+      }
     });
 
-});
+  });
 </script>
 {% endblock %}
