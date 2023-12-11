@@ -1,0 +1,274 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Manage TLD') }} {{ tld.tld }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Manage TLD') }} {{ tld.tld }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <form action="/registry/tld/{{ tld.tld }}" method="post" autocomplete="off">
+              {{ csrf.field | raw }}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">General Details</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                        <label for="tldName" class="form-label">TLD Extension</label>
+                        <div class="form-control-plaintext">{{ tld.tld }}</div>
+                        <input type="hidden" name="extension" value="{{ tld.tld }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" id="dnssecToggle" disabled>
+                          <span class="form-check-label">DNSSEC</span>
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tldTypeSelector" class="form-label">TLD Type</label>
+                        <div class="form-control-plaintext">ccTLD/gTLD</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scriptDropdown" class="form-label">Supported Script</label>
+                        <div class="form-control-plaintext">{{ scriptName }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">Pricing</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Command</th>
+                          <th>Setup Fee</th>
+                          <th>1 Year <span class="text-red">*</span></th>
+                          <th>2 Years <span class="text-red">*</span></th>
+                          <th>3 Years <span class="text-red">*</span></th>
+                          <th>4 Years <span class="text-red">*</span></th>
+                          <th>5 Years <span class="text-red">*</span></th>
+                          <th>6 Years <span class="text-red">*</span></th>
+                          <th>7 Years <span class="text-red">*</span></th>
+                          <th>8 Years <span class="text-red">*</span></th>
+                          <th>9 Years <span class="text-red">*</span></th>
+                          <th>10 Years <span class="text-red">*</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Create</td>
+                          <td><input type="number" class="form-control" name="createm0" placeholder="0.00" required min="0" value="{{ createPrices.m0 }}"></td>
+                          <td><input type="number" class="form-control" name="createm12" placeholder="0.00" required min="0" value="{{ createPrices.m12 }}"></td>
+                          <td><input type="number" class="form-control" name="createm24" placeholder="0.00" required min="0" value="{{ createPrices.m24 }}"></td>
+                          <td><input type="number" class="form-control" name="createm36" placeholder="0.00" required min="0" value="{{ createPrices.m36 }}"></td>
+                          <td><input type="number" class="form-control" name="createm48" placeholder="0.00" required min="0" value="{{ createPrices.m48 }}"></td>
+                          <td><input type="number" class="form-control" name="createm60" placeholder="0.00" required min="0" value="{{ createPrices.m60 }}"></td>
+                          <td><input type="number" class="form-control" name="createm72" placeholder="0.00" required min="0" value="{{ createPrices.m72 }}"></td>
+                          <td><input type="number" class="form-control" name="createm84" placeholder="0.00" required min="0" value="{{ createPrices.m84 }}"></td>
+                          <td><input type="number" class="form-control" name="createm96" placeholder="0.00" required min="0" value="{{ createPrices.m96 }}"></td>
+                          <td><input type="number" class="form-control" name="createm108" placeholder="0.00" required min="0" value="{{ createPrices.m108 }}"></td>
+                          <td><input type="number" class="form-control" name="createm120" placeholder="0.00" required min="0" value="{{ createPrices.m120 }}"></td>
+                        </tr>
+                        <tr>
+                          <td>Renew</td>
+                          <td><input type="number" class="form-control" name="renewm0" placeholder="0.00" required min="0" value="{{ renewPrices.m0 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm12" placeholder="0.00" required min="0" value="{{ renewPrices.m12 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm24" placeholder="0.00" required min="0" value="{{ renewPrices.m24 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm36" placeholder="0.00" required min="0" value="{{ renewPrices.m36 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm48" placeholder="0.00" required min="0" value="{{ renewPrices.m48 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm60" placeholder="0.00" required min="0" value="{{ renewPrices.m60 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm72" placeholder="0.00" required min="0" value="{{ renewPrices.m72 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm84" placeholder="0.00" required min="0" value="{{ renewPrices.m84 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm96" placeholder="0.00" required min="0" value="{{ renewPrices.m96 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm108" placeholder="0.00" required min="0" value="{{ renewPrices.m108 }}"></td>
+                          <td><input type="number" class="form-control" name="renewm120" placeholder="0.00" required min="0" value="{{ renewPrices.m120 }}"></td>
+                        </tr>
+                        <tr>
+                          <td>Transfer</td>
+                          <td><input type="number" class="form-control" name="transferm0" placeholder="0.00" required min="0" value="{{ transferPrices.m0 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm12" placeholder="0.00" required min="0" value="{{ transferPrices.m12 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm24" placeholder="0.00" required min="0" value="{{ transferPrices.m24 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm36" placeholder="0.00" required min="0" value="{{ transferPrices.m36 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm48" placeholder="0.00" required min="0" value="{{ transferPrices.m48 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm60" placeholder="0.00" required min="0" value="{{ transferPrices.m60 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm72" placeholder="0.00" required min="0" value="{{ transferPrices.m72 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm84" placeholder="0.00" required min="0" value="{{ transferPrices.m84 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm96" placeholder="0.00" required min="0" value="{{ transferPrices.m96 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm108" placeholder="0.00" required min="0" value="{{ transferPrices.m108 }}"></td>
+                          <td><input type="number" class="form-control" name="transferm120" placeholder="0.00" required min="0" value="{{ transferPrices.m120 }}"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <small class="form-text text-muted">When you type a price for 1 Year above, it will automatically get multiplied for subsequent years.</small>
+                    </div>
+                    <div class="mb-3 mt-3">
+                      <label for="restorePrice" class="form-label required">Restore Price</label>
+                      <input type="number" class="form-control" id="restorePrice" name="restorePrice" placeholder="0.00" required min="0" value="{{ tld_restore.price }}">
+                      <small class="form-text text-muted">Enter the price for restoring the TLD.</small>
+                    </div>
+                  </div>
+                </div>
+                    
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">Premium Names</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                      <label for="premiumNamesFile" class="form-label">Upload CSV File</label>
+                      <input type="file" class="form-control" id="premiumNamesFile" name="premiumNamesFile" accept=".csv">
+                      <small class="form-text text-muted">
+                        Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload.
+                      </small>
+                    </div>
+                            
+                    <hr>
+
+                    <h6 class="mt-4 mb-3">Set Premium Name Price Categories</h6>
+                    <table class="table" id="categoriesTable">
+                      <thead>
+                        <tr>
+                          <th>Category Name</th>
+                          <th>Price</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                     <tbody>
+                         {% for category in premium_categories %}
+                         <tr>
+                             <td>
+                                 <input type="text" class="form-control" name="categoryName{{ category.category_id }}" placeholder="Category Name" value="{{ category.category_name }}">
+                             </td>
+                             <td>
+                                 <input type="number" class="form-control" name="categoryPrice{{ category.category_id }}" placeholder="0.00" min="0" value="{{ category.category_price }}">
+                             </td>
+                             <td>
+                                 <button type="button" class="btn btn-danger" disabled>-</button>
+                             </td>
+                         </tr>
+                         {% endfor %}
+                         <tr>
+                             <td><input type="text" class="form-control" name="categoryNameNew1" placeholder="New Category 1"></td>
+                             <td><input type="number" class="form-control" name="categoryPriceNew1" placeholder="0.00" min="0"></td>
+                             <td><button type="button" class="btn btn-success add-category">+</button></td>
+                         </tr>
+                     </tbody>
+                    </table>
+                      <small class="form-text text-muted">
+                        Update existing premium categories as needed. Please note: currently, deletion of categories is not available. All updates will modify existing information without removing any categories.
+                      </small>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Update TLD {{ tld.tld }}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const createm12Input = document.querySelector('input[name="createm12"]');
+    const renewm12Input = document.querySelector('input[name="renewm12"]');
+    const transferm12Input = document.querySelector('input[name="transferm12"]');
+
+    const updateMultiplication = (input, startColumnIndex, baseInputName) => {
+      const inputValue = parseFloat(input.value);
+      if (!isNaN(inputValue)) {
+        for (let i = startColumnIndex; i <= 10; i++) {
+          const columnName = `${baseInputName}${12 * i}`;
+          const columnInput = document.querySelector(`input[name="${columnName}"]`);
+          if (columnInput) {
+            columnInput.value = (inputValue * i).toFixed(2);
+          }
+        }
+      }
+    };
+
+    createm12Input.addEventListener('input', () => {
+      updateMultiplication(createm12Input, 2, 'createm');
+    });
+
+    renewm12Input.addEventListener('input', () => {
+      updateMultiplication(renewm12Input, 2, 'renewm');
+    });
+
+    transferm12Input.addEventListener('input', () => {
+      updateMultiplication(transferm12Input, 2, 'transferm');
+    });
+
+    const categoriesTable = document.getElementById('categoriesTable');
+    const addCategoryButton = document.querySelector('.add-category');
+    
+    const maxCategories = 5;
+    let categoryCount = 1;
+    
+    addCategoryButton.addEventListener('click', function() {
+      if (categoryCount < maxCategories) {
+        categoryCount++;
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td><input type="text" class="form-control" name="categoryNameNew${categoryCount}" placeholder="New Category ${categoryCount}"></td>
+          <td><input type="number" class="form-control" name="categoryPriceNew${categoryCount}" placeholder="0.00" min="0"></td>
+          <td><button type="button" class="btn btn-danger remove-category">-</button></td>
+        `;
+        categoriesTable.querySelector('tbody').appendChild(newRow);
+      }
+      
+      if (categoryCount >= maxCategories) {
+        addCategoryButton.style.display = 'none'; // Disable adding more categories after reaching the limit
+      }
+    });
+    
+    categoriesTable.addEventListener('click', function(event) {
+      if (event.target.classList.contains('remove-category')) {
+        const row = event.target.closest('tr');
+        row.remove();
+        categoryCount--;
+        addCategoryButton.style.display = 'block'; // Enable adding more categories after removing one
+      }
+    });
+
+  });
+</script>
+{% endblock %}

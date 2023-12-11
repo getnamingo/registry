@@ -90,8 +90,8 @@ $app->group('', function ($route) {
     
     $route->get('/registry', SystemController::class .':registry')->setName('registry');
     $route->map(['GET', 'POST'], '/registry/tld/create', SystemController::class .':createTld')->setName('createTld');
-    $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':viewTld')->setName('viewTld');
-    $route->get('/registry/tlds', SystemController::class .':manageTlds')->setName('manageTlds');
+    $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':manageTld')->setName('manageTld');
+    $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');
     $route->map(['GET', 'POST'], '/registry/reserved', SystemController::class .':manageReserved')->setName('manageReserved');
     
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
