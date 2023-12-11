@@ -799,5 +799,91 @@ class SystemController extends Controller
         }
 
     }
+    
+    public function manageReserved(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            
+            $domainCategories = [];
+
+            foreach ($data as $key => $value) {
+                if (strpos($key, 'domains_') === 0) { // Check if the key starts with 'domains_'
+                    $domains = explode("\n", trim($value));
+                    $domains = array_filter(array_map('trim', $domains));
+                    $domainCategories[substr($key, 8)] = $domains;
+                }
+            }
+
+            try {
+                // Fetch existing names
+                $existingDomains = $db->select('SELECT name, type FROM reserved_domain_names');
+
+                // Organize existing names by type
+                $existingByType = [];
+                foreach ($existingDomains as $domain) {
+                    $existingByType[$domain['type']][] = $domain['name'];
+                }
+
+                $db->beginTransaction();
+
+                foreach ($domainCategories as $type => $submittedDomains) {
+                    // Find domains to delete
+                    $domainsToDelete = array_diff($existingByType[$type] ?? [], $submittedDomains);
+
+                    // Delete domains not in the submitted list
+                    foreach ($domainsToDelete as $domain) {
+                        $db->exec(
+                            "DELETE FROM reserved_domain_names WHERE name = ? AND type = ?",
+                            [$domain, $type]
+                        );
+                    }
+
+                    // Insert or ignore new domains
+                    foreach ($submittedDomains as $domain) {
+                        $db->exec(
+                            "INSERT IGNORE INTO reserved_domain_names (name, type) VALUES (?, ?)",
+                            [$domain, $type]
+                        );
+                    }
+                }
+
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registry/reserved')->withStatus(302);
+            }
+            
+            $this->container->get('flash')->addMessage('success', 'Reserved names have been updated successfully');
+            return $response->withHeader('Location', '/registry/reserved')->withStatus(302);
+            
+        }
+        
+        $db = $this->container->get('db');
+        $types = $db->select("SELECT DISTINCT type FROM reserved_domain_names");
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+        
+        $categories = [];
+        foreach ($types as $type) {
+            $typeNames = $db->select(
+                'SELECT name FROM reserved_domain_names WHERE type = ?',
+                [ $type['type'] ]
+            );            
+            $categories[$type['type']] = array_column($typeNames, 'name');
+        }
+
+        return view($response,'admin/system/manageReserved.twig', [
+            'categories' => $categories,
+            'currentUri' => $uri
+        ]);
+    }
 
 }

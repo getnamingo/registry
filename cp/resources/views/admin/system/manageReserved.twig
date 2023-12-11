@@ -1,0 +1,74 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Managed Reserved Names') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Managed Reserved Names') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <div class="card">
+               <form action="/registry/reserved" method="post">
+               {{ csrf.field | raw }}
+                <div class="card-header">
+                    <h4 class="card-title">Manage Reserved Names</h4>
+                </div>
+                <div class="card-body">
+                {% for type, names in categories %}
+                    <div class="card mb-3">
+                        <div class="card-header">{{ type|capitalize }} Names</div>
+                        <div class="card-body">
+                            <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line" required>{{ names|join('\n') }}</textarea>
+                            <small class="form-hint">
+                                <strong>{{ type|capitalize }} Names:</strong> These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. 
+                                <br><em>Enter each {{ type }} name on a new line, without the extension. For instance, use "example" in place of "example.com".</em>
+                        </small>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">Update Reserved Names</button>
+                    </div>
+                  </div>
+                 </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+{% endblock %}
