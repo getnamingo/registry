@@ -160,7 +160,7 @@
                          {% for category in premium_categories %}
                          <tr>
                              <td>
-                                 <input type="text" class="form-control" name="categoryName{{ category.category_id }}" placeholder="Category Name" value="{{ category.category_name }}">
+                                 <input type="text" class="form-control" name="categoryName{{ category.category_id }}" placeholder="Category Name" value="{{ category.category_name }}" readonly>
                              </td>
                              <td>
                                  <input type="number" class="form-control" name="categoryPrice{{ category.category_id }}" placeholder="0.00" min="0" value="{{ category.category_price }}">
