@@ -653,7 +653,9 @@ class SystemController extends Controller
                 $premium_pricing = $db->selectRow('SELECT * FROM premium_domain_pricing WHERE tld_id = ?',
                 [ $tld['id'] ]);
                 $premium_categories = $db->select('SELECT * FROM premium_domain_categories');
-                
+                $promotions = $db->select('SELECT * FROM promotion_pricing WHERE tld_id = ?',
+                [ $tld['id'] ]);
+
                 // Mapping of regex patterns to script names
                 $regexToScriptName = [
                     '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i' => 'ASCII',
@@ -681,6 +683,7 @@ class SystemController extends Controller
                     'tld_restore' => $tld_restore,
                     'premium_pricing' => $premium_pricing,
                     'premium_categories' => $premium_categories,
+                    'promotions' => $promotions,
                     'currentUri' => $uri
                 ]);
             } else {

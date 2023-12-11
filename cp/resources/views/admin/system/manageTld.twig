@@ -190,6 +190,82 @@
                   </div>
                 </div>
               </form>
+
+              <div class="card">
+                  <div class="card-header">
+                      <h5 class="card-title">Manage Promotions</h5>
+                  </div>
+                  <div class="card-body">
+                  <div class="table-responsive mb-3">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Promotion Name</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Discount (%)</th>
+                                <th>Discount Amount</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for promo in promotions %}
+                                <tr>
+                                    <td>{{ promo.id }}</td>
+                                    <td>{{ promo.promo_name }}</td>
+                                    <td>{{ promo.start_date }}</td>
+                                    <td>{{ promo.end_date }}</td>
+                                    <td>{{ promo.discount_percentage ? promo.discount_percentage ~ '%' : 'N/A' }}</td>
+                                    <td>{{ promo.discount_amount ? promo.discount_amount : 'N/A' }}</td>
+                                    <td>{{ promo.description ? promo.description : 'N/A' }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="8">No promotions found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                  </div>
+                      <h5 class="card-subtitle mt-3 mb-3">Create New Promotion</h5>
+                      <form action="/registry/promotions" method="post">
+                      {{ csrf.field | raw }}
+                      <input type="hidden" name="tld" value="{{ tld.tld }}">
+                          <div class="mb-3">
+                              <label for="promotionName" class="form-label">Promotion Name</label>
+                              <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name">
+                          </div>
+                          <div class="mb-3">
+                              <label for="promotionDescription" class="form-label">Description</label>
+                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="Enter description"></textarea>
+                          </div>
+                          <div class="mb-3">
+                              <label for="promotionPeriod" class="form-label">Promotion Period</label>
+                              <input type="text" class="form-control" id="promotionPeriod" name="promotionPeriod" placeholder="e.g., 01/01/2023 - 31/12/2023">
+                          </div>
+                          <div class="mb-3">
+                              <label for="discountType" class="form-label">Discount Type</label>
+                              <select class="form-select" id="discountType" name="discountType">
+                                  <option value="percentage">Percentage</option>
+                                  <option value="fixed">Fixed Amount</option>
+                              </select>
+                          </div>
+                          <div class="mb-3">
+                              <label for="discountValue" class="form-label">Discount Value</label>
+                              <input type="text" class="form-control" id="discountValue" name="discountValue" placeholder="Enter discount value">
+                          </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Update Promotions</button>
+                      </div>
+                    </div>
+                    </form>
+                  </div>
+              </div>
+
             </div>
           </div>
         <footer class="footer footer-transparent d-print-none">
