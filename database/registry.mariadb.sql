@@ -701,6 +701,7 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('address',    '123 Example Street, Example City'),
 ('address2',    '48000, Ukraine'),
 ('phone',    '+123456789'),
+('handle',    'RXX'),
 ('email',    'contact@example.com');
 
 CREATE USER 'registry'@'localhost' IDENTIFIED BY 'EPPRegistry';

@@ -678,6 +678,7 @@ INSERT INTO registry.settings (name, value) VALUES
 ('address', '123 Example Street, Example City'),
 ('address2', '48000, Ukraine'),
 ('phone', '+123456789'),
+('handle', 'RXX'),
 ('email', 'contact@example.com');
  
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
