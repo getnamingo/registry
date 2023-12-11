@@ -26,6 +26,32 @@
         return `<a class="btn btn-outline-info" href="/registry/tld/${cell.getRow().getData().tld}" title="Manage Settings"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2" /><path d="M14 8h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5m2 0v1.5m0 -9v1.5" /></svg> Settings</a>`;
     }
     
+    // Mapping of database string values to script names
+    const dbValueToScriptName = {
+        '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i': 'ASCII',
+        '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ]+$/u': 'Cyrillic',
+        '/^[ぁ-んァ-ン一-龯々]+$/u': 'Japanese',
+        '/^[가-힣]+$/u': 'Korean',
+    };
+    
+    const scriptNameToBadgeClass = {
+        'ASCII': 'bg-indigo-lt',    // Blue badge for ASCII
+        'Cyrillic': 'bg-secondary-lt', // Grey badge for Cyrillic
+        'Japanese': 'bg-success-lt',  // Green badge for Japanese
+        'Korean': 'bg-danger-lt',    // Red badge for Korean
+        // Add more mappings as needed
+        'Unknown': 'bg-warning-lt'   // Yellow badge for Unknown
+    };
+
+    function scriptNameFormatter(cell, formatterParams) {
+        const idnTableValue = cell.getValue();
+        const scriptName = dbValueToScriptName[idnTableValue] || 'Unknown';
+        const badgeClass = scriptNameToBadgeClass[scriptName];
+
+        // Return HTML string with Bootstrap badge
+        return `<span class="badge ${badgeClass}">${scriptName}</span>`;
+    }
+    
     table = new Tabulator("#tldTable", {
         ajaxURL:"/api/records/domain_tld", // Set the URL for your JSON data
         ajaxConfig:"GET",
@@ -40,8 +66,9 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"TLD", field:"tld", width:350, headerSort:true, resizable:false, formatter: tldLinkFormatter, responsive:0},
-            {title:"DNSSEC", field:"secure", width:250, headerSort:true, resizable:false, formatter: secureFormatter, responsive:0},
+            {title:"TLD", field:"tld", width:350, minWidth:50, headerSort:true, resizable:false, formatter: tldLinkFormatter, responsive:0},
+            { title: "Script", field: "idn_table", width:250, minWidth:80, headerSort:true, resizable:false, formatter: scriptNameFormatter, responsive:2},
+            {title:"DNSSEC", field:"secure", width:250, minWidth:80, headerSort:true, resizable:false, formatter: secureFormatter, responsive:2},
             {title: "Actions", formatter: actionsFormatter, headerSort: false, resizable:false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){
