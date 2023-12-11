@@ -96,6 +96,8 @@ $app->group('', function ($route) {
     
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');
+    $route->get('/ticket/{ticket}', SupportController::class . ':viewTicket')->setName('viewTicket');
+    $route->post('/support/reply', SupportController::class . ':replyTicket')->setName('replyTicket');
     $route->get('/support/docs', SupportController::class .':docs')->setName('docs');
     $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
 
