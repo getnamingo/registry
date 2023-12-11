@@ -438,8 +438,12 @@ function updatePermittedIPs($pool, $permittedIPsTable) {
     $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     $pool->put($pdo);
 
-    // Clear the table and insert new values
-    $permittedIPsTable->truncate();
+    // Manually clear the table by removing each entry
+    foreach ($permittedIPsTable as $key => $value) {
+        $permittedIPsTable->del($key);
+    }
+
+    // Insert new values
     foreach ($permittedIPs as $ip) {
         $permittedIPsTable->set($ip, ['addr' => $ip]);
     }
