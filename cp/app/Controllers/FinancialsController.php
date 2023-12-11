@@ -23,6 +23,39 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/invoices.twig');
     }
     
+    public function viewInvoice(Request $request, Response $response, $args)
+    {
+        $invoiceNumberPattern = '/^[A-Za-z]+\d+-?\d+$/';
+
+        if (preg_match($invoiceNumberPattern, $args)) {
+            $invoiceNumber = $args; // valid format
+        } else {
+            $this->container->get('flash')->addMessage('error', 'Invalid invoice number');
+            return $response->withHeader('Location', '/invoices')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        $invoice_details = $db->selectRow('SELECT * FROM invoices WHERE invoice_number = ?',
+        [ $invoiceNumber ]
+        );
+        $billing = $db->selectRow('SELECT * FROM registrar_contact WHERE id = ?',
+        [ $invoice_details['billing_contact_id'] ]
+        );
+        $issueDate = new \DateTime($invoice_details['issue_date']);
+        $firstDayPrevMonth = (clone $issueDate)->modify('first day of last month')->format('Y-m-d');
+        $lastDayPrevMonth = (clone $issueDate)->modify('last day of last month')->format('Y-m-d');
+        $statement = $db->select('SELECT * FROM statement WHERE date BETWEEN ? AND ? AND registrar_id = ?',
+        [ $firstDayPrevMonth, $lastDayPrevMonth, $invoice_details['registrar_id'] ]
+        );
+
+        return view($response,'admin/financials/viewInvoice.twig', [
+            'invoice_details' => $invoice_details,
+            'billing' => $billing,
+            'statement' => $statement
+        ]);
+
+    }
+    
     public function deposit(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {

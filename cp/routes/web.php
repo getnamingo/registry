@@ -81,6 +81,7 @@ $app->group('', function ($route) {
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     
     $route->get('/invoices', FinancialsController::class .':invoices')->setName('invoices');
+    $route->get('/invoice/{invoice}', FinancialsController::class . ':viewInvoice')->setName('viewInvoice');
     $route->map(['GET', 'POST'], '/deposit', FinancialsController::class .':deposit')->setName('deposit');
     $route->map(['GET', 'POST'], '/create-payment', FinancialsController::class .':createPayment')->setName('createPayment');
     $route->map(['GET', 'POST'], '/payment-success', FinancialsController::class .':success')->setName('success');
