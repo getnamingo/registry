@@ -33,16 +33,15 @@
                   <div class="col-6">
                     <p class="h3">Provider / Registry</p>
                     <address>
-                      Street Address<br>
-                      State, City<br>
-                      Region, Postal Code<br>
-                      ltd@example.com
+                      {{ company_name }}<br>
+                      {{ address }}<br>
+                      {{ address2 }}<br>
+                      {{ email }}
                     </address>
                   </div>
                   <div class="col-6 text-end">
                     <p class="h3">Client / Registrar</p>
                     <address>
-                      {{ billing.first_name }} {{ billing.last_name }}<br>
                       {{ billing.org }}<br>
                       {{ billing.street1 }}<br>
                       {{ billing.city }}, {{ billing.sp }}<br>

@@ -673,7 +673,12 @@ INSERT INTO registry.settings (name, value) VALUES
 ('dns-udp-queries-responded', '0'),
 ('searchable-whois-queries', '0'),
 ('web-whois-queries', '0'),
-('whois-43-queries', '0');
+('whois-43-queries', '0'),
+('company_name', 'Example Registry LLC'),
+('address', '123 Example Street, Example City'),
+('address2', '48000, Ukraine'),
+('phone', '+123456789'),
+('email', 'contact@example.com');
  
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");

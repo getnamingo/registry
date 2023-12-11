@@ -43,6 +43,12 @@ class FinancialsController extends Controller
         $billing = $db->selectRow('SELECT * FROM registrar_contact WHERE id = ?',
         [ $invoice_details['billing_contact_id'] ]
         );
+        $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+        $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
+        $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
+        $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
+        $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
+
         $issueDate = new \DateTime($invoice_details['issue_date']);
         $firstDayPrevMonth = (clone $issueDate)->modify('first day of last month')->format('Y-m-d');
         $lastDayPrevMonth = (clone $issueDate)->modify('last day of last month')->format('Y-m-d');
@@ -54,6 +60,11 @@ class FinancialsController extends Controller
             'invoice_details' => $invoice_details,
             'billing' => $billing,
             'statement' => $statement,
+            'company_name' => $company_name,
+            'address' => $address,
+            'address2' => $address2,
+            'phone' => $phone,
+            'email' => $email,
             'currentUri' => $uri
         ]);
 
