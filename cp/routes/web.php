@@ -88,8 +88,8 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/payment-cancel', FinancialsController::class .':cancel')->setName('cancel');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
-    
-    $route->get('/registry', SystemController::class .':registry')->setName('registry');
+
+    $route->map(['GET', 'POST'], '/registry', SystemController::class .':registry')->setName('registry');
     $route->map(['GET', 'POST'], '/registry/tld/create', SystemController::class .':createTld')->setName('createTld');
     $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':manageTld')->setName('manageTld');
     $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');

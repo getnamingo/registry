@@ -17,23 +17,6 @@
                   {{ __('Registry Configuration') }}
                 </h2>
               </div>
-              <!-- Page title actions -->
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  <span class="d-none d-sm-inline">
-                    <a href="{{route('checkDomain')}}" class="btn btn-secondary">
-                      {{ __('Manage Reserved Names') }}
-                    </a>
-                  </span>
-                  <a href="{{route('createTld')}}" class="btn btn-primary d-none d-sm-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    {{ __('Create New TLD') }}
-                  </a>
-                  <a href="{{route('createTld')}}" class="btn btn-primary d-sm-none btn-icon" aria-label="{{ __('Create New TLD') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -41,32 +24,62 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+            {% include 'partials/flash.twig' %}
               <div class="card">
+               <form action="/registry" method="post">
+               {{ csrf.field | raw }}
                 <div class="card-body">
                   <div class="row">
                     <div class="col-md-6">
                       <div class="mb-3">
-                        <label for="registryOperator" class="form-label">Registry Operator Name</label>
-                        <input type="text" class="form-control" id="registryOperator" placeholder="Enter registry operator's name">
+                        <label for="registryOperator" class="form-label required">Registry Operator Name</label>
+                        <input type="text" class="form-control" id="registryOperator" name="registryOperator" placeholder="Enter registry operator's name" value="{{ company_name }}" required>
                         <div class="form-text">The official name of the organization operating the registry.</div>
                       </div>
+                      
                       <div class="mb-3">
-                        <label for="contactEmail" class="form-label">Contact Email</label>
-                        <input type="email" class="form-control" id="contactEmail" placeholder="Enter contact email">
-                        <div class="form-text">The email address for general inquiries to the registry.</div>
+                        <label for="contactAddress" class="form-label required">Contact Address</label>
+                        <input type="text" class="form-control" id="contactAddress" name="contactAddress" placeholder="Enter contact address" value="{{ address }}" required>
+                        <div class="form-text">The contact address of the registry.</div>
                       </div>
-                            
-                      <button type="submit" class="btn btn-primary">Save Changes</button>
+                      
+                      <div class="mb-3">
+                        <label for="contactAddress2" class="form-label required">Contact Address (Line 2)</label>
+                        <input type="text" class="form-control" id="contactAddress2" name="contactAddress2" placeholder="Enter contact address" value="{{ address2 }}" required>
+                        <div class="form-text">The contact address of the registry. (Line 2)</div>
+                      </div>
+
                     </div>
                           
                     <div class="col-md-6">
-                     <div class="mb-3">
-                       <label for="registryHandle" class="form-label">Registry Handle</label>
-                       <input type="text" class="form-control" id="registryHandle" placeholder="Enter registry handle">
-                       <div class="form-text">A unique identifier for the registry which will be appended to each object handle.</div>
-                     </div>
-                   </div>
+                      <div class="mb-3">
+                        <label for="contactEmail" class="form-label required">Contact Email</label>
+                        <input type="email" class="form-control" id="contactEmail" name="contactEmail" placeholder="Enter contact email" value="{{ email }}" required>
+                        <div class="form-text">The email address for general inquiries to the registry.</div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="contactPhone" class="form-label required">Contact Phone</label>
+                        <input type="tel" class="form-control" id="contactPhone" name="contactPhone" placeholder="Enter contact phone" value="{{ phone }}" required>
+                        <div class="form-text">The phone number for general inquiries to the registry.</div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="registryHandle" class="form-label required">Registry Handle</label>
+                        <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="Enter registry handle" value="{{ handle }}" required>
+                        <div class="form-text">A unique identifier for the registry which will be appended to each object handle.</div>
+                      </div>
+                    </div>
+                   
                   </div>
+                </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">Update Details</button>
+                    </div>
+                  </div>
+                 </form>
                 </div>
               </div>
             </div>

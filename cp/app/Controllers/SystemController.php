@@ -15,19 +15,121 @@ class SystemController extends Controller
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
         
-        $db = $this->container->get('db');
-        $tlds = $db->select("SELECT id, tld, idn_table, secure FROM domain_tld");
-
-        foreach ($tlds as $key => $tld) {
-            // Count the domains for each TLD
-            $domainCount = $db->select("SELECT COUNT(name) FROM domain WHERE tldid = ?", [$tld['id']]);
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
             
-            // Add the domain count to the TLD array
-            $tlds[$key]['domain_count'] = $domainCount[0]['COUNT(name)'];
-        }
+            // Error message initialization
+            $error = '';
 
+            // Check each field
+            foreach ($data as $key => $value) {
+                if (empty($value)) {
+                    // Construct error message
+                    $error .= "Error: '$key' cannot be empty.\n";
+                }
+            }
+
+            // Display error messages if any
+            if (!empty($error)) {
+                $this->container->get('flash')->addMessage('error', $error);
+                return $response->withHeader('Location', '/registry')->withStatus(302);
+            }
+            
+            try {
+                $db->beginTransaction();
+                
+                $currentDateTime = new \DateTime();
+                $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['registryOperator']
+                    ],
+                    [
+                        'name' => "company_name"
+                    ]
+                );
+
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['contactAddress']
+                    ],
+                    [
+                        'name' => "address"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['contactAddress2']
+                    ],
+                    [
+                        'name' => "address2"
+                    ]
+                );
+
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['contactEmail']
+                    ],
+                    [
+                        'name' => "email"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['contactPhone']
+                    ],
+                    [
+                        'name' => "phone"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['registryHandle']
+                    ],
+                    [
+                        'name' => "handle"
+                    ]
+                );
+
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registry')->withStatus(302);
+            }
+            
+            $this->container->get('flash')->addMessage('success', 'Registry details have been updated successfully');
+            return $response->withHeader('Location', '/registry')->withStatus(302);
+            
+        }
+        
+        $db = $this->container->get('db');
+        $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+        $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
+        $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
+        $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
+        $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
+        $handle = $db->selectValue("SELECT value FROM settings WHERE name = 'handle'");
+        
         return view($response,'admin/system/registry.twig', [
-            'tlds' => $tlds,
+            'company_name' => $company_name,
+            'address' => $address,
+            'address2' => $address2,
+            'phone' => $phone,
+            'email' => $email,
+            'handle' => $handle
         ]);
     }
     
