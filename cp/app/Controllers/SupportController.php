@@ -107,12 +107,13 @@ class SupportController extends Controller
                 FROM support_tickets AS st 
                 JOIN users AS u ON st.user_id = u.id 
                 WHERE st.id = ?', [$ticketNumber]);
-        
+
         if ($ticket) {
             $replies = $db->select('SELECT tr.*, u.username AS responder_name 
                 FROM ticket_responses AS tr 
                 JOIN users AS u ON tr.responder_id = u.id 
-                WHERE tr.ticket_id = ?', [$ticketNumber]);
+                WHERE tr.ticket_id = ?
+                ORDER BY tr.date_created DESC', [$ticketNumber]);
             $category = $db->selectValue('SELECT name FROM ticket_categories WHERE id = ?', [$ticket['category_id']]);
             
             // Default view for GET requests or if POST data is not set
