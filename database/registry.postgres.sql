@@ -172,7 +172,7 @@ CREATE TABLE registry.statement (
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
-     "domain_name"   varchar(68) NOT NULL,
+     "domain_name" varchar(68) NOT NULL,
      "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
      "from"   timestamp(3) without time zone NOT NULL,
      "to"   timestamp(3) without time zone NOT NULL,
@@ -183,6 +183,7 @@ CREATE TABLE registry.statement (
 CREATE TABLE registry.invoices (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" INT,
+     "invoice_number" varchar(25) DEFAULT NULL,
      "billing_contact_id" INT,
      "issue_date" TIMESTAMP(3),
      "due_date" TIMESTAMP(3) DEFAULT NULL,

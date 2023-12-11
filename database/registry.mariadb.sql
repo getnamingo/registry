@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`statement` (
 CREATE TABLE IF NOT EXISTS `registry`.`invoices` (
     `id` INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `registrar_id` INT(10) UNSIGNED,
+    `invoice_number` varchar(25) default NULL,
     `billing_contact_id` INT(10) UNSIGNED,
     `issue_date` DATETIME(3),
     `due_date` DATETIME(3) default NULL,

@@ -35,6 +35,8 @@ class FinancialsController extends Controller
         }
 
         $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
         $invoice_details = $db->selectRow('SELECT * FROM invoices WHERE invoice_number = ?',
         [ $invoiceNumber ]
         );
@@ -51,7 +53,8 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/viewInvoice.twig', [
             'invoice_details' => $invoice_details,
             'billing' => $billing,
-            'statement' => $statement
+            'statement' => $statement,
+            'currentUri' => $uri
         ]);
 
     }
