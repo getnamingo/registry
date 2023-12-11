@@ -429,3 +429,18 @@ function dnssec_key2ds($owner, $flags, $protocol, $algorithm, $publickey) {
         )
     );
 }
+
+// Function to update the permitted IPs from the database
+function updatePermittedIPs($pool, $permittedIPsTable) {
+    $pdo = $pool->get();
+    $query = "SELECT addr FROM registrar_whitelist";
+    $stmt = $pdo->query($query);
+    $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $pool->put($pdo);
+
+    // Clear the table and insert new values
+    $permittedIPsTable->truncate();
+    foreach ($permittedIPs as $ip) {
+        $permittedIPsTable->set($ip, ['addr' => $ip]);
+    }
+}

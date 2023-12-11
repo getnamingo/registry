@@ -16,14 +16,19 @@ require_once 'src/epp-delete.php';
 $logFilePath = '/var/log/namingo/epp.log';
 $log = setupLogger($logFilePath, 'EPP');
 
+use Swoole\Table;
+use Swoole\Timer;
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
-use Swoole\Table;
 
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->create();
+
+$permittedIPsTable = new Table(1024);
+$permittedIPsTable->column('addr', Table::TYPE_STRING, 64);
+$permittedIPsTable->create();
 
 // Initialize the PDO connection pool
 $pool = new Swoole\Database\PDOPool(
@@ -61,8 +66,19 @@ $server->set([
 ]);
 $log->info('Namingo EPP server started');
 
-$server->handle(function (Connection $conn) use ($table, $pool, $c, $log) {
-    $log->info('new client connected');
+$server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permittedIPsTable) {
+    // Get the client information
+    $clientInfo = $conn->exportSocket()->getpeername();
+    $clientIP = $clientInfo['address'] ?? '';
+
+    // Check if the IP is in the permitted list
+    if (!$permittedIPsTable->exist($clientIP)) {
+        $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
+        $conn->close();
+        return;
+    }
+    
+    $log->info('new client from ' . $clientIP . ' connected');
     sendGreeting($conn);
   
     while (true) {
@@ -522,10 +538,15 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log) {
     }
 
     sendEppError($conn, $pdo, 2000, 'Unrecognized command');
-    $log->info('client disconnected');
+    $log->info('client from ' . $clientIP . ' disconnected');
     $conn->close();
 });
 
 Swoole\Coroutine::create(function () use ($server) {
     $server->start();
+});
+
+// Set a timer to update permitted IPs every 15 minutes (900000 milliseconds)
+Timer::tick(900000, function() use ($pool, $permittedIPsTable) {
+    updatePermittedIPs($pool, $permittedIPsTable);
 });
