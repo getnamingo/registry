@@ -26,6 +26,8 @@ $app->get('/', HomeController::class .':index')->setName('index');
 $app->group('', function ($route) {
     $route->get('/login', AuthController::class . ':createLogin')->setName('login');
     $route->post('/login', AuthController::class . ':login');
+    $route->post('/webauthn/login/challenge', AuthController::class . ':getLoginChallenge')->setName('webauthn.login.challenge');
+    $route->post('/webauthn/login/verify', AuthController::class . ':verifyLogin')->setName('webauthn.login.verify');
     $route->get('/forgot-password', PasswordController::class . ':createForgotPassword')->setName('forgot.password');
     $route->post('/forgot-password', PasswordController::class . ':forgotPassword');
     $route->get('/reset-password', PasswordController::class.':resetPassword')->setName('reset.password');

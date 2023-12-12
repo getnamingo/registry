@@ -201,6 +201,12 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     if ($path && $path === '/webauthn/register/verify') {
         return $handler->handle($request);
     }
+    if ($path && $path === '/webauthn/login/challenge') {
+        return $handler->handle($request);
+    }
+    if ($path && $path === '/webauthn/login/verify') {
+        return $handler->handle($request);
+    }
 
     // If not skipped, apply the CSRF Guard
     return $csrf->process($request, $handler);

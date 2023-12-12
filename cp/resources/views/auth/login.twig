@@ -51,16 +51,133 @@
           <div class="hr-text">or</div>
           <div class="card-body">
             <div class="row">
-              <div class="col"><a href="#" class="btn btn-secondary w-100">
+              <div class="col"><button type="button" id="loginWebAuthnButton" class="btn btn-secondary w-100">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" /></svg>
                   Login with WebAuthn
-                </a></div>
+                </button></div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <script>const passwordInput = document.querySelector('input[name="password"]');
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const loginButton = document.getElementById('loginWebAuthnButton');
+    const emailInput = document.querySelector('input[name="email"]');
+    const passwordInput = document.querySelector('input[name="password"]');
+    const codeInput = document.querySelector('input[name="code"]');
+
+    loginButton.addEventListener('click', async function() {
+        try {
+            // Disable password and 2FA fields
+            passwordInput.disabled = true;
+            codeInput.disabled = true;
+
+            if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
+                throw new Error('Browser not supported.');
+            }
+
+            // get check args
+            let rep = await window.fetch('/webauthn/login/challenge', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: emailInput.value }),
+                cache: 'no-cache'
+            });
+            const getArgs = await rep.json();
+
+            // error handling
+            if (getArgs.success === false) {
+                throw new Error(getArgs.msg);
+            }
+
+            // replace binary base64 data with ArrayBuffer. a other way to do this
+            // is the reviver function of JSON.parse()
+            recursiveBase64StrToArrayBuffer(getArgs);
+
+            // check credentials with hardware
+            const cred = await navigator.credentials.get(getArgs);
+
+            // create object for transmission to server
+            const authenticatorAttestationResponse = {
+                id: cred.rawId ? arrayBufferToBase64(cred.rawId) : null,
+                clientDataJSON: cred.response.clientDataJSON  ? arrayBufferToBase64(cred.response.clientDataJSON) : null,
+                authenticatorData: cred.response.authenticatorData ? arrayBufferToBase64(cred.response.authenticatorData) : null,
+                signature: cred.response.signature ? arrayBufferToBase64(cred.response.signature) : null,
+                userHandle: cred.response.userHandle ? arrayBufferToBase64(cred.response.userHandle) : null
+            };
+
+            // send to server
+            rep = await window.fetch('/webauthn/login/verify', {
+                method:'POST',
+                body: JSON.stringify(authenticatorAttestationResponse),
+                cache:'no-cache'
+            });
+            const authenticatorAttestationServerResponse = await rep.json();
+
+            // check server response
+            if (authenticatorAttestationServerResponse.success) {
+                //reloadServerPreview();
+                window.alert(authenticatorAttestationServerResponse.msg || 'login success');
+            } else {
+                throw new Error(authenticatorAttestationServerResponse.msg);
+            }
+
+        } catch (err) {
+            //reloadServerPreview();
+            window.alert(err.message || 'unknown error occured');
+        }
+
+    });
+    
+    /**
+     * convert RFC 1342-like base64 strings to array buffer
+     * @param {mixed} obj
+     * @returns {undefined}
+     */
+    function recursiveBase64StrToArrayBuffer(obj) {
+        let prefix = '=?BINARY?B?';
+        let suffix = '?=';
+        if (typeof obj === 'object') {
+            for (let key in obj) {
+                if (typeof obj[key] === 'string') {
+                    let str = obj[key];
+                    if (str.substring(0, prefix.length) === prefix && str.substring(str.length - suffix.length) === suffix) {
+                        str = str.substring(prefix.length, str.length - suffix.length);
+
+                        let binary_string = window.atob(str);
+                        let len = binary_string.length;
+                        let bytes = new Uint8Array(len);
+                        for (let i = 0; i < len; i++)        {
+                            bytes[i] = binary_string.charCodeAt(i);
+                        }
+                        obj[key] = bytes.buffer;
+                    }
+                } else {
+                    recursiveBase64StrToArrayBuffer(obj[key]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert a ArrayBuffer to Base64
+     * @param {ArrayBuffer} buffer
+     * @returns {String}
+     */
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        let bytes = new Uint8Array(buffer);
+        let len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode( bytes[ i ] );
+        }
+        return window.btoa(binary);
+    }
+
     const togglePasswordBtn = document.querySelector('.input-group-text a');
 
     togglePasswordBtn.addEventListener('click', function() {
@@ -78,5 +195,7 @@
         togglePasswordBtn.setAttribute('title', 'Show password');
       }
     });
-    </script>
+
+});
+</script>
 {% endblock %}
