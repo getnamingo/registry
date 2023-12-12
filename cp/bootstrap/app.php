@@ -106,11 +106,14 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
     ]);
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
-    $view->getEnvironment()->addGlobal('flash', $container->get('flash'));   
+    $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
     if (isset($_SESSION['_screen_mode'])) {
         $view->getEnvironment()->addGlobal('screen_mode', $_SESSION['_screen_mode']);
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
+    }
+    if (isset($_SESSION['auth_roles'])) {
+        $view->getEnvironment()->addGlobal('roles', $_SESSION['auth_roles']);
     }
 
     $db = $container->get('db');
