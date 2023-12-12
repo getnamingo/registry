@@ -176,6 +176,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
 
                         $epp = new EPP\EppWriter();
                         $xml = $epp->epp_writer($response);
+                        $log->info('registrar ' . $clID . ' logged in');
                         updateTransaction($pdo, 'login', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                         sendEppResponse($conn, $xml);
                     } else {
@@ -203,6 +204,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
 
                     $epp = new EPP\EppWriter();
                     $xml = $epp->epp_writer($response);
+                    $log->info('registrar ' . $clID . ' logged out');
                     updateTransaction($pdo, 'logout', null, null, 1500, 'Command completed successfully; ending session', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                     $conn->close();
