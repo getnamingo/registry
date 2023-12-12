@@ -76,9 +76,9 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `url` varchar(255) NOT NULL,
     `abuse_email` varchar(255) NOT NULL,
     `abuse_phone` varchar(255) NOT NULL,
-    `accountBalance` decimal(8,2) NOT NULL default '0.00',
-    `creditLimit` decimal(8,2) NOT NULL default '0.00',
-    `creditThreshold` decimal(8,2) NOT NULL default '0.00',
+    `accountBalance` decimal(12,2) NOT NULL default '0.00',
+    `creditLimit` decimal(12,2) NOT NULL default '0.00',
+    `creditThreshold` decimal(12,2) NOT NULL default '0.00',
     `thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
     `currency` varchar(5) NOT NULL default 'USD',
     `crdate` datetime(3) NOT NULL,
@@ -143,10 +143,10 @@ CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     `obj_acDate` datetime(3),
     `obj_exDate` datetime(3) default NULL,
     `registrarName` varchar(255),
-    `creditLimit` decimal(8,2) default '0.00',
-    `creditThreshold` decimal(8,2) default '0.00',
+    `creditLimit` decimal(12,2) default '0.00',
+    `creditThreshold` decimal(12,2) default '0.00',
     `creditThresholdType` enum('FIXED','PERCENT'),
-    `availableCredit` decimal(8,2) default '0.00',
+    `availableCredit` decimal(12,2) default '0.00',
     PRIMARY KEY (`id`),
     CONSTRAINT `poll_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='poll';
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`payment_history` (
     `registrar_id` int(10) unsigned NOT NULL,
     `date` datetime(3) NOT NULL,
     `description` text NOT NULL,
-    `amount` decimal(8,2) NOT NULL,
+    `amount` decimal(12,2) NOT NULL,
     PRIMARY KEY (`id`),
     CONSTRAINT `payment_history_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='payment history';
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`statement` (
     `length_in_months` tinyint(3) unsigned NOT NULL,
     `from` datetime(3) NOT NULL,
     `to` datetime(3) NOT NULL,
-    `amount` decimal(8,2) NOT NULL,
+    `amount` decimal(12,2) NOT NULL,
     PRIMARY KEY (`id`),
     CONSTRAINT `statement_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='financial statement';

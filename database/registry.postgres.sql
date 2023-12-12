@@ -75,9 +75,9 @@ CREATE TABLE registry.registrar (
      "url"   varchar(255) NOT NULL,
      "abuse_email"   varchar(255) NOT NULL,
      "abuse_phone"   varchar(255) NOT NULL,
-     "accountbalance"   decimal(8,2) NOT NULL default '0.00',
-     "creditlimit"   decimal(8,2) NOT NULL default '0.00',
-     "creditthreshold"   decimal(8,2) NOT NULL default '0.00',
+     "accountbalance"   decimal(12,2) NOT NULL default '0.00',
+     "creditlimit"   decimal(12,2) NOT NULL default '0.00',
+     "creditthreshold"   decimal(12,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
      "currency"   varchar(5) NOT NULL default 'USD',
      "crdate"   timestamp(3) without time zone NOT NULL,
@@ -151,10 +151,10 @@ CREATE TABLE registry.poll (
      "obj_acdate"   timestamp(3) without time zone,
      "obj_exdate"   timestamp(3) without time zone default NULL,
      "registrarname"   varchar(255),
-     "creditlimit"   decimal(8,2) default '0.00',
-     "creditthreshold"   decimal(8,2) default '0.00',
+     "creditlimit"   decimal(12,2) default '0.00',
+     "creditthreshold"   decimal(12,2) default '0.00',
      "creditthresholdtype" varchar CHECK ("creditthresholdtype" IN ( 'FIXED','PERCENT' )),
-     "availablecredit"   decimal(8,2) default '0.00',
+     "availablecredit"   decimal(12,2) default '0.00',
      primary key ("id")
 );
 
@@ -163,7 +163,7 @@ CREATE TABLE registry.payment_history (
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "description"   text NOT NULL,
-     "amount"   decimal(8,2) NOT NULL,
+     "amount"   decimal(12,2) NOT NULL,
      primary key ("id")
 );
 
@@ -176,7 +176,7 @@ CREATE TABLE registry.statement (
      "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
      "from"   timestamp(3) without time zone NOT NULL,
      "to"   timestamp(3) without time zone NOT NULL,
-     "amount"   decimal(8,2) NOT NULL,
+     "amount"   decimal(12,2) NOT NULL,
      primary key ("id")
 );
 
