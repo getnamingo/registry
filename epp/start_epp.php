@@ -542,11 +542,15 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
     $conn->close();
 });
 
+Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable) {
+    updatePermittedIPs($pool, $permittedIPsTable);
+});
+
 Swoole\Coroutine::create(function () use ($server) {
     $server->start();
 });
 
-// Set a timer to update permitted IPs every 15 minutes (900000 milliseconds)
-Timer::tick(900000, function() use ($pool, $permittedIPsTable) {
+// Set a timer to update permitted IPs every 5 minutes (300000 milliseconds)
+Timer::tick(300000, function() use ($pool, $permittedIPsTable) {
     updatePermittedIPs($pool, $permittedIPsTable);
 });
