@@ -134,7 +134,7 @@ wsrep_node_address="node1-ip-address"
 wsrep_node_name="node1"
 ```
 
-** Second Database Server: **
+**Second Database Server:**
 
 Configuration File Editing: Similar to the master server, edit ```/etc/mysql/mariadb.conf.d/60-galera.cnf```.
 
