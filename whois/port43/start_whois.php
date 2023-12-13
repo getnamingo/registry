@@ -133,10 +133,10 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
 
                 if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $f['crdate'] = (new DateTime($f['crdate']))->format('Y-m-d\TH:i:s.v\Z');
-                    if (isset($f['update']) && $f['update'] !== null) {
-                        $f['update'] = (new DateTime($f['update']))->format('Y-m-d\TH:i:s.v\Z');
+                    if (isset($f['lastupdate']) && $f['lastupdate'] !== null) {
+                        $f['lastupdate'] = (new DateTime($f['lastupdate']))->format('Y-m-d\TH:i:s.v\Z');
                     } else {
-                        $f['update'] = '';
+                        $f['lastupdate'] = '';
                     }
                     $f['exdate'] = (new DateTime($f['exdate']))->format('Y-m-d\TH:i:s.v\Z');
                     
@@ -158,7 +158,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nRegistry Domain ID: D".$f['id']."-".$c['roid']
                         ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
                         ."\nRegistrar URL: ".$clidF['url']
-                        ."\nUpdated Date: ".$f['update']
+                        ."\nUpdated Date: ".$f['lastupdate']
                         ."\nCreation Date: ".$f['crdate']
                         ."\nRegistry Expiry Date: ".$f['exdate']
                         ."\nRegistrar: ".$clidF['name']

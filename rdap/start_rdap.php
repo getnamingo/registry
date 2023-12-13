@@ -438,8 +438,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         ];
 
         // Check if domain last update is set and not empty
-        if (isset($domainDetails['update']) && !empty($domainDetails['update'])) {
-            $updateDateTime = new DateTime($domainDetails['update']);
+        if (isset($domainDetails['lastupdate']) && !empty($domainDetails['lastupdate'])) {
+            $updateDateTime = new DateTime($domainDetails['lastupdate']);
             $events[] = [
                 'eventAction' => 'last domain update',
                 'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
@@ -1668,8 +1668,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         ];
 
         // Check if domain last update is set and not empty
-        if (isset($domainDetails['update']) && !empty($domainDetails['update'])) {
-            $updateDateTime = new DateTime($domainDetails['update']);
+        if (isset($domainDetails['lastupdate']) && !empty($domainDetails['lastupdate'])) {
+            $updateDateTime = new DateTime($domainDetails['lastupdate']);
             $events[] = [
                 'eventAction' => 'last domain update',
                 'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
