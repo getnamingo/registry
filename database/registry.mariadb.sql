@@ -168,8 +168,8 @@ CREATE TABLE IF NOT EXISTS `registry`.`statement` (
     `command` enum('create','renew','transfer','restore','autoRenew') NOT NULL default 'create',
     `domain_name` varchar(68) NOT NULL,
     `length_in_months` tinyint(3) unsigned NOT NULL,
-    `from` datetime(3) NOT NULL,
-    `to` datetime(3) NOT NULL,
+    `fromS` datetime(3) NOT NULL,
+    `toS` datetime(3) NOT NULL,
     `amount` decimal(12,2) NOT NULL,
     PRIMARY KEY (`id`),
     CONSTRAINT `statement_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT

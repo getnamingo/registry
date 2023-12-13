@@ -501,7 +501,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute(['domain_id' => $domain_id]);
                 $to = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
+                $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
                 $stmt->execute(['registrar_id' => $reid, 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
 
                 $stmt = $db->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = :name LIMIT 1");

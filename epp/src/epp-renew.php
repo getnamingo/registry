@@ -165,13 +165,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $to = $stmt->fetchColumn();
 
             // Insert into statement:
-            if ($database_type === "mysql") {
-                $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, from, to, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
-            } elseif ($database_type === "pgsql") {
-                $stmt = $db->prepare('INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, "from", "to", amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)');
-            } else {
-                throw new Exception("Unsupported database type: $database_type");
-            }
+            $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$clid['id'], 'renew', $domainName, $date_add, $from, $to, $price]);
         }
     }

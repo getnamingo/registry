@@ -108,8 +108,8 @@ class FinancialsController extends Controller
                             'command' => 'create',
                             'domain_name' => 'deposit',
                             'length_in_months' => 0,
-                            'from' => $date,
-                            'to' => $date,
+                            'fromS' => $date,
+                            'toS' => $date,
                             'amount' => $amount
                         ]
                     );
@@ -226,8 +226,8 @@ class FinancialsController extends Controller
                                 'command' => 'create',
                                 'domain_name' => 'deposit',
                                 'length_in_months' => 0,
-                                'from' => $date,
-                                'to' => $date,
+                                'fromS' => $date,
+                                'toS' => $date,
                                 'amount' => $amount
                             ]
                         );

@@ -174,8 +174,8 @@ CREATE TABLE registry.statement (
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
      "domain_name" varchar(68) NOT NULL,
      "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
-     "from"   timestamp(3) without time zone NOT NULL,
-     "to"   timestamp(3) without time zone NOT NULL,
+     "fromS"   timestamp(3) without time zone NOT NULL,
+     "toS"   timestamp(3) without time zone NOT NULL,
      "amount"   decimal(12,2) NOT NULL,
      primary key ("id")
 );

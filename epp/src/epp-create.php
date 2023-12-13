@@ -1174,7 +1174,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $selectDomainDatesStmt->execute([':name' => $domainName]);
         [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
 
-        $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
+        $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
         $statementStmt->execute([
             ':registrar_id' => $clid,
             ':cmd' => 'create',

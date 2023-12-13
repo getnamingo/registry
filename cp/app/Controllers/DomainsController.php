@@ -562,8 +562,8 @@ class DomainsController extends Controller
                         'command' => 'create',
                         'domain_name' => $domainName,
                         'length_in_months' => $date_add,
-                        'from' => $from,
-                        'to' => $to,
+                        'fromS' => $from,
+                        'toS' => $to,
                         'amount' => $price
                     ]
                 );
@@ -1424,8 +1424,8 @@ class DomainsController extends Controller
                         'command' => 'renew',
                         'domain_name' => $domainName,
                         'length_in_months' => $date_add,
-                        'from' => $from,
-                        'to' => $to,
+                        'fromS' => $from,
+                        'toS' => $to,
                         'amount' => $price
                     ]
                   );
@@ -2277,8 +2277,8 @@ class DomainsController extends Controller
                             'command' => 'transfer',
                             'domain_name' => $domainName,
                             'length_in_months' => $date_add,
-                            'from' => $from,
-                            'to' => $to,
+                            'fromS' => $from,
+                            'toS' => $to,
                             'amount' => $price
                         ]
                       );
@@ -2603,8 +2603,8 @@ class DomainsController extends Controller
                             'command' => 'restore',
                             'domain_name' => $domainName,
                             'length_in_months' => 0,
-                            'from' => $from,
-                            'to' => $from,
+                            'fromS' => $from,
+                            'toS' => $from,
                             'amount' => $restore_price
                         ]
                       );
@@ -2617,8 +2617,8 @@ class DomainsController extends Controller
                             'command' => 'renew',
                             'domain_name' => $domainName,
                             'length_in_months' => 12,
-                            'from' => $from,
-                            'to' => $to,
+                            'fromS' => $from,
+                            'toS' => $to,
                             'amount' => $renew_price
                         ]
                       );

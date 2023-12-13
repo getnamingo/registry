@@ -1692,7 +1692,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt->execute([$domain_id]);
                     $to = $stmt->fetchColumn();
 
-                    $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
+                    $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
                     $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
         
                     $sth->execute([$clid, 'renew', $domainName, 12, $from, $to, $renew_price]);

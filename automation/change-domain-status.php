@@ -51,7 +51,7 @@ try {
                     $dbh->exec("UPDATE registrar SET accountBalance = (accountBalance - $price) WHERE id = '$clid'");
                     $dbh->exec("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES('$clid', CURRENT_TIMESTAMP, 'autoRenew domain $name for period 12 MONTH', '-$price')");
                     list($to) = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetch(PDO::FETCH_NUM);
-                    $sth = $dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, from, to, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
+                    $sth = $dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
                     $sth->execute([$clid, 'autoRenew', $name, '12', $exdate, $to, $price]);
                     if (!$dbh->query("SELECT id FROM statistics WHERE date = CURDATE()")->fetchColumn()) {
                         $dbh->exec("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");

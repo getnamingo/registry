@@ -73,7 +73,7 @@ try {
 
             $to = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
             
-            $stmt_insert_statement = $dbh->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
+            $stmt_insert_statement = $dbh->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
             $stmt_insert_statement->execute([$reid, 'transfer', $name, $date_add, $from, $to, $price]);
 
             $stmt_select_domain = $dbh->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = ? LIMIT 1");
