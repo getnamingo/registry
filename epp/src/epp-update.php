@@ -504,7 +504,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $e_authInfo_ext = (string)($xml->xpath("//contact:authInfo/contact:ext")[0] ?? "");
 
     // Update contact
-    $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
+    $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
     $stmt = $db->prepare($query);
     $stmt->execute([
         $e_voice ?: null,
@@ -512,6 +512,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $e_fax ?: null,
         $e_fax_x ?: null,
         $e_email,
+        $clid,
         $contact_id
     ]);
 
@@ -573,7 +574,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if ($identica_update) {
-        $query = "UPDATE contact SET nin = ?, nin_type = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
+        $query = "UPDATE contact SET nin = ?, nin_type = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
         $stmt = $db->prepare($query);
 
         if (!$stmt) {
@@ -584,6 +585,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $result = $stmt->execute([
             $nin ?: null,
             $nin_type ?: null,
+            $clid,
             $contact_id
         ]);
 
@@ -896,10 +898,10 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (isset($hostChg)) {
         $chg_name = strtoupper($xml->xpath('//host:name[1]')[0]);
 
-        $query = "UPDATE host SET name = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?";
+        $query = "UPDATE host SET name = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?";
 
         $stmt = $db->prepare($query);
-        $stmt->execute([$chg_name, $name]);
+        $stmt->execute([$chg_name, $clid, $name]);
     }
 
     $svTRID = generateSvTRID();
@@ -1577,14 +1579,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$registrant]);
                 $registrant_id = $sth->fetchColumn();
                 
-                $sth = $db->prepare("UPDATE domain SET registrant = ?, update = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                if (!$sth->execute([$registrant_id, $domain_id])) {
+                $sth = $db->prepare("UPDATE domain SET registrant = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                if (!$sth->execute([$registrant_id, $clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
             } else {
-                $sth = $db->prepare("UPDATE domain SET registrant = NULL, update = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                if (!$sth->execute([$domain_id])) {
+                $sth = $db->prepare("UPDATE domain SET registrant = NULL, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                if (!$sth->execute([$clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
@@ -1634,8 +1636,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $temp_id = $sth->fetchColumn();
 
             if ($temp_id == 1) {
-                $sth = $db->prepare("UPDATE domain SET rgpstatus = 'pendingRestore', resTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                if (!$sth->execute([$domain_id])) {
+                $sth = $db->prepare("UPDATE domain SET rgpstatus = 'pendingRestore', resTime = CURRENT_TIMESTAMP(3), upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                if (!$sth->execute([$clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
@@ -1670,9 +1672,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$domain_id]);
                 $from = $sth->fetchColumn();
 
-                $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 
-                if (!$sth->execute([$domain_id])) {
+                if (!$sth->execute([$clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
@@ -1990,8 +1992,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                             return;
                         }
-						
-						$dsres = dnssec_key2ds($domainName.'.', $flags, $protocol, $algKeyData, $pubKey);
+                        
+                        $dsres = dnssec_key2ds($domainName.'.', $flags, $protocol, $algKeyData, $pubKey);
 
                         try {
                             $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");

@@ -130,10 +130,11 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $from = $stmt->fetchColumn();
 
         $rgpstatus = 'renewPeriod';
-        $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
+        $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
         $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
         $stmt->bindParam(':rgpstatus', $rgpstatus, PDO::PARAM_STR);
         $stmt->bindParam(':renewPeriod', $date_add, PDO::PARAM_INT);
+        $stmt->bindParam(':upid', $clid['id'], PDO::PARAM_INT);
         $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
         $stmt->execute();
 
