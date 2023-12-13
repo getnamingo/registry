@@ -783,7 +783,7 @@ class DomainsController extends Controller
                 [ $domain['registrant'] ]);
                 $domainStatus = $db->select('SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain['id'] ]);
-                $domainAuth = $db->selectRow('SELECT authinfo FROM domain_authInfo WHERE domain_id = ?',
+                $domainAuth = $db->selectRow('SELECT * FROM domain_authInfo WHERE domain_id = ?',
                 [ $domain['id'] ]);
                 $domainSecdns = $db->select('SELECT * FROM secdns WHERE domain_id = ?',
                 [ $domain['id'] ]);
