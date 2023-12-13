@@ -977,6 +977,39 @@ try {
                     }
                 }
             }
+            
+            $depositDate = date('Y-m-d');
+            $fileName = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
+            $fileFormat = 'XML';
+            $encryptionMethod = 'GnuPG';
+            $depositType = 'BRDA';
+            $status = 'Deposited';
+            $verificationStatus = 'Pending';
+
+            // Prepare the INSERT statement
+            $stmt = $dbh->prepare("INSERT INTO rde_escrow_deposits (deposit_id, deposit_date, file_name, file_format, encryption_method, deposit_type, status, verification_status, revision) VALUES (:deposit_id, :deposit_date, :file_name, :file_format, :encryption_method, :deposit_type, :status, :verification_status, :revision)");
+
+            $previousDayFormatted = date('Ymd');
+            $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
+            $depositId = $previousDayFormatted . $paddedFinalDepositId;
+
+            // Bind the parameters
+            $stmt->bindParam(':deposit_id', $depositId);
+            $stmt->bindParam(':deposit_date', $depositDate);
+            $stmt->bindParam(':file_name', $fileName);
+            $stmt->bindParam(':file_format', $fileFormat);
+            $stmt->bindParam(':encryption_method', $encryptionMethod);
+            $stmt->bindParam(':deposit_type', $depositType);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':verification_status', $verificationStatus);
+            $stmt->bindParam(':revision', $finalDepositId, PDO::PARAM_INT);
+
+            // Execute the statement
+            if (!$stmt->execute()) {
+                // Handle error here
+                $errorInfo = $stmt->errorInfo();
+                $log->error('Database error: ' . $errorInfo[2]);
+            }
         }
         
         $depositDate = date('Y-m-d');
