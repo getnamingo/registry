@@ -171,8 +171,22 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $stmt4->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
                     $stmt4->execute();
 
+                    $statusFound = false;
+
                     while ($f2 = $stmt4->fetch(PDO::FETCH_ASSOC)) {
                         $res .= "\nDomain Status: " . $f2['status'] . " https://icann.org/epp#" . $f2['status'];
+                        $statusFound = true;
+                    }
+
+                    // Check for additional statuses
+                    if (!empty($f['rgpstatus'])) {
+                        $res .= "\nDomain Status: " . $f['rgpstatus'] . " https://icann.org/epp#" . $f['rgpstatus'];
+                        $statusFound = true;
+                    }
+
+                    // If no status is found, default to 'ok'
+                    if (!$statusFound) {
+                        $res .= "\nDomain Status: ok https://icann.org/epp#ok";
                     }
 
                     $query5 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
