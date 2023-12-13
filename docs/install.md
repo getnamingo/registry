@@ -99,140 +99,6 @@ apt install -y mariadb-client mariadb-server php8.2-mysql
 mysql_secure_installation
 ```
 
-#### Replication Setup
-
-1. Configuration of MariaDB Galera Cluster
-
-To begin, you need to configure each node (database server) in your MariaDB Galera cluster. This involves editing the configuration file located at ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` on each server. Below are the steps for each node:
-
-**Master Database Server:**
-
-Access the configuration file: Open ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` for editing.
-
-Apply Configuration: Replace the existing content with the provided settings:
-
-```bash
-[mysqld]
-binlog_format=ROW
-default-storage-engine=innodb
-innodb_autoinc_lock_mode=2
-bind-address=0.0.0.0
-
-# Galera Provider Configuration
-wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
-
-# Galera Cluster Configuration
-wsrep_cluster_name="galera_cluster"
-wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
-
-# Galera Synchronization Configuration
-wsrep_sst_method=rsync
-
-# Galera Node Configuration
-wsrep_node_address="node1-ip-address"
-wsrep_node_name="node1"
-```
-
-**Second Database Server:**
-
-Configuration File Editing: Similar to the master server, edit ```/etc/mysql/mariadb.conf.d/60-galera.cnf```.
-
-Update Settings: Replace the existing content with:
-
-```bash
-[mysqld]
-binlog_format=ROW
-default-storage-engine=innodb
-innodb_autoinc_lock_mode=2
-bind-address=0.0.0.0
-
-# Galera Provider Configuration
-wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
-
-# Galera Cluster Configuration
-wsrep_cluster_name="galera_cluster"
-wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
-
-# Galera Synchronization Configuration
-wsrep_sst_method=rsync
-
-# Galera Node Configuration
-wsrep_node_address="node2-ip-address"
-wsrep_node_name="node2"
-```
-
-**Third Database Server:**
-
-Edit Configuration: Again, modify ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` as done for the other servers.
-
-Implement Changes: Replace the configuration settings with:
-
-```bash
-[mysqld]
-binlog_format=ROW
-default-storage-engine=innodb
-innodb_autoinc_lock_mode=2
-bind-address=0.0.0.0
-
-# Galera Provider Configuration
-wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
-
-# Galera Cluster Configuration
-wsrep_cluster_name="galera_cluster"
-wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
-
-# Galera Synchronization Configuration
-wsrep_sst_method=rsync
-
-# Galera Node Configuration
-wsrep_node_address="node3-ip-address"
-wsrep_node_name="node3"
-```
-
-2. Stopping MariaDB Services
-
-For all three database servers, you need to halt the MariaDB service. This can be done using the following command:
-
-```bash
-systemctl stop mariadb
-```
-
-3. Initializing the Galera Cluster
-
-Only on the master database server, you will initiate the cluster:
-
-Start the Cluster: Execute ```galera_new_cluster``` to initialize.
-
-Verify Cluster Status: Check the cluster's status with the command:
-
-```bash
-mysql -u root -p -e "SHOW STATUS LIKE 'wsrep_cluster_size'"
-```
-
-This should return a cluster size of 1.
-
-4. Starting and Verifying Other Nodes
-
-For the remaining nodes, perform the following:
-
-**Second Node:**
-
-Start MariaDB: Use ```systemctl start mariadb```.
-
-Confirm Cluster Status: Execute the same status command as on the master. The cluster size should now be 2.
-
-**Third Node:**
-
-Service Initiation: Again, start MariaDB with ```systemctl start mariadb```.
-
-Status Check: Verify the cluster status. The expected cluster size should be 3.
-
-By following these steps, you will have successfully updated the replication settings for your MariaDB Galera Cluster in Namingo.
-
-#### Tune your MariaDB
 [Tune your MariaDB](https://github.com/major/MySQLTuner-perl)
 
 ### 2b. Install and configure PostgreSQL:
@@ -256,6 +122,14 @@ postgres=# \q
 ```
 
 [Tune your PostgreSQL](https://pgtune.leopard.in.ua/)
+
+### 2c. Database Replication Setup:
+
+For those considering implementing replication in their Namingo installation, it is highly recommended for enhancing data availability and reliability. We have prepared a detailed guide to walk you through the replication setup process. Please refer to our comprehensive guide for setting up and managing replication by following the link: [Replication Setup Guide](replication.md).
+
+### 2d. Database Encryption Setup:
+
+To ensure the security and confidentiality of your data within the Namingo system, implementing database encryption is a crucial step. Database encryption helps protect sensitive information from unauthorized access and breaches. We have compiled an in-depth guide that covers the essentials of database encryption, including key management, best practices, and step-by-step instructions for secure implementation. For a thorough understanding and to begin securing your data, please refer to our detailed guide: [Database Encryption Guide](encryption.md). This resource is designed to equip you with the knowledge and tools necessary for effectively encrypting your database in the Namingo environment.
 
 ## 3. Install Adminer:
 
@@ -522,7 +396,9 @@ This will initialize and configure the audit trail functionality. This process e
 
 ### Setup Backup
 
-***TODO***
+To ensure the safety and availability of your data in Namingo, it's crucial to set up and verify automated backups. Begin by editing the ```backup.json``` file in the automation directory, where you'll input your database details and specify the SFTP server information for offsite backup storage. Ensure that the details for the database and the SFTP server, including server address, credentials, and port, are accurately entered in two specified locations within the ```backup.json``` file.
+
+Additionally, check that the cronjob for PHPBU is correctly scheduled on your server, as this automates the backup process. You can verify this by reviewing your server's cronjob list. These steps are vital to maintain regular, secure backups of your system, safeguarding against data loss and ensuring business continuity. 
 
 ### RDE (Registry data escrow) configuration:
 
