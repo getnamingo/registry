@@ -94,7 +94,9 @@ class DomainsController extends Controller
             $contactBilling = $data['contactBilling'] ?? null;
             
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
-
+            $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
+            $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
+            
             $dsKeyTag = $data['dsKeyTag'] ?? null;
             $dsAlg = $data['dsAlg'] ?? null;
             $dsDigestType = $data['dsDigestType'] ?? null;
@@ -219,6 +221,12 @@ class DomainsController extends Controller
             }
             
             $nameservers = array_filter($data['nameserver'] ?? [], function($value) {
+                return !empty($value) && $value !== null;
+            });
+            $nameserver_ipv4 = array_filter($data['nameserver_ipv4'] ?? [], function($value) {
+                return !empty($value) && $value !== null;
+            });
+            $nameserver_ipv6 = array_filter($data['nameserver_ipv6'] ?? [], function($value) {
                 return !empty($value) && $value !== null;
             });
             
@@ -626,6 +634,14 @@ class DomainsController extends Controller
                                 'domain_host_map',
                                 [
                                     'domain_id' => $domain_id,
+                                    'host_id' => $host_id
+                                ]
+                            );
+                            
+                            $db->insert(
+                                'host_status',
+                                [
+                                    'status' => 'ok',
                                     'host_id' => $host_id
                                 ]
                             );
@@ -1237,6 +1253,14 @@ class DomainsController extends Controller
                             'domain_host_map',
                             [
                                 'domain_id' => $domain_id,
+                                'host_id' => $host_id
+                            ]
+                        );
+                        
+                        $db->insert(
+                            'host_status',
+                            [
+                                'status' => 'ok',
                                 'host_id' => $host_id
                             ]
                         );
