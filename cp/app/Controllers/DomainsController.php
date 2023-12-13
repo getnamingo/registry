@@ -93,7 +93,7 @@ class DomainsController extends Controller
             $contactTech = $data['contactTech'] ?? null;
             $contactBilling = $data['contactBilling'] ?? null;
             
-            $nameservers = $data['nameserver'] ?? [];
+            $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
 
             $dsKeyTag = $data['dsKeyTag'] ?? null;
             $dsAlg = $data['dsAlg'] ?? null;
@@ -218,32 +218,38 @@ class DomainsController extends Controller
                 ]);
             }
             
-            if (count($nameservers) !== count(array_unique($nameservers))) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
-            }
+            $nameservers = array_filter($data['nameserver'] ?? [], function($value) {
+                return !empty($value) && $value !== null;
+            });
             
-            foreach ($nameservers as $index => $nameserver) {
-                if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
+            if (!empty($nameservers)) {
+                if (count($nameservers) !== count(array_unique($nameservers))) {
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
-                        'error' => 'Invalid hostName',
+                        'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
                     ]);
                 }
                 
-                if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Invalid hostName',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                foreach ($nameservers as $index => $nameserver) {
+                    if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => 'Invalid hostName',
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                        ]);
+                    }
+                    
+                    if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => 'Invalid hostName',
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                        ]);
+                    }
                 }
             }
             
@@ -568,86 +574,88 @@ class DomainsController extends Controller
                     ]
                 );
 
-                foreach ($nameservers as $index => $nameserver) {
-                    $hostName_already_exist = $db->selectValue(
-                        'SELECT id FROM host WHERE name = ? LIMIT 1',
-                        [$nameserver]
-                    );
-
-                    if ($hostName_already_exist) {
-                        $domain_host_map_id = $db->selectValue(
-                            'SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1',
-                            [$domain_id, $hostName_already_exist]
+                if (!empty($nameservers)) {
+                    foreach ($nameservers as $index => $nameserver) {
+                        $hostName_already_exist = $db->selectValue(
+                            'SELECT id FROM host WHERE name = ? LIMIT 1',
+                            [$nameserver]
                         );
 
-                        if (!$domain_host_map_id) {
+                        if ($hostName_already_exist) {
+                            $domain_host_map_id = $db->selectValue(
+                                'SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1',
+                                [$domain_id, $hostName_already_exist]
+                            );
+
+                            if (!$domain_host_map_id) {
+                                $db->insert(
+                                    'domain_host_map',
+                                    [
+                                        'domain_id' => $domain_id,
+                                        'host_id' => $hostName_already_exist
+                                    ]
+                                );
+                            } else {
+                                $currentDateTime = new \DateTime();
+                                $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                                $db->insert(
+                                    'error_log',
+                                    [
+                                        'registrar_id' => $clid,
+                                        'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
+                                        'date' => $logdate
+                                    ]
+                                );
+                            }
+                        } else {
+                            $currentDateTime = new \DateTime();
+                            $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
+                            $host_id = $db->insert(
+                                'host',
+                                [
+                                    'name' => $nameserver,
+                                    'domain_id' => $domain_id,
+                                    'clid' => $clid,
+                                    'crid' => $clid,
+                                    'crdate' => $host_date
+                                ]
+                            );
+
                             $db->insert(
                                 'domain_host_map',
                                 [
                                     'domain_id' => $domain_id,
-                                    'host_id' => $hostName_already_exist
+                                    'host_id' => $host_id
                                 ]
                             );
-                        } else {
-                            $currentDateTime = new \DateTime();
-                            $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
-                            $db->insert(
-                                'error_log',
-                                [
-                                    'registrar_id' => $clid,
-                                    'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
-                                    'date' => $logdate
-                                ]
-                            );
-                        }
-                    } else {
-                        $currentDateTime = new \DateTime();
-                        $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                        $host_id = $db->insert(
-                            'host',
-                            [
-                                'name' => $nameserver,
-                                'domain_id' => $domain_id,
-                                'clid' => $clid,
-                                'crid' => $clid,
-                                'crdate' => $host_date
-                            ]
-                        );
-
-                        $db->insert(
-                            'domain_host_map',
-                            [
-                                'domain_id' => $domain_id,
-                                'host_id' => $host_id
-                            ]
-                        );
-                        
-                        if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
-                            $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
                             
-                            $db->insert(
-                                'host_addr',
-                                [
-                                    'host_id' => $host_id,
-                                    'addr' => $ipv4,
-                                    'ip' => 'v4'
-                                ]
-                            );
-                        }
+                            if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
+                                $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
+                                
+                                $db->insert(
+                                    'host_addr',
+                                    [
+                                        'host_id' => $host_id,
+                                        'addr' => $ipv4,
+                                        'ip' => 'v4'
+                                    ]
+                                );
+                            }
 
-                        if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
-                            $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
+                            if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
+                                $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
+                                
+                                $db->insert(
+                                    'host_addr',
+                                    [
+                                        'host_id' => $host_id,
+                                        'addr' => $ipv6,
+                                        'ip' => 'v6'
+                                    ]
+                                );
+                            }
                             
-                            $db->insert(
-                                'host_addr',
-                                [
-                                    'host_id' => $host_id,
-                                    'addr' => $ipv6,
-                                    'ip' => 'v6'
-                                ]
-                            );
                         }
-                        
                     }
                 }
                 
@@ -715,12 +723,8 @@ class DomainsController extends Controller
                 [$domain_id]
             );
             
-            return view($response, 'admin/domains/createDomain.twig', [
-                'domainName' => $domainName,
-                'crdate' => $crdate,
-                'registrars' => $registrars,
-                'registrar' => $registrar,
-            ]);
+            $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
+            return $response->withHeader('Location', '/domains')->withStatus(302);
         }
 
         $db = $this->container->get('db');
