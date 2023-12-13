@@ -30,11 +30,17 @@
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">
-                      Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
-                      {% if domainStatus.status %}
-                        <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
-                      {% endif %}
-                        <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                        Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
+                        {% if domainStatus.status or domain.rgpstatus %}
+                            {% if domainStatus.status %}
+                                <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                            {% endif %}
+                            {% if domain.rgpstatus %}
+                                <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="status status-info" title="Status">ok</span>
+                        {% endif %}
                     </h3>
                   </div>
                   <div class="card-body">
