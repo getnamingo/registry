@@ -99,6 +99,140 @@ apt install -y mariadb-client mariadb-server php8.2-mysql
 mysql_secure_installation
 ```
 
+#### Replication Setup
+
+1. Configuration of MariaDB Galera Cluster
+
+To begin, you need to configure each node (database server) in your MariaDB Galera cluster. This involves editing the configuration file located at ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` on each server. Below are the steps for each node:
+
+**Master Database Server:**
+
+Access the configuration file: Open ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` for editing.
+
+Apply Configuration: Replace the existing content with the provided settings:
+
+```bash
+[mysqld]
+binlog_format=ROW
+default-storage-engine=innodb
+innodb_autoinc_lock_mode=2
+bind-address=0.0.0.0
+
+# Galera Provider Configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+
+# Galera Cluster Configuration
+wsrep_cluster_name="galera_cluster"
+wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
+
+# Galera Synchronization Configuration
+wsrep_sst_method=rsync
+
+# Galera Node Configuration
+wsrep_node_address="node1-ip-address"
+wsrep_node_name="node1"
+```
+
+** Second Database Server: **
+
+Configuration File Editing: Similar to the master server, edit ```/etc/mysql/mariadb.conf.d/60-galera.cnf```.
+
+Update Settings: Replace the existing content with:
+
+```bash
+[mysqld]
+binlog_format=ROW
+default-storage-engine=innodb
+innodb_autoinc_lock_mode=2
+bind-address=0.0.0.0
+
+# Galera Provider Configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+
+# Galera Cluster Configuration
+wsrep_cluster_name="galera_cluster"
+wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
+
+# Galera Synchronization Configuration
+wsrep_sst_method=rsync
+
+# Galera Node Configuration
+wsrep_node_address="node2-ip-address"
+wsrep_node_name="node2"
+```
+
+**Third Database Server:**
+
+Edit Configuration: Again, modify ```/etc/mysql/mariadb.conf.d/60-galera.cnf``` as done for the other servers.
+
+Implement Changes: Replace the configuration settings with:
+
+```bash
+[mysqld]
+binlog_format=ROW
+default-storage-engine=innodb
+innodb_autoinc_lock_mode=2
+bind-address=0.0.0.0
+
+# Galera Provider Configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+
+# Galera Cluster Configuration
+wsrep_cluster_name="galera_cluster"
+wsrep_cluster_address="gcomm://node1-ip-address,node2-ip-address,node3-ip-address"
+
+# Galera Synchronization Configuration
+wsrep_sst_method=rsync
+
+# Galera Node Configuration
+wsrep_node_address="node3-ip-address"
+wsrep_node_name="node3"
+```
+
+2. Stopping MariaDB Services
+
+For all three database servers, you need to halt the MariaDB service. This can be done using the following command:
+
+```bash
+systemctl stop mariadb
+```
+
+3. Initializing the Galera Cluster
+
+Only on the master database server, you will initiate the cluster:
+
+Start the Cluster: Execute ```galera_new_cluster``` to initialize.
+
+Verify Cluster Status: Check the cluster's status with the command:
+
+```bash
+mysql -u root -p -e "SHOW STATUS LIKE 'wsrep_cluster_size'"
+```
+
+This should return a cluster size of 1.
+
+4. Starting and Verifying Other Nodes
+
+For the remaining nodes, perform the following:
+
+**Second Node:**
+
+Start MariaDB: Use ```systemctl start mariadb```.
+
+Confirm Cluster Status: Execute the same status command as on the master. The cluster size should now be 2.
+
+**Third Node:**
+
+Service Initiation: Again, start MariaDB with ```systemctl start mariadb```.
+
+Status Check: Verify the cluster status. The expected cluster size should be 3.
+
+By following these steps, you will have successfully updated the replication settings for your MariaDB Galera Cluster in Namingo.
+
+#### Tune your MariaDB
 [Tune your MariaDB](https://github.com/major/MySQLTuner-perl)
 
 ### 2b. Install and configure PostgreSQL:
