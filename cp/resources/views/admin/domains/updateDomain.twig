@@ -104,10 +104,10 @@
                                 <label class="form-label">{{ __('Nameservers') }}&nbsp;<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>&nbsp;<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button></label>
                                 {% for host in domainHosts %}
                                     <div class="nameserver-group mb-1 row">
-                                        <!-- Nameserver -->
-                                        <div class="col-md-12">
-                                            <input type="text" class="form-control mb-1" placeholder="{{ __('Nameserver') }} {{ loop.index }}" name="nameserver[]" value="{{ host.name }}" autocapitalize="none">
-                                        </div>
+                                      <div class="input-group mb-1">
+                                        <input type="text" class="form-control" placeholder="{{ __('Nameserver') }} {{ loop.index }}" value="{{ host.name }}" autocapitalize="none" disabled>
+                                        <button type="button" class="btn btn-secondary btn-icon" onclick="sendRequest('{{ host.name }}')" title="Delete nameserver"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10l4 4m0 -4l-4 4" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg></button>
+                                      </div>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -228,6 +228,31 @@
         </footer>
       </div>
 <script>
+var csrfTokenName = "{{ csrfTokenName }}";
+var csrfTokenValue = "{{ csrfTokenValue }}";
+    
+function sendRequest(nameserver) {
+    var formData = new FormData();
+    formData.append('nameserver', nameserver);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/domain/deletehost');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            var response = JSON.parse(xhr.responseText);
+            if (xhr.status == 200 && response.success) {
+                // Redirect to the provided URL
+                window.location.href = response.redirect;
+            } else {
+                // Handle error
+                console.error('Error: ' + response.error);
+                alert('Error: ' + response.error); // Display error message to the user
+            }
+        }
+    };
+    xhr.send(formData);
+}
+
 document.addEventListener("DOMContentLoaded", function() {
 
     const addNameserverBtn = document.getElementById('addNameserver');
@@ -265,7 +290,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Remove nameserver group
     removeNameserverBtn.addEventListener('click', function() {
-        if (nameserverCount > 2) {
+        if (nameserverCount > {{ domainHosts|length }}) {
             const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
             if (lastGroup) {
                 nameserverFields.removeChild(lastGroup);

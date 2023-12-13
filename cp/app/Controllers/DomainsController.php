@@ -610,7 +610,7 @@ class DomainsController extends Controller
                         } else {
                             $currentDateTime = new \DateTime();
                             $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                            $host_id = $db->insert(
+                            $db->insert(
                                 'host',
                                 [
                                     'name' => $nameserver,
@@ -620,6 +620,7 @@ class DomainsController extends Controller
                                     'crdate' => $host_date
                                 ]
                             );
+                            $host_id = $db->getlastInsertId();
 
                             $db->insert(
                                 'domain_host_map',
@@ -882,6 +883,10 @@ class DomainsController extends Controller
                     JOIN contact c ON dcm.contact_id = c.id
                     WHERE dcm.domain_id = ?';
                 $domainContacts = $db->select($domainContactsQuery, [$domain['id']]);
+                
+                $csrfTokenName = $this->container->get('csrf')->getTokenName();
+                $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
+
 
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
@@ -892,7 +897,9 @@ class DomainsController extends Controller
                     'domainHosts' => $domainHosts,
                     'domainContacts' => $domainContacts,
                     'registrar' => $registrars,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'csrfTokenName' => $csrfTokenName,
+                    'csrfTokenValue' => $csrfTokenValue
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -1214,7 +1221,7 @@ class DomainsController extends Controller
                     } else {
                         $currentDateTime = new \DateTime();
                         $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                        $host_id = $db->insert(
+                        $db->insert(
                             'host',
                             [
                                 'name' => $nameserver,
@@ -1224,6 +1231,7 @@ class DomainsController extends Controller
                                 'crdate' => $host_date
                             ]
                         );
+                        $host_id = $db->getlastInsertId();
 
                         $db->insert(
                             'domain_host_map',
@@ -1304,6 +1312,55 @@ class DomainsController extends Controller
    
             $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+        }
+    }
+    
+    public function domainDeleteHost(Request $request, Response $response)
+    {
+        $db = $this->container->get('db');
+        $data = $request->getParsedBody();
+        $uri = $request->getUri()->getPath();
+
+        if ($data['nameserver']) {
+            $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?',
+                    [ $data['nameserver'] ]);
+            $domain_id = $db->selectValue('SELECT domain_id FROM domain_host_map WHERE host_id = ?',
+                    [ $host_id ]);
+            $domainName = $db->selectValue('SELECT name FROM domain WHERE id = ?',
+                    [ $domain_id ]);
+            $db->delete(
+                'domain_host_map',
+                [
+                    'host_id' => $host_id,
+                    'domain_id' => $domain_id
+                ]
+            );
+            
+            $this->container->get('flash')->addMessage('success', 'Host ' . $data['nameserver'] . ' has been removed from domain successfully');
+
+            $jsonData = json_encode([
+                'success' => true,
+                'redirect' => '/domain/update/'.$domainName
+            ]);
+
+            $response = new \Nyholm\Psr7\Response(
+                200, // Status code
+                ['Content-Type' => 'application/json'], // Headers
+                $jsonData // Body
+            );
+
+            return $response;
+        } else {
+            $jsonData = json_encode([
+                'success' => false,
+                'error' => 'An error occurred while processing your request.'
+            ]);
+
+            return new \Nyholm\Psr7\Response(
+                400,
+                ['Content-Type' => 'application/json'],
+                $jsonData
+            );
         }
     }
     
