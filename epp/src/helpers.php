@@ -263,7 +263,7 @@ function normalize_v6_address($v6) {
 
 function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
     // Prepare the statement for insertion
-    $stmt = $db->prepare("INSERT INTO `registryTransaction`.`transaction_identifier` (`registrar_id`,`clTRID`,`clTRIDframe`,`cldate`,`clmicrosecond`) VALUES(?,?,?,?,?)");
+    $stmt = $db->prepare("INSERT INTO registryTransaction.transaction_identifier (registrar_id,clTRID,clTRIDframe,cldate,clmicrosecond) VALUES(?,?,?,?,?)");
 
     // Get date and microsecond for cl transaction
     $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
@@ -293,7 +293,7 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
 
 function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, $svTRIDframe, $transaction_id) {
     // Prepare the statement
-    $stmt = $db->prepare("UPDATE `registryTransaction`.`transaction_identifier` SET `cmd` = ?, `obj_type` = ?, `obj_id` = ?, `code` = ?, `msg` = ?, `svTRID` = ?, `svTRIDframe` = ?, `svdate` = ?, `svmicrosecond` = ? WHERE `id` = ?");
+    $stmt = $db->prepare("UPDATE registryTransaction.transaction_identifier SET cmd = ?, obj_type = ?, obj_id = ?, code = ?, msg = ?, svTRID = ?, svTRIDframe = ?, svdate = ?, svmicrosecond = ? WHERE id = ?");
 
     // Get date and microsecond for sv transaction
     $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));

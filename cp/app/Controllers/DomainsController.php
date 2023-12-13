@@ -387,7 +387,7 @@ class DomainsController extends Controller
                     'registrant' => $registrant_id,
                     'crdate' => $crdate,
                     'exdate' => $exdate,
-                    'update' => null,
+                    'lastupdate' => null,
                     'clid' => $clid,
                     'crid' => $clid,
                     'upid' => null,
@@ -759,7 +759,7 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, `update`, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
@@ -837,7 +837,7 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, `update`, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
@@ -1053,7 +1053,7 @@ class DomainsController extends Controller
 
                 $db->update('domain', [
                     'registrant' => $registrant_id,
-                    'update' => $update,
+                    'lastupdate' => $update,
                     'upid' => $clid
                 ],
                 [
@@ -1466,7 +1466,7 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, `update`, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
@@ -1968,13 +1968,13 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
             
-            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1',
+            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1',
             [ $domainName ]);
             
             $registrant = $domain['registrant'];
             $crdate = $domain['crdate'];
             $exdate = $domain['exdate'];
-            $update = $domain['update'];
+            $update = $domain['lastupdate'];
             $crid = $domain['crid'];
             $upid = $domain['upid'];
             $trdate = $domain['trdate'];
@@ -2242,12 +2242,12 @@ class DomainsController extends Controller
                     $from = $row['exdate'];
                             
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), `update` = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
                         [$date_add, $reid, $clid, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
                     );
 
                     $db->exec(
-                        'UPDATE host SET clid = ?, upid = ?, `update` = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?',
+                        'UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?',
                         [$reid, $clid, $domain_id]
                     );
 
@@ -2451,7 +2451,7 @@ class DomainsController extends Controller
             );
             
             $temp_id_status = $db->selectValue(
-                'SELECT COUNT(id) AS ids FROM domain_status WHERE status = ? AND `domain_id` = ? LIMIT 1',
+                'SELECT COUNT(id) AS ids FROM domain_status WHERE status = ? AND domain_id = ? LIMIT 1',
                 ['pendingDelete', $domain_id]
             );
             
@@ -2472,7 +2472,7 @@ class DomainsController extends Controller
                 $db->update('domain', [
                     'rgpstatus' => 'pendingRestore',
                     'resTime' => $date,
-                    'update' => $date
+                    'lastupdate' => $date
                 ],
                 [
                     'id' => $domain_id
@@ -2554,7 +2554,7 @@ class DomainsController extends Controller
                     $db->beginTransaction();
                             
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), `update` = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?',
                         [
                             $domainName
                         ]

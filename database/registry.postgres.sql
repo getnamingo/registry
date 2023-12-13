@@ -81,7 +81,7 @@ CREATE TABLE registry.registrar (
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
      "currency"   varchar(5) NOT NULL default 'USD',
      "crdate"   timestamp(3) without time zone NOT NULL,
-     "update"   timestamp(3),
+     "lastupdate"   timestamp(3),
      primary key ("id"),
      unique ("clid") ,
      unique ("prefix") ,
@@ -90,7 +90,7 @@ CREATE TABLE registry.registrar (
 
  CREATE OR REPLACE FUNCTION update_registrar() RETURNS trigger AS '
 BEGIN
-    NEW.update := CURRENT_TIMESTAMP;
+    NEW.lastupdate := CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 ' LANGUAGE 'plpgsql';
@@ -210,7 +210,7 @@ CREATE TABLE registry.contact (
      "crid" int CHECK ("crid" >= 0) NOT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "upid" int CHECK ("upid" >= 0) default NULL,
-     "update"   timestamp(3) without time zone default NULL,
+     "lastupdate"   timestamp(3) without time zone default NULL,
      "trdate"   timestamp(3) without time zone default NULL,
      "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
      "reid" int CHECK ("reid" >= 0) default NULL,
@@ -271,7 +271,7 @@ CREATE TABLE registry.domain (
      "registrant" int CHECK ("registrant" >= 0) default NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "exdate"   timestamp(3) without time zone NOT NULL,
-     "update"   timestamp(3) without time zone default NULL,
+     "lastupdate"   timestamp(3) without time zone default NULL,
      "clid" int CHECK ("clid" >= 0) NOT NULL,
      "crid" int CHECK ("crid" >= 0) NOT NULL,
      "upid" int CHECK ("upid" >= 0) default NULL,
@@ -358,7 +358,7 @@ CREATE TABLE registry.host (
      "crid" int CHECK ("crid" >= 0) NOT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "upid" int CHECK ("upid" >= 0) default NULL,
-     "update"   timestamp(3) without time zone default NULL,
+     "lastupdate"   timestamp(3) without time zone default NULL,
      "trdate"   timestamp(3) without time zone default NULL,
      primary key ("id"),
      unique ("name") 
@@ -395,7 +395,7 @@ CREATE TABLE registry.domain_auto_approve_transfer (
      "registrant" int CHECK ("registrant" >= 0) default NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "exdate"   timestamp(3) without time zone NOT NULL,
-     "update"   timestamp(3) without time zone default NULL,
+     "lastupdate"   timestamp(3) without time zone default NULL,
      "clid" int CHECK ("clid" >= 0) NOT NULL,
      "crid" int CHECK ("crid" >= 0) NOT NULL,
      "upid" int CHECK ("upid" >= 0) default NULL,
@@ -423,7 +423,7 @@ CREATE TABLE registry.contact_auto_approve_transfer (
      "crid" int CHECK ("crid" >= 0) NOT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "upid" int CHECK ("upid" >= 0) default NULL,
-     "update"   timestamp(3) without time zone default NULL,
+     "lastupdate"   timestamp(3) without time zone default NULL,
      "trdate"   timestamp(3) without time zone default NULL,
      "trstatus" varchar CHECK ("trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
      "reid" int CHECK ("reid" >= 0) default NULL,
@@ -649,8 +649,8 @@ INSERT INTO registry.domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',
 INSERT INTO registry.domain_restore_price VALUES (E'1',E'1',E'50.00');
 INSERT INTO registry.domain_restore_price VALUES (E'2',E'2',E'50.00');
 
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "update") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO registry.ticket_categories (name, description) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),

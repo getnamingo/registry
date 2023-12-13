@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
     `currency` varchar(5) NOT NULL default 'USD',
     `crdate` datetime(3) NOT NULL,
-    `update` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
+    `lastupdate` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `clid` (`clid`),
     UNIQUE KEY `prefix` (`prefix`),
@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`contact` (
     `crid` int(10) unsigned NOT NULL,
     `crdate` datetime(3) NOT NULL,
     `upid` int(10) unsigned default NULL,
-    `update` datetime(3) default NULL,
+    `lastupdate` datetime(3) default NULL,
     `trdate` datetime(3) default NULL,
     `trstatus` enum('clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled') default NULL,
     `reid` int(10) unsigned default NULL,
@@ -272,7 +272,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain` (
     `registrant` int(10) unsigned default NULL,
     `crdate` datetime(3) NOT NULL,
     `exdate` datetime(3) NOT NULL,
-    `update` datetime(3) default NULL,
+    `lastupdate` datetime(3) default NULL,
     `clid` int(10) unsigned NOT NULL,
     `crid` int(10) unsigned NOT NULL,
     `upid` int(10) unsigned default NULL,
@@ -371,7 +371,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`host` (
     `crid` int(10) unsigned NOT NULL,
     `crdate` datetime(3) NOT NULL,
     `upid` int(10) unsigned default NULL,
-    `update` datetime(3) default NULL,
+    `lastupdate` datetime(3) default NULL,
     `trdate` datetime(3) default NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `name` (`name`),
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_auto_approve_transfer` (
     `registrant` int(10) unsigned default NULL,
     `crdate` datetime(3) NOT NULL,
     `exdate` datetime(3) NOT NULL,
-    `update` datetime(3) default NULL,
+    `lastupdate` datetime(3) default NULL,
     `clid` int(10) unsigned NOT NULL,
     `crid` int(10) unsigned NOT NULL,
     `upid` int(10) unsigned default NULL,
@@ -444,7 +444,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`contact_auto_approve_transfer` (
     `crid` int(10) unsigned NOT NULL,
     `crdate` datetime(3) NOT NULL,
     `upid` int(10) unsigned default NULL,
-    `update` datetime(3) default NULL,
+    `lastupdate` datetime(3) default NULL,
     `trdate` datetime(3) default NULL,
     `trstatus` enum('clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled') default NULL,
     `reid` int(10) unsigned default NULL,
@@ -672,8 +672,8 @@ INSERT INTO `registry`.`domain_price` VALUES('6','2','transfer','0.00','5.00','1
 INSERT INTO `registry`.`domain_restore_price` VALUES('1','1','50.00');
 INSERT INTO `registry`.`domain_restore_price` VALUES('2','2','50.00');
 
-INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('LeoNet LLC','leonet','$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg','LN','info@leonet.test','whois.leonet.test','rdap.leonet.test','https://www.leonet.test','abuse@leonet.test','+380.325050','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`update`) VALUES('Nord Registrar AB','nordregistrar','$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U','NR','info@nordregistrar.test','whois.nordregistrar.test','rdap.nordregistrar.test','https://www.nordregistrar.test','abuse@nordregistrar.test','+46.80203','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`lastupdate`) VALUES('LeoNet LLC','leonet','$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg','LN','info@leonet.test','whois.leonet.test','rdap.leonet.test','https://www.leonet.test','abuse@leonet.test','+380.325050','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`lastupdate`) VALUES('Nord Registrar AB','nordregistrar','$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U','NR','info@nordregistrar.test','whois.nordregistrar.test','rdap.nordregistrar.test','https://www.nordregistrar.test','abuse@nordregistrar.test','+46.80203','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 INSERT INTO `registry`.`ticket_categories` (name, description) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),

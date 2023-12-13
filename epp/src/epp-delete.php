@@ -227,7 +227,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $grace_period = 30;
 
-    // DELETE FROM `domain_status`
+    // DELETE FROM domain_status
     $stmt = $db->prepare("DELETE FROM domain_status WHERE domain_id = ?");
     $stmt->execute([$domain_id]);
 

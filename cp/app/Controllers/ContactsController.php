@@ -876,7 +876,7 @@ class ContactsController extends Controller
                         'nin' => $nin ?? null,
                         'nin_type' => $nin_type ?? null,
                         'upid' => $clid,
-                        'update' => $update,
+                        'lastupdate' => $update,
                         'disclose_voice' => $disclose_voice,
                         'disclose_fax' => $disclose_fax,
                         'disclose_email' => $disclose_email

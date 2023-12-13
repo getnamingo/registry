@@ -158,7 +158,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':amount', $negative_price, PDO::PARAM_INT);
             $stmt->execute();
 
-            // Fetch `exdate`:
+            // Fetch exdate:
             $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
             $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
             $stmt->execute();
@@ -166,7 +166,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
 
             // Insert into statement:
             if ($database_type === "mysql") {
-                $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, `from`, `to`, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, from, to, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
             } elseif ($database_type === "pgsql") {
                 $stmt = $db->prepare('INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, "from", "to", amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)');
             } else {
@@ -182,7 +182,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute();
     $exdateUpdated = $stmt->fetchColumn();
 
-    // Check for an existing entry in `statistics` for the current date
+    // Check for an existing entry in statistics for the current date
     $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
     $stmt->execute();
     $curdate_id = $stmt->fetchColumn();
@@ -193,7 +193,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->execute();
     }
 
-    // Update the `renewed_domains` count for the current date
+    // Update the renewed_domains count for the current date
     $stmt = $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()");
     $stmt->execute();
 

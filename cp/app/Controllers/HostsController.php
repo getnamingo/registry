@@ -513,7 +513,7 @@ class HostsController extends Controller
                 $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
                 $db->update('host', [
-                    'update' => $update,
+                    'lastupdate' => $update,
                     'upid' => $clid
                 ],
                 [

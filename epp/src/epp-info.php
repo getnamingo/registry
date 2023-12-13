@@ -74,7 +74,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
             'crID' => getRegistrarClid($db, $contact['crid']),
             'crDate' => $contact['crdate'],
             'upID' => getRegistrarClid($db, $contact['upid']),
-            'upDate' => $contact['update'],
+            'upDate' => $contact['lastupdate'],
             'authInfo' => 'valid',
             'authInfo_type' => $authInfo['authtype'],
             'authInfo_val' => $authInfo['authinfo']
@@ -155,7 +155,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
             'crID' => getRegistrarClid($db, $host['crid']),
             'crDate' => $host['crdate'],
             'upID' => getRegistrarClid($db, $host['upid']),
-            'upDate' => $host['update'],
+            'upDate' => $host['lastupdate'],
             'trDate' => $host['trdate']
         ];
 
@@ -299,8 +299,8 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         if (isset($domain['upid']) && $domain['upid']) {
             $response['upID'] = getRegistrarClid($db, $domain['upid']);
         }
-        if (isset($domain['update']) && $domain['update']) {
-            $response['upDate'] = $domain['update'];
+        if (isset($domain['lastupdate']) && $domain['lastupdate']) {
+            $response['upDate'] = $domain['lastupdate'];
         }
         if (isset($domain['trdate']) && $domain['trdate']) {
             $response['trDate'] = $domain['trdate'];

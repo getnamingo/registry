@@ -141,7 +141,7 @@ class RegistrarsController extends Controller
                         'thresholdType' => $data['thresholdType'],
                         'currency' => $currency,
                         'crdate' => $crdate,
-                        'update' => $crdate
+                        'lastupdate' => $crdate
                     ]
                 );
                 $registrar_id = $db->getLastInsertId();
@@ -518,7 +518,7 @@ class RegistrarsController extends Controller
                     'creditLimit' => $data['creditLimit'],
                     'creditThreshold' => $data['creditThreshold'],
                     'currency' => $currency,
-                    'update' => $crdate
+                    'lastupdate' => $crdate
                 ];
                 
                 if (!empty($data['eppPassword'])) {

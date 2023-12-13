@@ -17,7 +17,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         $identifier = strtoupper($contactID);
-        $stmt = $db->prepare("SELECT `id`, `clid` FROM `contact` WHERE `identifier` = :identifier LIMIT 1");
+        $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = :identifier LIMIT 1");
         $stmt->execute([':identifier' => $identifier]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $contact_id = $result['id'] ?? null;
@@ -41,7 +41,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
 
             if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT `id` FROM `contact_authInfo` WHERE `contact_id` = :contact_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
                 $stmt->execute([
                     ':contact_id' => $contact_id,
                     ':authInfo_pw' => $authInfo_pw
@@ -54,13 +54,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
             }
 
-            $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
             $trstatus = $contactInfo['trstatus'] ?? '';
 
             if ($trstatus === 'pending') {
-                $stmt = $db->prepare("UPDATE `contact` SET `update` = CURRENT_TIMESTAMP(3), `clid` = :reid, `upid` = :upid, `trdate` = CURRENT_TIMESTAMP(3), `trstatus` = 'clientApproved', `acdate` = CURRENT_TIMESTAMP(3) WHERE `id` = :contact_id");
+                $stmt = $db->prepare("UPDATE contact SET lastupdate = CURRENT_TIMESTAMP(3), clid = :reid, upid = :upid, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3) WHERE id = :contact_id");
                 $stmt->execute([
                     ':reid' => $contactInfo['reid'],
                     ':upid' => $clid,
@@ -74,11 +74,11 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     $stmt->execute([':contact_id' => $contact_id]);
                     $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    $reid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                    $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                     $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
                     $reid_identifier = $reid_identifier_stmt->fetchColumn();
 
-                    $acid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                    $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                     $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
                     $acid_identifier = $acid_identifier_stmt->fetchColumn();
                     
@@ -116,7 +116,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             // A <contact:authInfo> element that contains authorization information associated with the contact object.
             if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT `id` FROM `contact_authInfo` WHERE `contact_id` = :contact_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
                  $contact_authinfo_id = $stmt->fetchColumn();
                 if (!$contact_authinfo_id) {
@@ -125,13 +125,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
             }
 
-            $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
             $trstatus = $contactInfo['trstatus'] ?? '';
 
             if ($trstatus === 'pending') {
-                $stmt = $db->prepare("UPDATE `contact` SET `trstatus` = 'clientCancelled' WHERE `id` = :contact_id");
+                $stmt = $db->prepare("UPDATE contact SET trstatus = 'clientCancelled' WHERE id = :contact_id");
                 $stmt->execute([':contact_id' => $contact_id]);
 
                 if ($stmt->errorCode() != 0) {
@@ -141,11 +141,11 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     $stmt->execute([':contact_id' => $contact_id]);
                     $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    $reid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                    $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                     $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
                     $reid_identifier = $reid_identifier_stmt->fetchColumn();
 
-                    $acid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                    $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                     $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
                     $acid_identifier = $acid_identifier_stmt->fetchColumn();
                     
@@ -175,17 +175,17 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 return;
             }
         } elseif ($op === 'query') {
-            $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
             $trstatus = $contactInfo['trstatus'] ?? '';
 
             if ($trstatus === 'pending') {
-                $reid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                 $reid_identifier_stmt->execute([':reid' => $contactInfo['reid']]);
                 $reid_identifier = $reid_identifier_stmt->fetchColumn();
 
-                $acid_identifier_stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                 $acid_identifier_stmt->execute([':acid' => $contactInfo['acid']]);
                 $acid_identifier = $acid_identifier_stmt->fetchColumn();
                 
@@ -222,7 +222,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             // A <contact:authInfo> element that contains authorization information associated with the contact object.
             if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT `id` FROM `contact_authInfo` WHERE `contact_id` = :contact_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
                 $contact_authinfo_id = $stmt->fetchColumn();
 
@@ -232,29 +232,29 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
             }
 
-            $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($contactInfo['trstatus'] === 'pending') {
                 // The losing registrar has five days once the contact is pending to respond.
-                $updateStmt = $db->prepare("UPDATE `contact` SET `trstatus` = 'clientRejected' WHERE `id` = :contact_id");
+                $updateStmt = $db->prepare("UPDATE contact SET trstatus = 'clientRejected' WHERE id = :contact_id");
                 $updateStmt->execute([':contact_id' => $contact_id]);
 
                 if ($updateStmt->errorCode() !== '00000') {
                     sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
                     return;
                 } else {
-                    $stmt = $db->prepare("SELECT `crid`, `crdate`, `upid`, `update`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+                    $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
                     $stmt->execute([':contact_id' => $contact_id]);
                     $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     // Fetch registrar identifiers
-                    $reidStmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                    $reidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                     $reidStmt->execute([':reid' => $contactInfo['reid']]);
                     $reid_identifier = $reidStmt->fetchColumn();
 
-                    $acidStmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                    $acidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                     $acidStmt->execute([':acid' => $contactInfo['acid']]);
                     $acid_identifier = $acidStmt->fetchColumn();
                     
@@ -285,7 +285,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
         } elseif ($op == 'request') {
             // Check if contact is within 60 days of its initial registration
-            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),`crdate`) FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $days_from_registration = $stmt->fetchColumn();
 
@@ -295,7 +295,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
 
             // Check if contact is within 60 days of its last transfer
-            $stmt = $db->prepare("SELECT `trdate`, DATEDIFF(CURRENT_TIMESTAMP(3),`trdate`) AS `intval` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $last_trdate = $result['trdate'];
@@ -307,7 +307,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
 
             // Check the <contact:authInfo> element
-            $stmt = $db->prepare("SELECT `id` FROM `contact_authInfo` WHERE `contact_id` = :contact_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
             $contact_authinfo_id = $stmt->fetchColumn();
 
@@ -317,7 +317,7 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
 
             // Check if the contact name is subject to any special locks or holds
-            $stmt = $db->prepare("SELECT `status` FROM `contact_status` WHERE `contact_id` = :contact_id");
+            $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :contact_id");
             $stmt->execute([':contact_id' => $contact_id]);
 
             while ($status = $stmt->fetchColumn()) {
@@ -332,14 +332,14 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 return;
             }
 
-            $stmt = $db->prepare("SELECT `crid`,`crdate`,`upid`,`update`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $trstatus = $result['trstatus'];
 
             if (!$trstatus || $trstatus != 'pending') {
                 $waiting_period = 5; // days
-                $stmt = $db->prepare("UPDATE `contact` SET `trstatus` = 'pending', `reid` = :registrar_id, `redate` = CURRENT_TIMESTAMP(3), `acid` = :registrar_id_contact, `acdate` = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY) WHERE `id` = :contact_id");
+                $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY) WHERE id = :contact_id");
                 $stmt->execute([
                     ':registrar_id' => $clid,
                     ':registrar_id_contact' => $registrar_id_contact,
@@ -350,14 +350,14 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
-                    $stmt = $db->prepare("SELECT `crid`,`crdate`,`upid`,`update`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate` FROM `contact` WHERE `id` = :contact_id LIMIT 1");
+                    $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
                     $stmt->execute([':contact_id' => $contact_id]);
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    $reid_identifier = $db->query("SELECT `clid` FROM `registrar` WHERE `id` = '{$result['reid']}' LIMIT 1")->fetchColumn();
-                    $acid_identifier = $db->query("SELECT `clid` FROM `registrar` WHERE `id` = '{$result['acid']}' LIMIT 1")->fetchColumn();
+                    $reid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['reid']}' LIMIT 1")->fetchColumn();
+                    $acid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['acid']}' LIMIT 1")->fetchColumn();
 
-                    $db->prepare("INSERT INTO `poll` (`registrar_id`,`qdate`,`msg`,`msg_type`,`obj_name_or_id`,`obj_trStatus`,`obj_reID`,`obj_reDate`,`obj_acID`,`obj_acDate`,`obj_exDate`) VALUES(:registrar_id_contact, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'contactTransfer', :identifier, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)")
+                    $db->prepare("INSERT INTO poll (registrar_id,qdate,msg,msg_type,obj_name_or_id,obj_trStatus,obj_reID,obj_reDate,obj_acID,obj_acDate,obj_exDate) VALUES(:registrar_id_contact, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'contactTransfer', :identifier, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)")
                         ->execute([
                             ':registrar_id_contact' => $registrar_id_contact,
                             ':identifier' => $identifier,
@@ -412,7 +412,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         return;
     }
 
-    $stmt = $db->prepare("SELECT `id`,`tldid`,`clid` FROM `domain` WHERE `name` = :name LIMIT 1");
+    $stmt = $db->prepare("SELECT id,tldid,clid FROM domain WHERE name = :name LIMIT 1");
     $stmt->bindParam(':name', $domainName, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -439,7 +439,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = ? AND `authtype` = 'pw' AND `authinfo` = ? LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
             $stmt->execute([$domain_id, $authInfo_pw]);
             $domain_authinfo_id = $stmt->fetchColumn();
 
@@ -449,7 +449,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
         }
 
-        $stmt = $db->prepare("SELECT `id`,`registrant`,`crdate`,`exdate`,`update`,`clid`,`crid`,`upid`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate`,`transfer_exdate` FROM `domain` WHERE `name` = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = ? LIMIT 1");
         $stmt->execute([$domainName]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -457,16 +457,16 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $date_add = 0;
             $price = 0;
 
-            $stmt = $db->prepare("SELECT `accountBalance`,`creditLimit` FROM `registrar` WHERE `id` = ? LIMIT 1");
+            $stmt = $db->prepare("SELECT accountBalance,creditLimit FROM registrar WHERE id = ? LIMIT 1");
             $stmt->execute([$row["reid"]]);
             list($registrar_balance, $creditLimit) = $stmt->fetch(PDO::FETCH_NUM);
 
             if ($row["transfer_exdate"]) {
-                $stmt = $db->prepare("SELECT PERIOD_DIFF(DATE_FORMAT(`transfer_exdate`, '%Y%m'), DATE_FORMAT(`exdate`, '%Y%m')) AS `intval` FROM `domain` WHERE `name` = ? LIMIT 1");
+                $stmt = $db->prepare("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1");
                 $stmt->execute([$domainName]);
                 $date_add = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("SELECT `m$date_add` FROM `domain_price` WHERE `tldid` = ? AND `command` = 'transfer' LIMIT 1");
+                $stmt = $db->prepare("SELECT m$date_add FROM domain_price WHERE tldid = ? AND command = 'transfer' LIMIT 1");
                 $stmt->execute([$tldid]);
                 $price = $stmt->fetchColumn();
 
@@ -476,57 +476,57 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
             }
 			
-            $stmt = $db->prepare("SELECT `exdate` FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+            $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
             $stmt->execute(['domain_id' => $domain_id]);
             $from = $stmt->fetchColumn();
 
-            $stmt = $db->prepare("UPDATE `domain` SET `exdate` = DATE_ADD(`exdate`, INTERVAL ? MONTH), `update` = CURRENT_TIMESTAMP(3), `clid` = ?, `upid` = ?, `trdate` = CURRENT_TIMESTAMP(3), `trstatus` = 'clientApproved', `acdate` = CURRENT_TIMESTAMP(3), `transfer_exdate` = NULL, `rgpstatus` = 'transferPeriod', `transferPeriod` = ? WHERE `id` = ?");
+            $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
             $stmt->execute([$date_add, $row["reid"], $clid, $date_add, $domain_id]);
 
-            $stmt = $db->prepare("UPDATE `host` SET `clid` = ?, `upid` = ?, `update` = CURRENT_TIMESTAMP(3), `trdate` = CURRENT_TIMESTAMP(3) WHERE `domain_id` = ?");
+            $stmt = $db->prepare("UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?");
             $stmt->execute([$row["reid"], $clid, $domain_id]);
 
             if ($stmt->errorCode() !== PDO::ERR_NONE) {
                 sendEppError($conn, $db, 2400, 'The transfer was not successful, something is wrong', $clTRID, $trans);
                 return;
             } else {
-                $stmt = $db->prepare("UPDATE `registrar` SET `accountBalance` = (`accountBalance` - :price) WHERE `id` = :reid");
+                $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :reid");
                 $stmt->execute(['price' => $price, 'reid' => $reid]);
 
-                $stmt = $db->prepare("INSERT INTO `payment_history` (`registrar_id`,`date`,`description`,`amount`) VALUES(:reid, CURRENT_TIMESTAMP(3), :description, :amount)");
+                $stmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:reid, CURRENT_TIMESTAMP(3), :description, :amount)");
                 $description = "transfer domain $domainName for period $date_add MONTH";
                 $stmt->execute(['reid' => $reid, 'description' => $description, 'amount' => -$price]);
 
-                $stmt = $db->prepare("SELECT `exdate` FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+                $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
                 $stmt->execute(['domain_id' => $domain_id]);
                 $to = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("INSERT INTO `statement` (`registrar_id`,`date`,`command`,`domain_name`,`length_in_months`,`from`,`to`,`amount`) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
+                $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
                 $stmt->execute(['registrar_id' => $reid, 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
 
-                $stmt = $db->prepare("SELECT `id`,`registrant`,`crdate`,`exdate`,`update`,`clid`,`crid`,`upid`,`trdate`,`trstatus`,`reid`,`redate`,`acid`,`acdate`,`transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+                $stmt = $db->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                 $stmt->execute(['name' => $domainName]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 extract($row);
 
-                $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                 $stmt->execute(['reid' => $reid]);
                 $reid_identifier = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                 $stmt->execute(['acid' => $acid]);
                 $acid_identifier = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("SELECT `id` FROM `statistics` WHERE `date` = CURDATE()");
+                $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
                 $stmt->execute();
                 $curdate_id = $stmt->fetchColumn();
 
                 if (!$curdate_id) {
-                    $stmt = $db->prepare("INSERT IGNORE INTO `statistics` (`date`) VALUES(CURDATE())");
+                    $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
                     $stmt->execute();
                 }
 
-                $stmt = $db->prepare("UPDATE `statistics` SET `transfered_domains` = `transfered_domains` + 1 WHERE `date` = CURDATE()");
+                $stmt = $db->prepare("UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()");
                 $stmt->execute();
                 
                 $svTRID = generateSvTRID();
@@ -567,7 +567,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = :domain_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
             $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
             $domain_authinfo_id = $stmt->fetchColumn();
 
@@ -577,29 +577,29 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
         }
 
-        $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+        $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
         $stmt->execute(['name' => $domainName]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         extract($row);
 
         if ($trstatus === 'pending') {
-            $stmt = $db->prepare("UPDATE `domain` SET `trstatus` = 'clientCancelled' WHERE `id` = :domain_id");
+            $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
             $stmt->execute(['domain_id' => $domain_id]);
             
             if ($stmt->errorCode() !== '00000') {
                 sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
                 return;
             } else {
-                $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+                $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                 $stmt->execute(['name' => $domainName]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 extract($row);
 
-                $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                 $stmt->execute(['reid' => $reid]);
                 $reid_identifier = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                 $stmt->execute(['acid' => $acid]);
                 $acid_identifier = $stmt->fetchColumn();
                 
@@ -636,18 +636,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
     elseif ($op === 'query') {
 
-        $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+        $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
         $stmt->execute(['name' => $domainName]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         extract($result);
 
         if ($trstatus === 'pending') {
 
-            $stmtReID = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+            $stmtReID = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
             $stmtReID->execute(['reid' => $reid]);
             $reid_identifier = $stmtReID->fetchColumn();
 
-            $stmtAcID = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+            $stmtAcID = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
             $stmtAcID->execute(['acid' => $acid]);
             $acid_identifier = $stmtAcID->fetchColumn();
             
@@ -688,7 +688,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         if ($authInfo_pw) {
-            $stmtAuthInfo = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = :domain_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+            $stmtAuthInfo = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
             $stmtAuthInfo->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
             $domain_authinfo_id = $stmtAuthInfo->fetchColumn();
 
@@ -698,24 +698,24 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
         }
 
-        $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+        $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
         $stmt->execute(['name' => $domainName]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         extract($result);
 
         if ($trstatus === 'pending') {
-            $stmtUpdate = $db->prepare("UPDATE `domain` SET `trstatus` = 'clientRejected' WHERE `id` = :domain_id");
+            $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
             $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
 
             if (!$success || $stmtUpdate->errorCode() !== '00000') {
                 sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
                 return;
             } else {
-                $stmtReID = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                $stmtReID = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                 $stmtReID->execute(['reid' => $reid]);
                 $reid_identifier = $stmtReID->fetchColumn();
 
-                $stmtAcID = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                $stmtAcID = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                 $stmtAcID->execute(['acid' => $acid]);
                 $acid_identifier = $stmtAcID->fetchColumn();
                 
@@ -752,7 +752,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
     elseif ($op === 'request') {
         // Check days from registration
-        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), `crdate`) FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id]);
         $days_from_registration = $stmt->fetchColumn();
 
@@ -762,7 +762,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         // Check days from last transfer
-        $stmt = $db->prepare("SELECT `trdate`, DATEDIFF(CURRENT_TIMESTAMP(3),`trdate`) AS `intval` FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+        $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id]);
         $result = $stmt->fetch();
         $last_trdate = $result["trdate"];
@@ -774,7 +774,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         // Check days from expiry date
-        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),`exdate`) FROM `domain` WHERE `id` = :domain_id LIMIT 1");
+        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),exdate) FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id]);
         $days_from_expiry_date = $stmt->fetchColumn();
 
@@ -784,7 +784,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         // Auth info
-        $stmt = $db->prepare("SELECT `id` FROM `domain_authInfo` WHERE `domain_id` = :domain_id AND `authtype` = 'pw' AND `authinfo` = :authInfo_pw LIMIT 1");
+        $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
         $domain_authinfo_id = $stmt->fetchColumn();
 
@@ -794,7 +794,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         }
 
         // Check domain status
-        $stmt = $db->prepare("SELECT `status` FROM `domain_status` WHERE `domain_id` = :domain_id");
+        $stmt = $db->prepare("SELECT status FROM domain_status WHERE domain_id = :domain_id");
         $stmt->execute(['domain_id' => $domain_id]);
         while ($status = $stmt->fetchColumn()) {
             if (preg_match('/.*(TransferProhibited)$/', $status) || preg_match('/^pending/', $status)) {
@@ -808,7 +808,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             return;
         }
 
-        $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate` FROM `domain` WHERE `name` = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1");
         $stmt->execute([$domainName]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -816,7 +816,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $registrant = $row['registrant'];
         $crdate = $row['crdate'];
         $exdate = $row['exdate'];
-        $update = $row['update'];
+        $update = $row['lastupdate'];
         $registrar_id_domain = $row['clid'];
         $crid = $row['crid'];
         $upid = $row['upid'];
@@ -860,13 +860,13 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     return;
                 }
 
-                $stmt = $db->prepare("SELECT `accountBalance`, `creditLimit` FROM `registrar` WHERE `id` = :registrar_id LIMIT 1");
+                $stmt = $db->prepare("SELECT accountBalance, creditLimit FROM registrar WHERE id = :registrar_id LIMIT 1");
                 $stmt->execute([':registrar_id' => $clid]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $registrar_balance = $result["accountBalance"];
                 $creditLimit = $result["creditLimit"];
 
-                $stmt = $db->prepare("SELECT `m$date_add` FROM `domain_price` WHERE `tldid` = :tldid AND `command` = 'transfer' LIMIT 1");
+                $stmt = $db->prepare("SELECT m$date_add FROM domain_price WHERE tldid = :tldid AND command = 'transfer' LIMIT 1");
                 $stmt->execute([':tldid' => $tldid]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $price = $result["m$date_add"];
@@ -877,7 +877,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 }
 
                 $waiting_period = 5; 
-                $stmt = $db->prepare("UPDATE `domain` SET `trstatus` = 'pending', `reid` = :registrar_id, `redate` = CURRENT_TIMESTAMP(3), `acid` = :registrar_id_domain, `acdate` = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), `transfer_exdate` = DATE_ADD(`exdate`, INTERVAL $date_add MONTH) WHERE `id` = :domain_id");
+                $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH) WHERE id = :domain_id");
                 $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
                 
                 if ($stmt->errorCode() !== '00000') {
@@ -885,22 +885,22 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     return;
                 } else {
                     // Get the domain details
-                    $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+                    $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                     $stmt->execute([':name' => $domainName]);
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
                     
-                    list($domain_id, $registrant, $crdate, $exdate, $update, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
+                    list($domain_id, $registrant, $crdate, $exdate, $lastupdate, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
 
-                    $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                     $stmt->execute([':reid' => $reid]);
                     $reid_identifier = $stmt->fetchColumn();
 
-                    $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                     $stmt->execute([':acid' => $acid]);
                     $acid_identifier = $stmt->fetchColumn();
 
                     // The current sponsoring registrar will receive a notification of a pending transfer
-                    $stmt = $db->prepare("INSERT INTO `poll` (`registrar_id`,`qdate`,`msg`,`msg_type`,`obj_name_or_id`,`obj_trStatus`,`obj_reID`,`obj_reDate`,`obj_acID`,`obj_acDate`,`obj_exDate`) VALUES(:registrar_id_domain, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'domainTransfer', :name, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, :transfer_exdate)");
+                    $stmt = $db->prepare("INSERT INTO poll (registrar_id,qdate,msg,msg_type,obj_name_or_id,obj_trStatus,obj_reID,obj_reDate,obj_acID,obj_acDate,obj_exDate) VALUES(:registrar_id_domain, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'domainTransfer', :name, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, :transfer_exdate)");
                     $stmt->execute([
                         ':registrar_id_domain' => $registrar_id_domain,
                         ':name' => $domainName,
@@ -940,7 +940,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 // No expiration date is inserted after the transfer procedure
                 $waiting_period = 5; // days
 
-                $stmt = $db->prepare("UPDATE `domain` SET `trstatus` = 'pending', `reid` = :registrar_id, `redate` = CURRENT_TIMESTAMP(3), `acid` = :registrar_id_domain, `acdate` = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :waiting_period DAY), `transfer_exdate` = NULL WHERE `id` = :domain_id");
+                $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :waiting_period DAY), transfer_exdate = NULL WHERE id = :domain_id");
                 $stmt->execute([
                     ':registrar_id' => $clid,
                     ':registrar_id_domain' => $registrar_id_domain,
@@ -953,22 +953,22 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     return;
                 } else {
                     // Get the domain details
-                    $stmt = $db->prepare("SELECT `id`, `registrant`, `crdate`, `exdate`, `update`, `clid`, `crid`, `upid`, `trdate`, `trstatus`, `reid`, `redate`, `acid`, `acdate`, `transfer_exdate` FROM `domain` WHERE `name` = :name LIMIT 1");
+                    $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                     $stmt->execute([':name' => $domainName]);
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    list($domain_id, $registrant, $crdate, $exdate, $update, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
+                    list($domain_id, $registrant, $crdate, $exdate, $lastupdate, $registrar_id_domain, $crid, $upid, $trdate, $trstatus, $reid, $redate, $acid, $acdate, $transfer_exdate) = array_values($result);
 
-                    $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :reid LIMIT 1");
+                    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                     $stmt->execute([':reid' => $reid]);
                     $reid_identifier = $stmt->fetchColumn();
 
-                    $stmt = $db->prepare("SELECT `clid` FROM `registrar` WHERE `id` = :acid LIMIT 1");
+                    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
                     $stmt->execute([':acid' => $acid]);
                     $acid_identifier = $stmt->fetchColumn();
 
                     // Notify the current sponsoring registrar of the pending transfer
-                    $stmt = $db->prepare("INSERT INTO `poll` (`registrar_id`, `qdate`, `msg`, `msg_type`, `obj_name_or_id`, `obj_trStatus`, `obj_reID`, `obj_reDate`, `obj_acID`, `obj_acDate`, `obj_exDate`) VALUES(:registrar_id_domain, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'domainTransfer', :name, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)");
+                    $stmt = $db->prepare("INSERT INTO poll (registrar_id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate) VALUES(:registrar_id_domain, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'domainTransfer', :name, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)");
                     $stmt->execute([
                         ':registrar_id_domain' => $registrar_id_domain,
                         ':name' => $domainName,

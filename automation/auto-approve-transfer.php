@@ -17,7 +17,7 @@ try {
 }
 
 try {
-    $query_domain = "SELECT id, name, registrant, crdate, exdate, `update`, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'";
+    $query_domain = "SELECT id, name, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'";
     $stmt_domain = $dbh->prepare($query_domain);
     $stmt_domain->execute();
 
@@ -58,10 +58,10 @@ try {
 
         $from = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
 
-        $stmt_update = $dbh->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH), `update` = CURRENT_TIMESTAMP, clid = '$reid', upid = '$clid', trdate = CURRENT_TIMESTAMP, trstatus = 'serverApproved', acdate = CURRENT_TIMESTAMP, transfer_exdate = NULL WHERE id = '$domain_id'");
+        $stmt_update = $dbh->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH), lastupdate = CURRENT_TIMESTAMP, clid = '$reid', upid = '$clid', trdate = CURRENT_TIMESTAMP, trstatus = 'serverApproved', acdate = CURRENT_TIMESTAMP, transfer_exdate = NULL WHERE id = '$domain_id'");
         $stmt_update->execute();
 
-        $stmt_update_host = $dbh->prepare("UPDATE host SET clid = '$reid', upid = NULL, `update` = CURRENT_TIMESTAMP, trdate = CURRENT_TIMESTAMP WHERE domain_id = '$domain_id'");
+        $stmt_update_host = $dbh->prepare("UPDATE host SET clid = '$reid', upid = NULL, lastupdate = CURRENT_TIMESTAMP, trdate = CURRENT_TIMESTAMP WHERE domain_id = '$domain_id'");
         $stmt_update_host->execute();
 
         if ($stmt_update->errorCode() != "00000") {
@@ -76,18 +76,18 @@ try {
             $stmt_insert_statement = $dbh->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,from,to,amount) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
             $stmt_insert_statement->execute([$reid, 'transfer', $name, $date_add, $from, $to, $price]);
 
-            $stmt_select_domain = $dbh->prepare("SELECT id,registrant,crdate,exdate,`update`,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = ? LIMIT 1");
+            $stmt_select_domain = $dbh->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = ? LIMIT 1");
             $stmt_select_domain->execute([$name]);
             $domain_data = $stmt_select_domain->fetch(PDO::FETCH_ASSOC);
             
-            $stmt_auto_approve_transfer = $dbh->prepare("INSERT INTO domain_auto_approve_transfer (name,registrant,crdate,exdate,`update`,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $stmt_auto_approve_transfer = $dbh->prepare("INSERT INTO domain_auto_approve_transfer (name,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
             $stmt_auto_approve_transfer->execute(array_values($domain_data));
         }
 
     }
     $stmt_domain = null;
 
-    $stmt_contact = $dbh->prepare("SELECT id, crid, crdate, upid, `update`, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'");
+    $stmt_contact = $dbh->prepare("SELECT id, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'");
     $stmt_contact->execute();
 
     while ($contact_data = $stmt_contact->fetch(PDO::FETCH_ASSOC)) {
@@ -95,18 +95,18 @@ try {
         $reid = $contact_data['reid'];
 
         // The losing registrar has five days once the contact is pending to respond.
-        $stmt_update_contact = $dbh->prepare("UPDATE contact SET `update` = CURRENT_TIMESTAMP, clid = ?, upid = NULL, trdate = CURRENT_TIMESTAMP, trstatus = 'serverApproved', acdate = CURRENT_TIMESTAMP WHERE id = ?");
+        $stmt_update_contact = $dbh->prepare("UPDATE contact SET lastupdate = CURRENT_TIMESTAMP, clid = ?, upid = NULL, trdate = CURRENT_TIMESTAMP, trstatus = 'serverApproved', acdate = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt_update_contact->execute([$reid, $contact_id]);
 
         if ($stmt_update_contact->errorCode() != "00000") {
             $log->error($contact_id . ': The contact transfer was not successful, something is wrong | DB Update failed:' . implode(", ", $stmt_update_contact->errorInfo()));
             continue;
         } else {
-            $stmt_select_contact = $dbh->prepare("SELECT identifier, crid, crdate, upid, `update`, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = ? LIMIT 1");
+            $stmt_select_contact = $dbh->prepare("SELECT identifier, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = ? LIMIT 1");
             $stmt_select_contact->execute([$contact_id]);
             $contact_selected_data = $stmt_select_contact->fetch(PDO::FETCH_ASSOC);
             
-            $stmt_auto_approve_transfer = $dbh->prepare("INSERT INTO contact_auto_approve_transfer (identifier, crid, crdate, upid, `update`, trdate, trstatus, reid, redate, acid, acdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt_auto_approve_transfer = $dbh->prepare("INSERT INTO contact_auto_approve_transfer (identifier, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt_auto_approve_transfer->execute(array_values($contact_selected_data));
         }
     }

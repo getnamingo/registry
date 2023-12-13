@@ -285,7 +285,7 @@ try {
             $xml->writeElement('rdeContact:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             if (!empty($contact['upid'])) {
                 $xml->writeElement('rdeContact:upRr', $contact['upid']);
-                $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['update']);
+                $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['lastupdate']);
                 $xml->writeElement('rdeContact:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
             }
             $xml->endElement();  // Closing rdeContact:contact
