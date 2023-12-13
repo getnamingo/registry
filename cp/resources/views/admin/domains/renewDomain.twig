@@ -27,13 +27,14 @@
             {% include 'partials/flash.twig' %}
                 <div class="card">
                     <div class="card-body">
-                        <form id="domainRenewForm" action="/domain/renew/{{ domain.name }}" method="post">
-                        {{ csrf.field | raw }}
+                        {% if maxYears >= 1 %}<form id="domainRenewForm" action="/domain/renew/{{ domain.name }}" method="post">
+                        {{ csrf.field | raw }}{% endif %}
                             <div class="mb-3">
                                 <label for="domainName" class="form-label">{{ __('Domain Name') }}</label>
                                 <div class="form-control-plaintext">{{ domain.name }}</div><input type="hidden" name="domainName" id="domainName" value="{{ domain.name }}">
                             </div>
                             
+                            {% if maxYears >= 1 %}
                             <!-- Slider for years -->
                             <div class="mb-3">
                                 <label for="renewalYears" class="form-label">{{ 'Renewal Years' }}</label>
@@ -45,7 +46,14 @@
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
                                 <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
                             </div>
+                            {% else %}
+                            <div class="mb-3">
+                                <label for="renewalYears" class="form-label">{{ 'Renewal Years' }}</label>
+                                <div class="form-control-plaintext">Your domain is currently renewed to its maximum term. At this time, no additional renewal is possible.</div>
+                            </div>
+                            {% endif %}
                     </div>
+                {% if maxYears >= 1 %}
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
@@ -54,6 +62,7 @@
                   </div>
                 </div>
                 </form>
+                {% endif %}
               </div>
             </div>
           </div>
