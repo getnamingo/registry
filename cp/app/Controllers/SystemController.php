@@ -899,5 +899,83 @@ class SystemController extends Controller
             'currentUri' => $uri
         ]);
     }
+    
+    public function managePromo(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+
+            $sData = array();
+
+            $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
+            $sData['extension'] = substr(trim($data['extension']), 0, 10);
+            $sData['promotionName'] = substr(trim($data['promotionName']), 0, 255);
+            $sData['promotionStart'] = date('Y-m-d', strtotime($data['promotionStart']));
+            $sData['promotionEnd'] = date('Y-m-d', strtotime($data['promotionEnd']));
+            $sData['discountType'] = in_array($data['discountType'], ['percentage', 'amount']) ? $data['discountType'] : 'percentage';
+            $sData['discountValue'] = filter_var($data['discountValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+            $sData['max_count'] = ($data['max_count'] === "") ? null : filter_var($data['max_count'], FILTER_SANITIZE_NUMBER_INT);
+            $sData['promotionConditions'] = substr(trim($data['promotionConditions']), 0, 1000); 
+            $sData['promotionDescription'] = substr(trim($data['promotionDescription']), 0, 1000);
+
+            try {
+                $discount_percentage = NULL;
+                $discount_amount = NULL;
+
+                // Determine which column to populate based on discountType
+                if ($sData['discountType'] == 'percentage') {
+                    // Ensure the percentage value is within a valid range (0 to 100)
+                    $discount_percentage = min(100, max(0, floatval($sData['discountValue'])));
+                } elseif ($sData['discountType'] == 'amount') {
+                    // Ensure the amount is a valid positive number
+                    $discount_amount = max(0, floatval($sData['discountValue']));
+                }
+                
+                $currentDateTime = new \DateTime();
+                $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                $db->beginTransaction();
+
+                $db->insert(
+                    'promotion_pricing',
+                    [
+                        'tld_id' => $sData['tldid'],
+                        'promo_name' => $sData['promotionName'],
+                        'start_date' => $sData['promotionStart'],
+                        'end_date' => $sData['promotionEnd'],
+                        'discount_percentage' => $discount_percentage,
+                        'discount_amount' => $discount_amount,
+                        'description' => $sData['promotionDescription'],
+                        'conditions' => $sData['promotionConditions'],
+                        'promo_type' => 'full',
+                        'status' => 'active',
+                        'max_count' => $sData['max_count'],
+                        'created_by' => $_SESSION['auth_user_id'],
+                        'created_at' => $crdate
+                    ]
+                );
+
+                $db->commit();
+                
+                $this->container->get('flash')->addMessage('success', 'Promotion updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+               return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+            }
+            
+        } else {
+            // Redirect to the tlds view
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
 
 }

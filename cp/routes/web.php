@@ -97,7 +97,8 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':manageTld')->setName('manageTld');
     $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');
     $route->map(['GET', 'POST'], '/registry/reserved', SystemController::class .':manageReserved')->setName('manageReserved');
-    
+    $route->post('/registry/promotions', SystemController::class . ':managePromo')->setName('managePromo');
+
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');
     $route->get('/ticket/{ticket}', SupportController::class . ':viewTicket')->setName('viewTicket');

@@ -228,32 +228,51 @@
                         </tbody>
                     </table>
                   </div>
-                      <h5 class="card-subtitle mt-3 mb-3">Create New Promotion</h5>
+                      <h4 class="card-subtitle mt-3 mb-3">Create New Promotion</h4>
                       <form action="/registry/promotions" method="post">
                       {{ csrf.field | raw }}
-                      <input type="hidden" name="tld" value="{{ tld.tld }}">
+                      <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
                           <div class="mb-3">
-                              <label for="promotionName" class="form-label">Promotion Name</label>
-                              <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name">
+                              <label for="promotionName" class="form-label required">Promotion Name</label>
+                              <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name" required>
+                          </div>
+                          <div class="row">
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="promotionStart" class="form-label required">Promotion Start Date</label>
+                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="promotionStart" name="promotionStart" required>
+                                </div>
+                              </div>
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="promotionEnd" class="form-label">Promotion End Date</label>
+                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="promotionEnd" name="promotionEnd">
+                                </div>
+                              </div>
                           </div>
                           <div class="mb-3">
-                              <label for="promotionDescription" class="form-label">Description</label>
-                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="Enter description"></textarea>
-                          </div>
-                          <div class="mb-3">
-                              <label for="promotionPeriod" class="form-label">Promotion Period</label>
-                              <input type="text" class="form-control" id="promotionPeriod" name="promotionPeriod" placeholder="e.g., 01/01/2023 - 31/12/2023">
-                          </div>
-                          <div class="mb-3">
-                              <label for="discountType" class="form-label">Discount Type</label>
-                              <select class="form-select" id="discountType" name="discountType">
+                              <label for="discountType" class="form-label required">Discount Type</label>
+                              <select class="form-select" id="discountType" name="discountType" required>
                                   <option value="percentage">Percentage</option>
                                   <option value="fixed">Fixed Amount</option>
+                                  <option value="free">Free Domains</option>
                               </select>
                           </div>
                           <div class="mb-3">
                               <label for="discountValue" class="form-label">Discount Value</label>
                               <input type="text" class="form-control" id="discountValue" name="discountValue" placeholder="Enter discount value">
+                          </div>
+                          <div class="mb-3">
+                              <label for="max_count" class="form-label">Maximum Discounted Items</label>
+                              <input type="text" class="form-control" id="max_count" name="max_count">
+                          </div>
+                          <div class="mb-3">
+                              <label for="promotionConditions" class="form-label">Conditions</label>
+                              <textarea class="form-control" id="promotionConditions" name="promotionConditions" rows="3" placeholder="Enter conditions"></textarea>
+                          </div>
+                          <div class="mb-3">
+                              <label for="promotionDescription" class="form-label">Description</label>
+                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="Enter description"></textarea>
                           </div>
                   </div>
                   <div class="card-footer">
