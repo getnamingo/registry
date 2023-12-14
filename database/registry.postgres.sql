@@ -80,6 +80,7 @@ CREATE TABLE registry.registrar (
      "creditthreshold"   decimal(12,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
      "currency"   varchar(5) NOT NULL default 'USD',
+     "vat_number" VARCHAR(30) DEFAULT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "lastupdate"   timestamp(3),
      primary key ("id"),
@@ -570,17 +571,31 @@ CREATE TABLE registry.icann_reports (
 );
 
 CREATE TABLE registry.promotion_pricing (
-    "id" serial8 PRIMARY KEY,
+    "id" SERIAL PRIMARY KEY,
     "tld_id" INT CHECK ("tld_id" >= 0),
-    "promo_name" VARCHAR(255) NOT NULL,
-    "start_date" DATE NOT NULL,
-    "end_date" DATE NOT NULL,
-    "discount_percentage" DECIMAL(5,2),
-    "discount_amount" DECIMAL(10,2),
-    "description" TEXT,
-    "conditions" TEXT,
+    "promo_name" varchar(255) NOT NULL,
+    "start_date" timestamp(3) NOT NULL,
+    "end_date" timestamp(3) NOT NULL,
+    "discount_percentage" numeric(5,2),
+    "discount_amount" numeric(10,2),
+    "description" text,
+    "conditions" text,
+    "promo_type" VARCHAR CHECK (promo_type IN ('full', 'registration', 'renewal', 'transfer')) NOT NULL,
+    "years_of_promotion" integer,
+    "max_count" integer,
+    "registrar_ids" jsonb,
+    "status" VARCHAR CHECK (status IN ('active', 'expired', 'upcoming')) NOT NULL,
+    "minimum_purchase" numeric(10,2),
+    "target_segment" varchar(255),
+    "region_specific" varchar(255),
+    "created_by" varchar(255),
+    "created_at" timestamp(3) without time zone,
+    "updated_by" varchar(255),
+    "updated_at" timestamp(3) without time zone,
     FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
 );
+
+CREATE INDEX idx_promotion_pricing_tld_id ON promotion_pricing (tld_id);
 
 CREATE TABLE registry.premium_domain_categories (
     "category_id" serial8 PRIMARY KEY,

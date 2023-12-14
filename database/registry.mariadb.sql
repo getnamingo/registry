@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `creditThreshold` decimal(12,2) NOT NULL default '0.00',
     `thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
     `currency` varchar(5) NOT NULL default 'USD',
+    `vat_number` varchar(30) DEFAULT NULL,
     `crdate` datetime(3) NOT NULL,
     `lastupdate` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -592,15 +593,28 @@ CREATE TABLE IF NOT EXISTS `registry`.`icann_reports` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='ICANN Reporting';
 
 CREATE TABLE IF NOT EXISTS `registry`.`promotion_pricing` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `tld_id` INT UNSIGNED,
-    `promo_name` VARCHAR(255) NOT NULL,
-    `start_date` DATE NOT NULL,
-    `end_date` DATE NOT NULL,
-    `discount_percentage` DECIMAL(5,2),
-    `discount_amount` DECIMAL(10,2),
-    `description` TEXT,
-    `conditions` TEXT,
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `tld_id` int(10) unsigned DEFAULT NULL,
+    `promo_name` varchar(255) NOT NULL,
+    `start_date` datetime(3) NOT NULL,
+    `end_date` datetime(3) NOT NULL,
+    `discount_percentage` decimal(5,2) DEFAULT NULL,
+    `discount_amount` decimal(10,2) DEFAULT NULL,
+    `description` text DEFAULT NULL,
+    `conditions` text DEFAULT NULL,
+    `promo_type` ENUM('full', 'registration', 'renewal', 'transfer') NOT NULL,
+    `years_of_promotion` int(2) DEFAULT NULL,
+    `max_count` int(10) unsigned DEFAULT NULL,
+    `registrar_ids` json DEFAULT NULL,
+    `status` ENUM('active', 'expired', 'upcoming') NOT NULL,
+    `minimum_purchase` decimal(10,2) DEFAULT NULL,
+    `target_segment` varchar(255) DEFAULT NULL,
+    `region_specific` varchar(255) DEFAULT NULL,
+    `created_by` varchar(255) DEFAULT NULL,
+    `created_at` datetime(3) DEFAULT NULL,
+    `updated_by` varchar(255) DEFAULT NULL,
+    `updated_at` datetime(3) DEFAULT NULL,
+    KEY `tld_id` (`tld_id`),
     FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Promotions';
 
@@ -703,14 +717,6 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('phone',    '+123456789'),
 ('handle',    'RXX'),
 ('email',    'contact@example.com');
-
-CREATE USER 'registry'@'localhost' IDENTIFIED BY 'EPPRegistry';
-CREATE USER 'registry-select'@'localhost' IDENTIFIED BY 'EPPRegistrySELECT';
-CREATE USER 'registry-update'@'localhost' IDENTIFIED BY 'EPPRegistryUPDATE';
-
-GRANT ALL ON `registry`.* TO 'registry'@'localhost';
-GRANT SELECT ON `registry`.* TO 'registry-select'@'localhost';
-GRANT UPDATE ON `registry`.`payment_history` TO 'registry-update'@'localhost';
 
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 
