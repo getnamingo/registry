@@ -42,7 +42,8 @@
         "jeremykendall/php-domain-parser": "^6.3",
         "matthiasmullie/scrapbook": "^1.5",
         "guzzlehttp/guzzle": "^7.8",
-        "league/flysystem": "^3.23"
+        "league/flysystem": "^3.23",
+        "mpociot/vat-calculator": "^3.6"
     },
     "autoload": {
         "psr-4": {

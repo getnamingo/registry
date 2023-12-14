@@ -34,8 +34,10 @@
                     <p class="h3">Provider / Registry</p>
                     <address>
                       {{ company_name }}<br>
+                      {{ vat_number }}<br>
                       {{ address }}<br>
                       {{ address2 }}<br>
+                      {{ cc }}<br>
                       {{ email }}
                     </address>
                   </div>
@@ -43,6 +45,7 @@
                     <p class="h3">Client / Registrar</p>
                     <address>
                       {{ billing.org }}<br>
+                      {{ billing_vat }} {% if validVAT %}<svg xmlns="http://www.w3.org/2000/svg" class="icon text-success" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>{% endif %}<br>
                       {{ billing.street1 }}<br>
                       {{ billing.city }}, {{ billing.sp }}<br>
                       {{ billing.pc }}, {{ billing.cc }}<br>
@@ -96,19 +99,19 @@
                 {% endif %}      
                   <tr>
                     <td colspan="2" class="strong text-end">Subtotal</td>
-                    <td class="text-end">{{ totalAmount|number_format(2, '.', ',') }}</td>
+                    <td class="text-end">{{ netPrice }}</td>
                   </tr>
                   <tr>
                     <td colspan="2" class="strong text-end">Vat Rate</td>
-                    <td class="text-end">TODO</td>
+                    <td class="text-end">{{ vatRate }}</td>
                   </tr>
                   <tr>
                     <td colspan="2" class="strong text-end">Vat Due</td>
-                    <td class="text-end">TODO</td>
+                    <td class="text-end">{{ vatAmount }}</td>
                   </tr>
                   <tr>
                     <td colspan="2" class="font-weight-bold text-uppercase text-end">Total Due</td>
-                    <td class="font-weight-bold text-end">{{ invoice_details.total_amount }}</td>
+                    <td class="font-weight-bold text-end">{{ total }}</td>
                   </tr>
                 </table>
                 <p class="text-secondary text-center mt-5">Notes: {{ invoice_details.notes }}</p>

@@ -691,7 +691,9 @@ INSERT INTO registry.settings (name, value) VALUES
 ('whois-43-queries', '0'),
 ('company_name', 'Example Registry LLC'),
 ('address', '123 Example Street, Example City'),
-('address2', '48000, Ukraine'),
+('address2', '48000'),
+('cc', 'Ukraine'),
+('vat_number', '0'),
 ('phone', '+123456789'),
 ('handle', 'RXX'),
 ('email', 'contact@example.com');

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use Mpociot\VatCalculator\VatCalculator;
 
 class FinancialsController extends Controller
 {
@@ -44,28 +45,54 @@ class FinancialsController extends Controller
         $billing = $db->selectRow('SELECT * FROM registrar_contact WHERE id = ?',
         [ $invoice_details['billing_contact_id'] ]
         );
+        $billing_vat = $db->selectValue('SELECT vat_number FROM registrar WHERE id = ?',
+        [ $invoice_details['registrar_id'] ]
+        );
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
         $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
         $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
+        $cc = $db->selectValue("SELECT value FROM settings WHERE name = 'cc'");
+        $vat_number = $db->selectValue("SELECT value FROM settings WHERE name = 'vat_number'");
         $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
-
+        
         $issueDate = new \DateTime($invoice_details['issue_date']);
         $firstDayPrevMonth = (clone $issueDate)->modify('first day of last month')->format('Y-m-d');
         $lastDayPrevMonth = (clone $issueDate)->modify('last day of last month')->format('Y-m-d');
         $statement = $db->select('SELECT * FROM statement WHERE date BETWEEN ? AND ? AND registrar_id = ?',
         [ $firstDayPrevMonth, $lastDayPrevMonth, $invoice_details['registrar_id'] ]
         );
+        
+        $vatCalculator = new VatCalculator();
+        $vatCalculator->setBusinessCountryCode(strtoupper($cc));
+        $grossPrice = $vatCalculator->calculate($invoice_details['total_amount'], strtoupper($billing['cc']));
+        $taxRate = $vatCalculator->getTaxRate();
+        $netPrice = $vatCalculator->getNetPrice(); 
+        $taxValue = $vatCalculator->getTaxValue(); 
+        if ($vatCalculator->shouldCollectVAT(strtoupper($billing['cc']))) {
+            $validVAT = $vatCalculator->isValidVatNumberFormat($vat_number);
+        } else {
+            $validVAT = null;
+        }
+        $totalAmount = $grossPrice + $taxValue;
 
         return view($response,'admin/financials/viewInvoice.twig', [
             'invoice_details' => $invoice_details,
             'billing' => $billing,
+            'billing_vat' => $billing_vat,
             'statement' => $statement,
             'company_name' => $company_name,
             'address' => $address,
             'address2' => $address2,
+            'cc' => $cc,
+            'vat_number' => $vat_number,
             'phone' => $phone,
             'email' => $email,
+            'vatRate' => ($taxRate * 100) . "%",
+            'vatAmount' => $taxValue,
+            'validVAT' => $validVAT,
+            'netPrice' => $netPrice,
+            'total' => $totalAmount,
             'currentUri' => $uri
         ]);
 
