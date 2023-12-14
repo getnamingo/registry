@@ -13,13 +13,13 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-Namingo is rapidly approaching its full launch, with key system components, including the WHOIS, DAS, EPP, and RDAP servers, already implemented and fully operational. These components, along with our control panel, have successfully passed basic security and penetration testing, ensuring a robust and secure experience for our users.
+We are thrilled to announce major progress in the development of Namingo as we edge closer to our full launch. All key system components, including the WHOIS, DAS, EPP, RDAP servers, and the control panel, are now fully implemented and operational. These crucial elements have not only been successfully integrated but have also undergone basic QA and security testing.
 
-We are now in the process of finalizing the control panel, aiming to refine its features and user interface. If you have expertise in detailed testing and optimization, your contribution would be highly valued. Please consider reaching out to us for this crucial phase.
+In terms of system performance, Namingo has been tested with up to 150,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD. Additionally, this volume of domains occupies just a bit more than 1 GB of the database.
 
-In terms of system performance, Namingo has been tested with up to 150,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD. Additionally, this volume of domains occupies just a bit more than 1 GB in the database.
+With these foundational components solidly in place, our focus shifts to the next vital stages of our project. We are now directing our efforts towards further testing and optimization to guarantee the highest standards of functionality and user experience. This phase is crucial in refining our system to its optimal state.
 
-Our development efforts are currently focused on:
+Our efforts are also focused on:
 
 - Integrating support for the fee extension (RFC8748).
 
