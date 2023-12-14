@@ -581,6 +581,18 @@ class DomainsController extends Controller
 
                 if (!empty($nameservers)) {
                     foreach ($nameservers as $index => $nameserver) {
+                        
+                        $internal_host = false;
+                        
+                        $result = $db->select('SELECT tld FROM domain_tld');
+
+                        foreach ($result as $row) {
+                            if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                                $internal_host = true;
+                                break;
+                            }
+                        }
+
                         $hostName_already_exist = $db->selectValue(
                             'SELECT id FROM host WHERE name = ? LIMIT 1',
                             [$nameserver]
@@ -615,17 +627,31 @@ class DomainsController extends Controller
                         } else {
                             $currentDateTime = new \DateTime();
                             $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                            $db->insert(
-                                'host',
-                                [
-                                    'name' => $nameserver,
-                                    'domain_id' => $domain_id,
-                                    'clid' => $clid,
-                                    'crid' => $clid,
-                                    'crdate' => $host_date
-                                ]
-                            );
-                            $host_id = $db->getlastInsertId();
+                            
+                            if ($internal_host) {
+                                $db->insert(
+                                    'host',
+                                    [
+                                        'name' => $nameserver,
+                                        'domain_id' => $domain_id,
+                                        'clid' => $clid,
+                                        'crid' => $clid,
+                                        'crdate' => $host_date
+                                    ]
+                                );
+                                $host_id = $db->getlastInsertId();
+                            } else {
+                                $db->insert(
+                                    'host',
+                                    [
+                                        'name' => $nameserver,
+                                        'clid' => $clid,
+                                        'crid' => $clid,
+                                        'crdate' => $host_date
+                                    ]
+                                );
+                                $host_id = $db->getlastInsertId();
+                            }
 
                             $db->insert(
                                 'domain_host_map',
@@ -643,30 +669,41 @@ class DomainsController extends Controller
                                 ]
                             );
                             
-                            if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
-                                $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
-                                
-                                $db->insert(
-                                    'host_addr',
-                                    [
-                                        'host_id' => $host_id,
-                                        'addr' => $ipv4,
-                                        'ip' => 'v4'
-                                    ]
-                                );
-                            }
+                            if ($internal_host) {
+                                if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
+                                    return view($response, 'admin/domains/createDomain.twig', [
+                                        'domainName' => $domainName,
+                                        'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
+                                        'registrars' => $registrars,
+                                        'registrar' => $registrar,
+                                    ]);
+                                }
+    
+                                if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
+                                    $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
+                                    
+                                    $db->insert(
+                                        'host_addr',
+                                        [
+                                            'host_id' => $host_id,
+                                            'addr' => $ipv4,
+                                            'ip' => 'v4'
+                                        ]
+                                    );
+                                }
 
-                            if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
-                                $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
-                                
-                                $db->insert(
-                                    'host_addr',
-                                    [
-                                        'host_id' => $host_id,
-                                        'addr' => $ipv6,
-                                        'ip' => 'v6'
-                                    ]
-                                );
+                                if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
+                                    $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
+                                    
+                                    $db->insert(
+                                        'host_addr',
+                                        [
+                                            'host_id' => $host_id,
+                                            'addr' => $ipv6,
+                                            'ip' => 'v6'
+                                        ]
+                                    );
+                                }
                             }
                             
                         }

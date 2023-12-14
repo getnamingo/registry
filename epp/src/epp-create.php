@@ -493,6 +493,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         
         foreach ($host_addr_list as $node) {
             $addr = (string) $node;
+            
+            if (empty($addr)) {
+                sendEppError($conn, $db, 2303, 'Error: Address is empty', $clTRID, $trans);
+                return;
+            }
+            
             $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
             
             if ($addr_type == 'v6') {
