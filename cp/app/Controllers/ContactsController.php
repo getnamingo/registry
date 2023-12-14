@@ -528,6 +528,13 @@ class ContactsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+        
             $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
             [ $args ]);
 
@@ -585,6 +592,13 @@ class ContactsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+            
             $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
             [ $args ]);
 
@@ -992,6 +1006,13 @@ class ContactsController extends Controller
             $uri = $request->getUri()->getPath();
         
             if ($args) {
+                $args = trim($args);
+
+                if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
+                }
+            
                 $contact_id = $db->selectValue('SELECT id FROM contact WHERE identifier = ?',
                 [ $args ]);
                 

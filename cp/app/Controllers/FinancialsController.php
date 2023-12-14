@@ -22,10 +22,11 @@ class FinancialsController extends Controller
     {
         return view($response,'admin/financials/invoices.twig');
     }
-    
+
     public function viewInvoice(Request $request, Response $response, $args)
     {
         $invoiceNumberPattern = '/^[A-Za-z]+\d+-?\d+$/';
+        $args = trim($args);
 
         if (preg_match($invoiceNumberPattern, $args)) {
             $invoiceNumber = $args; // valid format

@@ -780,6 +780,13 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = strtolower(trim($args));
+
+            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+        
             $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
@@ -858,6 +865,13 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = strtolower(trim($args));
+
+            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
             $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
@@ -1551,6 +1565,13 @@ class DomainsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = strtolower(trim($args));
+
+            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+            
             $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
             [ $args ]);
 
@@ -1620,6 +1641,13 @@ class DomainsController extends Controller
             $uri = $request->getUri()->getPath();
         
             if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+            
                 $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
                 [ $args ]);
             
@@ -2238,7 +2266,17 @@ class DomainsController extends Controller
        //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $args ?? null;
+            
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $domainName = $args ?? null;
+            }
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2403,7 +2441,17 @@ class DomainsController extends Controller
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $args ?? null;
+            
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $domainName = $args ?? null;
+            }
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2458,7 +2506,17 @@ class DomainsController extends Controller
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $args ?? null;
+
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $domainName = $args ?? null;
+            }
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
@@ -2513,8 +2571,18 @@ class DomainsController extends Controller
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $args ?? null;
-            
+
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $domainName = $args ?? null;
+            }
+
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
@@ -2578,7 +2646,17 @@ class DomainsController extends Controller
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $args ?? null;
+
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+                
+                $domainName = $args ?? null;
+            }
             
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');

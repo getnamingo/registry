@@ -274,6 +274,8 @@ class HostsController extends Controller
         $uri = $request->getUri()->getPath();
 
         function isValidHostname($hostname) {
+            $hostname = trim($hostname);
+            
             // Check for IDN and convert to ASCII if necessary
             if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
                 $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
@@ -343,6 +345,8 @@ class HostsController extends Controller
         $uri = $request->getUri()->getPath();
 
         function isValidHostname($hostname) {
+            $hostname = trim($hostname);
+            
             // Check for IDN and convert to ASCII if necessary
             if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
                 $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
@@ -541,6 +545,8 @@ class HostsController extends Controller
             $uri = $request->getUri()->getPath();
         
             function isValidHostname($hostname) {
+                $hostname = trim($hostname);
+
                 // Check for IDN and convert to ASCII if necessary
                 if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
                     $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);

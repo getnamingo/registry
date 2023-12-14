@@ -459,6 +459,13 @@ class SystemController extends Controller
             $db = $this->container->get('db');
             
             if ($args) {
+                $args = trim($args);
+
+                if (!preg_match('/^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?[^\.]$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
+                    return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+                }
+                
                 $validators = [
                     'extension' => v::stringType()->notEmpty()->length(3, 64),
                     'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
@@ -743,6 +750,13 @@ class SystemController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?[^\.]$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+                
             $tld = $db->selectRow('SELECT id, tld, idn_table, secure FROM domain_tld WHERE tld = ?',
             [ $args ]);
 

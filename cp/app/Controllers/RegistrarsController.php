@@ -298,6 +298,13 @@ class RegistrarsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = trim(preg_replace('/\s+/', ' ', $args));
+
+            if (!preg_match('/^[a-zA-Z0-9\s]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid registrar');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+            
             $registrar = $db->selectRow('SELECT * FROM registrar WHERE name = ?',
             [ $args ]);
 
@@ -367,6 +374,13 @@ class RegistrarsController extends Controller
         $uri = $request->getUri()->getPath();
 
         if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-z0-9]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid registrar');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+            
             $registrar = $db->selectRow('SELECT * FROM registrar WHERE clid = ?',
             [ $args ]);
 
