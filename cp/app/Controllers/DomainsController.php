@@ -22,12 +22,7 @@ class DomainsController extends Controller
             $domainName = $data['domain_name'] ?? null;
 
             if ($domainName) {
-                $domainParts = explode('.', $domainName);
-
-                if (count($domainParts) > 2) {
-                    // Remove the leftmost part (subdomain)
-                    array_shift($domainParts);
-                }
+                $parts = extractDomainAndTLD($domainName);
 
                 $domainModel = new Domain($this->container->get('db'));
                 $availability = $domainModel->getDomainByName($domainName);
@@ -44,7 +39,7 @@ class DomainsController extends Controller
                 } else {
                     // If the domain is not taken, check if it's reserved
                     if ($availability === '1') {
-                        $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$domainParts[0]]);
+                        $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
 
                         if ($domain_already_reserved) {
                             $isAvailable = 0;
@@ -109,7 +104,9 @@ class DomainsController extends Controller
             
             $authInfo = $data['authInfo'] ?? null;
             
-            list($label, $domain_extension) = explode('.', $domainName, 2);
+            $parts = extractDomainAndTLD($domainName);
+            $label = $parts['domain'];
+            $domain_extension = $parts['tld'];
             $invalid_domain = validate_label($domainName, $db);
 
             if ($invalid_domain) {
@@ -157,7 +154,7 @@ class DomainsController extends Controller
 
             $domain_already_reserved = $db->selectValue(
                 'SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1',
-                [$domainName]
+                [$label]
             );
 
             if ($domain_already_reserved) {
@@ -1411,7 +1408,9 @@ class DomainsController extends Controller
             $domainName = $data['domainName'] ?? null;
             $renewalYears = $data['renewalYears'] ?? null;
             
-            list($label, $domain_extension) = explode('.', $domainName, 2);
+            $parts = extractDomainAndTLD($domainName);
+            $label = $parts['domain'];
+            $domain_extension = $parts['tld'];
 
             $result = $db->select('SELECT id, tld FROM domain_tld');
             foreach ($result as $row) {
@@ -1673,7 +1672,9 @@ class DomainsController extends Controller
                 $renewedDate = $domain['renewedDate'];
                 $transferPeriod = $domain['transferPeriod'];
 
-                list($label, $domain_extension) = explode('.', $domainName, 2);
+                $parts = extractDomainAndTLD($domainName);
+                $label = $parts['domain'];
+                $domain_extension = $parts['tld'];
 
                 $result = $db->select('SELECT id, tld FROM domain_tld');
                 foreach ($result as $row) {

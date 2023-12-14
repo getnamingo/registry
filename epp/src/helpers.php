@@ -6,6 +6,12 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
+use Pdp\Domain;
+use Pdp\TopLevelDomains;
+use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\Flysystem\Filesystem;
+use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
+use MatthiasMullie\Scrapbook\Psr6\Pool;
 
 /**
  * Sets up and returns a Logger instance.
@@ -194,8 +200,8 @@ function validate_label($label, $pdo) {
     }
     
     // Extract TLD from the domain and prepend a dot
-    $parts = explode('.', $label);
-    $tld = "." . end($parts);
+    $parts = extractDomainAndTLD($label);
+    $tld = "." . $parts['tld'];
 
     // Check if the TLD exists in the domain_tld table
     $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
@@ -222,6 +228,43 @@ function validate_label($label, $pdo) {
         $server->send($fd, "Domain name invalid format");
         return 'Invalid domain name format, please review registry policy about accepted labels';
     }
+}
+
+function extractDomainAndTLD($urlString) {
+    $cachePath = '/var/www/cp/cache'; // Cache directory
+    $adapter = new LocalFilesystemAdapter($cachePath, null, LOCK_EX);
+    $filesystem = new Filesystem($adapter);
+    $cache = new Pool(new ScrapbookFlysystem($filesystem));
+    $cacheKey = 'tlds_alpha_by_domain';
+    $cachedFile = $cache->getItem($cacheKey);
+    $fileContent = $cachedFile->get();
+
+    // Define a list of fake TLDs used in your QA environment
+    $fakeTlds = ['test', 'xx'];
+
+    // Parse the URL to get the host
+    $parts = parse_url($urlString);
+    $host = $parts['host'] ?? $urlString;
+
+    // Check if the TLD is a known fake TLD
+    foreach ($fakeTlds as $fakeTld) {
+        if (str_ends_with($host, ".$fakeTld")) {
+            // Handle the fake TLD case
+            $hostParts = explode('.', $host);
+            $tld = array_pop($hostParts);
+            $sld = array_pop($hostParts);
+            return ['domain' => $sld, 'tld' => $tld];
+        }
+    }
+
+    // Use the PHP Domain Parser library for real TLDs
+    $tlds = TopLevelDomains::fromString($fileContent);
+    $domain = Domain::fromIDNA2008($host);
+    $result = $tlds->resolve($domain);
+    $sld = $result->secondLevelDomain()->toString();
+    $tld = $result->suffix()->toString();
+
+    return ['domain' => $sld, 'tld' => $tld];
 }
 
 function normalize_v4_address($v4) {

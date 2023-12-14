@@ -535,7 +535,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->execute([$hostName, $clid, $clid]);
         
         $host_id = $db->lastInsertId();
-		
+        
         $host_status = 'ok';
         $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
         $stmt->execute([$host_id, $host_status]);
@@ -567,8 +567,11 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
+    
+    $parts = extractDomainAndTLD($domainName);
+    $label = $parts['domain'];
+    $domain_extension = $parts['tld'];
 
-    list($label, $domain_extension) = explode('.', $domainName, 2);
     $invalid_domain = validate_label($domainName, $db);
 
     if ($invalid_domain) {
@@ -602,7 +605,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     $stmt = $db->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
-    $stmt->execute([$domainName]);
+    $stmt->execute([$label]);
     $domain_already_reserved = $stmt->fetchColumn();
 
     if ($domain_already_reserved) {

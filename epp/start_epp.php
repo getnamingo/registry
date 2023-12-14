@@ -125,6 +125,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $pw = (string) $xml->command->login->pw;
                     $clTRID = (string) $xml->command->clTRID;
                     $clid = getClid($pdo, $clID);
+                    if (!$clid) {
+                        sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
+                        break;
+                    }
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
 

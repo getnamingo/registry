@@ -1,5 +1,9 @@
 {
     "require": {
-        "monolog/monolog": "^3.5"
+        "monolog/monolog": "^3.5",
+        "jeremykendall/php-domain-parser": "^6.3",
+        "matthiasmullie/scrapbook": "^1.5",
+        "guzzlehttp/guzzle": "^7.8",
+        "league/flysystem": "^3.23"
     }
 }
