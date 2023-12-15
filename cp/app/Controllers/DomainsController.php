@@ -92,9 +92,9 @@ class DomainsController extends Controller
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
             
-            $dsKeyTag = $data['dsKeyTag'] ?? null;
+            $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
             $dsAlg = $data['dsAlg'] ?? null;
-            $dsDigestType = $data['dsDigestType'] ?? null;
+            $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
             $dsDigest = $data['dsDigest'] ?? null;
             
             $dnskeyFlags = $data['dnskeyFlags'] ?? null;
@@ -466,7 +466,7 @@ class DomainsController extends Controller
                 2 => 64,  // SHA-256
                 4 => 96   // SHA-384
                 ];
-                if (!empty($validDigests[$dsDigestType])) {
+                if (empty($validDigests[$dsDigestType])) {
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
                         'error' => 'Unsupported digest type',
@@ -527,8 +527,9 @@ class DomainsController extends Controller
                     ]);
                 }
 
-                if (!empty($dsKeyTag) || !empty($dnskeyFlags)) {
-                    $db->insert('secdns', [
+                if (!empty($dsKeyTag)) {
+                    // Base data for the insert
+                    $insertData = [
                         'domain_id' => $domain_id,
                         'maxsiglife' => $maxSigLife,
                         'interface' => 'dsData',
@@ -536,11 +537,22 @@ class DomainsController extends Controller
                         'alg' => $dsAlg,
                         'digesttype' => $dsDigestType,
                         'digest' => $dsDigest,
-                        'flags' => $dnskeyFlags ?? null,
-                        'protocol' => $dnskeyProtocol ?? null,
-                        'keydata_alg' => $dnskeyAlg ?? null,
-                        'pubkey' => $dnskeyPubKey ?? null
-                    ]);
+                        'flags' => null,
+                        'protocol' => null,
+                        'keydata_alg' => null,
+                        'pubkey' => null
+                    ];
+
+                    // Check additional conditions for dnskeyFlags
+                    if (isset($dnskeyFlags) && $dnskeyFlags !== "") {
+                        $insertData['flags'] = $dnskeyFlags;
+                        $insertData['protocol'] = $dnskeyProtocol;
+                        $insertData['keydata_alg'] = $dnskeyAlg;
+                        $insertData['pubkey'] = $dnskeyPubKey;
+                    }
+
+                    // Perform the insert
+                    $db->insert('secdns', $insertData);
                 }
                 
                 $db->exec(
@@ -757,6 +769,14 @@ class DomainsController extends Controller
                 
                 $db->commit();
             } catch (Exception $e) {
+                $db->rollBack();
+                return view($response, 'admin/domains/createDomain.twig', [
+                    'domainName' => $domainName,
+                    'error' => 'Database failure: ' . $e->getMessage(),
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
+                ]);
+            } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
                 return view($response, 'admin/domains/createDomain.twig', [
                     'domainName' => $domainName,
@@ -1013,9 +1033,9 @@ class DomainsController extends Controller
             
             $nameservers = $data['nameserver'] ?? [];
 
-            $dsKeyTag = $data['dsKeyTag'] ?? null;
+            $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
             $dsAlg = $data['dsAlg'] ?? null;
-            $dsDigestType = $data['dsDigestType'] ?? null;
+            $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
             $dsDigest = $data['dsDigest'] ?? null;
             
             $dnskeyFlags = $data['dnskeyFlags'] ?? null;
@@ -1179,7 +1199,7 @@ class DomainsController extends Controller
                     2 => 64,  // SHA-256
                     4 => 96   // SHA-384
                 ];
-                if (!empty($validDigests[$dsDigestType])) {
+                if (empty($validDigests[$dsDigestType])) {
                     $this->container->get('flash')->addMessage('error', 'Unsupported digest type');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
@@ -1216,8 +1236,9 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
 
-                if (!empty($dsKeyTag) || !empty($dnskeyFlags)) {
-                    $db->insert('secdns', [
+                if (!empty($dsKeyTag)) {
+                    // Base data for the insert
+                    $insertData = [
                         'domain_id' => $domain_id,
                         'maxsiglife' => $maxSigLife,
                         'interface' => 'dsData',
@@ -1225,11 +1246,22 @@ class DomainsController extends Controller
                         'alg' => $dsAlg,
                         'digesttype' => $dsDigestType,
                         'digest' => $dsDigest,
-                        'flags' => $dnskeyFlags ?? null,
-                        'protocol' => $dnskeyProtocol ?? null,
-                        'keydata_alg' => $dnskeyAlg ?? null,
-                        'pubkey' => $dnskeyPubKey ?? null
-                    ]);
+                        'flags' => null,
+                        'protocol' => null,
+                        'keydata_alg' => null,
+                        'pubkey' => null
+                    ];
+
+                    // Check additional conditions for dnskeyFlags
+                    if (isset($dnskeyFlags) && $dnskeyFlags !== "") {
+                        $insertData['flags'] = $dnskeyFlags;
+                        $insertData['protocol'] = $dnskeyProtocol;
+                        $insertData['keydata_alg'] = $dnskeyAlg;
+                        $insertData['pubkey'] = $dnskeyPubKey;
+                    }
+
+                    // Perform the insert
+                    $db->insert('secdns', $insertData);
                 }
    
                 foreach ($nameservers as $index => $nameserver) {
@@ -1374,6 +1406,10 @@ class DomainsController extends Controller
            
                 $db->commit();
             } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+            } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);

@@ -122,7 +122,7 @@
 
                     {% if domainSecdns|length > 0 %}
                         <!-- DNSSEC data is available, display the form directly -->
-                        <div id="dnssecData" class="mb-3">
+                        <div id="dnssecTable" class="mb-3">
                             <label for="authInfo" class="form-label">{{ __('DNSSEC Data') }}</label>
                             <div class="table-responsive">
                                 <table class="table table-vcenter card-table table-striped">
@@ -178,7 +178,7 @@
                                 </table>
                             </div>
                         </div>
-                    {% else %}
+                    {% endif %}
                         <!-- DNSSEC Data with checkbox -->
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
@@ -232,7 +232,7 @@
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
                             </div>
                         </div>
-                    {% endif %}
+
                   </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
