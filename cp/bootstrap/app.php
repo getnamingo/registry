@@ -213,6 +213,9 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     if ($path && $path === '/domain/deletehost') {
         return $handler->handle($request);
     }
+    if ($path && $path === '/domain/deletesecdns') {
+        return $handler->handle($request);
+    }
 
     // If not skipped, apply the CSRF Guard
     return $csrf->process($request, $handler);

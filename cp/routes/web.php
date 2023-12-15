@@ -44,6 +44,7 @@ $app->group('', function ($route) {
     $route->get('/domain/view/{domain}', DomainsController::class . ':viewDomain')->setName('viewDomain');
     $route->get('/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
     $route->post('/domain/update', DomainsController::class . ':updateDomainProcess')->setName('updateDomainProcess');
+    $route->post('/domain/deletesecdns', DomainsController::class . ':domainDeleteSecdns')->setName('domainDeleteSecdns');
     $route->post('/domain/deletehost', DomainsController::class . ':domainDeleteHost')->setName('domainDeleteHost');
     $route->map(['GET', 'POST'], '/domain/renew/{domain}', DomainsController::class . ':renewDomain')->setName('renewDomain');
     $route->map(['GET', 'POST'], '/domain/delete/{domain}', DomainsController::class . ':deleteDomain')->setName('deleteDomain');

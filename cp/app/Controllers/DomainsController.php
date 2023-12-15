@@ -1433,6 +1433,54 @@ class DomainsController extends Controller
         }
     }
     
+    public function domainDeleteSecdns(Request $request, Response $response)
+    {
+        $db = $this->container->get('db');
+        $data = $request->getParsedBody();
+        $uri = $request->getUri()->getPath();
+
+        if ($data['record']) {
+            $record = filter_var($data['record'], FILTER_SANITIZE_NUMBER_INT);
+            $domain_id = filter_var($data['domain_id'], FILTER_SANITIZE_NUMBER_INT);
+            
+            $domainName = $db->selectValue('SELECT name FROM domain WHERE id = ?',
+                    [ $domain_id ]);
+            $db->delete(
+                'secdns',
+                [
+                    'id' => $record,
+                    'domain_id' => $domain_id
+                ]
+            );
+            
+            $this->container->get('flash')->addMessage('success', 'Record has been removed from domain successfully');
+
+            $jsonData = json_encode([
+                'success' => true,
+                'redirect' => '/domain/update/'.$domainName
+            ]);
+
+            $response = new \Nyholm\Psr7\Response(
+                200, // Status code
+                ['Content-Type' => 'application/json'], // Headers
+                $jsonData // Body
+            );
+
+            return $response;
+        } else {
+            $jsonData = json_encode([
+                'success' => false,
+                'error' => 'An error occurred while processing your request.'
+            ]);
+
+            return new \Nyholm\Psr7\Response(
+                400,
+                ['Content-Type' => 'application/json'],
+                $jsonData
+            );
+        }
+    }
+    
     public function renewDomain(Request $request, Response $response, $args)
     {
         if ($request->getMethod() === 'POST') {
