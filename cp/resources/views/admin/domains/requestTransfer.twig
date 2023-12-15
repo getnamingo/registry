@@ -110,8 +110,16 @@ document.addEventListener("DOMContentLoaded", function() {
     const priceValue = document.getElementById('domainPrice');
 
     function extractTLD(domain) {
-        const match = domain.match(/\.[a-zA-Z0-9]+$/);
-        return match ? match[0].toLowerCase() : null;
+        const parts = domain.split('.');
+
+        // If the domain has more than two segments (e.g., 'test.com.test'), return the last two segments
+        if (parts.length > 2) {
+            return parts.slice(-2).join('.').toLowerCase();
+        }
+        // If the domain has two or fewer segments (e.g., 'test.test' or 'test'), return the last segment
+        else {
+            return parts[parts.length - 1].toLowerCase();
+        }
     }
 
     function getDomainPrice(domain, years) {
@@ -120,30 +128,48 @@ document.addEventListener("DOMContentLoaded", function() {
             return Promise.reject("Invalid TLD");
         }
 
-        // Call your API to get the domain price based on its TLD.
-        return fetch(`/api/records/domain_price?join=domain_tld`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    return Promise.reject("Failed to fetch domain prices");
-                }
-            })
-            .then(data => {
-                // Find the domain TLD and then get its price for the "transfer" command
-                const tldData = data.records.find(record => 
-                    record.tldid && record.tldid.tld.toLowerCase() === tld.toLowerCase() && 
-                    record.command === 'transfer'
-                );
-                if (tldData) {
-                    const priceField = `m${years * 12}`;
-                    const price = parseFloat(tldData[priceField]);
-                    if (!isNaN(price)) {
-                        return price;
+        // Regular expression for exact TLD match
+        const tldRegex = new RegExp(`${tld.toLowerCase()}$`);
+
+        // Fetch both promotional pricing and regular pricing
+        return Promise.all([
+            fetch(`/api/records/promotion_pricing?join=domain_tld`).then(response => response.json()),
+            fetch(`/api/records/domain_price?join=domain_tld`).then(response => response.json())
+        ])
+        .then(([promoData, pricingData]) => {
+            const today = new Date();
+
+            // Check for a valid promotion
+            const promo = promoData.records.find(record =>
+                record.tld_id && tldRegex.test(record.tld_id.tld.toLowerCase()) &&
+                new Date(record.start_date) <= today &&
+                new Date(record.end_date) >= today &&
+                (!record.years_of_promotion || record.years_of_promotion >= years)
+            );
+
+            // Find the regular price for the TLD
+            const tldData = pricingData.records.find(record => 
+                record.tldid && tldRegex.test(record.tldid.tld.toLowerCase()) &&
+                record.command === 'transfer'
+            );
+
+            if (tldData) {
+                const priceField = `m${years * 12}`;
+                let price = parseFloat(tldData[priceField]);
+                if (!isNaN(price)) {
+                    if (promo) {
+                        // Apply the promotion discount
+                        price -= (price * parseFloat(promo.discount_percentage) / 100);
                     }
+                    return price;
                 }
-                return Promise.reject("TLD price not found");
-            });
+            }
+            return Promise.reject("TLD price not found");
+        })
+        .catch(error => {
+            console.error("Error fetching pricing data:", error);
+            return Promise.reject("Error fetching pricing data");
+        });
     }
 
     function formatPrice(price) {
