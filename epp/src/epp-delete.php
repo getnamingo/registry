@@ -174,6 +174,13 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
+    $invalid_domain = validate_label($domainName, $db);
+
+    if ($invalid_domain) {
+        sendEppError($conn, $db, 2306, 'Invalid domain:name', $clTRID, $trans);
+        return;
+    }
+    
     $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1"); 
     $stmt->execute([':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -246,9 +253,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             $addPeriod_id = $stmt->fetchColumn();
 
             if ($addPeriod_id) {
-                $stmt = $db->prepare("SELECT m$addPeriod FROM domain_price WHERE tldid = ? AND command = 'create' LIMIT 1");
-                $stmt->execute([$tldid]);
-                $price = $stmt->fetchColumn();
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create');
+                $price = $returnValue['price'];
         
                 if (!isset($price)) {
                     sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
@@ -305,9 +311,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             $autoRenewPeriod_id = $stmt->fetchColumn();
 
             if ($autoRenewPeriod_id) {
-                $stmt = $db->prepare("SELECT m$autoRenewPeriod FROM domain_price WHERE tldid = ? AND command = 'renew' LIMIT 1");
-                $stmt->execute([$tldid]);
-                $price = $stmt->fetchColumn();
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew');
+                $price = $returnValue['price'];
 
                 if (!isset($price)) {
                     sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
@@ -329,9 +334,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             $renewPeriod_id = $stmt->fetchColumn();
 
             if ($renewPeriod_id) {
-                $stmt = $db->prepare("SELECT m$renewPeriod FROM domain_price WHERE tldid = ? AND command = 'renew' LIMIT 1");
-                $stmt->execute([$tldid]);
-                $price = $stmt->fetchColumn();
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew');
+                $price = $returnValue['price'];
 
                 if (!isset($price)) {
                     sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
@@ -355,9 +359,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($transferPeriod_id) {
                 // Return money if a transfer was also a renew
                 if ($transferPeriod > 0) {
-                    $stmt = $db->prepare("SELECT m$transferPeriod FROM domain_price WHERE tldid = ? AND command = 'renew' LIMIT 1");
-                    $stmt->execute([$tldid]);
-                    $price = $stmt->fetchColumn();
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $transferPeriod, 'renew');
+                    $price = $returnValue['price'];
 
                     if (!isset($price)) {
                         sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);

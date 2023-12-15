@@ -43,7 +43,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute();
     $clid = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $stmt = $db->prepare("SELECT id, tldid, exdate, clid FROM domain WHERE name = :domainName LIMIT 1");
+    $stmt = $db->prepare("SELECT id, name, tldid, exdate, clid FROM domain WHERE name = :domainName LIMIT 1");
     $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
     $stmt->execute();
     $domainData = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -57,7 +57,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2201, 'It belongs to another registrar', $clTRID, $trans);
         return;
     }
-	
+    
     // The domain name must not be subject to clientRenewProhibited, serverRenewProhibited.
     $stmt = $db->prepare("SELECT status FROM domain_status WHERE domain_id = :domainId");
     $stmt->bindParam(':domainId', $domainData['id'], PDO::PARAM_INT);
@@ -112,18 +112,15 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $registrar_balance = $row['accountBalance'];
         $creditLimit = $row['creditLimit'];
-
-        $columnName = "m$date_add";
-        $stmt = $db->prepare("SELECT $columnName FROM domain_price WHERE tldid = :tldid AND command = 'renew' LIMIT 1");
-        $stmt->bindParam(':tldid', $domainData['tldid'], PDO::PARAM_INT);
-        $stmt->execute();
-        $price = $stmt->fetchColumn();
+        
+        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew');
+        $price = $returnValue['price'];
 
         if (($registrar_balance + $creditLimit) < $price) {
             sendEppError($conn, $db, 2104, 'There is no money on the account to renew', $clTRID, $trans);
             return;
         }
-		
+        
         $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
         $stmt->execute();
@@ -151,8 +148,8 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute();
 
             // Insert into payment_history:
-			$description = "renew domain $domainName for period $date_add MONTH";
-			$negative_price = -$price;
+            $description = "renew domain $domainName for period $date_add MONTH";
+            $negative_price = -$price;
             $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)");
             $stmt->bindParam(':registrar_id', $clid['id'], PDO::PARAM_INT);
             $stmt->bindParam(':description', $description, PDO::PARAM_STR);
@@ -170,7 +167,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute([$clid['id'], 'renew', $domainName, $date_add, $from, $to, $price]);
         }
     }
-	
+    
     // Fetch exdate for the given domain name
     $stmt = $db->prepare("SELECT exdate FROM domain WHERE name = :name LIMIT 1");
     $stmt->bindParam(':name', $domainName, PDO::PARAM_STR);

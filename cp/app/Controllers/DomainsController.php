@@ -192,12 +192,9 @@ class DomainsController extends Controller
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
-
-            $priceColumn = "m" . $date_add;
-            $price = $db->selectValue(
-                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "create" LIMIT 1',
-                [$tld_id]
-            );
+            
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+            $price = $returnValue['price'];
 
             if (!$price) {
                 return view($response, 'admin/domains/createDomain.twig', [
@@ -1472,12 +1469,9 @@ class DomainsController extends Controller
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
-
-            $priceColumn = "m" . $date_add;
-            $price = $db->selectValue(
-                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "renew" LIMIT 1',
-                [$tld_id]
-            );
+            
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew');
+            $price = $returnValue['price'];
 
             if (!$price) {
                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
@@ -1773,12 +1767,9 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($addPeriod_id) {
-                            $priceColumn = "m" . $addPeriod;
-                            $price = $db->selectValue(
-                                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "create" LIMIT 1',
-                                [$tld_id]
-                            );
-
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create');
+                            $price = $returnValue['price'];
+            
                             if (!$price) {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
@@ -1901,12 +1892,9 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($autoRenewPeriod_id) {
-                            $priceColumn = "m" . $autoRenewPeriod;
-                            $price = $db->selectValue(
-                                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "renew" LIMIT 1',
-                                [$tld_id]
-                            );
-
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew');
+                            $price = $returnValue['price'];
+                            
                             if (!$price) {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
@@ -1931,11 +1919,8 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($renewPeriod_id) {
-                            $priceColumn = "m" . $renewPeriod;
-                            $price = $db->selectValue(
-                                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "renew" LIMIT 1',
-                                [$tld_id]
-                            );
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew');
+                            $price = $returnValue['price'];
 
                             if (!$price) {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
@@ -1961,12 +1946,9 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($transferPeriod_id) {
-                            $priceColumn = "m" . $transferPeriod;
-                            $price = $db->selectValue(
-                                'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "renew" LIMIT 1',
-                                [$tld_id]
-                            );
-
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew');
+                            $price = $returnValue['price'];
+                            
                             if (!$price) {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
@@ -2149,12 +2131,9 @@ class DomainsController extends Controller
                     $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
                     $registrar_balance = $result['accountBalance'];
                     $creditLimit = $result['creditLimit'];
-
-                    $priceColumn = "m" . $date_add;
-                    $price = $db->selectValue(
-                        'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "transfer" LIMIT 1',
-                        [$tldid]
-                    );
+                    
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                    $price = $returnValue['price'];
 
                     if (!$price) {
                         $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
@@ -2381,12 +2360,9 @@ class DomainsController extends Controller
                         ]
                     );
                     
-                    $priceColumn = "m" . $date_add;
-                    $price = $db->selectValue(
-                        'SELECT ' . $db->quoteIdentifier($priceColumn) . ' FROM domain_price WHERE tldid = ? AND command = "transfer" LIMIT 1',
-                        [$tldid]
-                    );
-
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                    $price = $returnValue['price'];
+                    
                     if (($registrar_balance + $creditLimit) < $price) {
                         $this->container->get('flash')->addMessage('error', 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
                         return $response->withHeader('Location', '/transfers')->withStatus(302);

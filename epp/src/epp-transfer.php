@@ -466,16 +466,15 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([$domainName]);
                 $date_add = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("SELECT m$date_add FROM domain_price WHERE tldid = ? AND command = 'transfer' LIMIT 1");
-                $stmt->execute([$tldid]);
-                $price = $stmt->fetchColumn();
-
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                $price = $returnValue['price'];
+                
                 if (($registrar_balance + $creditLimit) < $price) {
                     sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
                     return;
                 }
             }
-			
+            
             $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
             $stmt->execute(['domain_id' => $domain_id]);
             $from = $stmt->fetchColumn();
@@ -865,11 +864,9 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $registrar_balance = $result["accountBalance"];
                 $creditLimit = $result["creditLimit"];
-
-                $stmt = $db->prepare("SELECT m$date_add FROM domain_price WHERE tldid = :tldid AND command = 'transfer' LIMIT 1");
-                $stmt->execute([':tldid' => $tldid]);
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $price = $result["m$date_add"];
+                
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                $price = $returnValue['price'];
 
                 if (($registrar_balance + $creditLimit) < $price) {
                     sendEppError($conn, $db, 2104, 'The registrar who wants to take over this domain has no money', $clTRID, $trans);

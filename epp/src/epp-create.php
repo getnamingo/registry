@@ -493,12 +493,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         
         foreach ($host_addr_list as $node) {
             $addr = (string) $node;
-            
+
             if (empty($addr)) {
                 sendEppError($conn, $db, 2303, 'Error: Address is empty', $clTRID, $trans);
                 return;
             }
-            
+
             $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
             
             if ($addr_type == 'v6') {
@@ -671,12 +671,9 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $registrar_balance = $result['accountBalance'];
     $creditLimit = $result['creditLimit'];
-
-    $priceColumn = "m" . $date_add;
-    $stmt = $db->prepare("SELECT $priceColumn FROM domain_price WHERE tldid = :tld_id AND command = 'create' LIMIT 1");
-    $stmt->bindParam(':tld_id', $tld_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $price = $stmt->fetchColumn();
+    
+    $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+    $price = $returnValue['price'];
 
     if (!$price) {
         sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);

@@ -491,3 +491,66 @@ function updatePermittedIPs($pool, $permittedIPsTable) {
         $permittedIPsTable->set($ip, ['addr' => $ip]);
     }
 }
+
+function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create') {
+    // Check if the domain is a premium domain
+    $stmt = $pdo->prepare("
+        SELECT c.category_price 
+        FROM premium_domain_pricing p
+        JOIN premium_domain_categories c ON p.category_id = c.category_id
+        WHERE p.domain_name = ? AND p.tld_id = ?
+    ");
+    $stmt->execute([$domain_name, $tld_id]);
+    if ($stmt->rowCount() > 0) {
+        return ['type' => 'premium', 'price' => $stmt->fetch()['category_price']];
+    }
+
+    // Check if there is a promotion for the domain
+    $currentDate = date('Y-m-d');
+    $stmt = $pdo->prepare("
+        SELECT discount_percentage, discount_amount 
+        FROM promotion_pricing 
+        WHERE tld_id = ? 
+        AND promo_type = 'full' 
+        AND status = 'active' 
+        AND start_date <= ? 
+        AND end_date >= ?
+    ");
+    $stmt->execute([$tld_id, $currentDate, $currentDate]);
+    if ($stmt->rowCount() > 0) {
+        $promo = $stmt->fetch();
+        $discount = null;
+        
+        // Determine discount based on percentage or amount
+        if (!empty($promo['discount_percentage'])) {
+            $discount = $promo['discount_percentage']; // Percentage discount
+        } elseif (!empty($promo['discount_amount'])) {
+            $discount = $promo['discount_amount']; // Fixed amount discount
+        }
+    } else {
+        $discount = null;
+    }
+
+    // Get regular price for the specified period
+    $priceColumn = "m" . $date_add;
+    $stmt = $pdo->prepare("SELECT $priceColumn FROM domain_price WHERE tldid = ? AND command = '$command' LIMIT 1");
+    $stmt->execute([$tld_id]);
+    
+    if ($stmt->rowCount() > 0) {
+        $regularPrice = $stmt->fetch()[$priceColumn];
+
+        if ($discount !== null) {
+            if (isset($promo['discount_percentage'])) {
+                $discountAmount = $regularPrice * ($promo['discount_percentage'] / 100);
+            } else {
+                $discountAmount = $discount;
+            }
+            $price = $regularPrice - $discountAmount;
+            return ['type' => 'promotion', 'price' => $price];
+        }
+        
+        return ['type' => 'regular', 'price' => $regularPrice];
+    }
+
+    return ['type' => 'not_found', 'price' => 0];
+}

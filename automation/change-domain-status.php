@@ -44,7 +44,8 @@ try {
 
             if ($set_autorenewPeriod) {
                 list($registrar_balance, $creditLimit) = $dbh->query("SELECT accountBalance, creditLimit FROM registrar WHERE id = '$clid' LIMIT 1")->fetch(PDO::FETCH_NUM);
-                $price = $dbh->query("SELECT m12 FROM domain_price WHERE tldid = '$tldid' AND command = 'renew' LIMIT 1")->fetchColumn();
+                $returnValue = getDomainPrice($dbh, $name, $tldid, 12, 'renew');
+                $price = $returnValue['price'];
 
                 if (($registrar_balance + $creditLimit) > $price) {
                     $dbh->exec("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), autoRenewPeriod = '12', renewedDate = exdate WHERE id = '$domain_id'");

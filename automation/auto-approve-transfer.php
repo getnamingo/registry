@@ -47,8 +47,9 @@ try {
                     break;
                 }
             }
-
-            [$price] = $dbh->query("SELECT m$date_add FROM domain_price WHERE tldid = '$tld_id' AND command = 'transfer' LIMIT 1")->fetch(PDO::FETCH_NUM);
+            
+            $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer');
+            $price = $returnValue['price'];
 
             if (($registrar_balance + $creditLimit) < $price) {
                 $log->notice($name . ': The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');

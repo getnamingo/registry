@@ -308,3 +308,63 @@ function extractDomainAndTLD($urlString) {
 
     return ['domain' => $sld, 'tld' => $tld];
 }
+
+function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create') {
+    // Check if the domain is a premium domain
+    $premiumDomain = $db->selectRow(
+        'SELECT c.category_price 
+         FROM premium_domain_pricing p
+         JOIN premium_domain_categories c ON p.category_id = c.category_id
+         WHERE p.domain_name = ? AND p.tld_id = ?',
+        [$domain_name, $tld_id]
+    );
+
+    if ($premiumDomain) {
+        return ['type' => 'premium', 'price' => $premiumDomain['category_price']];
+    }
+
+    // Check if there is a promotion for the domain
+    $currentDate = date('Y-m-d');
+    $promo = $db->selectRow(
+        "SELECT discount_percentage, discount_amount 
+         FROM promotion_pricing 
+         WHERE tld_id = ? 
+         AND promo_type = 'full' 
+         AND status = 'active' 
+         AND start_date <= ? 
+         AND end_date >= ?",
+        [$tld_id, $currentDate, $currentDate]
+    );
+
+    $discount = null;
+    if ($promo) {
+        if (!empty($promo['discount_percentage'])) {
+            $discount = $promo['discount_percentage']; // Percentage discount
+        } elseif (!empty($promo['discount_amount'])) {
+            $discount = $promo['discount_amount']; // Fixed amount discount
+        }
+    }
+
+    // Get regular price for the specified period
+    $priceColumn = "m" . $date_add;
+    $regularPrice = $db->selectValue(
+        "SELECT $priceColumn FROM domain_price WHERE tldid = ? AND command = ? LIMIT 1",
+        [$tld_id, $command]
+    );
+
+    if ($regularPrice !== false) {
+        if ($discount !== null) {
+            if (isset($promo['discount_percentage'])) {
+                $discountAmount = $regularPrice * ($promo['discount_percentage'] / 100);
+            } else {
+                $discountAmount = $discount;
+            }
+            $price = $regularPrice - $discountAmount;
+            return ['type' => 'promotion', 'price' => $price];
+        }
+
+        return ['type' => 'regular', 'price' => $regularPrice];
+    }
+
+    return ['type' => 'not_found', 'price' => 0];
+}
