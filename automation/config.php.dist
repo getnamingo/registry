@@ -63,4 +63,11 @@ return [
     'mailer_sms' => 'twilio', // telesign, plivo, vonage, clickatell are also available
     'mailer_sms_account' => 'YOUR_ACCOUNT_SID/USERNAME',
     'mailer_sms_auth' => 'YOUR_AUTH_TOKEN/PASSWORD',
+    
+    // TMCH Configuration
+    'tmch_path' => '/tmp/',
+    'tmch_smdrl_user' => 'your_username',
+    'tmch_smdrl_pass' => 'your_password',
+    'tmch_dnl_user' => 'your_username',
+    'tmch_dnl_pass' => 'your_password',
 ];

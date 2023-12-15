@@ -27,8 +27,8 @@
 # run auto-clean-unused-contact-and-host.php every day
 5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/auto-clean-unused-contact-and-host.php
 
-# run tmch.php every day
-5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/tmch.php
+# run tmch.php twice a day
+0 0,12 * * * root /usr/bin/php8.2 /opt/registry/automation/tmch.php
 
 # run escrow.php every day
 5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/escrow.php

@@ -642,13 +642,35 @@ CREATE TABLE registry.support_tickets (
     FOREIGN KEY (category_id) REFERENCES registry.ticket_categories(id)
 );
 
-CREATE TABLE ticket_responses (
+CREATE TABLE registry.ticket_responses (
     "id" SERIAL PRIMARY KEY,
     "ticket_id" INTEGER NOT NULL,
     "responder_id" INTEGER NOT NULL,
     "response" TEXT NOT NULL,
     "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
+);
+
+CREATE TABLE registry.tmch_claims (
+    "id" SERIAL PRIMARY KEY,
+    "domain_label" VARCHAR(100) NOT NULL,
+    "claim_key" VARCHAR(200) NOT NULL,
+    "insert_time" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT tmch_claims_unique UNIQUE (claim_key, domain_label)
+);
+
+CREATE TABLE registry.tmch_revocation (
+    "id" SERIAL PRIMARY KEY,
+    "smd_id" VARCHAR(100) NOT NULL,
+    "revocation_time" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT tmch_revocation_unique UNIQUE (smd_id)
+);
+
+CREATE TABLE registry.tmch_crl (
+    "id" SERIAL PRIMARY KEY,
+    "content" TEXT NOT NULL,
+    "url" VARCHAR(255) NOT NULL,
+    "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
 INSERT INTO registry.domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');

@@ -672,6 +672,28 @@ CREATE TABLE IF NOT EXISTS `registry`.`ticket_responses` (
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ticket Responses';
 
+CREATE TABLE IF NOT EXISTS `registry`.`tmch_claims` (
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `domain_label` VARCHAR(100) NOT NULL,
+    `claim_key` VARCHAR(200) NOT NULL,
+    `insert_time` datetime(3) NOT NULL,
+    UNIQUE KEY `tmch_claims_1` (`domain_label`,`claim_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Claims';
+
+CREATE TABLE IF NOT EXISTS `registry`.`tmch_revocation` (
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `smd_id` VARCHAR(100) NOT NULL,
+    `revocation_time` datetime(3) NOT NULL,
+    UNIQUE KEY `tmch_revocation_1` (`smd_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Revocation';
+
+CREATE TABLE IF NOT EXISTS `registry`.`tmch_crl` (
+    `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `content` TEXT NOT NULL,
+    `url` VARCHAR(255) NOT NULL,
+    `update_timestamp` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Crl';
+
 INSERT INTO `registry`.`domain_tld` VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
 INSERT INTO `registry`.`domain_tld` VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
 
