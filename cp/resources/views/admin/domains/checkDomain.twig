@@ -32,8 +32,10 @@
                     {{ csrf.field | raw }}
                       <div class="input-group mb-3">
                         <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required" autocapitalize="none">
-                        <input type="text" class="form-control" placeholder="Allocation token" name="token" autocapitalize="none">
                         <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
+                      </div>
+                      <div class="mb-3">
+                        <input type="text" class="form-control" placeholder="Allocation token" name="token" autocapitalize="none">
                       </div>
                       <div class="mb-3">
                         <label class="form-check">
