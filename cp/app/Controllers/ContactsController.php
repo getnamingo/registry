@@ -72,7 +72,7 @@ class ContactsController extends Controller
             if ($invalid_identifier) {
                 return view($response, 'admin/contacts/createContact.twig', [
                     'contactID' => $contactID,
-                    'error' => 'Invalid contact ID',
+                    'error' => $invalid_identifier,
                     'registrars' => $registrars,
                     'countries' => $countries,
                     'registrar' => $registrar,
@@ -701,7 +701,7 @@ class ContactsController extends Controller
             // Validation for contact ID
             $invalid_identifier = validate_identifier($identifier);
             if ($invalid_identifier) {
-                $this->container->get('flash')->addMessage('error', 'Invalid contact ID');
+                $this->container->get('flash')->addMessage('error', $invalid_identifier);
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
             
