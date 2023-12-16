@@ -304,6 +304,12 @@ CREATE TABLE registry.domain (
      "agp_grant" TIMESTAMP(3) DEFAULT NULL,
      "agp_reason" TEXT DEFAULT NULL,
      "agp_status" VARCHAR(30) DEFAULT NULL,
+     "tm_notice_accepted" TIMESTAMP(3) DEFAULT NULL,
+     "tm_notice_expires" TIMESTAMP(3) DEFAULT NULL,
+     "tm_notice_id" VARCHAR(150) DEFAULT NULL,
+     "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
+     "tm_smd_id" TEXT DEFAULT NULL,
+     "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
      primary key ("id"),
      unique ("name") 
 );
