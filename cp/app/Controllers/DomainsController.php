@@ -20,8 +20,11 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $domainName = $data['domain_name'] ?? null;
+            $token = $data['token'] ?? null;
+            $claims = $data['claims'] ?? null;
 
             if ($domainName) {
+                $domainName = preg_replace('/[^\p{L}0-9-.]/u', '', $domainName);
                 $parts = extractDomainAndTLD($domainName);
 
                 $domainModel = new Domain($this->container->get('db'));
@@ -32,33 +35,47 @@ class DomainsController extends Controller
                 
                 $invalid_label = validate_label($domainName, $this->container->get('db'));
                 
+                if (isset($claims)) {
+                    $claim_key = $this->container->get('db')->selectValue('SELECT claim_key FROM tmch_claims WHERE domain_label = ? LIMIT 1',[$parts['domain']]);
+                    
+                    if ($claim_key) {
+                        $claim = 1;
+                    } else {
+                        $claim = 0;
+                    }
+                } else {
+                    $claim = 2;
+                }
+                
                 // Check if the domain is Invalid
                 if ($invalid_label) {
-                    $status = $invalid_label;
-                    $isAvailable = 0;
+                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: ' . $invalid_label);
+                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
                 } else {
                     // If the domain is not taken, check if it's reserved
                     if ($availability === '1') {
                         $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
 
                         if ($domain_already_reserved) {
-                            $isAvailable = 0;
-                            $status = ucfirst($domain_already_reserved['type']);
+                            $this->container->get('flash')->addMessage('info', 'Domain ' . $domainName . ' is not available, as it is ' . $domain_already_reserved['type'] . '!');
+                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
                         } else {
-                            $isAvailable = $availability;
-                            $status = $availability === '0' ? 'In use' : null;
+                            if ($claim == 1) {
+                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim exists.<br />Claim key is: ' . $claim_key);
+                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                            } elseif ($claim == 2) {
+                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!');
+                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                            } elseif ($claim == 0) {
+                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim does not exist');
+                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                            }
                         }
                     } else {
-                        $isAvailable = $availability;
-                        $status = 'In use';
+                        $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: In use');
+                        return $response->withHeader('Location', '/domain/check')->withStatus(302);
                     }
                 }
-
-                return view($response, 'admin/domains/checkDomain.twig', [
-                    'isAvailable' => $isAvailable,
-                    'domainName' => $domainName,
-                    'status' => $status,
-                ]);
             }
         }
 
