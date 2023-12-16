@@ -33,6 +33,12 @@
 # run escrow.php every day
 5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/escrow.php
 
+# run rdap-urls.php every day
+50 1 * * * root /usr/bin/php8.2 /opt/registry/automation/rdap-urls.php
+
+# run file_cache.php every day
+0 2 * * * root /usr/bin/php8.2 /var/www/cp/bin/file_cache.php
+
 # run reporting.php every 1st day
 1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/reporting.php
 

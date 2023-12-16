@@ -539,7 +539,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => 'https://' . $registrarDetails['rdap_server'] . '/domain/' . $domain,
+                    'href' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -1771,7 +1771,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => 'https://' . $registrarDetails['rdap_server'] . '/domain/' . $domain,
+                    'href' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
