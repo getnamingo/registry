@@ -29,8 +29,14 @@
                     <h3 class="card-title">
                         Domain {{ domain.name }}&nbsp;
                         {% if domainStatus.status or domain.rgpstatus %}
-                            {% if domainStatus.status %}
-                                <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                            {% if domainStatus is iterable %}
+                                {% for status in domainStatus %}
+                                    <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
+                                {% endfor %}
+                            {% else %}
+                                {% if domainStatus.status %}
+                                    <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                                {% endif %}
                             {% endif %}
                             {% if domain.rgpstatus %}
                                 <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
@@ -113,27 +119,62 @@
                 <div class="col-md-12">
                   <div class="card h-100">
                     <div class="card-body">
-                      <h5 class="card-title">DNSSEC Data</h5>
-                      <div class="table-responsive">
-                        <table class="table table-vcenter card-table table-striped">
-                            {% for row in domainSecdns %}
-                                <tr>
-                                    {% for key, value in row %}
-                                        {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
-                                            <th>{{ key }}</th>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                                <tr>
-                                    {% for key, value in row %}
-                                        {% if key not in ['id', 'domain_id', 'maxsiglife'] %}
-                                            <td>{{ value }}</td>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </table>
-                      </div>
+                      <h5 class="card-title">{{ __('DNSSEC Data') }}</h5>
+                        {% if domainSecdns|length > 0 %}
+                        <div id="dnssecTable" class="mb-3">
+                            <div class="table-responsive">
+                                <table class="table table-vcenter card-table table-striped">
+                                    <thead>
+                                        <tr>
+                                            {% set dsDataExists = false %}
+                                            {% set keyDataExists = false %}
+
+                                            {% for row in domainSecdns %}
+                                                {% if row.interface == 'dsData' %}
+                                                    {% set dsDataExists = true %}
+                                                {% elseif row.interface == 'keyData' %}
+                                                    {% set keyDataExists = true %}
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            <!-- Headers for dsData -->
+                                            {% if dsDataExists %}
+                                                <th>Keytag</th>
+                                                <th>Algorithm</th>
+                                                <th>Digest Type</th>
+                                                <th>Digest</th>
+                                            {% endif %}
+
+                                            <!-- Headers for keyData -->
+                                            {% if keyDataExists %}
+                                                <th>Flags</th>
+                                                <th>Protocol</th>
+                                                <th>Keydata Algorithm</th>
+                                                <th>Public Key</th>
+                                            {% endif %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in domainSecdns %}
+                                            <tr>
+                                                {% if row.interface == 'dsData' %}
+                                                    <td>{{ row.keytag }}</td>
+                                                    <td>{{ row.alg }}</td>
+                                                    <td>{{ row.digesttype }}</td>
+                                                    <td>{{ row.digest }}</td>
+                                                {% elseif row.interface == 'keyData' %}
+                                                    <td>{{ row.flags }}</td>
+                                                    <td>{{ row.protocol }}</td>
+                                                    <td>{{ row.keydata_alg }}</td>
+                                                    <td>{{ row.pubkey }}</td>
+                                                {% endif %}
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                   </div>
                 </div>

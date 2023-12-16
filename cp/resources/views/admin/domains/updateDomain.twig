@@ -32,8 +32,14 @@
                     <h3 class="card-title">
                         Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
                         {% if domainStatus.status or domain.rgpstatus %}
-                            {% if domainStatus.status %}
-                                <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                            {% if domainStatus is iterable %}
+                                {% for status in domainStatus %}
+                                    <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
+                                {% endfor %}
+                            {% else %}
+                                {% if domainStatus.status %}
+                                    <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                                {% endif %}
                             {% endif %}
                             {% if domain.rgpstatus %}
                                 <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
