@@ -24,6 +24,8 @@
         }
         return "";
     }
+    
+    currency = "{{ currency }} ";
 
     table = new Tabulator("#registrarTable", {
         ajaxURL:"/api/records/registrar", // Set the URL for your JSON data
@@ -42,7 +44,12 @@
             {title:"Name", field:"name", width:200, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
             {title:"IANA ID", field:"iana_id", width:300, headerSort:true, responsive:2},
             {title:"Email", field:"email", width:300, headerSort:true, responsive:2},
-            {title:"Balance", field:"accountBalance", width:300, headerSort:false, download:false, responsive:2},
+            {title:"Balance", field:"accountBalance", width:300, headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
+                decimal:".",
+                thousand:" ",
+                symbol:currency,
+                negativeSign:true,
+            }},
             {title: "Actions", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
         ],
         placeholder:function(){

@@ -92,7 +92,7 @@
                         <div class="col-md-6">
                           <div class="mb-3">
                             <label for="accountBalance" class="form-label">Account Balance</label>
-                            <div class="form-control-plaintext">{{ registrar.accountBalance }}</div>
+                            <div class="form-control-plaintext">{{ currency }} {{ registrar.accountBalance }}</div>
                             <small class="text-muted">Current balance in the registrar's account.</small>
                           </div>
                           <div class="mb-3">
@@ -340,7 +340,7 @@
                   <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-body">
-                          <h5 class="card-title"> <span class="text-red">*</span></h5>
+                          <h5 class="card-title">IP Whitelisting <span class="text-red">*</span></h5>
                           <p class="card-text">
                             Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added.
                           </p>

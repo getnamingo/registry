@@ -5,6 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
     var table;
+    currency = "{{ currency }} ";
     document.addEventListener("DOMContentLoaded", function(){
 
     table = new Tabulator("#transactionTable", {
@@ -31,7 +32,12 @@
             {title:"Length", field:"length_in_months", headerSort:true, responsive:2},
             {title:"From", field:"fromS", headerSort:true, responsive:2},
             {title:"To", field:"toS", headerSort:true, responsive:2},
-            {title:"Amount", field:"amount", headerSort:false, download:false, responsive:2},
+            {title:"Amount", field:"amount", headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
+                decimal:".",
+                thousand:" ",
+                symbol:currency,
+                negativeSign:true,
+            }},
         ],
         placeholder:function(){
             return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters

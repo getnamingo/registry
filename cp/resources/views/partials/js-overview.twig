@@ -6,6 +6,8 @@
 <script>
     var table;
     document.addEventListener("DOMContentLoaded", function(){
+    
+    currency = "{{ currency }} ";
 
     table = new Tabulator("#overviewTable", {
         ajaxURL:"/api/records/payment_history?join=registrar", // Set the URL for your JSON data
@@ -27,7 +29,12 @@
             {title:"Registrar", field:"registrar_id.name", headerSort:true, responsive:0},
             {title:"Date", field:"date", headerSort:true, responsive:2},
             {title:"Description", field:"description", headerSort:true, responsive:2},
-            {title:"Amount", field:"amount", headerSort:true, download:false, responsive:0},
+            {title:"Amount", field:"amount", headerSort:true, download:false, responsive:0, formatter:"money", formatterParams:{
+                decimal:".",
+                thousand:" ",
+                symbol:currency,
+                negativeSign:true,
+            }},
         ],
         placeholder:function(){
             return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
