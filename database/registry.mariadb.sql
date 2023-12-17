@@ -339,7 +339,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`application` (
     `tldid` int(10) unsigned NOT NULL,
     `registrant` int(10) unsigned default NULL,
     `crdate` datetime(3) NOT NULL,
-    `exdate` datetime(3) NOT NULL,
+    `exdate` datetime(3) default NULL,
     `lastupdate` datetime(3) default NULL,
     `clid` int(10) unsigned NOT NULL,
     `crid` int(10) unsigned NOT NULL,

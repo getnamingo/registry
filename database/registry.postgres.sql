@@ -328,7 +328,7 @@ CREATE TABLE registry.application (
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
-     "exdate"   timestamp(3) without time zone NOT NULL,
+     "exdate"   timestamp(3) without time zone default NULL,
      "lastupdate"   timestamp(3) without time zone default NULL,
      "clid" int CHECK ("clid" >= 0) NOT NULL,
      "crid" int CHECK ("crid" >= 0) NOT NULL,
