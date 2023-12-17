@@ -132,6 +132,10 @@
             "audit": true,
             "skip": null
         },
+        "application": {
+            "audit": true,
+            "skip": null
+        },
         "domain": {
             "audit": true,
             "skip": null
