@@ -50,6 +50,8 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/domain/delete/{domain}', DomainsController::class . ':deleteDomain')->setName('deleteDomain');
     $route->map(['GET', 'POST'], '/domain/restore/{domain}', DomainsController::class . ':restoreDomain')->setName('restoreDomain');
     $route->map(['GET', 'POST'], '/domain/report/{domain}', DomainsController::class . ':reportDomain')->setName('reportDomain');
+    
+    $route->get('/applications', DomainsController::class .':listApplications')->setName('listApplications');
 
     $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');
     $route->map(['GET', 'POST'], '/transfer/request', DomainsController::class . ':requestTransfer')->setName('requestTransfer');
