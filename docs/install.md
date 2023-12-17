@@ -464,3 +464,7 @@ mv config.php.dist config.php
 ```
 
 Configure all options in ```config.php``` and run ```php start_das.php &```
+
+## 14. Setup Monitoring:
+
+For effective monitoring of your registry system, we highly recommend utilizing either Zabbix or Prometheus. These powerful monitoring tools offer robust capabilities to ensure comprehensive oversight of your infrastructure. Zabbix is renowned for its versatility and extensive feature set, enabling detailed monitoring of numerous metrics across diverse environments. Alternatively, Prometheus stands out for its exceptional handling of time-series data, making it ideal for tracking rapidly changing metrics. Both tools offer customizable alerting systems, user-friendly interfaces, and are well-supported by extensive communities. Depending on your specific needs and the complexity of your setup, either Zabbix or Prometheus can be an excellent choice to maintain optimal performance and reliability of your systems.
