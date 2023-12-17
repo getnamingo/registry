@@ -165,13 +165,19 @@ function processDomainCheck($conn, $db, $xml, $trans) {
             if ($launchPhaseText === 'custom') {
                 $launchPhaseName = (string) $xml->xpath('//launch:phase/@name')[0];
                 
+                if (!preg_match('/^[a-zA-Z0-9_-]+$/', $launchPhaseName)) {
+                    sendEppError($conn, $db, 2005, 'Error in launch phase name', $clTRID, $trans);
+                    return;
+                }
+                
                 $names = [];
                 foreach ($domains as $domain) {
                     $domainName = (string) $domain;
 
                     // Check if the domain is already taken
-                    $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName");
+                    $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName AND tm_phase = :phase");
                     $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+                    $stmt->bindParam(':phase', $launchPhaseName, PDO::PARAM_STR);
                     $stmt->execute();
                     $taken = $stmt->fetchColumn();
                     $availability = $taken ? '0' : '1';
