@@ -15,6 +15,9 @@
 # run auto-approve-transfer.php every hour
 45 * * * * root /usr/bin/php8.2 /opt/registry/automation/auto-approve-transfer.php
 
+# run registrar.php every hour
+35 * * * * root /usr/bin/php8.2 /opt/registry/automation/registrar.php
+
 # run abusemonitor.php every hour
 30 * * * * root /usr/bin/php8.2 /opt/registry/automation/abusemonitor.php
 

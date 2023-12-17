@@ -73,6 +73,7 @@ try {
             insertTmchData($dbh, $filePath);
         }
     }
+    unlink($filePath);
     $log->info('job finished successfully.');
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
