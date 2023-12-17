@@ -2,13 +2,24 @@ SET FOREIGN_KEY_CHECKS=0;
 
 CREATE DATABASE IF NOT EXISTS `registry`;
 
+CREATE TABLE IF NOT EXISTS `registry`.`launch_phase` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `phase_name` VARCHAR(255) NOT NULL,
+    `phase_description` TEXT,
+    `start_date` DATETIME(3),
+    `end_date` DATETIME(3),
+    UNIQUE(`phase_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='launch phases';
+
 CREATE TABLE IF NOT EXISTS `registry`.`domain_tld` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `tld` varchar(32) NOT NULL,
     `idn_table` varchar(255) NOT NULL,
     `secure` TINYINT UNSIGNED NOT NULL,
+    `launch_phase_id` INT DEFAULT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `tld` (`tld`)
+    UNIQUE KEY `tld` (`tld`),
+    FOREIGN KEY (`launch_phase_id`) REFERENCES `launch_phase`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain tld';
 
 CREATE TABLE IF NOT EXISTS `registry`.`settings` (

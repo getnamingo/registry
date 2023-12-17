@@ -3,12 +3,22 @@ CREATE SCHEMA registryTransaction;
 
 SET search_path TO registry, registryTransaction, public;
 
+CREATE TABLE registry.launch_phase (
+    "id" SERIAL PRIMARY KEY,
+    "phase_name" VARCHAR(255) NOT NULL,
+    "phase_description" TEXT,
+    "start_date" TIMESTAMP(3),
+    "end_date" TIMESTAMP(3),
+    UNIQUE(phase_name)
+);
+
 CREATE TABLE registry.domain_tld (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "tld"   varchar(32) NOT NULL,
      "idn_table"   varchar(255) NOT NULL,
      "secure"   SMALLINT NOT NULL,
-     primary key ("id"),
+     "launch_phase_id" INTEGER DEFAULT NULL,
+     FOREIGN KEY (launch_phase_id) REFERENCES launch_phase(id),
      unique ("tld") 
 );
 
@@ -19,7 +29,7 @@ CREATE TABLE registry.settings (
 );
 
 CREATE TABLE registry.domain_price (
-     "id" serial8,
+     "id"  SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer' )) NOT NULL default 'create',
      "m0"   decimal(10,2) NOT NULL default '0.00',
@@ -33,15 +43,13 @@ CREATE TABLE registry.domain_price (
      "m96"   decimal(10,2) NOT NULL default '0.00',
      "m108"   decimal(10,2) NOT NULL default '0.00',
      "m120"   decimal(10,2) NOT NULL default '0.00',
-     primary key ("id"),
      unique ("tldid", "command") 
 );
 
 CREATE TABLE registry.domain_restore_price (
-     "id" serial8 ,
+     "id" SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "price"   decimal(10,2) NOT NULL default '0.00',
-     primary key ("id"),
      unique ("tldid") 
 );
 

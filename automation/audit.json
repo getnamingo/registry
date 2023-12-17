@@ -56,6 +56,10 @@
         "set @audit_rownum = ifnull(@audit_rownum, 0) + 1;"
     ],
     "tables": {
+        "launch_phase": {
+            "audit": true,
+            "skip": null
+        },
         "domain_tld": {
             "audit": true,
             "skip": null
@@ -74,10 +78,6 @@
         },
         "error_log": {
             "audit": null,
-            "skip": null
-        },
-        "domain_price": {
-            "audit": true,
             "skip": null
         },
         "reserved_domain_names": {
@@ -233,15 +233,27 @@
             "skip": null
         },
         "ticket_categories": {
-            "audit": null,
+            "audit": true,
             "skip": null
         },
         "support_tickets": {
-            "audit": null,
+            "audit": true,
             "skip": null
         },
         "ticket_responses": {
-            "audit": null,
+            "audit": true,
+            "skip": null
+        },
+        "tmch_claims": {
+            "audit": true,
+            "skip": null
+        },
+        "tmch_revocation": {
+            "audit": true,
+            "skip": null
+        },
+        "tmch_crl": {
+            "audit": true,
             "skip": null
         }
     }
