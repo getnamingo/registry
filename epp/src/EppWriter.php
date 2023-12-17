@@ -644,23 +644,76 @@ class EppWriter {
         $this->_preamble($writer, $resp);
         
         if ($this->epp_success($resp['resultCode'])) {
-            $writer->startElement('resData');
-                $writer->startElement('domain:chkData');
-                $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
-                $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
-                foreach ($resp['names'] as $names) {
-                    $writer->startElement('domain:cd');
-                        $writer->startElement('domain:name');
-                            $writer->writeAttribute('avail', $names[1]);
-                            $writer->text($names[0]);
-                        $writer->endElement();  // End of 'domain:name'
-                        if (isset($names[2])) {
-                            $writer->writeElement('domain:reason', $names[2]);
-                        }
-                    $writer->endElement();  // End of 'domain:cd'
+            // Begin the extension part if any of the extensions are present
+            if (isset($resp['launchCheck'])) {
+                $writer->startElement('extension');
+
+                // Handle claims
+                if ($resp['launchCheckType'] === 'claims') {
+                    $writer->startElement('launch:chkData');
+                    $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
+
+                    // launch:phase
+                    $writer->writeElement('launch:phase', 'claims');
+                    
+                    foreach ($resp['names'] as $names) {
+                        $writer->startElement('launch:cd');
+                            $writer->startElement('launch:name');
+                                $writer->writeAttribute('exists', $names[1]);
+                                $writer->text($names[0]);
+                            $writer->endElement();  // End of 'launch:name'
+                            if (isset($names[2])) {
+                                $writer->startElement('launch:claimKey');
+                                    $writer->writeAttribute('exists', $names[1]);
+                                    $writer->text($names[2]);
+                                $writer->endElement();  // End of 'launch:claimKey'
+                            }
+                        $writer->endElement();  // End of 'launch:cd'
+                    }
+
+                    $writer->endElement();  // End of 'launch:chkData'
+                } else if ($resp['launchCheckType'] === 'trademark') {
+                    $writer->startElement('launch:chkData');
+                    $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
+                
+                    foreach ($resp['names'] as $names) {
+                        $writer->startElement('launch:cd');
+                            $writer->startElement('launch:name');
+                                $writer->writeAttribute('exists', $names[1]);
+                                $writer->text($names[0]);
+                            $writer->endElement();  // End of 'launch:name'
+                            if (isset($names[2])) {
+                                $writer->startElement('launch:claimKey');
+                                    $writer->writeAttribute('exists', $names[1]);
+                                    $writer->text($names[2]);
+                                $writer->endElement();  // End of 'launch:claimKey'
+                            }
+                        $writer->endElement();  // End of 'launch:cd'
+                    }
+
+                    $writer->endElement();  // End of 'launch:chkData'
                 }
-                $writer->endElement();  // End of 'domain:chkData'
-            $writer->endElement();  // End of 'resData'
+
+                $writer->endElement();  // End of 'extension'
+            } else {
+                $writer->startElement('resData');
+                    $writer->startElement('domain:chkData');
+                    $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
+                    $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
+                    foreach ($resp['names'] as $names) {
+                        $writer->startElement('domain:cd');
+                            $writer->startElement('domain:name');
+                                $writer->writeAttribute('avail', $names[1]);
+                                $writer->text($names[0]);
+                            $writer->endElement();  // End of 'domain:name'
+                            if (isset($names[2])) {
+                                $writer->writeElement('domain:reason', $names[2]);
+                            }
+                        $writer->endElement();  // End of 'domain:cd'
+                    }
+                    $writer->endElement();  // End of 'domain:chkData'
+                $writer->endElement();  // End of 'resData'
+            }
         }
 
         $this->_postamble($writer, $resp);
