@@ -38,6 +38,12 @@
                       </div>
                       
                       <div class="mb-3">
+                        <label for="registryOperatorVat" class="form-label required">Registry VAT/Company Number</label>
+                        <input type="text" class="form-control" id="registryOperatorVat" name="registryOperatorVat" placeholder="Enter registry operator's VAT number" value="{{ vat_number }}" required>
+                        <small class="form-hint">Enter the VAT number of the organization operating the registry, or company number if VAT is unavailable.</small>
+                      </div>
+                      
+                      <div class="mb-3">
                         <label for="contactAddress" class="form-label required">Contact Address</label>
                         <input type="text" class="form-control" id="contactAddress" name="contactAddress" placeholder="Enter contact address" value="{{ address }}" required>
                         <small class="form-hint">The contact address of the registry.</small>

@@ -52,6 +52,16 @@ class SystemController extends Controller
                         'name' => "company_name"
                     ]
                 );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['registryOperatorVat']
+                    ],
+                    [
+                        'name' => "vat_number"
+                    ]
+                );
 
                 $db->update(
                     'settings',
@@ -117,6 +127,7 @@ class SystemController extends Controller
         
         $db = $this->container->get('db');
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+        $vat_number = $db->selectValue("SELECT value FROM settings WHERE name = 'vat_number'");
         $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
         $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
         $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
@@ -125,6 +136,7 @@ class SystemController extends Controller
         
         return view($response,'admin/system/registry.twig', [
             'company_name' => $company_name,
+            'vat_number' => $vat_number,
             'address' => $address,
             'address2' => $address2,
             'phone' => $phone,
