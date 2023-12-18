@@ -101,6 +101,7 @@ $app->group('', function ($route) {
     $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');
     $route->map(['GET', 'POST'], '/registry/reserved', SystemController::class .':manageReserved')->setName('manageReserved');
     $route->post('/registry/promotions', SystemController::class . ':managePromo')->setName('managePromo');
+    $route->post('/registry/phases', SystemController::class . ':managePhases')->setName('managePhases');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');

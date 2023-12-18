@@ -2,12 +2,17 @@ SET FOREIGN_KEY_CHECKS=0;
 
 CREATE DATABASE IF NOT EXISTS `registry`;
 
-CREATE TABLE IF NOT EXISTS `registry`.`launch_phase` (
+CREATE TABLE IF NOT EXISTS `registry`.`launch_phases` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `phase_name` VARCHAR(255) NOT NULL,
+    `tld_id` int(10) unsigned DEFAULT NULL,
+    `phase_name` VARCHAR(75) NOT NULL,
+    `phase_type` VARCHAR(50) NOT NULL,
     `phase_description` TEXT,
-    `start_date` DATETIME(3),
-    `end_date` DATETIME(3),
+    `start_date` DATETIME(3) NOT NULL,
+    `end_date` DATETIME(3) DEFAULT NULL,
+    `lastupdate` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
+    KEY `tld_id` (`tld_id`),
+    FOREIGN KEY (`tld_id`) REFERENCES `domain_tld`(`id`),
     UNIQUE(`phase_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='launch phases';
 
@@ -56,6 +61,21 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_restore_price` (
     UNIQUE KEY `tldid` (`tldid`),
     CONSTRAINT `domain_restore_price_ibfk_1` FOREIGN KEY (`tldid`) REFERENCES `domain_tld` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain restore price';
+
+CREATE TABLE IF NOT EXISTS `registry`.`allocation_tokens` (
+    token VARCHAR(255) NOT NULL,
+    domain_name VARCHAR(255) DEFAULT NULL,
+    tokenStatus VARCHAR(100) DEFAULT NULL,
+    tokenType VARCHAR(100) DEFAULT NULL,
+    createDateTime TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    lastUpdate DATETIME(3) DEFAULT NULL,
+    registrars JSON DEFAULT NULL,
+    tlds JSON DEFAULT NULL,
+    eppActions JSON DEFAULT NULL,
+    reducePremium TINYINT(1) NOT NULL,
+    reduceYears INT NOT NULL CHECK (reduceYears BETWEEN 0 AND 10),
+    PRIMARY KEY (token)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='allocation tokens';
 
 CREATE TABLE IF NOT EXISTS `registry`.`error_log` (
     `id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,

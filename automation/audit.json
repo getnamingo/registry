@@ -56,7 +56,7 @@
         "set @audit_rownum = ifnull(@audit_rownum, 0) + 1;"
     ],
     "tables": {
-        "launch_phase": {
+        "launch_phases": {
             "audit": true,
             "skip": null
         },
@@ -74,6 +74,10 @@
         },
         "domain_restore_price": {
             "audit": true,
+            "skip": null
+        },
+        "allocation_tokens": {
+            "audit": null,
             "skip": null
         },
         "error_log": {

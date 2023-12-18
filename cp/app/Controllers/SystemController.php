@@ -783,6 +783,8 @@ class SystemController extends Controller
                 $premium_categories = $db->select('SELECT * FROM premium_domain_categories');
                 $promotions = $db->select('SELECT * FROM promotion_pricing WHERE tld_id = ?',
                 [ $tld['id'] ]);
+                $launch_phases = $db->select('SELECT * FROM launch_phases WHERE tld_id = ?',
+                [ $tld['id'] ]);
 
                 // Mapping of regex patterns to script names
                 $regexToScriptName = [
@@ -812,6 +814,7 @@ class SystemController extends Controller
                     'premium_pricing' => $premium_pricing,
                     'premium_categories' => $premium_categories,
                     'promotions' => $promotions,
+                    'launch_phases' => $launch_phases,
                     'currentUri' => $uri
                 ]);
             } else {
@@ -976,6 +979,78 @@ class SystemController extends Controller
                 $db->commit();
                 
                 $this->container->get('flash')->addMessage('success', 'Promotion updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+               return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+            }
+            
+        } else {
+            // Redirect to the tlds view
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
+    
+    public function managePhases(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+
+            $sData = array();
+
+            $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
+            $sData['extension'] = substr(trim($data['extension']), 0, 10);
+            $sData['phaseName'] = substr(trim($data['phaseName']), 0, 255);
+            $sData['phaseType'] = substr(trim($data['phaseType']), 0, 255);
+            $sData['phaseDescription'] = substr(trim($data['phaseDescription']), 0, 1000);
+            $sData['phaseStart'] = date('Y-m-d', strtotime($data['phaseStart']));
+            $sData['phaseEnd'] = date('Y-m-d', strtotime($data['phaseEnd']));
+
+            try {           
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                $db->beginTransaction();
+                
+                $existingPhaseType = $db->selectValue(
+                    'SELECT COUNT(*) FROM launch_phases WHERE tld_id = ? AND phase_type = ?',
+                    [
+                        $sData['tldid'],
+                        $sData['phaseType']
+                    ]
+                );
+                
+                if ($existingPhaseType > 0) {
+                    // phase_type already exists for the tldid
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'The phase type already exists for this TLD.');
+                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                }
+
+                $db->insert(
+                    'launch_phases',
+                    [
+                        'tld_id' => $sData['tldid'],
+                        'phase_name' => $sData['phaseName'],
+                        'phase_type' => $sData['phaseType'],
+                        'phase_description' => $sData['phaseDescription'],
+                        'start_date' => $sData['phaseStart'],
+                        'end_date' => $sData['phaseEnd'],
+                        'lastupdate' => $update
+                    ]
+                );
+
+                $db->commit();
+                
+                $this->container->get('flash')->addMessage('success', 'Launch phase updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
             } catch (Exception $e) {
                 $db->rollBack();

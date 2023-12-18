@@ -191,7 +191,7 @@
                 </div>
               </form>
 
-              <div class="card">
+              <div class="card mb-3">
                   <div class="card-header">
                       <h5 class="card-title">Manage Promotions</h5>
                   </div>
@@ -279,6 +279,88 @@
                     <div class="row align-items-center">
                       <div class="col-auto">
                         <button type="submit" class="btn btn-primary">Update Promotions</button>
+                      </div>
+                    </div>
+                    </form>
+                  </div>
+              </div>
+              
+              <div class="card">
+                  <div class="card-header">
+                      <h5 class="card-title">Manage Launch Phases</h5>
+                  </div>
+                  <div class="card-body">
+                  <div class="table-responsive mb-3">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Phase Type</th>
+                                <th>Phase Name</th>
+                                <th>Phase Description</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for phase in launch_phases %}
+                                <tr>
+                                    <td>{{ phase.id }}</td>
+                                    <td>{{ phase.phase_type }}</td>
+                                    <td>{{ phase.phase_name }}</td>
+                                    <td>{{ phase.phase_description }}</td>
+                                    <td>{{ phase.start_date }}</td>
+                                    <td>{{ phase.end_date }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6">No launch phases found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                  </div>
+                      <h4 class="card-subtitle mt-3 mb-3">Create New Phase</h4>
+                      <form action="/registry/phases" method="post">
+                      {{ csrf.field | raw }}
+                      <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
+                          <div class="mb-3">
+                              <label for="phaseType" class="form-label required">Phase Type</label>
+                              <select class="form-select" id="phaseType" name="phaseType" required>
+                                  <option value="sunrise">Sunrise</option>
+                                  <option value="landrush">Landrush</option>
+                                  <option value="claims">Claims</option>
+                                  <option value="open">Open</option>
+                                  <option value="custom">Custom</option>
+                              </select>
+                          </div>
+                          <div class="mb-3">
+                              <label for="phaseName" class="form-label required">Phase Name</label>
+                              <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name" required>
+                          </div>
+                          <div class="mb-3">
+                              <label for="phaseDescription" class="form-label required">Phase Description</label>
+                              <textarea class="form-control" id="phaseDescription" name="phaseDescription" rows="3" placeholder="Enter phase description" required></textarea>
+                          </div>
+                          <div class="row">
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="phaseStart" class="form-label required">Phase Start Date</label>
+                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="phaseStart" name="phaseStart" required>
+                                </div>
+                              </div>
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="phaseEnd" class="form-label">Phase End Date</label>
+                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="phaseEnd" name="phaseEnd">
+                                </div>
+                              </div>
+                          </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Update Phases</button>
                       </div>
                     </div>
                     </form>

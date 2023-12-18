@@ -3,14 +3,28 @@ CREATE SCHEMA registryTransaction;
 
 SET search_path TO registry, registryTransaction, public;
 
-CREATE TABLE registry.launch_phase (
+CREATE TABLE registry.launch_phases (
     "id" SERIAL PRIMARY KEY,
-    "phase_name" VARCHAR(255) NOT NULL,
+    "tld_id" INT CHECK ("tld_id" >= 0),
+    "phase_name" VARCHAR(75) NOT NULL,
+    "phase_type" VARCHAR(50) NOT NULL,
     "phase_description" TEXT,
-    "start_date" TIMESTAMP(3),
-    "end_date" TIMESTAMP(3),
+    "start_date" TIMESTAMP(3) NOT NULL,
+    "end_date" TIMESTAMP(3) DEFAULT NULL,
+    "lastupdate"   timestamp(3),
+    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
     UNIQUE(phase_name)
 );
+
+ CREATE OR REPLACE FUNCTION update_phases() RETURNS trigger AS '
+BEGIN
+    NEW.lastupdate := CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+' LANGUAGE 'plpgsql';
+
+CREATE TRIGGER add_current_date_to_launch_phases BEFORE UPDATE ON registry.launch_phases FOR EACH ROW EXECUTE PROCEDURE
+update_phases();
 
 CREATE TABLE registry.domain_tld (
      "id" SERIAL PRIMARY KEY,
@@ -51,6 +65,21 @@ CREATE TABLE registry.domain_restore_price (
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "price"   decimal(10,2) NOT NULL default '0.00',
      unique ("tldid") 
+);
+
+CREATE TABLE registry.allocation_tokens (
+     "token" VARCHAR(255) NOT NULL,
+     "domain_name" VARCHAR(255),
+     "tokenStatus" VARCHAR(100),
+     "tokenType" VARCHAR(100),
+     "createDateTime" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     "lastUpdate" TIMESTAMP(3),
+     "registrars" JSON,
+     "tlds" JSON,
+     "eppActions" JSON,
+     "reducePremium" BOOLEAN NOT NULL,
+     "reduceYears" INT NOT NULL CHECK (reduceYears BETWEEN 0 AND 10),
+    PRIMARY KEY (token)
 );
 
 CREATE TABLE registry.error_log (
