@@ -1027,11 +1027,13 @@ class SystemController extends Controller
                     return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
                 }
                 
-                // Check for existing phase_type or date overlap
+                // Check for existing phase_type (excluding 'Custom' with different phase_name) or date overlap (excluding 'Custom' and 'Open' types)
                 $query = "SELECT 
-                             (SELECT COUNT(*) FROM launch_phases WHERE tld_id = ? AND phase_type = ?) as phaseTypeExists,
+                             (SELECT COUNT(*) FROM launch_phases 
+                              WHERE tld_id = ? AND phase_type = ? AND (phase_type <> 'Custom' OR (phase_type = 'Custom' AND phase_name = ?))) as phaseTypeExists,
                              (SELECT COUNT(*) FROM launch_phases 
                               WHERE tld_id = ? AND 
+                              phase_type NOT IN ('Custom', 'Open') AND 
                               ((start_date <= ? AND end_date >= ?) OR
                                (start_date <= ? AND end_date >= ?) OR
                                (start_date >= ? AND end_date <= ?))) as dateOverlapExists";
@@ -1039,7 +1041,7 @@ class SystemController extends Controller
                 $result = $db->selectRow(
                     $query,
                     [
-                        $sData['tldid'], $sData['phaseType'],
+                        $sData['tldid'], $sData['phaseType'], $sData['phaseName'],
                         $sData['tldid'], $sData['phaseEnd'], $sData['phaseStart'],
                         $sData['phaseStart'], $sData['phaseEnd'],
                         $sData['phaseStart'], $sData['phaseEnd']
