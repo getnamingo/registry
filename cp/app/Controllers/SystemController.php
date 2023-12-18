@@ -1020,18 +1020,43 @@ class SystemController extends Controller
 
                 $db->beginTransaction();
                 
-                $existingPhaseType = $db->selectValue(
-                    'SELECT COUNT(*) FROM launch_phases WHERE tld_id = ? AND phase_type = ?',
+                // Check if phaseType is 'Custom' and phaseName is empty
+                if ($sData['phaseType'] === 'Custom' && (empty($sData['phaseName']) || is_null($sData['phaseName']))) {
+                    // Handle the error scenario
+                    $this->container->get('flash')->addMessage('error', 'Phase name is required when the type is Custom.');
+                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                }
+                
+                // Check for existing phase_type or date overlap
+                $query = "SELECT 
+                             (SELECT COUNT(*) FROM launch_phases WHERE tld_id = ? AND phase_type = ?) as phaseTypeExists,
+                             (SELECT COUNT(*) FROM launch_phases 
+                              WHERE tld_id = ? AND 
+                              ((start_date <= ? AND end_date >= ?) OR
+                               (start_date <= ? AND end_date >= ?) OR
+                               (start_date >= ? AND end_date <= ?))) as dateOverlapExists";
+
+                $result = $db->selectRow(
+                    $query,
                     [
-                        $sData['tldid'],
-                        $sData['phaseType']
+                        $sData['tldid'], $sData['phaseType'],
+                        $sData['tldid'], $sData['phaseEnd'], $sData['phaseStart'],
+                        $sData['phaseStart'], $sData['phaseEnd'],
+                        $sData['phaseStart'], $sData['phaseEnd']
                     ]
                 );
-                
-                if ($existingPhaseType > 0) {
+
+                if ($result['phaseTypeExists'] > 0) {
                     // phase_type already exists for the tldid
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'The phase type already exists for this TLD.');
+                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                }
+
+                if ($result['dateOverlapExists'] > 0) {
+                    // Date range overlaps with an existing entry
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Date range overlaps with an existing phase for this TLD.');
                     return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
                 }
 

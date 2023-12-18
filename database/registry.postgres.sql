@@ -6,7 +6,7 @@ SET search_path TO registry, registryTransaction, public;
 CREATE TABLE registry.launch_phases (
     "id" SERIAL PRIMARY KEY,
     "tld_id" INT CHECK ("tld_id" >= 0),
-    "phase_name" VARCHAR(75) NOT NULL,
+    "phase_name" VARCHAR(75) DEFAULT NULL,
     "phase_type" VARCHAR(50) NOT NULL,
     "phase_description" TEXT,
     "start_date" TIMESTAMP(3) NOT NULL,

@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS `registry`;
 CREATE TABLE IF NOT EXISTS `registry`.`launch_phases` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `tld_id` int(10) unsigned DEFAULT NULL,
-    `phase_name` VARCHAR(75) NOT NULL,
+    `phase_name` VARCHAR(75) DEFAULT NULL,
     `phase_type` VARCHAR(50) NOT NULL,
     `phase_description` TEXT,
     `start_date` DATETIME(3) NOT NULL,

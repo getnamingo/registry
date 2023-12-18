@@ -200,7 +200,6 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Promotion Name</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
@@ -212,7 +211,6 @@
                         <tbody>
                             {% for promo in promotions %}
                                 <tr>
-                                    <td>{{ promo.id }}</td>
                                     <td>{{ promo.promo_name }}</td>
                                     <td>{{ promo.start_date }}</td>
                                     <td>{{ promo.end_date }}</td>
@@ -240,13 +238,13 @@
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
                                   <label for="promotionStart" class="form-label required">Promotion Start Date</label>
-                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="promotionStart" name="promotionStart" required>
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionStart" name="promotionStart" required>
                                 </div>
                               </div>
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
                                   <label for="promotionEnd" class="form-label">Promotion End Date</label>
-                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="promotionEnd" name="promotionEnd">
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionEnd" name="promotionEnd">
                                 </div>
                               </div>
                           </div>
@@ -294,7 +292,6 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Phase Type</th>
                                 <th>Phase Name</th>
                                 <th>Phase Description</th>
@@ -305,9 +302,8 @@
                         <tbody>
                             {% for phase in launch_phases %}
                                 <tr>
-                                    <td>{{ phase.id }}</td>
-                                    <td>{{ phase.phase_type }}</td>
-                                    <td>{{ phase.phase_name }}</td>
+                                    <td>{{ phase.phase_type|capitalize }}</td>
+                                    <td>{{ phase.phase_name|default('N/A') }}</td>
                                     <td>{{ phase.phase_description }}</td>
                                     <td>{{ phase.start_date }}</td>
                                     <td>{{ phase.end_date }}</td>
@@ -335,8 +331,9 @@
                               </select>
                           </div>
                           <div class="mb-3">
-                              <label for="phaseName" class="form-label required">Phase Name</label>
-                              <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name" required>
+                              <label for="phaseName" class="form-label">Phase Name</label>
+                              <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
+                              <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
                           </div>
                           <div class="mb-3">
                               <label for="phaseDescription" class="form-label required">Phase Description</label>
@@ -346,13 +343,13 @@
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
                                   <label for="phaseStart" class="form-label required">Phase Start Date</label>
-                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="phaseStart" name="phaseStart" required>
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseStart" name="phaseStart" required>
                                 </div>
                               </div>
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
                                   <label for="phaseEnd" class="form-label">Phase End Date</label>
-                                  <input type="date" class="form-control" placeholder="e.g., 01/01/2023" id="phaseEnd" name="phaseEnd">
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseEnd" name="phaseEnd">
                                 </div>
                               </div>
                           </div>
