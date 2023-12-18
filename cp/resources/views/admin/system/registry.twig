@@ -31,11 +31,52 @@
                 <div class="card-body">
                   <div class="row">
                     <div class="col-md-6">
+                      <h3 class="mb-3">System Settings</h3>
+
                       <div class="mb-3">
                         <label for="registryOperator" class="form-label required">Registry Operator Name</label>
                         <input type="text" class="form-control" id="registryOperator" name="registryOperator" placeholder="Enter registry operator's name" value="{{ company_name }}" required>
                         <small class="form-hint">The official name of the organization operating the registry.</small>
                       </div>
+             
+                      <div class="mb-3">
+                        <label for="registryHandle" class="form-label required">Registry Handle</label>
+                        <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="Enter registry handle" value="{{ handle }}" required>
+                        <small class="form-hint">A unique identifier for the registry which will be appended to each object handle.</small>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="whoisServer" class="form-label required">WHOIS Server</label>
+                        <input type="text" class="form-control" id="whoisServer" name="whoisServer" placeholder="Enter registry whois server" value="{{ whois_server }}" required>
+                        <small class="form-hint">Enter the URL of the registry's WHOIS server. Example: whois.example.com</small>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="rdapServer" class="form-label required">RDAP Server</label>
+                        <input type="text" class="form-control" id="rdapServer" name="rdapServer" placeholder="Enter registry RDAP server" value="{{ rdap_server }}" required>
+                        <small class="form-hint">Enter the URL of the registry's RDAP server. Example: https://rdap.example.com</small>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label class="form-label">Features</label>
+                        <div class="divide-y">
+                          <div>
+                            <label class="row">
+                              <span class="col">Require Launch Phases</span>
+                              <span class="col-auto">
+                                <label class="form-check form-check-single form-switch">
+                                  <input class="form-check-input" type="checkbox" name="launchPhases" {% if launch_phases == 'on' %}checked{% endif %}>
+                                </label>
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                          
+                    <div class="col-md-6">
+                      <h3 class="mb-3">Operator Details</h3>
                       
                       <div class="mb-3">
                         <label for="registryOperatorVat" class="form-label required">Registry VAT/Company Number</label>
@@ -54,10 +95,7 @@
                         <input type="text" class="form-control" id="contactAddress2" name="contactAddress2" placeholder="Enter contact address" value="{{ address2 }}" required>
                         <small class="form-hint">The contact address of the registry. (Line 2)</small>
                       </div>
-
-                    </div>
-                          
-                    <div class="col-md-6">
+                      
                       <div class="mb-3">
                         <label for="contactEmail" class="form-label required">Contact Email</label>
                         <input type="email" class="form-control" id="contactEmail" name="contactEmail" placeholder="Enter contact email" value="{{ email }}" required>
@@ -69,12 +107,7 @@
                         <input type="tel" class="form-control" id="contactPhone" name="contactPhone" placeholder="Enter contact phone" value="{{ phone }}" required>
                         <small class="form-hint">The phone number for general inquiries to the registry.</small>
                       </div>
-                      
-                      <div class="mb-3">
-                        <label for="registryHandle" class="form-label required">Registry Handle</label>
-                        <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="Enter registry handle" value="{{ handle }}" required>
-                        <small class="form-hint">A unique identifier for the registry which will be appended to each object handle.</small>
-                      </div>
+
                     </div>
                    
                   </div>

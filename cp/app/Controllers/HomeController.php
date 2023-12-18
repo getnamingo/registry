@@ -11,7 +11,16 @@ class HomeController extends Controller
 {
     public function index(Request $request, Response $response)
     {
-        return view($response,'index.twig');
+        $db = $this->container->get('db');
+        $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
+        $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
+        $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+        
+        return view($response, 'index.twig', [
+            'whois_server' => $whois_server,
+            'rdap_server' => $rdap_server,
+            'company_name' => $company_name,
+        ]);
     }
 
     public function dashboard(Request $request, Response $response)

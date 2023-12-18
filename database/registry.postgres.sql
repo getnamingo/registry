@@ -809,7 +809,10 @@ INSERT INTO registry.settings (name, value) VALUES
 ('vat_number', '0'),
 ('phone', '+123456789'),
 ('handle', 'RXX'),
-('email', 'contact@example.com');
+('email', 'contact@example.com'),
+('launch_phases', 'on'),
+('whois_server', 'whois.example.com'),
+('rdap_server', 'https://rdap.example.com');
  
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");

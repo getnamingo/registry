@@ -832,7 +832,10 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('vat_number',    '0'),
 ('phone',    '+123456789'),
 ('handle',    'RXX'),
-('email',    'contact@example.com');
+('email',    'contact@example.com'),
+('launch_phases',    'on'),
+('whois_server',    'whois.example.com'),
+('rdap_server',    'https://rdap.example.com');
 
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 

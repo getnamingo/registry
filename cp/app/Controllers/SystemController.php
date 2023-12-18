@@ -112,6 +112,36 @@ class SystemController extends Controller
                         'name' => "handle"
                     ]
                 );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['launchPhases']
+                    ],
+                    [
+                        'name' => "launch_phases"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['whoisServer']
+                    ],
+                    [
+                        'name' => "whois_server"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['rdapServer']
+                    ],
+                    [
+                        'name' => "rdap_server"
+                    ]
+                );
 
                 $db->commit();
             } catch (Exception $e) {
@@ -133,6 +163,9 @@ class SystemController extends Controller
         $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
         $handle = $db->selectValue("SELECT value FROM settings WHERE name = 'handle'");
+        $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
+        $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
+        $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
         
         return view($response,'admin/system/registry.twig', [
             'company_name' => $company_name,
@@ -141,7 +174,10 @@ class SystemController extends Controller
             'address2' => $address2,
             'phone' => $phone,
             'email' => $email,
-            'handle' => $handle
+            'handle' => $handle,
+            'launch_phases' => $launch_phases,
+            'whois_server' => $whois_server,
+            'rdap_server' => $rdap_server
         ]);
     }
     

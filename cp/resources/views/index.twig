@@ -60,12 +60,12 @@
                         </li>
                         {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
+                            <a class="nav-link" href="https://{{ whois_server }}" target="_blank">
                                 WHOIS
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
+                            <a class="nav-link" href="{{ rdap_server }}" target="_blank">
                                 RDAP
                             </a>
                         </li>
@@ -86,8 +86,8 @@
                 <p class="display-6 lead"><em>Access and manage your domain-related services here.</em></p>
                 <p class="lead">To get started:</p>
                 <ul class="custom-bullet">
-                <li><a href="#"><strong>Log in</strong></a> to access your registrar dashboard and manage domains.</li>
-				<li>Access our <a href="#"><strong>WHOIS</strong></a> and <a href="#"><strong>RDAP</strong></a> services for domain information lookup.</li>
+                <li>{% if auth.isLogin %}<a href="{{route('home')}}"><strong>Open panel</strong></a>{% else %}<a href="{{route('login')}}"><strong>Log in</strong></a>{% endif %} to access your registrar dashboard and manage domains.</li>
+                <li>Access our <a href="https://{{ whois_server }}" target="_blank"><strong>WHOIS</strong></a> and <a href="{{ rdap_server }}" target="_blank"><strong>RDAP</strong></a> services for domain information lookup.</li>
                 <li>Visit our <a href="#"><strong>Help Center</strong></a> for guides, FAQs, and support.</li>
                 <li>Interested in partnering with us? <a href="#"><strong>Apply</strong></a> to become an official registrar.</li>
                 </ul>
@@ -97,7 +97,7 @@
     </main>
     <footer class="footer bg-dark mt-auto py-3">
         <div class="container">
-            <span class="text-muted">&copy; {{ 'now' | date('Y') }}. All rights reserved.</span>
+            <span class="text-muted">&copy; {{ 'now' | date('Y') }} <strong>{{ company_name }}</strong>. All rights reserved.</span>
         </div>
     </footer>
     {% include 'partials/js.twig' %}
