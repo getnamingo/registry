@@ -931,8 +931,8 @@ class SystemController extends Controller
             $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
             $sData['extension'] = substr(trim($data['extension']), 0, 10);
             $sData['promotionName'] = substr(trim($data['promotionName']), 0, 255);
-            $sData['promotionStart'] = date('Y-m-d', strtotime($data['promotionStart']));
-            $sData['promotionEnd'] = date('Y-m-d', strtotime($data['promotionEnd']));
+            $sData['promotionStart'] = str_replace('T', ' ', $data['promotionStart']) . ':00';
+            $sData['promotionEnd'] = str_replace('T', ' ', $data['promotionEnd']) . ':00';
             $sData['discountType'] = in_array($data['discountType'], ['percentage', 'amount']) ? $data['discountType'] : 'percentage';
             $sData['discountValue'] = filter_var($data['discountValue'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
             $sData['max_count'] = ($data['max_count'] === "") ? null : filter_var($data['max_count'], FILTER_SANITIZE_NUMBER_INT);
@@ -1011,8 +1011,8 @@ class SystemController extends Controller
             $sData['phaseName'] = substr(trim($data['phaseName']), 0, 255);
             $sData['phaseType'] = substr(trim($data['phaseType']), 0, 255);
             $sData['phaseDescription'] = substr(trim($data['phaseDescription']), 0, 1000);
-            $sData['phaseStart'] = date('Y-m-d', strtotime($data['phaseStart']));
-            $sData['phaseEnd'] = date('Y-m-d', strtotime($data['phaseEnd']));
+            $sData['phaseStart'] = str_replace('T', ' ', $data['phaseStart']) . ':00';
+            $sData['phaseEnd'] = str_replace('T', ' ', $data['phaseEnd']) . ':00';
 
             try {           
                 $currentDateTime = new \DateTime();
