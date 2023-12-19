@@ -26,13 +26,13 @@
             <form id="domainUpdateForm" action="/application/update" method="post">
             {{ csrf.field | raw }}
             <div class="row">
+              <div class="col-12">{% include 'partials/flash.twig' %}</div>
               <div class="col-md-6">
-              {% include 'partials/flash.twig' %}
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">
                         Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
-                        {% if domainStatus.status or domain.rgpstatus %}
+                        {% if domainStatus %}
                             {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
                                     <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
@@ -42,11 +42,8 @@
                                     <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
                                 {% endif %}
                             {% endif %}
-                            {% if domain.rgpstatus %}
-                                <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
-                            {% endif %}
                         {% else %}
-                            <span class="status status-info" title="Status">ok</span>
+                            <span class="status status-info" title="Status">{{ domainStatus.status }}</span>
                         {% endif %}
                     </h3>
                   </div>
@@ -58,11 +55,11 @@
                       </div>
                       <div class="datagrid-item">
                         <div class="datagrid-title">Launch Phase</div>
-                        <div class="datagrid-content">{{ domain.phase_type }}</div>
+                        <div class="datagrid-content">{{ domain.phase_type|capitalize }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Expiration Date</div>
-                        <div class="datagrid-content">{{ domain.exdate }}</div>
+                        <div class="datagrid-title">Phase Name</div>
+                        <div class="datagrid-content">{{ domain.phase_name|default('N/A') }}</div>
                       </div>
                       <div class="datagrid-item">
                         <div class="datagrid-title">Registrar</div>
@@ -119,13 +116,13 @@
 <script>
 var csrfTokenName = "{{ csrfTokenName }}";
 var csrfTokenValue = "{{ csrfTokenValue }}";
-    
+
 function sendRequest(nameserver) {
     var formData = new FormData();
     formData.append('nameserver', nameserver);
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/domain/deletehost');
+    xhr.open('POST', '/application/deletehost');
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             var response = JSON.parse(xhr.responseText);

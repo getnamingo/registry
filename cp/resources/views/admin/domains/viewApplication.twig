@@ -28,18 +28,18 @@
                 <div class="card-header">
                     <h3 class="card-title">
                         Application for {{ domain.name }}&nbsp;
-                        {% if domain.status %}
-                            {% if domain is iterable %}
+                        {% if domainStatus %}
+                            {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
                                     <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
                                 {% endfor %}
                             {% else %}
-                                {% if domain.status %}
-                                    <span class="status status-green" title="Status">{{ domain.status }}</span>&nbsp;
+                                {% if domainStatus.status %}
+                                    <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
                                 {% endif %}
                             {% endif %}
                         {% else %}
-                            <span class="status status-info" title="Status">ok</span>
+                            <span class="status status-info" title="Status">{{ domainStatus.status }}</span>
                         {% endif %}
                     </h3>
                 </div>
@@ -51,11 +51,11 @@
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Launch Phase</div>
-                      <div class="datagrid-content">{{ domain.phase_type }}</div>
+                      <div class="datagrid-content">{{ domain.phase_type|capitalize }}</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Phase Name</div>
-                      <div class="datagrid-content">{{ domain.exdate }}</div>
+                      <div class="datagrid-content">{{ domain.phase_name|default('N/A') }}</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Registrar</div>

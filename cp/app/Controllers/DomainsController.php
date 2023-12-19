@@ -1038,7 +1038,7 @@ class DomainsController extends Controller
             foreach ($results as $row) {
                 $status = $row['status'];
                 if (preg_match('/.*(serverUpdateProhibited)$/', $status) || preg_match('/^pendingTransfer/', $status)) {
-                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow renew, first change the status');
+                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow update, first change the status');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
             }

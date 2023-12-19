@@ -87,8 +87,8 @@ class ApplicationsController extends Controller
             }
 
             $domain_already_exist = $db->selectValue(
-                'SELECT id FROM application WHERE name = ? and clid = ? LIMIT 1',
-                [$domainName, $clid]
+                'SELECT id FROM application WHERE name = ? and clid = ? and phase_type = ? LIMIT 1',
+                [$domainName, $clid, $phaseType]
             );
 
             if ($domain_already_exist) {
@@ -369,7 +369,7 @@ class ApplicationsController extends Controller
                         'date' => $stdate,
                         'command' => 'create',
                         'domain_name' => $domainName,
-                        'length_in_months' => $date_add,
+                        'length_in_months' => 0,
                         'fromS' => $from,
                         'toS' => $from,
                         'amount' => $price
@@ -416,7 +416,7 @@ class ApplicationsController extends Controller
                                     'error_log',
                                     [
                                         'registrar_id' => $clid,
-                                        'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
+                                        'log' => "Application : $domainName ; hostName : $nameserver - is duplicated",
                                         'date' => $logdate
                                     ]
                                 );
@@ -533,28 +533,7 @@ class ApplicationsController extends Controller
                         }
                     }
                 }
-
-                $result = $db->selectRow(
-                    'SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1',
-                    [$domainName]
-                );
-                $crdate = $result['crdate'];
-                $exdate = $result['exdate'];
-
-                $curdate_id = $db->selectValue(
-                    'SELECT id FROM statistics WHERE date = CURDATE()'
-                );
-
-                if (!$curdate_id) {
-                    $db->exec(
-                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                    );
-                }
-
-                $db->exec(
-                    'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()'
-                );
-                
+             
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
@@ -767,11 +746,11 @@ class ApplicationsController extends Controller
             if ($_SESSION["auth_roles"] != 0) {
                 $clid = $result['registrar_id'];
             } else {
-                $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                $clid = $db->selectValue('SELECT clid FROM application WHERE name = ?', [$domainName]);
             }
             
             $domain_id = $db->selectValue(
-                'SELECT id FROM domain WHERE name = ?',
+                'SELECT id FROM application WHERE name = ?',
                 [$domainName]
             );
             $results = $db->select(
@@ -782,130 +761,20 @@ class ApplicationsController extends Controller
             foreach ($results as $row) {
                 $status = $row['status'];
                 if (preg_match('/.*(serverUpdateProhibited)$/', $status) || preg_match('/^pendingTransfer/', $status)) {
-                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow renew, first change the status');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                    $this->container->get('flash')->addMessage('error', 'It has a status that does not allow update, first change the status');
+                    return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
                 }
             }
-            
-            $contactRegistrant = $data['contactRegistrant'] ?? null;
-            $contactAdmin = $data['contactAdmin'] ?? null;
-            $contactTech = $data['contactTech'] ?? null;
-            $contactBilling = $data['contactBilling'] ?? null;
-            
+  
             $nameservers = $data['nameserver'] ?? [];
 
-            $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
-            $dsAlg = $data['dsAlg'] ?? null;
-            $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
-            $dsDigest = $data['dsDigest'] ?? null;
-            
-            $dnskeyFlags = $data['dnskeyFlags'] ?? null;
-            $dnskeyProtocol = $data['dnskeyProtocol'] ?? null;
-            $dnskeyAlg = $data['dnskeyAlg'] ?? null;
-            $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
-            
-            $authInfo = $data['authInfo'] ?? null;
-            
-            if ($contactRegistrant) {
-                $validRegistrant = validate_identifier($contactRegistrant);
-                $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactRegistrant]);
-
-                if (!$row) {
-                    $this->container->get('flash')->addMessage('error', 'Registrant does not exist');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if ($clid != $row['clid']) {
-                    $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide registrant identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-            
-            if ($contactAdmin) {
-                $validAdmin = validate_identifier($contactAdmin);
-                $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactAdmin]);
-
-                if (!$row) {
-                    $this->container->get('flash')->addMessage('error', 'Admin contact does not exist');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if ($clid != $row['clid']) {
-                    $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide admin contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-            
-            if ($contactTech) {
-                $validTech = validate_identifier($contactTech);
-                $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactTech]);
-
-                if (!$row) {
-                    $this->container->get('flash')->addMessage('error', 'Tech contact does not exist');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if ($clid != $row['clid']) {
-                    $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide tech contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-            
-            if ($contactBilling) {
-                $validBilling = validate_identifier($contactBilling);
-                $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactBilling]);
-
-                if (!$row) {
-                    $this->container->get('flash')->addMessage('error', 'Billing contact does not exist');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if ($clid != $row['clid']) {
-                    $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide billing contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-            
-            if (!$authInfo) {
-                $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' can not be updated: Missing domain authinfo');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-
-            if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                $this->container->get('flash')->addMessage('error', 'Password needs to be at least 6 and up to 16 characters long');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-
-            if (!preg_match('/[A-Z]/', $authInfo)) {
-                $this->container->get('flash')->addMessage('error', 'Password should have both upper and lower case characters');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
-            
-            $registrant_id = $db->selectValue(
-                'SELECT id FROM contact WHERE identifier = ? LIMIT 1',
-                [$contactRegistrant]
-            );
-            
             try {
                 $db->beginTransaction();
                 
                 $currentDateTime = new \DateTime();
                 $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
-                $db->update('domain', [
-                    'registrant' => $registrant_id,
+                $db->update('application', [
                     'lastupdate' => $update,
                     'upid' => $clid
                 ],
@@ -914,126 +783,19 @@ class ApplicationsController extends Controller
                 ]
                 );
                 $domain_id = $db->selectValue(
-                    'SELECT id FROM domain WHERE name = ?',
+                    'SELECT id FROM application WHERE name = ?',
                     [$domainName]
                 );
 
-                $db->update(
-                    'domain_authInfo',
-                    [
-                        'authinfo' => $authInfo
-                    ],
-                    [
-                        'id' => $domain_id,
-                        'authtype' => 'pw'
-                    ]
-                );
-                
-                // Data sanity checks
-                // Validate keyTag
-                if (!empty($dsKeyTag)) {
-                    if (!is_int($dsKeyTag)) {
-                        $this->container->get('flash')->addMessage('error', 'Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                
-                    if ($dsKeyTag < 0 || $dsKeyTag > 65535) {
-                        $this->container->get('flash')->addMessage('error', 'Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                }
-
-                // Validate alg
-                $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
-                if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
-                    $this->container->get('flash')->addMessage('error', 'Incomplete algorithm provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate digestType and digest
-                if (!empty($dsDigestType) && !is_int($dsDigestType)) {
-                    $this->container->get('flash')->addMessage('error', 'Incomplete digest type provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-                $validDigests = [
-                    1 => 40,  // SHA-1
-                    2 => 64,  // SHA-256
-                    4 => 96   // SHA-384
-                ];
-                if (empty($validDigests[$dsDigestType])) {
-                    $this->container->get('flash')->addMessage('error', 'Unsupported digest type');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-                if (!empty($dsDigest)) {
-                    if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid digest length or format');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                }
-
-                // Data sanity checks for keyData
-                // Validate flags
-                $validFlags = [256, 257];
-                if (!empty($dnskeyFlags) && !in_array($dnskeyFlags, $validFlags)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid flags provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate protocol
-                if (!empty($dnskeyProtocol) && $dnskeyProtocol != 3) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid protocol provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate algKeyData
-                if (!empty($dnskeyAlg)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid algorithm encoding');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate pubKey
-                if (!empty($dnskeyPubKey) && base64_encode(base64_decode($dnskeyPubKey, true)) !== $dnskeyPubKey) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid public key encoding');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if (!empty($dsKeyTag)) {
-                    // Base data for the insert
-                    $insertData = [
-                        'domain_id' => $domain_id,
-                        'maxsiglife' => $maxSigLife,
-                        'interface' => 'dsData',
-                        'keytag' => $dsKeyTag,
-                        'alg' => $dsAlg,
-                        'digesttype' => $dsDigestType,
-                        'digest' => $dsDigest,
-                        'flags' => null,
-                        'protocol' => null,
-                        'keydata_alg' => null,
-                        'pubkey' => null
-                    ];
-
-                    // Check additional conditions for dnskeyFlags
-                    if (isset($dnskeyFlags) && $dnskeyFlags !== "") {
-                        $insertData['flags'] = $dnskeyFlags;
-                        $insertData['protocol'] = $dnskeyProtocol;
-                        $insertData['keydata_alg'] = $dnskeyAlg;
-                        $insertData['pubkey'] = $dnskeyPubKey;
-                    }
-
-                    // Perform the insert
-                    $db->insert('secdns', $insertData);
-                }
-   
                 foreach ($nameservers as $index => $nameserver) {
                     if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
                         $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                        return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
                     }
                     
                     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
                         $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                        return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
                     }
                 
                     $hostName_already_exist = $db->selectValue(
@@ -1132,52 +894,19 @@ class ApplicationsController extends Controller
                     }
                 }
 
-                $contacts = [
-                    'admin' => $data['contactAdmin'] ?? null,
-                    'tech' => $data['contactTech'] ?? null,
-                    'billing' => $data['contactBilling'] ?? null
-                ];
-
-                foreach ($contacts as $type => $contact) {
-                    if ($contact !== null) {
-                        $contact_id = $db->selectValue(
-                            'SELECT id FROM contact WHERE identifier = ? LIMIT 1',
-                            [$contact]
-                        );
-
-                        $contact_map_id = $db->selectRow(
-                            'SELECT * FROM application_contact_map WHERE domain_id = ? AND type = ?',
-                            [$domain_id, $type]
-                        );
-
-                        // Check if $contact_id is not null before update
-                        if ($contact_id !== null) {
-                            $db->update(
-                                'application_contact_map',
-                                [
-                                    'contact_id' => $contact_id,
-                                ],
-                                [
-                                    'id' => $contact_map_id['id']
-                                ]
-                            );
-                        }
-                    }
-                }
-           
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
             } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
             }
    
-            $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been updated successfully on ' . $update);
-            return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+            $this->container->get('flash')->addMessage('success', 'Application ' . $domainName . ' has been updated successfully on ' . $update);
+            return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
         }
     }
     
@@ -1192,7 +921,7 @@ class ApplicationsController extends Controller
                     [ $data['nameserver'] ]);
             $domain_id = $db->selectValue('SELECT domain_id FROM application_host_map WHERE host_id = ?',
                     [ $host_id ]);
-            $domainName = $db->selectValue('SELECT name FROM domain WHERE id = ?',
+            $domainName = $db->selectValue('SELECT name FROM application WHERE id = ?',
                     [ $domain_id ]);
             $db->delete(
                 'application_host_map',
@@ -1202,11 +931,11 @@ class ApplicationsController extends Controller
                 ]
             );
             
-            $this->container->get('flash')->addMessage('success', 'Host ' . $data['nameserver'] . ' has been removed from domain successfully');
+            $this->container->get('flash')->addMessage('success', 'Host ' . $data['nameserver'] . ' has been removed from application successfully');
 
             $jsonData = json_encode([
                 'success' => true,
-                'redirect' => '/domain/update/'.$domainName
+                'redirect' => '/application/update/'.$domainName
             ]);
 
             $response = new \Nyholm\Psr7\Response(
@@ -1302,7 +1031,7 @@ class ApplicationsController extends Controller
                             ]
                         );
                     }
-                                
+    
                     // Delete domain related records
                     $db->delete(
                         'application_contact_map',
@@ -1323,13 +1052,7 @@ class ApplicationsController extends Controller
                         ]
                     );
                     $db->delete(
-                        'host',
-                        [
-                            'domain_id' => $domain_id
-                        ]
-                    );
-                    $db->delete(
-                        'domain',
+                        'application',
                         [
                             'id' => $domain_id
                         ]
@@ -1342,7 +1065,7 @@ class ApplicationsController extends Controller
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
                     
-                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
+                $this->container->get('flash')->addMessage('success', 'Application ' . $domainName . ' deleted successfully');
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             } else {
                 // Redirect to the applications view
