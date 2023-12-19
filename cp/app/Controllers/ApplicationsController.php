@@ -688,10 +688,10 @@ class ApplicationsController extends Controller
 
             if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
-                return $response->withHeader('Location', '/domains')->withStatus(302);
+                return $response->withHeader('Location', '/applications')->withStatus(302);
             }
 
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, exdate, lastupdate, clid, idnlang, rgpstatus FROM domain WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, phase_name, phase_type, clid, idnlang, rgpstatus FROM application WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
@@ -706,18 +706,14 @@ class ApplicationsController extends Controller
 
                     // Check if the registrar's ID is in the user's list of registrar IDs
                     if (!in_array($registrars['id'], $userRegistrarIds)) {
-                        // Redirect to the domains view if the user is not authorized for this contact
-                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                        // Redirect to the applications view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/applications')->withStatus(302);
                     }
                 }
                 
                 $domainRegistrant = $db->selectRow('SELECT identifier FROM contact WHERE id = ?',
                 [ $domain['registrant'] ]);
                 $domainStatus = $db->select('SELECT status FROM application_status WHERE domain_id = ?',
-                [ $domain['id'] ]);
-                $domainAuth = $db->selectRow('SELECT authinfo FROM domain_authInfo WHERE domain_id = ?',
-                [ $domain['id'] ]);
-                $domainSecdns = $db->select('SELECT * FROM secdns WHERE domain_id = ?',
                 [ $domain['id'] ]);
                 $domainHostsQuery = '
                     SELECT dhm.id, dhm.domain_id, dhm.host_id, h.name
@@ -736,13 +732,10 @@ class ApplicationsController extends Controller
                 $csrfTokenName = $this->container->get('csrf')->getTokenName();
                 $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
 
-
-                return view($response,'admin/domains/updateDomain.twig', [
+                return view($response,'admin/domains/updateApplication.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
-                    'domainAuth' => $domainAuth,
                     'domainRegistrant' => $domainRegistrant,
-                    'domainSecdns' => $domainSecdns,
                     'domainHosts' => $domainHosts,
                     'domainContacts' => $domainContacts,
                     'registrar' => $registrars,
@@ -751,13 +744,13 @@ class ApplicationsController extends Controller
                     'csrfTokenValue' => $csrfTokenValue
                ]);
             } else {
-                // Domain does not exist, redirect to the domains view
-                return $response->withHeader('Location', '/domains')->withStatus(302);
+                // Domain does not exist, redirect to the applications view
+                return $response->withHeader('Location', '/applications')->withStatus(302);
             }
 
         } else {
-            // Redirect to the domains view
-            return $response->withHeader('Location', '/domains')->withStatus(302);
+            // Redirect to the applications view
+            return $response->withHeader('Location', '/applications')->withStatus(302);
         }
     }
     
@@ -1249,33 +1242,14 @@ class ApplicationsController extends Controller
 
                 if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
-                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
                 [ $args ]);
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
-                $tldid = $domain['tldid'];
-                $registrant = $domain['registrant'];
-                $crdate = $domain['crdate'];
-                $exdate = $domain['exdate'];
-                $registrar_id_domain = $domain['clid'];
-                $crid = $domain['crid'];
-                $upid = $domain['upid'];
-                $trdate = $domain['trdate'];
-                $trstatus = $domain['trstatus'];
-                $reid = $domain['reid'];
-                $redate = $domain['redate'];
-                $acid = $domain['acid'];
-                $acdate = $domain['acdate'];
-                $rgpstatus = $domain['rgpstatus'];
-                $addPeriod = $domain['addPeriod'];
-                $autoRenewPeriod = $domain['autoRenewPeriod'];
-                $renewPeriod = $domain['renewPeriod'];
-                $renewedDate = $domain['renewedDate'];
-                $transferPeriod = $domain['transferPeriod'];
 
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
@@ -1296,261 +1270,83 @@ class ApplicationsController extends Controller
                 } else {
                     $clid = $registrar_id_domain;
                 }
-                
-                $results = $db->select(
-                    'SELECT status FROM application_status WHERE domain_id = ?',
-                    [ $domain_id ]
-                );
 
-                foreach ($results as $row) {
-                    $status = $row['status'];
-                    if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-                        $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
-                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                try {
+                    $db->beginTransaction();
+                        
+                    $hostIds = $db->select(
+                        'SELECT id FROM host WHERE domain_id = ?',
+                        [$domain_id]
+                    );
+                                
+                    foreach ($hostIds as $host) {
+                        $host_id = $host['id'];
+
+                        // Delete operations
+                        $db->delete(
+                            'host_addr',
+                            [
+                                'host_id' => $host_id
+                            ]
+                        );
+                        $db->delete(
+                            'host_status',
+                            [
+                                'host_id' => $host_id
+                            ]
+                        );
+                        $db->delete(
+                            'application_host_map',
+                            [
+                                'host_id' => $host_id
+                            ]
+                        );
                     }
-                }
-                
-                $grace_period = 30;
-                
-                $db->delete(
-                    'application_status',
-                    [
-                        'domain_id' => $domain_id
-                    ]
-                );
-                
-                $db->exec(
-                    'UPDATE domain SET rgpstatus = ?, delTime = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY) WHERE id = ?',
-                    ['redemptionPeriod', $grace_period, $domain_id]
-                );
-                
-                $db->insert(
-                    'application_status',
-                    [
-                        'domain_id' => $domain_id,
-                        'status' => 'pendingDelete'
-                    ]
-                );
-                    
-                if ($rgpstatus) {
-                    if ($rgpstatus === 'addPeriod') {
-                        $addPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
-                        if ($addPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create');
-                            $price = $returnValue['price'];
-            
-                            if (!$price) {
-                                $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
-                                return $response->withHeader('Location', '/domains')->withStatus(302);
-                            }
-                            
-                            try {
-                                $db->beginTransaction();
-                            
-                                $db->exec(
-                                    'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                    [$price, $clid]
-                                );
                                 
-                                $description = "domain name is deleted by the registrar during grace addPeriod, the registry provides a credit for the cost of the registration domain $domainName for period $addPeriod MONTH";
-                                $db->exec(
-                                    'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
-                                    [$clid, $description, $price]
-                                );
+                    // Delete domain related records
+                    $db->delete(
+                        'application_contact_map',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    $db->delete(
+                        'application_host_map',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    $db->delete(
+                        'application_status',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    $db->delete(
+                        'host',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    $db->delete(
+                        'domain',
+                        [
+                            'id' => $domain_id
+                        ]
+                    );
                                 
-                                $hostIds = $db->select(
-                                    'SELECT id FROM host WHERE domain_id = ?',
-                                    [$domain_id]
-                                );
-                                
-                                foreach ($hostIds as $host) {
-                                    $host_id = $host['id'];
-
-                                    // Delete operations
-                                    $db->delete(
-                                        'host_addr',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
-                                    $db->delete(
-                                        'host_status',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
-                                    $db->delete(
-                                        'application_host_map',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
-                                }
-                                
-                                // Delete domain related records
-                                $db->delete(
-                                    'application_contact_map',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'application_host_map',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'domain_authInfo',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'application_status',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'host',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'secdns',
-                                    [
-                                        'domain_id' => $domain_id
-                                    ]
-                                );
-                                $db->delete(
-                                    'domain',
-                                    [
-                                        'id' => $domain_id
-                                    ]
-                                );
-                                
-                                $curdate_id = $db->selectValue(
-                                    'SELECT id FROM statistics WHERE date = CURDATE()'
-                                );
-
-                                if (!$curdate_id) {
-                                    $db->exec(
-                                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                                    );
-                                }
-
-                                $db->exec(
-                                    'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()'
-                                );
-                            
-                                $db->commit();
-                            } catch (Exception $e) {
-                                $db->rollBack();
-                                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
-                            }
-                            $isImmediateDeletion = true;
-                        }
-                    } elseif ($rgpstatus === 'autoRenewPeriod') {
-                        $autoRenewPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
-                        if ($autoRenewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew');
-                            $price = $returnValue['price'];
-                            
-                            if (!$price) {
-                                $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
-                                return $response->withHeader('Location', '/domains')->withStatus(302);
-                            }
-
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
-                            
-                            $description = "domain name is deleted by the registrar during grace autoRenewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $autoRenewPeriod MONTH";
-                            $db->exec(
-                                'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
-                                [$clid, $description, $price]
-                            );
-                        }
-                    } elseif ($rgpstatus === 'renewPeriod') {
-                        $renewPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
-                        if ($renewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew');
-                            $price = $returnValue['price'];
-
-                            if (!$price) {
-                                $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
-                                return $response->withHeader('Location', '/domains')->withStatus(302);
-                            }
-
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
-                            
-                            $description = "domain name is deleted by the registrar during grace renewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $renewPeriod MONTH";
-                            $db->exec(
-                                'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
-                                [$clid, $description, $price]
-                            );
-                        }
-                    } elseif ($rgpstatus === 'transferPeriod') {
-                        $transferPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
-                        if ($transferPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew');
-                            $price = $returnValue['price'];
-                            
-                            if (!$price) {
-                                $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
-                                return $response->withHeader('Location', '/domains')->withStatus(302);
-                            }
-
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
-                            
-                            $description = "domain name is deleted by the registrar during grace transferPeriod, the registry provides a credit for the cost of the transfer domain $domainName for period $transferPeriod MONTH";
-                            $db->exec(
-                                'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP(3), ?, ?)',
-                                [$clid, $description, $price]
-                            );
-                        }
-                    }
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
                     
-                if ($isImmediateDeletion) {
-                    $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
-                } else {
-                    $this->container->get('flash')->addMessage('info', 'Deletion process for domain ' . $domainName . ' has been initiated');
-                }
-                return $response->withHeader('Location', '/domains')->withStatus(302);
+                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
+                return $response->withHeader('Location', '/applications')->withStatus(302);
             } else {
-                // Redirect to the domains view
-                return $response->withHeader('Location', '/domains')->withStatus(302);
+                // Redirect to the applications view
+                return $response->withHeader('Location', '/applications')->withStatus(302);
             }
         
         //}

@@ -1,0 +1,193 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Updating Application') }} {{ domain.name }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Updating Application') }} {{ domain.name }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <form id="domainUpdateForm" action="/application/update" method="post">
+            {{ csrf.field | raw }}
+            <div class="row">
+              <div class="col-md-6">
+              {% include 'partials/flash.twig' %}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                        Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
+                        {% if domainStatus.status or domain.rgpstatus %}
+                            {% if domainStatus is iterable %}
+                                {% for status in domainStatus %}
+                                    <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
+                                {% endfor %}
+                            {% else %}
+                                {% if domainStatus.status %}
+                                    <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
+                                {% endif %}
+                            {% endif %}
+                            {% if domain.rgpstatus %}
+                                <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="status status-info" title="Status">ok</span>
+                        {% endif %}
+                    </h3>
+                  </div>
+                  <div class="card-body">
+                    <div class="datagrid">
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Created On</div>
+                        <div class="datagrid-content">{{ domain.crdate }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Launch Phase</div>
+                        <div class="datagrid-content">{{ domain.phase_type }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Expiration Date</div>
+                        <div class="datagrid-content">{{ domain.exdate }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Registrar</div>
+                        <div class="datagrid-content">{{ registrar.name }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">{{ __('Update Application') }}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">                              
+                    <div id="nameserverFields">
+                      <label class="form-label">{{ __('Nameservers') }}&nbsp;<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>&nbsp;<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button></label>
+                      {% for host in domainHosts %}
+                      <div class="nameserver-group mb-1 row">
+                        <div class="input-group mb-1">
+                          <input type="text" class="form-control" placeholder="{{ __('Nameserver') }} {{ loop.index }}" value="{{ host.name }}" autocapitalize="none" disabled>
+                          <button type="button" class="btn btn-secondary btn-icon" onclick="sendRequest('{{ host.name }}')" title="Delete nameserver"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10l4 4m0 -4l-4 4" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg></button>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+            </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<script>
+var csrfTokenName = "{{ csrfTokenName }}";
+var csrfTokenValue = "{{ csrfTokenValue }}";
+    
+function sendRequest(nameserver) {
+    var formData = new FormData();
+    formData.append('nameserver', nameserver);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/domain/deletehost');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            var response = JSON.parse(xhr.responseText);
+            if (xhr.status == 200 && response.success) {
+                // Redirect to the provided URL
+                window.location.href = response.redirect;
+            } else {
+                // Handle error
+                console.error('Error: ' + response.error);
+                alert('Error: ' + response.error); // Display error message to the user
+            }
+        }
+    };
+    xhr.send(formData);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    const addNameserverBtn = document.getElementById('addNameserver');
+    const removeNameserverBtn = document.getElementById('removeNameserver');
+    const nameserverFields = document.getElementById('nameserverFields');
+
+    function createNameserverGroup(count) {
+        const group = document.createElement('div');
+        group.className = 'nameserver-group mb-1 row';
+
+        const nameserverCol = document.createElement('div');
+        nameserverCol.className = 'col-md-12';
+        const nameserverField = document.createElement('input');
+        nameserverField.type = 'text';
+        nameserverField.className = 'form-control mb-1';
+        nameserverField.placeholder = `{{ __('Nameserver') }} ${count}`;
+        nameserverField.name = `nameserver[]`;
+        nameserverCol.appendChild(nameserverField);
+
+        group.appendChild(nameserverCol);
+
+        return group;
+    }
+
+    // Add nameserver fields
+    let nameserverCount = {{ domainHosts|length }};  // Initialize count based on the number of domain hosts
+
+    addNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount < 13) {
+            nameserverCount++;
+            const nameserverGroup = createNameserverGroup(nameserverCount);
+            nameserverFields.appendChild(nameserverGroup);
+        }
+    });
+
+    // Remove nameserver group
+    removeNameserverBtn.addEventListener('click', function() {
+        if (nameserverCount > {{ domainHosts|length }}) {
+            const lastGroup = nameserverFields.querySelector('.nameserver-group:last-child');
+            if (lastGroup) {
+                nameserverFields.removeChild(lastGroup);
+                nameserverCount--;
+            }
+        }
+    });
+    
+});
+</script>
+{% endblock %}
