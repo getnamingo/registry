@@ -603,7 +603,7 @@ class ApplicationsController extends Controller
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             }
         
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, clid, idnlang, authinfo, authtype, phase_name, phase_type, smd FROM application WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, clid, idnlang, authinfo, authtype, phase_name, phase_type, smd, application_id FROM application WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
@@ -682,7 +682,7 @@ class ApplicationsController extends Controller
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             }
 
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, phase_name, phase_type, clid, idnlang, rgpstatus FROM application WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, phase_name, phase_type, clid, application_id FROM application WHERE name = ?',
             [ $args ]);
 
             if ($domain) {
