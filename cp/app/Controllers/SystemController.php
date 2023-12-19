@@ -1045,6 +1045,7 @@ class SystemController extends Controller
             $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
             $sData['extension'] = substr(trim($data['extension']), 0, 10);
             $sData['phaseName'] = substr(trim($data['phaseName']), 0, 255);
+            $sData['phaseCategory'] = substr(trim($data['phaseCategory']), 0, 255);
             $sData['phaseType'] = substr(trim($data['phaseType']), 0, 255);
             $sData['phaseDescription'] = substr(trim($data['phaseDescription']), 0, 1000);
             $sData['phaseStart'] = str_replace('T', ' ', $data['phaseStart']) . ':00';
@@ -1104,6 +1105,7 @@ class SystemController extends Controller
                         'tld_id' => $sData['tldid'],
                         'phase_name' => $sData['phaseName'],
                         'phase_type' => $sData['phaseType'],
+                        'phase_category' => $sData['phaseCategory'],
                         'phase_description' => $sData['phaseDescription'],
                         'start_date' => $sData['phaseStart'],
                         'end_date' => $sData['phaseEnd'],

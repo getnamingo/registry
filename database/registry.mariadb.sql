@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`launch_phases` (
     `tld_id` int(10) unsigned DEFAULT NULL,
     `phase_name` VARCHAR(75) DEFAULT NULL,
     `phase_type` VARCHAR(50) NOT NULL,
+    `phase_category` VARCHAR(75) NOT NULL,
     `phase_description` TEXT,
     `start_date` DATETIME(3) NOT NULL,
     `end_date` DATETIME(3) DEFAULT NULL,

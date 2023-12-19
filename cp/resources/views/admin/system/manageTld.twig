@@ -295,6 +295,7 @@
                             <tr>
                                 <th>Phase Type</th>
                                 <th>Phase Name</th>
+                                <th>Phase Category</th>
                                 <th>Phase Description</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
@@ -305,13 +306,14 @@
                                 <tr>
                                     <td>{{ phase.phase_type|capitalize }}</td>
                                     <td>{{ phase.phase_name|default('N/A') }}</td>
+                                    <td>{{ phase.phase_category }}</td>
                                     <td>{{ phase.phase_description }}</td>
                                     <td>{{ phase.start_date }}</td>
                                     <td>{{ phase.end_date }}</td>
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="6">No launch phases found.</td>
+                                    <td colspan="7">No launch phases found.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -334,7 +336,22 @@
                           <div class="mb-3">
                               <label for="phaseName" class="form-label">Phase Name</label>
                               <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
-                              <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
+                              <small class="form-hint">The "Phase Name" field is required only if the "Type" is set to "Custom".</small>
+                          </div>
+                          <div class="mb-3">
+                            <div class="form-label">Phase Category</div>
+                            <div>
+                              <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="phaseCategory" id="First-Come-First-Serve" value="First-Come-First-Serve" checked>
+                                <span class="form-check-label">First-Come-First-Serve</span>
+                                <small class="form-hint">Single application only.</small>
+                              </label>
+                              <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="phaseCategory" id="Application" value="Application">
+                                <span class="form-check-label">Application</span>
+                                <small class="form-hint">Multiple applications allowed.</small>
+                              </label>
+                            </div>
                           </div>
                           <div class="mb-3">
                               <label for="phaseDescription" class="form-label required">Phase Description</label>

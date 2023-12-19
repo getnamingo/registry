@@ -8,6 +8,7 @@ CREATE TABLE registry.launch_phases (
     "tld_id" INT CHECK ("tld_id" >= 0),
     "phase_name" VARCHAR(75) DEFAULT NULL,
     "phase_type" VARCHAR(50) NOT NULL,
+    "phase_category" VARCHAR(75) NOT NULL,
     "phase_description" TEXT,
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) DEFAULT NULL,
