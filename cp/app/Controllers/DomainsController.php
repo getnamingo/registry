@@ -13,12 +13,7 @@ class DomainsController extends Controller
     {
         return view($response,'admin/domains/listDomains.twig');
     }
-    
-    public function listApplications(Request $request, Response $response)
-    {
-        return view($response,'admin/domains/listApplications.twig');
-    }
-    
+   
     public function checkDomain(Request $request, Response $response)
     {
         if ($request->getMethod() === 'POST') {

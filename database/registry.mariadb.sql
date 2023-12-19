@@ -373,25 +373,11 @@ CREATE TABLE IF NOT EXISTS `registry`.`application` (
     `transfer_exdate` datetime(3) default NULL,
     `idnlang` varchar(16) default NULL,
     `delTime` datetime(3) default NULL,
-    `resTime` datetime(3) default NULL,
-    `rgpstatus` enum('addPeriod','autoRenewPeriod','renewPeriod','transferPeriod','pendingDelete','pendingRestore','redemptionPeriod') default NULL,
-    `rgppostData` text default NULL,
-    `rgpdelTime` datetime(3) default NULL,
-    `rgpresTime` datetime(3) default NULL,
-    `rgpresReason` text default NULL,
-    `rgpstatement1` text default NULL,
-    `rgpstatement2` text default NULL,
-    `rgpother` text default NULL,
-    `addPeriod` tinyint(3) unsigned default NULL,
-    `autoRenewPeriod` tinyint(3) unsigned default NULL,
-    `renewPeriod` tinyint(3) unsigned default NULL,
-    `transferPeriod` tinyint(3) unsigned default NULL,
-    `renewedDate` datetime(3) default NULL,
-    `agp_exempted` tinyint(1) DEFAULT 0,
-    `agp_request` datetime(3) default NULL,
-    `agp_grant` datetime(3) default NULL,
-    `agp_reason` text default NULL,
-    `agp_status` varchar(30) default NULL,
+    `authtype` enum('pw','ext') NOT NULL default 'pw',
+    `authinfo` varchar(64) NOT NULL,
+    `phase_name` VARCHAR(75) DEFAULT NULL,
+    `phase_type` VARCHAR(50) NOT NULL,
+    `smd` text default NULL,
     `tm_notice_accepted` datetime(3) default NULL,
     `tm_notice_expires` datetime(3) default NULL,
     `tm_notice_id` varchar(150) default NULL,
@@ -417,7 +403,18 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_contact_map` (
     UNIQUE KEY `uniquekey` (`domain_id`,`contact_id`,`type`),
     CONSTRAINT `domain_contact_map_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `domain_contact_map_ibfk_2` FOREIGN KEY (`contact_id`) REFERENCES `contact` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contact map';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contact map for domains';
+
+CREATE TABLE IF NOT EXISTS `registry`.`application_contact_map` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `domain_id` int(10) unsigned NOT NULL,
+    `contact_id` int(10) unsigned NOT NULL,
+    `type` enum('admin','billing','tech') NOT NULL default 'admin',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniquekey` (`domain_id`,`contact_id`,`type`),
+    CONSTRAINT `application_contact_map_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `application` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `application_contact_map_ibfk_2` FOREIGN KEY (`contact_id`) REFERENCES `contact` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contact map for applications';
 
 CREATE TABLE IF NOT EXISTS `registry`.`domain_authInfo` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -437,6 +434,15 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_status` (
     UNIQUE KEY `uniquekey` (`domain_id`,`status`),
     CONSTRAINT `domain_status_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain:status';
+
+CREATE TABLE IF NOT EXISTS `registry`.`application_status` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `domain_id` int(10) unsigned NOT NULL,
+    `status` enum('pendingValidation','validated','invalid','pendingAllocation','allocated','rejected','custom') NOT NULL default 'pendingValidation',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniquekey` (`domain_id`,`status`),
+    CONSTRAINT `application_status_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `application` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='application:status';
 
 CREATE TABLE IF NOT EXISTS `registry`.`secdns` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -482,7 +488,17 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_host_map` (
     UNIQUE KEY `domain_host_map_id` (`domain_id`,`host_id`),
     CONSTRAINT `domain_host_map_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `domain_host_map_ibfk_2` FOREIGN KEY (`host_id`) REFERENCES `host` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contact map';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='host map for domains';
+
+CREATE TABLE IF NOT EXISTS `registry`.`application_host_map` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `domain_id` int(10) unsigned NOT NULL,
+    `host_id` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `application_host_map_id` (`domain_id`,`host_id`),
+    CONSTRAINT `application_host_map_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `application` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `application_host_map_ibfk_2` FOREIGN KEY (`host_id`) REFERENCES `host` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='host map for applications';
 
 CREATE TABLE IF NOT EXISTS `registry`.`host_addr` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,

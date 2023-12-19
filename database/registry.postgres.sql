@@ -371,25 +371,11 @@ CREATE TABLE registry.application (
      "transfer_exdate"   timestamp(3) without time zone default NULL,
      "idnlang"   varchar(16) default NULL,
      "deltime"   timestamp(3) without time zone default NULL,
-     "restime"   timestamp(3) without time zone default NULL,
-     "rgpstatus" varchar CHECK ("rgpstatus" IN ( 'addPeriod','autoRenewPeriod','renewPeriod','transferPeriod','pendingDelete','pendingRestore','redemptionPeriod' )) default NULL,
-     "rgppostdata"   text default NULL,
-     "rgpdeltime"   timestamp(3) without time zone default NULL,
-     "rgprestime"   timestamp(3) without time zone default NULL,
-     "rgpresreason"   text default NULL,
-     "rgpstatement1"   text default NULL,
-     "rgpstatement2"   text default NULL,
-     "rgpother"   text default NULL,
-     "addperiod"  smallint CHECK ("addperiod" >= 0) default NULL,
-     "autorenewperiod"  smallint CHECK ("autorenewperiod" >= 0) default NULL,
-     "renewperiod"  smallint CHECK ("renewperiod" >= 0) default NULL,
-     "transferperiod"  smallint CHECK ("transferperiod" >= 0) default NULL,
-     "reneweddate"   timestamp(3) without time zone default NULL,
-     "agp_exempted" BOOLEAN DEFAULT FALSE,
-     "agp_request" TIMESTAMP(3) DEFAULT NULL,
-     "agp_grant" TIMESTAMP(3) DEFAULT NULL,
-     "agp_reason" TEXT DEFAULT NULL,
-     "agp_status" VARCHAR(30) DEFAULT NULL,
+     "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
+     "authinfo" varchar(64) NOT NULL,
+     "phase_name" VARCHAR(75) DEFAULT NULL,
+     "phase_type" VARCHAR(50) NOT NULL,
+     "smd" TEXT DEFAULT NULL,
      "tm_notice_accepted" TIMESTAMP(3) DEFAULT NULL,
      "tm_notice_expires" TIMESTAMP(3) DEFAULT NULL,
      "tm_notice_id" VARCHAR(150) DEFAULT NULL,
@@ -400,6 +386,15 @@ CREATE TABLE registry.application (
 );
 
 CREATE TABLE registry.domain_contact_map (
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
+     "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
+     primary key ("id"),
+     unique ("domain_id", "contact_id", "type") 
+);
+
+CREATE TABLE registry.application_contact_map (
      "id" serial8,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
@@ -421,6 +416,14 @@ CREATE TABLE registry.domain_status (
      "id" serial8,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientHold','clientRenewProhibited','clientTransferProhibited','clientUpdateProhibited','inactive','ok','pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverHold','serverRenewProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
+     primary key ("id"),
+     unique ("domain_id", "status") 
+);
+
+CREATE TABLE registry.application_status (
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "status" varchar CHECK ("status" IN ( 'pendingValidation','validated','invalid','pendingAllocation','allocated','rejected','custom' )) NOT NULL default 'pendingValidation',
      primary key ("id"),
      unique ("domain_id", "status") 
 );
@@ -457,6 +460,14 @@ CREATE TABLE registry.host (
 );
 
 CREATE TABLE registry.domain_host_map (
+     "id" serial8,
+     "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
+     "host_id" int CHECK ("host_id" >= 0) NOT NULL,
+     primary key ("id"),
+     unique ("domain_id", "host_id") 
+);
+
+CREATE TABLE registry.application_host_map (
      "id" serial8,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
@@ -836,8 +847,11 @@ ALTER TABLE registry.domain ADD FOREIGN KEY ("acid") REFERENCES registry.registr
 ALTER TABLE registry.domain ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
 ALTER TABLE registry.domain_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
+ALTER TABLE registry.application_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
+ALTER TABLE registry.application_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
 ALTER TABLE registry.domain_authinfo ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
 ALTER TABLE registry.domain_status ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
+ALTER TABLE registry.application_status ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
 ALTER TABLE registry.secdns ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
 ALTER TABLE registry.host ADD FOREIGN KEY ("clid") REFERENCES registry.registrar ("id");
 ALTER TABLE registry.host ADD FOREIGN KEY ("crid") REFERENCES registry.registrar ("id");
@@ -845,6 +859,8 @@ ALTER TABLE registry.host ADD FOREIGN KEY ("upid") REFERENCES registry.registrar
 ALTER TABLE registry.host ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
 ALTER TABLE registry.domain_host_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
 ALTER TABLE registry.domain_host_map ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
+ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
+ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
 ALTER TABLE registry.host_addr ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
 ALTER TABLE registry.host_status ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
 

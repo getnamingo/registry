@@ -1,0 +1,148 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Application Details') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Application Details') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Application for {{ domain.name }}&nbsp;
+                        {% if domain.status %}
+                            {% if domain is iterable %}
+                                {% for status in domainStatus %}
+                                    <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
+                                {% endfor %}
+                            {% else %}
+                                {% if domain.status %}
+                                    <span class="status status-green" title="Status">{{ domain.status }}</span>&nbsp;
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <span class="status status-info" title="Status">ok</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                  <div class="datagrid">
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registered On</div>
+                      <div class="datagrid-content">{{ domain.crdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Launch Phase</div>
+                      <div class="datagrid-content">{{ domain.phase_type }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Expiration Date</div>
+                      <div class="datagrid-content">{{ domain.exdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registrar</div>
+                      <div class="datagrid-content">{{ registrars.name }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">Registrant</div>
+                      <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
+                    </div>
+                    {% for contact in domainContacts %}
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ contact.type }} contact</div>
+                        <div class="datagrid-content">{{ contact.identifier }}</div>
+                      </div>
+                    {% endfor %}
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Auth Type</div>
+                        <div class="datagrid-content">
+                        {% if domain.authtype == 'pw' %}
+                          Regular
+                        {% elseif domain.authtype == 'ext' %}
+                          HSM
+                        {% else %}
+                          {{ domain.authtype }} {# Fallback in case there are other types #}
+                        {% endif %}
+                        </div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Auth Info</div>
+                        <div class="datagrid-content blur" id="authInfo" onclick="toggleBlur()">
+                          {{ domain.authinfo }}
+                        </div>
+                      </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+              <div class="row mb-3">
+                <div class="col-md-12">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title">Nameservers</h5>
+                        <div class="datagrid">
+                          {% for host in domainHosts %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">Nameserver {{ loop.index }}</div>
+                            <div class="datagrid-content">
+                              {{ host.name }}
+                            </div>
+                          </div>
+                          {% endfor %}
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    Copyright &copy; 2023
+                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+<style>
+.blur {
+  filter: blur(5px);
+  cursor: pointer;
+}
+
+.blur:hover {
+  filter: blur(2px); /* Slightly clearer on hover for a hint to the user */
+}
+</style>
+<script>
+function toggleBlur() {
+  var authInfo = document.getElementById("authInfo");
+  authInfo.classList.toggle("blur");
+}
+
+</script>
+{% endblock %}

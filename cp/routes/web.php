@@ -3,6 +3,7 @@ use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\PasswordController;
 use App\Controllers\HomeController;
 use App\Controllers\DomainsController;
+use App\Controllers\ApplicationsController;
 use App\Controllers\ContactsController;
 use App\Controllers\HostsController;
 use App\Controllers\LogsController;
@@ -51,7 +52,13 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/domain/restore/{domain}', DomainsController::class . ':restoreDomain')->setName('restoreDomain');
     $route->map(['GET', 'POST'], '/domain/report/{domain}', DomainsController::class . ':reportDomain')->setName('reportDomain');
     
-    $route->get('/applications', DomainsController::class .':listApplications')->setName('listApplications');
+    $route->get('/applications', ApplicationsController::class .':listApplications')->setName('listApplications');
+    $route->map(['GET', 'POST'], '/application/create', ApplicationsController::class . ':createApplication')->setName('createApplication');
+    $route->get('/application/view/{application}', ApplicationsController::class . ':viewApplication')->setName('viewApplication');
+    $route->get('/application/update/{application}', ApplicationsController::class . ':updateApplication')->setName('updateApplication');
+    $route->post('/application/update', ApplicationsController::class . ':updateApplicationProcess')->setName('updateApplicationProcess');
+    $route->post('/application/deletehost', ApplicationsController::class . ':applicationDeleteHost')->setName('applicationDeleteHost');
+    $route->map(['GET', 'POST'], '/application/delete/{application}', ApplicationsController::class . ':deleteApplication')->setName('deleteApplication');
 
     $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');
     $route->map(['GET', 'POST'], '/transfer/request', DomainsController::class . ':requestTransfer')->setName('requestTransfer');
@@ -173,6 +180,7 @@ $app->any('/api[/{params:.*}]', function (
             $columnMap = [
                 'contact' => 'clid',
                 'domain' => 'clid',
+                'application' => 'clid',
                 'host' => 'clid',
                 'poll' => 'registrar_id',
                 'registrar' => 'id',
