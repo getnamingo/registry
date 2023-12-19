@@ -99,7 +99,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
         return;
     }
-	
+    
     try {
         $stmt = $db->prepare("SELECT * FROM host WHERE name = :name");
         $stmt->execute(['name' => $hostName]);
@@ -110,7 +110,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
             sendEppError($conn, $db, 2303, 'Host does not exist', $clTRID, $trans);
             return;
         }
-		
+        
         // Fetch addresses
         $stmt3 = $db->prepare("SELECT `addr`, `ip` FROM `host_addr` WHERE `host_id` = :id");
         $stmt3->execute(['id' => $host['id']]);
@@ -130,7 +130,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         foreach($statuses as $status) {
             $statusArray[] = [$status['status']];
         }
-		
+        
         // Check for 'linked' status
         $stmt2 = $db->prepare("SELECT domain_id FROM domain_host_map WHERE host_id = :id LIMIT 1");
         $stmt2->execute(['id' => $host['id']]);
@@ -172,18 +172,25 @@ function processDomainInfo($conn, $db, $xml, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
+    $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
+    if (!empty($result)) {
+        $authInfo_pw = (string)$result[0];
+    } else {
+        $authInfo_pw = null;
+    }
+    
     // Validation for domain name
     $invalid_label = validate_label($domainName, $db);
     if ($invalid_label) {
         sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
-	
+    
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
         sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
-
+    
     try {
         $stmt = $db->prepare("SELECT * FROM domain WHERE name = :name");
         $stmt->execute(['name' => $domainName]);
@@ -195,6 +202,17 @@ function processDomainInfo($conn, $db, $xml, $trans) {
             return;
         }
         
+        if ($authInfo_pw) {
+            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
+            $stmt->execute([$domain['id'], $authInfo_pw]);
+            $domain_authinfo_id = $stmt->fetchColumn();
+
+            if (!$domain_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
+        }
+        
         // Fetch contacts
         $stmt = $db->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :id");
         $stmt->execute(['id' => $domain['id']]);
@@ -204,7 +222,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         foreach ($contacts as $contact) {
             $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
         }
-		
+        
         // Fetch hosts
         $stmt = $db->prepare("SELECT * FROM domain_host_map WHERE domain_id = :id");
         $stmt->execute(['id' => $domain['id']]);
@@ -235,11 +253,16 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         foreach($statuses as $status) {
             $statusArray[] = [$status['status']];
         }
-		
+        
         // Fetch secDNS data
         $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
         $stmt->execute(['id' => $domain['id']]);
         $secDnsRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Fetch registrant identifier
+        $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
+        $stmt->execute(['id' => $domain['registrant']]);
+        $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
 
         $transformedSecDnsRecords = [];
         if ($secDnsRecords) {
@@ -285,15 +308,12 @@ function processDomainInfo($conn, $db, $xml, $trans) {
             'name' => $domain['name'],
             'roid' => 'D' . $domain['id'],
             'status' => $statusArray,
-            'registrant' => $domain['registrant'],
+            'registrant' => $registrant_id,
             'contact' => $transformedContacts,
             'clID' => getRegistrarClid($db, $domain['clid']),
             'crID' => getRegistrarClid($db, $domain['crid']),
             'crDate' => $domain['crdate'],
-            'exDate' => $domain['exdate'],
-            'authInfo' => 'valid',
-            'authInfo_type' => $authInfo['authtype'],
-            'authInfo_val' => $authInfo['authinfo']
+            'exDate' => $domain['exdate']
         ];
         // Conditionally add upID, upDate, and trDate to the response
         if (isset($domain['upid']) && $domain['upid']) {
@@ -305,7 +325,14 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         if (isset($domain['trdate']) && $domain['trdate']) {
             $response['trDate'] = $domain['trdate'];
         }
-		
+        if (isset($domain_authinfo_id) && $domain_authinfo_id) {
+            $response['authInfo'] = 'valid';
+            $response['authInfo_type'] = $authInfo['authtype'];
+            $response['authInfo_val'] = $authInfo['authinfo'];
+        } else {
+            $response['authInfo'] = 'invalid';
+        }
+        
         // Conditionally add hostObj if hosts are available from domain_host_map
         if (!empty($transformedHosts)) {
             $response['hostObj'] = $transformedHosts;
@@ -343,10 +370,10 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
         $stmt->execute(['id' => $clid]);
 
         $funds = $stmt->fetch(PDO::FETCH_ASSOC);
-		
+        
         $creditBalance = ($funds['accountBalance'] < 0) ? -$funds['accountBalance'] : 0;
         $availableCredit = $funds['creditLimit'] - $creditBalance;
-		$availableCredit = number_format($availableCredit, 2, '.', '');
+        $availableCredit = number_format($availableCredit, 2, '.', '');
 
         if (!$funds) {
             sendEppError($conn, $db, 2303, 'Registrar does not exist', $clTRID, $trans);
