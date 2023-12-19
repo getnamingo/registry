@@ -58,6 +58,8 @@ $app->group('', function ($route) {
     $route->get('/application/update/{application}', ApplicationsController::class . ':updateApplication')->setName('updateApplication');
     $route->post('/application/update', ApplicationsController::class . ':updateApplicationProcess')->setName('updateApplicationProcess');
     $route->post('/application/deletehost', ApplicationsController::class . ':applicationDeleteHost')->setName('applicationDeleteHost');
+    $route->map(['GET', 'POST'], '/application/approve/{application}', ApplicationsController::class . ':approveApplication')->setName('approveApplication');
+    $route->map(['GET', 'POST'], '/application/reject/{application}', ApplicationsController::class . ':rejectApplication')->setName('rejectApplication');
     $route->map(['GET', 'POST'], '/application/delete/{application}', ApplicationsController::class . ':deleteApplication')->setName('deleteApplication');
 
     $route->get('/transfers', DomainsController::class . ':listTransfers')->setName('listTransfers');

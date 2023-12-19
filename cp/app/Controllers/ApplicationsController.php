@@ -970,6 +970,409 @@ class ApplicationsController extends Controller
             );
         }
     }
+    
+    public function approveApplication(Request $request, Response $response, $args)
+    {
+       // if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+        
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
+            
+                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
+                [ $args ]);
+            
+                $domainName = $domain['name'];
+                $domain_id = $domain['id'];
+                $registrant_id = $domain['registrant'];
+                $authinfo = $domain['authinfo'];
+                
+                $parts = extractDomainAndTLD($domainName);
+                $label = $parts['domain'];
+                $domain_extension = $parts['tld'];
+
+                $result = $db->select('SELECT id, tld FROM domain_tld');
+                foreach ($result as $row) {
+                    if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                        $tld_id = $row['id'];
+                        break;
+                    }
+                }
+                
+                $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $result['registrar_id'];
+                } else {
+                    $clid = $registrar_id_domain;
+                }
+                
+                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+
+                $registrar_balance = $result['accountBalance'];
+                $creditLimit = $result['creditLimit'];
+                
+                $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+                $price = $returnValue['price'];
+                
+                try {
+                    $db->beginTransaction();
+                    
+                    $date_add = 12;
+                    
+                    $currentDateTime = new \DateTime();
+                    $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                    $currentDateTime = new \DateTime();
+                    $currentDateTime->modify("+$date_add months");
+                    $exdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Expiry timestamp after $date_add months
+
+                    $db->insert('domain', [
+                        'name' => $domainName,
+                        'tldid' => $tld_id,
+                        'registrant' => $registrant_id,
+                        'crdate' => $crdate,
+                        'exdate' => $exdate,
+                        'lastupdate' => null,
+                        'clid' => $clid,
+                        'crid' => $clid,
+                        'upid' => null,
+                        'trdate' => null,
+                        'trstatus' => null,
+                        'reid' => null,
+                        'redate' => null,
+                        'acid' => null,
+                        'acdate' => null,
+                        'rgpstatus' => 'addPeriod',
+                        'addPeriod' => $date_add
+                    ]);
+                    $domain_id = $db->getlastInsertId();
+
+                    $db->insert(
+                        'domain_authInfo',
+                        [
+                            'domain_id' => $domain_id,
+                            'authtype' => 'pw',
+                            'authinfo' => $authinfo
+                        ]
+                    );
+
+                    $db->exec(
+                        'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
+                        [$price, $clid]
+                    );
+
+                    $db->exec(
+                        'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$clid, "create domain $domainName for period $date_add MONTH", "-$price"]
+                    );
+
+                    $row = $db->selectRow(
+                        'SELECT crdate, exdate FROM domain WHERE name = ? LIMIT 1',
+                        [$domainName]
+                    );
+                    $from = $row['crdate'];
+                    $to = $row['exdate'];
+
+                    $currentDateTime = new \DateTime();
+                    $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $db->insert(
+                        'statement',
+                        [
+                            'registrar_id' => $clid,
+                            'date' => $stdate,
+                            'command' => 'create',
+                            'domain_name' => $domainName,
+                            'length_in_months' => $date_add,
+                            'fromS' => $from,
+                            'toS' => $to,
+                            'amount' => $price
+                        ]
+                    );
+
+                    if (!empty($nameservers)) {
+                        foreach ($nameservers as $index => $nameserver) {
+                            
+                            $internal_host = false;
+                            
+                            $result = $db->select('SELECT tld FROM domain_tld');
+
+                            foreach ($result as $row) {
+                                if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                                    $internal_host = true;
+                                    break;
+                                }
+                            }
+
+                            $hostName_already_exist = $db->selectValue(
+                                'SELECT id FROM host WHERE name = ? LIMIT 1',
+                                [$nameserver]
+                            );
+
+                            if ($hostName_already_exist) {
+                                $domain_host_map_id = $db->selectValue(
+                                    'SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1',
+                                    [$domain_id, $hostName_already_exist]
+                                );
+
+                                if (!$domain_host_map_id) {
+                                    $db->insert(
+                                        'domain_host_map',
+                                        [
+                                            'domain_id' => $domain_id,
+                                            'host_id' => $hostName_already_exist
+                                        ]
+                                    );
+                                } else {
+                                    $currentDateTime = new \DateTime();
+                                    $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                                    $db->insert(
+                                        'error_log',
+                                        [
+                                            'registrar_id' => $clid,
+                                            'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
+                                            'date' => $logdate
+                                        ]
+                                    );
+                                }
+                            } else {
+                                $currentDateTime = new \DateTime();
+                                $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
+                                
+                                if ($internal_host) {
+                                    $db->insert(
+                                        'host',
+                                        [
+                                            'name' => $nameserver,
+                                            'domain_id' => $domain_id,
+                                            'clid' => $clid,
+                                            'crid' => $clid,
+                                            'crdate' => $host_date
+                                        ]
+                                    );
+                                    $host_id = $db->getlastInsertId();
+                                } else {
+                                    $db->insert(
+                                        'host',
+                                        [
+                                            'name' => $nameserver,
+                                            'clid' => $clid,
+                                            'crid' => $clid,
+                                            'crdate' => $host_date
+                                        ]
+                                    );
+                                    $host_id = $db->getlastInsertId();
+                                }
+
+                                $db->insert(
+                                    'domain_host_map',
+                                    [
+                                        'domain_id' => $domain_id,
+                                        'host_id' => $host_id
+                                    ]
+                                );
+                                
+                                $db->insert(
+                                    'host_status',
+                                    [
+                                        'status' => 'ok',
+                                        'host_id' => $host_id
+                                    ]
+                                );
+                                
+                                if ($internal_host) {
+                                    if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
+                                        return view($response, 'admin/domains/createDomain.twig', [
+                                            'domainName' => $domainName,
+                                            'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
+                                            'registrars' => $registrars,
+                                            'registrar' => $registrar,
+                                        ]);
+                                    }
+        
+                                    if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
+                                        $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
+                                        
+                                        $db->insert(
+                                            'host_addr',
+                                            [
+                                                'host_id' => $host_id,
+                                                'addr' => $ipv4,
+                                                'ip' => 'v4'
+                                            ]
+                                        );
+                                    }
+
+                                    if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
+                                        $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
+                                        
+                                        $db->insert(
+                                            'host_addr',
+                                            [
+                                                'host_id' => $host_id,
+                                                'addr' => $ipv6,
+                                                'ip' => 'v6'
+                                            ]
+                                        );
+                                    }
+                                }
+                                
+                            }
+                        }
+                    }
+                    
+                    $contacts = [
+                        'admin' => $data['contactAdmin'] ?? null,
+                        'tech' => $data['contactTech'] ?? null,
+                        'billing' => $data['contactBilling'] ?? null
+                    ];
+
+                    foreach ($contacts as $type => $contact) {
+                        if ($contact !== null) {
+                            $contact_id = $db->selectValue(
+                                'SELECT id FROM contact WHERE identifier = ? LIMIT 1',
+                                [$contact]
+                            );
+
+                            // Check if $contact_id is not null before insertion
+                            if ($contact_id !== null) {
+                                $db->insert(
+                                    'domain_contact_map',
+                                    [
+                                        'domain_id' => $domain_id,
+                                        'contact_id' => $contact_id,
+                                        'type' => $type
+                                    ]
+                                );
+                            }
+                        }
+                    }
+
+                    $result = $db->selectRow(
+                        'SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1',
+                        [$domainName]
+                    );
+                    $crdate = $result['crdate'];
+                    $exdate = $result['exdate'];
+
+                    $curdate_id = $db->selectValue(
+                        'SELECT id FROM statistics WHERE date = CURDATE()'
+                    );
+
+                    if (!$curdate_id) {
+                        $db->exec(
+                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
+                        );
+                    }
+
+                    $db->exec(
+                        'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()'
+                    );
+                    
+                    $db->commit();
+                    
+                    $crdate = $db->selectValue(
+                        "SELECT crdate FROM domain WHERE id = ? LIMIT 1",
+                        [$domain_id]
+                    );
+                    
+                    $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
+
+            } else {
+                // Redirect to the applications view
+                return $response->withHeader('Location', '/applications')->withStatus(302);
+            }
+        
+        //}
+    }
+    
+    public function rejectApplication(Request $request, Response $response, $args)
+    {
+       // if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+        
+            if ($args) {
+                $args = strtolower(trim($args));
+
+                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
+            
+                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
+                [ $args ]);
+            
+                $domainName = $domain['name'];
+                $domain_id = $domain['id'];
+
+                $parts = extractDomainAndTLD($domainName);
+                $label = $parts['domain'];
+                $domain_extension = $parts['tld'];
+
+                $result = $db->select('SELECT id, tld FROM domain_tld');
+                foreach ($result as $row) {
+                    if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                        $tld_id = $row['id'];
+                        break;
+                    }
+                }
+                
+                $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $result['registrar_id'];
+                } else {
+                    $clid = $registrar_id_domain;
+                }
+
+                try {
+                    $db->beginTransaction();
+                        
+                    $db->update(
+                        'application_status',
+                        [
+                            'status' => 'rejected'
+                        ],
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                                
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
+                    
+                $this->container->get('flash')->addMessage('success', 'Application ' . $domainName . ' rejected successfully');
+                return $response->withHeader('Location', '/applications')->withStatus(302);
+            } else {
+                // Redirect to the applications view
+                return $response->withHeader('Location', '/applications')->withStatus(302);
+            }
+        
+        //}
+    }
 
     public function deleteApplication(Request $request, Response $response, $args)
     {
