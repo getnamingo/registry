@@ -1981,7 +1981,7 @@ class DomainsController extends Controller
                             } catch (Exception $e) {
                                 $db->rollBack();
                                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                                return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+                                return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
                             $isImmediateDeletion = true;
                         }
