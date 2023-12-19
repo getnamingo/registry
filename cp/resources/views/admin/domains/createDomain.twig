@@ -177,6 +177,61 @@
                                 <label for="authInfo" class="form-label required">{{ __('Auth Info') }}</label>
                                 <input type="text" class="form-control" id="authInfo" name="authInfo" required>
                             </div>
+
+                            <div class="mb-3 mt-3">
+                              <div class="form-label">{{ __('Statuses') }}</div>
+                              <div>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="clientStatuses[clientHold]">
+                                  <span class="form-check-label">clientHold</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="clientStatuses[clientRenewProhibited]">
+                                  <span class="form-check-label">clientRenewProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="clientStatuses[clientTransferProhibited]">
+                                  <span class="form-check-label">clientTransferProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="clientStatuses[clientDeleteProhibited]">
+                                  <span class="form-check-label">clientDeleteProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="clientStatuses[clientUpdateProhibited]">
+                                  <span class="form-check-label">clientUpdateProhibited</span>
+                                </label>
+                              </div>
+                            </div>
+                            
+                            {% if roles == 0 %}
+                            <div class="mb-3 mt-3">
+                              <div class="form-label">{{ __('Server Statuses') }}</div>
+                              <div>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="serverStatuses[serverHold]">
+                                  <span class="form-check-label">serverHold</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="serverStatuses[serverRenewProhibited]">
+                                  <span class="form-check-label">serverRenewProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="serverStatuses[serverTransferProhibited]">
+                                  <span class="form-check-label">serverTransferProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="serverStatuses[serverDeleteProhibited]">
+                                  <span class="form-check-label">serverDeleteProhibited</span>
+                                </label>
+                                <label class="form-check form-check-inline">
+                                  <input class="form-check-input" type="checkbox" name="serverStatuses[serverUpdateProhibited]">
+                                  <span class="form-check-label">serverUpdateProhibited</span>
+                                </label>
+                              </div>
+                            </div>
+                            {% endif %}
+
                     </div>
                 <div class="card-footer">
                   <div class="row align-items-center">

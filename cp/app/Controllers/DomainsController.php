@@ -436,6 +436,53 @@ class DomainsController extends Controller
                     ]
                 );
                 
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clientStatuses = $data['clientStatuses'] ?? [];
+                    
+                    foreach ($clientStatuses as $status => $value) {
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+
+                } else {
+                    $clientStatuses = $data['clientStatuses'] ?? [];
+                    $serverStatuses = $data['serverStatuses'] ?? [];
+                                     
+                    foreach ($clientStatuses as $status => $value) {
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+                    
+                    foreach ($serverStatuses as $status => $value) {
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+                }
+                
                 // Data sanity checks
                 // Validate keyTag
                 if (!empty($dsKeyTag)) {
@@ -483,14 +530,6 @@ class DomainsController extends Controller
                 2 => 64,  // SHA-256
                 4 => 96   // SHA-384
                 ];
-                if (empty($validDigests[$dsDigestType])) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Unsupported digest type',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
-                }
                 if (!empty($dsDigest)) {
                     if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
                         return view($response, 'admin/domains/createDomain.twig', [
@@ -985,7 +1024,6 @@ class DomainsController extends Controller
                 $csrfTokenName = $this->container->get('csrf')->getTokenName();
                 $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
 
-
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
@@ -1185,6 +1223,67 @@ class DomainsController extends Controller
                     ]
                 );
                 
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clientStatuses = $data['clientStatuses'] ?? [];
+                    
+                    $db->delete(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    
+                    foreach ($clientStatuses as $status => $value) {                            
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+
+                } else {
+                    $clientStatuses = $data['clientStatuses'] ?? [];
+                    $serverStatuses = $data['serverStatuses'] ?? [];
+
+                    $db->delete(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id
+                        ]
+                    );
+                    
+                    foreach ($clientStatuses as $status => $value) {                       
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+                                  
+                    foreach ($serverStatuses as $status => $value) {                   
+                        if ($value === 'on') {
+                            // Insert or update the status in the database
+                            $db->exec(
+                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                [
+                                    $domain_id,
+                                    $status
+                                ]
+                            );
+                        }
+                    }
+                }
+                
                 // Data sanity checks
                 // Validate keyTag
                 if (!empty($dsKeyTag)) {
@@ -1216,10 +1315,6 @@ class DomainsController extends Controller
                     2 => 64,  // SHA-256
                     4 => 96   // SHA-384
                 ];
-                if (empty($validDigests[$dsDigestType])) {
-                    $this->container->get('flash')->addMessage('error', 'Unsupported digest type');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
                 if (!empty($dsDigest)) {
                     if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
                         $this->container->get('flash')->addMessage('error', 'Invalid digest length or format');
