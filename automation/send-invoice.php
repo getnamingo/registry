@@ -30,7 +30,16 @@ try {
 
     foreach ($result as $row) {
         $startDate = $previous . "-01";
-        $combinedStmt = $pdo->prepare("SELECT COUNT(id) AS trans, SUM(amount) AS total FROM statement WHERE registrar_id = :registrarId AND date BETWEEN :startDate AND LAST_DAY(:startDate)");
+        $combinedStmt = $pdo->prepare("
+            SELECT 
+                COUNT(id) AS trans, 
+                SUM(CASE WHEN domain_name <> 'deposit' THEN amount ELSE 0 END) AS total 
+            FROM 
+                statement 
+            WHERE 
+                registrar_id = :registrarId AND 
+                date BETWEEN :startDate AND LAST_DAY(:startDate)
+        ");
         $combinedStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
         $combinedStmt->bindParam(':startDate', $startDate);
         $combinedStmt->execute();
