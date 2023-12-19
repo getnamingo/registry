@@ -11,6 +11,9 @@ use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\Filesystem;
 use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
 use MatthiasMullie\Scrapbook\Psr6\Pool;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\Guid\Guid;
+use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 
 /**
  * @return mixed|string|string[]
@@ -367,4 +370,18 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
     }
 
     return ['type' => 'not_found', 'price' => 0];
+}
+
+function createUuidFromId($id) {
+    // Define a namespace UUID; this should be a UUID that is unique to your application
+    $namespace = '123e4567-e89b-12d3-a456-426614174000';
+
+    // Generate a UUIDv5 based on the namespace and a name (in this case, the $id)
+    try {
+        $uuid5 = Uuid::uuid5($namespace, (string)$id);
+        return $uuid5->toString();
+    } catch (UnsatisfiedDependencyException $e) {
+        // Handle exception
+        return null;
+    }
 }

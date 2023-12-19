@@ -371,6 +371,7 @@ CREATE TABLE registry.application (
      "transfer_exdate"   timestamp(3) without time zone default NULL,
      "idnlang"   varchar(16) default NULL,
      "deltime"   timestamp(3) without time zone default NULL,
+     "application_id"   varchar(36) default NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
      "authinfo" varchar(64) NOT NULL,
      "phase_name" VARCHAR(75) DEFAULT NULL,

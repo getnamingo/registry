@@ -339,6 +339,18 @@ class ApplicationsController extends Controller
                 ]);
                 $domain_id = $db->getlastInsertId();
                 
+                $uuid = createUuidFromId($domain_id);
+                
+                $db->update(
+                    'application',
+                    [
+                        'application_id' => $uuid
+                    ],
+                    [
+                        'id' => $domain_id
+                    ]
+                );
+                
                 $db->insert('application_status', [
                     'domain_id' => $domain_id,
                     'status' => 'pendingValidation'

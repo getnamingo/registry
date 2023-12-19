@@ -373,6 +373,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`application` (
     `transfer_exdate` datetime(3) default NULL,
     `idnlang` varchar(16) default NULL,
     `delTime` datetime(3) default NULL,
+    `application_id` varchar(36) default NULL,
     `authtype` enum('pw','ext') NOT NULL default 'pw',
     `authinfo` varchar(64) NOT NULL,
     `phase_name` VARCHAR(75) DEFAULT NULL,

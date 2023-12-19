@@ -43,7 +43,8 @@
         "matthiasmullie/scrapbook": "^1.5",
         "guzzlehttp/guzzle": "^7.8",
         "league/flysystem": "^3.23",
-        "mpociot/vat-calculator": "^3.6"
+        "mpociot/vat-calculator": "^3.6",
+        "ramsey/uuid": "^4.7"
     },
     "autoload": {
         "psr-4": {
