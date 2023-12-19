@@ -986,13 +986,22 @@ class ApplicationsController extends Controller
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name, clid, registrant, authinfo FROM application WHERE name = ?',
                 [ $args ]);
+                
+                $domain_status = $db->selectRow("SELECT status FROM application_status WHERE domain_id = ? AND status IN ('rejected', 'invalid')",
+                [ $domain['id'] ]);
+
+                if ($domain_status) {
+                    $this->container->get('flash')->addMessage('error', 'Application can not be modified, as it has been already processed.');
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
             
                 $domainName = $domain['name'];
-                $domain_id = $domain['id'];
+                $application_id = $domain['id'];
                 $registrant_id = $domain['registrant'];
                 $authinfo = $domain['authinfo'];
+                $registrar_id_domain = $domain['clid'];
                 
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
@@ -1019,14 +1028,14 @@ class ApplicationsController extends Controller
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
                 
+                $date_add = 12;
+                
                 $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
                 $price = $returnValue['price'];
                 
                 try {
                     $db->beginTransaction();
-                    
-                    $date_add = 12;
-                    
+          
                     $currentDateTime = new \DateTime();
                     $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
@@ -1096,163 +1105,38 @@ class ApplicationsController extends Controller
                             'amount' => $price
                         ]
                     );
+                    
+                    $host_map_id = $db->select(
+                        'SELECT host_id FROM application_host_map WHERE domain_id = ?',
+                        [$application_id]
+                    );
 
-                    if (!empty($nameservers)) {
-                        foreach ($nameservers as $index => $nameserver) {
-                            
-                            $internal_host = false;
-                            
-                            $result = $db->select('SELECT tld FROM domain_tld');
-
-                            foreach ($result as $row) {
-                                if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-                                    $internal_host = true;
-                                    break;
-                                }
-                            }
-
-                            $hostName_already_exist = $db->selectValue(
-                                'SELECT id FROM host WHERE name = ? LIMIT 1',
-                                [$nameserver]
-                            );
-
-                            if ($hostName_already_exist) {
-                                $domain_host_map_id = $db->selectValue(
-                                    'SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1',
-                                    [$domain_id, $hostName_already_exist]
-                                );
-
-                                if (!$domain_host_map_id) {
-                                    $db->insert(
-                                        'domain_host_map',
-                                        [
-                                            'domain_id' => $domain_id,
-                                            'host_id' => $hostName_already_exist
-                                        ]
-                                    );
-                                } else {
-                                    $currentDateTime = new \DateTime();
-                                    $logdate = $currentDateTime->format('Y-m-d H:i:s.v');
-                                    $db->insert(
-                                        'error_log',
-                                        [
-                                            'registrar_id' => $clid,
-                                            'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
-                                            'date' => $logdate
-                                        ]
-                                    );
-                                }
-                            } else {
-                                $currentDateTime = new \DateTime();
-                                $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                                
-                                if ($internal_host) {
-                                    $db->insert(
-                                        'host',
-                                        [
-                                            'name' => $nameserver,
-                                            'domain_id' => $domain_id,
-                                            'clid' => $clid,
-                                            'crid' => $clid,
-                                            'crdate' => $host_date
-                                        ]
-                                    );
-                                    $host_id = $db->getlastInsertId();
-                                } else {
-                                    $db->insert(
-                                        'host',
-                                        [
-                                            'name' => $nameserver,
-                                            'clid' => $clid,
-                                            'crid' => $clid,
-                                            'crdate' => $host_date
-                                        ]
-                                    );
-                                    $host_id = $db->getlastInsertId();
-                                }
-
-                                $db->insert(
-                                    'domain_host_map',
-                                    [
-                                        'domain_id' => $domain_id,
-                                        'host_id' => $host_id
-                                    ]
-                                );
-                                
-                                $db->insert(
-                                    'host_status',
-                                    [
-                                        'status' => 'ok',
-                                        'host_id' => $host_id
-                                    ]
-                                );
-                                
-                                if ($internal_host) {
-                                    if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
-                                        return view($response, 'admin/domains/createDomain.twig', [
-                                            'domainName' => $domainName,
-                                            'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
-                                            'registrars' => $registrars,
-                                            'registrar' => $registrar,
-                                        ]);
-                                    }
-        
-                                    if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
-                                        $ipv4 = normalize_v4_address($nameserver_ipv4[$index]);
-                                        
-                                        $db->insert(
-                                            'host_addr',
-                                            [
-                                                'host_id' => $host_id,
-                                                'addr' => $ipv4,
-                                                'ip' => 'v4'
-                                            ]
-                                        );
-                                    }
-
-                                    if (isset($nameserver_ipv6[$index]) && !empty($nameserver_ipv6[$index])) {
-                                        $ipv6 = normalize_v6_address($nameserver_ipv6[$index]);
-                                        
-                                        $db->insert(
-                                            'host_addr',
-                                            [
-                                                'host_id' => $host_id,
-                                                'addr' => $ipv6,
-                                                'ip' => 'v6'
-                                            ]
-                                        );
-                                    }
-                                }
-                                
-                            }
-                        }
+                    foreach ($host_map_id as $item) {
+                        // Insert into domain_host_map for each host_id
+                        $db->insert(
+                            'domain_host_map',
+                            [
+                                'domain_id' => $domain_id,
+                                'host_id' => $item['host_id']
+                            ]
+                        );
                     }
                     
-                    $contacts = [
-                        'admin' => $data['contactAdmin'] ?? null,
-                        'tech' => $data['contactTech'] ?? null,
-                        'billing' => $data['contactBilling'] ?? null
-                    ];
-
-                    foreach ($contacts as $type => $contact) {
-                        if ($contact !== null) {
-                            $contact_id = $db->selectValue(
-                                'SELECT id FROM contact WHERE identifier = ? LIMIT 1',
-                                [$contact]
-                            );
-
-                            // Check if $contact_id is not null before insertion
-                            if ($contact_id !== null) {
-                                $db->insert(
-                                    'domain_contact_map',
-                                    [
-                                        'domain_id' => $domain_id,
-                                        'contact_id' => $contact_id,
-                                        'type' => $type
-                                    ]
-                                );
-                            }
-                        }
+                    $contact_map_id = $db->select(
+                        'SELECT contact_id, type FROM application_contact_map WHERE domain_id = ?',
+                        [$application_id]
+                    );
+                    
+                    foreach ($contact_map_id as $item) {
+                        // Insert into domain_contact_map for each contact_id
+                        $db->insert(
+                            'domain_contact_map',
+                            [
+                                'domain_id' => $domain_id,
+                                'contact_id' => $item['contact_id'],
+                                'type' => $item['type']
+                            ]
+                        );
                     }
 
                     $result = $db->selectRow(
