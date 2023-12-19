@@ -1,192 +1,83 @@
 <?php
 
-function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) {
+function processContactTransfer($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
-
-    $op = (string)$xml['op'][0];
     $obj = $xml->xpath('//contact:transfer')[0] ?? null;
 
-    if ($obj) {
-        $authInfo_pw = (string)$obj->xpath('//contact:authInfo/contact:pw[1]')[0];
+    $authInfo_pw = (string)$obj->xpath('//contact:authInfo/contact:pw[1]')[0];
 
-        if (!$contactID) {
-            sendEppError($conn, $db, 2003, 'Contact ID was not provided', $clTRID, $trans);
-            return;
-        }
+    if (!$contactID) {
+        sendEppError($conn, $db, 2003, 'Contact ID was not provided', $clTRID, $trans);
+        return;
+    }
 
-        $identifier = strtoupper($contactID);
-        $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = :identifier LIMIT 1");
-        $stmt->execute([':identifier' => $identifier]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $contact_id = $result['id'] ?? null;
-        $registrar_id_contact = $result['clid'] ?? null;
+    $identifier = strtoupper($contactID);
+    $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = :identifier LIMIT 1");
+    $stmt->execute([':identifier' => $identifier]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $contact_id = $result['id'] ?? null;
+    $registrar_id_contact = $result['clid'] ?? null;
 
-        if (!$contact_id) {
-            sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
-            return;
-        }
+    if (!$contact_id) {
+        sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
+        return;
+    }
     
-        $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-        $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-        $stmt->execute();
-        $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-        $clid = $clid['id'];
+    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
+    $stmt->execute();
+    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+    $clid = $clid['id'];
 
-        if ($op === 'approve') {
-            if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, $db, 2201, 'Only the losing registrar can approve', $clTRID, $trans);
+    if ($op === 'approve') {
+        if ($clid !== $registrar_id_contact) {
+            sendEppError($conn, $db, 2201, 'Only the losing registrar can approve', $clTRID, $trans);
+            return;
+        }
+
+        if ($authInfo_pw) {
+            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+            $stmt->execute([
+                ':contact_id' => $contact_id,
+                ':authInfo_pw' => $authInfo_pw
+            ]);
+            $contact_authinfo_id = $stmt->fetchColumn();
+
+            if (!$contact_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
+        }
 
-            if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-                $stmt->execute([
-                    ':contact_id' => $contact_id,
-                    ':authInfo_pw' => $authInfo_pw
-                ]);
-                $contact_authinfo_id = $stmt->fetchColumn();
+        $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        $trstatus = $contactInfo['trstatus'] ?? '';
 
-                if (!$contact_authinfo_id) {
-                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                    return;
-                }
-            }
+        if ($trstatus === 'pending') {
+            $stmt = $db->prepare("UPDATE contact SET lastupdate = CURRENT_TIMESTAMP(3), clid = :reid, upid = :upid, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3) WHERE id = :contact_id");
+            $stmt->execute([
+                ':reid' => $contactInfo['reid'],
+                ':upid' => $clid,
+                ':contact_id' => $contact_id
+            ]);
 
-            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-            $trstatus = $contactInfo['trstatus'] ?? '';
-
-            if ($trstatus === 'pending') {
-                $stmt = $db->prepare("UPDATE contact SET lastupdate = CURRENT_TIMESTAMP(3), clid = :reid, upid = :upid, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3) WHERE id = :contact_id");
-                $stmt->execute([
-                    ':reid' => $contactInfo['reid'],
-                    ':upid' => $clid,
-                    ':contact_id' => $contact_id
-                ]);
-
-                if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, $db, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
-                    $stmt->execute([':contact_id' => $contact_id]);
-                    $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
-                    $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
-                    $reid_identifier = $reid_identifier_stmt->fetchColumn();
-
-                    $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
-                    $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
-                    $acid_identifier = $acid_identifier_stmt->fetchColumn();
-                    
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_contact',
-                        'resultCode' => 1000,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully',
-                        'id' => $identifier,
-                        'trStatus' => $updatedContactInfo['trstatus'],
-                        'reID' => $reid_identifier,
-                        'reDate' => $updatedContactInfo['redate'],
-                        'acID' => $acid_identifier,
-                        'acDate' => $updatedContactInfo['acdate'],
-                        'clTRID' => $clTRID,
-                        'svTRID' => $svTRID,
-                    ];
-
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
-                }
+            if ($stmt->errorCode() != 0) {
+                sendEppError($conn, $db, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID, $trans);
+                return;
             } else {
-                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
-                return;
-            }
-        } elseif ($op === 'cancel') {
-            // Only the requesting or 'Gaining' Registrar can cancel
-            if ($clid === $registrar_id_contact) {
-                sendEppError($conn, $db, 2201, 'Only the applicant can cancel', $clTRID, $trans);
-                return;
-            }
-
-            // A <contact:authInfo> element that contains authorization information associated with the contact object.
-            if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-                $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-                 $contact_authinfo_id = $stmt->fetchColumn();
-                if (!$contact_authinfo_id) {
-                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                    return;
-                }
-            }
-
-            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-            $trstatus = $contactInfo['trstatus'] ?? '';
-
-            if ($trstatus === 'pending') {
-                $stmt = $db->prepare("UPDATE contact SET trstatus = 'clientCancelled' WHERE id = :contact_id");
+                $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id]);
+                $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($stmt->errorCode() != 0) {
-                    sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
-                    $stmt->execute([':contact_id' => $contact_id]);
-                    $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
-                    $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
-                    $reid_identifier = $reid_identifier_stmt->fetchColumn();
-
-                    $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
-                    $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
-                    $acid_identifier = $acid_identifier_stmt->fetchColumn();
-                    
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_contact',
-                        'resultCode' => 1000,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully',
-                        'id' => $identifier,
-                        'trStatus' => $updatedContactInfo['trstatus'],
-                        'reID' => $reid_identifier,
-                        'reDate' => $updatedContactInfo['redate'],
-                        'acID' => $acid_identifier,
-                        'acDate' => $updatedContactInfo['acdate'],
-                        'clTRID' => $clTRID,
-                        'svTRID' => $svTRID,
-                    ];
-
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
-                }
-            } else {
-                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
-                return;
-            }
-        } elseif ($op === 'query') {
-            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-            $trstatus = $contactInfo['trstatus'] ?? '';
-
-            if ($trstatus === 'pending') {
                 $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
-                $reid_identifier_stmt->execute([':reid' => $contactInfo['reid']]);
+                $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
                 $reid_identifier = $reid_identifier_stmt->fetchColumn();
 
                 $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
-                $acid_identifier_stmt->execute([':acid' => $contactInfo['acid']]);
+                $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
                 $acid_identifier = $acid_identifier_stmt->fetchColumn();
                 
                 $svTRID = generateSvTRID();
@@ -196,7 +87,184 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     'lang' => 'en-US',
                     'message' => 'Command completed successfully',
                     'id' => $identifier,
-                    'trStatus' => $trstatus,
+                    'trStatus' => $updatedContactInfo['trstatus'],
+                    'reID' => $reid_identifier,
+                    'reDate' => $updatedContactInfo['redate'],
+                    'acID' => $acid_identifier,
+                    'acDate' => $updatedContactInfo['acdate'],
+                    'clTRID' => $clTRID,
+                    'svTRID' => $svTRID,
+                ];
+
+                $epp = new EPP\EppWriter();
+                $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+                sendEppResponse($conn, $xml);
+            }
+        } else {
+            sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
+            return;
+        }
+    } elseif ($op === 'cancel') {
+        // Only the requesting or 'Gaining' Registrar can cancel
+        if ($clid === $registrar_id_contact) {
+            sendEppError($conn, $db, 2201, 'Only the applicant can cancel', $clTRID, $trans);
+            return;
+        }
+
+        // A <contact:authInfo> element that contains authorization information associated with the contact object.
+        if ($authInfo_pw) {
+            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+             $contact_authinfo_id = $stmt->fetchColumn();
+            if (!$contact_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
+        }
+
+        $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        $trstatus = $contactInfo['trstatus'] ?? '';
+
+        if ($trstatus === 'pending') {
+            $stmt = $db->prepare("UPDATE contact SET trstatus = 'clientCancelled' WHERE id = :contact_id");
+            $stmt->execute([':contact_id' => $contact_id]);
+
+            if ($stmt->errorCode() != 0) {
+                sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
+                return;
+            } else {
+                $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+                $stmt->execute([':contact_id' => $contact_id]);
+                $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
+                $reid_identifier_stmt->execute([':reid' => $updatedContactInfo['reid']]);
+                $reid_identifier = $reid_identifier_stmt->fetchColumn();
+
+                $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
+                $acid_identifier_stmt->execute([':acid' => $updatedContactInfo['acid']]);
+                $acid_identifier = $acid_identifier_stmt->fetchColumn();
+                
+                $svTRID = generateSvTRID();
+                $response = [
+                    'command' => 'transfer_contact',
+                    'resultCode' => 1000,
+                    'lang' => 'en-US',
+                    'message' => 'Command completed successfully',
+                    'id' => $identifier,
+                    'trStatus' => $updatedContactInfo['trstatus'],
+                    'reID' => $reid_identifier,
+                    'reDate' => $updatedContactInfo['redate'],
+                    'acID' => $acid_identifier,
+                    'acDate' => $updatedContactInfo['acdate'],
+                    'clTRID' => $clTRID,
+                    'svTRID' => $svTRID,
+                ];
+
+                $epp = new EPP\EppWriter();
+                $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+                sendEppResponse($conn, $xml);
+            }
+        } else {
+            sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
+            return;
+        }
+    } elseif ($op === 'query') {
+        $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        $trstatus = $contactInfo['trstatus'] ?? '';
+
+        if ($trstatus === 'pending') {
+            $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
+            $reid_identifier_stmt->execute([':reid' => $contactInfo['reid']]);
+            $reid_identifier = $reid_identifier_stmt->fetchColumn();
+
+            $acid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
+            $acid_identifier_stmt->execute([':acid' => $contactInfo['acid']]);
+            $acid_identifier = $acid_identifier_stmt->fetchColumn();
+            
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'transfer_contact',
+                'resultCode' => 1000,
+                'lang' => 'en-US',
+                'message' => 'Command completed successfully',
+                'id' => $identifier,
+                'trStatus' => $trstatus,
+                'reID' => $reid_identifier,
+                'reDate' => $contactInfo['redate'],
+                'acID' => $acid_identifier,
+                'acDate' => $contactInfo['acdate'],
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+            ];
+
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
+        } else {
+            sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
+            return;
+        }
+    } elseif ($op === 'reject') {
+        // Only the LOSING REGISTRAR can approve or reject
+        if ($clid !== $registrar_id_contact) {
+            sendEppError($conn, $db, 2201, 'Only the losing registrar can reject', $clTRID, $trans);
+            return;
+        }
+
+        // A <contact:authInfo> element that contains authorization information associated with the contact object.
+        if ($authInfo_pw) {
+            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+            $contact_authinfo_id = $stmt->fetchColumn();
+
+            if (!$contact_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
+        }
+
+        $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($contactInfo['trstatus'] === 'pending') {
+            // The losing registrar has five days once the contact is pending to respond.
+            $updateStmt = $db->prepare("UPDATE contact SET trstatus = 'clientRejected' WHERE id = :contact_id");
+            $updateStmt->execute([':contact_id' => $contact_id]);
+
+            if ($updateStmt->errorCode() !== '00000') {
+                sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
+                return;
+            } else {
+                $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
+                $stmt->execute([':contact_id' => $contact_id]);
+                $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Fetch registrar identifiers
+                $reidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
+                $reidStmt->execute([':reid' => $contactInfo['reid']]);
+                $reid_identifier = $reidStmt->fetchColumn();
+
+                $acidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
+                $acidStmt->execute([':acid' => $contactInfo['acid']]);
+                $acid_identifier = $acidStmt->fetchColumn();
+                
+                $svTRID = generateSvTRID();
+                $response = [
+                    'command' => 'transfer_contact',
+                    'resultCode' => 1000,
+                    'lang' => 'en-US',
+                    'message' => 'Command completed successfully',
+                    'id' => $identifier,
+                    'trStatus' => $contactInfo['trstatus'],
                     'reID' => $reid_identifier,
                     'reDate' => $contactInfo['redate'],
                     'acID' => $acid_identifier,
@@ -209,135 +277,66 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $xml = $epp->epp_writer($response);
                 updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
-            } else {
-                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
-                return;
             }
-        } elseif ($op === 'reject') {
-            // Only the LOSING REGISTRAR can approve or reject
-            if ($clid !== $registrar_id_contact) {
-                sendEppError($conn, $db, 2201, 'Only the losing registrar can reject', $clTRID, $trans);
-                return;
+        } else {
+            sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
+            return;
+        }
+    } elseif ($op == 'request') {
+        // Check if contact is within 60 days of its initial registration
+        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $days_from_registration = $stmt->fetchColumn();
+
+        if ($days_from_registration < 60) {
+            sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID, $trans);
+            return;
+        }
+
+        // Check if contact is within 60 days of its last transfer
+        $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $last_trdate = $result['trdate'];
+        $days_from_last_transfer = $result['intval'];
+
+        if ($last_trdate && $days_from_last_transfer < 60) {
+            sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
+            return;
+        }
+
+        // Check the <contact:authInfo> element
+        $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+        $contact_authinfo_id = $stmt->fetchColumn();
+
+        if (!$contact_authinfo_id) {
+            sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+            return;
+        }
+
+        // Check if the contact name is subject to any special locks or holds
+        $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :contact_id");
+        $stmt->execute([':contact_id' => $contact_id]);
+
+        while ($status = $stmt->fetchColumn()) {
+            if (preg_match("/.*(TransferProhibited)$/", $status) || preg_match("/^pending/", $status)) {
+            sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID, $trans);
+            return;
             }
+        }
 
-            // A <contact:authInfo> element that contains authorization information associated with the contact object.
-            if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-                $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-                $contact_authinfo_id = $stmt->fetchColumn();
+        if ($clid == $registrar_id_contact) {
+            sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID, $trans);
+            return;
+        }
 
-                if (!$contact_authinfo_id) {
-                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                    return;
-                }
-            }
+        $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->execute([':contact_id' => $contact_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $trstatus = $result['trstatus'];
 
-            $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($contactInfo['trstatus'] === 'pending') {
-                // The losing registrar has five days once the contact is pending to respond.
-                $updateStmt = $db->prepare("UPDATE contact SET trstatus = 'clientRejected' WHERE id = :contact_id");
-                $updateStmt->execute([':contact_id' => $contact_id]);
-
-                if ($updateStmt->errorCode() !== '00000') {
-                    sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
-                    $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
-                    $stmt->execute([':contact_id' => $contact_id]);
-                    $contactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    // Fetch registrar identifiers
-                    $reidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
-                    $reidStmt->execute([':reid' => $contactInfo['reid']]);
-                    $reid_identifier = $reidStmt->fetchColumn();
-
-                    $acidStmt = $db->prepare("SELECT clid FROM registrar WHERE id = :acid LIMIT 1");
-                    $acidStmt->execute([':acid' => $contactInfo['acid']]);
-                    $acid_identifier = $acidStmt->fetchColumn();
-                    
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_contact',
-                        'resultCode' => 1000,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully',
-                        'id' => $identifier,
-                        'trStatus' => $contactInfo['trstatus'],
-                        'reID' => $reid_identifier,
-                        'reDate' => $contactInfo['redate'],
-                        'acID' => $acid_identifier,
-                        'acDate' => $contactInfo['acdate'],
-                        'clTRID' => $clTRID,
-                        'svTRID' => $svTRID,
-                    ];
-
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
-                }
-            } else {
-                sendEppError($conn, $db, 2301, 'Command failed because the contact is NOT pending transfer', $clTRID, $trans);
-                return;
-            }
-        } elseif ($op == 'request') {
-            // Check if contact is within 60 days of its initial registration
-            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $days_from_registration = $stmt->fetchColumn();
-
-            if ($days_from_registration < 60) {
-                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID, $trans);
-                return;
-            }
-
-            // Check if contact is within 60 days of its last transfer
-            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $last_trdate = $result['trdate'];
-            $days_from_last_transfer = $result['intval'];
-
-            if ($last_trdate && $days_from_last_transfer < 60) {
-                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
-                return;
-            }
-
-            // Check the <contact:authInfo> element
-            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-            $contact_authinfo_id = $stmt->fetchColumn();
-
-            if (!$contact_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
-            }
-
-            // Check if the contact name is subject to any special locks or holds
-            $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :contact_id");
-            $stmt->execute([':contact_id' => $contact_id]);
-
-            while ($status = $stmt->fetchColumn()) {
-                if (preg_match("/.*(TransferProhibited)$/", $status) || preg_match("/^pending/", $status)) {
-                    sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID, $trans);
-                    return;
-                }
-            }
-
-            if ($clid == $registrar_id_contact) {
-                sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID, $trans);
-                return;
-            }
-
-            $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $trstatus = $result['trstatus'];
-
-            if (!$trstatus || $trstatus != 'pending') {
+        if (!$trstatus || $trstatus != 'pending') {
                 $waiting_period = 5; // days
                 $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY) WHERE id = :contact_id");
                 $stmt->execute([
@@ -362,9 +361,9 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                             ':registrar_id_contact' => $registrar_id_contact,
                             ':identifier' => $identifier,
                             ':reid_identifier' => $reid_identifier,
-                            ':redate' => str_replace(" ", "T", $result['redate']) . '.0Z',
+                            ':redate' => $result['redate'],
                             ':acid_identifier' => $acid_identifier,
-                            ':acdate' => str_replace(" ", "T", $result['acdate']) . '.0Z'
+                            ':acdate' => $result['acdate']
                         ]);
                         
                     $svTRID = generateSvTRID();
@@ -388,14 +387,13 @@ function processContactTranfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                     sendEppResponse($conn, $xml);
                 }
-            } elseif ($op == 'pending') {
-                sendEppError($conn, $db, 2300, 'Command failed because the contact is pending transfer', $clTRID, $trans);
-                return;
-            }
         } else {
-            sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
+            sendEppError($conn, $db, 2300, 'Command failed because the contact is pending transfer', $clTRID, $trans);
             return;
         }
+    } else {
+        sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
+        return;
     }
 }
 
