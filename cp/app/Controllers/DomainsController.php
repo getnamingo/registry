@@ -105,6 +105,9 @@ class DomainsController extends Controller
             $contactTech = $data['contactTech'] ?? null;
             $contactBilling = $data['contactBilling'] ?? null;
             
+            $phaseType = $data['phaseType'] ?? null;
+            $smd = $data['smd'] ?? null;
+            
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
@@ -164,6 +167,38 @@ class DomainsController extends Controller
                 return view($response, 'admin/domains/createDomain.twig', [
                     'domainName' => $domainName,
                     'error' => 'Domain name already exists',
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
+                ]);
+            }
+            
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+            $phase_details = $db->selectValue(
+                "SELECT phase_category 
+                 FROM launch_phases 
+                 WHERE tld_id = ? 
+                 AND phase_type = ?
+                 AND start_date <= ? 
+                 AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+                 ",
+                [$tld_id, $phaseType, $currentDate, $currentDate]
+            );
+
+            if ($phase_details !== 'First-Come-First-Serve') {
+                if ($phaseType !== null && $phaseType !== '') {
+                    return view($response, 'admin/domains/createDomain.twig', [
+                        'domainName' => $domainName,
+                        'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                    ]);
+                }
+            } else if ($phaseType !== null && $phaseType !== '') {
+                return view($response, 'admin/domains/createDomain.twig', [
+                    'domainName' => $domainName,
+                    'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
                 ]);
@@ -423,7 +458,9 @@ class DomainsController extends Controller
                     'acid' => null,
                     'acdate' => null,
                     'rgpstatus' => 'addPeriod',
-                    'addPeriod' => $date_add
+                    'addPeriod' => $date_add,
+                    'tm_phase' => $phaseType,
+                    'tm_smd_id' => $smd
                 ]);
                 $domain_id = $db->getlastInsertId();
 

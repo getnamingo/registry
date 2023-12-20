@@ -99,6 +99,29 @@ class ApplicationsController extends Controller
                     'registrar' => $registrar,
                 ]);
             }
+            
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+            $phase_details = $db->selectValue(
+                "SELECT phase_category 
+                 FROM launch_phases 
+                 WHERE tld_id = ? 
+                 AND phase_type = ?
+                 AND start_date <= ? 
+                 AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+                 ",
+                [$tld_id, $phaseType, $currentDate, $currentDate]
+            );
+
+            if ($phase_details !== 'Application') {
+                return view($response, 'admin/domains/createApplication.twig', [
+                    'domainName' => $domainName,
+                    'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
+                    'registrars' => $registrars,
+                    'registrar' => $registrar,
+                ]);
+            }
 
             $domain_already_reserved = $db->selectValue(
                 'SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1',
