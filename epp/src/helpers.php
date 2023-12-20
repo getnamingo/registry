@@ -502,7 +502,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     ");
     $stmt->execute([$domain_name, $tld_id]);
     if ($stmt->rowCount() > 0) {
-        return ['type' => 'premium', 'price' => $stmt->fetch()['category_price']];
+        return ['type' => 'premium', 'price' => number_format((float)$stmt->fetch()['category_price'], 2, '.', '')];
     }
 
     // Check if there is a promotion for the domain
@@ -546,10 +546,10 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
                 $discountAmount = $discount;
             }
             $price = $regularPrice - $discountAmount;
-            return ['type' => 'promotion', 'price' => $price];
+            return ['type' => 'promotion', 'price' => number_format((float)$price, 2, '.', '')];
         }
         
-        return ['type' => 'regular', 'price' => $regularPrice];
+        return ['type' => 'regular', 'price' => number_format((float)$regularPrice, 2, '.', '')];
     }
 
     return ['type' => 'not_found', 'price' => 0];
