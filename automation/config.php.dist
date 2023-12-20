@@ -70,4 +70,8 @@ return [
     'tmch_smdrl_pass' => 'your_password',
     'tmch_dnl_user' => 'your_username',
     'tmch_dnl_pass' => 'your_password',
+    
+    // LORDN Configuration
+    'lordn_user' => 'your_username',
+    'lordn_pass' => 'your_password',
 ];

@@ -24,6 +24,9 @@
 # run abusereport.php every day
 5 0 * * * root /usr/bin/php8.2 /opt/registry/automation/abusereport.php
 
+# run lordn.php every day
+10 0 * * * root /usr/bin/php8.2 /opt/registry/automation/lordn.php
+
 # run send-invoice.php every 1st day
 1 0 1 * * root /usr/bin/php8.2 /opt/registry/automation/send-invoice.php
 
