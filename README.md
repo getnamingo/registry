@@ -13,21 +13,15 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 ### Current Status:
 
-We are thrilled to announce major progress in the development of Namingo as we edge closer to our full launch. All key system components, including the WHOIS, DAS, EPP, RDAP servers, and the control panel, are now fully implemented and operational. These crucial elements have not only been successfully integrated but have also undergone basic QA and security testing.
+We've completed the core development of Namingo, including WHOIS, DAS, EPP, RDAP servers, and control panel. The system handles 150,000 domains efficiently (on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD) and has passed basic QA and security tests.
 
-In terms of system performance, Namingo has been tested with up to 150,000 domains and runs efficiently on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD. Additionally, this volume of domains occupies just a bit more than 1 GB of the database.
+Current focuses:
 
-With these foundational components solidly in place, our focus shifts to the next vital stages of our project. We are now directing our efforts towards further testing and optimization to guarantee the highest standards of functionality and user experience. This phase is crucial in refining our system to its optimal state.
+- Fee extension (RFC8748) integration.
 
-Our efforts are also focused on:
+- Launch phase extension (RFC8334) implementation.
 
-- Integrating support for the fee extension (RFC8748).
-
-- Implementing the launch phase extension (RFC8334).
-
-- Adding support for the Trademark Clearinghouse (TMCH).
-
-We welcome developers and contributors to explore our issues for opportunities to help, or to contact us directly to discuss how you can contribute to the success of Namingo.
+We're currently in the phase of external testing and are aware that there might be bugs or incomplete features in the project. If you're able to identify and fix any issues, we encourage you to submit a pull request. If you're not sure how to fix an issue, please don't hesitate to report it to us, and we'll work on addressing it. Your contributions and feedback are valuable in helping us improve Namingo. For any inquiries or suggestions, feel free to reach out.
 
 ## Features
 
@@ -57,7 +51,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 ## Installation Instructions
 
-The installation instructions have been moved to a separate file to keep things organized. For detailed installation steps, please refer to [Install.md](docs/install.md).
+For detailed installation steps, please refer to [Install.md](docs/install.md).
 
 ## Support
 
@@ -73,12 +67,13 @@ We appreciate your involvement and patience as Namingo continues to grow and ada
 
 ## Acknowledgements
 
-Special thanks to **XPanel Ltd** for their inspirational work on [XPanel Registry](https://github.com/XPanel/epp).
+Special thanks to **XPanel Ltd** for their inspirational work on [XPanel Registry](https://github.com/XPanel/epp). Their project, licensed under the Apache 2.0 License (© 2017 XPanel Ltd), has been a key inspiration for Namingo. We've incorporated elements and certain code parts from XPanel Registry, which have been significantly rewritten in our project.
 
 Additionally, we extend our gratitude to:
 - **ChatGPT** for invaluable assistance with code and text writing.
 - [Slim Framework 4 Starter App](https://github.com/hezecom/slim-starter) which served as the foundation for our control panel.
+- [Tabler](https://tabler.io/), whose elegant and intuitive interface design has greatly influenced the user experience of Namingo.
 
 ## Licensing
 
-Namingo is inspired by XPanel Registry (https://github.com/XPanel/epp), which is licensed under the Apache 2.0 License, © 2017 XPanel Ltd. Namingo incorporates certain elements and parts of the code from XPanel and has been significantly rewritten. It is independently licensed under the MIT License.
+Namingo is licensed under the MIT License.
