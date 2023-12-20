@@ -577,6 +577,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $fee_create = $xml->xpath('//fee:create')[0] ?? null;
+        $launch_create = $xml->xpath('//launch:create')[0] ?? null;
     }
     
     $parts = extractDomainAndTLD($domainName);

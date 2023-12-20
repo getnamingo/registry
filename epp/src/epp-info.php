@@ -171,6 +171,11 @@ function processHostInfo($conn, $db, $xml, $trans) {
 function processDomainInfo($conn, $db, $xml, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
+	
+    $extensionNode = $xml->command->extension;
+    if (isset($extensionNode)) {
+        $launch_info = $xml->xpath('//launch:info')[0] ?? null;
+    }
 
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
     if (!empty($result)) {

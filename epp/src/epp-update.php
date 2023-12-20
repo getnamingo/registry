@@ -931,6 +931,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (isset($extensionNode)) {
         $rgp_update = $xml->xpath('//rgp:update')[0] ?? null;
         $secdns_update = $xml->xpath('//secDNS:update')[0] ?? null;
+        $launch_update = $xml->xpath('//launch:update')[0] ?? null;
     }
 
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {

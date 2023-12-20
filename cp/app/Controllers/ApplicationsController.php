@@ -1324,36 +1324,7 @@ class ApplicationsController extends Controller
 
                 try {
                     $db->beginTransaction();
-                        
-                    $hostIds = $db->select(
-                        'SELECT id FROM host WHERE domain_id = ?',
-                        [$domain_id]
-                    );
-                                
-                    foreach ($hostIds as $host) {
-                        $host_id = $host['id'];
 
-                        // Delete operations
-                        $db->delete(
-                            'host_addr',
-                            [
-                                'host_id' => $host_id
-                            ]
-                        );
-                        $db->delete(
-                            'host_status',
-                            [
-                                'host_id' => $host_id
-                            ]
-                        );
-                        $db->delete(
-                            'application_host_map',
-                            [
-                                'host_id' => $host_id
-                            ]
-                        );
-                    }
-    
                     // Delete domain related records
                     $db->delete(
                         'application_contact_map',
