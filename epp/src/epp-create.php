@@ -574,6 +574,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
     
+    $extensionNode = $xml->command->extension;
+    if (isset($extensionNode)) {
+        $fee_create = $xml->xpath('//fee:create')[0] ?? null;
+    }
+    
     $parts = extractDomainAndTLD($domainName);
     $label = $parts['domain'];
     $domain_extension = $parts['tld'];
@@ -1038,6 +1043,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     try {
         $db->beginTransaction();
         
+        $response = [];
+        if (isset($fee_create)) {
+            $response['fee_fee'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->fee;
+            
+            if ($response['fee_fee'] >= $price) {
+                $response['fee_currency'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
+                $response['fee_price'] = $price;
+                $response['fee_balance'] = $registrar_balance;
+                $response['fee_creditLimit'] = $creditLimit;
+                $response['fee_include'] = true;
+            } else {
+                $response['fee_include'] = false;
+                $db->rollBack();
+                sendEppError($conn, $db, 2004, "Provided fee is less than the server domain fee", $clTRID, $trans);
+                return;
+            }
+        }
+        
         $domainSql = "INSERT INTO domain (name,tldid,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,rgpstatus,addPeriod)
         VALUES(:name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2)";
 
@@ -1072,10 +1095,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 // Data sanity checks
                 // Validate keyTag
                 if (!isset($keyTag) || !is_int($keyTag)) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
                     return;
                 }
                 if ($keyTag < 0 || $keyTag > 65535) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
                     return;
                 }
@@ -1083,12 +1108,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 // Validate alg
                 $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
                 if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
                     return;
                 }
 
                 // Validate digestType and digest
                 if (!isset($digestType) || !is_int($digestType)) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
                     return;
                 }
@@ -1098,10 +1125,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 4 => 96   // SHA-384
                 ];
                 if (!isset($validDigests[$digestType])) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
                     return;
                 }
                 if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
                     return;
                 }
@@ -1122,24 +1151,28 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                     // Validate flags
                     $validFlags = [256, 257];
                     if (isset($flags) && !in_array($flags, $validFlags)) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
                         return;
                     }
 
                     // Validate protocol
                     if (isset($protocol) && $protocol != 3) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
                         return;
                     }
 
                     // Validate algKeyData
                     if (isset($algKeyData)) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                         return;
                     }
 
                     // Validate pubKey
                     if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                         return;
                     }
@@ -1329,7 +1362,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute();
         }
         $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()");
-        
+
         $db->commit();
     } catch (Exception $e) {
         $db->rollBack();
@@ -1337,18 +1370,16 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
     }
     $svTRID = generateSvTRID();
-    $response = [
-        'command' => 'create_domain',
-        'resultCode' => 1000,
-        'lang' => 'en-US',
-        'message' => 'Command completed successfully',
-        'name' => $domainName,
-        'crDate' => $crdate,
-        'exDate' => $exdate,
-        'clTRID' => $clTRID,
-        'svTRID' => $svTRID,
-    ];
-
+    $response['command'] = 'create_domain';
+    $response['resultCode'] = 1000;
+    $response['lang'] = 'en-US';
+    $response['message'] = 'Command completed successfully';
+    $response['name'] = $domainName;
+    $response['crDate'] = $crdate;
+    $response['exDate'] = $exdate;
+    $response['clTRID'] = $clTRID;
+    $response['svTRID'] = $svTRID;
+    
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
     updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);

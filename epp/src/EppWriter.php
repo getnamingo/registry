@@ -740,7 +740,6 @@ class EppWriter {
                                 $writer->endElement();  // End of 'fee:period'
                                 
                                 $writer->startElement('fee:fee');
-                                    $writer->writeAttribute('description', 'Fee');
                                     $writer->writeAttribute('refundable', 1);
                                     $writer->writeAttribute('grace-period', 'P5D');
                                     $writer->text($fee['fee']);
@@ -787,6 +786,27 @@ class EppWriter {
                 $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:creData'
             $writer->endElement();  // End of 'resData'
+            
+                if (isset($resp['fee_include']) && $resp['fee_include'] == true) {
+                    $writer->startElement('extension');
+                    
+                    $writer->startElement('fee:creData');
+                    $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
+                    
+                    $writer->writeElement('fee:currency', 'USD');
+                    $writer->startElement('fee:fee');
+                        $writer->writeAttribute('refundable', 1);
+                        $writer->writeAttribute('grace-period', 'P5D');
+                        $writer->text($resp['fee_price']);
+                    $writer->endElement();  // End of 'fee:fee'                    
+                    $writer->writeElement('fee:balance', $resp['fee_balance']);
+                    $writer->writeElement('fee:creditLimit', $resp['fee_creditLimit']);
+                    
+                    $writer->endElement();  // End of 'fee:creData'
+                    $writer->endElement();  // End of 'extension'
+                }
+            
+            
         }
 
         $this->_postamble($writer, $resp);

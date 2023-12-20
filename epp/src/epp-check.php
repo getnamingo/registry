@@ -341,15 +341,29 @@ function processDomainCheck($conn, $db, $xml, $trans) {
                         $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName);
                         $price = $returnValue['price'];
                         
-                        // Add to fee response array
-                        $feeResponses[] = [
-                            'command' => $commandName,
-                            'period' => $period,
-                            'period_unit' => $period_unit,
-                            'avail' => $domainEntry[1],
-                            'fee' => $price,
-                            'name' => $domainName,
-                        ];
+                        $sth = $db->prepare("SELECT price FROM domain_restore_price WHERE tldid = ? LIMIT 1");
+                        $sth->execute([$tld_id]);
+                        $restore_price = $sth->fetchColumn();
+                        
+                        if ($commandName == 'restore') {
+                            $feeResponses[] = [
+                                'command' => $commandName,
+                                'period' => $period,
+                                'period_unit' => $period_unit,
+                                'avail' => $domainEntry[1],
+                                'fee' => $restore_price,
+                                'name' => $domainName,
+                            ];
+                        } else {
+                            $feeResponses[] = [
+                                'command' => $commandName,
+                                'period' => $period,
+                                'period_unit' => $period_unit,
+                                'avail' => $domainEntry[1],
+                                'fee' => $price,
+                                'name' => $domainName,
+                            ];
+                        }
                     } else {
                         $feeResponses[] = [
                             'command' => $commandName,
