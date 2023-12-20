@@ -112,6 +112,7 @@ function processDomainCheck($conn, $db, $xml, $trans) {
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_check = $xml->xpath('//launch:check')[0] ?? null;
+        $fee_check = $xml->xpath('//fee:check')[0] ?? null;
     }
 
     if (isset($launch_check)) {
@@ -278,8 +279,93 @@ function processDomainCheck($conn, $db, $xml, $trans) {
 
             // Append this domain entry to names
             $names[] = $domainEntry;
+
+            if (isset($fee_check)) {
+                $currency = (string) $fee_check->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
+                $commands = $fee_check->xpath('//fee:command');
+
+                $feeResponses = [];
+                foreach ($commands as $command) {
+                    $commandName = (string) $command->attributes()->name;
+                    $periodElement = $command->xpath('.//fee:period')[0] ?? null;
+
+                    if ($periodElement !== null) {
+                        $period = (int) $periodElement;
+                        $period_unit = (string) $periodElement->attributes()->unit;
+                    } else {
+                        $period = 1;
+                        $period_unit = 'y';
+                    }
+
+                    if ($period && (($period < 1) || ($period > 99))) {
+                        sendEppError($conn, $db, 2004, 'fee:period minLength value=1, maxLength value=99', $clTRID, $trans);
+                        return;
+                    } elseif (!$period) {
+                        $period = 1;
+                    }
+
+                    if ($period_unit) {
+                        if (!preg_match('/^(m|y)$/i', $period_unit)) {
+                        sendEppError($conn, $db, 2004, 'fee:period unit m|y', $clTRID, $trans);
+                        return;
+                        }
+                    } else {
+                        $period_unit = 'y';
+                    }
+
+                    $date_add = 0;
+                    if ($period_unit === 'y') {
+                        $date_add = ($period * 12);
+                    } elseif ($period_unit === 'm') {
+                        $date_add = $period;
+                    }
+
+                    if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
+                        sendEppError($conn, $db, 2306, 'A fee period can be for 1-10 years', $clTRID, $trans);
+                        return;
+                    }
+                    
+                    $parts = extractDomainAndTLD($domainName);
+                    $label = $parts['domain'];
+                    $domain_extension = '.'.$parts['tld'];
+
+                    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE tld = :domain_extension");
+                    $stmt->bindParam(':domain_extension', $domain_extension, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($result != false) {
+                        $tld_id = $result['id'];
+
+                        // Calculate or retrieve fee for this command
+                        $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName);
+                        $price = $returnValue['price'];
+                        
+                        // Add to fee response array
+                        $feeResponses[] = [
+                            'command' => $commandName,
+                            'period' => $period,
+                            'period_unit' => $period_unit,
+                            'avail' => $domainEntry[1],
+                            'fee' => $price,
+                            'name' => $domainName,
+                        ];
+                    } else {
+                        $feeResponses[] = [
+                            'command' => $commandName,
+                            'avail' => $domainEntry[1],
+                            'reason' => $domainEntry[2],
+                            'name' => $domainName,
+                        ];
+                        continue; // Skip to the next iteration
+                    }
+                }
+                $fees[] = $feeResponses;
+            } else {
+                $fees = null;
+            }
         }
-        
+
         $svTRID = generateSvTRID();
         $response = [
             'command' => 'check_domain',
@@ -290,6 +376,9 @@ function processDomainCheck($conn, $db, $xml, $trans) {
             'clTRID' => $clTRID,
             'svTRID' => $svTRID,
         ];
+        if ($fees) {
+            $response['fees'] = $fees;
+        }
     }
 
     $epp = new EPP\EppWriter();

@@ -109,6 +109,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             $xml->registerXPathNamespace('rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
             $xml->registerXPathNamespace('secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
             $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
+            $xml->registerXPathNamespace('fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
 
             if ($xml === false) {
                 sendEppError($conn, $pdo, 2001, 'Invalid XML');

@@ -713,6 +713,57 @@ class EppWriter {
                     }
                     $writer->endElement();  // End of 'domain:chkData'
                 $writer->endElement();  // End of 'resData'
+                
+                if (isset($resp['fees'])) {
+                    $writer->startElement('extension');
+                    
+                    $writer->startElement('fee:chkData');
+                    $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
+                    
+                    // fee:currency
+                    $writer->writeElement('fee:currency', 'USD');
+                                            
+                    foreach ($resp['fees'] as $fees) {
+                        if ($fees[0]['avail'] == 1) {
+                            $writer->startElement('fee:cd');
+                                $writer->writeAttribute('avail', $fees[0]['avail']);
+
+                            $writer->writeElement('fee:objID', $fees[0]['name']);
+                            
+                            foreach ($fees as $fee) {
+                                $writer->startElement('fee:command');
+                                    $writer->writeAttribute('name', $fee['command']);
+                                    
+                                $writer->startElement('fee:period');
+                                    $writer->writeAttribute('unit', $fee['period_unit']);
+                                    $writer->text($fee['period']);
+                                $writer->endElement();  // End of 'fee:period'
+                                
+                                $writer->startElement('fee:fee');
+                                    $writer->writeAttribute('description', 'Fee');
+                                    $writer->writeAttribute('refundable', 1);
+                                    $writer->writeAttribute('grace-period', 'P5D');
+                                    $writer->text($fee['fee']);
+                                $writer->endElement();  // End of 'fee:fee'
+
+                                $writer->endElement();  // End of 'fee:command'
+                            }
+                                
+                            $writer->endElement();  // End of 'fee:cd'
+                        } else {
+                            $writer->startElement('fee:cd');
+                                $writer->writeAttribute('avail', $fees[0]['avail']);
+
+                            $writer->writeElement('fee:objID', $fees[0]['name']);
+                            $writer->writeElement('fee:reason', $fees[0]['reason']);
+                            
+                            $writer->endElement();  // End of 'fee:cd'
+                        }
+                    }
+                    
+                    $writer->endElement();  // End of 'fee:chkData'
+                    $writer->endElement();  // End of 'extension'
+                }
             }
         }
 
