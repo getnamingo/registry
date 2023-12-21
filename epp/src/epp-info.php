@@ -171,7 +171,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
 function processDomainInfo($conn, $db, $xml, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
-	
+    
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_info = $xml->xpath('//launch:info')[0] ?? null;
@@ -194,6 +194,23 @@ function processDomainInfo($conn, $db, $xml, $trans) {
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
         sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
+    }
+    
+    if (isset($launch_info)) {
+        $phaseType = (string) $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->phase;
+            
+        // Get the <launch:applicationID> element if it exists
+        $applicationIDElement = $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->applicationID;
+
+        // Check if the <launch:applicationID> element is present and set the variable accordingly
+        $applicationID = isset($applicationIDElement) ? (string) $applicationIDElement : null;
+            
+        // Get the attributes of the <launch:info> node
+        $attributes = $launch_info->attributes('launch', true);
+        $includeMark = (string) ($attributes->includeMark ?? 'false');
+
+        // Check if includeMark is 'true'
+        $includeMarkBool = strtolower($includeMark) === 'true';
     }
     
     try {
@@ -302,7 +319,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
 
         // Fetch RGP status
         $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
-
+        
         $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_domain',
@@ -357,7 +374,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
         if ($rgpstatus) {
             $response['rgpstatus'] = $rgpstatus;
         }
-
+        
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
     updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
