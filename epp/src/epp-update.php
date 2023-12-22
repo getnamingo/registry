@@ -1647,6 +1647,25 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
         } elseif ($op_attribute == 'report') {
+            $preData = (string) ($xml->xpath('//rgp:preData')[0] ?? null);
+            $postData = (string) ($xml->xpath('//rgp:postData')[0] ?? null);
+            $delTime = (string) ($xml->xpath('//rgp:delTime')[0] ?? null);
+            $resTime = (string) ($xml->xpath('//rgp:resTime')[0] ?? null);
+            $resReason = (string) ($xml->xpath('//rgp:resReason')[0] ?? null);
+            $other = (string) ($xml->xpath('//rgp:other')[0] ?? null);
+
+            $statements = $xml->xpath('//rgp:statement');
+            if ($statements) {
+                // If there are <rgp:statement> elements, process them
+                $statementTexts = [];
+                foreach ($statements as $statement) {
+                    $statementTexts[] = (string) $statement;
+                }
+            } else {
+                // If there are no <rgp:statement> elements, set default values
+                $statementTexts = [null, null]; // Assuming you expect two statements
+            }
+            
             $sth = $db->prepare("SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = 'pendingRestore' AND id = ?");
             $sth->execute([$domain_id]);
             $temp_id = $sth->fetchColumn();
@@ -1673,9 +1692,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$domain_id]);
                 $from = $sth->fetchColumn();
 
-                $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 
-                if (!$sth->execute([$clid, $domain_id])) {
+                if (!$sth->execute([$postData, $resReason, $statementTexts[0], $statementTexts[1], $clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
