@@ -578,6 +578,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (isset($extensionNode)) {
         $fee_create = $xml->xpath('//fee:create')[0] ?? null;
         $launch_create = $xml->xpath('//launch:create')[0] ?? null;
+        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
     }
     
     $parts = extractDomainAndTLD($domainName);
@@ -621,8 +622,24 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domain_already_reserved = $stmt->fetchColumn();
 
     if ($domain_already_reserved) {
-        sendEppError($conn, $db, 2302, 'Domain name is reserved or restricted', $clTRID, $trans);
-        return;
+        if ($allocation_token !== null) {
+            $allocationTokenValue = (string)$allocation_token;
+                        
+            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
+            $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
+            $stmt->execute();
+            $token = $stmt->fetchColumn();
+                        
+            if ($token) {
+                // No action needed, script continues
+            } else {
+                sendEppError($conn, $db, 2201, 'Please double check your allocation token', $clTRID, $trans);
+                return;
+            }
+        } else {
+            sendEppError($conn, $db, 2302, 'Domain name is reserved or restricted', $clTRID, $trans);
+            return;
+        }
     }
     
     $periodElements = $xml->xpath("//domain:create/domain:period");

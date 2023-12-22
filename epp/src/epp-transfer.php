@@ -401,6 +401,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
+    
+    $extensionNode = $xml->command->extension;
+    if (isset($extensionNode)) {
+        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
+    }
 
     // -  An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
     $authInfo_pw = (string)$xml->xpath('//domain:authInfo/domain:pw[1]')[0];
@@ -748,6 +753,22 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
     }
 
     elseif ($op === 'request') {
+        if ($allocation_token !== null) {
+            $allocationTokenValue = (string)$allocation_token;
+                        
+            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
+            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+            $stmt->execute();
+            $token = $stmt->fetchColumn();
+                        
+            if ($token) {
+                // No action needed, script continues
+            } else {
+                sendEppError($conn, $db, 2201, 'Please double check your allocation token', $clTRID, $trans);
+                return;
+            }
+        }
+        
         // Check days from registration
         $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id]);

@@ -113,6 +113,7 @@ function processDomainCheck($conn, $db, $xml, $trans) {
     if (isset($extensionNode)) {
         $launch_check = $xml->xpath('//launch:check')[0] ?? null;
         $fee_check = $xml->xpath('//fee:check')[0] ?? null;
+        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
     }
 
     if (isset($launch_check)) {
@@ -262,8 +263,24 @@ function processDomainCheck($conn, $db, $xml, $trans) {
                 $reserved = $stmt->fetchColumn();
 
                 if ($reserved) {
-                    $domainEntry[] = 0; // Set status to unavailable
-                    $domainEntry[] = ucfirst($reserved); // Capitalize the first letter
+                    if ($allocation_token !== null) {
+                        $allocationTokenValue = (string)$allocation_token;
+                        
+                        $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
+                        $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
+                        $stmt->execute();
+                        $token = $stmt->fetchColumn();
+                        
+                        if ($token) {
+                            $domainEntry[] = 1;
+                        } else {
+                            $domainEntry[] = 0;
+                            $domainEntry[] = 'Allocation Token mismatch';
+                        }
+                    } else {
+                        $domainEntry[] = 0; // Set status to unavailable
+                        $domainEntry[] = ucfirst($reserved); // Capitalize the first letter
+                    }
                 } else {
                     $invalid_label = validate_label($domainName, $db);
 

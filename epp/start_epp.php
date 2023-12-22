@@ -111,6 +111,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
             $xml->registerXPathNamespace('fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
             $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+            $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
 
             if ($xml === false) {
                 sendEppError($conn, $pdo, 2001, 'Invalid XML');
