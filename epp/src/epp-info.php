@@ -211,177 +211,281 @@ function processDomainInfo($conn, $db, $xml, $trans) {
 
         // Check if includeMark is 'true'
         $includeMarkBool = strtolower($includeMark) === 'true';
-    }
-    
-    try {
-        $stmt = $db->prepare("SELECT * FROM domain WHERE name = :name");
-        $stmt->execute(['name' => $domainName]);
-
-        $domain = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$domain) {
-            sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
-            return;
-        }
         
-        if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
-            $stmt->execute([$domain['id'], $authInfo_pw]);
-            $domain_authinfo_id = $stmt->fetchColumn();
+        try {
+            $query = "SELECT * FROM application WHERE name = :name AND phase_type = :phase";
 
-            if (!$domain_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+            if (!empty($applicationID)) {
+                $query .= " AND application_id = :applicationID";
+            }
+
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':name', $domainName);
+            $stmt->bindParam(':phase', $phaseType);
+
+            if (!empty($applicationID)) {
+                $stmt->bindParam(':applicationID', $applicationID);
+            }
+            
+            $stmt->execute();
+            
+            $domain = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$domain) {
+                sendEppError($conn, $db, 2303, 'Application does not exist', $clTRID, $trans);
                 return;
             }
-        }
-        
-        // Fetch contacts
-        $stmt = $db->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $transformedContacts = [];
-        foreach ($contacts as $contact) {
-            $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
-        }
-        
-        // Fetch hosts
-        $stmt = $db->prepare("SELECT * FROM domain_host_map WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Fetch contacts
+            $stmt = $db->prepare("SELECT * FROM application_contact_map WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $transformedHosts = [];
-        if ($hosts) {
-            foreach ($hosts as $host) {
-                $transformedHosts[] = [getHost($db, $host['host_id'])];
+            $transformedContacts = [];
+            foreach ($contacts as $contact) {
+                $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
             }
-        }
-        
-        $stmt = $db->prepare("SELECT name FROM host WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $hostNames = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            
+            // Fetch hosts
+            $stmt = $db->prepare("SELECT * FROM application_host_map WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch authInfo
-        $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Fetch status
-        $stmt = $db->prepare("SELECT * FROM domain_status WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $statusArray = [];
-        foreach($statuses as $status) {
-            $statusArray[] = [$status['status']];
-        }
-        
-        // Fetch secDNS data
-        $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
-        $stmt->execute(['id' => $domain['id']]);
-        $secDnsRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Fetch registrant identifier
-        $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
-        $stmt->execute(['id' => $domain['registrant']]);
-        $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
-
-        $transformedSecDnsRecords = [];
-        if ($secDnsRecords) {
-            foreach ($secDnsRecords as $record) {
-                $tmpRecord = [
-                    'keyTag' => $record['keytag'],
-                    'alg' => $record['alg'],
-                    'digestType' => $record['digesttype'],
-                    'digest' => $record['digest']
-                ];
-
-                // Add optional fields if they are not null
-                if (!is_null($record['maxsiglife'])) {
-                    $tmpRecord['maxSigLife'] = $record['maxsiglife'];
+            $transformedHosts = [];
+            if ($hosts) {
+                foreach ($hosts as $host) {
+                    $transformedHosts[] = [getHost($db, $host['host_id'])];
                 }
-                if (!is_null($record['flags'])) {
-                    $tmpRecord['keyData']['flags'] = $record['flags'];
-                }
-                if (!is_null($record['protocol'])) {
-                    $tmpRecord['keyData']['protocol'] = $record['protocol'];
-                }
-                if (!is_null($record['keydata_alg'])) {
-                    $tmpRecord['keyData']['alg'] = $record['keydata_alg'];
-                }
-                if (!is_null($record['pubkey'])) {
-                    $tmpRecord['keyData']['pubKey'] = $record['pubkey'];
-                }
-        
-                $transformedSecDnsRecords[] = $tmpRecord;
             }
-        }
+            
+            // Fetch status
+            $stmt = $db->prepare("SELECT * FROM application_status WHERE domain_id = :id LIMIT 1");
+            $stmt->execute(['id' => $domain['id']]);
+            $status = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Fetch RGP status
-        $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
-        
-        $svTRID = generateSvTRID();
-        $response = [
-            'command' => 'info_domain',
-            'clTRID' => $clTRID,
-            'svTRID' => $svTRID,
-            'resultCode' => 1000,
-            'msg' => 'Command completed successfully',
-            'name' => $domain['name'],
-            'roid' => 'D' . $domain['id'],
-            'status' => $statusArray,
-            'registrant' => $registrant_id,
-            'contact' => $transformedContacts,
-            'clID' => getRegistrarClid($db, $domain['clid']),
-            'crID' => getRegistrarClid($db, $domain['crid']),
-            'crDate' => $domain['crdate'],
-            'exDate' => $domain['exdate']
-        ];
-        // Conditionally add upID, upDate, and trDate to the response
-        if (isset($domain['upid']) && $domain['upid']) {
-            $response['upID'] = getRegistrarClid($db, $domain['upid']);
-        }
-        if (isset($domain['lastupdate']) && $domain['lastupdate']) {
-            $response['upDate'] = $domain['lastupdate'];
-        }
-        if (isset($domain['trdate']) && $domain['trdate']) {
-            $response['trDate'] = $domain['trdate'];
-        }
-        if (isset($domain_authinfo_id) && $domain_authinfo_id) {
-            $response['authInfo'] = 'valid';
-            $response['authInfo_type'] = $authInfo['authtype'];
-            $response['authInfo_val'] = $authInfo['authinfo'];
-        } else {
-            $response['authInfo'] = 'invalid';
-        }
-        
-        // Conditionally add hostObj if hosts are available from domain_host_map
-        if (!empty($transformedHosts)) {
-            $response['hostObj'] = $transformedHosts;
-        }
+            // Fetch registrant identifier
+            $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
+            $stmt->execute(['id' => $domain['registrant']]);
+            $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
 
-        // Conditionally add hostName if hosts are available from host
-        if (!empty($hostNames)) {
-            $response['host'] = $hostNames;
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'info_domain',
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+                'resultCode' => 1000,
+                'msg' => 'Command completed successfully',
+                'name' => $domain['name'],
+                'roid' => 'A' . $domain['id'],
+                'status' => $status['status'],
+                'registrant' => $registrant_id,
+                'contact' => $transformedContacts,
+                'clID' => getRegistrarClid($db, $domain['clid']),
+                'crID' => getRegistrarClid($db, $domain['crid']),
+                'crDate' => $domain['crdate'],
+                'exDate' => $domain['exdate']
+            ];
+            if (isset($domain['authinfo'])) {
+                $response['authInfo'] = 'valid';
+                $response['authInfo_type'] = $domain['authtype'];
+                $response['authInfo_val'] = $domain['authinfo'];
+            } else {
+                $response['authInfo'] = 'invalid';
+            }
+            
+            // Conditionally add hostObj if hosts are available from domain_host_map
+            if (!empty($transformedHosts)) {
+                $response['hostObj'] = $transformedHosts;
+            }
+            
+            $response['launch_phase'] = $phaseType;
+            $response['launch_application_id'] = $applicationID;
+            $response['launch_status'] = $status['status'];
+            if ($includeMarkBool) {
+                $response['launch_mark'] = $domain['smd'];
+            }
+            
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'info', 'domain', 'A_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
+        } catch (PDOException $e) {
+            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
         }
+    } else {
+        try {
+            $stmt = $db->prepare("SELECT * FROM domain WHERE name = :name");
+            $stmt->bindParam(':name', $domainName);
+            $stmt->execute();
+            
+            $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Add secDNS records to response if they exist
-        if ($transformedSecDnsRecords) {
-            $response['secDNS'] = $transformedSecDnsRecords;
-        }
+            if (!$domain) {
+                sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
+                return;
+            }
+            
+            if ($authInfo_pw) {
+                $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
+                $stmt->execute([$domain['id'], $authInfo_pw]);
+                $domain_authinfo_id = $stmt->fetchColumn();
 
-        // Add RGP status to response if it exists
-        if ($rgpstatus) {
-            $response['rgpstatus'] = $rgpstatus;
+                if (!$domain_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            }
+            
+            // Fetch contacts
+            $stmt = $db->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $transformedContacts = [];
+            foreach ($contacts as $contact) {
+                $transformedContacts[] = [$contact['type'], getContactIdentifier($db, $contact['contact_id'])];
+            }
+            
+            // Fetch hosts
+            $stmt = $db->prepare("SELECT * FROM domain_host_map WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $transformedHosts = [];
+            if ($hosts) {
+                foreach ($hosts as $host) {
+                    $transformedHosts[] = [getHost($db, $host['host_id'])];
+                }
+            }
+            
+            $stmt = $db->prepare("SELECT name FROM host WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $hostNames = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+
+            // Fetch authInfo
+            $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Fetch status
+            $stmt = $db->prepare("SELECT * FROM domain_status WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $statusArray = [];
+            foreach($statuses as $status) {
+                $statusArray[] = [$status['status']];
+            }
+            
+            // Fetch secDNS data
+            $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
+            $stmt->execute(['id' => $domain['id']]);
+            $secDnsRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Fetch registrant identifier
+            $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
+            $stmt->execute(['id' => $domain['registrant']]);
+            $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
+
+            $transformedSecDnsRecords = [];
+            if ($secDnsRecords) {
+                foreach ($secDnsRecords as $record) {
+                    $tmpRecord = [
+                        'keyTag' => $record['keytag'],
+                        'alg' => $record['alg'],
+                        'digestType' => $record['digesttype'],
+                        'digest' => $record['digest']
+                    ];
+
+                    // Add optional fields if they are not null
+                    if (!is_null($record['maxsiglife'])) {
+                        $tmpRecord['maxSigLife'] = $record['maxsiglife'];
+                    }
+                    if (!is_null($record['flags'])) {
+                        $tmpRecord['keyData']['flags'] = $record['flags'];
+                    }
+                    if (!is_null($record['protocol'])) {
+                        $tmpRecord['keyData']['protocol'] = $record['protocol'];
+                    }
+                    if (!is_null($record['keydata_alg'])) {
+                        $tmpRecord['keyData']['alg'] = $record['keydata_alg'];
+                    }
+                    if (!is_null($record['pubkey'])) {
+                        $tmpRecord['keyData']['pubKey'] = $record['pubkey'];
+                    }
+            
+                    $transformedSecDnsRecords[] = $tmpRecord;
+                }
+            }
+
+            // Fetch RGP status
+            $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
+            
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'info_domain',
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+                'resultCode' => 1000,
+                'msg' => 'Command completed successfully',
+                'name' => $domain['name'],
+                'roid' => 'D' . $domain['id'],
+                'status' => $statusArray,
+                'registrant' => $registrant_id,
+                'contact' => $transformedContacts,
+                'clID' => getRegistrarClid($db, $domain['clid']),
+                'crID' => getRegistrarClid($db, $domain['crid']),
+                'crDate' => $domain['crdate'],
+                'exDate' => $domain['exdate']
+            ];
+            // Conditionally add upID, upDate, and trDate to the response
+            if (isset($domain['upid']) && $domain['upid']) {
+                $response['upID'] = getRegistrarClid($db, $domain['upid']);
+            }
+            if (isset($domain['lastupdate']) && $domain['lastupdate']) {
+                $response['upDate'] = $domain['lastupdate'];
+            }
+            if (isset($domain['trdate']) && $domain['trdate']) {
+                $response['trDate'] = $domain['trdate'];
+            }
+            if (isset($domain_authinfo_id) && $domain_authinfo_id) {
+                $response['authInfo'] = 'valid';
+                $response['authInfo_type'] = $authInfo['authtype'];
+                $response['authInfo_val'] = $authInfo['authinfo'];
+            } else {
+                $response['authInfo'] = 'invalid';
+            }
+            
+            // Conditionally add hostObj if hosts are available from domain_host_map
+            if (!empty($transformedHosts)) {
+                $response['hostObj'] = $transformedHosts;
+            }
+
+            // Conditionally add hostName if hosts are available from host
+            if (!empty($hostNames)) {
+                $response['host'] = $hostNames;
+            }
+
+            // Add secDNS records to response if they exist
+            if ($transformedSecDnsRecords) {
+                $response['secDNS'] = $transformedSecDnsRecords;
+            }
+
+            // Add RGP status to response if it exists
+            if ($rgpstatus) {
+                $response['rgpstatus'] = $rgpstatus;
+            }
+            
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
+        } catch (PDOException $e) {
+            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
         }
-        
-    $epp = new EPP\EppWriter();
-    $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-    sendEppResponse($conn, $xml);
-    } catch (PDOException $e) {
-        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }
+    
+
 }
 
 function processFundsInfo($conn, $db, $xml, $clid, $trans) {

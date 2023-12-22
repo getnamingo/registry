@@ -822,14 +822,20 @@ class EppWriter {
                 $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd');
                 $writer->writeElement('domain:name', $resp['name']);
                 $writer->writeElement('domain:roid', $resp['roid']);
-                foreach ($resp['status'] as $s) {
-                    if (isset($s[1]) && isset($s[2])) {
-                        $writer->writeElement('domain:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
-                    } else {
-                        $writer->startElement('domain:status');
-                        $writer->writeAttribute('s', $s[0]);
-                        $writer->endElement();
+                if (is_array($resp['status'])) {
+                    foreach ($resp['status'] as $s) {
+                        if (isset($s[1]) && isset($s[2])) {
+                            $writer->writeElement('domain:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
+                        } else {
+                            $writer->startElement('domain:status');
+                            $writer->writeAttribute('s', $s[0]);
+                            $writer->endElement();
+                        }
                     }
+                } else {
+                    $writer->startElement('domain:status');
+                    $writer->writeAttribute('s', $resp['status']);
+                    $writer->endElement();
                 }
                 
                 if (isset($resp['registrant'])) {
@@ -896,7 +902,7 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
 
             // Begin the extension part if any of the extensions are present
-            if (isset($resp['rgpstatus']) || isset($resp['secDNS'])) {
+            if (isset($resp['rgpstatus']) || isset($resp['secDNS']) || isset($resp['launch_phase'])) {
                 $writer->startElement('extension');
 
                 // Handle RGP status
@@ -949,6 +955,28 @@ class EppWriter {
                     }
 
                     $writer->endElement();  // End of 'secDNS:infData'
+                }
+                
+                // Handle Launch Phase
+                if (isset($resp['launch_phase'])) {
+                    $writer->startElement('launch:infData');
+                    $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
+                    $writer->writeElement('launch:phase', $resp['launch_phase']);
+                    if (!empty($resp['launch_application_id'])) {
+                        $writer->writeElement('launch:applicationID', $resp['launch_application_id']);
+                    }
+                    $writer->startElement('launch:status');
+                    $writer->writeAttribute('s', $resp['launch_status']);
+                    $writer->endElement();  // End of 'launch:status'
+                    if (isset($resp['launch_mark'])) {
+                        $writer->startElement('mark:mark');
+                        $writer->writeAttribute('xmlns:mark', 'urn:ietf:params:xml:ns:mark-1.0');
+                        $value = $resp['launch_mark'];
+                        $writer->text($value);
+                        $writer->endElement();  // End of 'mark:mark'
+                    }
+                    
+                    $writer->endElement();  // End of 'launch:infData'
                 }
 
                 $writer->endElement();  // End of 'extension'
