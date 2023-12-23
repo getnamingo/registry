@@ -84,7 +84,7 @@ CREATE TABLE registry.allocation_tokens (
 );
 
 CREATE TABLE registry.error_log (
-    "id" INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    "id" INT(11) NOT NULL AUTO_INCREMENT,
     "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,,
     "log" TEXT NOT NULL,
     "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
@@ -93,7 +93,7 @@ CREATE TABLE registry.error_log (
 );
 
 CREATE TABLE registry.reserved_domain_names (
-     "id" serial8 ,
+     "id" serial8,
      "name"   varchar(68) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'reserved','restricted' )) NOT NULL default 'reserved',
      primary key ("id"),
@@ -777,8 +777,8 @@ CREATE TABLE registry.tmch_crl (
     "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
-INSERT INTO registry.domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO registry.domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO registry.domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO registry.domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 
 INSERT INTO registry.domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO registry.domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');

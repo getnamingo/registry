@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`allocation_tokens` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='allocation tokens';
 
 CREATE TABLE IF NOT EXISTS `registry`.`error_log` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
     `registrar_id` INT(10) unsigned NOT NULL,
     `log` TEXT NOT NULL,
     `date` TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
@@ -804,8 +804,8 @@ CREATE TABLE IF NOT EXISTS `registry`.`tmch_crl` (
     `update_timestamp` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Crl';
 
-INSERT INTO `registry`.`domain_tld` VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
-INSERT INTO `registry`.`domain_tld` VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0');
+INSERT INTO `registry`.`domain_tld` VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO `registry`.`domain_tld` VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 
 INSERT INTO `registry`.`domain_price` VALUES('1','1','create','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
 INSERT INTO `registry`.`domain_price` VALUES('2','1','renew','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
@@ -878,8 +878,3 @@ CREATE TABLE IF NOT EXISTS `registryTransaction`.`transaction_identifier` (
     UNIQUE KEY `svTRID` (`svTRID`),
     CONSTRAINT `transaction_identifier_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registry`.`registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='transaction identifier';
-
-GRANT ALL ON `registryTransaction`.* TO 'registry'@'localhost';
-GRANT SELECT ON `registryTransaction`.* TO 'registry-select'@'localhost';
-
-FLUSH PRIVILEGES;
