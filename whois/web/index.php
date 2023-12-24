@@ -1,22 +1,6 @@
 <?php
 session_start();
-use Gregwar\Captcha\CaptchaBuilder;
-    
-// Include this part only if the script is requested as an image (for the captcha)
-if ($_SERVER['REQUEST_URI'] == '/captcha.php') {
-    require 'vendor/autoload.php'; // Adjust path as needed
-
-    $captcha = new CaptchaBuilder;
-    $captcha->build();
-
-    $_SESSION['captcha'] = $captcha->getPhrase();
-
-    header('Content-type: image/jpeg');
-    $captcha->output();
-    exit;
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
