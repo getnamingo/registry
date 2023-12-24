@@ -1,0 +1,19 @@
+[Unit]
+Description=DAS Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Restart=on-failure
+ExecStart=/usr/bin/php /opt/registry/das/start_das.php
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -INT $MAINPID
+WorkingDirectory=/opt/registry/das
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=das
+
+[Install]
+WantedBy=multi-user.target

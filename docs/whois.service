@@ -1,0 +1,19 @@
+[Unit]
+Description=WHOIS Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Restart=on-failure
+ExecStart=/usr/bin/php /opt/registry/whois/port43/start_whois.php
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -INT $MAINPID
+WorkingDirectory=/opt/registry/whois/port43
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=whois
+
+[Install]
+WantedBy=multi-user.target

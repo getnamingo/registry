@@ -322,7 +322,17 @@ composer install
 mv config.php.dist config.php
 ```
 
-Configure all options in ```config.php``` and run ```php start_whois.php &```
+- Configure all options in ```config.php```.
+
+- Copy ```docs/whois.service``` to ```/etc/systemd/system/```. Change only User and Group lines to your user and group.
+
+```bash
+systemctl daemon-reload
+systemctl start whois.service
+systemctl enable whois.service
+```
+
+After that you can manage WHOIS via systemctl as any other service.
 
 ## 10. Setup RDAP:
 
@@ -332,7 +342,17 @@ composer install
 mv config.php.dist config.php
 ```
 
-Configure all options in ```config.php``` and run ```php start_rdap.php &```
+- Configure all options in ```config.php```.
+
+- Copy ```docs/rdap.service``` to ```/etc/systemd/system/```. Change only User and Group lines to your user and group.
+
+```bash
+systemctl daemon-reload
+systemctl start rdap.service
+systemctl enable rdap.service
+```
+
+After that you can manage RDAP via systemctl as any other service.
 
 ## 11. Setup EPP:
 
@@ -342,7 +362,7 @@ composer install
 mv config.php.dist config.php
 ```
 
-Configure all options in ```config.php``` and run ```php start_epp.php &```
+Configure all options in ```config.php```.
 
 To create test certificates (cert.pem and key.pem):
 
@@ -350,6 +370,16 @@ To create test certificates (cert.pem and key.pem):
 openssl genrsa -out key.pem 2048
 openssl req -new -x509 -key key.pem -out cert.pem -days 365
 ```
+
+- Copy ```docs/epp.service``` to ```/etc/systemd/system/```. Change only User and Group lines to your user and group.
+
+```bash
+systemctl daemon-reload
+systemctl start epp.service
+systemctl enable epp.service
+```
+
+After that you can manage EPP via systemctl as any other service.
 
 ## 12. Setup Automation Scripts:
 
@@ -466,7 +496,17 @@ composer install
 mv config.php.dist config.php
 ```
 
-Configure all options in ```config.php``` and run ```php start_das.php &```
+Configure all options in ```config.php```.
+
+- Copy ```docs/das.service``` to ```/etc/systemd/system/```. Change only User and Group lines to your user and group.
+
+```bash
+systemctl daemon-reload
+systemctl start das.service
+systemctl enable das.service
+```
+
+After that you can manage DAS via systemctl as any other service.
 
 ## 14. Setup Monitoring:
 
