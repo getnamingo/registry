@@ -524,7 +524,7 @@ mkdir /etc/bind/zones
 
 ### Generate a TSIG key:
 
-Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers.
+Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
 ```bash
 cd /etc/bind
@@ -561,7 +561,7 @@ zone "test." {
 };
 ```
 
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server.
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
 
 Configure and start the ```write-zone.php``` automation script.
 

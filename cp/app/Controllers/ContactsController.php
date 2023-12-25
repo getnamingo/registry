@@ -1021,7 +1021,7 @@ class ContactsController extends Controller
                 
                 if ($is_linked_registrant) {
                     $this->container->get('flash')->addMessage('error', 'This contact is associated with a domain as a registrant');
-                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
                 }
                     
                 $is_linked_other = $db->selectRow('SELECT contact_id FROM domain_contact_map WHERE contact_id = ?',
@@ -1072,7 +1072,7 @@ class ContactsController extends Controller
                 $this->container->get('flash')->addMessage('success', 'Contact ' . $args . ' deleted successfully');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             } else {
-                // Redirect to the hosts view
+                // Redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
         

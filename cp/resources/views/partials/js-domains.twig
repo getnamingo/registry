@@ -28,7 +28,7 @@
             actionButtons += `<a class="btn btn-outline-warning btn-icon" href="domain/restore/${cell.getRow().getData().name}" title="Restore Domain"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 4.55a8 8 0 0 0 -6 14.9m0 -4.45v5h-5" /><path d="M18.37 7.16l0 .01" /><path d="M13 19.94l0 .01" /><path d="M16.84 18.37l0 .01" /><path d="M19.37 15.1l0 .01" /><path d="M19.94 11l0 .01" /></svg></a>`;
         } else {
             actionButtons += `<a class="btn btn-success btn-icon" href="domain/renew/${cell.getRow().getData().name}" title="Renew Domain"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg></a> `;
-            actionButtons += `<a class="btn btn-danger btn-icon" href="domain/delete/${cell.getRow().getData().name}" title="Delete Domain"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></a>`;
+            actionButtons += `<a class="btn btn-danger btn-icon delete-btn" id="delete-btn" href="javascript:void(0);" data-delete-url="domain/delete/${cell.getRow().getData().name}" title="Delete Domain"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></a>`;
         }
 
         return actionButtons;
@@ -116,7 +116,15 @@
             {title:"Creation Date", width:250, minWidth:150, field:"crdate", headerSort:false, responsive:2},
             {title:"Expiration Date", width:250, minWidth:150, field:"exdate", headerSort:false, responsive:2},
             {title:"Status", width:150, field:"domain_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
-            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
+            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
+                if (e.target.closest('.delete-btn')) {
+                    e.preventDefault(); // Prevent the default link behavior
+                    if (confirm("Are you sure you want to delete this domain?")) {
+                        let deleteUrl = e.target.closest('.delete-btn').getAttribute('data-delete-url');
+                        window.location.href = deleteUrl;
+                    }
+                }
+            }},
         ],
         placeholder:function(){
             return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
