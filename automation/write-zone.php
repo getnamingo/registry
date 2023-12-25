@@ -154,12 +154,12 @@ Coroutine::create(function () use ($pool, $log, $c) {
         }
 
         if ($c['dns_server'] == 'bind') {
-            exec("rndc reload .{$cleanedTld}", $output, $return_var);
+            exec("rndc reload {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to reload BIND. ' . $return_var);
             }
 
-            exec("rndc notify .{$cleanedTld}", $output, $return_var);
+            exec("rndc notify {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to notify secondary servers. ' . $return_var);
             }
@@ -174,18 +174,18 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 $log->error('Failed to reload Knot DNS. ' . $return_var);
             }
 
-            exec("knotc zone-notify .{$cleanedTld}", $output, $return_var);
+            exec("knotc zone-notify {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to notify secondary servers. ' . $return_var);
             }
         } else {
             // Default
-            exec("rndc reload .{$cleanedTld}", $output, $return_var);
+            exec("rndc reload {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to reload BIND. ' . $return_var);
             }
 
-            exec("rndc notify .{$cleanedTld}", $output, $return_var);
+            exec("rndc notify {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to notify secondary servers. ' . $return_var);
             }

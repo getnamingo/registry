@@ -256,8 +256,6 @@ systemctl restart caddy
 
 **And now is the right time to import the provided database file for your database type using Adminer.**
 
-**After that, please create a database called registryAudit.**
-
 ## 7. Control Panel Setup:
 
 Use a file management tool or command line to copy the entire ```registry/cp/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/cp/```.
@@ -508,6 +506,86 @@ systemctl enable das.service
 
 After that you can manage DAS via systemctl as any other service.
 
-## 14. Setup Monitoring:
+## 14. Setup Hidden Master DNS with BIND:
+
+Although Namingo is equipped with BIND by default for this purpose, you can opt for NSD, or Knot DNS if you are more comfortable with those systems.
+
+### Install BIND9 and its utilities with:
+
+```bash
+apt install bind9 bind9-utils bind9-doc
+```
+
+### Create Zone Directory:
+
+```bash
+mkdir /etc/bind/zones
+```
+
+### Generate a TSIG key:
+
+Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers.
+
+```bash
+cd /etc/bind
+tsig-keygen -a HMAC-SHA256 test.key
+```
+
+The output will be in the format that can be directly included in your BIND configuration files. It looks something like this:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret==";
+};
+```
+
+Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
+
+### Configure the Named Configuration File:
+
+Edit the named.conf.local file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Add the following zone definition:
+
+```bash
+zone "test." {
+    type master;
+    file "/etc/bind/zones/test.zone";
+    allow-transfer { key "test.key"; };
+    also-notify { <slave-server-IP>; };
+};
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server.
+
+Configure and start the ```write-zone.php``` automation script.
+
+### Check BIND9 Configuration:
+
+```bash
+named-checkconf
+named-checkzone test /etc/bind/zones/test.zone
+```
+
+### Restart BIND9 Service:
+
+```bash
+systemctl restart bind9
+```
+
+### Verify Zone Loading:
+
+Check the BIND9 logs to ensure that the .test zone is loaded without errors:
+
+```bash
+grep named /var/log/syslog
+```
+
+## 15. Setup Monitoring:
 
 For effective monitoring of your registry system, we highly recommend utilizing either Zabbix or Prometheus. These powerful monitoring tools offer robust capabilities to ensure comprehensive oversight of your infrastructure. Zabbix is renowned for its versatility and extensive feature set, enabling detailed monitoring of numerous metrics across diverse environments. Alternatively, Prometheus stands out for its exceptional handling of time-series data, making it ideal for tracking rapidly changing metrics. Both tools offer customizable alerting systems, user-friendly interfaces, and are well-supported by extensive communities. Depending on your specific needs and the complexity of your setup, either Zabbix or Prometheus can be an excellent choice to maintain optimal performance and reliability of your systems.

@@ -821,7 +821,20 @@ INSERT INTO `registry`.`domain_restore_price` VALUES('2','2','50.00');
 INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`lastupdate`) VALUES('LeoNet LLC','leonet','$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg','LN','info@leonet.test','whois.leonet.test','rdap.leonet.test','https://www.leonet.test','abuse@leonet.test','+380.325050','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 INSERT INTO `registry`.`registrar` (`name`,`clid`,`pw`,`prefix`,`email`,`whois_server`,`rdap_server`,`url`,`abuse_email`,`abuse_phone`,`accountBalance`,`creditLimit`,`creditThreshold`,`thresholdType`,`crdate`,`lastupdate`) VALUES('Nord Registrar AB','nordregistrar','$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U','NR','info@nordregistrar.test','whois.nordregistrar.test','rdap.nordregistrar.test','https://www.nordregistrar.test','abuse@nordregistrar.test','+46.80203','100000.00','100000.00','500.00','fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
-INSERT INTO `registry`.`ticket_categories` (name, description) VALUES 
+INSERT INTO `registry`.`registrar_whitelist` (`registrar_id`, `addr`) VALUES
+(1,    '1.2.3.4');
+INSERT INTO `registry`.`registrar_whitelist` (`registrar_id`, `addr`) VALUES
+(2,    '5.6.7.8');
+
+INSERT INTO `registry`.`registrar_contact` (`id`, `registrar_id`, `type`, `title`, `first_name`, `middle_name`, `last_name`, `org`, `street1`, `street2`, `street3`, `city`, `sp`, `pc`, `cc`, `voice`, `fax`, `email`) VALUES
+(1,    1,    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+(2,    1,    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+(3,    1,    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+(1,    2,    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+(2,    2,    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+(3,    2,    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
+
+INSERT INTO `registry`.`ticket_categories` (`name`, `description`) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),
 ('Registration Errors', 'Errors or issues encountered during domain registration'),
 ('Billing & Payments', 'Questions or issues related to invoicing, payments, or account balances'),
@@ -878,3 +891,5 @@ CREATE TABLE IF NOT EXISTS `registryTransaction`.`transaction_identifier` (
     UNIQUE KEY `svTRID` (`svTRID`),
     CONSTRAINT `transaction_identifier_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registry`.`registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='transaction identifier';
+
+CREATE DATABASE IF NOT EXISTS `registryAudit`;

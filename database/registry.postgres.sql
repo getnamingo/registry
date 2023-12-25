@@ -1,7 +1,8 @@
 CREATE SCHEMA registry;
 CREATE SCHEMA registryTransaction;
+CREATE SCHEMA registryAudit;
 
-SET search_path TO registry, registryTransaction, public;
+SET search_path TO registry, registryTransaction, registryAudit, public;
 
 CREATE TABLE registry.launch_phases (
     "id" SERIAL PRIMARY KEY,
@@ -792,6 +793,19 @@ INSERT INTO registry.domain_restore_price VALUES (E'2',E'2',E'50.00');
 
 INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+INSERT INTO registry.registrar_whitelist ("registrar_id", "addr") VALUES
+('1',    '1.2.3.4');
+INSERT INTO registry.registrar_whitelist ("registrar_id", "addr") VALUES
+('2',    '5.6.7.8');
+
+INSERT INTO registry.registrar_contact (id, registrar_id, type, title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email) VALUES
+('1',    '1',    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+('2',    '1',    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+('3',    '1',    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+('1',    '2',    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+('2',    '2',    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
+('3',    '2',    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
 
 INSERT INTO registry.ticket_categories (name, description) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),
