@@ -5,14 +5,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
     var table;
-    document.querySelector("#contactTable").addEventListener('click', function(e) {
-        if (e.target.matches('.delete-btn')) {
-            let id = e.target.getAttribute('data-id');
-            deleteRecord(id);
-        }
-    });
    
     document.addEventListener("DOMContentLoaded", function(){
+
     function contactLinkFormatter(cell){
         var value = cell.getValue();
         return `<a href="/contact/view/${value}" style="font-weight:bold;">${value}</a>`;

@@ -7,20 +7,7 @@
     var table;
     
     document.addEventListener("DOMContentLoaded", function(){
-    
-    document.querySelector("#hostTable").addEventListener('click', function(e) {
-        // Check if the clicked element has the class 'delete-btn' or the ID 'delete-btn'
-        if (e.target.classList.contains('delete-btn') || e.target.id === 'delete-btn') {
-            // Confirmation dialog
-            let confirmDeletion = confirm("Are you sure you want to delete this record?");
-
-            // If user does not confirm, prevent the default action
-            if (!confirmDeletion) {
-                e.preventDefault();
-            }
-        }
-    });
-    
+ 
     function hostLinkFormatter(cell){
         var value = cell.getValue();
         return `<a href="/host/view/${value}" style="font-weight:bold;">${value}</a>`;
