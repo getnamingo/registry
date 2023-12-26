@@ -581,7 +581,7 @@ Use rndc to tell BIND to load and use the new keys:
 ```bash
 chown bind:bind /etc/bind/keys/*
 chmod 640 /etc/bind/keys/*
-chown bind:bind /etc/bind/zones/*
+chown -R bind:bind /etc/bind/zones
 chmod 640 /etc/bind/zones/*
 systemctl restart bind9
 rndc loadkeys test.
