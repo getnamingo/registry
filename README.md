@@ -15,6 +15,8 @@ We're on a mission to make **Namingo** the best it can be, and we need your expe
 
 We've completed the core development of Namingo, including WHOIS, DAS, EPP, RDAP servers, and control panel. The system handles 150,000 domains efficiently (on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD) and has passed basic QA and security tests.
 
+Namingo currently supports Ubuntu 22.04 LTS and Debian 12, accommodating both MariaDB/MySQL databases. We are eagerly inviting volunteers to assist in testing and developing installation manuals for AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, encompassing setups with either MariaDB/MySQL or PostgreSQL databases.
+
 We're currently in the phase of external testing and are aware that there might be bugs or incomplete features in the project. If you're able to identify and fix any issues, we encourage you to submit a pull request. If you're not sure how to fix an issue, please don't hesitate to report it to us, and we'll work on addressing it. Your contributions and feedback are valuable in helping us improve Namingo. For any inquiries or suggestions, feel free to reach out.
 
 ## Features
