@@ -543,7 +543,7 @@ class DomainsController extends Controller
                 }
 
                 // Validate alg
-                $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                $validAlgorithms = [8, 13, 14, 15, 16];
                 if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
@@ -563,7 +563,6 @@ class DomainsController extends Controller
                     ]);
                 }
                 $validDigests = [
-                1 => 40,  // SHA-1
                 2 => 64,  // SHA-256
                 4 => 96   // SHA-384
                 ];
@@ -1336,7 +1335,7 @@ class DomainsController extends Controller
                 }
 
                 // Validate alg
-                $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                $validAlgorithms = [8, 13, 14, 15, 16];
                 if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
                     $this->container->get('flash')->addMessage('error', 'Incomplete algorithm provided');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
@@ -1348,7 +1347,6 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
                 $validDigests = [
-                    1 => 40,  // SHA-1
                     2 => 64,  // SHA-256
                     4 => 96   // SHA-384
                 ];

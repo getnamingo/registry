@@ -130,13 +130,7 @@
                                     <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
                                     <select class="form-control mb-2" name="dsAlg">
                                         <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                        <option value="2">Diffie-Hellman</option>
-                                        <option value="3">DSA/SHA1</option>
-                                        <option value="5">RSA/SHA-1</option>
-                                        <option value="6">DSA-NSEC3-SHA1</option>
-                                        <option value="7">RSASHA1-NSEC3-SHA1</option>
                                         <option value="8">RSA/SHA-256</option>
-                                        <option value="10">RSA/SHA-512</option>
                                         <option value="13">ECDSA Curve P-256 with SHA-256</option>
                                         <option value="14">ECDSA Curve P-384 with SHA-384</option>
                                         <option value="15">Ed25519</option>
@@ -144,7 +138,6 @@
                                     </select>
                                     <select class="form-control mb-2" name="dsDigestType">
                                         <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
-                                        <option value="1">SHA-1</option>
                                         <option value="2">SHA-256</option>
                                         <option value="4">SHA-384</option>
                                     </select>
@@ -157,13 +150,7 @@
                                     <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
                                     <select class="form-control mb-2" name="dnskeyAlg">
                                         <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                        <option value="2">Diffie-Hellman</option>
-                                        <option value="3">DSA/SHA1</option>
-                                        <option value="5">RSA/SHA-1</option>
-                                        <option value="6">DSA-NSEC3-SHA1</option>
-                                        <option value="7">RSASHA1-NSEC3-SHA1</option>
                                         <option value="8">RSA/SHA-256</option>
-                                        <option value="10">RSA/SHA-512</option>
                                         <option value="13">ECDSA Curve P-256 with SHA-256</option>
                                         <option value="14">ECDSA Curve P-384 with SHA-384</option>
                                         <option value="15">Ed25519</option>

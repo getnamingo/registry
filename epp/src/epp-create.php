@@ -1124,7 +1124,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
 
                 // Validate alg
-                $validAlgorithms = [2, 3, 5, 6, 7, 8, 10, 13, 14, 15, 16];
+                $validAlgorithms = [8, 13, 14, 15, 16];
                 if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
                     $db->rollBack();
                     sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
@@ -1138,7 +1138,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                     return;
                 }
                 $validDigests = [
-                1 => 40,  // SHA-1
                 2 => 64,  // SHA-256
                 4 => 96   // SHA-384
                 ];
