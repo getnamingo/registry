@@ -4,6 +4,8 @@
         "phpseclib/phpseclib": "^3.0",
         "phpbu/phpbu": "^6.0",
         "setbased/php-audit": "^1.9",
-        "monolog/monolog": "^3.5"
+        "monolog/monolog": "^3.5",
+        "league/flysystem": "^3.23",
+        "league/flysystem-sftp-v3": "^3.22"
     }
 }

@@ -6,8 +6,11 @@
 # run statistics.php at 59 min, every hour
 59 * * * * root /usr/bin/php8.2 /opt/registry/automation/statistics.php
 
-# run backup at 59 min, every hour
-59 * * * * /opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json
+# run backup at 15 min, every hour
+15 * * * * /opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json
+
+# run backup-upload.php at 30 min, every hour
+30 * * * * root /usr/bin/php8.2 /opt/registry/automation/backup-upload.php
 
 # run change-domain-status.php every hour
 30 * * * * root /usr/bin/php8.2 /opt/registry/automation/change-domain-status.php
