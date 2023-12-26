@@ -415,7 +415,7 @@ To run the messagebroker.php script as a background process, execute the followi
 
 ### Setting Up an Audit Trail Database for Namingo
 
-To create an audit trail database for Namingo, start by editing the configuration file located at `/opt/registry/automation/audit.json` with the correct database details. This includes specifying the database connection parameters such as host, username, and password. Once your configuration is set up, create a new database named `registryAudit`. After the database is created, run the command:
+To create an audit trail database for Namingo, start by editing the configuration file located at `/opt/registry/automation/audit.json` with the correct database details. This includes specifying the database connection parameters such as host, username, and password. Once your configuration is set up, run the command:
 
 ```bash
 /opt/registry/automation/vendor/bin/audit -v audit /opt/registry/automation/audit.json
@@ -520,6 +520,7 @@ apt install bind9 bind9-utils bind9-doc
 
 ```bash
 mkdir /etc/bind/zones
+mkdir /etc/bind/keys
 ```
 
 ### Generate a TSIG key:
@@ -556,12 +557,35 @@ Add the following zone definition:
 zone "test." {
     type master;
     file "/etc/bind/zones/test.zone";
+    auto-dnssec maintain;
+    key-directory "/etc/bind/keys";
+    inline-signing yes;
     allow-transfer { key "test.key"; };
     also-notify { <slave-server-IP>; };
 };
 ```
 
 Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Initially, you will need to generate the DNSSEC ZSK and KSK manually:
+
+```bash
+dnssec-keygen -a Ed25519 -b 2048 -n ZONE test.
+dnssec-keygen -a Ed25519 -b 4096 -n ZONE -f KSK test.
+```
+
+After generating the keys, place them in the specified key-directory.
+
+Use rndc to tell BIND to load and use the new keys:
+
+```bash
+chown bind:bind /etc/bind/keys/*
+chmod 640 /etc/bind/keys/*
+chown bind:bind /etc/bind/zones/*
+chmod 640 /etc/bind/zones/*
+systemctl restart bind9
+rndc loadkeys test.
+```
 
 Configure and start the ```write-zone.php``` automation script.
 
