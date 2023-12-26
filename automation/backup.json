@@ -18,7 +18,7 @@
         }
       },
       "target": {
-        "dirname": "/opt/namingobackup",
+        "dirname": "/srv",
         "filename": "database-%Y%m%d-%H%i.sql",
         "compress": "bzip2"
       },
@@ -26,17 +26,6 @@
         {
           "type": "sizemin",
           "value": "10M"
-        }
-      ],
-      "syncs": [
-        {
-          "type": "sftp",
-          "options": {
-            "host": "backup.example.com",
-            "user": "user.name",
-            "password": "topsecret",
-            "path": "backup/someName"
-          }
         }
       ],
       "cleanup": {
@@ -56,7 +45,7 @@
         }
       },
       "target": {
-        "dirname": "/opt/namingobackup",
+        "dirname": "/srv",
         "filename": "files-%Y%m%d-%H%i.sql",
         "compress": "bzip2"
       },
@@ -64,17 +53,6 @@
         {
           "type": "sizemin",
           "value": "10M"
-        }
-      ],
-      "syncs": [
-        {
-          "type": "sftp",
-          "options": {
-            "host": "backup.example.com",
-            "user": "user.name",
-            "password": "topsecret",
-            "path": "backup/someName"
-          }
         }
       ],
       "cleanup": {

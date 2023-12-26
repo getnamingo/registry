@@ -427,7 +427,7 @@ This will initialize and configure the audit trail functionality. This process e
 
 ### Setup Backup
 
-To ensure the safety and availability of your data in Namingo, it's crucial to set up and verify automated backups. Begin by editing the ```backup.json``` file in the automation directory, where you'll input your database details and specify the SFTP server information for offsite backup storage. Ensure that the details for the database and the SFTP server, including server address, credentials, and port, are accurately entered in two specified locations within the ```backup.json``` file.
+To ensure the safety and availability of your data in Namingo, it's crucial to set up and verify automated backups. Begin by editing the ```backup.json``` file in the automation directory, where you'll input your database details. Ensure that the details for the database are accurately entered in two specified locations within the ```backup.json``` file.
 
 Additionally, check that the cronjob for PHPBU is correctly scheduled on your server, as this automates the backup process. You can verify this by reviewing your server's cronjob list. These steps are vital to maintain regular, secure backups of your system, safeguarding against data loss and ensuring business continuity. 
 
@@ -612,4 +612,77 @@ grep named /var/log/syslog
 
 ## 15. Setup Monitoring:
 
-For effective monitoring of your registry system, we highly recommend utilizing either Zabbix or Prometheus. These powerful monitoring tools offer robust capabilities to ensure comprehensive oversight of your infrastructure. Zabbix is renowned for its versatility and extensive feature set, enabling detailed monitoring of numerous metrics across diverse environments. Alternatively, Prometheus stands out for its exceptional handling of time-series data, making it ideal for tracking rapidly changing metrics. Both tools offer customizable alerting systems, user-friendly interfaces, and are well-supported by extensive communities. Depending on your specific needs and the complexity of your setup, either Zabbix or Prometheus can be an excellent choice to maintain optimal performance and reliability of your systems.
+For effective monitoring of your registry system, we highly recommend utilizing Prometheus.
+
+```bash
+wget https://github.com/prometheus/prometheus/releases/download/v2.48.1/prometheus-2.48.1.linux-amd64.tar.gz
+tar xvfz prometheus-2.48.1.linux-amd64.tar.gz
+cp prometheus-2.48.1.linux-amd64/prometheus /usr/local/bin/
+cp prometheus-2.48.1.linux-amd64/promtool /usr/local/bin/
+useradd --no-create-home --shell /bin/false prometheus
+mkdir /etc/prometheus
+mkdir /var/lib/prometheus
+cp -r prometheus-2.48.1.linux-amd64/consoles /etc/prometheus
+cp -r prometheus-2.48.1.linux-amd64/console_libraries /etc/prometheus
+chown -R prometheus:prometheus /etc/prometheus
+chown -R prometheus:prometheus /var/lib/prometheus
+```
+
+Place the following in the ```/etc/prometheus/prometheus.yml``` and customize as needed:
+
+```
+# Global settings and defaults.
+global:
+  scrape_interval: 15s  # By default, scrape targets every 15 seconds.
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds.
+
+# Alertmanager configuration (commented out by default).
+# alerting:
+#   alertmanagers:
+#   - static_configs:
+#     - targets:
+#       - localhost:9093
+
+# Load and evaluate rules in this file.
+# rule_files:
+#   - "first_rules.yml"
+#   - "second_rules.yml"
+
+# Scrape configuration for running Prometheus on the same machine.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Example job for scraping an HTTP service.
+  - job_name: 'http_service'
+    static_configs:
+      - targets: ['<your_http_service>:80']
+
+  # Example job for scraping an HTTPS service.
+  - job_name: 'https_service'
+    static_configs:
+      - targets: ['<your_https_service>:443']
+
+  # Example job for scraping a DNS server.
+  - job_name: 'dns_monitoring'
+    static_configs:
+      - targets: ['<your_dns_server>:53']
+
+# Add additional jobs as needed for your services.
+```
+
+Run the monitoring tool using:
+
+```bash
+prometheus --config.file=/etc/prometheus/prometheus.yml
+```
+
+The tool will be available at ```http://<your_server_ip>:9090```
+
+## 16. Setup Mail Server:
+
+For establishing your own mail server, Mox, available at [Mox GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then integrate with Namingo. This setup ensures a cohesive and efficient operation of your mail server.
