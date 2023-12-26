@@ -12,7 +12,7 @@
       "source": {
         "type": "mysqldump",
         "options": {
-          "databases": "your_database_name",
+          "databases": "registry",
           "user": "your_username",
           "password": "your_password"
         }
