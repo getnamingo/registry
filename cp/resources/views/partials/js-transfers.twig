@@ -21,14 +21,14 @@
         var clidValue = document.getElementById('clid').value;
    
         if (hasPendingStatus && clidValue === '0') {
-            actionButtons += `<a class="btn btn-success btn-icon" href="transfer/approve/${cell.getRow().getData().name}" title="Approve Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg></a> `;
-            actionButtons += `<a class="btn btn-dark btn-icon" href="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M10 10l4 4m0 -4l-4 4" /></svg></a> `;
-            actionButtons += `<a class="btn btn-danger btn-icon" href="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a>`;
+            actionButtons += `<a class="btn btn-success btn-icon approve-btn" id="approve-btn" href="javascript:void(0);" data-approve-url="transfer/approve/${cell.getRow().getData().name}" title="Approve Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg></a> `;
+            actionButtons += `<a class="btn btn-dark btn-icon cancel-btn" id="cancel-btn" href="javascript:void(0);" data-cancel-url="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M10 10l4 4m0 -4l-4 4" /></svg></a> `;
+            actionButtons += `<a class="btn btn-danger btn-icon reject-btn" id="reject-btn" href="javascript:void(0);" data-reject-url="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a>`;
         } else if (clidValue === rowData.reid) {
-            actionButtons += `<a class="btn btn-dark btn-icon" href="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M10 10l4 4m0 -4l-4 4" /></svg></a> `;
+            actionButtons += `<a class="btn btn-dark btn-icon cancel-btn" id="cancel-btn" href="javascript:void(0);" data-cancel-url="transfer/cancel/${cell.getRow().getData().name}" title="Cancel Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M10 10l4 4m0 -4l-4 4" /></svg></a> `;
         } else if (clidValue === rowData.acid) {
-            actionButtons += `<a class="btn btn-success btn-icon" href="transfer/approve/${cell.getRow().getData().name}" title="Approve Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg></a> `;
-            actionButtons += `<a class="btn btn-danger btn-icon" href="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a>`;
+            actionButtons += `<a class="btn btn-success btn-icon approve-btn" id="approve-btn" href="javascript:void(0);" data-approve-url="transfer/approve/${cell.getRow().getData().name}" title="Approve Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg></a> `;
+            actionButtons += `<a class="btn btn-danger btn-icon reject-btn" id="reject-btn" href="javascript:void(0);" data-reject-url="transfer/reject/${cell.getRow().getData().name}" title="Reject Transfer"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a>`;
         } else {
             actionButtons += `<strong class="text-success"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg> Completed</strong>`;
         }
@@ -82,7 +82,45 @@
             {title:"Initiated Date", field:"redate", width:250, minWidth:150, headerSort:true, responsive:2},
             {title:"Expiry Date", field:"acdate", width:250, minWidth:150, headerSort:true, responsive:2},
             {title:"Status", field:"trstatus", width:200, minWidth:150, headerSort:false, download:false, formatter: statusFormatter, responsive:0},
-            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
+            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
+                if (e.target.closest('.approve-btn')) {
+                    e.preventDefault(); // Prevent the default link behavior
+                    Swal.fire({
+                      title: "Are you sure you want to approve this transfer?",
+                      showCancelButton: true,
+                      confirmButtonText: "Confirm"
+                    }).then((result) => {
+                      if (result.isConfirmed) {
+                        let approveUrl = e.target.closest('.approve-btn').getAttribute('data-approve-url');
+                        window.location.href = approveUrl;
+                      }
+                    });
+                } else if (e.target.closest('.cancel-btn')) {
+                    e.preventDefault(); // Prevent the default link behavior
+                    Swal.fire({
+                      title: "Are you sure you want to cancel this transfer?",
+                      showCancelButton: true,
+                      confirmButtonText: "Confirm"
+                    }).then((result) => {
+                      if (result.isConfirmed) {
+                        let cancelUrl = e.target.closest('.cancel-btn').getAttribute('data-cancel-url');
+                        window.location.href = cancelUrl;
+                      }
+                    });
+                } else if (e.target.closest('.reject-btn')) {
+                    e.preventDefault(); // Prevent the default link behavior
+                    Swal.fire({
+                      title: "Are you sure you want to reject this transfer?",
+                      showCancelButton: true,
+                      confirmButtonText: "Confirm"
+                    }).then((result) => {
+                      if (result.isConfirmed) {
+                        let rejectUrl = e.target.closest('.reject-btn').getAttribute('data-reject-url');
+                        window.location.href = rejectUrl;
+                      }
+                    });
+                }
+            }},
         ],
         placeholder:function(){
             return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
