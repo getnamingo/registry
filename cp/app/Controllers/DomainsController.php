@@ -1538,15 +1538,26 @@ class DomainsController extends Controller
 
                         // Check if $contact_id is not null before update
                         if ($contact_id !== null) {
-                            $db->update(
-                                'domain_contact_map',
-                                [
-                                    'contact_id' => $contact_id,
-                                ],
-                                [
-                                    'id' => $contact_map_id['id']
-                                ]
-                            );
+                            if ($contact_map_id !== null) {
+                                $db->update(
+                                    'domain_contact_map',
+                                    [
+                                        'contact_id' => $contact_id,
+                                    ],
+                                    [
+                                        'id' => $contact_map_id['id']
+                                    ]
+                                );
+                            } else {
+                                $db->insert(
+                                    'domain_contact_map',
+                                    [
+                                        'contact_id' => $contact_id,
+                                        'domain_id' => $domain_id,
+                                        'type' => $type
+                                    ]
+                                );
+                            }
                         }
                     }
                 }
