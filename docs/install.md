@@ -261,7 +261,7 @@ systemctl restart caddy
 Use a file management tool or command line to copy the entire ```registry/cp/``` directory and place it into the web server's root directory, typically ```/var/www/```. The target path should be ```/var/www/cp/```.
 
 ```bash
-cp -r /path/to/registry/cp /var/www/
+cp -r /opt/registry/cp /var/www
 ```
 
 ### Configure Environment File:
@@ -298,7 +298,7 @@ This command will install the dependencies defined in your ```composer.json``` f
 
 ```bash
 mkdir -p /var/www/whois
-cd /path/to/registry/whois/web
+cd /opt/registry/whois/web
 cp -r * /var/www/whois
 ```
 
