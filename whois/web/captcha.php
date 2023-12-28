@@ -12,7 +12,7 @@ $captcha->setMaxAngle(25);
 $captcha->setTextColor(0, 0, 0);
 $captcha->setInterpolation(false);
 $captcha->setDistortion(false);
-$captcha->build($width = 100, $height = 40);
+$captcha->build($width = 180, $height = 50);
 
 $_SESSION['captcha'] = $captcha->getPhrase();
 
