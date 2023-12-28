@@ -76,7 +76,7 @@
                   <div class="card-body">
                     <div class="row">
                         <!-- Fields for 4 contacts with roles -->
-                        <div class="col">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">{{ __('Registrant Contact') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
@@ -116,7 +116,7 @@
                         </div>
                                 
                         <!-- Fields for nameservers -->
-                        <div class="col">
+                        <div class="col-md-6">
                             <div id="nameserverFields">
                                 <label class="form-label">{{ __('Nameservers') }}&nbsp;<button type="button" id="addNameserver" class="btn btn-success btn-sm mb-2">+</button>&nbsp;<button type="button" id="removeNameserver" class="btn btn-danger btn-sm mb-2">-</button></label>
                                 {% for host in domainHosts %}
