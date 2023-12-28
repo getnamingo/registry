@@ -294,23 +294,18 @@ This command will install the dependencies defined in your ```composer.json``` f
 
 5. Remove the Script: Once verified, delete the script to maintain system security.
 
-## 8. Setup Web WHOIS:
+## 8. Setup Web Lookup:
 
 ```bash
 mkdir -p /var/www/whois
 cd /opt/registry/whois/web
 cp -r * /var/www/whois
-```
-
-Change your working directory to ```/var/www/whois/``` using a command line interface. This can be done with the command ```cd /var/www/whois/```.
-
-Once in the correct directory, run the following command to install necessary dependencies:
-
-```bash
+cd /var/www/whois/
 composer require gregwar/captcha
+mv config.php.dist config.php
 ```
 
-This command will install the **gregwar/captcha** package, which is required for the WHOIS web interface functionality.
+- Configure all options in ```config.php```.
 
 ## 9. Setup WHOIS:
 

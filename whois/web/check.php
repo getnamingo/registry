@@ -1,5 +1,6 @@
 <?php
 session_start();
+$c = require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['error' => 'Invalid request method.']);
@@ -7,20 +8,31 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 if ($_POST['captcha'] !== $_SESSION['captcha']) {
-    die('Captcha verification failed');
+    echo json_encode(['error' => 'Captcha verification failed.']);
+    exit;
 }
 
 $domain = $_POST['domain'];
 $type = $_POST['type'];
-$whoisServer = 'whois.example.com';
-$rdapServer = 'https://rdap.example.com/domain/';
+$whoisServer = $c['whois_url'];
+$rdapServer = 'https://' . $c['rdap_url'] . '/domain/';
+
+$sanitized_domain = filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+
+if ($sanitized_domain) {
+    $domain = $sanitized_domain;
+} else {
+    echo json_encode(['error' => 'Invalid domain.']);
+    exit;
+}
 
 $sanitized_type = filter_var($type, FILTER_SANITIZE_STRING);
 
 if ($sanitized_type === 'whois' || $sanitized_type === 'rdap') {
     $type = $sanitized_type;
 } else {
-    $type = null; // or throw new Exception("Invalid input");
+    echo json_encode(['error' => 'Invalid input.']);
+    exit;
 }
 
 if ($type === 'whois') {
@@ -28,7 +40,7 @@ if ($type === 'whois') {
     $socket = fsockopen($whoisServer, 43, $errno, $errstr, 30);
 
     if (!$socket) {
-        echo json_encode(['error' => "Error connecting to the Whois server."]);
+        echo json_encode(['error' => "Error fetching WHOIS data."]);
         exit;
     }
         
@@ -43,11 +55,9 @@ if ($type === 'whois') {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
-    // Execute cURL session and close it
     $output = curl_exec($ch);
     curl_close($ch);
 
-    // Check for errors
     if (!$output) {
         echo json_encode(['error' => 'Error fetching RDAP data.']);
         exit;

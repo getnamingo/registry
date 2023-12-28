@@ -7,20 +7,25 @@ session_start();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Domain Lookup</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
+    <link rel="stylesheet" href="chota.min.css">
+    <style>
+    #bottom {
+    display: none;
+    }
+    </style>
 </head>
 <body>
     <div class="container">
       <h1>Domain Lookup</h1>
       <div class="row">
-        <div class="column"><input type="text" id="domainInput" placeholder="Enter Domain Name" autocapitalize="none"></div>
-        <div class="column"><img id="captchaImg" src="captcha.php" onclick="this.src='captcha.php?'+Math.random();"></div>
-        <div class="column"><input type="text" id="captchaInput" placeholder="Enter Captcha" autocapitalize="none"></div>
-        <div class="column"><button class="button" id="whoisButton">WHOIS</button> <button class="button button-outline" id="rdapButton">RDAP</button></div>
+        <div class="col col-4-md col-8-lg"><input type="text" id="domainInput" placeholder="Enter Domain Name" autocapitalize="none"></div>
+        <div class="col col-2-md col-4-lg"><img id="captchaImg" src="captcha.php" onclick="this.src='captcha.php?'+Math.random();"></div>
+        <div class="col col-3-md col-6-lg"><input type="text" id="captchaInput" placeholder="Enter Captcha" autocapitalize="none"></div>
+        <div class="col col-3-md col-6-lg"><button class="button primary" id="whoisButton">WHOIS</button> <button class="button secondary" id="rdapButton">RDAP</button></div>
       </div>
 
-      <div class="row">
-        <div class="column"><pre><code><div id="result"></div></code></pre></div>
+      <div class="row" id="bottom">
+        <div class="col col-12-lg"><pre><code><div id="result"></div></code></pre></div>
       </div>
 
     </div>
@@ -41,6 +46,7 @@ session_start();
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('result').innerText = data;
+                    document.getElementById('bottom').style.display = 'block';
                     // Reload captcha after a successful response
                     document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
                 })
@@ -67,9 +73,10 @@ session_start();
                         // Parse and display RDAP data
                         let output = parseRdapResponse(data);
                         document.getElementById('result').innerText = output;
+                        document.getElementById('bottom').style.display = 'block';
+                        // Reload captcha
+                        document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
                     }
-                    // Reload captcha
-                    document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
                 })
                 .catch(error => console.error('Error:', error));
             });
