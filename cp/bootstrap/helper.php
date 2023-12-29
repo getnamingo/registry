@@ -284,17 +284,17 @@ function extractDomainAndTLD($urlString) {
     $cachedFile = $cache->getItem($cacheKey);
     $fileContent = $cachedFile->get();
 
-    // Define a list of fake TLDs used in your QA environment
-    $fakeTlds = ['test', 'xx'];
+    // Load a list of test TLDs used in your QA environment
+    $testTlds = explode(',', envi('TEST_TLDS'));
 
     // Parse the URL to get the host
     $parts = parse_url($urlString);
     $host = $parts['host'] ?? $urlString;
 
-    // Check if the TLD is a known fake TLD
-    foreach ($fakeTlds as $fakeTld) {
-        if (str_ends_with($host, ".$fakeTld")) {
-            // Handle the fake TLD case
+    // Check if the TLD is a known test TLD
+    foreach ($testTlds as $testTld) {
+        if (str_ends_with($host, "$testTld")) {
+            // Handle the test TLD case
             $hostParts = explode('.', $host);
             $tld = array_pop($hostParts);
             $sld = array_pop($hostParts);

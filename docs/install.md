@@ -294,6 +294,14 @@ This command will install the dependencies defined in your ```composer.json``` f
 
 5. Remove the Script: Once verified, delete the script to maintain system security.
 
+### Download TLD List:
+
+To get the starting list of TLDs (Top-Level Domains) from ICANN and cache it for quick access later, please run the following command:
+
+```bash
+php /var/www/cp/bin/file_cache.php
+```
+
 ## 8. Setup Web Lookup:
 
 ```bash

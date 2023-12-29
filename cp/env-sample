@@ -25,3 +25,5 @@ MAIL_API_KEY='test-api-key'
 MAIL_API_PROVIDER='sendgrid'
 
 STRIPE_SECRET_KEY='stripe-secret-key'
+
+TEST_TLDS=.test,.xx

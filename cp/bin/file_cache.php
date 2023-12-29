@@ -28,17 +28,11 @@ if (!$cachedFile->isHit()) {
 
     // Save the file content to cache
     $cachedFile->set($fileContent);
-    $cachedFile->expiresAfter(86400); // Cache for 24 hours, for example
+    $cachedFile->expiresAfter(86400 * 7); // Cache for 7 days
     $cache->save($cachedFile);
-    echo "File downloaded and cached.\n";
+    echo "ICANN TLD List downloaded and cached.".PHP_EOL;
 } else {
     // Retrieve the file content from the cache
     $fileContent = $cachedFile->get();
-    echo "File loaded from cache.\n";
+    echo "ICANN TLD List loaded from cache.".PHP_EOL;
 }
-
-// Use $fileContent as needed
-// ...
-
-// For demonstration: Writing first 200 characters of the content
-echo substr($fileContent, 0, 50) . "...";
