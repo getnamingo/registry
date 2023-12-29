@@ -902,7 +902,7 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
 
             // Begin the extension part if any of the extensions are present
-            if (isset($resp['rgpstatus']) || isset($resp['secDNS']) || isset($resp['launch_phase'] || isset($resp['allocation'])) {
+            if (isset($resp['rgpstatus']) || isset($resp['secDNS']) || isset($resp['launch_phase']) || isset($resp['allocation'])) {
                 $writer->startElement('extension');
 
                 // Handle RGP status
