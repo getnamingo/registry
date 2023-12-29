@@ -238,10 +238,8 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     systemctl enable caddy
     systemctl restart caddy
     
-    cp -r /opt/registry/cp /var/www/
-    
-    # Rename env-sample to .env
     echo "Control Panel Setup..."
+    cp -r /opt/registry/cp /var/www/
     mv /var/www/cp/env-sample /var/www/cp/.env
 
     # Update .env file with the actual values
@@ -254,18 +252,40 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     cd /var/www/cp
     composer install
     echo "Control Panel configured."
-    
-    create_admin_user.php
-    
+   
     mkdir -p /var/www/whois
     cd /opt/registry/whois/web
     cp -r * /var/www/whois
     cd /var/www/whois
     composer require gregwar/captcha
+    mv config.php.dist config.php
+    
+    echo "Installing WHOIS Server."
+    cd /opt/registry/whois/port43
+    composer install
+    mv config.php.dist config.php
+    
+    echo "Installing RDAP Server."
+    cd /opt/registry/rdap
+    composer install
+    mv config.php.dist config.php
 
-    echo "Installation complete!"
+    echo "Installing EPP Server."
+    cd /opt/registry/epp
+    composer install
+    mv config.php.dist config.php
 
-    # You can add more commands here based on your requirements
+    echo "Installing Automation Scripts."
+    cd /opt/registry/automation
+    composer install
+    mv config.php.dist config.php
+
+    echo "Installing DAS Server."
+    cd /opt/registry/das
+    composer install
+    mv config.php.dist config.php
+
+    echo "Installation complete! Please now configure components according to the instructions and start them one by one."
 else
     echo "Unsupported Linux distribution or version"
 fi
