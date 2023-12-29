@@ -175,6 +175,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_info = $xml->xpath('//launch:info')[0] ?? null;
+        $allocation_token = $xml->xpath('//allocationToken:info')[0] ?? null;
     }
 
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
@@ -474,6 +475,19 @@ function processDomainInfo($conn, $db, $xml, $trans) {
             // Add RGP status to response if it exists
             if ($rgpstatus) {
                 $response['rgpstatus'] = $rgpstatus;
+            }
+            
+            if ($allocation_token !== null) {
+                $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
+                $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+                $stmt->execute();
+                $token = $stmt->fetchColumn();
+                        
+                if ($token) {
+                    $response['allocation'] = $token;
+                } else {
+                    $response['allocation'] = 'ERROR';
+                }
             }
             
             $epp = new EPP\EppWriter();

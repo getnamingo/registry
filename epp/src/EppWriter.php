@@ -902,7 +902,7 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
 
             // Begin the extension part if any of the extensions are present
-            if (isset($resp['rgpstatus']) || isset($resp['secDNS']) || isset($resp['launch_phase'])) {
+            if (isset($resp['rgpstatus']) || isset($resp['secDNS']) || isset($resp['launch_phase'] || isset($resp['allocation'])) {
                 $writer->startElement('extension');
 
                 // Handle RGP status
@@ -977,6 +977,14 @@ class EppWriter {
                     }
                     
                     $writer->endElement();  // End of 'launch:infData'
+                }
+                
+                // Handle Allocation Token
+                if (isset($resp['allocation'])) {
+                    $writer->startElement('allocationToken:allocationToken');
+                    $writer->writeAttribute('xmlns:allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
+                    $writer->text($resp['allocation']);
+                    $writer->endElement();  // End of 'allocationToken:allocationToken'
                 }
 
                 $writer->endElement();  // End of 'extension'
