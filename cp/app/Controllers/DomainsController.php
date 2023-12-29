@@ -105,7 +105,7 @@ class DomainsController extends Controller
             $contactTech = $data['contactTech'] ?? null;
             $contactBilling = $data['contactBilling'] ?? null;
             
-            $phaseType = $data['phaseType'] ?? null;
+            $phaseType = $data['phaseType'] ?? 'NONE';
             $smd = $data['smd'] ?? null;
             
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
@@ -187,7 +187,7 @@ class DomainsController extends Controller
             );
 
             if ($phase_details !== 'First-Come-First-Serve') {
-                if ($phaseType !== null && $phaseType !== '') {
+                if ($phaseType == null && $phaseType == '') {
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
                         'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
@@ -195,7 +195,7 @@ class DomainsController extends Controller
                         'registrar' => $registrar,
                     ]);
                 }
-            } else if ($phaseType !== null && $phaseType !== '') {
+            } else if ($phaseType == null && $phaseType == '') {
                 return view($response, 'admin/domains/createDomain.twig', [
                     'domainName' => $domainName,
                     'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
@@ -906,6 +906,8 @@ class DomainsController extends Controller
 
         // Determine currency position (before or after)
         $position = (strpos($pattern, '¤') < strpos($pattern, '#')) ? 'before' : 'after';
+        
+        $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
 
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/domains/createDomain.twig', [
@@ -913,6 +915,7 @@ class DomainsController extends Controller
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
             'registrar' => $registrar,
+            'launch_phases' => $launch_phases
         ]);
     }
     

@@ -11,7 +11,14 @@ class ApplicationsController extends Controller
 
     public function listApplications(Request $request, Response $response)
     {
-        return view($response,'admin/domains/listApplications.twig');
+        $db = $this->container->get('db');
+        $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
+        if ($launch_phases == 'on') {
+            return view($response,'admin/domains/listApplications.twig');
+        } else {
+            $this->container->get('flash')->addMessage('info', 'Applications are disabled.');
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
     }
     
     public function createApplication(Request $request, Response $response)
@@ -606,10 +613,16 @@ class ApplicationsController extends Controller
         }
 
         // Default view for GET requests or if POST data is not set
-        return view($response,'admin/domains/createApplication.twig', [
-            'registrars' => $registrars,
-            'registrar' => $registrar,
-        ]);
+        $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
+        if ($launch_phases == 'on') {
+            return view($response,'admin/domains/createApplication.twig', [
+                'registrars' => $registrars,
+                'registrar' => $registrar,
+            ]);
+        } else {
+            $this->container->get('flash')->addMessage('info', 'Applications are disabled.');
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
     }
     
     public function viewApplication(Request $request, Response $response, $args) 

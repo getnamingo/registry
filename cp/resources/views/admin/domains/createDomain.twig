@@ -219,6 +219,7 @@
                             </div>
                             {% endif %}
 
+                            {% if launch_phases == 'on' %}
                             <div class="mb-3">
                                 <label for="phaseType" class="form-label">Phase Type</label>
                                 <select class="form-select" id="phaseType" name="phaseType">
@@ -235,6 +236,7 @@
                               <label class="form-label">Signed Mark Information</label>
                               <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="Paste SMD contents…"></textarea>
                             </div>
+                            {% endif %}
 
                     </div>
                 <div class="card-footer">
