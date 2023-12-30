@@ -223,7 +223,7 @@
                             <div class="mb-3">
                                 <label for="phaseType" class="form-label">Phase Type</label>
                                 <select class="form-select" id="phaseType" name="phaseType">
-                                    <option value="">N/A</option>
+                                    <option value="none">N/A</option>
                                     <option value="sunrise">Sunrise</option>
                                     <option value="landrush">Landrush</option>
                                     <option value="claims">Claims</option>
@@ -231,10 +231,25 @@
                                     <option value="custom">Custom</option>
                                 </select>
                             </div>
-                            
+
                             <div class="mb-3">
                               <label class="form-label">Signed Mark Information</label>
                               <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="Paste SMD contents…"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="noticeid" class="form-label">{{ __('Notice ID') }}</label>
+                                <input type="text" class="form-control" name="noticeid">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notafter" class="form-label">{{ __('Not After Date') }}</label>
+                                <input type="datetime-local" class="form-control" name="notafter">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="accepted" class="form-label">{{ __('Accepted Date') }}</label>
+                                <input type="datetime-local" class="form-control" name="accepted">
                             </div>
                             {% endif %}
 

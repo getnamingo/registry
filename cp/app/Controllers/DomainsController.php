@@ -97,6 +97,7 @@ class DomainsController extends Controller
             } else {
                 $registrar = null;
             }
+            $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
             
             $registrationYears = $data['registrationYears'];
             
@@ -105,9 +106,9 @@ class DomainsController extends Controller
             $contactTech = $data['contactTech'] ?? null;
             $contactBilling = $data['contactBilling'] ?? null;
             
-            $phaseType = $data['phaseType'] ?? 'NONE';
+            $phaseType = $data['phaseType'] ?? 'none';
             $smd = $data['smd'] ?? null;
-            
+
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
@@ -135,6 +136,7 @@ class DomainsController extends Controller
                     'error' => 'Invalid domain name',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
@@ -155,6 +157,7 @@ class DomainsController extends Controller
                     'error' => 'Invalid domain extension',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
 
@@ -169,6 +172,7 @@ class DomainsController extends Controller
                     'error' => 'Domain name already exists',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
@@ -187,21 +191,66 @@ class DomainsController extends Controller
             );
 
             if ($phase_details !== 'First-Come-First-Serve') {
+                if ($phaseType !== 'none') {
+                    if ($phaseType == null && $phaseType == '') {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
+                        ]);
+                    } else if ($phase_details == null) {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => 'The launch phase ' . $phaseType . ' is currently not active.',
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
+                        ]);
+                    }
+                }
+            } else if ($phaseType !== 'none') {
                 if ($phaseType == null && $phaseType == '') {
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
                         'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
+                    ]);
+                } else if ($phase_details == null) {
+                    return view($response, 'admin/domains/createDomain.twig', [
+                        'domainName' => $domainName,
+                        'error' => 'The launch phase ' . $phaseType . ' is currently not active.',
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
-            } else if ($phaseType == null && $phaseType == '') {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+            }
+            
+            if ($phaseType === 'claims') {
+                if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
+                    !isset($data['notafter']) || $data['notafter'] === '' ||
+                    !isset($data['accepted']) || $data['accepted'] === '') {
+                    // Trigger an error or handle the situation as needed
+                    return view($response, 'admin/domains/createDomain.twig', [
+                        'domainName' => $domainName,
+                        'error' => "Error: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'",
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
+                    ]);
+                }
+
+                $noticeid = $data['noticeid'];
+                $notafter = $data['notafter'];
+                $accepted = $data['accepted'];
+            } else {
+                $noticeid = null;
+                $notafter = null;
+                $accepted = null;
             }
 
             $domain_already_reserved = $db->selectValue(
@@ -215,6 +264,7 @@ class DomainsController extends Controller
                     'error' => 'Domain name is reserved or restricted',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
@@ -224,6 +274,7 @@ class DomainsController extends Controller
                     'error' => 'Domain period must be from 1 to 10',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             } elseif (!$registrationYears) {
                 $registrationYears = 1;
@@ -254,6 +305,7 @@ class DomainsController extends Controller
                     'error' => 'The price, period and currency for such TLD are not declared',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
 
@@ -263,6 +315,7 @@ class DomainsController extends Controller
                     'error' => 'Low credit: minimum threshold reached',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
@@ -283,6 +336,7 @@ class DomainsController extends Controller
                         'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
                 
@@ -293,6 +347,7 @@ class DomainsController extends Controller
                             'error' => 'Invalid hostName',
                             'registrars' => $registrars,
                             'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
                         ]);
                     }
                     
@@ -302,6 +357,7 @@ class DomainsController extends Controller
                             'error' => 'Invalid hostName',
                             'registrars' => $registrars,
                             'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
                         ]);
                     }
                 }
@@ -317,6 +373,7 @@ class DomainsController extends Controller
                         'error' => 'Registrant does not exist',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -326,6 +383,7 @@ class DomainsController extends Controller
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
             }
@@ -340,6 +398,7 @@ class DomainsController extends Controller
                         'error' => 'Admin contact does not exist',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -349,6 +408,7 @@ class DomainsController extends Controller
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
             }
@@ -363,6 +423,7 @@ class DomainsController extends Controller
                         'error' => 'Tech contact does not exist',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -372,6 +433,7 @@ class DomainsController extends Controller
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
             }
@@ -386,6 +448,7 @@ class DomainsController extends Controller
                         'error' => 'Billing contact does not exist',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -395,6 +458,7 @@ class DomainsController extends Controller
                         'error' => 'The contact requested in the command does NOT belong to the current registrar',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
             }
@@ -405,6 +469,7 @@ class DomainsController extends Controller
                     'error' => 'Missing domain authinfo',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
 
@@ -414,6 +479,7 @@ class DomainsController extends Controller
                     'error' => 'Password needs to be at least 6 and up to 16 characters long',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
 
@@ -423,6 +489,7 @@ class DomainsController extends Controller
                     'error' => 'Password should have both upper and lower case characters',
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
@@ -460,7 +527,10 @@ class DomainsController extends Controller
                     'rgpstatus' => 'addPeriod',
                     'addPeriod' => $date_add,
                     'tm_phase' => $phaseType,
-                    'tm_smd_id' => $smd
+                    'tm_smd_id' => $smd,
+                    'tm_notice_id' => $noticeid,
+                    'tm_notice_accepted' => $accepted,
+                    'tm_notice_expires' => $notafter
                 ]);
                 $domain_id = $db->getlastInsertId();
 
@@ -529,6 +599,7 @@ class DomainsController extends Controller
                             'error' => 'Incomplete key tag provided',
                             'registrars' => $registrars,
                             'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
                         ]);
                     }
                 
@@ -538,6 +609,7 @@ class DomainsController extends Controller
                             'error' => 'Incomplete key tag provided',
                             'registrars' => $registrars,
                             'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
                         ]);
                     }
                 }
@@ -550,6 +622,7 @@ class DomainsController extends Controller
                         'error' => 'Incomplete algorithm provided',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -560,6 +633,7 @@ class DomainsController extends Controller
                         'error' => 'Incomplete digest type provided',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
                 $validDigests = [
@@ -573,6 +647,7 @@ class DomainsController extends Controller
                             'error' => 'Invalid digest length or format',
                             'registrars' => $registrars,
                             'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
                         ]);
                     }
                 }
@@ -586,6 +661,7 @@ class DomainsController extends Controller
                         'error' => 'Invalid flags provided',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -596,6 +672,7 @@ class DomainsController extends Controller
                         'error' => 'Invalid protocol provided',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -606,6 +683,7 @@ class DomainsController extends Controller
                         'error' => 'Invalid algorithm encoding',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -616,6 +694,7 @@ class DomainsController extends Controller
                         'error' => 'Invalid public key encoding',
                         'registrars' => $registrars,
                         'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
                     ]);
                 }
 
@@ -777,6 +856,7 @@ class DomainsController extends Controller
                                         'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
                                         'registrars' => $registrars,
                                         'registrar' => $registrar,
+                                        'launch_phases' => $launch_phases
                                     ]);
                                 }
     
@@ -867,6 +947,7 @@ class DomainsController extends Controller
                     'error' => 'Database failure: ' . $e->getMessage(),
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
@@ -875,6 +956,7 @@ class DomainsController extends Controller
                     'error' => 'Database failure: ' . $e->getMessage(),
                     'registrars' => $registrars,
                     'registrar' => $registrar,
+                    'launch_phases' => $launch_phases
                 ]);
             }
             
