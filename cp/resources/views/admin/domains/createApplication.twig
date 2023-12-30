@@ -135,6 +135,21 @@
                               <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="Paste SMD contents…"></textarea>
                             </div>
                             
+                            <div class="mb-3">
+                                <label for="noticeid" class="form-label">{{ __('Notice ID') }}</label>
+                                <input type="text" class="form-control" name="noticeid">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notafter" class="form-label">{{ __('Not After Date') }}</label>
+                                <input type="datetime-local" class="form-control" name="notafter">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="accepted" class="form-label">{{ __('Accepted Date') }}</label>
+                                <input type="datetime-local" class="form-control" name="accepted">
+                            </div>
+                            
                     </div>
                 <div class="card-footer">
                   <div class="row align-items-center">

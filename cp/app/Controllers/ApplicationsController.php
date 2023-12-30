@@ -129,6 +129,28 @@ class ApplicationsController extends Controller
                     'registrar' => $registrar,
                 ]);
             }
+            
+            if ($phaseType === 'claims') {
+                if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
+                    !isset($data['notafter']) || $data['notafter'] === '' ||
+                    !isset($data['accepted']) || $data['accepted'] === '') {
+                    // Trigger an error or handle the situation as needed
+                    return view($response, 'admin/domains/createApplication.twig', [
+                        'domainName' => $domainName,
+                        'error' => "Error: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'",
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                    ]);
+                }
+
+                $noticeid = $data['noticeid'];
+                $notafter = $data['notafter'];
+                $accepted = $data['accepted'];
+            } else {
+                $noticeid = null;
+                $notafter = null;
+                $accepted = null;
+            }
 
             $domain_already_reserved = $db->selectValue(
                 'SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1',
@@ -365,7 +387,10 @@ class ApplicationsController extends Controller
                     'authinfo' => $authInfo,
                     'phase_name' => $phaseName,
                     'phase_type' => $phaseType,
-                    'smd' => $smd
+                    'smd' => $smd,
+                    'tm_notice_id' => $noticeid,
+                    'tm_notice_accepted' => $accepted,
+                    'tm_notice_expires' => $notafter
                 ]);
                 $domain_id = $db->getlastInsertId();
                 
