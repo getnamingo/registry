@@ -24,7 +24,7 @@
         "php-di/php-di": "^7.0.5",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.0.2",
-        "pinga/auth": "^0.1.1",
+        "pinga/auth": "^0.2.1",
         "phpmailer/phpmailer": "^6.8.1",
         "utopia-php/messaging": "^0.3.0",
         "filp/whoops": "^2.15.3",
