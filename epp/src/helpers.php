@@ -247,15 +247,27 @@ function extractDomainAndTLD($urlString) {
     // Parse the URL to get the host
     $parts = parse_url($urlString);
     $host = $parts['host'] ?? $urlString;
+	
+    // Sort test TLDs by length (longest first) to match the longest possible TLD
+    usort($testTlds, function ($a, $b) {
+        return strlen($b) - strlen($a);
+    });
 
     // Check if the TLD is a known test TLD
     foreach ($testTlds as $testTld) {
         if (str_ends_with($host, "$testTld")) {
             // Handle the test TLD case
-            $hostParts = explode('.', $host);
-            $tld = array_pop($hostParts);
+            $tldLength = strlen($testTld) + 1; // +1 for the dot
+            $hostWithoutTld = substr($host, 0, -$tldLength);
+            $hostParts = explode('.', $hostWithoutTld);
             $sld = array_pop($hostParts);
-            return ['domain' => $sld, 'tld' => $tld];
+            if (strpos($testTld, '.') === 0) {
+                $testTld = ltrim($testTld, '.');
+            }
+            return [
+                'domain' => implode('.', $hostParts) ? implode('.', $hostParts) . '.' . $sld : $sld, 
+                'tld' => $testTld
+            ];
         }
     }
 
