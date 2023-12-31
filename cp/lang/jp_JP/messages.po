@@ -1,0 +1,179 @@
+msgid "Dashboard"
+msgstr "ダッシュボード"
+
+msgid "Enable dark mode"
+msgstr "ダークモードを有効にする"
+
+msgid "Enable light mode"
+msgstr "ライトモードを有効にする"
+
+msgid "My Profile"
+msgstr "マイプロフィール"
+
+msgid "Logout"
+msgstr "ログアウト"
+
+msgid "Domains"
+msgstr "ドメイン"
+
+msgid "List Domains"
+msgstr "ドメインリスト"
+
+msgid "Check Domain"
+msgstr "ドメインを確認する"
+
+msgid "Enter the domain name you want to check:"
+msgstr "確認したいドメイン名を入力してください："
+
+msgid "Check Availability"
+msgstr "利用可能を確認する"
+
+msgid "is available"
+msgstr "利用可能"
+
+msgid "is not available"
+msgstr "利用不可"
+
+msgid "Create Domain"
+msgstr "ドメインを作成する"
+
+msgid "List Applications"
+msgstr "アプリケーションリスト"
+
+msgid "Create Application"
+msgstr "アプリケーションを作成する"
+
+msgid "Transfers"
+msgstr "転送"
+
+msgid "Contacts"
+msgstr "連絡先"
+
+msgid "List Contacts"
+msgstr "連絡先リスト"
+
+msgid "Check Contact"
+msgstr "連絡先を確認する"
+
+msgid "Create Contact"
+msgstr "連絡先を作成する"
+
+msgid "Abuse Prevention"
+msgstr "虐待防止"
+
+msgid "Communication"
+msgstr "コミュニケーション"
+
+msgid "Hosts"
+msgstr "ホスト"
+
+msgid "List Hosts"
+msgstr "ホストリスト"
+
+msgid "Check Host"
+msgstr "ホストを確認する"
+
+msgid "Create Host"
+msgstr "ホストを作成する"
+
+msgid "Host Name"
+msgstr "ホスト名"
+
+msgid "Select Registrar"
+msgstr "レジストラを選択する"
+
+msgid "IPv4 Address"
+msgstr "IPv4アドレス"
+
+msgid "IPv6 Address"
+msgstr "IPv6アドレス"
+
+msgid "Optional"
+msgstr "オプション"
+
+msgid "Please enter a valid IPv4 address."
+msgstr "有効なIPv4アドレスを入力してください。"
+
+msgid "Please enter a valid IPv6 address."
+msgstr "有効なIPv6アドレスを入力してください。"
+
+msgid "Create"
+msgstr "作成する"
+
+msgid "Host"
+msgstr "ホスト"
+
+msgid "has been created successfully on"
+msgstr "は成功裏に作成されました"
+
+msgid "is not available"
+msgstr "利用不可"
+
+msgid "Logs"
+msgstr "ログ"
+
+msgid "Registrars"
+msgstr "レジストラ"
+
+msgid "List Registrars"
+msgstr "レジストラリスト"
+
+msgid "Create Registrar"
+msgstr "レジストラを作成する"
+
+msgid "Compliance"
+msgstr "コンプライアンス"
+
+msgid "Financials"
+msgstr "財務"
+
+msgid "Pricing"
+msgstr "価格設定"
+
+msgid "Add Deposit"
+msgstr "預金を追加する"
+
+msgid "Transactions"
+msgstr "取引"
+
+msgid "Account Overview"
+msgstr "アカウント概要"
+
+msgid "Invoices"
+msgstr "請求書"
+
+msgid "Reports"
+msgstr "レポート"
+
+msgid "System"
+msgstr "システム"
+
+msgid "Configuration"
+msgstr "設定"
+
+msgid "User Management"
+msgstr "ユーザー管理"
+
+msgid "EPP Log"
+msgstr "EPPログ"
+
+msgid "Audit Log"
+msgstr "監査ログ"
+
+msgid "Backup"
+msgstr "バックアップ"
+
+msgid "Support"
+msgstr "サポート"
+
+msgid "Support Tickets"
+msgstr "サポートチケット"
+
+msgid "Create Ticket"
+msgstr "チケットを作成する"
+
+msgid "Documentation"
+msgstr "ドキュメンテーション"
+
+msgid "Media Kit"
+msgstr "メディアキット"
