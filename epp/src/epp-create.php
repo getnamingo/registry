@@ -625,8 +625,9 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         if ($allocation_token !== null) {
             $allocationTokenValue = (string)$allocation_token;
                         
-            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
+            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName AND token = :token LIMIT 1");
             $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
+            $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
             $stmt->execute();
             $token = $stmt->fetchColumn();
                         

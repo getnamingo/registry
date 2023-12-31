@@ -24,6 +24,7 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+            {% include 'partials/flash.twig' %}
               {% if domainName is defined and crdate is defined %}
                   <div class="alert alert-important alert-success alert-dismissible" role="alert">
                     <div class="d-flex">
@@ -252,6 +253,11 @@
                                 <input type="datetime-local" class="form-control" name="accepted">
                             </div>
                             {% endif %}
+
+                           <div class="mb-3">
+                             <label for="token" class="form-label">{{ __('Allocation Token') }}</label>
+                             <input type="text" class="form-control" placeholder="Allocation token" name="token" autocapitalize="none">
+                           </div>
 
                     </div>
                 <div class="card-footer">

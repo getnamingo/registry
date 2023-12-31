@@ -300,7 +300,7 @@ function extractDomainAndTLD($urlString) {
     foreach ($testTlds as $testTld) {
         if (str_ends_with($host, "$testTld")) {
             // Handle the test TLD case
-            $tldLength = strlen($testTld) + 1; // +1 for the dot
+            $tldLength = strlen($testTld); // No +1 for the dot
             $hostWithoutTld = substr($host, 0, -$tldLength);
             $hostParts = explode('.', $hostWithoutTld);
             $sld = array_pop($hostParts);

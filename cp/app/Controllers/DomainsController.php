@@ -57,8 +57,20 @@ class DomainsController extends Controller
                         $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
 
                         if ($domain_already_reserved) {
-                            $this->container->get('flash')->addMessage('info', 'Domain ' . $domainName . ' is not available, as it is ' . $domain_already_reserved['type'] . '!');
-                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                            if ($token !== null && $token !== '') {
+                                $allocation_token = $this->container->get('db')->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                                
+                                if ($allocation_token) {
+                                    $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Allocation token valid');
+                                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                                } else {
+                                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
+                                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                                }
+                            } else {
+                                $this->container->get('flash')->addMessage('info', 'Domain ' . $domainName . ' is not available, as it is ' . $domain_already_reserved['type'] . '!');
+                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                            }
                         } else {
                             if ($claim == 1) {
                                 $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim exists.<br />Claim key is: ' . $claim_key);
@@ -108,6 +120,8 @@ class DomainsController extends Controller
             
             $phaseType = $data['phaseType'] ?? 'none';
             $smd = $data['smd'] ?? null;
+            
+            $token = $data['token'] ?? null;
 
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
@@ -259,13 +273,22 @@ class DomainsController extends Controller
             );
 
             if ($domain_already_reserved) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Domain name is reserved or restricted',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                if ($token !== null && $token !== '') {
+                    $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                                
+                    if (!$allocation_token) {
+                        $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                    }
+                } else {    
+                    return view($response, 'admin/domains/createDomain.twig', [
+                        'domainName' => $domainName,
+                        'error' => 'Domain name is reserved or restricted',
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
+                    ]);
+                }
             }
             
             if ($registrationYears && (($registrationYears < 1) || ($registrationYears > 10))) {
@@ -2347,6 +2370,7 @@ class DomainsController extends Controller
             $domain_id = $domain['id'];
             $tldid = $domain['tldid'];
             $registrar_id_domain = $domain['clid'];
+            $token = $data['token'] ?? null;
             
             if (!$domain_id) {
                 $this->container->get('flash')->addMessage('error', 'Domain does not exist in registry');
@@ -2426,6 +2450,15 @@ class DomainsController extends Controller
             if ($clid == $registrar_id_domain) {
                 $this->container->get('flash')->addMessage('error', 'Destination client of the transfer operation is the domain sponsoring client');
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+            }
+            
+            if ($token !== null && $token !== '') {
+                $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                                
+                if (!$allocation_token) {
+                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' can not be transferred: Allocation Token mismatch');
+                    return $response->withHeader('Location', '/transfer/request')->withStatus(302);
+                }
             }
             
             $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1',
