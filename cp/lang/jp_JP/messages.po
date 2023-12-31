@@ -1,3 +1,4 @@
+# Thanks to phind and ChatGPT
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
@@ -177,3 +178,4 @@ msgstr "ドキュメンテーション"
 
 msgid "Media Kit"
 msgstr "メディアキット"
+# Thanks to Phind and ChatGPT
