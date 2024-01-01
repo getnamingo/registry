@@ -620,6 +620,85 @@ Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 grep named /var/log/syslog
 ```
 
+### 14.1 Regular DNS Server Setup:
+
+Before editing the configuration files, you need to copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret==";
+};
+```
+
+#### Installation of BIND9:
+
+```bash
+apt update
+apt install bind9 bind9-utils bind9-doc
+```
+
+#### Add the TSIG key to the BIND Configuration:
+
+Create a directory to store zone files:
+
+```bash
+mkdir /var/cache/bind/zones
+```
+
+Edit the `named.conf.local` file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+First, define the TSIG key at the top of the file:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
+};
+```
+
+Then, add the slave zone configuration:
+
+```bash
+zone "test." {
+    type slave;
+    file "/var/cache/bind/zones/test.zone";
+    masters { 192.0.2.1 key "test.key"; }; // IP of the hidden master and TSIG key reference
+    allow-query { any; }; // Allow queries from all IPs
+    allow-transfer { none; }; // Disable zone transfers (AXFR) to others
+};
+```
+
+Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
+
+#### Adjusting Permissions and Ownership:
+
+Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
+
+```bash
+chown bind:bind /var/cache/bind/zones
+chmod 755 /var/cache/bind/zones
+```
+
+#### Restart BIND9 Service:
+
+After making these changes, restart the BIND9 service to apply them:
+
+```bash
+systemctl restart bind9
+```
+
+#### Verify Configuration and Zone Transfer:
+
+```bash
+named-checkconf
+grep 'transfer of "test."' /var/log/syslog
+```
+
 ## 15. Setup Monitoring:
 
 For effective monitoring of your registry system, we highly recommend utilizing Prometheus.
