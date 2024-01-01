@@ -50,7 +50,7 @@ return [
     'urs_imap_username' => 'your_username',
     'urs_imap_password' => 'your_password',
     
-    // Notifications Configuration
+    // Message Broker Configuration
     'mailer' => 'phpmailer', // sendgrid, mailgun are also available
     'mailer_api_key' => 'YOUR_API_KEY',
     'mailer_domain' => 'example.com',

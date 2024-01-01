@@ -419,9 +419,13 @@ This command will install one of the packages which are essential for the messag
 
 To set up automated tasks for Namingo, open the example crontab file located at ```/opt/registry/automation/crontab.example```. Review the contents and copy the relevant lines into your system's crontab file. Remember to adjust the paths and timings as necessary to suit your environment.
 
-### Running the `messagebroker.php` Script in the Background
+### Configuring the Message Broker
 
-To run the messagebroker.php script as a background process, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
+You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
+
+For establishing your own mail server, Mox, available at [GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then enter the required details in the ```config.php``` file.
+
+To run the messagebroker.php script, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
 
 ### Setting Up an Audit Trail Database for Namingo
 
@@ -771,7 +775,3 @@ prometheus --config.file=/etc/prometheus/prometheus.yml
 ```
 
 The tool will be available at ```http://<your_server_ip>:9090```
-
-## 16. Setup Mail Server:
-
-For establishing your own mail server, Mox, available at [Mox GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then integrate with Namingo. This setup ensures a cohesive and efficient operation of your mail server.
