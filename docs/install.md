@@ -65,6 +65,13 @@ If you have 50000 or more domains, use:
 memory_limit = -1
 ```
 
+In ```/etc/php/8.2/mods-available/opcache.ini``` make one additional change:
+
+```bash
+opcache.jit=1255
+opcache.jit_buffer_size=100M
+```
+
 After configuring PHP, restart the service to apply changes:
 
 ```bash
