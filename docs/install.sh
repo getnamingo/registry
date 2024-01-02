@@ -76,7 +76,10 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         edit_php_ini "$file" "session.cookie_domain" "example.com"
         edit_php_ini "$file" "memory_limit" "512M"
     done
-
+	
+	edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
+	edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
+	
     # Restart PHP-FPM service
     echo "Restarting PHP 8.2-FPM service..."
     systemctl restart php8.2-fpm
@@ -171,6 +174,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         encode gzip
         file_server
         tls $YOUR_EMAIL
+        header -Server
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -190,6 +194,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         php_fastcgi unix//run/php/php8.2-fpm.sock
         file_server
         tls $YOUR_EMAIL
+        header -Server
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -209,6 +214,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         encode gzip
         file_server
         tls $YOUR_EMAIL
+        header -Server
         log {
             output file /var/log/caddy/access.log
             format console

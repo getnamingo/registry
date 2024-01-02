@@ -190,6 +190,7 @@ rdap.example.com {
     encode gzip
     file_server
     tls your-email@example.com
+    header -Server
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -209,6 +210,7 @@ whois.example.com {
     php_fastcgi unix//run/php/php8.2-fpm.sock
     file_server
     tls your-email@example.com
+    header -Server
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -228,6 +230,7 @@ cp.example.com {
     encode gzip
     file_server
     tls your-email@example.com
+    header -Server
     log {
         output file /var/log/caddy/access.log
         format console

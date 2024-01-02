@@ -930,19 +930,29 @@ class SystemController extends Controller
             return $response->withHeader('Location', '/registry/reserved')->withStatus(302);
             
         }
-        
+
         $db = $this->container->get('db');
         $types = $db->select("SELECT DISTINCT type FROM reserved_domain_names");
         // Get the current URI
         $uri = $request->getUri()->getPath();
+        
+        // Set default types if $types is empty
+        if (empty($types)) {
+            $types = [
+                ['type' => 'reserved'],
+                ['type' => 'restricted']
+            ];
+        }
         
         $categories = [];
         foreach ($types as $type) {
             $typeNames = $db->select(
                 'SELECT name FROM reserved_domain_names WHERE type = ?',
                 [ $type['type'] ]
-            );            
-            $categories[$type['type']] = array_column($typeNames, 'name');
+            );
+
+            // Initialize the type with an empty array if no names are found
+            $categories[$type['type']] = $typeNames ? array_column($typeNames, 'name') : [];
         }
 
         return view($response,'admin/system/manageReserved.twig', [
