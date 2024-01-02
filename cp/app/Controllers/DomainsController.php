@@ -6,6 +6,9 @@ use App\Models\Domain;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use Selective\XmlDSig\PublicKeyStore;
+use Selective\XmlDSig\CryptoVerifier;
+use Selective\XmlDSig\XmlSignatureVerifier;
 
 class DomainsController extends Controller
 {
@@ -248,7 +251,7 @@ class DomainsController extends Controller
                 if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
                     !isset($data['notafter']) || $data['notafter'] === '' ||
                     !isset($data['accepted']) || $data['accepted'] === '') {
-                    // Trigger an error or handle the situation as needed
+                    // Trigger an error
                     return view($response, 'admin/domains/createDomain.twig', [
                         'domainName' => $domainName,
                         'error' => "Error: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'",
@@ -265,6 +268,87 @@ class DomainsController extends Controller
                 $noticeid = null;
                 $notafter = null;
                 $accepted = null;
+            }
+            
+            if ($phaseType === 'sunrise') {
+                if ($smd !== null && $smd !== '') {
+                    // Extract the BASE64 encoded part
+                    $beginMarker = "-----BEGIN ENCODED SMD-----";
+                    $endMarker = "-----END ENCODED SMD-----";
+                    $beginPos = strpos($smd, $beginMarker) + strlen($beginMarker);
+                    $endPos = strpos($smd, $endMarker);
+                    $encodedSMD = trim(substr($smd, $beginPos, $endPos - $beginPos));
+
+                    // Decode the BASE64 content
+                    $xmlContent = base64_decode($encodedSMD);
+
+                    // Load the XML content using DOMDocument
+                    $domDocument = new \DOMDocument();
+                    $domDocument->preserveWhiteSpace = false;
+                    $domDocument->formatOutput = true;
+                    $domDocument->loadXML($xmlContent);
+
+                    // Parse data
+                    $xpath = new \DOMXPath($domDocument);
+                    $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
+                    $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+
+                    $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
+                    $notAfter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
+                    $markName = $xpath->evaluate('string(//mark:markName)');
+                    $labels = [];
+                    foreach ($xpath->query('//mark:label') as $x_label) {
+                        $labels[] = $x_label->nodeValue;
+                    }
+
+                    if (!in_array($label, $labels)) {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => "SMD file is not valid for the domain name being registered.",
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
+                        ]);
+                    }
+
+                    // Check if current date and time is between notBefore and notAfter
+                    $now = new \DateTime();
+                    if (!($now >= $notBefore && $now <= $notAfter)) {
+                        // Current time is outside the valid range, return an error view
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => "Current time is outside the valid range.",
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
+                        ]);
+                    }
+
+                    // Verify the signature
+                    $publicKeyStore = new PublicKeyStore();
+                    $publicKeyStore->loadFromDocument($domDocument);
+                    $cryptoVerifier = new CryptoVerifier($publicKeyStore);
+                    $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
+                    $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+
+                    if (!$isValid) {
+                        return view($response, 'admin/domains/createDomain.twig', [
+                            'domainName' => $domainName,
+                            'error' => "The XML signature of the SMD file is not valid.",
+                            'registrars' => $registrars,
+                            'registrar' => $registrar,
+                            'launch_phases' => $launch_phases
+                        ]);
+                    }
+                } else {
+                    return view($response, 'admin/domains/createDomain.twig', [
+                        'domainName' => $domainName,
+                        'error' => "SMD upload is required in the 'sunrise' phase.",
+                        'registrars' => $registrars,
+                        'registrar' => $registrar,
+                        'launch_phases' => $launch_phases
+                    ]);
+                }
             }
 
             $domain_already_reserved = $db->selectValue(

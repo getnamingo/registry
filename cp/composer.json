@@ -44,7 +44,8 @@
         "guzzlehttp/guzzle": "^7.8",
         "league/flysystem": "^3.23",
         "mpociot/vat-calculator": "^3.6",
-        "ramsey/uuid": "^4.7"
+        "ramsey/uuid": "^4.7",
+        "selective/xmldsig": "^3.1"
     },
     "autoload": {
         "psr-4": {
