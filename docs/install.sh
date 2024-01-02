@@ -42,7 +42,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     echo "Installing required packages..."
     apt install -y curl software-properties-common ufw
     echo "Adding PHP repository..."
-    add-apt-repository ppa:ondrej/php
+    add-apt-repository ppa:ondrej/php -y
     apt install -y debian-keyring debian-archive-keyring apt-transport-https
     echo "Setting up Caddy repository..."
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
