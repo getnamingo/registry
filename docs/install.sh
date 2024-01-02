@@ -51,7 +51,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     echo "Updating package lists and upgrading packages..."
     apt update -y && apt upgrade -y
     echo "Installing additional required packages..."
-    apt install -y bzip2 caddy composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+    apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
     
     # Set timezone to UTC if it's not already
     currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
@@ -76,10 +76,10 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         edit_php_ini "$file" "session.cookie_domain" "example.com"
         edit_php_ini "$file" "memory_limit" "512M"
     done
-	
-	edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
-	edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
-	
+    
+    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
+    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
+    
     # Restart PHP-FPM service
     echo "Restarting PHP 8.2-FPM service..."
     systemctl restart php8.2-fpm
@@ -256,6 +256,27 @@ EOF
     sed -i "s|example.com|$REGISTRY_DOMAIN|g" /var/www/cp/.env
     sed -i "s/DB_USERNAME=root/DB_USERNAME=$DB_USER/g" /var/www/cp/.env
     sed -i "s/DB_PASSWORD=/DB_PASSWORD=$DB_PASSWORD/g" /var/www/cp/.env
+    
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+    ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+
+    if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
+    then
+        >&2 echo 'ERROR: Invalid installer signature'
+        rm composer-setup.php
+        exit 1
+    fi
+
+    echo 'Composer installer verified'
+
+    php composer-setup.php --quiet
+
+    rm composer-setup.php
+
+    mv composer.phar /usr/local/bin/composer
+
+    echo 'Composer installed'
 
     cd /var/www/cp
     composer install
@@ -272,26 +293,36 @@ EOF
     cd /opt/registry/whois/port43
     composer install
     mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
     
     echo "Installing RDAP Server."
     cd /opt/registry/rdap
     composer install
     mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
 
     echo "Installing EPP Server."
     cd /opt/registry/epp
     composer install
     mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
 
     echo "Installing Automation Scripts."
     cd /opt/registry/automation
     composer install
     mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
 
     echo "Installing DAS Server."
     cd /opt/registry/das
     composer install
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
 
     echo "Installation complete! Please now configure components according to the instructions and start them one by one."
 else
