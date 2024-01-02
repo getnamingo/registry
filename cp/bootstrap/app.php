@@ -89,6 +89,11 @@ $container->set('pdo', function () use ($pdo) {
 });
 
 $container->set('auth', function() {
+    //$responseFactory = new \Nyholm\Psr7\Factory\Psr17Factory();
+    //$response = $responseFactory->createResponse();
+    //$autoLogout = new \Pinga\Auth\AutoLogout();
+    //$autoLogout->watch(900, '/', null, 301, $response);
+    
     return new \App\Auth\Auth;
 });
 
