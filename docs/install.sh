@@ -49,7 +49,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
     echo "Updating package lists and upgrading packages..."
-    apt update && apt upgrade
+    apt update -y && apt upgrade -y
     echo "Installing additional required packages..."
     apt install -y bzip2 caddy composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
     
@@ -98,7 +98,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     Suites: jammy
     Components: main main/debug
     Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-    EOF
+EOF
         apt-get update
         apt install -y mariadb-client mariadb-server php8.2-mysql
         echo "Please follow the prompts for secure installation of MariaDB."
@@ -138,6 +138,8 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     chown -R www-data:www-data /var/log/namingo
     
     echo "Setting up firewall rules..."
+    ufw allow 22/tcp
+    ufw allow 22/udp
     ufw allow 43/tcp
     ufw allow 80/tcp
     ufw allow 80/udp
@@ -239,13 +241,13 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
             Permissions-Policy: accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), speaker=(), usb=(), vr=();
         }
     }
-    EOF
+EOF
     
     systemctl enable caddy
     systemctl restart caddy
     
     echo "Control Panel Setup..."
-    cp -r /opt/registry/cp /var/www/
+    cp -r /opt/registry/cp /var/www
     mv /var/www/cp/env-sample /var/www/cp/.env
 
     # Update .env file with the actual values
