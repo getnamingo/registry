@@ -247,7 +247,7 @@ EOF
     systemctl restart caddy
     
     echo "Control Panel Setup..."
-    cp -r /opt/registry/cp /var/www
+    cp -r /opt/registry/cp /var/www/cp
     mv /var/www/cp/env-sample /var/www/cp/.env
 
     # Update .env file with the actual values
@@ -266,32 +266,32 @@ EOF
     cp -r * /var/www/whois
     cd /var/www/whois
     composer require gregwar/captcha
-    mv config.php.dist config.php
+    mv /var/www/whois/config.php.dist /var/www/whois/config.php
     
     echo "Installing WHOIS Server."
     cd /opt/registry/whois/port43
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
     
     echo "Installing RDAP Server."
     cd /opt/registry/rdap
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
 
     echo "Installing EPP Server."
     cd /opt/registry/epp
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
 
     echo "Installing Automation Scripts."
     cd /opt/registry/automation
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
 
     echo "Installing DAS Server."
     cd /opt/registry/das
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
 
     echo "Installation complete! Please now configure components according to the instructions and start them one by one."
 else
