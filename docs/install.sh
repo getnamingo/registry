@@ -35,8 +35,8 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
     DB_USER=$(prompt_for_input "Enter database user")
     DB_PASSWORD=$(prompt_for_input "Enter database password")
-    PANEL_USER=$(prompt_for_input "Enter panel user")
-    PANEL_PASSWORD=$(prompt_for_input "Enter panel password")
+    PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
+    PANEL_PASSWORD=$(prompt_for_input "Enter panel admin password")
 
     # Step 1 - Components Installation
     echo "Installing required packages..."
@@ -247,6 +247,7 @@ EOF
     systemctl restart caddy
     
     echo "Control Panel Setup..."
+    mkdir -p /var/www/cp
     cp -r /opt/registry/cp /var/www/cp
     mv /var/www/cp/env-sample /var/www/cp/.env
 
@@ -323,6 +324,11 @@ EOF
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
+    
+    echo "Configuring control panel admin."
+    sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
+    sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
+    php /var/www/cp/bin/create_admin_user.php
 
     echo "Installation complete! Please now configure components according to the instructions and start them one by one."
 else
