@@ -778,3 +778,13 @@ prometheus --config.file=/etc/prometheus/prometheus.yml
 ```
 
 The tool will be available at ```http://<your_server_ip>:9090```
+
+## 16. Recommended Help Desk Solution:
+
+If you're in need of an effective help desk solution to complement your experience with Namingo, we recommend considering [FreeScout](https://freescout.net/), an AGPL-3.0 licensed, free and open-source software. FreeScout is known for its user-friendly interface and robust features, making it an excellent choice for managing customer queries and support tickets.
+
+### Please Note:
+
+- FreeScout is an independent software and is not a part of Namingo. It is licensed under the AGPL-3.0, which is different from Namingo's MIT license.
+- The recommendation to use FreeScout is entirely optional and for the convenience of Namingo users. Namingo functions independently of FreeScout and does not require FreeScout for its operation.
+- Ensure to comply with the AGPL-3.0 license terms if you choose to use FreeScout alongside Namingo.
