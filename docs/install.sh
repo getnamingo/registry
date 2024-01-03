@@ -247,8 +247,8 @@ EOF
     systemctl restart caddy
     
     echo "Control Panel Setup..."
-    mkdir -p /var/www/cp
-    cp -r /opt/registry/cp /var/www/cp
+    mkdir -p /var/www
+    cp -r /opt/registry/cp /var/www
     mv /var/www/cp/env-sample /var/www/cp/.env
 
     # Update .env file with the actual values
