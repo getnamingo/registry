@@ -37,6 +37,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     DB_PASSWORD=$(prompt_for_input "Enter database password")
     PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
     PANEL_PASSWORD=$(prompt_for_input "Enter panel admin password")
+    current_user=$(whoami)
 
     # Step 1 - Components Installation
     echo "Installing required packages..."
@@ -246,7 +247,7 @@ EOF
     systemctl enable caddy
     systemctl restart caddy
     
-    echo "Control Panel Setup..."
+    echo "Installing Control Panel."
     mkdir -p /var/www
     cp -r /opt/registry/cp /var/www
     mv /var/www/cp/env-sample /var/www/cp/.env
@@ -270,39 +271,50 @@ EOF
     fi
 
     echo 'Composer installer verified'
-
     php composer-setup.php --quiet
-
     rm composer-setup.php
-
     mv composer.phar /usr/local/bin/composer
-
     echo 'Composer installed'
 
     cd /var/www/cp
     composer install
-    echo "Control Panel configured."
-   
+    
+    echo "Importing database."
+    mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+
+    echo "Installing Web WHOIS."
     mkdir -p /var/www/whois
     cd /opt/registry/whois/web
     cp -r * /var/www/whois
     cd /var/www/whois
     composer require gregwar/captcha
     mv /var/www/whois/config.php.dist /var/www/whois/config.php
-    
+    sed -i "s|'whois_url' => '.*'|'whois_url' => 'whois.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
+    sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
+
     echo "Installing WHOIS Server."
     cd /opt/registry/whois/port43
     composer install
     mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
-    
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
+    cp /opt/registry/docs/whois.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable whois.service
+
     echo "Installing RDAP Server."
     cd /opt/registry/rdap
     composer install
     mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/rdap.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/rdap.service
+    cp /opt/registry/docs/rdap.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable rdap.service
 
     echo "Installing EPP Server."
     cd /opt/registry/epp
@@ -310,6 +322,11 @@ EOF
     mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/epp.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/epp.service
+    cp /opt/registry/docs/epp.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable epp.service
 
     echo "Installing Automation Scripts."
     cd /opt/registry/automation
@@ -324,13 +341,23 @@ EOF
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
-    
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
+    cp /opt/registry/docs/das.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable das.service
+   
     echo "Configuring control panel admin."
     sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
     sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
     php /var/www/cp/bin/create_admin_user.php
 
-    echo "Installation complete! Please now configure components according to the instructions and start them one by one."
+    echo -e "Installation complete!\n"
+    echo -e "Next steps:\n"
+    echo -e "1. Configure each component by editing their respective configuration files."
+    echo -e "2. Once configuration is complete, start each service with the following command:\n   systemctl start SERVICE_NAME.service\n   Replace 'SERVICE_NAME' with the specific service (whois, rdap, epp, das) as needed."
+    echo -e "3. To set up automation services, refer to the configuration manual and edit the files in:\n   /opt/registry/automation\n"
+    echo -e "For more detailed information, please consult the accompanying documentation or support resources."
 else
     echo "Unsupported Linux distribution or version"
 fi
