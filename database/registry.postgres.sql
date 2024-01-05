@@ -573,6 +573,20 @@ CREATE TABLE IF NOT EXISTS registry.users (
     "backup_codes" TEXT,
 );
 
+CREATE TABLE IF NOT EXISTS registry.users_audit (
+    "user_id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "user_event" VARCHAR(255) NOT NULL,
+    "user_resource" VARCHAR(255) DEFAULT NULL,
+    "user_agent" VARCHAR(255) NOT NULL,
+    "user_ip" VARCHAR(45) NOT NULL,
+    "user_location" VARCHAR(45) DEFAULT NULL,
+    "event_time" TIMESTAMP(3) NOT NULL,
+    "user_data" JSONB DEFAULT NULL,
+    CONSTRAINT pk_users_audit PRIMARY KEY (user_id)
+);
+CREATE INDEX idx_user_event ON registry.users_audit (user_event);
+CREATE INDEX idx_user_ip ON registry.users_audit (user_ip);
+
 CREATE TABLE IF NOT EXISTS registry.users_confirmations (
     "id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
     "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
@@ -586,21 +600,21 @@ CREATE INDEX IF NOT EXISTS "user_id" ON registry.users_confirmations ("user_id")
 
 CREATE TABLE IF NOT EXISTS registry.users_remembered (
     "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
     "selector" VARCHAR(24) UNIQUE NOT NULL,
     "token" VARCHAR(255) NOT NULL,
     "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "user" ON registry.users_remembered ("user");
+CREATE INDEX IF NOT EXISTS "user_id" ON registry.users_remembered ("user_id");
 
 CREATE TABLE IF NOT EXISTS registry.users_resets (
     "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
     "selector" VARCHAR(20) UNIQUE NOT NULL,
     "token" VARCHAR(255) NOT NULL,
     "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "user_expires" ON registry.users_resets ("user", "expires");
+CREATE INDEX IF NOT EXISTS "user_expires" ON registry.users_resets ("user_id", "expires");
 
 CREATE TABLE IF NOT EXISTS registry.users_throttling (
     "bucket" VARCHAR(44) PRIMARY KEY,

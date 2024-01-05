@@ -36,6 +36,9 @@
                   <li class="nav-item">
                     <a href="#tabs-webauthn" class="nav-link" data-bs-toggle="tab">WebAuthn</a>
                   </li>
+                  <li class="nav-item">
+                    <a href="#tabs-log" class="nav-link" data-bs-toggle="tab">Log</a>
+                  </li>
                 </ul>
               </div>
               <div class="card-body">
@@ -158,19 +161,55 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-									{% for device in weba %}
-										<tr>
-											<td>{{ device.user_agent }}</td>
-											<td>{{ device.created_at }}</td>
-											<td>
-												<a href="/path/to/action?deviceId={{ device.id }}">Edit</a>
-											</td>
-										</tr>
-									{% else %}
-										<tr>
-											<td colspan="3">No devices found.</td>
-										</tr>
-									{% endfor %}
+                                    {% for device in weba %}
+                                        <tr>
+                                            <td>{{ device.user_agent }}</td>
+                                            <td>{{ device.created_at }}</td>
+                                            <td>
+                                                <a href="/path/to/action?deviceId={{ device.id }}">Edit</a>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="3">No devices found.</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                  <div class="tab-pane" id="tabs-log">
+                    <h4 class="card-title">User Audit Log</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <p>Track and review all user activities in your account below. Monitor logins, profile changes, and other key actions to ensure security and transparency.</p>
+                            <div class="table-responsive mt-4">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Event</th>
+                                            <th>User Agent</th>
+                                            <th>IP</th>
+                                            <th>Location</th>
+                                            <th>Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for user in userAudit %}
+                                        <tr>
+                                            <td>{{ user.user_event }}</td>
+                                            <td>{{ user.user_agent }}</td>
+                                            <td>{{ user.user_ip }}</td>
+                                            <td>{{ user.user_location }}</td>
+                                            <td>{{ user.event_time }}</td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5">No log data for user.</td>
+                                        </tr>
+                                    {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
