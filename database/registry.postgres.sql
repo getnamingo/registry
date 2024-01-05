@@ -1,7 +1,3 @@
-CREATE SCHEMA registry;
-CREATE SCHEMA registryTransaction;
-CREATE SCHEMA registryAudit;
-
 SET search_path TO registry, registryTransaction, registryAudit, public;
 
 CREATE TABLE registry.launch_phases (
@@ -14,7 +10,6 @@ CREATE TABLE registry.launch_phases (
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) DEFAULT NULL,
     "lastupdate"   timestamp(3),
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
     UNIQUE(phase_name)
 );
 
@@ -34,7 +29,6 @@ CREATE TABLE registry.domain_tld (
      "idn_table"   varchar(255) NOT NULL,
      "secure"   SMALLINT NOT NULL,
      "launch_phase_id" INTEGER DEFAULT NULL,
-     FOREIGN KEY (launch_phase_id) REFERENCES launch_phase(id),
      unique ("tld") 
 );
 
@@ -80,29 +74,26 @@ CREATE TABLE registry.allocation_tokens (
      "tlds" JSON,
      "eppActions" JSON,
      "reducePremium" BOOLEAN NOT NULL,
-     "reduceYears" INT NOT NULL CHECK (reduceYears BETWEEN 0 AND 10),
+     "reduceYears" INT NOT NULL CHECK ("reduceYears" BETWEEN 0 AND 10),
     PRIMARY KEY (token)
 );
 
 CREATE TABLE registry.error_log (
-    "id" INT(11) NOT NULL AUTO_INCREMENT,
-    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,,
+    "id" SERIAL PRIMARY KEY,
+    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
     "log" TEXT NOT NULL,
-    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    primary key ("id"),
-    FOREIGN KEY (registrar_id) REFERENCES registrar(id)
+    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE registry.reserved_domain_names (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'reserved','restricted' )) NOT NULL default 'reserved',
-     primary key ("id"),
      unique ("name") 
 );
 
 CREATE TABLE registry.registrar (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(255) NOT NULL,
      "iana_id"   int DEFAULT NULL,
      "clid"   varchar(16) NOT NULL,
@@ -122,9 +113,8 @@ CREATE TABLE registry.registrar (
      "vat_number" VARCHAR(30) DEFAULT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "lastupdate"   timestamp(3),
-     primary key ("id"),
-     unique ("clid") ,
-     unique ("prefix") ,
+     unique ("clid"),
+     unique ("prefix"),
      unique ("email") 
 );
 
@@ -140,15 +130,14 @@ CREATE TRIGGER add_current_date_to_registrar BEFORE UPDATE ON registry.registrar
 update_registrar();
 
 CREATE TABLE registry.registrar_whitelist (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "addr"   varchar(45) NOT NULL,
-     primary key ("id"),
      unique ("registrar_id", "addr") 
 );
 
 CREATE TABLE registry.registrar_contact (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'owner','admin','billing','tech','abuse' )) NOT NULL default 'admin',
      "title"   varchar(255) default NULL,
@@ -166,7 +155,6 @@ CREATE TABLE registry.registrar_contact (
      "voice"   varchar(17) default NULL,
      "fax"   varchar(17) default NULL,
      "email"   varchar(255) NOT NULL,
-     primary key ("id"),
      unique ("registrar_id", "type") 
 );
 
@@ -178,7 +166,7 @@ CREATE TABLE registry.registrar_ote (
 );
 
 CREATE TABLE registry.poll (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "qdate"   timestamp(3) without time zone NOT NULL,
      "msg"   text default NULL,
@@ -194,21 +182,19 @@ CREATE TABLE registry.poll (
      "creditlimit"   decimal(12,2) default '0.00',
      "creditthreshold"   decimal(12,2) default '0.00',
      "creditthresholdtype" varchar CHECK ("creditthresholdtype" IN ( 'FIXED','PERCENT' )),
-     "availablecredit"   decimal(12,2) default '0.00',
-     primary key ("id")
+     "availablecredit"   decimal(12,2) default '0.00'
 );
 
 CREATE TABLE registry.payment_history (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "description"   text NOT NULL,
-     "amount"   decimal(12,2) NOT NULL,
-     primary key ("id")
+     "amount"   decimal(12,2) NOT NULL
 );
 
 CREATE TABLE registry.statement (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
@@ -216,8 +202,7 @@ CREATE TABLE registry.statement (
      "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
      "fromS"   timestamp(3) without time zone NOT NULL,
      "toS"   timestamp(3) without time zone NOT NULL,
-     "amount"   decimal(12,2) NOT NULL,
-     primary key ("id")
+     "amount"   decimal(12,2) NOT NULL
 );
 
 CREATE TABLE registry.invoices (
@@ -231,13 +216,11 @@ CREATE TABLE registry.invoices (
      "payment_status" VARCHAR(10) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'overdue', 'cancelled')),
      "notes" TEXT DEFAULT NULL,
      "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-     "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (registrar_id) REFERENCES registrar(id),
-    FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
+     "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE registry.contact (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "identifier"   varchar(255) NOT NULL,
      "voice"   varchar(17) default NULL,
      "voice_x"   int default NULL,
@@ -260,12 +243,11 @@ CREATE TABLE registry.contact (
      "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
      "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
      "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id"),
      unique ("identifier") 
 );
 
 CREATE TABLE registry.contact_postalinfo (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'int','loc' )) NOT NULL default 'int',
      "name"   varchar(255) NOT NULL,
@@ -283,29 +265,26 @@ CREATE TABLE registry.contact_postalinfo (
      "disclose_org_loc" varchar CHECK ("disclose_org_loc" IN ( '0','1' )) NOT NULL default '1',
      "disclose_addr_int" varchar CHECK ("disclose_addr_int" IN ( '0','1' )) NOT NULL default '1',
      "disclose_addr_loc" varchar CHECK ("disclose_addr_loc" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id"),
      unique ("contact_id", "type") 
 );
 
 CREATE TABLE registry.contact_authinfo (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
      "authinfo"   varchar(64) NOT NULL,
-     primary key ("id"),
      unique ("contact_id") 
 );
 
 CREATE TABLE registry.contact_status (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientTransferProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("contact_id", "status") 
 );
 
 CREATE TABLE registry.domain (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
@@ -349,12 +328,11 @@ CREATE TABLE registry.domain (
      "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
      "tm_smd_id" TEXT DEFAULT NULL,
      "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
-     primary key ("id"),
      unique ("name") 
 );
 
 CREATE TABLE registry.application (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
@@ -384,55 +362,49 @@ CREATE TABLE registry.application (
      "tm_notice_id" VARCHAR(150) DEFAULT NULL,
      "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
      "tm_smd_id" TEXT DEFAULT NULL,
-     "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
-     primary key ("id")
+     "tm_phase" text DEFAULT 'NONE'::text NOT NULL
 );
 
 CREATE TABLE registry.domain_contact_map (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
-     primary key ("id"),
      unique ("domain_id", "contact_id", "type") 
 );
 
 CREATE TABLE registry.application_contact_map (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
-     primary key ("id"),
      unique ("domain_id", "contact_id", "type") 
 );
 
 CREATE TABLE registry.domain_authinfo (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
      "authinfo"   varchar(64) NOT NULL,
-     primary key ("id"),
      unique ("domain_id") 
 );
 
 CREATE TABLE registry.domain_status (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientHold','clientRenewProhibited','clientTransferProhibited','clientUpdateProhibited','inactive','ok','pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverHold','serverRenewProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("domain_id", "status") 
 );
 
 CREATE TABLE registry.application_status (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'pendingValidation','validated','invalid','pendingAllocation','allocated','rejected','custom' )) NOT NULL default 'pendingValidation',
-     primary key ("id"),
      unique ("domain_id", "status") 
 );
 
 CREATE TABLE registry.secdns (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "maxsiglife" int CHECK ("maxsiglife" >= 0) default '604800',
      "interface" varchar CHECK ("interface" IN ( 'dsData','keyData' )) NOT NULL default 'dsData',
@@ -444,12 +416,11 @@ CREATE TABLE registry.secdns (
      "protocol" smallint CHECK ("protocol" >= 0) default NULL,
      "keydata_alg"  smallint CHECK ("keydata_alg" >= 0) default NULL,
      "pubkey"   varchar(255) default NULL,
-     primary key ("id"),
      unique ("domain_id", "digest") 
 );
 
 CREATE TABLE registry.host (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(255) NOT NULL,
      "domain_id" int CHECK ("domain_id" >= 0) default NULL,
      "clid" int CHECK ("clid" >= 0) NOT NULL,
@@ -458,45 +429,40 @@ CREATE TABLE registry.host (
      "upid" int CHECK ("upid" >= 0) default NULL,
      "lastupdate"   timestamp(3) without time zone default NULL,
      "trdate"   timestamp(3) without time zone default NULL,
-     primary key ("id"),
      unique ("name") 
 );
 
 CREATE TABLE registry.domain_host_map (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-     primary key ("id"),
      unique ("domain_id", "host_id") 
 );
 
 CREATE TABLE registry.application_host_map (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-     primary key ("id"),
      unique ("domain_id", "host_id") 
 );
 
 CREATE TABLE registry.host_addr (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
      "addr"   varchar(45) NOT NULL,
      "ip" varchar CHECK ("ip" IN ( 'v4','v6' )) NOT NULL default 'v4',
-     primary key ("id"),
      unique ("host_id", "addr", "ip") 
 );
 
 CREATE TABLE registry.host_status (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("host_id", "status") 
 );
 
 CREATE TABLE registry.domain_auto_approve_transfer (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
@@ -511,12 +477,11 @@ CREATE TABLE registry.domain_auto_approve_transfer (
      "redate"   timestamp(3) without time zone default NULL,
      "acid" int CHECK ("acid" >= 0) default NULL,
      "acdate"   timestamp(3) without time zone default NULL,
-     "transfer_exdate"   timestamp(3) without time zone default NULL,
-     primary key ("id")
+     "transfer_exdate"   timestamp(3) without time zone default NULL
 );
 
 CREATE TABLE registry.contact_auto_approve_transfer (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "identifier"   varchar(255) NOT NULL,
      "voice"   varchar(17) default NULL,
      "voice_x"   int default NULL,
@@ -538,12 +503,11 @@ CREATE TABLE registry.contact_auto_approve_transfer (
      "acdate"   timestamp(3) without time zone default NULL,
      "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
      "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
-     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id")
+     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1'
 );
 
 CREATE TABLE registry.statistics (
-     "id" serial8,
+     "id" SERIAL PRIMARY KEY,
      "date"   date NOT NULL,
      "total_domains" int CHECK ("total_domains" >= 0) NOT NULL DEFAULT '0',
      "created_domains" int CHECK ("created_domains" >= 0) NOT NULL DEFAULT '0',
@@ -551,7 +515,6 @@ CREATE TABLE registry.statistics (
      "transfered_domains" int CHECK ("transfered_domains" >= 0) NOT NULL DEFAULT '0',
      "deleted_domains" int CHECK ("deleted_domains" >= 0) NOT NULL DEFAULT '0',
      "restored_domains" int CHECK ("restored_domains" >= 0) NOT NULL DEFAULT '0',
-     primary key ("id"),
      unique ("date") 
 );
 
@@ -570,19 +533,18 @@ CREATE TABLE IF NOT EXISTS registry.users (
     "tfa_secret" VARCHAR(32),
     "tfa_enabled" BOOLEAN DEFAULT false,
     "auth_method" VARCHAR(255) DEFAULT 'password',
-    "backup_codes" TEXT,
+    "backup_codes" TEXT
 );
 
 CREATE TABLE IF NOT EXISTS registry.users_audit (
-    "user_id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
+    "user_id" SERIAL PRIMARY KEY CHECK ("user_id" >= 0),
     "user_event" VARCHAR(255) NOT NULL,
     "user_resource" VARCHAR(255) DEFAULT NULL,
     "user_agent" VARCHAR(255) NOT NULL,
     "user_ip" VARCHAR(45) NOT NULL,
     "user_location" VARCHAR(45) DEFAULT NULL,
     "event_time" TIMESTAMP(3) NOT NULL,
-    "user_data" JSONB DEFAULT NULL,
-    CONSTRAINT pk_users_audit PRIMARY KEY (user_id)
+    "user_data" JSONB DEFAULT NULL
 );
 CREATE INDEX idx_user_event ON registry.users_audit (user_event);
 CREATE INDEX idx_user_ip ON registry.users_audit (user_ip);
@@ -633,21 +595,16 @@ CREATE TABLE IF NOT EXISTS registry.users_webauthn (
     "sign_count" BIGINT NOT NULL,
     "user_agent" TEXT,
     "created_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS registry.registrar_users (
-     "registrar_id" int NOT NULL,
-     "user_id" int NOT NULL,
-     "PRIMARY KEY" (registrar_id, user_id),
-     "FOREIGN KEY" (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE,
-     "FOREIGN KEY" (user_id) REFERENCES users(id) ON DELETE CASCADE
-) WITH (OIDS=FALSE);
-COMMENT ON TABLE registrar_users IS 'Linking Registrars with Panel Users';
+     "registrar_id" int NOT NULL PRIMARY KEY,
+     "user_id" int NOT NULL
+);
 
 CREATE TABLE registry.urs_actions (
-     "id" serial8  PRIMARY KEY,
+     "id" SERIAL PRIMARY KEY,
      "domain_name"   VARCHAR(255) NOT NULL,
      "urs_provider"   VARCHAR(255) NOT NULL,
      "action_date"   DATE NOT NULL,
@@ -660,7 +617,7 @@ CREATE TYPE status_enum AS ENUM ('Deposited', 'Retrieved', 'Failed');
 CREATE TYPE verification_status_enum AS ENUM ('Verified', 'Failed', 'Pending');
 
 CREATE TABLE registry.rde_escrow_deposits (
-    "id" serial8 PRIMARY KEY,
+    "id" SERIAL PRIMARY KEY,
     "deposit_id" VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     "deposit_date" DATE NOT NULL,
     "revision" INTEGER NOT NULL DEFAULT 1,
@@ -710,8 +667,7 @@ CREATE TABLE registry.promotion_pricing (
     "created_by" varchar(255),
     "created_at" timestamp(3) without time zone,
     "updated_by" varchar(255),
-    "updated_at" timestamp(3) without time zone,
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
+    "updated_at" timestamp(3) without time zone
 );
 
 CREATE INDEX idx_promotion_pricing_tld_id ON promotion_pricing (tld_id);
@@ -727,9 +683,7 @@ CREATE TABLE registry.premium_domain_pricing (
     "id" serial8 PRIMARY KEY,
     "domain_name" VARCHAR(255) NOT NULL,
     "tld_id" INT CHECK ("tld_id" >= 0) NOT NULL,
-    "category_id" INT,
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
-    FOREIGN KEY ("category_id") REFERENCES registry.premium_domain_categories("category_id")
+    "category_id" INT
 );
 
 -- Create custom types for status and priority
@@ -756,9 +710,7 @@ CREATE TABLE registry.support_tickets (
     "relevant_urls" TEXT DEFAULT NULL,
     "date_of_incident" DATE DEFAULT NULL,
     "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "last_updated" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES registry.users(id),
-    FOREIGN KEY (category_id) REFERENCES registry.ticket_categories(id)
+    "last_updated" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE registry.ticket_responses (
@@ -766,8 +718,7 @@ CREATE TABLE registry.ticket_responses (
     "ticket_id" INTEGER NOT NULL,
     "responder_id" INTEGER NOT NULL,
     "response" TEXT NOT NULL,
-    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
+    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE registry.tmch_claims (
@@ -855,9 +806,17 @@ INSERT INTO registry.settings (name, value) VALUES
 ('whois_server', 'whois.example.com'),
 ('rdap_server', 'https://rdap.example.com');
  
+ALTER TABLE registry.domain_tld ADD FOREIGN KEY (launch_phase_id) REFERENCES registry.launch_phases(id);
+ALTER TABLE registry.launch_phases ADD FOREIGN KEY (tld_id) REFERENCES registry.domain_tld(id);
+ALTER TABLE registry.error_log ADD FOREIGN KEY (registrar_id) REFERENCES registry.registrar(id);
+ALTER TABLE registry.invoices ADD FOREIGN KEY (registrar_id) REFERENCES registry.registrar(id);
+ALTER TABLE registry.invoices ADD FOREIGN KEY (billing_contact_id) REFERENCES registry.registrar_contact(id);
+ALTER TABLE registry.users_webauthn ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
 ALTER TABLE registry.registrar_whitelist ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
+ALTER TABLE registry.registrar_users ADD FOREIGN KEY (registrar_id) REFERENCES registry.registrar(id) ON DELETE CASCADE;
+ALTER TABLE registry.registrar_users ADD FOREIGN KEY (user_id) REFERENCES registry.users(id) ON DELETE CASCADE;
 ALTER TABLE registry.registrar_contact ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
 ALTER TABLE registry.poll ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
 ALTER TABLE registry.payment_history ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
@@ -893,7 +852,13 @@ ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("domain_id") REFERENC
 ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
 ALTER TABLE registry.host_addr ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
 ALTER TABLE registry.host_status ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
-
+ALTER TABLE registry.promotion_pricing ADD FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id");    
+ALTER TABLE registry.premium_domain_pricing ADD FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id");
+ALTER TABLE registry.premium_domain_pricing ADD FOREIGN KEY ("category_id") REFERENCES registry.premium_domain_categories("category_id");
+ALTER TABLE registry.support_tickets ADD FOREIGN KEY ("user_id") REFERENCES registry.users(id);
+ALTER TABLE registry.support_tickets ADD FOREIGN KEY ("category_id") REFERENCES registry.ticket_categories(id);
+ALTER TABLE registry.ticket_responses ADD FOREIGN KEY ("ticket_id") REFERENCES registry.support_tickets(id);
+    
 CREATE TABLE registryTransaction.transaction_identifier (
     id BIGSERIAL PRIMARY KEY,
     registrar_id INT NOT NULL,

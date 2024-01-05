@@ -125,7 +125,9 @@ Now you need to update PostgreSQL Admin User Password:
 sudo -u postgres psql
 postgres=#
 postgres=# ALTER USER postgres PASSWORD 'demoPassword';
-postgres=# CREATE DATABASE registry;
+postgres=# CREATE SCHEMA registry;
+postgres=# CREATE SCHEMA registryTransaction;
+postgres=# CREATE SCHEMA registryAudit;
 postgres=# \q
 ```
 
