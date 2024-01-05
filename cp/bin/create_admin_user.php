@@ -6,6 +6,7 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
 
 // Retrieve database connection details from environment variables
+$dbDriver = $_ENV['DB_DRIVER'];
 $dbHost = $_ENV['DB_HOST'];
 $dbName = $_ENV['DB_DATABASE'];
 $dbUser = $_ENV['DB_USERNAME'];
@@ -26,12 +27,17 @@ $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
 
 try {
     // Create PDO instance
-    $pdo = new PDO("mysql:host=$dbHost;dbname=$dbName;charset=utf8", $dbUser, $dbPass);
+    if ($dbDriver == 'mysql') {
+        $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8";
+    } elseif ($dbDriver == 'pgsql') {
+        $dsn = "pgsql:host=$dbHost;dbname=$dbName";
+    }
+    $pdo = new PDO($dsn, $dbUser, $dbPass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // SQL query
     $sql = "INSERT INTO users (email, password, username, status, verified, resettable, roles_mask, registered, last_login, force_logout, tfa_secret, tfa_enabled, auth_method, backup_codes) 
-            VALUES (:email, :password, :username, 0, 1, 1, 0, 1, NULL, 0, NULL, 0, 'password', NULL)";
+            VALUES (:email, :password, :username, 0, 1, 1, 0, 1, NULL, 0, NULL, false, 'password', NULL)";
 
     // Prepare and execute SQL statement
     $stmt = $pdo->prepare($sql);

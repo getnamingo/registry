@@ -125,9 +125,9 @@ Now you need to update PostgreSQL Admin User Password:
 sudo -u postgres psql
 postgres=#
 postgres=# ALTER USER postgres PASSWORD 'demoPassword';
-postgres=# CREATE SCHEMA registry;
-postgres=# CREATE SCHEMA registryTransaction;
-postgres=# CREATE SCHEMA registryAudit;
+postgres=# CREATE DATABASE registry;
+postgres=# CREATE DATABASE registryTransaction;
+postgres=# CREATE DATABASE registryAudit;
 postgres=# \q
 ```
 
@@ -266,7 +266,7 @@ systemctl enable caddy
 systemctl restart caddy
 ```
 
-**And now is the right time to import the provided database file for your database type using Adminer.**
+**And now is the right time to import the provided database file(s) for your database type using Adminer.**
 
 ## 7. Control Panel Setup:
 

@@ -166,12 +166,13 @@ EOF
         psql --version
         echo "Configuring PostgreSQL..."
         sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
-        sudo -u postgres psql -c "CREATE SCHEMA registry;"
-        sudo -u postgres psql -c "CREATE SCHEMA registryTransaction;"
-        sudo -u postgres psql -c "CREATE SCHEMA registryAudit;"
+        sudo -u postgres psql -c "CREATE DATABASE registry;"
+        sudo -u postgres psql -c "CREATE DATABASE registryTransaction;"
+        sudo -u postgres psql -c "CREATE DATABASE registryAudit;"
         
-        echo "Importing SQL file into PostgreSQL..."
-        psql -U postgres -d postgres -f /opt/registry/database/registry.postgres.sql
+        echo "Importing SQL files into PostgreSQL..."
+        sudo -u postgres psql -U postgres -d registry -f /opt/registry/database/registry.postgres.sql
+        sudo -u postgres psql -U postgres -d registrytransaction -f /opt/registry/database/registryTransaction.postgres.sql
         echo "SQL import completed."
     fi
     

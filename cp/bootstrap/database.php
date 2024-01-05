@@ -13,7 +13,7 @@ elseif (config('default') == 'sqlite') {
 }
 // PostgreSQL Connection
 elseif (config('default') == 'pgsql') {
-    $pdo = new \PDO($config['pgsql']['driver'].':dbname='.$config['pgsql']['database'].';host='.$config['pgsql']['host'].';charset='.$config['pgsql']['charset'].'', $config['pgsql']['username'], $config['pgsql']['password']);
+    $pdo = new \PDO($config['pgsql']['driver'].':dbname='.$config['pgsql']['database'].';host='.$config['pgsql']['host'].';', $config['pgsql']['username'], $config['pgsql']['password']);
 	$db = \Pinga\Db\PdoDatabase::fromPdo($pdo);
 }
 // SQL Server Connection
