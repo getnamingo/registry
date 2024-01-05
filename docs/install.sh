@@ -6,6 +6,11 @@ prompt_for_input() {
     echo $response
 }
 
+prompt_for_password() {
+    read -sp "$1: " password
+    echo $password
+}
+
 # Function to edit or add a configuration line in php.ini
 edit_php_ini() {
     local file=$1
@@ -34,21 +39,37 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
     DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
     DB_USER=$(prompt_for_input "Enter database user")
-    DB_PASSWORD=$(prompt_for_input "Enter database password")
+    DB_PASSWORD=$(prompt_for_password "Enter database password")
+    echo ""  # Add a newline after the password input
     PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
-    PANEL_PASSWORD=$(prompt_for_input "Enter panel admin password")
+    PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
+    echo ""  # Add a newline after the password input
     current_user=$(whoami)
 
     # Step 1 - Components Installation
-    echo "Installing required packages..."
-    apt install -y curl software-properties-common ufw
-    echo "Adding PHP repository..."
-    add-apt-repository ppa:ondrej/php -y
-    apt install -y debian-keyring debian-archive-keyring apt-transport-https
-    echo "Setting up Caddy repository..."
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-    gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
+        echo "Installing required packages..."
+        apt install -y curl software-properties-common ufw
+        echo "Adding PHP repository..."
+        add-apt-repository ppa:ondrej/php -y
+        apt install -y debian-keyring debian-archive-keyring apt-transport-https
+        echo "Setting up Caddy repository..."
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "12" ]]; then
+        echo "Installing required packages..."
+        apt install -y curl software-properties-common ufw gnupg
+        echo "Adding PHP repository..."
+        wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
+        echo "deb https://packages.sury.org/php/ bookworm main" | tee /etc/apt/sources.list.d/php.list
+        apt install -y debian-keyring debian-archive-keyring apt-transport-https
+        echo "Setting up Caddy repository..."
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    fi
+
     echo "Updating package lists and upgrading packages..."
     apt update -y && apt upgrade -y
     echo "Installing additional required packages..."
@@ -89,7 +110,10 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     if [ "$DB_TYPE" == "MariaDB" ]; then
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
-        cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+        
+        # Check for Ubuntu 22.04 or Debian 12
+        if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
+            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
     # MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
     # https://mariadb.org/download/
     X-Repolib-Name: MariaDB
@@ -100,6 +124,21 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     Components: main main/debug
     Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
+        elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "12" ]]; then
+            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+    # MariaDB 10.11 repository list - created 2024-01-05 12:23 UTC
+    # https://mariadb.org/download/
+    X-Repolib-Name: MariaDB
+    Types: deb
+    # deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
+    # URIs: https://deb.mariadb.org/10.11/debian
+    URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/debian
+    Suites: bookworm
+    Components: main
+    Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+EOF
+        fi
+
         apt-get update
         apt install -y mariadb-client mariadb-server php8.2-mysql
         echo "Please follow the prompts for secure installation of MariaDB."
