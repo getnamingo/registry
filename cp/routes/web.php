@@ -137,10 +137,20 @@ $app->any('/api[/{params:.*}]', function (
     $args
 ) use ($container) {
     $db = config('connections');
+    if (config('default') == 'mysql') {
+        $db_username = $db['mysql']['username'];
+        $db_password = $db['mysql']['password'];
+        $db_database = $db['mysql']['database'];
+    } elseif (config('default') == 'pgsql') {
+        $db_username = $db['pgsql']['username'];
+        $db_password = $db['pgsql']['password'];
+        $db_database = $db['pgsql']['database'];
+    }
     $config = new Config([
-        'username' => $db['mysql']['username'],
-        'password' => $db['mysql']['password'],
-        'database' => $db['mysql']['database'],
+        'driver' => config('default'),
+        'username' => $db_username,
+        'password' => $db_password,
+        'database' => $db_database,
         'basePath' => '/api',
         'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
@@ -211,9 +221,17 @@ $app->any('/log-api[/{params:.*}]', function (
     $args
 ) use ($container) {
     $db = config('connections');
+    if (config('default') == 'mysql') {
+        $db_username = $db['mysql']['username'];
+        $db_password = $db['mysql']['password'];
+    } elseif (config('default') == 'pgsql') {
+        $db_username = $db['pgsql']['username'];
+        $db_password = $db['pgsql']['password'];
+    }
     $config = new Config([
-        'username' => $db['mysql']['username'],
-        'password' => $db['mysql']['password'],
+        'driver' => config('default'),
+        'username' => $db_username,
+        'password' => $db_password,
         'database' => 'registryTransaction',
         'basePath' => '/log-api',
         'middlewares' => 'customization,dbAuth,multiTenancy',
