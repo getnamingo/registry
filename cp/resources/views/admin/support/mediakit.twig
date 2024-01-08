@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Media Kit') }}
@@ -26,13 +26,13 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body border-bottom py-3">
-                <h2>Media Kit</h2>
+                <h2>{{ __('Media Kit') }}</h2>
                 <p>{{ media_kit_intro|default('Replace this section with an introduction about the media kit contents and its intended audience.') }}</p>
 
                 <h3>Logos</h3>
                 <p>{{ logos_intro|default('Provide guidelines on how to use your registry logos correctly.') }}</p>
                 <!-- Placeholder for logos. You can use a loop in Twig to iterate through and display multiple logos. -->
-                <img src="{{ logo_image_path|default('/static/logo.svg') }}" alt="Registry Logo" class="img-fluid mb-3">
+                <img src="{{ logo_image_path|default('/static/logo.svg') }}" alt="Registry Logo" class="img-fluid mb-3" style="max-width:50%;">
                 
                 <h3>Branding Guidelines</h3>
                 <p>{{ branding_guidelines|default('Detail any color schemes, typography, or design patterns related to your TLD registry brand here.') }}</p>
@@ -50,18 +50,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

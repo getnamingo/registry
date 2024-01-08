@@ -29,11 +29,11 @@
               {{ csrf.field | raw }}
                 <div class="card mb-3">
                   <div class="card-header">
-                    <h5 class="card-title">General Details</h5>
+                    <h5 class="card-title">{{ __('General Details') }}</h5>
                   </div>
                   <div class="card-body">
                     <div class="mb-3">
-                        <label for="tldName" class="form-label">TLD Extension</label>
+                        <label for="tldName" class="form-label">{{ __('TLD Extension') }}</label>
                         <div class="form-control-plaintext">{{ tld.tld }}</div>
                         <input type="hidden" name="extension" value="{{ tld.tld }}">
                     </div>
@@ -44,11 +44,11 @@
                         </label>
                     </div>
                     <div class="mb-3">
-                        <label for="tldTypeSelector" class="form-label">TLD Type</label>
+                        <label for="tldTypeSelector" class="form-label">{{ __('TLD Type') }}</label>
                         <div class="form-control-plaintext">ccTLD/gTLD</div>
                     </div>
                     <div class="mb-3">
-                        <label for="scriptDropdown" class="form-label">Supported Script</label>
+                        <label for="scriptDropdown" class="form-label">{{ __('Supported Script') }}</label>
                         <div class="form-control-plaintext">{{ scriptName }}</div>
                     </div>
                   </div>
@@ -56,30 +56,30 @@
 
                 <div class="card mb-3">
                   <div class="card-header">
-                    <h5 class="card-title">Pricing</h5>
+                    <h5 class="card-title">{{ __('Pricing') }}</h5>
                   </div>
                   <div class="card-body">
                     <div class="table-responsive">
                     <table class="table table-vcenter card-table">
                       <thead>
                         <tr>
-                          <th>Command</th>
-                          <th>Setup Fee</th>
-                          <th>1 Year <span class="text-red">*</span></th>
-                          <th>2 Years <span class="text-red">*</span></th>
-                          <th>3 Years <span class="text-red">*</span></th>
-                          <th>4 Years <span class="text-red">*</span></th>
-                          <th>5 Years <span class="text-red">*</span></th>
-                          <th>6 Years <span class="text-red">*</span></th>
-                          <th>7 Years <span class="text-red">*</span></th>
-                          <th>8 Years <span class="text-red">*</span></th>
-                          <th>9 Years <span class="text-red">*</span></th>
-                          <th>10 Years <span class="text-red">*</span></th>
+                          <th>{{ __('Command') }}</th>
+                          <th>{{ __('Setup Fee') }}</th>
+                          <th>1 {{ __('Year') }} <span class="text-red">*</span></th>
+                          <th>2 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>3 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>4 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>5 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>6 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>7 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>8 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>9 {{ __('Years') }} <span class="text-red">*</span></th>
+                          <th>10 {{ __('Years') }} <span class="text-red">*</span></th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td>Create</td>
+                          <td>{{ __('Create') }}</td>
                           <td><input type="number" class="form-control" name="createm0" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ createPrices.m0 }}"></td>
                           <td><input type="number" class="form-control" name="createm12" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ createPrices.m12 }}"></td>
                           <td><input type="number" class="form-control" name="createm24" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ createPrices.m24 }}"></td>
@@ -93,7 +93,7 @@
                           <td><input type="number" class="form-control" name="createm120" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ createPrices.m120 }}"></td>
                         </tr>
                         <tr>
-                          <td>Renew</td>
+                          <td>{{ __('Renew') }}</td>
                           <td><input type="number" class="form-control" name="renewm0" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ renewPrices.m0 }}"></td>
                           <td><input type="number" class="form-control" name="renewm12" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ renewPrices.m12 }}"></td>
                           <td><input type="number" class="form-control" name="renewm24" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ renewPrices.m24 }}"></td>
@@ -107,7 +107,7 @@
                           <td><input type="number" class="form-control" name="renewm120" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ renewPrices.m120 }}"></td>
                         </tr>
                         <tr>
-                          <td>Transfer</td>
+                          <td>{{ __('Transfer') }}</td>
                           <td><input type="number" class="form-control" name="transferm0" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ transferPrices.m0 }}"></td>
                           <td><input type="number" class="form-control" name="transferm12" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ transferPrices.m12 }}"></td>
                           <td><input type="number" class="form-control" name="transferm24" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ transferPrices.m24 }}"></td>
@@ -122,38 +122,38 @@
                         </tr>
                       </tbody>
                     </table>
-                    <small class="form-text text-muted">When you type a price for 1 Year above, it will automatically get multiplied for subsequent years.</small>
+                    <small class="form-text text-muted">{{ __('When you type a price for 1 Year above, it will automatically get multiplied for subsequent years.') }}</small>
                     </div>
                     <div class="mb-3 mt-3">
-                      <label for="restorePrice" class="form-label required">Restore Price</label>
+                      <label for="restorePrice" class="form-label required">{{ __('Restore Price') }}</label>
                       <input type="number" class="form-control" id="restorePrice" name="restorePrice" placeholder="0.00" required min="0" step="0.01" pattern="^\d+(\.\d{1,2})?$" value="{{ tld_restore.price }}">
-                      <small class="form-text text-muted">Enter the price for restoring the TLD.</small>
+                      <small class="form-text text-muted">{{ __('Enter the price for restoring the TLD.') }}</small>
                     </div>
                   </div>
                 </div>
                     
                 <div class="card mb-3">
                   <div class="card-header">
-                    <h5 class="card-title">Premium Names</h5>
+                    <h5 class="card-title">{{ __('Premium Names') }}</h5>
                   </div>
                   <div class="card-body">
                     <div class="mb-3">
-                      <label for="premiumNamesFile" class="form-label">Upload CSV File</label>
+                      <label for="premiumNamesFile" class="form-label">{{ __('Upload CSV File') }}</label>
                       <input type="file" class="form-control" id="premiumNamesFile" name="premiumNamesFile" accept=".csv">
                       <small class="form-text text-muted">
-                        Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload.
+					    {{ __('Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload.') }}
                       </small>
                     </div>
                             
                     <hr>
 
-                    <h6 class="mt-4 mb-3">Set Premium Name Price Categories</h6>
+                    <h6 class="mt-4 mb-3">{{ __('Set Premium Name Price Categories') }}</h6>
                     <table class="table" id="categoriesTable">
                       <thead>
                         <tr>
-                          <th>Category Name</th>
-                          <th>Price</th>
-                          <th>Action</th>
+                          <th>{{ __('Category Name') }}</th>
+                          <th>{{ __('Price') }}</th>
+                          <th>{{ __('Action') }}</th>
                         </tr>
                       </thead>
                      <tbody>
@@ -178,13 +178,13 @@
                      </tbody>
                     </table>
                       <small class="form-text text-muted">
-                        Update existing premium categories as needed. Please note: currently, deletion of categories is not available. All updates will modify existing information without removing any categories.
+                        {{ __('Update existing premium categories as needed. Please note: currently, deletion of categories is not available. All updates will modify existing information without removing any categories.') }}
                       </small>
                   </div>
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Update TLD {{ tld.tld }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update TLD') }} {{ tld.tld }}</button>
                       </div>
                     </div>
                   </div>
@@ -193,19 +193,19 @@
 
               <div class="card mb-3">
                   <div class="card-header">
-                      <h5 class="card-title">Manage Promotions</h5>
+                      <h5 class="card-title">{{ __('Manage Promotions') }}</h5>
                   </div>
                   <div class="card-body">
                   <div class="table-responsive mb-3">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Promotion Name</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Discount (%)</th>
-                                <th>Discount Amount</th>
-                                <th>Description</th>
+                                <th>{{ __('Promotion Name') }}</th>
+                                <th>{{ __('Start Date') }}</th>
+                                <th>{{ __('End Date') }}</th>
+                                <th>{{ __('Discount') }} (%)</th>
+                                <th>{{ __('Discount Amount') }}</th>
+                                <th>{{ __('Description') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -220,64 +220,64 @@
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="8">No promotions found.</td>
+                                    <td colspan="8">{{ __('No promotions found.') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                   </div>
-                      <h4 class="card-subtitle mt-3 mb-3">Create New Promotion</h4>
+                      <h4 class="card-subtitle mt-3 mb-3">{{ __('Create New Promotion') }}</h4>
                       <form action="/registry/promotions" method="post">
                       {{ csrf.field | raw }}
                       <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
                           <div class="mb-3">
-                              <label for="promotionName" class="form-label required">Promotion Name</label>
+                              <label for="promotionName" class="form-label required">{{ __('Promotion Name') }}</label>
                               <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name" required>
                           </div>
                           <div class="row">
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
-                                  <label for="promotionStart" class="form-label required">Promotion Start Date</label>
+                                  <label for="promotionStart" class="form-label required">{{ __('Promotion Start Date') }}</label>
                                   <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionStart" name="promotionStart" required>
-                                  <small class="form-text text-muted"><strong>Please Note:</strong> All times displayed are in <strong>Coordinated Universal Time (UTC)</strong></small>
+                                  <small class="form-text text-muted"><strong>{{ __('Please Note:') }}</strong> {{ __('All times displayed are in') }} <strong>Coordinated Universal Time (UTC)</strong></small>
                                 </div>
                               </div>
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
-                                  <label for="promotionEnd" class="form-label">Promotion End Date</label>
+                                  <label for="promotionEnd" class="form-label">{{ __('Promotion End Date') }}</label>
                                   <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionEnd" name="promotionEnd">
                                 </div>
                               </div>
                           </div>
                           <div class="mb-3">
-                              <label for="discountType" class="form-label required">Discount Type</label>
+                              <label for="discountType" class="form-label required">{{ __('Discount Type') }}</label>
                               <select class="form-select" id="discountType" name="discountType" required>
-                                  <option value="percentage">Percentage</option>
-                                  <option value="fixed">Fixed Amount</option>
-                                  <option value="free">Free Domains</option>
+                                  <option value="percentage">{{ __('Percentage') }}</option>
+                                  <option value="fixed">{{ __('Fixed Amount') }}</option>
+                                  <option value="free">{{ __('Free Domains') }}</option>
                               </select>
                           </div>
                           <div class="mb-3">
-                              <label for="discountValue" class="form-label">Discount Value</label>
-                              <input type="text" class="form-control" id="discountValue" name="discountValue" placeholder="Enter discount value">
+                              <label for="discountValue" class="form-label">{{ __('Discount Value') }}</label>
+                              <input type="text" class="form-control" id="discountValue" name="discountValue" placeholder="{{ __('Enter discount value') }}">
                           </div>
                           <div class="mb-3">
-                              <label for="max_count" class="form-label">Maximum Discounted Items</label>
+                              <label for="max_count" class="form-label">{{ __('Maximum Discounted Items') }}</label>
                               <input type="text" class="form-control" id="max_count" name="max_count">
                           </div>
                           <div class="mb-3">
-                              <label for="promotionConditions" class="form-label">Conditions</label>
-                              <textarea class="form-control" id="promotionConditions" name="promotionConditions" rows="3" placeholder="Enter conditions"></textarea>
+                              <label for="promotionConditions" class="form-label">{{ __('Conditions') }}</label>
+                              <textarea class="form-control" id="promotionConditions" name="promotionConditions" rows="3" placeholder="{{ __('Enter conditions') }}"></textarea>
                           </div>
                           <div class="mb-3">
-                              <label for="promotionDescription" class="form-label">Description</label>
-                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="Enter description"></textarea>
+                              <label for="promotionDescription" class="form-label">{{ __('Description') }}</label>
+                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="{{ __('Enter description') }}"></textarea>
                           </div>
                   </div>
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Update Promotions</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update Promotions') }}</button>
                       </div>
                     </div>
                     </form>
@@ -286,19 +286,19 @@
               
               <div class="card">
                   <div class="card-header">
-                      <h5 class="card-title">Manage Launch Phases</h5>
+                      <h5 class="card-title">{{ __('Manage Launch Phases') }}</h5>
                   </div>
                   <div class="card-body">
                   <div class="table-responsive mb-3">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Phase Type</th>
-                                <th>Phase Name</th>
-                                <th>Phase Category</th>
-                                <th>Phase Description</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>{{ __('Phase Type') }}</th>
+                                <th>{{ __('Phase Name') }}</th>
+                                <th>{{ __('Phase Category') }}</th>
+                                <th>{{ __('Phase Description') }}</th>
+                                <th>{{ __('Start Date') }}</th>
+                                <th>{{ __('End Date') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -313,18 +313,18 @@
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="7">No launch phases found.</td>
+                                    <td colspan="7">{{ __('No launch phases found.') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                   </div>
-                      <h4 class="card-subtitle mt-3 mb-3">Create New Phase</h4>
+                      <h4 class="card-subtitle mt-3 mb-3">{{ __('Create New Phase') }}</h4>
                       <form action="/registry/phases" method="post">
                       {{ csrf.field | raw }}
                       <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
                           <div class="mb-3">
-                              <label for="phaseType" class="form-label required">Phase Type</label>
+                              <label for="phaseType" class="form-label required">{{ __('Phase Type') }}</label>
                               <select class="form-select" id="phaseType" name="phaseType" required>
                                   <option value="sunrise">Sunrise</option>
                                   <option value="landrush">Landrush</option>
@@ -334,40 +334,40 @@
                               </select>
                           </div>
                           <div class="mb-3">
-                              <label for="phaseName" class="form-label">Phase Name</label>
+                              <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
                               <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
                               <small class="form-hint">The "Phase Name" field is required only if the "Type" is set to "Custom".</small>
                           </div>
                           <div class="mb-3">
-                            <div class="form-label">Phase Category</div>
+                            <div class="form-label">{{ __('Phase Category') }}</div>
                             <div>
                               <label class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="phaseCategory" id="First-Come-First-Serve" value="First-Come-First-Serve" checked>
                                 <span class="form-check-label">First-Come-First-Serve</span>
-                                <small class="form-hint">Single application only.</small>
+                                <small class="form-hint">{{ __('Single application only.') }}</small>
                               </label>
                               <label class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="phaseCategory" id="Application" value="Application">
                                 <span class="form-check-label">Application</span>
-                                <small class="form-hint">Multiple applications allowed.</small>
+                                <small class="form-hint">{{ __('Multiple applications allowed.') }}</small>
                               </label>
                             </div>
                           </div>
                           <div class="mb-3">
-                              <label for="phaseDescription" class="form-label required">Phase Description</label>
-                              <textarea class="form-control" id="phaseDescription" name="phaseDescription" rows="3" placeholder="Enter phase description" required></textarea>
+                              <label for="phaseDescription" class="form-label required">{{ __('Phase Description') }}</label>
+                              <textarea class="form-control" id="phaseDescription" name="phaseDescription" rows="3" placeholder="{{ __('Enter phase description') }}" required></textarea>
                           </div>
                           <div class="row">
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
-                                  <label for="phaseStart" class="form-label required">Phase Start Date</label>
+                                  <label for="phaseStart" class="form-label required">{{ __('Phase Start Date') }}</label>
                                   <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseStart" name="phaseStart" required>
-                                  <small class="form-text text-muted"><strong>Please Note:</strong> All times displayed are in <strong>Coordinated Universal Time (UTC)</strong></small>
+                                  <small class="form-text text-muted"><strong>{{ __('Please Note:') }}</strong> {{ __('All times displayed are in') }} <strong>Coordinated Universal Time (UTC)</strong></small>
                                 </div>
                               </div>
                               <div class="col-sm-6 col-md-6">
                                 <div class="mb-3">
-                                  <label for="phaseEnd" class="form-label">Phase End Date</label>
+                                  <label for="phaseEnd" class="form-label">{{ __('Phase End Date') }}</label>
                                   <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseEnd" name="phaseEnd">
                                 </div>
                               </div>
@@ -376,7 +376,7 @@
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Update Phases</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update Phases') }}</button>
                       </div>
                     </div>
                     </form>
@@ -385,19 +385,7 @@
 
             </div>
           </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
   document.addEventListener('DOMContentLoaded', function() {

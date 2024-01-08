@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Documentation') }}
@@ -26,7 +26,7 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body border-bottom py-3">
-                <h2>Documentation</h2>
+                <h2>{{ __('Documentation') }}</h2>
                 <p>{{ documentation_intro|default('Replace this section with a brief introduction about your documentation.') }}</p>
 
                 <h3>Getting Started</h3>
@@ -45,18 +45,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}
