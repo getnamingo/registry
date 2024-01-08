@@ -105,9 +105,13 @@ class FinancialsController extends Controller
             $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
             [ $_SESSION["auth_registrar_id"] ]
             );
+            $currency = $_SESSION['_currency'];
+            $stripe_key = envi('STRIPE_PUBLISHABLE_KEY');
 
             return view($response,'admin/financials/deposit-registrar.twig', [
-                'balance' => $balance
+                'balance' => $balance,
+                'currency' => $currency,
+                'stripe_key' => $stripe_key
             ]);
         }
 
@@ -183,9 +187,11 @@ class FinancialsController extends Controller
             
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        $currency = $_SESSION['_currency'];
     
         return view($response,'admin/financials/deposit.twig', [
-            'registrars' => $registrars
+            'registrars' => $registrars,
+            'currency' => $currency
         ]);
     }
     

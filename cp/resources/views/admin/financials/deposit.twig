@@ -54,9 +54,9 @@
                   <form id="depositForm" action="/deposit" method="post">
                   {{ csrf.field | raw }}
                     <div class="mb-3">
-                        <label for="registrarSelect" class="form-label">Registrar</label>
+                        <label for="registrarSelect" class="form-label">{{ __('Registrar') }}</label>
                         <select class="form-select" id="registrarSelect" name="registrar" required>
-                                <option selected disabled value="">Choose Registrar...</option>
+                                <option selected disabled value="">{{ __('Choose Registrar...') }}</option>
                             {% for registrar in registrars %}
                                 <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                             {% endfor %}
@@ -64,24 +64,24 @@
                     </div>
 
                     <div class="deposit-info">
-                        <h5>Current Balance for <span id="registrarName"></span></h5>
-                        <p class="fs-4">$<span id="currentFunds">0.00</span></p>
+                        <h5>{{ __('Current Balance for') }} <span id="registrarName"></span></h5>
+                        <p class="fs-4">{{ currency }} <span id="currentFunds">0.00</span></p>
                     </div>
 
                     <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Enter deposit amount" required>
+                        <label for="amount" class="form-label">{{ __('Amount') }}</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="{{ __('Enter deposit amount') }}" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional deposit description"></textarea>
+                        <label for="description" class="form-label">{{ __('Description') }}</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="{{ __('Optional deposit description') }}"></textarea>
                     </div>
                 </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">Add Deposit</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Add Deposit') }}</button>
                     </div>
                   </div>
                 </div>
@@ -113,18 +113,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}
