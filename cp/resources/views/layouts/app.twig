@@ -6,11 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') %}
-        {% include 'partials/css-tables.twig' %}
-    {% else %}
-        {% include 'partials/css.twig' %}
-    {% endif %}
+{% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
     <style>
       @import url('https://rsms.me/inter/inter.css');
       :root {

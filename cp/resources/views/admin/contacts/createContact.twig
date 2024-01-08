@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Create Contact') }}
@@ -56,21 +56,21 @@
                             <div class="row">
                                 <!-- First Column: General & Internationalized Info -->
                                 <div class="col-md-6">
-                                    <h6 class="mb-3">General & Internationalized Info</h6>
+                                    <h6 class="mb-3">{{ __('General & Internationalized Info') }}</h6>
                                     
                                     <!-- Internationalized Name -->
                                     <div class="mb-3">
-                                        <label for="intName" class="form-label required">Name</label>
+                                        <label for="intName" class="form-label required">{{ __('Name') }}</label>
                                         <input type="text" class="form-control" id="intName" name="intName" required="required">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseNameInt" name="disclose_name_int">
-                                          <span class="form-check-label" for="discloseNameInt">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseNameInt">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
                                     
                                     {% if registrars and not registrar %}
                                         <div class="form-group mb-3">
-                                            <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
+                                            <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
                                             <select id="registrarDropdown" name="registrar" class="form-control">
                                                 {% for registrar in registrars %}
                                                     <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -81,43 +81,43 @@
 
                                     <!-- Internationalized Organization -->
                                     <div class="mb-3">
-                                        <label for="intOrg" class="form-label required">Organization</label>
+                                        <label for="intOrg" class="form-label required">{{ __('Organization') }}</label>
                                         <input type="text" class="form-control" id="intOrg" name="org" required="required">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseOrgInt" name="disclose_org_int">
-                                          <span class="form-check-label" for="discloseOrgInt">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseOrgInt">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
 
                                     <!-- Internationalized Address: Street Details -->
                                     <div class="mb-3">
-                                        <label for="street1" class="form-label required">Street 1</label>
+                                        <label for="street1" class="form-label required">{{ __('Street') }} 1</label>
                                         <input type="text" class="form-control" id="street1" name="street1" required="required">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="street2" class="form-label">Street 2</label>
+                                        <label for="street2" class="form-label">{{ __('Street') }} 2</label>
                                         <input type="text" class="form-control" id="street2" name="street2">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="street3" class="form-label">Street 3</label>
+                                        <label for="street3" class="form-label">{{ __('Street') }} 3</label>
                                         <input type="text" class="form-control" id="street3" name="street3">
                                     </div>
 
                                     <!-- Internationalized Address: City, SP, PC, CC -->
                                     <div class="mb-3">
-                                        <label for="city" class="form-label required">City</label>
+                                        <label for="city" class="form-label required">{{ __('City') }}</label>
                                         <input type="text" class="form-control" id="city" name="city"  required="required">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="sp" class="form-label">State/Province</label>
+                                        <label for="sp" class="form-label">{{ __('State/Province') }}</label>
                                         <input type="text" class="form-control" id="sp" name="sp">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="pc" class="form-label">Postal Code</label>
+                                        <label for="pc" class="form-label">{{ __('Postal Code') }}</label>
                                         <input type="text" class="form-control" id="pc" name="pc">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="cc" class="form-label required">Country</label>
+                                        <label for="cc" class="form-label required">{{ __('Country') }}</label>
                                         <select class="form-select" id="cc" name="cc" required="required">
                                             {% for country in countries %}
                                                 <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
@@ -126,60 +126,60 @@
                                     </div>            
                                     <label class="form-check form-switch mt-1">
                                       <input class="form-check-input" type="checkbox" id="discloseAddrInt" name="disclose_addr_int">
-                                      <span class="form-check-label" for="discloseAddrInt">Disclose Address in WHOIS</span>
+                                      <span class="form-check-label" for="discloseAddrInt">{{ __('Disclose Address in WHOIS') }}</span>
                                     </label>
                                 </div>
 
                                 <!-- Second Column: Voice, Fax, Email, and other details -->
                                 <div class="col-md-6">
-                                    <h6 class="mb-3">Contact Details</h6>
+                                    <h6 class="mb-3">{{ __('Contact Details') }}</h6>
                                     
                                     <!-- Contact ID -->
                                     <div class="mb-3">
-                                        <label for="contactid" class="form-label required">Contact ID</label>
+                                        <label for="contactid" class="form-label required">{{ __('Contact ID') }}</label>
                                         <input type="text" class="form-control" id="contactid" name="contactid" required="required">
                                     </div>
 
                                     <!-- Voice -->
                                     <div class="mb-3">
-                                        <label for="voice" class="form-label required">Voice</label>
+                                        <label for="voice" class="form-label required">{{ __('Voice') }}</label>
                                         <input type="tel" class="form-control" id="voice" name="voice" required="required">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseVoice" name="disclose_voice">
-                                          <span class="form-check-label" for="discloseVoice">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseVoice">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
 
                                     <!-- Fax -->
                                     <div class="mb-3">
-                                        <label for="fax" class="form-label">Fax</label>
+                                        <label for="fax" class="form-label">{{ __('Fax') }}</label>
                                         <input type="tel" class="form-control" id="fax" name="fax">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseFax" name="disclose_fax">
-                                          <span class="form-check-label" for="discloseFax">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseFax">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
 
                                     <!-- Email -->
                                     <div class="mb-3">
-                                        <label for="email" class="form-label required">Email</label>
+                                        <label for="email" class="form-label required">{{ __('Email') }}</label>
                                         <input type="email" class="form-control" id="email" name="email"  required="required" autocapitalize="none">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email">
-                                          <span class="form-check-label" for="discloseEmail">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseEmail">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
                                     
                                     <!-- AuthInfo for Contact -->
                                     <div class="mb-3">
-                                        <label for="authInfo" class="form-label required">Contact AuthInfo</label>
+                                        <label for="authInfo" class="form-label required">{{ __('Contact AuthInfo') }}</label>
                                         <input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
-                                        <small class="form-text text-muted">Auto-generated authentication information for the contact.</small>
+                                        <small class="form-text text-muted">{{ __('Auto-generated authentication information for the contact') }}.</small>
                                     </div>
 
                                     <!-- NIN - National Identification Number -->
                                     <div class="mb-3">
-                                        <label for="nin" class="form-label">NIN - National Identification Number</label>
+                                        <label for="nin" class="form-label">{{ __('NIN - National Identification Number') }}</label>
                                         <input type="text" class="form-control" id="nin" name="nin">
                                     </div>
 
@@ -187,7 +187,7 @@
                                     <div class="mb-3">
                                         <div class="form-check">
                                             <input type="checkbox" class="form-check-input" id="isBusiness" name="isBusiness">
-                                            <label class="form-check-label" for="isBusiness">This is a Business Contact</label>
+                                            <label class="form-check-label" for="isBusiness">{{ __('This is a Business Contact') }}</label>
                                         </div>
                                         <!-- You can invert the logic if you prefer the default to be 'Personal' instead of 'Business' -->
                                     </div>
@@ -195,15 +195,15 @@
                                     <div class="mb-3">
                                         <div class="form-check">
                                             <input type="checkbox" class="form-check-input" id="verifyPhone" name="verifyPhone">
-                                            <label class="form-check-label" for="verifyPhone">Verify by Phone</label>
+                                            <label class="form-check-label" for="verifyPhone">{{ __('Verify by Phone') }}</label>
                                         </div>
                                         <div class="form-check">
                                             <input type="checkbox" class="form-check-input" id="verifyEmail" name="verifyEmail">
-                                            <label class="form-check-label" for="verifyEmail">Verify by Email</label>
+                                            <label class="form-check-label" for="verifyEmail">{{ __('Verify by Email') }}</label>
                                         </div>
                                         <div class="form-check">
                                             <input type="checkbox" class="form-check-input" id="verifyPostal" name="verifyPostal">
-                                            <label class="form-check-label" for="verifyPostal">Verify by Postal Mail</label>
+                                            <label class="form-check-label" for="verifyPostal">{{ __('Verify by Postal Mail') }}</label>
                                         </div>
                                     </div>
 
@@ -214,7 +214,7 @@
                             <div class="mb-3">
                                 <label class="form-check form-switch">
                                   <input class="form-check-input" type="checkbox" id="toggleLoc">
-                                  <span class="form-check-label" for="toggleLoc">Include Localized Info</span>
+                                  <span class="form-check-label" for="toggleLoc">{{ __('Include Localized Info') }}</span>
                                 </label>
                             </div>
 
@@ -222,64 +222,64 @@
                             <div class="row" id="localizedInfo" style="display: none;">
                                 <!-- Localized Postal Info: First Column -->
                                 <div class="col-md-6">
-                                    <h6 class="mb-3">Localized Postal Info: Personal Details</h6>
+                                    <h6 class="mb-3">{{ __('Localized Postal Info: Personal Details') }}</h6>
 
                                     <!-- Localized Name -->
                                     <div class="mb-3">
-                                        <label for="locName" class="form-label">Name</label>
+                                        <label for="locName" class="form-label">{{ __('Name') }}</label>
                                         <input type="text" class="form-control" id="locName" name="locName">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseNameLoc" name="disclose_name_loc">
-                                          <span class="form-check-label" for="discloseNameLoc">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseNameLoc">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
 
                                     <!-- Localized Organization -->
                                     <div class="mb-3">
-                                        <label for="locOrg" class="form-label">Organization</label>
+                                        <label for="locOrg" class="form-label">{{ __('Organization') }}</label>
                                         <input type="text" class="form-control" id="locOrg" name="locOrg">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseOrgLoc" name="disclose_org_loc">
-                                          <span class="form-check-label" for="discloseOrgLoc">Disclose in WHOIS</span>
+                                          <span class="form-check-label" for="discloseOrgLoc">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
 
                                     <!-- Localized Street Details -->
                                     <div class="mb-3">
-                                        <label for="locStreet1" class="form-label">Street 1</label>
+                                        <label for="locStreet1" class="form-label">{{ __('Street') }} 1</label>
                                         <input type="text" class="form-control" id="locStreet1" name="locStreet1">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="locStreet2" class="form-label">Street 2</label>
+                                        <label for="locStreet2" class="form-label">{{ __('Street') }} 2</label>
                                         <input type="text" class="form-control" id="locStreet2" name="locStreet2">
                                     </div>
                                 </div>
 
                                 <!-- Localized Postal Info: Second Column -->
                                 <div class="col-md-6">
-                                    <h6 class="mb-3">Localized Postal Info: Address Details</h6>
+                                    <h6 class="mb-3">{{ __('Localized Postal Info: Address Details') }}</h6>
 
                                     <!-- Continued Localized Street Detail -->
                                     <div class="mb-3">
-                                        <label for="locStreet3" class="form-label">Street 3</label>
+                                        <label for="locStreet3" class="form-label">{{ __('Street') }} 3</label>
                                         <input type="text" class="form-control" id="locStreet3" name="locStreet3">
                                     </div>
 
                                     <!-- Localized City, SP, PC, CC -->
                                     <div class="mb-3">
-                                        <label for="locCity" class="form-label">City</label>
+                                        <label for="locCity" class="form-label">{{ __('City') }}</label>
                                         <input type="text" class="form-control" id="locCity" name="locCity">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="locSP" class="form-label">State/Province</label>
+                                        <label for="locSP" class="form-label">{{ __('State/Province') }}</label>
                                         <input type="text" class="form-control" id="locSP" name="locSP">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="locPC" class="form-label">Postal Code</label>
+                                        <label for="locPC" class="form-label">{{ __('Postal Code') }}</label>
                                         <input type="text" class="form-control" id="locPC" name="locPC">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="locCC" class="form-label">Country</label>
+                                        <label for="locCC" class="form-label">{{ __('Country') }}</label>
                                         <select class="form-select" id="locCC" name="locCC">
                                             {% for country in countries %}
                                                 <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
@@ -288,7 +288,7 @@
                                     </div>                        
                                     <label class="form-check form-switch mt-1">
                                       <input class="form-check-input" type="checkbox" id="discloseAddrLoc" name="disclose_addr_loc">
-                                      <span class="form-check-label" for="discloseAddrLoc">Disclose Address in WHOIS</span>
+                                      <span class="form-check-label" for="discloseAddrLoc">{{ __('Disclose Address in WHOIS') }}</span>
                                     </label>
                                 </div>
                             </div>
@@ -296,7 +296,7 @@
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">Create Contact</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Create Contact') }}</button>
                     </div>
                   </div>
                 </div>
@@ -304,19 +304,7 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
