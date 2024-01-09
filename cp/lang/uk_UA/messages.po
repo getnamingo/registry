@@ -247,6 +247,9 @@ msgstr "Резервна копія"
 msgid "Support"
 msgstr "Підтримка"
 
+msgid "Priority"
+msgstr "Пріоритет"
+
 msgid "Support Tickets"
 msgstr "Заявки на підтримку"
 
@@ -255,6 +258,42 @@ msgstr "Створити заявку"
 
 msgid "Create New Ticket"
 msgstr "Створити новий запит"
+
+msgid "New Support Ticket"
+msgstr "Новий тикет підтримки"
+
+msgid "Category"
+msgstr "Категорія"
+
+msgid "Select a category"
+msgstr "Виберіть категорію"
+
+msgid "Subject"
+msgstr "Тема"
+
+msgid "Message"
+msgstr "Повідомлення"
+
+msgid "Ticket Overview"
+msgstr "Огляд квитка"
+
+msgid "Ticket"
+msgstr "Квиток"
+
+msgid "Ticket Details"
+msgstr "Деталі квитка"
+
+msgid "Created On"
+msgstr "Створено на"
+
+msgid "Conversation"
+msgstr "Розмова"
+
+msgid "Your Response"
+msgstr "Ваша відповідь"
+
+msgid "Submit Response"
+msgstr "Надіслати відповідь"
 
 msgid "Documentation"
 msgstr "Документація"
