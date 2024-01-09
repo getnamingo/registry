@@ -12,9 +12,17 @@ use Gettext\Loader\PoLoader;
 use Gettext\Translations;
 use Punic\Language;
 
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
+// Enable for debug
+// if (session_status() == PHP_SESSION_NONE) {
+//     session_start();
+// }
+
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_lifetime', '0');
+ini_set('session.hash_function', 'sha256');
+ini_set('session.entropy_length', '32');
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';

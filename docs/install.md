@@ -314,6 +314,27 @@ To get the starting list of TLDs (Top-Level Domains) from ICANN and cache it for
 php /var/www/cp/bin/file_cache.php
 ```
 
+### Setting Up Redis Session Storage:
+
+To utilize Redis for session storage, you need to install the necessary packages and configure your environment accordingly. Follow these steps to set up Redis session storage:
+
+```bash
+cd /var/www/cp
+composer require predis/predis pinga/session-redis
+```
+
+After installation, log out of your application if you are currently logged in. This ensures that the session starts afresh with the new configuration.
+
+Clear your browser cookies related to the application. This step is crucial as it removes any existing session cookies that were set using the previous session storage mechanism.
+
+Upon your next login, Redis will be used for storing session data. The new sessions will be created and managed through Redis, providing a more scalable and efficient session management system.
+
+**Note**: Ensure that your Redis server is properly configured and running before proceeding with these steps. If in doubt, check with:
+
+```bash
+systemctl status redis-server
+```
+
 ## 8. Setup Web Lookup:
 
 ```bash

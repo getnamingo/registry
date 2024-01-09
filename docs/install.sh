@@ -398,6 +398,9 @@ EOF
     sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
     php /var/www/cp/bin/create_admin_user.php
 
+    echo "Downloading initial data."
+    php /var/www/cp/bin/file_cache.php
+
     echo -e "Installation complete!\n"
     echo -e "Next steps:\n"
     echo -e "1. Configure each component by editing their respective configuration files."
