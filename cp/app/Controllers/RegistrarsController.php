@@ -328,7 +328,7 @@ class RegistrarsController extends Controller
                 $registrarWhitelist = $db->select('SELECT addr FROM registrar_whitelist WHERE registrar_id = ?',
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
-                if (!empty($registrarOte)) {
+                if (is_array($registrarOte) && !empty($registrarOte)) {
                     // Split the results into two groups
                     $firstHalf = array_slice($registrarOte, 0, 5);
                     $secondHalf = array_slice($registrarOte, 5);
