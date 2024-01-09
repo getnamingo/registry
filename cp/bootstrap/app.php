@@ -53,37 +53,6 @@ $routeParser = $app->getRouteCollector()->getRouteParser();
 
 require_once __DIR__ . '/database.php';
 
-// Known set of languages
-$allowedLanguages = ['en_US', 'uk_UA', 'es_ES']; // Add more as needed
-
-if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
-    // Use regex to validate the format: two letters, underscore, two letters
-    if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
-        $desiredLanguage = $_SESSION['_lang'];
-        $parts = explode('_', $_SESSION['_lang']);
-        if (isset($parts[1])) {
-            $uiLang = strtolower($parts[1]);
-        }
-    } else {
-        $desiredLanguage = 'en_US';
-        $uiLang = 'us';
-    }
-} else {
-    $desiredLanguage = 'en_US';
-    $uiLang = 'us';
-}
-$lang_full = Language::getName($desiredLanguage, 'en');
-$lang = trim(strstr($lang_full, ' (', true));
-
-$languageFile = '../lang/' . $desiredLanguage . '/messages.po';
-if (!file_exists($languageFile)) {
-    $desiredLanguage = 'en_US'; // Fallback
-    $languageFile = '../lang/en_US/messages.po';
-}
-
-$loader = new PoLoader();
-$translations = $loader->loadFile($languageFile);
-
 $container->set('router', function () use ($routeParser) {
     return $routeParser;
 });
@@ -109,7 +78,7 @@ $container->set('flash', function() {
     return new \Slim\Flash\Messages;
 });
 
-$container->set('view', function ($container) use ($translations, $uiLang, $lang) {
+$container->set('view', function ($container) {
     $view = Twig::create(__DIR__ . '/../resources/views', [
         'cache' => false,
     ]);
@@ -117,6 +86,38 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
         'isLogin' => $container->get('auth')->isLogin(),
         'user' => $container->get('auth')->user(),
     ]);
+
+    // Known set of languages
+    $allowedLanguages = ['en_US', 'uk_UA', 'es_ES']; // Add more as needed
+
+    if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
+        // Use regex to validate the format: two letters, underscore, two letters
+        if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
+            $desiredLanguage = $_SESSION['_lang'];
+            $parts = explode('_', $_SESSION['_lang']);
+            if (isset($parts[1])) {
+                $uiLang = strtolower($parts[1]);
+            }
+        } else {
+            $desiredLanguage = 'en_US';
+            $uiLang = 'us';
+        }
+    } else {
+        $desiredLanguage = 'en_US';
+        $uiLang = 'us';
+    }
+    $lang_full = Language::getName($desiredLanguage, 'en');
+    $lang = trim(strstr($lang_full, ' (', true));
+
+    $languageFile = '../lang/' . $desiredLanguage . '/messages.po';
+    if (!file_exists($languageFile)) {
+        $desiredLanguage = 'en_US'; // Fallback
+        $languageFile = '../lang/en_US/messages.po';
+    }
+
+    $loader = new PoLoader();
+    $translations = $loader->loadFile($languageFile);
+
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
