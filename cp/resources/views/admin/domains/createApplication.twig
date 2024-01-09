@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Create Application') }}
@@ -59,7 +59,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="phaseType" class="form-label required">Phase Type</label>
+                                <label for="phaseType" class="form-label required">{{ __('Phase Type') }}</label>
                                 <select class="form-select" id="phaseType" name="phaseType" required>
                                     <option value="sunrise">Sunrise</option>
                                     <option value="landrush">Landrush</option>
@@ -70,14 +70,14 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="phaseName" class="form-label">Phase Name</label>
+                                <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
                                 <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
                                 <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
                             </div>
                             
                             {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
-                                    <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
+                                    <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -131,8 +131,8 @@
                             </div>
                             
                             <div class="mb-3">
-                              <label class="form-label">Signed Mark Information</label>
-                              <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="Paste SMD contents…"></textarea>
+                              <label class="form-label">{{ __('Signed Mark Information') }}</label>
+                              <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="{{ __('Paste SMD contents') }}…"></textarea>
                             </div>
                             
                             <div class="mb-3">

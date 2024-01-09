@@ -31,7 +31,7 @@
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">
-                        Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
+                        {{ __('Domain') }} {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
                         {% if domainStatus %}
                             {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
@@ -50,23 +50,23 @@
                   <div class="card-body">
                     <div class="datagrid">
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Created On</div>
+                        <div class="datagrid-title">{{ __('Created On') }}</div>
                         <div class="datagrid-content">{{ domain.crdate }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Launch Phase</div>
+                        <div class="datagrid-title">{{ __('Launch Phase') }}</div>
                         <div class="datagrid-content">{{ domain.phase_type|capitalize }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Phase Name</div>
+                        <div class="datagrid-title">{{ __('Phase Name') }}</div>
                         <div class="datagrid-content">{{ domain.phase_name|default('N/A') }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Registrar</div>
+                        <div class="datagrid-title">{{ __('Registrar') }}</div>
                         <div class="datagrid-content">{{ registrar.name }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Application ID</div>
+                        <div class="datagrid-title">{{ __('Application ID') }}</div>
                         <div class="datagrid-content">{{ domain.application_id }}</div>
                       </div>
                     </div>
