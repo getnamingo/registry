@@ -93,7 +93,7 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Name') }}", field:"name", width:300, headerSort:false, formatter: hostLinkFormatter, responsive:0},
+            {title:"{{ __('Host Name') }}", field:"name", width:300, headerSort:false, formatter: hostLinkFormatter, responsive:0},
             {title:"{{ __('Creation Date') }}", field:"crdate", width:300, minWidth:200, headerSort:false, responsive:2},
             {title:"{{ __('Status') }}", field:"host_status", width:300, minWidth:200, formatter: statusFormatter, headerSort:false, download:false, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
