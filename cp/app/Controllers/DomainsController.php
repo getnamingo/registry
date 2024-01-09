@@ -1104,7 +1104,8 @@ class DomainsController extends Controller
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
             'registrar' => $registrar,
-            'launch_phases' => $launch_phases
+            'launch_phases' => $launch_phases,
+            'currency' => $currency,
         ]);
     }
     
@@ -2084,7 +2085,8 @@ class DomainsController extends Controller
                     'maxYears' => $maxYears,
                     'currentUri' => $uri,
                     'currencySymbol' => $symbol,
-                    'currencyPosition' => $position
+                    'currencyPosition' => $position,
+                    'currency' => $currency
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -2719,6 +2721,7 @@ class DomainsController extends Controller
             'registrars' => $registrars,
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
+            'currency' => $currency
         ]);
     }
     

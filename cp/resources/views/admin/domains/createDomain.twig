@@ -79,7 +79,7 @@
                             
                             <!-- Placeholder for displaying domain price -->
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
-                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
+                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">{{ currency }} 0.00</span>
                             </div>
 
                             <!-- Fields for 4 contacts with roles -->
@@ -443,9 +443,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function formatPrice(price) {
         switch(window.currencyPosition) {
             case 'before':
-                return `${window.currencySymbol}${price.toFixed(2)}`;
+                return `{{ currency }} ${price.toFixed(2)}`;
             case 'after':
-                return `${price.toFixed(2)} ${window.currencySymbol}`;
+                return `${price.toFixed(2)} {{ currency }}`;
             default:
                 return price.toFixed(2);
         }

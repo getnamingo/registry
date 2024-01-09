@@ -36,7 +36,7 @@
                             
                             {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
-                                    <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}:</label>
+                                    <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -60,7 +60,7 @@
                             
                             <!-- Placeholder for displaying domain price -->
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
-                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
+                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">{{ currency }} 0.00</span>
                             </div>
 
                             <div class="mb-3">
@@ -168,9 +168,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function formatPrice(price) {
         switch(window.currencyPosition) {
             case 'before':
-                return `${window.currencySymbol}${price.toFixed(2)}`;
+                return `{{ currency }} ${price.toFixed(2)}`;
             case 'after':
-                return `${price.toFixed(2)} ${window.currencySymbol}`;
+                return `${price.toFixed(2)} {{ currency }}`;
             default:
                 return price.toFixed(2);
         }

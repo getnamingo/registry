@@ -25,6 +25,27 @@ msgstr "Вийти"
 msgid "Domains"
 msgstr "Домени"
 
+msgid "Registrant"
+msgstr "Реєстрант"
+
+msgid "Creation Date"
+msgstr "Дата створення"
+
+msgid "Expiration Date"
+msgstr "Термін дії"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Actions"
+msgstr "Дії"
+
+msgid "No Data"
+msgstr "Немає даних"
+
+msgid "Search"
+msgstr "Пошук"
+
 msgid "List Domains"
 msgstr "Список доменів"
 
@@ -33,6 +54,9 @@ msgstr "Перевірте домен"
 
 msgid "Enter the domain name you want to check:"
 msgstr "Введіть доменне ім’я, яке потрібно перевірити:"
+
+msgid "Check claims"
+msgstr "Перевірте claims"
 
 msgid "Check Availability"
 msgstr "Перевірте наявність"
@@ -61,6 +85,15 @@ msgstr "Додати дані DNSSEC"
 msgid "List Applications"
 msgstr "Список заяв"
 
+msgid "Applications"
+msgstr "Заявки"
+
+msgid "Applicant"
+msgstr "Заявник"
+
+msgid "Phase"
+msgstr "Фаза"
+
 msgid "Create Application"
 msgstr "Створити заявку"
 
@@ -69,6 +102,12 @@ msgstr "Трансфери"
 
 msgid "Request Transfer"
 msgstr "Запит на перенесення"
+
+msgid "Initiated Date"
+msgstr "Дата ініціювання"
+
+msgid "Expiry Date"
+msgstr "Термін дії"
 
 msgid "Contacts"
 msgstr "Контакти"
