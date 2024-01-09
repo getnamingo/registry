@@ -72,12 +72,9 @@ class SupportController extends Controller
                     'categories' => $categories
                 ]);
             }
-            
-            return view($response, 'admin/support/view.twig', [
-                'categories' => $categories,
-                'subject' => $subject,
-            ]);
-            
+			
+            $this->container->get('flash')->addMessage('success', 'Support ticket ' . $subject . ' has been created successfully!');
+            return $response->withHeader('Location', '/support')->withStatus(302);          
         }
         
         $db = $this->container->get('db');

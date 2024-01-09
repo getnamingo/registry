@@ -37,20 +37,12 @@ class HostsController extends Controller
                 if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
                     $host_id_already_exist = $hostModel->getHostByNom($hostName);
                     if ($host_id_already_exist) {
-                        return view($response, 'admin/hosts/createHost.twig', [
-                            'hostName' => $hostName,
-                            'error' => 'host name already exists',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating host: host name ' . $hostName . ' already exists');
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
                 } else {
-                    return view($response, 'admin/hosts/createHost.twig', [
-                        'hostName' => $hostName,
-                        'error' => 'Invalid host name',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating host: Invalid host name');
+                    return $response->withHeader('Location', '/host/create')->withStatus(302);
                 }
                 
                 $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -64,24 +56,16 @@ class HostsController extends Controller
                 if ($ipv4) {
                     $ipv4 = normalize_v4_address($ipv4);
                     if (!filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                        return view($response, 'admin/hosts/createHost.twig', [
-                            'hostName' => $hostName,
-                            'error' => 'Invalid host addr v4',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating host: Invalid host addr v4');
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
                 }
 
                 if ($ipv6) {
                     $ipv6 = normalize_v6_address($ipv6);
                     if (!filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                        return view($response, 'admin/hosts/createHost.twig', [
-                            'hostName' => $hostName,
-                            'error' => 'Invalid host addr v6',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating host: Invalid host addr v6');
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
                 }
 
@@ -114,22 +98,14 @@ class HostsController extends Controller
                     }
                     
                     if (!$domain_exist) {
-                        return view($response, 'admin/hosts/createHost.twig', [
-                            'hostName' => $hostName,
-                            'error' => 'A host name object can NOT be created in a repository for which no superordinate domain name object exists',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating host: A host name object can NOT be created in a repository for which no superordinate domain name object exists');
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
                     
                     if ($_SESSION['auth_roles'] !== 0) {
                         if ($clid != $clid_domain) {
-                            return view($response, 'admin/hosts/createHost.twig', [
-                                'hostName' => $hostName,
-                                'error' => 'The domain name belongs to another registrar, you are not allowed to create hosts for it',
-                                'registrars' => $registrars,
-                                'registrar' => $registrar,
-                            ]);
+                            $this->container->get('flash')->addMessage('error', 'Error creating host: The domain name belongs to another registrar, you are not allowed to create hosts for it');
+                            return $response->withHeader('Location', '/host/create')->withStatus(302);
                         }
                     }
                     
@@ -151,12 +127,8 @@ class HostsController extends Controller
                         $host_id = $db->getLastInsertId();
 
                         if (!$ipv4 && !$ipv6) {
-                            return view($response, 'admin/hosts/createHost.twig', [
-                                'hostName' => $hostName,
-                                'error' => 'At least one of IPv4 or IPv6 must be provided',
-                                'registrars' => $registrars,
-                                'registrar' => $registrar,
-                            ]);
+                            $this->container->get('flash')->addMessage('error', 'Error creating host: At least one of IPv4 or IPv6 must be provided');
+                            return $response->withHeader('Location', '/host/create')->withStatus(302);
                         }
 
                         if ($ipv4) {
@@ -195,12 +167,8 @@ class HostsController extends Controller
                         $db->commit();
                     } catch (Exception $e) {
                         $db->rollBack();
-                        return view($response, 'admin/hosts/createHost.twig', [
-                            'hostName' => $hostName,
-                            'error' => $e->getMessage(),
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
 
                     $crdate = $db->selectValue(
@@ -208,12 +176,8 @@ class HostsController extends Controller
                         [$hostName]
                     );
                     
-                    return view($response, 'admin/hosts/createHost.twig', [
-                        'hostName' => $hostName,
-                        'crdate' => $crdate,
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('success', 'Host ' . $hostName . ' has been created successfully on ' . $crdate);
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
                 } else {
                     $currentDateTime = new \DateTime();
                     $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
@@ -242,12 +206,8 @@ class HostsController extends Controller
                         [$hostName]
                     );
                     
-                    return view($response, 'admin/hosts/createHost.twig', [
-                        'hostName' => $hostName,
-                        'crdate' => $crdate,
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('success', 'Host ' . $hostName . ' has been created successfully on ' . $crdate);
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
                 }
             }
         }

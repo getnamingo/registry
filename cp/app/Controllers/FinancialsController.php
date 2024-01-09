@@ -167,21 +167,15 @@ class FinancialsController extends Controller
                     $db->commit();
                 } catch (Exception $e) {
                     $db->rollBack();
-                    return view($response, 'admin/financials/deposit.twig', [
-                        'error' => $e->getMessage(),
-                        'registrars' => $registrars
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Database failure: '.$e->getMessage());
+                    return $response->withHeader('Location', '/deposit')->withStatus(302);
                 }
                 
-                return view($response, 'admin/financials/deposit.twig', [
-                    'deposit' => $amount,
-                    'registrars' => $registrars
-                ]);
+                $this->container->get('flash')->addMessage('success', 'Deposit successfully added. The registrar\'s account balance has been updated.');
+                return $response->withHeader('Location', '/deposit')->withStatus(302);
             } else {
-                return view($response, 'admin/financials/deposit.twig', [
-                    'error' => 'Invalid entry: Deposit amount must be positive. Please enter a valid amount.',
-                    'registrars' => $registrars
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Invalid entry: Deposit amount must be positive. Please enter a valid amount.');
+                return $response->withHeader('Location', '/deposit')->withStatus(302);
             }
         }
             

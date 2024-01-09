@@ -98,10 +98,8 @@ class RegistrarsController extends Controller
                 // Trim the final semicolon and space
                 $errorText = rtrim($errorText, '; ');
 
-                return view($response, 'admin/registrars/create.twig', [
-                    'countries' => $countries,
-                    'error' => $errorText,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating registrar: ' . $errorText);
+                return $response->withHeader('Location', '/registrar/create')->withStatus(302);
             }
 
             $db->beginTransaction();
@@ -270,16 +268,12 @@ class RegistrarsController extends Controller
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                return view($response, 'admin/registrars/create.twig', [
-                    'error' => $e->getMessage(),
-                    'countries' => $countries,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrar/create')->withStatus(302);
             }
 
-            return view($response,'admin/registrars/create.twig', [
-                'registrar' => $data['name'],
-                'countries' => $countries,
-            ]);
+            $this->container->get('flash')->addMessage('success', 'Registrar ' . $data['name'] . ' successfully created and is now active.');
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
         }
           
         $iso3166 = new ISO3166();
