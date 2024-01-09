@@ -124,9 +124,9 @@
                 if (e.target.closest('.delete-btn')) {
                     e.preventDefault(); // Prevent the default link behavior
                     Swal.fire({
-                      title: "Are you sure you want to delete this application?",
+                      title: "{{ __('Are you sure you want to delete this application?') }}",
                       showCancelButton: true,
-                      confirmButtonText: "Confirm"
+                      confirmButtonText: "{{ __('Confirm') }}"
                     }).then((result) => {
                       if (result.isConfirmed) {
                         let deleteUrl = e.target.closest('.delete-btn').getAttribute('data-delete-url');
@@ -137,7 +137,7 @@
             }},
         ],
         placeholder:function(){
-            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+            return this.getHeaderFilters().length ? "No Matching Data" : "{{ __('No Data') }}"; //set placeholder based on if there are currently any header filters
         }
     });
     var searchInput = document.getElementById("search-input");

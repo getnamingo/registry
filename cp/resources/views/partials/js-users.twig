@@ -65,14 +65,14 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Name", field:"username", width:200, headerSort:true, formatter: userLinkFormatter, responsive:0},
-            {title:"Email", field:"email", width:300, headerSort:true, responsive:2},
-            {title:"Roles", field:"roles_mask", width:200, headerSort:true, formatter: roleLabelFormatter, responsive:2},
-            {title:"Verified", field:"verified", width:200, headerSort:true, formatter: verifiedFormatter, responsive:2},
-            {title:"Status", field:"status", width:200, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
+            {title:"{{ __('Name') }}", field:"username", width:200, headerSort:true, formatter: userLinkFormatter, responsive:0},
+            {title:"{{ __('Email') }}", field:"email", width:300, headerSort:true, responsive:2},
+            {title:"{{ __('Roles') }}", field:"roles_mask", width:200, headerSort:true, formatter: roleLabelFormatter, responsive:2},
+            {title:"{{ __('Verified') }}", field:"verified", width:200, headerSort:true, formatter: verifiedFormatter, responsive:2},
+            {title:"{{ __('Status') }}", field:"status", width:200, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
         ],
         placeholder:function(){
-            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+            return this.getHeaderFilters().length ? "No Matching Data" : "{{ __('No Data') }}"; //set placeholder based on if there are currently any header filters
         }
     });
     var searchInput = document.getElementById("search-input");

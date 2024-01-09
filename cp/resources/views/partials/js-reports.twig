@@ -24,16 +24,16 @@
         ],
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Date", field:"date", headerSort:true, responsive:0},
-            {title:"Total Domains", field:"total_domains", headerSort:true, responsive:0},
-            {title:"Created Domains", field:"created_domains", headerSort:true, responsive:2},
-            {title:"Renewed Domains", field:"renewed_domains", headerSort:true, responsive:2},
-            {title:"Transferred Domains", field:"transfered_domains", headerSort:true, responsive:2},
-            {title:"Deleted Domains", field:"deleted_domains", headerSort:true, responsive:2},
-            {title:"Restored Domains", field:"restored_domains", headerSort:true, responsive:2, download:false}
+            {title:"{{ __('Date') }}", field:"date", headerSort:true, responsive:0},
+            {title:"{{ __('Total Domains') }}", field:"total_domains", headerSort:true, responsive:0},
+            {title:"{{ __('Created Domains') }}", field:"created_domains", headerSort:true, responsive:2},
+            {title:"{{ __('Renewed Domains') }}", field:"renewed_domains", headerSort:true, responsive:2},
+            {title:"{{ __('Transferred Domains') }}", field:"transfered_domains", headerSort:true, responsive:2},
+            {title:"{{ __('Deleted Domains') }}", field:"deleted_domains", headerSort:true, responsive:2},
+            {title:"{{ __('Restored Domains') }}", field:"restored_domains", headerSort:true, responsive:2, download:false}
         ],
         placeholder:function(){
-            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+            return this.getHeaderFilters().length ? "No Matching Data" : "{{ __('No Data') }}"; //set placeholder based on if there are currently any header filters
         }
     });
     var searchInput = document.getElementById("search-input");
