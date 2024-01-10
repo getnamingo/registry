@@ -524,14 +524,11 @@ Please send the exported `publickey.asc` to your RDE provider, and also place th
 
 ### Running the Automation System
 
-Once you have successfully configured all automation scripts, you are ready to initiate the automation system. Please proceed by executing the commands listed below:
+Once you have successfully configured all automation scripts, you are ready to initiate the automation system. Please review ```/opt/registry/automation/cron.php``` and enable all services if you are running a gTLD. Then proceed by adding the following cron job to the system crontab using ```crontab -e```:
 
 ```bash
-cd /opt/registry/automation
-php cron.php start
+* * * * * /usr/bin/php8.2 /opt/registry/automation/cron.php 1>> /dev/null 2>&1
 ```
-
-Alternatively, you may opt for the traditional Linux crontab method. Should you choose this approach, begin by accessing the sample crontab file at ```/opt/registry/automation/crontab.example```. Carefully examine its contents, and then copy the pertinent lines into your system's crontab file.
 
 ## 13. Setup DAS:
 

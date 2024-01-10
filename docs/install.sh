@@ -405,7 +405,7 @@ EOF
     echo -e "Next steps:\n"
     echo -e "1. Configure each component by editing their respective configuration files."
     echo -e "2. Once configuration is complete, start each service with the following command:\n   systemctl start SERVICE_NAME.service\n   Replace 'SERVICE_NAME' with the specific service (whois, rdap, epp, das) as needed."
-    echo -e "3. To set up automation services, refer to the configuration manual, edit the config in:\n   /opt/registry/automation/config.php and run php /opt/registry/automation/cron.php start\n"
+    echo -e "3. To initiate the automation system, please refer to the configuration manual.\n"
     echo -e "For more detailed information, please consult the accompanying documentation or support resources."
 else
     echo "Unsupported Linux distribution or version"
