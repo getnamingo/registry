@@ -441,10 +441,6 @@ composer require phpmailer/phpmailer
 
 This command will install one of the packages which are essential for the message broker script to function correctly.
 
-### Configuring the Crontab for Automation Scripts
-
-To set up automated tasks for Namingo, open the example crontab file located at ```/opt/registry/automation/crontab.example```. Review the contents and copy the relevant lines into your system's crontab file. Remember to adjust the paths and timings as necessary to suit your environment.
-
 ### Configuring the Message Broker
 
 You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
@@ -525,6 +521,17 @@ Always keep your private key secure. Do not share it. If someone gains access to
 #### Use in RDE deposit generation:
 
 Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
+
+### Running the Automation System
+
+Once you have successfully configured all automation scripts, you are ready to initiate the automation system. Please proceed by executing the commands listed below:
+
+```bash
+cd /opt/registry/automation
+php cron.php start
+```
+
+Alternatively, you may opt for the traditional Linux crontab method. Should you choose this approach, begin by accessing the sample crontab file at ```/opt/registry/automation/crontab.example```. Carefully examine its contents, and then copy the pertinent lines into your system's crontab file.
 
 ## 13. Setup DAS:
 

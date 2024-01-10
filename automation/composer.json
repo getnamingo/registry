@@ -6,6 +6,7 @@
         "setbased/php-audit": "^1.9",
         "monolog/monolog": "^3.5",
         "league/flysystem": "^3.23",
-        "league/flysystem-sftp-v3": "^3.22"
+        "league/flysystem-sftp-v3": "^3.22",
+        "pinga/crontab": "^1.0"
     }
 }
