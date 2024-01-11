@@ -49,29 +49,25 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     # Step 1 - Components Installation
     if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
         echo "Installing required packages..."
-        apt install -y curl software-properties-common ufw
-        echo "Adding PHP repository..."
+        apt update -y
+        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring  software-properties-common ufw
         add-apt-repository ppa:ondrej/php -y
-        apt install -y debian-keyring debian-archive-keyring apt-transport-https
-        echo "Setting up Caddy repository..."
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
         gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "12" ]]; then
+    else
         echo "Installing required packages..."
-        apt install -y curl software-properties-common ufw gnupg
-        echo "Adding PHP repository..."
-        wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
-        echo "deb https://packages.sury.org/php/ bookworm main" | tee /etc/apt/sources.list.d/php.list
-        apt install -y debian-keyring debian-archive-keyring apt-transport-https
-        echo "Setting up Caddy repository..."
+        apt update -y
+        apt install -y apt-transport-https ca-certificates curl debian-archive-keyring debian-keyring gnupg lsb-release software-properties-common ufw
+        curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+        sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
         gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
     fi
 
-    echo "Updating package lists and upgrading packages..."
-    apt update -y && apt upgrade -y
+    echo "Updating package lists..."
+    apt update -y
     echo "Installing additional required packages..."
     apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
     
@@ -111,7 +107,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
         
-        # Check for Ubuntu 22.04 or Debian 12
+        # Check for Ubuntu 22.04
         if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
             cat > /etc/apt/sources.list.d/mariadb.sources << EOF
     # MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
@@ -124,7 +120,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     Components: main main/debug
     Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
-        elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "12" ]]; then
+        else
             cat > /etc/apt/sources.list.d/mariadb.sources << EOF
     # MariaDB 10.11 repository list - created 2024-01-05 12:23 UTC
     # https://mariadb.org/download/
