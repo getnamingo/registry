@@ -248,8 +248,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nAdmin Fax: REDACTED FOR PRIVACY"
                         ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    $res .= "\nRegistry Admin ID: C".$f2['identifier']."-".$c['roid']
-                        ."\nAdmin Name: ".$f2['name']
+                    if (!empty($f2['identifier'])) {
+                        $res .= "\nRegistry Admin ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    } else {
+                        $res .= "\nRegistry Admin ID:";
+                    }
+                    $res .= "\nAdmin Name: ".$f2['name']
                         ."\nAdmin Organization: ".$f2['org']
                         ."\nAdmin Street: ".$f2['street1']
                         ."\nAdmin Street: ".$f2['street2']
@@ -285,8 +289,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nBilling Fax: REDACTED FOR PRIVACY"
                         ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    $res .= "\nRegistry Billing ID: C".$f2['identifier']."-".$c['roid']
-                        ."\nBilling Name: ".$f2['name']
+                    if (!empty($f2['identifier'])) {
+                        $res .= "\nRegistry Billing ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    } else {
+                        $res .= "\nRegistry Billing ID:";
+                    }
+                    $res .= "\nBilling Name: ".$f2['name']
                         ."\nBilling Organization: ".$f2['org']
                         ."\nBilling Street: ".$f2['street1']
                         ."\nBilling Street: ".$f2['street2']
@@ -322,8 +330,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nTech Fax: REDACTED FOR PRIVACY"
                         ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    $res .= "\nRegistry Tech ID: C".$f2['identifier']."-".$c['roid']
-                        ."\nTech Name: ".$f2['name']
+                    if (!empty($f2['identifier'])) {
+                        $res .= "\nRegistry Tech ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    } else {
+                        $res .= "\nRegistry Tech ID:";
+                    }
+                    $res .= "\nTech Name: ".$f2['name']
                         ."\nTech Organization: ".$f2['org']
                         ."\nTech Street: ".$f2['street1']
                         ."\nTech Street: ".$f2['street2']
