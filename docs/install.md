@@ -623,11 +623,11 @@ Replace ```<slave-server-IP>``` with the actual IP address of your slave server.
 Initially, you will need to generate the DNSSEC ZSK and KSK manually:
 
 ```bash
-dnssec-keygen -a Ed25519 -b 2048 -n ZONE test.
-dnssec-keygen -a Ed25519 -b 4096 -n ZONE -f KSK test.
+dnssec-keygen -a Ed25519 -n ZONE test.
+dnssec-keygen -a Ed25519 -n ZONE -f KSK test.
 ```
 
-After generating the keys, place them in the specified key-directory.
+After generating the keys, place them in ```/var/lib/bind```. Run ```dnssec-dsfromkey Ktest.EXAMPLE.key``` on the KSK key you just generated, and the DS record must be submitted to IANA once setup is complete.
 
 Use rndc to tell BIND to load and use the new keys:
 
