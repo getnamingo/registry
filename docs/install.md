@@ -560,13 +560,6 @@ Although Namingo is equipped with BIND by default for this purpose, you can opt 
 apt install bind9 bind9-utils bind9-doc
 ```
 
-### Create Zone Directory:
-
-```bash
-mkdir /etc/bind/zones
-mkdir /etc/bind/keys
-```
-
 ### Generate a TSIG key:
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
@@ -595,14 +588,30 @@ Edit the named.conf.local file:
 nano /etc/bind/named.conf.local
 ```
 
+Add the following DNSSEC policy:
+
+```bash
+dnssec-policy "namingo-policy" {
+    keys {
+        ksk lifetime P3M algorithm ed25519;
+        zsk lifetime P1M algorithm ed25519;
+    };
+    max-zone-ttl 86400;
+    dnskey-ttl 3600;
+    zone-propagation-delay 3600;
+    parent-propagation-delay 7200;
+    parent-ds-ttl 86400;
+};
+```
+
 Add the following zone definition:
 
 ```bash
 zone "test." {
     type master;
-    file "/etc/bind/zones/test.zone";
-    auto-dnssec maintain;
-    key-directory "/etc/bind/keys";
+    file "/var/lib/bind/test.zone";
+    dnssec-policy "namingo-policy";
+    key-directory "/var/lib/bind";
     inline-signing yes;
     allow-transfer { key "test.key"; };
     also-notify { <slave-server-IP>; };
@@ -623,21 +632,17 @@ After generating the keys, place them in the specified key-directory.
 Use rndc to tell BIND to load and use the new keys:
 
 ```bash
-chown bind:bind /etc/bind/keys/*
-chmod 640 /etc/bind/keys/*
-chown -R bind:bind /etc/bind/zones
-chmod 640 /etc/bind/zones/*
 systemctl restart bind9
 rndc loadkeys test.
 ```
 
-Configure and start the ```write-zone.php``` automation script.
+Configure the ```write-zone.php``` file and activate it in the automation script.
 
 ### Check BIND9 Configuration:
 
 ```bash
 named-checkconf
-named-checkzone test /etc/bind/zones/test.zone
+named-checkzone test /var/lib/bind/test.zone
 ```
 
 ### Restart BIND9 Service:
