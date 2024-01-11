@@ -220,7 +220,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nRegistrant City: ".$f2['city']
                         ."\nRegistrant State/Province: ".$f2['sp']
                         ."\nRegistrant Postal Code: ".$f2['pc']
-                        ."\nRegistrant Country: ".$f2['cc']
+                        ."\nRegistrant Country: ".strtoupper($f2['cc'])
                         ."\nRegistrant Phone: ".$f2['voice']
                         ."\nRegistrant Fax: ".$f2['fax']
                         ."\nRegistrant Email: ".$f2['email'];
@@ -261,7 +261,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nAdmin City: ".$f2['city']
                         ."\nAdmin State/Province: ".$f2['sp']
                         ."\nAdmin Postal Code: ".$f2['pc']
-                        ."\nAdmin Country: ".$f2['cc']
+                        ."\nAdmin Country: ".strtoupper($f2['cc'])
                         ."\nAdmin Phone: ".$f2['voice']
                         ."\nAdmin Fax: ".$f2['fax']
                         ."\nAdmin Email: ".$f2['email'];
@@ -302,7 +302,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nBilling City: ".$f2['city']
                         ."\nBilling State/Province: ".$f2['sp']
                         ."\nBilling Postal Code: ".$f2['pc']
-                        ."\nBilling Country: ".$f2['cc']
+                        ."\nBilling Country: ".strtoupper($f2['cc'])
                         ."\nBilling Phone: ".$f2['voice']
                         ."\nBilling Fax: ".$f2['fax']
                         ."\nBilling Email: ".$f2['email'];
@@ -343,7 +343,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nTech City: ".$f2['city']
                         ."\nTech State/Province: ".$f2['sp']
                         ."\nTech Postal Code: ".$f2['pc']
-                        ."\nTech Country: ".$f2['cc']
+                        ."\nTech Country: ".strtoupper($f2['cc'])
                         ."\nTech Phone: ".$f2['voice']
                         ."\nTech Fax: ".$f2['fax']
                         ."\nTech Email: ".$f2['email'];
