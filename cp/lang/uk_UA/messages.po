@@ -1,92 +1,173 @@
-msgid "Dashboard"
-msgstr "Інформаційна панель"
+msgid "Approve Transfer"
+msgstr "Затвердити передачу"
 
-msgid "Overview"
-msgstr "Огляд"
+msgid "Cancel Transfer"
+msgstr "Скасувати передачу"
 
-msgid "View Reports"
-msgstr "Переглянути звіти"
+msgid "Reject Transfer"
+msgstr "Відхилити передачу"
 
-msgid "Create new domain"
-msgstr "Створіть новий домен"
+msgid "Completed"
+msgstr "Завершено"
 
-msgid "Enable dark mode"
-msgstr "Увімкніть темний режим"
+msgid "Name"
+msgstr "Назва"
 
-msgid "Enable light mode"
-msgstr "Увімкніть світлий режим"
+msgid "Initiated Date"
+msgstr "Дата початку"
 
-msgid "My Profile"
-msgstr "Мій профіль"
-
-msgid "Logout"
-msgstr "Вийти"
-
-msgid "Domains"
-msgstr "Домени"
-
-msgid "Registrant"
-msgstr "Реєстрант"
-
-msgid "Creation Date"
-msgstr "Дата створення"
-
-msgid "Expiration Date"
+msgid "Expiry Date"
 msgstr "Термін дії"
 
 msgid "Status"
-msgstr "Статус"
+msgstr "Стан"
 
 msgid "Actions"
 msgstr "Дії"
 
+msgid "Are you sure you want to approve this transfer?"
+msgstr "Ви впевнені, що хочете схвалити цю передачу?"
+
+msgid "Confirm"
+msgstr "Підтвердити"
+
+msgid "Are you sure you want to cancel this transfer?"
+msgstr "Ви впевнені, що бажаєте скасувати цю передачу?"
+
+msgid "Are you sure you want to reject this transfer?"
+msgstr "Ви впевнені, що бажаєте відхилити цю передачу?"
+
 msgid "No Data"
 msgstr "Немає даних"
 
-msgid "Search"
-msgstr "Пошук"
+msgid "Registrar"
+msgstr "Реєстратор"
 
-msgid "List Domains"
-msgstr "Список доменів"
+msgid "Date"
+msgstr "Дата"
 
-msgid "Check Domain"
-msgstr "Перевірте домен"
+msgid "Log"
+msgstr "Журнал"
 
-msgid "Enter the domain name you want to check:"
-msgstr "Введіть доменне ім’я, яке потрібно перевірити:"
+msgid "Command"
+msgstr "Команда"
 
-msgid "Check claims"
-msgstr "Перевірте claims"
+msgid "Domain"
+msgstr "Домен"
 
-msgid "Check Availability"
-msgstr "Перевірте наявність"
+msgid "Length"
+msgstr "Довжина"
 
-msgid "is available"
-msgstr "доступний"
+msgid "From"
+msgstr "Від"
 
-msgid "is not available"
-msgstr "недоступний"
+msgid "To"
+msgstr "До"
 
-msgid "Create Domain"
-msgstr "Створити домен"
+msgid "Amount"
+msgstr "Сума"
 
-msgid "Your Domain Name"
-msgstr "Ваше доменне ім'я"
+msgid "Host Name"
+msgstr "Ім'я хоста"
 
-msgid "Registration Years"
-msgstr "Реєстрація на скільки років"
+msgid "Creation Date"
+msgstr "Дата створення"
 
-msgid "Nameservers"
-msgstr "Сервери імен"
+msgid "Are you sure you want to delete this host?"
+msgstr "Ви дійсно бажаєте видалити цього хоста?"
 
-msgid "Add DNSSEC Data"
-msgstr "Додати дані DNSSEC"
+msgid "Message"
+msgstr "Повідомлення"
 
-msgid "List Applications"
-msgstr "Список заяв"
+msgid "Message Type"
+msgstr "Тип повідомлення"
 
-msgid "Applications"
-msgstr "Заявки"
+msgid "Object"
+msgstr "Об'єкт"
+
+msgid "Subject"
+msgstr "Тема"
+
+msgid "Category"
+msgstr "Категорія"
+
+msgid "Priority"
+msgstr "Пріоритет"
+
+msgid "Email"
+msgstr "Е-пошта"
+
+msgid "Balance"
+msgstr "Баланс"
+
+msgid "Description"
+msgstr "Опис"
+
+msgid "Identifier"
+msgstr "Ідентифікатор"
+
+msgid "Phone"
+msgstr "Телефон"
+
+msgid "Are you sure you want to delete this contact?"
+msgstr "Ви дійсно хочете видалити цей контакт?"
+
+msgid "Object Type"
+msgstr "Тип об'єкта"
+
+msgid "Result"
+msgstr "Результат"
+
+msgid "clTRID"
+msgstr "clTRID"
+
+msgid "Milliseconds"
+msgstr "Мілісекунди"
+
+msgid "Registrant"
+msgstr "Реєстрант"
+
+msgid "Expiration Date"
+msgstr "Термін дії"
+
+msgid "Are you sure you want to delete this domain?"
+msgstr "Ви впевнені, що хочете видалити цей домен?"
+
+msgid "Are you sure you want to restore this domain?"
+msgstr "Ви впевнені, що бажаєте відновити цей домен?"
+
+msgid "Are you sure you want to submit restore report for this domain?"
+msgstr "Ви впевнені, що хочете надіслати звіт про відновлення для цього домену?"
+
+msgid "Number"
+msgstr "Номер"
+
+msgid "Total Domains"
+msgstr "Всього доменів"
+
+msgid "Created Domains"
+msgstr "Створені домени"
+
+msgid "Renewed Domains"
+msgstr "Поновлений домени"
+
+msgid "Transferred Domains"
+msgstr "Передані домени"
+
+msgid "Deleted Domains"
+msgstr "Видалені домени"
+
+msgid "Restored Domains"
+msgstr "Відновлені домени"
+
+msgid "Script"
+msgstr "Алфавіт"
+
+msgid "Roles"
+msgstr "Ролі"
+
+msgid "Verified"
+msgstr "Перевірено"
 
 msgid "Applicant"
 msgstr "Заявник"
@@ -94,197 +175,155 @@ msgstr "Заявник"
 msgid "Phase"
 msgstr "Фаза"
 
-msgid "Create Application"
-msgstr "Створити заявку"
+msgid "Are you sure you want to delete this application?"
+msgstr "Ви впевнені, що хочете видалити цю заявку?"
 
-msgid "Transfers"
-msgstr "Трансфери"
+msgid "My Profile"
+msgstr "Мій профіль"
 
-msgid "Request Transfer"
-msgstr "Запит на перенесення"
+msgid "Overview"
+msgstr "Огляд"
 
-msgid "Initiated Date"
-msgstr "Дата ініціювання"
+msgid "Details"
+msgstr "Деталі"
 
-msgid "Expiry Date"
-msgstr "Термін дії"
+msgid "User Name"
+msgstr "Ім'я користувача"
 
-msgid "Contacts"
-msgstr "Контакти"
+msgid "Role"
+msgstr "Роль"
 
-msgid "List Contacts"
-msgstr "Список контактів"
+msgid "Change Password"
+msgstr "Змінити пароль"
 
-msgid "Check Contact"
-msgstr "Перевірте контакт"
+msgid "Old Password"
+msgstr "Старий пароль"
 
-msgid "Create Contact"
-msgstr "Створити контакт"
+msgid "New Password"
+msgstr "Новий пароль"
 
-msgid "Abuse Prevention"
-msgstr "Запобігання зловживанню"
+msgid "Back"
+msgstr "Назад"
 
-msgid "Communication"
-msgstr "Комунікація"
+msgid "Update"
+msgstr "Оновити"
 
-msgid "Hosts"
-msgstr "Хости"
+msgid "Two-Factor Authentication"
+msgstr "Двофакторна аутентифікація"
 
-msgid "List Hosts"
-msgstr "Список хостів"
+msgid "Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify."
+msgstr "Налаштуйте 2FA для додаткового захисту. Відскануйте QR-код за допомогою програми автентифікації та введіть наведений нижче код для перевірки."
 
-msgid "Check Host"
-msgstr "Перевірте хост"
+msgid "Manual Entry Secret"
+msgstr "Секрет Введення вручну"
 
-msgid "Create Host"
-msgstr "Створити хост"
+msgid "If you're unable to scan the QR code, enter this secret manually into your authentication app. The secret is case-sensitive and should be entered exactly as shown."
+msgstr "Якщо ви не можете сканувати QR-код, введіть цей секрет вручну в додатку для автентифікації. Секрет чутливий до регістру і повинен бути введений точно, як показано зараз."
 
-msgid "Host Name"
-msgstr "Ім'я хоста"
+msgid "Verification Code"
+msgstr "Код підтвердження"
 
-msgid "Select Registrar"
-msgstr "Виберіть Реєстратор"
+msgid "Enter code"
+msgstr "Введіть код"
 
-msgid "IPv4 Address"
-msgstr "Адреса IPv4"
+msgid "Enter the code generated by your authentication app. This code verifies that your 2FA setup is working correctly. Once entered, click"
+msgstr "Введіть код, згенерований вашим додатком для автентифікації. Цей код перевіряє, що налаштування 2FA працюють правильно. Після введення, натисніть кнопку"
 
-msgid "IPv6 Address"
-msgstr "Адреса IPv6"
+msgid "Save 2FA Settings"
+msgstr "Збережіть налаштування 2FA"
 
-msgid "Optional"
-msgstr "Необов'язковий"
+msgid "to activate two-factor authentication for your account."
+msgstr "щоб активувати двофакторну автентифікацію для вашого облікового запису."
 
-msgid "Please enter a valid IPv4 address."
-msgstr "Введіть дійсну адресу IPv4."
+msgid "Your account is secured with an additional layer of protection."
+msgstr "Ваш обліковий запис захищений з додатковим рівнем захисту."
 
-msgid "Please enter a valid IPv6 address."
-msgstr "Введіть дійсну адресу IPv6."
+msgid "2FA is currently"
+msgstr "Наразі 2FA"
 
-msgid "Create"
-msgstr "Створити"
+msgid "enabled"
+msgstr "увімкнено"
 
-msgid "Host"
-msgstr "Хост"
+msgid "for your account. If you encounter any issues or need to disable 2FA, please contact our support team for assistance."
+msgstr "для вашого облікового запису. Якщо ви зіткнетеся з будь-якими питаннями або потребуєте вимкнення 2FA, зверніться до нашої служби підтримки за допомогою."
 
-msgid "has been created successfully on"
-msgstr "було успішно створено на"
+msgid "WebAuthn Authentication"
+msgstr "WebAuthn автентифікація"
 
-msgid "is not available"
-msgstr "недоступний"
+msgid "Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in."
+msgstr "Захистіть свій обліковий запис за допомогою WebAuth. Натисніть кнопку нижче, щоб зареєструвати пристрій для безпаролю."
 
-msgid "Logs"
-msgstr "Логи"
+msgid "Connect WebAuthn Device"
+msgstr "Підключіть WebAuthn пристрій"
 
-msgid "Registrars"
-msgstr "Реєстратори"
+msgid "Device/Browser Info"
+msgstr "Інформація про пристрій/браузер"
 
-msgid "List Registrars"
-msgstr "Список реєстраторів"
+msgid "Registration Date"
+msgstr "Дата реєстрації"
 
-msgid "Create Registrar"
-msgstr "Створити реєстратора"
+msgid "Action"
+msgstr "Дія"
 
-msgid "List Users"
-msgstr "Список користувачів"
+msgid "Edit"
+msgstr "Змінити"
 
-msgid "Create User"
-msgstr "Створити користувача"
+msgid "No devices found."
+msgstr "Пристроїв не знайдено."
 
-msgid "Users"
-msgstr "Користувачі"
+msgid "User Audit Log"
+msgstr "Журнал аудиту користувача"
 
-msgid "Compliance"
-msgstr "Відповідність"
+msgid "Track and review all user activities in your account below. Monitor logins, profile changes, and other key actions to ensure security and transparency."
+msgstr "Відстежуйте і переглядайте усі дії користувача у вашому обліковому записі нижче. Спостерігайте логін, зміни профілю та інші дії з метою забезпечення безпеки і прозорості."
 
-msgid "Financials"
-msgstr "Фінанси"
+msgid "Event"
+msgstr "Подія"
 
-msgid "Pricing"
-msgstr "Ціноутворення"
+msgid "User Agent"
+msgstr "Ідентифікатор браузера"
 
-msgid "Add Deposit"
-msgstr "Додати депозит"
+msgid "Location"
+msgstr "Розташування"
 
-msgid "Transactions"
-msgstr "Транзакції"
+msgid "Timestamp"
+msgstr "Відмітка часу"
 
-msgid "Account Overview"
-msgstr "Огляд рахунку"
+msgid "No log data for user."
+msgstr "Немає записів для користувача."
 
-msgid "Invoices"
-msgstr "Рахунки-фактури"
-
-msgid "Reports"
-msgstr "Звіти"
-
-msgid "Registry"
-msgstr "Реєстр"
-
-msgid "Settings"
-msgstr "Налаштування"
-
-msgid "Activity"
-msgstr "Діяльність"
-
-msgid "Configuration"
-msgstr "Конфігурація"
-
-msgid "User Management"
-msgstr "Керування користувачами"
-
-msgid "EPP History"
-msgstr "Журнал EPP"
-
-msgid "System Log"
-msgstr "Системний журнал"
-
-msgid "Message Queue"
-msgstr "Черга повідомлень"
-
-msgid "Backup"
-msgstr "Резервна копія"
-
-msgid "Support"
-msgstr "Підтримка"
-
-msgid "Priority"
-msgstr "Пріоритет"
+msgid "Documentation"
+msgstr "Документація"
 
 msgid "Support Tickets"
-msgstr "Заявки на підтримку"
+msgstr "Тікети підтримки"
 
-msgid "Create Ticket"
-msgstr "Створити заявку"
+msgid "Media Kit"
+msgstr "Медіа-кіт"
 
 msgid "Create New Ticket"
-msgstr "Створити новий запит"
+msgstr "Створити нову заявку"
 
-msgid "New Support Ticket"
-msgstr "Новий тикет підтримки"
+msgid "Search"
+msgstr "Пошук"
 
-msgid "Category"
-msgstr "Категорія"
-
-msgid "Select a category"
-msgstr "Виберіть категорію"
-
-msgid "Subject"
-msgstr "Тема"
-
-msgid "Message"
-msgstr "Повідомлення"
+msgid "Search tickets"
+msgstr "Пошук заявок"
 
 msgid "Ticket Overview"
-msgstr "Огляд квитка"
+msgstr "Огляд тікету"
 
 msgid "Ticket"
-msgstr "Квиток"
+msgstr "Тікет"
+
+msgid "Unknown Status"
+msgstr "Невідомий стан"
 
 msgid "Ticket Details"
-msgstr "Деталі квитка"
+msgstr "Деталі тікету"
 
 msgid "Created On"
-msgstr "Створено на"
+msgstr "Створено"
 
 msgid "Conversation"
 msgstr "Розмова"
@@ -295,8 +334,1008 @@ msgstr "Ваша відповідь"
 msgid "Submit Response"
 msgstr "Надіслати відповідь"
 
-msgid "Documentation"
-msgstr "Документація"
+msgid "New Support Ticket"
+msgstr "Нова заява на підтримку"
 
-msgid "Media Kit"
-msgstr "Медіакомплект"
+msgid "Support ticket can not be created"
+msgstr "Квиток підтримки не можливо створити"
+
+msgid "Select a category"
+msgstr "Виберіть категорію"
+
+msgid "Create Ticket"
+msgstr "Створити тікет"
+
+msgid "Create Domain"
+msgstr "Створіть домен"
+
+msgid "Your Domain Name"
+msgstr "Ваше доменне ім'я"
+
+msgid "Select Registrar"
+msgstr "Виберіть реєстратор"
+
+msgid "Registration Years"
+msgstr "Роки реєстрації"
+
+msgid "Estimated Price"
+msgstr "Орієнтовна ціна"
+
+msgid "Contacts"
+msgstr "Контакти"
+
+msgid "Registrant Contact"
+msgstr "Контактна особа реєстранта"
+
+msgid "Admin Contact"
+msgstr "Адміністратор контакт"
+
+msgid "Tech Contact"
+msgstr "Технічний контакт"
+
+msgid "Billing Contact"
+msgstr "Платіжні контакти"
+
+msgid "Nameservers"
+msgstr "Сервери імен"
+
+msgid "Nameserver"
+msgstr "Сервер імен"
+
+msgid "Add DNSSEC Data"
+msgstr "Додати DNSSEC дані"
+
+msgid "DS Record"
+msgstr "DS запис"
+
+msgid "Key Tag"
+msgstr "Key Tag"
+
+msgid "Select Algorithm"
+msgstr "Виберіть алгоритм"
+
+msgid "Select Digest Type"
+msgstr "Виберіть тип Digest"
+
+msgid "Digest"
+msgstr "Digest"
+
+msgid "DNSKEY Record"
+msgstr "DNSKEY запис"
+
+msgid "Flags"
+msgstr "Flags"
+
+msgid "Protocol"
+msgstr "Протокол"
+
+msgid "Public Key"
+msgstr "Публічний ключ"
+
+msgid "Auth Info"
+msgstr "Пароль домену"
+
+msgid "Statuses"
+msgstr "Статуси"
+
+msgid "Server Statuses"
+msgstr "Статуси сервера"
+
+msgid "Phase Type"
+msgstr "Тип фази"
+
+msgid "Signed Mark Information"
+msgstr "Підписана інформація про марку"
+
+msgid "Paste SMD contents"
+msgstr "Вставити вміст SMD"
+
+msgid "Notice ID"
+msgstr "ID повідомлення"
+
+msgid "Not After Date"
+msgstr "Не після дати"
+
+msgid "Accepted Date"
+msgstr "Дата прийняття"
+
+msgid "Allocation Token"
+msgstr "Allocation Token"
+
+msgid "Allocation token"
+msgstr "Allocation token"
+
+msgid "Domain Details"
+msgstr "Деталі домену"
+
+msgid "Registered On"
+msgstr "Зареєстровані на"
+
+msgid "Last Updated"
+msgstr "Останнє оновлення"
+
+msgid "contact"
+msgstr "контакт"
+
+msgid "Auth Type"
+msgstr "Тип авторизації"
+
+msgid "DNSSEC Data"
+msgstr "Дані DNSSEC"
+
+msgid "Domains"
+msgstr "Домени"
+
+msgid "Check Domain"
+msgstr "Перевірити домен"
+
+msgid "Search domains"
+msgstr "Пошук доменів"
+
+msgid "Application Details"
+msgstr "Деталі заявки"
+
+msgid "Application for"
+msgstr "Заявка на"
+
+msgid "Application ID"
+msgstr "ID заявки"
+
+msgid "Launch Phase"
+msgstr "Launch Phase"
+
+msgid "Phase Name"
+msgstr "Назва фази"
+
+msgid "Updating Application"
+msgstr "Оновити заявку"
+
+msgid "Update Application"
+msgstr "Оновити заявку"
+
+msgid "Create Application"
+msgstr "Створити заяву"
+
+msgid "Renew Domain"
+msgstr "Поновити домен"
+
+msgid "Domain Name"
+msgstr "Ім'я домену"
+
+msgid "Your domain is currently renewed to its maximum term. At this time, no additional renewal is possible."
+msgstr "Ваш домен зараз поновлено до свого максимального терміну. На даний момент неможливо додаткових оновлень."
+
+msgid "Applications"
+msgstr "Заяви"
+
+msgid "Search applications"
+msgstr "Пошук заяв"
+
+msgid "Updating Domain"
+msgstr "Оновлення домену"
+
+msgid "Domain Security"
+msgstr "Безпека домену"
+
+msgid "Update Domain"
+msgstr "Оновити домен"
+
+msgid "Request Domain Transfer"
+msgstr "Запит на передачу домену"
+
+msgid "Gaining Registrar"
+msgstr "Реєстратор отримання"
+
+msgid "Transfer And Renew"
+msgstr "Передача та Поновлення"
+
+msgid "Request Transfer"
+msgstr "Запит на передачу"
+
+msgid "Transfers"
+msgstr "Передачі"
+
+msgid "Search transfers"
+msgstr "Пошук передач"
+
+msgid "Enter the domain name you want to check:"
+msgstr "Введіть ім'я домену, яке ви хочете перевірити:"
+
+msgid "Check Availability"
+msgstr "Перевірте наявність"
+
+msgid "Check claims"
+msgstr "Перевірити claims"
+
+msgid "Create Contact"
+msgstr "Створити контакт"
+
+msgid "General & Internationalized Info"
+msgstr "Загальні та Інтернаціоналізовані дані"
+
+msgid "Disclose in WHOIS"
+msgstr "Розкриття в WHOIS"
+
+msgid "Organization"
+msgstr "Організація"
+
+msgid "Street"
+msgstr "Вулиця"
+
+msgid "City"
+msgstr "Місто"
+
+msgid "State/Province"
+msgstr "Регіон/Область"
+
+msgid "Postal Code"
+msgstr "Поштовий індекс"
+
+msgid "Country"
+msgstr "Країна"
+
+msgid "Disclose Address in WHOIS"
+msgstr "Розкрити адресу в WHOIS"
+
+msgid "Contact Details"
+msgstr "Контактні дані"
+
+msgid "Contact ID"
+msgstr "ID контакта"
+
+msgid "Voice"
+msgstr "Телефон"
+
+msgid "Fax"
+msgstr "Факс"
+
+msgid "Contact AuthInfo"
+msgstr "Контактний пароль"
+
+msgid "Auto-generated authentication information for the contact"
+msgstr "Автоматично створена інформація автентифікації для контакту"
+
+msgid "NIN - National Identification Number"
+msgstr "NIN - Національний ідентифікаційний номер"
+
+msgid "This is a Business Contact"
+msgstr "Це бізнес контакт"
+
+msgid "Verify by Phone"
+msgstr "Підтвердити по телефону"
+
+msgid "Verify by Email"
+msgstr "Підтвердити електронною поштою"
+
+msgid "Verify by Postal Mail"
+msgstr "Підтвердити поштою"
+
+msgid "Include Localized Info"
+msgstr "Включити локалізовану інформацію"
+
+msgid "Localized Postal Info: Personal Details"
+msgstr "Локалізована поштова інформація: персональні дані"
+
+msgid "Localized Postal Info: Address Details"
+msgstr "Локалізована поштова інформація: відомості про адресу"
+
+msgid "Search contacts"
+msgstr "Пошук контактів"
+
+msgid "Update Contact"
+msgstr "Оновити контакт"
+
+msgid "Authentication information for the contact"
+msgstr "Інформація для автентифікації"
+
+msgid "Contact"
+msgstr "Контакт"
+
+msgid "linked"
+msgstr "пов’язаний"
+
+msgid "Visible in Public"
+msgstr "Видимий всім"
+
+msgid "Hidden from Public"
+msgstr "Приховано з публічного"
+
+msgid "International"
+msgstr "Міжнародний"
+
+msgid "Localized"
+msgstr "Локалізований"
+
+msgid "International Contact Details"
+msgstr "Міжнародні контактні дані"
+
+msgid "Localized Contact Details"
+msgstr "Локалізовані контактні дані"
+
+msgid "No Localized Contact Information Available"
+msgstr "Не знайдено локалізованої контактної інформації"
+
+msgid "System Log"
+msgstr "Системний журнал"
+
+msgid "Search logs"
+msgstr "Пошук в журналах"
+
+msgid "Message Queue"
+msgstr "Черга повідомлень"
+
+msgid "Search queue"
+msgstr "Пошук черги"
+
+msgid "EPP History"
+msgstr "Історія EPP"
+
+msgid "List Users"
+msgstr "Список користувачів"
+
+msgid "Search users"
+msgstr "Пошук користувачів"
+
+msgid "Host Details"
+msgstr "Деталі хосту"
+
+msgid "Hosts"
+msgstr "Хости"
+
+msgid "Create Host"
+msgstr "Створити хост"
+
+msgid "Search hosts"
+msgstr "Пошук хостів"
+
+msgid "Update Host"
+msgstr "Оновити хост"
+
+msgid "The host you're trying to update"
+msgstr "Хост Ви намагаєтеся оновити"
+
+msgid "is external to the registry. Consequently, it does not store any IP addresses within our system, and therefore, does not require any updates from your end. This means there are no associated IP addresses under our management that need your attention."
+msgstr "є зовнішнім в реєстрі. Отже, він не зберігає жодних IP-адрес в нашій системі, і тому не вимагає оновлення з вашого кінця. Це означає, що не пов'язані IP-адреси під нашим управлінням, які потребують вашої уваги."
+
+msgid "IPv4 Address"
+msgstr "Адреса IPv4"
+
+msgid "Please enter a valid IPv4 address."
+msgstr "Будь ласка введіть правильну IPv4-адресу."
+
+msgid "IPv6 Address"
+msgstr "Адреса IPv6"
+
+msgid "Please enter a valid IPv6 address."
+msgstr "Будь ласка введіть правильну IPv6-адресу."
+
+msgid "Optional"
+msgstr "Необов'язково"
+
+msgid "Deposit Payment Unsuccessful"
+msgstr "Помилка платежу за депозит"
+
+msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
+msgstr "Готові спробувати ще раз? Коли ви встановили для продовження свого депозиту, просто повернутися до"
+
+msgid "Deposit Page"
+msgstr "Сторінка депозиту"
+
+msgid "to initiate a new payment. We value your partnership and are committed to assisting you every step of the way."
+msgstr "ініціювати новий платіж. Ми цінуємо ваше партнерство і зобов'язуємося допомагати вам на кожному кроці."
+
+msgid "Registrar Deposit"
+msgstr "Депозит реєстратора"
+
+msgid "Choose Registrar..."
+msgstr "Виберіть реєстратора..."
+
+msgid "Current Balance for"
+msgstr "Поточний баланс для"
+
+msgid "Enter deposit amount"
+msgstr "Введіть сумму депозиту"
+
+msgid "Optional deposit description"
+msgstr "Необов'язковий опис депозиту"
+
+msgid "Add Deposit"
+msgstr "Додати депозит"
+
+msgid "Account Overview"
+msgstr "Огляд аккаунта"
+
+msgid "Search account"
+msgstr "Пошук облікового запису"
+
+msgid "View Invoice"
+msgstr "Переглянути рахунок"
+
+msgid "Invoice"
+msgstr "Рахунок"
+
+msgid "Print Invoice"
+msgstr "Роздрукувати рахунок"
+
+msgid "Provider"
+msgstr "Постачальник"
+
+msgid "Registry"
+msgstr "Реєстр"
+
+msgid "Client"
+msgstr "Клієнт"
+
+msgid "Invoice Issued On"
+msgstr "Рахунок виданий на"
+
+msgid "Due Date"
+msgstr "Кінцева дата"
+
+msgid "Product"
+msgstr "Продукт"
+
+msgid "No items found."
+msgstr "Нічого не знайдено."
+
+msgid "Subtotal"
+msgstr "Проміжна сума"
+
+msgid "Vat Rate"
+msgstr "Вартість ПДВ"
+
+msgid "Vat Due"
+msgstr "ПДВ до сплати"
+
+msgid "Total Due"
+msgstr "Всього до Сплати"
+
+msgid "Notes"
+msgstr "Нотатки"
+
+msgid "Thank you very much for doing business with us. We look forward to working with you again!"
+msgstr "Дякуємо Вам за бізнес з нами. Ми з нетерпінням чекаємо на роботу з вами знову!"
+
+msgid "Transactions"
+msgstr "Операції"
+
+msgid "Search transactions"
+msgstr "Пошук операцій"
+
+msgid "Invoices"
+msgstr "Рахунки"
+
+msgid "Search invoices"
+msgstr "Пошук рахунків"
+
+msgid "Deposit with Stripe"
+msgstr "Поповнити з Stripe"
+
+msgid "Registrar Details"
+msgstr "Подробиці про реєстратора"
+
+msgid "Contact Email"
+msgstr "Контактна е-пошта"
+
+msgid "Website"
+msgstr "Сайт"
+
+msgid "Abuse Phone"
+msgstr "Телефон для порушення"
+
+msgid "Abuse Email"
+msgstr "Електронна пошта для скарг"
+
+msgid "WHOIS Server"
+msgstr "Сервер WHOIS"
+
+msgid "RDAP Server"
+msgstr "Сервер RDAP"
+
+msgid "Currency"
+msgstr "Валюта"
+
+msgid "Account Balance"
+msgstr "Баланс рахунку"
+
+msgid "Credit Limit"
+msgstr "Кредитний ліміт"
+
+msgid "Credit Threshold"
+msgstr "Поріг кредитування"
+
+msgid "Threshold Type"
+msgstr "Тип порогу"
+
+msgid "IP Whitelisting"
+msgstr "IP-список"
+
+msgid "No data available."
+msgstr "Немає даних."
+
+msgid "Registrar User"
+msgstr "Користувач Реєстратора"
+
+msgid "EPP Username/CLID"
+msgstr "Ім'я користувача/CLID"
+
+msgid "Panel Login Email"
+msgstr "E-mail для входу в систему"
+
+msgid "Operational Test and Evaluation (OTE)"
+msgstr "Операційний тест і оцінювання (OTE)"
+
+msgid "Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar's system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:"
+msgstr "Передача операційних випробувань і оцінювання (OTE) є обов'язковою вимогою для реєстраторів. Процес OTE оцінює взаємодію та дотримання системи реєстру за допомогою системних операцій через ряд тестів команд EPP в контрольованих умовах. Нижче ви можете знайти результати таких важливих тестів команд EPP для вашого облікового запису:"
+
+msgid "Pending"
+msgstr "В очікуванні"
+
+msgid "Failed"
+msgstr "Невдало"
+
+msgid "Update Registrar"
+msgstr "Оновити реєстратор"
+
+msgid "The official name of the registrar."
+msgstr "Офіційна назва реєстрара."
+
+msgid "Unique identifier assigned by IANA."
+msgstr "Унікальний ідентифікатор, виданий IANA."
+
+msgid "Primary contact email of the registrar."
+msgstr "Основна контактна пошта реєстрара."
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Registrar's official website URL."
+msgstr "Посилання на офіційний сайт Реєстрара."
+
+msgid "Address of the registrar's WHOIS server."
+msgstr "Адреса сервера WHOIS реєстратора."
+
+msgid "Address of the registrar's RDAP server."
+msgstr "Адреса сервера RDAP реєстратора."
+
+msgid "Email address for reporting abuse."
+msgstr "Email адреса для звітування про порушення."
+
+msgid "Phone number for reporting abuse."
+msgstr "Номер телефону для звітування про порушення."
+
+msgid "Financial Information"
+msgstr "Фінансова інформація"
+
+msgid "Current balance in the registrar's account."
+msgstr "Поточний баланс в обліковому записі реєстрара."
+
+msgid "Maximum credit limit for the registrar."
+msgstr "Максимальний кредитний ліміт для реєстра."
+
+msgid "Credit threshold triggering alerts or actions."
+msgstr "Кредитний порог, викликаючи оповіщення або дії."
+
+msgid "Type of threshold: fixed value or percentage."
+msgstr "Тип порогового порогу: фіксована вартість або відсотки."
+
+msgid "Registrar Contacts"
+msgstr "Контакти реєстратора"
+
+msgid "Owner"
+msgstr "Власник"
+
+msgid "Billing"
+msgstr "Білінг"
+
+msgid "Abuse"
+msgstr "Порушення"
+
+msgid "Copy data to other contacts"
+msgstr "Копіювати дані в інші контакти"
+
+msgid "First Name"
+msgstr "Ім’я"
+
+msgid "Last Name"
+msgstr "Прізвище"
+
+msgid "Street Address"
+msgstr "Адреса"
+
+msgid "Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added."
+msgstr "Ви можете додати IP адреси для захищеного доступу. до 5 IP-адрес (IPv4 або IPv6)."
+
+msgid "For an existing registrar user, you can view the current EPP username (also known as CLID) and panel access email. Additionally, you have the option to reset the passwords for EPP and panel access as needed."
+msgstr "Для наявного користувача-реєстратора ви можете переглянути поточне ім’я користувача EPP (також відоме як CLID) та електронну адресу для доступу до панелі. Крім того, у вас є можливість скинути паролі для EPP і доступу до панелі за потреби."
+
+msgid "Username/CLID"
+msgstr "Ім'я користувача/CLID"
+
+msgid "Login Email"
+msgstr "Електронна пошта для входу"
+
+msgid "Panel Password"
+msgstr "Пароль для панелі"
+
+msgid "EPP Password"
+msgstr "EPP пароль"
+
+msgid "Update Panel Password"
+msgstr "Оновити пароль для панелі"
+
+msgid "Update EPP Password"
+msgstr "Оновити EPP пароль"
+
+msgid "Operational Test and Evaluation (OTE) assesses the functionality of EPP commands in a simulated environment, ensuring effective communication between the registrar's system and the registry. Below are key EPP commands and their test statuses:"
+msgstr "Операційний тест та оцінки (OTE) оцінює функціональність команд EPP в симулятивному середовищі, забезпечуючи ефективний зв'язок між системою реєстратора та реєстратором. Нижче наведено ключові команди EPP та їх статус тесту:"
+
+msgid "Create Registrar"
+msgstr "Створити реєстратора"
+
+msgid "Fixed"
+msgstr "Фіксований"
+
+msgid "Percent"
+msgstr "Процент"
+
+msgid "Create a registrar user by specifying the username (also known as CLID), email, and passwords for EPP and panel access."
+msgstr "Створіть зареєстрованого користувача, вказавши ім'я користувача (також відомий як CLID), електронну пошту та паролі для доступу до панелі управління."
+
+msgid "Registrars"
+msgstr "Реєстратори"
+
+msgid "Search registrars"
+msgstr "Пошук реєстраторів"
+
+msgid "Managed Reserved Names"
+msgstr "Керовані зарезервовані імена"
+
+msgid "Manage Reserved Names"
+msgstr "Керування зарезервованими іменами"
+
+msgid "Update Reserved Names"
+msgstr "Оновити зарезервовані імена"
+
+msgid "Manage TLD"
+msgstr "Керування TLD"
+
+msgid "General Details"
+msgstr "Основна інформація"
+
+msgid "TLD Extension"
+msgstr "TLD розширення"
+
+msgid "TLD Type"
+msgstr "Тип TLD"
+
+msgid "Supported Script"
+msgstr "Підтримуваний скрипт"
+
+msgid "Pricing"
+msgstr "Ціни"
+
+msgid "Setup Fee"
+msgstr "Плата за встановлення"
+
+msgid "Year"
+msgstr "Рік"
+
+msgid "Years"
+msgstr "роки(ів)"
+
+msgid "Create"
+msgstr "Створити"
+
+msgid "Renew"
+msgstr "Продовжити"
+
+msgid "Transfer"
+msgstr "Передати"
+
+msgid "When you type a price for 1 Year above, it will automatically get multiplied for subsequent years."
+msgstr "Коли ви вводите ціну на 1 рік вище, вона автоматично буде множуватися на наступні роки."
+
+msgid "Restore Price"
+msgstr "Ціна за відновлення"
+
+msgid "Enter the price for restoring the TLD."
+msgstr "Введіть ціну для відновлення TLD."
+
+msgid "Premium Names"
+msgstr "Преміум Імена"
+
+msgid "Upload CSV File"
+msgstr "Завантажити CSV файл"
+
+msgid "Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload."
+msgstr "Будь ласка, завантажте CSV файл, що містить преміум імена. Кожен рядок повинен включати назву та відповідну категорію ціноутворення, розділену комою. Примітка: Якщо одне або декілька імен у файлі вже існує в нашій системі, вони будуть перезаписані в адресі новою інформацією."
+
+msgid "Set Premium Name Price Categories"
+msgstr "Встановити преміум-назву цінових категорій"
+
+msgid "Category Name"
+msgstr "Назва категорії"
+
+msgid "Price"
+msgstr "Ціна"
+
+msgid "Update existing premium categories as needed. Please note: currently, deletion of categories is not available. All updates will modify existing information without removing any categories."
+msgstr "За потреби оновіть наявні преміум-категорії. Зверніть увагу: наразі видалення категорій недоступне. Усі оновлення змінюватимуть наявну інформацію без видалення жодних категорій."
+
+msgid "Update TLD"
+msgstr "Оновити TLD"
+
+msgid "Manage Promotions"
+msgstr "Керування акціями"
+
+msgid "Promotion Name"
+msgstr "Назва акції"
+
+msgid "Start Date"
+msgstr "Дата початку"
+
+msgid "End Date"
+msgstr "Дата завершення"
+
+msgid "Discount"
+msgstr "Знижка"
+
+msgid "Discount Amount"
+msgstr "Сума знижки"
+
+msgid "No promotions found."
+msgstr "Промо-акції не знайдено."
+
+msgid "Create New Promotion"
+msgstr "Створити нову акції"
+
+msgid "Promotion Start Date"
+msgstr "Дата початку акції"
+
+msgid "Please Note:"
+msgstr "Зверніть Увагу:"
+
+msgid "All times displayed are in"
+msgstr "Усі часи відображені в"
+
+msgid "Promotion End Date"
+msgstr "Дата закінчення акції"
+
+msgid "Discount Type"
+msgstr "Тип знижки"
+
+msgid "Percentage"
+msgstr "Відсоток"
+
+msgid "Fixed Amount"
+msgstr "Фіксована Сума"
+
+msgid "Free Domains"
+msgstr "Безкоштовні домени"
+
+msgid "Discount Value"
+msgstr "Розмір знижки"
+
+msgid "Enter discount value"
+msgstr "Інша вартість знижок"
+
+msgid "Maximum Discounted Items"
+msgstr "Максимальна кількість товарів зі знижкою"
+
+msgid "Conditions"
+msgstr "Умови"
+
+msgid "Enter conditions"
+msgstr "Введіть умови"
+
+msgid "Enter description"
+msgstr "Введіть опис"
+
+msgid "Update Promotions"
+msgstr "Оновити промо-акції"
+
+msgid "Manage Launch Phases"
+msgstr "Вимагати стартові фази"
+
+msgid "Phase Category"
+msgstr "Фазова категорія"
+
+msgid "Phase Description"
+msgstr "Опис фази"
+
+msgid "No launch phases found."
+msgstr "Не знайдено фази запуску."
+
+msgid "Create New Phase"
+msgstr "Створити нову фазу"
+
+msgid "Single application only."
+msgstr "Тільки одна заявка."
+
+msgid "Multiple applications allowed."
+msgstr "Дозволено кілька заяви."
+
+msgid "Enter phase description"
+msgstr "Введіть опис"
+
+msgid "Phase Start Date"
+msgstr "Початкова дата фази"
+
+msgid "Phase End Date"
+msgstr "Кінцева дата фази"
+
+msgid "Update Phases"
+msgstr "Оновлення фаз"
+
+msgid "Registry Configuration"
+msgstr "Конфігурація реєстру"
+
+msgid "System Settings"
+msgstr "Налаштування системи"
+
+msgid "Registry Operator Name"
+msgstr "Ім'я оператора реєстру"
+
+msgid "Enter registry operator's name"
+msgstr "Введіть ім'я оператора реєстру"
+
+msgid "The official name of the organization operating the registry."
+msgstr "Офіційна назва організації."
+
+msgid "Registry Handle"
+msgstr "Registry Handle"
+
+msgid "Enter registry handle"
+msgstr "Введіть registry handle"
+
+msgid "A unique identifier for the registry which will be appended to each object handle."
+msgstr "Унікальний ідентифікатор реєстру, який буде додано до кожного об'єкта."
+
+msgid "Enter registry whois server"
+msgstr "Введіть WHOIS сервер реєстру"
+
+msgid "Enter the URL of the registry's WHOIS server. Example:"
+msgstr "Введіть URL сервера WHOIS. Приклад:"
+
+msgid "Enter registry RDAP server"
+msgstr "Введіть RDAP сервер реєстру"
+
+msgid "Enter the URL of the registry's RDAP server. Example:"
+msgstr "Введіть URL сервера RDAP. Приклад:"
+
+msgid "Features"
+msgstr "Особливості"
+
+msgid "Require Launch Phases"
+msgstr "Вимагати стартові фази"
+
+msgid "Operator Details"
+msgstr "Деталі оператора"
+
+msgid "Registry VAT/Company Number"
+msgstr "Реєстраційний номер платника ПДВ / номер компанії"
+
+msgid "Enter registry operator's VAT number"
+msgstr "Введіть номер ПДВ оператора в реєстрі"
+
+msgid "Enter the VAT number of the organization operating the registry, or company number if VAT is unavailable."
+msgstr "Введіть номер ПДВ організації, яка керує реєстром, або номер компанії, якщо ПДВ недоступний."
+
+msgid "Contact Address"
+msgstr "Адреса контакту"
+
+msgid "Enter contact address"
+msgstr "Введіть адресу контакта"
+
+msgid "The contact address of the registry."
+msgstr "Контактна адреса реєстру."
+
+msgid "Enter contact email"
+msgstr "Введіть пошту для звʼязку"
+
+msgid "The email address for general inquiries to the registry."
+msgstr "Адреса електронної пошти для загальних запитів до реєстру."
+
+msgid "Contact Phone"
+msgstr "Контактний телефон"
+
+msgid "Enter contact phone"
+msgstr "Введіть пошту для звʼязку"
+
+msgid "The phone number for general inquiries to the registry."
+msgstr "Номер телефону для загальних запитів до реєстру."
+
+msgid "Update Details"
+msgstr "Оновити деталі"
+
+msgid "TLD Management"
+msgstr "Керування TLD"
+
+msgid "Create New TLD"
+msgstr "Створити новий TLD"
+
+msgid "Search TLDs"
+msgstr "Пошук TLDs"
+
+msgid "Enter the desired top-level domain (TLD) name, like"
+msgstr "Введіть бажаний домен верхнього рівня (TLD) наприклад,"
+
+msgid "or"
+msgstr "або"
+
+msgid "DNSSEC is currently activated manually. This option is for display purposes only."
+msgstr "Зараз активовано режим DNSSEC вручну. Цей параметр стосується лише вказаних цілей."
+
+msgid "Select the type of TLD: ccTLD (Country Code Top-Level Domain) or gTLD (Generic Top-Level Domain)."
+msgstr "Виберіть тип TLD: ccTLD (Домен верхнього рівня країни) або gTLD (типовий Домен верхнього рівня)."
+
+msgid "Cyrillic"
+msgstr "Кириличне"
+
+msgid "Japanese"
+msgstr "Японський"
+
+msgid "Korean"
+msgstr "Корейський"
+
+msgid "Choose the script type that the TLD will support. Options include ASCII, Cyrillic, Japanese, and Korean."
+msgstr "Виберіть тип скрипта, який підтримуватиме TLD. Варіанти включають ASCII, кирилицю, японську та корейську."
+
+msgid "Upload a CSV file with premium names. Each row should contain a name and its pricing category, separated by a comma."
+msgstr "Завантажити CSV файл з преміум іменами. Кожен рядок повинен містити назву та її категорію ціноутворення, розділених комою."
+
+msgid "Create TLD"
+msgstr "Створити TLD"
+
+msgid "Reports"
+msgstr "Звіти"
+
+msgid "Search reports"
+msgstr "Пошук звітів"
+
+msgid "Dashboard"
+msgstr "Панель керування"
+
+msgid "View Reports"
+msgstr "Перегляд звітів"
+
+msgid "Create new domain"
+msgstr "Створити новий домен"
+
+msgid "Enable dark mode"
+msgstr "Увімкнути темний режим"
+
+msgid "Enable light mode"
+msgstr "Увімкнути світлий режим"
+
+msgid "Logout"
+msgstr "Вийти"
+
+msgid "List Domains"
+msgstr "Список доменів"
+
+msgid "List Applications"
+msgstr "Список заяви"
+
+msgid "List Contacts"
+msgstr "Список контактів"
+
+msgid "List Hosts"
+msgstr "Список хостів"
+
+msgid "List Registrars"
+msgstr "Список реєстраторів"
+
+msgid "Financials"
+msgstr "Фінанси"
+
+msgid "Configuration"
+msgstr "Налаштування"
+
+msgid "TLDs"
+msgstr "TLDs"
+
+msgid "Support"
+msgstr "Підтримка"
+
