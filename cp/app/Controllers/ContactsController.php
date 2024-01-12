@@ -58,36 +58,21 @@ class ContactsController extends Controller
             $authInfo_pw = $data['authInfo'] ?? null;
 
             if (!$contactID) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Please provide a contact ID',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Please provide a contact ID');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             // Validation for contact ID
             $invalid_identifier = validate_identifier($contactID);
             if ($invalid_identifier) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => $invalid_identifier,
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $invalid_identifier);
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
             
             $contact = $db->select('SELECT * FROM contact WHERE identifier = ?', [$contactID]);
             if ($contact) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Contact ID already exists',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact ID already exists');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -100,104 +85,59 @@ class ContactsController extends Controller
 
             if ($postalInfoIntName) {
                 if (!$postalInfoIntName) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Missing contact name',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Missing contact name');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Invalid contact name',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact name');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoIntOrg) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact org',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact org');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet1) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet2) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street 2');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet3) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street 3');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Invalid contact city',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact city');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoIntSp) {
                     if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoIntSp)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact state/province',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact state/province');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntPc) {
                     if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoIntPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoIntPc)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid contact postal code',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact postal code');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
@@ -205,167 +145,92 @@ class ContactsController extends Controller
             
             if ($postalInfoLocName) {
                 if (!$postalInfoLocName) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Missing loc contact name',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Missing loc contact name');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocName)) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Invalid loc contact name',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact name');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoLocOrg) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocOrg)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact org',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact org');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet1) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet1)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet2) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet2)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 2');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet3) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet3)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact street',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 3');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoLocCity)) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'Invalid loc contact city',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact city');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoLocSp) {
                     if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoLocSp)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact state/province',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact state/province');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocPc) {
                     if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoLocPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoLocPc)) {
-                        return view($response, 'admin/contacts/createContact.twig', [
-                            'contactID' => $contactID,
-                            'error' => 'Invalid loc contact postal code',
-                            'registrars' => $registrars,
-                            'countries' => $countries,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact postal code');
+                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
             }
 
             if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Email address failed check',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email address failed check');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             if (!$authInfo_pw) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Email contact authinfo',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email contact authinfo missing');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Password needs to be at least 6 and up to 16 characters long',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 16 characters long');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => 'Password should have both upper and lower case characters',
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password should have both upper and lower case characters');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
             $disclose_voice = isset($data['disclose_voice']) ? 1 : 0;
@@ -383,13 +248,8 @@ class ContactsController extends Controller
                 $nin_type = (isset($data['isBusiness']) && $data['isBusiness'] === 'on') ? 'business' : 'personal';
 
                 if (!preg_match('/\d/', $nin)) {
-                    return view($response, 'admin/contacts/createContact.twig', [
-                        'contactID' => $contactID,
-                        'error' => 'NIN should contain one or more numbers',
-                        'registrars' => $registrars,
-                        'countries' => $countries,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: NIN should contain one or more numbers');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
             }
             
@@ -480,13 +340,8 @@ class ContactsController extends Controller
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                return view($response, 'admin/contacts/createContact.twig', [
-                    'contactID' => $contactID,
-                    'error' => $e->getMessage(),
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
             
             $crdate = $db->selectValue(
@@ -494,13 +349,8 @@ class ContactsController extends Controller
                 [$contact_id]
             );
             
-            return view($response, 'admin/contacts/createContact.twig', [
-                'contactID' => $contactID,
-                'crdate' => $crdate,
-                'registrars' => $registrars,
-                'countries' => $countries,
-                'registrar' => $registrar,
-            ]);
+            $this->container->get('flash')->addMessage('success', 'Contact ' . $contactID . ' has been created successfully on ' . $crdate);
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
 
         $iso3166 = new ISO3166();

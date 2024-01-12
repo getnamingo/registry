@@ -24,83 +24,59 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              {% if registrar is defined %}
-                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Registrar') }} <strong>{{ registrar }}</strong> {{ __('successfully created and is now active.') }}
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% elseif error is defined %}
-                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Error creating the registrar') }}: <strong>{{ error }}</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% endif %}
+            {% include 'partials/flash.twig' %}
               <form action="/registrar/create" method="post" autocomplete="off">
               {{ csrf.field | raw }}
                 <!-- Registrar Details Card -->
                 <div class="card mb-3">
                   <div class="card-body">
-                    <h5 class="card-title">Registrar Details</h5>
+                    <h5 class="card-title">{{ __('Registrar Details') }}</h5>
                       <div class="row">
                         <!-- First Column -->
                         <div class="col-md-6">
                           <div class="mb-3">
-                            <label for="name" class="form-label required">Name</label>
+                            <label for="name" class="form-label required">{{ __('Name') }}</label>
                             <input type="text" class="form-control" id="name" name="name" required>
-                            <small class="text-muted">The official name of the registrar.</small>
+                            <small class="text-muted">{{ __('The official name of the registrar.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="ianaId" class="form-label">IANA ID</label>
                             <input type="number" class="form-control" id="ianaId" name="ianaId">
-                            <small class="text-muted">Unique identifier assigned by IANA.</small>
+                            <small class="text-muted">{{ __('Unique identifier assigned by IANA.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="email" class="form-label required">Email</label>
+                            <label for="email" class="form-label required">{{ __('Email') }}</label>
                             <input type="email" class="form-control" id="email" name="email" required autocapitalize="none">
-                            <small class="text-muted">Primary contact email of the registrar.</small>
+                            <small class="text-muted">{{ __('Primary contact email of the registrar.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="url" class="form-label required">URL</label>
+                            <label for="url" class="form-label required">{{ __('URL') }}</label>
                             <input type="url" class="form-control" id="url" name="url" required autocapitalize="none">
-                            <small class="text-muted">Registrar's official website URL.</small>
+                            <small class="text-muted">{{ __('Registrar\'s official website URL.') }}</small>
                           </div>
                         </div>
 
                         <!-- Second Column -->
                         <div class="col-md-6">
                           <div class="mb-3">
-                            <label for="whoisServer" class="form-label required">WHOIS Server</label>
+                            <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
                             <input type="text" class="form-control" id="whoisServer" name="whoisServer" required autocapitalize="none">
-                            <small class="text-muted">Address of the registrar's WHOIS server.</small>
+                            <small class="text-muted">{{ __('Address of the registrar\'s WHOIS server.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="rdapServer" class="form-label required">RDAP Server</label>
+                            <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
                             <input type="text" class="form-control" id="rdapServer" name="rdapServer" required autocapitalize="none">
-                            <small class="text-muted">Address of the registrar's RDAP server.</small>
+                            <small class="text-muted">{{ __('Address of the registrar\'s RDAP server.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="abuseEmail" class="form-label required">Abuse Email</label>
+                            <label for="abuseEmail" class="form-label required">{{ __('Abuse Email') }}</label>
                             <input type="email" class="form-control" id="abuseEmail" name="abuseEmail" required autocapitalize="none">
-                            <small class="text-muted">Email address for reporting abuse.</small>
+                            <small class="text-muted">{{ __('Email address for reporting abuse.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="abusePhone" class="form-label required">Abuse Phone</label>
+                            <label for="abusePhone" class="form-label required">{{ __('Abuse Phone') }}</label>
                             <input type="tel" class="form-control" id="abusePhone" name="abusePhone" required>
-                            <small class="text-muted">Phone number for reporting abuse.</small>
+                            <small class="text-muted">{{ __('Phone number for reporting abuse.') }}</small>
                           </div>
                         </div>
                       </div>
@@ -110,36 +86,36 @@
                 <!-- Financial Information Card -->
                 <div class="card mb-3">
                   <div class="card-body">
-                    <h5 class="card-title">Financial Information</h5>
+                    <h5 class="card-title">{{ __('Financial Information') }}</h5>
                       <div class="row">
                         <!-- First Column -->
                         <div class="col-md-6">
                           <div class="mb-3">
-                            <label for="accountBalance" class="form-label required">Account Balance</label>
+                            <label for="accountBalance" class="form-label required">{{ __('Account Balance') }}</label>
                             <input type="number" step="0.01" class="form-control" id="accountBalance" name="accountBalance" required>
-                            <small class="text-muted">Current balance in the registrar's account.</small>
+                            <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="creditLimit" class="form-label required">Credit Limit</label>
+                            <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
                             <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" required>
-                            <small class="text-muted">Maximum credit limit for the registrar.</small>
+                            <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
                           </div>
                         </div>
 
                         <!-- Second Column -->
                         <div class="col-md-6">
                           <div class="mb-3">
-                            <label for="creditThreshold" class="form-label required">Credit Threshold</label>
+                            <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
                             <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required>
-                            <small class="text-muted">Credit threshold triggering alerts or actions.</small>
+                            <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="thresholdType" class="form-label required">Threshold Type</label>
+                            <label for="thresholdType" class="form-label required">{{ __('Threshold Type') }}</label>
                             <select class="form-select" id="thresholdType" name="thresholdType" required>
-                              <option value="fixed">Fixed</option>
-                              <option value="percent">Percent</option>
+                              <option value="fixed">{{ __('Fixed') }}</option>
+                              <option value="percent">{{ __('Percent') }}</option>
                             </select>
-                            <small class="text-muted">Type of threshold: fixed value or percentage.</small>
+                            <small class="text-muted">{{ __('Type of threshold: fixed value or percentage.') }}</small>
                           </div>
                         </div>
                       </div>
@@ -149,17 +125,17 @@
                 <!-- Registrar Contacts Section with Tabs -->
                 <div class="card mb-3">
                   <div class="card-body">
-                    <h5 class="card-title">Registrar Contacts</h5>
+                    <h5 class="card-title">{{ __('Registrar Contacts') }}</h5>
                     <ul class="nav nav-tabs nav-fill" id="contactTabs" role="tablist">
                       <!-- Tab Headers -->
                       <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="owner-tab" data-bs-toggle="tab" data-bs-target="#owner" type="button" role="tab" aria-controls="owner" aria-selected="true">Owner</button>
+                        <button class="nav-link active" id="owner-tab" data-bs-toggle="tab" data-bs-target="#owner" type="button" role="tab" aria-controls="owner" aria-selected="true">{{ __('Owner') }}</button>
                       </li>
                       <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab" aria-controls="billing" aria-selected="false">Billing</button>
+                        <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab" aria-controls="billing" aria-selected="false">{{ __('Billing') }}</button>
                       </li>
                       <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="abuse-tab" data-bs-toggle="tab" data-bs-target="#abuse" type="button" role="tab" aria-controls="abuse" aria-selected="false">Abuse</button>
+                        <button class="nav-link" id="abuse-tab" data-bs-toggle="tab" data-bs-target="#abuse" type="button" role="tab" aria-controls="abuse" aria-selected="false">{{ __('Abuse') }}</button>
                       </li>
                     </ul>
 
@@ -170,30 +146,30 @@
                           <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" value="" id="copyOwnerData">
                             <label class="form-check-label" for="copyOwnerData">
-                              <strong>Copy data to other contacts</strong>
+                              <strong>{{ __('Copy data to other contacts') }}</strong>
                             </label>
                           </div>
                           <div class="row">
                             <!-- First Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="ownerFirstName" class="form-label required">First Name</label>
+                                <label for="ownerFirstName" class="form-label required">{{ __('First Name') }}</label>
                                 <input type="text" class="form-control" id="ownerFirstName" name="owner[first_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="ownerLastName" class="form-label required">Last Name</label>
+                                <label for="ownerLastName" class="form-label required">{{ __('Last Name') }}</label>
                                 <input type="text" class="form-control" id="ownerLastName" name="owner[last_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="ownerOrg" class="form-label">Organization</label>
+                                <label for="ownerOrg" class="form-label">{{ __('Organization') }}</label>
                                 <input type="text" class="form-control" id="ownerOrg" name="owner[org]">
                               </div>
                               <div class="mb-3">
-                                <label for="ownerStreet1" class="form-label">Street Address</label>
+                                <label for="ownerStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="ownerStreet1" name="owner[street1]">
                               </div>
                               <div class="mb-3">
-                                <label for="ownerCity" class="form-label required">City</label>
+                                <label for="ownerCity" class="form-label required">{{ __('City') }}</label>
                                 <input type="text" class="form-control" id="ownerCity" name="owner[city]" required>
                               </div>
                             </div>
@@ -201,15 +177,15 @@
                             <!-- Second Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="ownerSp" class="form-label">State/Province</label>
+                                <label for="ownerSp" class="form-label">{{ __('State/Province') }}</label>
                                 <input type="text" class="form-control" id="ownerSp" name="owner[sp]">
                               </div>
                               <div class="mb-3">
-                                <label for="ownerPc" class="form-label">Postal Code</label>
+                                <label for="ownerPc" class="form-label">{{ __('Postal Code') }}</label>
                                 <input type="text" class="form-control" id="ownerPc" name="owner[pc]">
                               </div>
                               <div class="mb-3">
-                                <label for="ownerCc" class="form-label required">Country</label>
+                                <label for="ownerCc" class="form-label required">{{ __('Country') }}</label>
                                 <select class="form-select" id="ownerCc" name="owner[cc]" required="required">
                                   {% for country in countries %}
                                     <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
@@ -217,11 +193,11 @@
                                 </select>
                               </div>
                               <div class="mb-3">
-                                <label for="ownerVoice" class="form-label">Phone</label>
+                                <label for="ownerVoice" class="form-label">{{ __('Phone') }}</label>
                                 <input type="tel" class="form-control" id="ownerVoice" name="owner[voice]">
                               </div>
                               <div class="mb-3">
-                                <label for="ownerEmail" class="form-label required">Email</label>
+                                <label for="ownerEmail" class="form-label required">{{ __('Email') }}</label>
                                 <input type="email" class="form-control" id="ownerEmail" name="owner[email]" required autocapitalize="none">
                               </div>
                             </div>
@@ -236,23 +212,23 @@
                             <!-- First Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="billingFirstName" class="form-label required">First Name</label>
+                                <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
                                 <input type="text" class="form-control" id="billingFirstName" name="billing[first_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="billingLastName" class="form-label required">Last Name</label>
+                                <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
                                 <input type="text" class="form-control" id="billingLastName" name="billing[last_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="billingOrg" class="form-label">Organization</label>
+                                <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
                                 <input type="text" class="form-control" id="billingOrg" name="billing[org]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingStreet1" class="form-label">Street Address</label>
+                                <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="billingStreet1" name="billing[street1]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingCity" class="form-label required">City</label>
+                                <label for="billingCity" class="form-label required">{{ __('City') }}</label>
                                 <input type="text" class="form-control" id="billingCity" name="billing[city]" required>
                               </div>
                             </div>
@@ -260,15 +236,15 @@
                             <!-- Second Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="billingSp" class="form-label">State/Province</label>
+                                <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
                                 <input type="text" class="form-control" id="billingSp" name="billing[sp]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingPc" class="form-label">Postal Code</label>
+                                <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
                                 <input type="text" class="form-control" id="billingPc" name="billing[pc]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingCc" class="form-label required">Country</label>
+                                <label for="billingCc" class="form-label required">{{ __('Country') }}</label>
                                 <select class="form-select" id="billingCc" name="billing[cc]" required="required">
                                   {% for country in countries %}
                                     <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
@@ -276,11 +252,11 @@
                                 </select>
                               </div>
                               <div class="mb-3">
-                                <label for="billingVoice" class="form-label">Phone</label>
+                                <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
                                 <input type="tel" class="form-control" id="billingVoice" name="billing[voice]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingEmail" class="form-label required">Email</label>
+                                <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
                                 <input type="email" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none">
                               </div>
                             </div>
@@ -295,23 +271,23 @@
                             <!-- First Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="abuseFirstName" class="form-label required">First Name</label>
+                                <label for="abuseFirstName" class="form-label required">{{ __('First Name') }}</label>
                                 <input type="text" class="form-control" id="abuseFirstName" name="abuse[first_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="abuseLastName" class="form-label required">Last Name</label>
+                                <label for="abuseLastName" class="form-label required">{{ __('Last Name') }}</label>
                                 <input type="text" class="form-control" id="abuseLastName" name="abuse[last_name]" required>
                               </div>
                               <div class="mb-3">
-                                <label for="abuseOrg" class="form-label">Organization</label>
+                                <label for="abuseOrg" class="form-label">{{ __('Organization') }}</label>
                                 <input type="text" class="form-control" id="abuseOrg" name="abuse[org]">
                               </div>
                               <div class="mb-3">
-                                <label for="abuseStreet1" class="form-label">Street Address</label>
+                                <label for="abuseStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="abuseStreet1" name="abuse[street1]">
                               </div>
                               <div class="mb-3">
-                                <label for="abuseCity" class="form-label required">City</label>
+                                <label for="abuseCity" class="form-label required">{{ __('City') }}</label>
                                 <input type="text" class="form-control" id="abuseCity" name="abuse[city]" required>
                               </div>
                             </div>
@@ -319,15 +295,15 @@
                             <!-- Second Column -->
                             <div class="col-md-6">
                               <div class="mb-3">
-                                <label for="abuseSp" class="form-label">State/Province</label>
+                                <label for="abuseSp" class="form-label">{{ __('State/Province') }}</label>
                                 <input type="text" class="form-control" id="abuseSp" name="abuse[sp]">
                               </div>
                               <div class="mb-3">
-                                <label for="abusePc" class="form-label">Postal Code</label>
+                                <label for="abusePc" class="form-label">{{ __('Postal Code') }}</label>
                                 <input type="text" class="form-control" id="abusePc" name="abuse[pc]">
                               </div>
                               <div class="mb-3">
-                                <label for="abuseCc" class="form-label required">Country</label>
+                                <label for="abuseCc" class="form-label required">{{ __('Country') }}</label>
                                 <select class="form-select" id="abuseCc" name="abuse[cc]" required="required">
                                   {% for country in countries %}
                                     <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
@@ -335,11 +311,11 @@
                                 </select>
                               </div>
                               <div class="mb-3">
-                                <label for="abuseVoice" class="form-label">Phone</label>
+                                <label for="abuseVoice" class="form-label">{{ __('Phone') }}</label>
                                 <input type="tel" class="form-control" id="abuseVoice" name="abuse[voice]">
                               </div>
                               <div class="mb-3">
-                                <label for="abuseEmail" class="form-label required">Email</label>
+                                <label for="abuseEmail" class="form-label required">{{ __('Email') }}</label>
                                 <input type="email" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none">
                               </div>
                             </div>
@@ -355,9 +331,9 @@
                   <div class="col-md-6">
                     <div class="card h-100">
                       <div class="card-body">
-                        <h5 class="card-title">IP Whitelisting <span class="text-red">*</span></h5>
+                        <h5 class="card-title">{{ __('IP Whitelisting') }} <span class="text-red">*</span></h5>
                         <p class="card-text">
-                          Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added.
+                          {{ __('Whitelist IP addresses for secure access. Up to 5 IP addresses (IPv4 or IPv6) can be added.') }}
                         </p>
                         <div id="ipWhitelistForm">
                           <div id="ipAddressFields">
@@ -375,18 +351,18 @@
                   <div class="col-md-6">
                     <div class="card h-100">
                       <div class="card-body">
-                        <h5 class="card-title">Registrar User</h5>
+                        <h5 class="card-title">{{ __('Registrar User') }}</h5>
                         <p class="card-text">
-                          Create a registrar user by specifying the username (also known as CLID), email, and passwords for EPP and panel access.
+                          {{ __('Create a registrar user by specifying the username (also known as CLID), email, and passwords for EPP and panel access.') }}
                         </p>
                         <div class="table-responsive">
                           <table class="table">
                             <thead>
                               <tr>
-                                <th scope="col required">Username/CLID <span class="text-red">*</span></th>
-                                <th scope="col">Login Email <span class="text-red">*</span></th>
-                                <th scope="col">Panel Password <span class="text-red">*</span></th>
-                                <th scope="col">EPP Password <span class="text-red">*</span></th>
+                                <th scope="col required">{{ __('Username/CLID') }} <span class="text-red">*</span></th>
+                                <th scope="col">{{ __('Login Email') }} <span class="text-red">*</span></th>
+                                <th scope="col">{{ __('Panel Password') }} <span class="text-red">*</span></th>
+                                <th scope="col">{{ __('EPP Password') }} <span class="text-red">*</span></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -415,9 +391,9 @@
                 <!-- OTE Section -->
                 <div class="card mb-3">
                   <div class="card-body">
-                    <h5 class="card-title">Operational Test and Evaluation (OTE)</h5>
+                    <h5 class="card-title">{{ __('Operational Test and Evaluation (OTE)') }}</h5>
                     <p class="card-text">
-                      Operational Test and Evaluation (OTE) assesses the functionality of EPP commands in a simulated environment, ensuring effective communication between the registrar's system and the registry. Below are key EPP commands and their test statuses:
+                      {{ __('Operational Test and Evaluation (OTE) assesses the functionality of EPP commands in a simulated environment, ensuring effective communication between the registrar\'s system and the registry. Below are key EPP commands and their test statuses:') }}
                     </p>
                     <div class="row">
                       <!-- First Column -->
@@ -425,23 +401,23 @@
                         <ul class="list-group">
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             contact:create
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             domain:check
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             domain:info
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             domain:renew
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             domain:transfer
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                         </ul>
                       </div>
@@ -451,23 +427,23 @@
                         <ul class="list-group">
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             host:create
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             host:info
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             contact:update
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             domain:delete
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                           <li class="list-group-item d-flex justify-content-between align-items-center">
                             poll:request
-                            <span class="badge bg-orange text-orange-fg">Pending</span>
+                            <span class="badge bg-orange text-orange-fg">{{ __('Pending') }}</span>
                           </li>
                         </ul>
                       </div>
@@ -476,7 +452,7 @@
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Create Registrar</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Create Registrar') }}</button>
                       </div>
                     </div>
                   </div>
@@ -485,19 +461,7 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

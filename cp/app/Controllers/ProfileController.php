@@ -73,12 +73,16 @@ class ProfileController extends Controller
             'SELECT * FROM users_webauthn WHERE user_id = ?',
             [$userId]
         );
+        $user_audit = $db->select(
+            'SELECT * FROM users_audit WHERE user_id = ? ORDER BY event_time DESC',
+            [$userId]
+        );
         if ($is_2fa_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'userAudit' => $user_audit]);
         } else if ($is_weba_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated, 'userAudit' => $user_audit]);
         } else {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'userAudit' => $user_audit]);
         }
 
     }
@@ -114,6 +118,21 @@ class ProfileController extends Controller
             }
             
             try {
+                $currentDateTime = new \DateTime();
+                $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                $db->insert(
+                    'users_audit',
+                    [
+                        'user_id' => $_SESSION['auth_user_id'],
+                        'user_event' => 'user.enable.2fa',
+                        'user_resource' => 'control.panel',
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                        'user_ip' => get_client_ip(),
+                        'user_location' => get_client_location(),
+                        'event_time' => $currentDate,
+                        'user_data' => null
+                    ]
+                );
                 $db->update(
                     'users',
                     [

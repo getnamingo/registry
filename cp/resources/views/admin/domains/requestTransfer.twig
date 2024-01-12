@@ -36,7 +36,7 @@
                             
                             {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
-                                    <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}:</label>
+                                    <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -60,12 +60,12 @@
                             
                             <!-- Placeholder for displaying domain price -->
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
-                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">$0.00</span>
+                                <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">{{ currency }} 0.00</span>
                             </div>
 
                             <div class="mb-3">
                               <label for="token" class="form-label">{{ __('Allocation Token') }}</label>
-                              <input type="text" class="form-control" placeholder="Allocation token" name="token" autocapitalize="none">
+                              <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
                             </div>
 
                     </div>
@@ -81,19 +81,7 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -180,9 +168,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function formatPrice(price) {
         switch(window.currencyPosition) {
             case 'before':
-                return `${window.currencySymbol}${price.toFixed(2)}`;
+                return `{{ currency }} ${price.toFixed(2)}`;
             case 'after':
-                return `${price.toFixed(2)} ${window.currencySymbol}`;
+                return `${price.toFixed(2)} {{ currency }}`;
             default:
                 return price.toFixed(2);
         }

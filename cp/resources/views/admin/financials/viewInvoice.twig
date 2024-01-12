@@ -10,15 +10,14 @@
             <div class="row g-2 align-items-center">
               <div class="col">
                 <h2 class="page-title">
-                  Invoice {{ invoice_details.invoice_number }}
+                  {{ __('Invoice') }} {{ invoice_details.invoice_number }}
                 </h2>
               </div>
               <!-- Page title actions -->
               <div class="col-auto ms-auto d-print-none">
                 <button type="button" class="btn btn-primary" onclick="javascript:window.print();">
-                  <!-- Download SVG icon from http://tabler-icons.io/i/printer -->
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z" /></svg>
-                  Print Invoice
+                  {{ __('Print Invoice') }}
                 </button>
               </div>
             </div>
@@ -31,7 +30,7 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col-6">
-                    <p class="h3">Provider / Registry</p>
+                    <p class="h3">{{ __('Provider') }} / {{ __('Registry') }}</p>
                     <address>
                       {{ company_name }}<br>
                       {{ vat_number }}<br>
@@ -42,7 +41,7 @@
                     </address>
                   </div>
                   <div class="col-6 text-end">
-                    <p class="h3">Client / Registrar</p>
+                    <p class="h3">{{ __('Client') }} / {{ __('Registrar') }}</p>
                     <address>
                       {{ billing.org }}<br>
                       {{ billing_vat }} {% if validVAT %}<svg xmlns="http://www.w3.org/2000/svg" class="icon text-success" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>{% endif %}<br>
@@ -53,13 +52,13 @@
                     </address>
                   </div>
                   <div class="col-6">
-                    <p class="h3">Invoice Issued On: {{ invoice_details.issue_date|date("Y-m-d") }}</p>
+                    <p class="h3">{{ __('Invoice Issued On') }}: {{ invoice_details.issue_date|date("Y-m-d") }}</p>
                   </div>
                   <div class="col-6 text-end">
-                    <p class="h3">Due Date: {{ invoice_details.due_date|date("Y-m-d") }}</p>
+                    <p class="h3">{{ __('Due Date') }}: {{ invoice_details.due_date|date("Y-m-d") }}</p>
                   </div>
                   <div class="col-12 my-5">
-                    <h1>Invoice {{ invoice_details.invoice_number }} {% set status = invoice_details.payment_status %}
+                    <h1>{{ __('Invoice') }} {{ invoice_details.invoice_number }} {% set status = invoice_details.payment_status %}
                     <span class="badge 
                         {% if status == 'unpaid' %}bg-red text-red-fg
                         {% elseif status == 'paid' %}bg-green text-green-fg
@@ -76,8 +75,8 @@
                   <thead>
                     <tr>
                       <th class="text-center" style="width: 1%"></th>
-                      <th>Product</th>
-                      <th class="text-end" style="width: 1%">Amount</th>
+                      <th>{{ __('Product') }}</th>
+                      <th class="text-end" style="width: 1%">{{ __('Amount') }}</th>
                     </tr>
                   </thead>
                 {% if statement is not empty %}
@@ -94,45 +93,32 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="2" class="text-center">No items found.</td>
+                        <td colspan="2" class="text-center">{{ __('No items found.') }}</td>
                     </tr>
                 {% endif %}      
                   <tr>
-                    <td colspan="2" class="strong text-end">Subtotal</td>
+                    <td colspan="2" class="strong text-end">{{ __('Subtotal') }}</td>
                     <td class="text-end">{{ netPrice }}</td>
                   </tr>
                   <tr>
-                    <td colspan="2" class="strong text-end">Vat Rate</td>
+                    <td colspan="2" class="strong text-end">{{ __('Vat Rate') }}</td>
                     <td class="text-end">{{ vatRate }}</td>
                   </tr>
                   <tr>
-                    <td colspan="2" class="strong text-end">Vat Due</td>
+                    <td colspan="2" class="strong text-end">{{ __('Vat Due') }}</td>
                     <td class="text-end">{{ vatAmount }}</td>
                   </tr>
                   <tr>
-                    <td colspan="2" class="font-weight-bold text-uppercase text-end">Total Due</td>
+                    <td colspan="2" class="font-weight-bold text-uppercase text-end">{{ __('Total Due') }}</td>
                     <td class="font-weight-bold text-end">{{ total }}</td>
                   </tr>
                 </table>
-                <p class="text-secondary text-center mt-5">Notes: {{ invoice_details.notes }}</p>
-                <p class="text-secondary text-center mt-5">Thank you very much for doing business with us. We look forward to working with
-                  you again!</p>
+                <p class="text-secondary text-center mt-5">{{ __('Notes') }}: {{ invoice_details.notes }}</p>
+                <p class="text-secondary text-center mt-5">{{ __('Thank you very much for doing business with us. We look forward to working with you again!') }}</p>
               </div>
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

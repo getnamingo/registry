@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Check Domain') }}
@@ -35,12 +35,12 @@
                         <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
                       </div>
                       <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="Allocation token" name="token" autocapitalize="none">
+                        <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
                       </div>
                       <div class="mb-3">
                         <label class="form-check">
                           <input class="form-check-input" type="checkbox" name="claims">
-                          <span class="form-check-label">Check claims</span>
+                          <span class="form-check-label">{{ __('Check claims') }}</span>
                         </label>
                       </div>
                     </form>
@@ -49,18 +49,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

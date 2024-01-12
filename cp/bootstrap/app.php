@@ -12,9 +12,17 @@ use Gettext\Loader\PoLoader;
 use Gettext\Translations;
 use Punic\Language;
 
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
+// Enable for debug
+// if (session_status() == PHP_SESSION_NONE) {
+//     session_start();
+// }
+
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_lifetime', '0');
+ini_set('session.hash_function', 'sha256');
+ini_set('session.entropy_length', '32');
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';
@@ -45,37 +53,6 @@ $routeParser = $app->getRouteCollector()->getRouteParser();
 
 require_once __DIR__ . '/database.php';
 
-// Known set of languages
-$allowedLanguages = ['en_US', 'uk_UA', 'es_ES']; // Add more as needed
-
-if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
-    // Use regex to validate the format: two letters, underscore, two letters
-    if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
-        $desiredLanguage = $_SESSION['_lang'];
-        $parts = explode('_', $_SESSION['_lang']);
-        if (isset($parts[1])) {
-            $uiLang = strtolower($parts[1]);
-        }
-    } else {
-        $desiredLanguage = 'en_US';
-        $uiLang = 'us';
-    }
-} else {
-    $desiredLanguage = 'en_US';
-    $uiLang = 'us';
-}
-$lang_full = Language::getName($desiredLanguage, 'en');
-$lang = trim(strstr($lang_full, ' (', true));
-
-$languageFile = '../lang/' . $desiredLanguage . '/messages.po';
-if (!file_exists($languageFile)) {
-    $desiredLanguage = 'en_US'; // Fallback
-    $languageFile = '../lang/en_US/messages.po';
-}
-
-$loader = new PoLoader();
-$translations = $loader->loadFile($languageFile);
-
 $container->set('router', function () use ($routeParser) {
     return $routeParser;
 });
@@ -89,6 +66,11 @@ $container->set('pdo', function () use ($pdo) {
 });
 
 $container->set('auth', function() {
+    //$responseFactory = new \Nyholm\Psr7\Factory\Psr17Factory();
+    //$response = $responseFactory->createResponse();
+    //$autoLogout = new \Pinga\Auth\AutoLogout();
+    //$autoLogout->watch(900, '/', null, 301, $response);
+    
     return new \App\Auth\Auth;
 });
 
@@ -96,7 +78,7 @@ $container->set('flash', function() {
     return new \Slim\Flash\Messages;
 });
 
-$container->set('view', function ($container) use ($translations, $uiLang, $lang) {
+$container->set('view', function ($container) {
     $view = Twig::create(__DIR__ . '/../resources/views', [
         'cache' => false,
     ]);
@@ -104,6 +86,38 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
         'isLogin' => $container->get('auth')->isLogin(),
         'user' => $container->get('auth')->user(),
     ]);
+
+    // Known set of languages
+    $allowedLanguages = ['en_US', 'uk_UA', 'es_ES']; // Add more as needed
+
+    if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
+        // Use regex to validate the format: two letters, underscore, two letters
+        if (preg_match('/^[a-z]{2}_[A-Z]{2}$/', $_SESSION['_lang'])) {
+            $desiredLanguage = $_SESSION['_lang'];
+            $parts = explode('_', $_SESSION['_lang']);
+            if (isset($parts[1])) {
+                $uiLang = strtolower($parts[1]);
+            }
+        } else {
+            $desiredLanguage = 'en_US';
+            $uiLang = 'us';
+        }
+    } else {
+        $desiredLanguage = 'en_US';
+        $uiLang = 'us';
+    }
+    $lang_full = Language::getName($desiredLanguage, 'en');
+    $lang = trim(strstr($lang_full, ' (', true));
+
+    $languageFile = '../lang/' . $desiredLanguage . '/messages.po';
+    if (!file_exists($languageFile)) {
+        $desiredLanguage = 'en_US'; // Fallback
+        $languageFile = '../lang/en_US/messages.po';
+    }
+
+    $loader = new PoLoader();
+    $translations = $loader->loadFile($languageFile);
+
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
@@ -117,22 +131,20 @@ $container->set('view', function ($container) use ($translations, $uiLang, $lang
     }
 
     $db = $container->get('db');
-    $query = 'SELECT r.currency, ru.registrar_id
+    $user_data = 'SELECT ru.registrar_id
               FROM registrar_users ru
               JOIN registrar r ON ru.registrar_id = r.id
               WHERE ru.user_id = ?';
+    $currency_data = "SELECT value FROM settings WHERE name = 'currency'";
 
     if (isset($_SESSION['auth_user_id'])) {
-        $result = $db->select($query, [$_SESSION['auth_user_id']]);
+        $result = $db->select($user_data, [$_SESSION['auth_user_id']]);
+        $db_currency = $db->select($currency_data);
 
-        // Default values
-        $_SESSION['_currency'] = 'USD';
+        $_SESSION['_currency'] = $db_currency[0]['value'];
         $_SESSION['auth_registrar_id'] = null;  // Default registrar_id
 
         if ($result !== null && count($result) > 0) {
-            if (isset($result[0]['currency'])) {
-                $_SESSION['_currency'] = $result[0]['currency'];
-            }
             if (isset($result[0]['registrar_id'])) {
                 $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
             }

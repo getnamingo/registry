@@ -26,26 +26,14 @@
             <div class="col-12">
               <div class="card bg-orange-lt">
                 <div class="card-body">
-                  <p class="text-secondary">We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure.</p>
-                  <p class="text-secondary">Ready to try again? When you're set to proceed with your deposit, simply return to the <a href="{{route('deposit')}}">Deposit Page</a> to initiate a new payment. We value your partnership and are committed to assisting you every step of the way.</p>
+                  <p class="text-secondary">{{ __('We\'ve noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don\'t hesitate to contact us. We're here to help ensure your transaction is smooth and secure.') }}</p>
+                  <p class="text-secondary">{{ __('Ready to try again? When you\'re set to proceed with your deposit, simply return to the') }} <a href="{{route('deposit')}}">{{ __('Deposit Page') }}</a> {{ __('to initiate a new payment. We value your partnership and are committed to assisting you every step of the way.') }}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

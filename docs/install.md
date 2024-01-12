@@ -1,4 +1,10 @@
-# Installation & Usage
+# Installation
+
+Welcome to the Installation Guide for Namingo, the comprehensive domain registry management tool. For those who prefer a streamlined setup, an automated installation process is available at [https://namingo.org](https://namingo.org). We highly recommend utilizing this option for a hassle-free and efficient installation experience.
+
+As you follow along with this document, it's important to also review the [Configuration Guide](configuration.md). This guide will provide you with detailed information on how to configure various components of Namingo, ensuring that your system is tailored to meet your specific requirements. Familiarizing yourself with these configuration steps during installation will help in setting up Namingo for optimal performance and functionality.
+
+Once you have completed the installation process, we encourage you to proceed to the [Initial Operation Guide](docs/iog.md) for detailed instructions on how to configure your registry, add registrars, and other essential operational steps.
 
 ## 1. Install the required packages:
 
@@ -65,6 +71,13 @@ If you have 50000 or more domains, use:
 memory_limit = -1
 ```
 
+In ```/etc/php/8.2/mods-available/opcache.ini``` make one additional change:
+
+```bash
+opcache.jit=1255
+opcache.jit_buffer_size=100M
+```
+
 After configuring PHP, restart the service to apply changes:
 
 ```bash
@@ -119,6 +132,8 @@ sudo -u postgres psql
 postgres=#
 postgres=# ALTER USER postgres PASSWORD 'demoPassword';
 postgres=# CREATE DATABASE registry;
+postgres=# CREATE DATABASE registryTransaction;
+postgres=# CREATE DATABASE registryAudit;
 postgres=# \q
 ```
 
@@ -183,6 +198,7 @@ rdap.example.com {
     encode gzip
     file_server
     tls your-email@example.com
+    header -Server
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -202,6 +218,7 @@ whois.example.com {
     php_fastcgi unix//run/php/php8.2-fpm.sock
     file_server
     tls your-email@example.com
+    header -Server
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -221,6 +238,7 @@ cp.example.com {
     encode gzip
     file_server
     tls your-email@example.com
+    header -Server
     log {
         output file /var/log/caddy/access.log
         format console
@@ -254,7 +272,7 @@ systemctl enable caddy
 systemctl restart caddy
 ```
 
-**And now is the right time to import the provided database file for your database type using Adminer.**
+**And now is the right time to import the provided database file(s) for your database type using Adminer.**
 
 ## 7. Control Panel Setup:
 
@@ -300,6 +318,27 @@ To get the starting list of TLDs (Top-Level Domains) from ICANN and cache it for
 
 ```bash
 php /var/www/cp/bin/file_cache.php
+```
+
+### Setting Up Redis Session Storage:
+
+To utilize Redis for session storage, you need to install the necessary packages and configure your environment accordingly. Follow these steps to set up Redis session storage:
+
+```bash
+cd /var/www/cp
+composer require predis/predis pinga/session-redis
+```
+
+After installation, log out of your application if you are currently logged in. This ensures that the session starts afresh with the new configuration.
+
+Clear your browser cookies related to the application. This step is crucial as it removes any existing session cookies that were set using the previous session storage mechanism.
+
+Upon your next login, Redis will be used for storing session data. The new sessions will be created and managed through Redis, providing a more scalable and efficient session management system.
+
+**Note**: Ensure that your Redis server is properly configured and running before proceeding with these steps. If in doubt, check with:
+
+```bash
+systemctl status redis-server
 ```
 
 ## 8. Setup Web Lookup:
@@ -408,13 +447,13 @@ composer require phpmailer/phpmailer
 
 This command will install one of the packages which are essential for the message broker script to function correctly.
 
-### Configuring the Crontab for Automation Scripts
+### Configuring the Message Broker
 
-To set up automated tasks for Namingo, open the example crontab file located at ```/opt/registry/automation/crontab.example```. Review the contents and copy the relevant lines into your system's crontab file. Remember to adjust the paths and timings as necessary to suit your environment.
+You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
 
-### Running the `messagebroker.php` Script in the Background
+For establishing your own mail server, Mox, available at [GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then enter the required details in the ```config.php``` file.
 
-To run the messagebroker.php script as a background process, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
+To run the messagebroker.php script, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
 
 ### Setting Up an Audit Trail Database for Namingo
 
@@ -489,6 +528,14 @@ Always keep your private key secure. Do not share it. If someone gains access to
 
 Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
 
+### Running the Automation System
+
+Once you have successfully configured all automation scripts, you are ready to initiate the automation system. Please review ```/opt/registry/automation/cron.php``` and enable all services if you are running a gTLD. Then proceed by adding the following cron job to the system crontab using ```crontab -e```:
+
+```bash
+* * * * * /usr/bin/php8.2 /opt/registry/automation/cron.php 1>> /dev/null 2>&1
+```
+
 ## 13. Setup DAS:
 
 ```bash
@@ -519,13 +566,6 @@ Although Namingo is equipped with BIND by default for this purpose, you can opt 
 apt install bind9 bind9-utils bind9-doc
 ```
 
-### Create Zone Directory:
-
-```bash
-mkdir /etc/bind/zones
-mkdir /etc/bind/keys
-```
-
 ### Generate a TSIG key:
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
@@ -554,14 +594,30 @@ Edit the named.conf.local file:
 nano /etc/bind/named.conf.local
 ```
 
+Add the following DNSSEC policy:
+
+```bash
+dnssec-policy "namingo-policy" {
+    keys {
+        ksk lifetime P3M algorithm ed25519;
+        zsk lifetime P1M algorithm ed25519;
+    };
+    max-zone-ttl 86400;
+    dnskey-ttl 3600;
+    zone-propagation-delay 3600;
+    parent-propagation-delay 7200;
+    parent-ds-ttl 86400;
+};
+```
+
 Add the following zone definition:
 
 ```bash
 zone "test." {
     type master;
-    file "/etc/bind/zones/test.zone";
-    auto-dnssec maintain;
-    key-directory "/etc/bind/keys";
+    file "/var/lib/bind/test.zone";
+    dnssec-policy "namingo-policy";
+    key-directory "/var/lib/bind";
     inline-signing yes;
     allow-transfer { key "test.key"; };
     also-notify { <slave-server-IP>; };
@@ -573,30 +629,26 @@ Replace ```<slave-server-IP>``` with the actual IP address of your slave server.
 Initially, you will need to generate the DNSSEC ZSK and KSK manually:
 
 ```bash
-dnssec-keygen -a Ed25519 -b 2048 -n ZONE test.
-dnssec-keygen -a Ed25519 -b 4096 -n ZONE -f KSK test.
+dnssec-keygen -a Ed25519 -n ZONE test.
+dnssec-keygen -a Ed25519 -n ZONE -f KSK test.
 ```
 
-After generating the keys, place them in the specified key-directory.
+After generating the keys, place them in ```/var/lib/bind```. Run ```dnssec-dsfromkey Ktest.EXAMPLE.key``` on the KSK key you just generated, and the DS record must be submitted to IANA once setup is complete.
 
 Use rndc to tell BIND to load and use the new keys:
 
 ```bash
-chown bind:bind /etc/bind/keys/*
-chmod 640 /etc/bind/keys/*
-chown -R bind:bind /etc/bind/zones
-chmod 640 /etc/bind/zones/*
 systemctl restart bind9
 rndc loadkeys test.
 ```
 
-Configure and start the ```write-zone.php``` automation script.
+Configure the ```write-zone.php``` file and activate it in the automation script.
 
 ### Check BIND9 Configuration:
 
 ```bash
 named-checkconf
-named-checkzone test /etc/bind/zones/test.zone
+named-checkzone test /var/lib/bind/test.zone
 ```
 
 ### Restart BIND9 Service:
@@ -611,6 +663,85 @@ Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 
 ```bash
 grep named /var/log/syslog
+```
+
+### 14.1 Regular DNS Server Setup:
+
+Before editing the configuration files, you need to copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret==";
+};
+```
+
+#### Installation of BIND9:
+
+```bash
+apt update
+apt install bind9 bind9-utils bind9-doc
+```
+
+#### Add the TSIG key to the BIND Configuration:
+
+Create a directory to store zone files:
+
+```bash
+mkdir /var/cache/bind/zones
+```
+
+Edit the `named.conf.local` file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+First, define the TSIG key at the top of the file:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
+};
+```
+
+Then, add the slave zone configuration:
+
+```bash
+zone "test." {
+    type slave;
+    file "/var/cache/bind/zones/test.zone";
+    masters { 192.0.2.1 key "test.key"; }; // IP of the hidden master and TSIG key reference
+    allow-query { any; }; // Allow queries from all IPs
+    allow-transfer { none; }; // Disable zone transfers (AXFR) to others
+};
+```
+
+Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
+
+#### Adjusting Permissions and Ownership:
+
+Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
+
+```bash
+chown bind:bind /var/cache/bind/zones
+chmod 755 /var/cache/bind/zones
+```
+
+#### Restart BIND9 Service:
+
+After making these changes, restart the BIND9 service to apply them:
+
+```bash
+systemctl restart bind9
+```
+
+#### Verify Configuration and Zone Transfer:
+
+```bash
+named-checkconf
+grep 'transfer of "test."' /var/log/syslog
 ```
 
 ## 15. Setup Monitoring:
@@ -686,6 +817,12 @@ prometheus --config.file=/etc/prometheus/prometheus.yml
 
 The tool will be available at ```http://<your_server_ip>:9090```
 
-## 16. Setup Mail Server:
+## 16. Recommended Help Desk Solution:
 
-For establishing your own mail server, Mox, available at [Mox GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then integrate with Namingo. This setup ensures a cohesive and efficient operation of your mail server.
+If you're in need of an effective help desk solution to complement your experience with Namingo, we recommend considering [FreeScout](https://freescout.net/), an AGPL-3.0 licensed, free and open-source software. FreeScout is known for its user-friendly interface and robust features, making it an excellent choice for managing customer queries and support tickets.
+
+### Please Note:
+
+- FreeScout is an independent software and is not a part of Namingo. It is licensed under the AGPL-3.0, which is different from Namingo's MIT license.
+- The recommendation to use FreeScout is entirely optional and for the convenience of Namingo users. Namingo functions independently of FreeScout and does not require FreeScout for its operation.
+- Ensure to comply with the AGPL-3.0 license terms if you choose to use FreeScout alongside Namingo.

@@ -50,9 +50,25 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Advanced scripting capabilities also facilitate the generation of RDE deposits, the creation of ICANN's monthly reports, Spec 11 abuse monitoring, and ensure full compliance with other ICANN gTLD requirements for streamlined regulatory adherence.
 
-## Installation Instructions
+## Documentation
 
-For detailed installation steps, please refer to [Install.md](docs/install.md).
+We invite you to thoroughly review all the `.md` files within the `docs` directory to familiarize yourself with the various aspects of Namingo. These documents provide comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
+
+### Installation Instructions
+
+#### Automated Install
+
+For a quick and easy installation, you can use the automated install script by running the following command:
+
+```bash
+wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./install.sh
+```
+
+This command will download and execute the `install.sh` script from Namingo's website, which automates the installation process.
+
+#### Manual Installation Steps
+
+For detailed installation steps, please refer to [install.md](docs/install.md).
 
 ## Support
 

@@ -43,7 +43,6 @@ return [
             'database' => $_ENV['DB_DATABASE'] ?? 'db_username',
             'username' => $_ENV['DB_USERNAME'] ?? 'db_password',
             'password' => $_ENV['DB_PASSWORD'] ?? '',
-            'charset' => 'utf8',
             'prefix' => '',
             'schema' => 'public',
             'sslmode' => 'prefer',

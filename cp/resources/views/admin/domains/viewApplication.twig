@@ -27,7 +27,7 @@
               <div class="card mb-3">
                 <div class="card-header">
                     <h3 class="card-title">
-                        Application for {{ domain.name }}&nbsp;
+                        {{ __('Application for') }} {{ domain.name }}&nbsp;
                         {% if domainStatus %}
                             {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
@@ -46,37 +46,37 @@
                 <div class="card-body">
                   <div class="datagrid">
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Created On</div>
+                      <div class="datagrid-title">{{ __('Created On') }}</div>
                       <div class="datagrid-content">{{ domain.crdate }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Application ID</div>
+                      <div class="datagrid-title">{{ __('Application ID') }}</div>
                       <div class="datagrid-content">{{ domain.application_id }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Launch Phase</div>
+                      <div class="datagrid-title">{{ __('Launch Phase') }}</div>
                       <div class="datagrid-content">{{ domain.phase_type|capitalize }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Phase Name</div>
+                      <div class="datagrid-title">{{ __('Phase Name') }}</div>
                       <div class="datagrid-content">{{ domain.phase_name|default('N/A') }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Registrar</div>
+                      <div class="datagrid-title">{{ __('Registrar') }}</div>
                       <div class="datagrid-content">{{ registrars.name }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Registrant</div>
+                      <div class="datagrid-title">{{ __('Registrant') }}</div>
                       <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
                     </div>
                     {% for contact in domainContacts %}
                       <div class="datagrid-item">
-                        <div class="datagrid-title">{{ contact.type }} contact</div>
+                        <div class="datagrid-title">{{ contact.type }} {{ __('contact') }}</div>
                         <div class="datagrid-content">{{ contact.identifier }}</div>
                       </div>
                     {% endfor %}
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Auth Type</div>
+                        <div class="datagrid-title">{{ __('Auth Type') }}</div>
                         <div class="datagrid-content">
                         {% if domain.authtype == 'pw' %}
                           Regular
@@ -88,7 +88,7 @@
                         </div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Auth Info</div>
+                        <div class="datagrid-title">{{ __('Auth Info') }}</div>
                         <div class="datagrid-content blur" id="authInfo" onclick="toggleBlur()">
                           {{ domain.authinfo }}
                         </div>
@@ -101,11 +101,11 @@
                 <div class="col-md-12">
                   <div class="card h-100">
                     <div class="card-body">
-                      <h5 class="card-title">Nameservers</h5>
+                      <h5 class="card-title">{{ __('Nameservers') }}</h5>
                         <div class="datagrid">
                           {% for host in domainHosts %}
                           <div class="datagrid-item">
-                            <div class="datagrid-title">Nameserver {{ loop.index }}</div>
+                            <div class="datagrid-title">{{ __('Nameserver') }} {{ loop.index }}</div>
                             <div class="datagrid-content">
                               {{ host.name }}
                             </div>
@@ -118,19 +118,7 @@
               </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <style>
 .blur {
@@ -139,7 +127,7 @@
 }
 
 .blur:hover {
-  filter: blur(2px); /* Slightly clearer on hover for a hint to the user */
+  filter: blur(2px);
 }
 </style>
 <script>

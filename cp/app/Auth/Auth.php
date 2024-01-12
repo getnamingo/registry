@@ -277,6 +277,23 @@ class Auth
     public static function changeCurrentPassword($oldPassword, $newPassword){
         $auth = self::$auth;
         try {
+            global $container;
+            $db = $container->get('db');
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            $db->insert(
+                'users_audit',
+                [
+                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_event' => 'user.update.password',
+                    'user_resource' => 'control.panel',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'user_ip' => get_client_ip(),
+                    'user_location' => get_client_location(),
+                    'event_time' => $currentDate,
+                    'user_data' => null
+                ]
+            );
             $auth->changePassword($oldPassword, $newPassword);
             redirect()->route('profile')->with('success','Password has been changed');
         }

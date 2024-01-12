@@ -26,56 +26,56 @@
             <div class="col-12">
               <div class="card mb-3">
                 <div class="card-header">
-                  <h3 class="card-title">Registrar {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span></h3>
+                  <h3 class="card-title">{{ __('Registrar') }} {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span></h3>
                 </div>
                 <div class="card-body">
                   <div class="datagrid">
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Contact Email</div>
+                      <div class="datagrid-title">{{ __('Contact Email') }}</div>
                       <div class="datagrid-content">{{ registrar.email }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Website</div>
+                      <div class="datagrid-title">{{ __('Website') }}</div>
                       <div class="datagrid-content">{{ registrar.url }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Abuse Phone</div>
+                      <div class="datagrid-title">{{ __('Abuse Phone') }}</div>
                       <div class="datagrid-content">{{ registrar.abuse_phone }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Abuse Email</div>
+                      <div class="datagrid-title">{{ __('Abuse Email') }}</div>
                       <div class="datagrid-content">{{ registrar.abuse_email }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">WHOIS Server</div>
+                      <div class="datagrid-title">{{ __('WHOIS Server') }}</div>
                       <div class="datagrid-content">{{ registrar.whois_server }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">RDAP Server</div>
+                      <div class="datagrid-title">{{ __('RDAP Server') }}</div>
                       <div class="datagrid-content">{{ registrar.rdap_server }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Creation Date</div>
+                      <div class="datagrid-title">{{ __('Creation Date') }}</div>
                       <div class="datagrid-content">{{ registrar.crdate }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Currency</div>
+                      <div class="datagrid-title">{{ __('Currency') }}</div>
                       <div class="datagrid-content">{{ registrar.currency }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Account Balance</div>
+                      <div class="datagrid-title">{{ __('Account Balance') }}</div>
                       <div class="datagrid-content">{{ currency }} {{ registrar.accountBalance }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Credit Limit</div>
+                      <div class="datagrid-title">{{ __('Credit Limit') }}</div>
                       <div class="datagrid-content">{{ currency }} {{ registrar.creditLimit }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Credit Threshold</div>
+                      <div class="datagrid-title">{{ __('Credit Threshold') }}</div>
                       <div class="datagrid-content">{{ currency }} {{ registrar.creditThreshold }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Threshold Type</div>
+                      <div class="datagrid-title">{{ __('Threshold Type') }}</div>
                       <div class="datagrid-content">{{ registrar.thresholdType|capitalize }}</div>
                     </div>
                   </div>
@@ -86,7 +86,7 @@
                 <div class="col-md-6 mb-3">
                   <div class="card h-100">
                     <div class="card-body">
-                      <h5 class="card-title">IP Whitelisting</h5>
+                      <h5 class="card-title">{{ __('IP Whitelisting') }}</h5>
                       <ul class="list-group">
                         {% if registrarWhitelist is not empty %}
                             {% for ip in registrarWhitelist %}
@@ -95,7 +95,7 @@
                                 </li>
                             {% endfor %}
                         {% else %}
-                            <li class="list-group-item">No data available.</li>
+                            <li class="list-group-item">{{ __('No data available.') }}</li>
                         {% endif %}
                       </ul>
                     </div>
@@ -104,13 +104,13 @@
                 <div class="col-md-6 mb-3">
                   <div class="card h-100">
                     <div class="card-body">
-                      <h5 class="card-title">Registrar User</h5>
+                      <h5 class="card-title">{{ __('Registrar User') }}</h5>
                         <div class="table-responsive">
                           <table class="table">
                             <thead>
                               <tr>
-                                <th scope="col required">EPP Username/CLID</th>
-                                <th scope="col">Panel Login Email</th>
+                                <th scope="col required">{{ __('EPP Username/CLID') }}</th>
+                                <th scope="col">{{ __('Panel Login Email') }}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -131,9 +131,9 @@
               </div>
               <div class="card mb-3">
                 <div class="card-body">
-                  <h5 class="card-title">Operational Test and Evaluation (OTE)</h5>
+                  <h5 class="card-title">{{ __('Operational Test and Evaluation (OTE)') }}</h5>
                   <p class="card-text">
-                    Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar's system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:
+                    {{ __('Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar\'s system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:') }}
                   </p>
                   <div class="row">
                     <div class="col-md-6">
@@ -142,7 +142,7 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     {{ item.command }}
                                     <span class="badge {% if item.result == 0 %}bg-green{% elseif item.result == 9 %}bg-orange{% elseif item.result == 1 %}bg-red{% endif %} text-white">
-                                        {% if item.result == 0 %}Completed{% elseif item.result == 9 %}Pending{% elseif item.result == 1 %}Failed{% endif %}
+                                        {% if item.result == 0 %}{{ __('Completed') }}{% elseif item.result == 9 %}{{ __('Pending') }}{% elseif item.result == 1 %}{{ __('Failed') }}{% endif %}
                                     </span>
                                 </li>
                             {% endfor %}
@@ -155,7 +155,7 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     {{ item.command }}
                                     <span class="badge {% if item.result == 0 %}bg-green{% elseif item.result == 9 %}bg-orange{% elseif item.result == 1 %}bg-red{% endif %} text-white">
-                                        {% if item.result == 0 %}Completed{% elseif item.result == 9 %}Pending{% elseif item.result == 1 %}Failed{% endif %}
+                                        {% if item.result == 0 %}{{ __('Completed') }}{% elseif item.result == 9 %}{{ __('Pending') }}{% elseif item.result == 1 %}{{ __('Failed') }}{% endif %}
                                     </span>
                                 </li>
                             {% endfor %}
@@ -166,18 +166,6 @@
               </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

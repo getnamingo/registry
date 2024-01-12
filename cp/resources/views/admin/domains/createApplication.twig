@@ -11,7 +11,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">
-                  Overview
+                  {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
                   {{ __('Create Application') }}
@@ -24,31 +24,7 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              {% if domainName is defined and crdate is defined %}
-                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Application') }} <strong>{{ domainName }}</strong> {{ __('has been created successfully on') }} <strong>{{ crdate|date("Y-m-d H:i:s") }}!</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% elseif error is defined %}
-                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Application') }} <strong>{{ domainName }}</strong> {{ __('can not be created') }}: <strong>{{ error }}</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% endif %}
+            {% include 'partials/flash.twig' %}
                 <div class="card">
                     <div class="card-body">
                         <form id="domainCreateForm" action="/application/create" method="post">
@@ -59,7 +35,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="phaseType" class="form-label required">Phase Type</label>
+                                <label for="phaseType" class="form-label required">{{ __('Phase Type') }}</label>
                                 <select class="form-select" id="phaseType" name="phaseType" required>
                                     <option value="sunrise">Sunrise</option>
                                     <option value="landrush">Landrush</option>
@@ -70,14 +46,14 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="phaseName" class="form-label">Phase Name</label>
+                                <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
                                 <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
                                 <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
                             </div>
                             
                             {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
-                                    <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}:</label>
+                                    <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
@@ -131,8 +107,8 @@
                             </div>
                             
                             <div class="mb-3">
-                              <label class="form-label">Signed Mark Information</label>
-                              <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="Paste SMD contents…"></textarea>
+                              <label class="form-label">{{ __('Signed Mark Information') }}</label>
+                              <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="{{ __('Paste SMD contents') }}…"></textarea>
                             </div>
                             
                             <div class="mb-3">
@@ -163,19 +139,7 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
 document.addEventListener("DOMContentLoaded", function() {

@@ -6,11 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
-    {% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') %}
-        {% include 'partials/css-tables.twig' %}
-    {% else %}
-        {% include 'partials/css.twig' %}
-    {% endif %}
+{% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or route_is('support') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
     <style>
       @import url('https://rsms.me/inter/inter.css');
       :root {
@@ -32,13 +28,13 @@
             </a>
           </h1>
           <div class="navbar-nav flex-row order-md-last">
-            <div class="nav-item d-none d-md-flex me-3">
+            <div class="nav-item d-md-flex me-3">
               <div class="btn-list">
                 <div class="dropdown small-dropdown">
                   <a href="#" class="btn dropdown-toggle" data-bs-toggle="dropdown"><span class="flag flag-country-{{ uiLang }}"></span>&nbsp;{{ lang }}</a>
                     <div class="dropdown-menu">
                       <a href="/lang?en_US" class="dropdown-item"><span class="flag flag-country-us"></span>&nbsp;English</a>
-                      <a href="/lang?uk_UA" class="dropdown-item"><span class="flag flag-country-ua"></span>&nbsp;Ukrainian</a>
+                      <a href="/lang?uk_UA" class="dropdown-item"><span class="flag flag-country-ua"></span>&nbsp;Українська</a>
                     </div>
                 </div>
               </div>

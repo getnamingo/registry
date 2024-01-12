@@ -140,14 +140,14 @@ Coroutine::create(function () use ($pool, $log, $c) {
             $completed_zone = $builder->build($zone);
 
             if ($c['dns_server'] == 'bind') {
-                $basePath = '/etc/bind/zones';
+                $basePath = '/var/lib/bind';
             } elseif ($c['dns_server'] == 'nsd') {
                 $basePath = '/etc/nsd';
             } elseif ($c['dns_server'] == 'knot') {
                 $basePath = '/etc/knot';
             } else {
                 // Default path
-                $basePath = '/etc/bind/zones';
+                $basePath = '/var/lib/bind';
             }
 
             file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);

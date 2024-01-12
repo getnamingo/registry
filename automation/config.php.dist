@@ -5,7 +5,7 @@ return [
     'db_type' => 'mysql',
     'db_host' => 'localhost',
     'db_port' => 3306,
-    'db_database' => 'your_database_name',
+    'db_database' => 'registry',
     'db_username' => 'your_username',
     'db_password' => 'your_password',
     
@@ -50,7 +50,7 @@ return [
     'urs_imap_username' => 'your_username',
     'urs_imap_password' => 'your_password',
     
-    // Notifications Configuration
+    // Message Broker Configuration
     'mailer' => 'phpmailer', // sendgrid, mailgun are also available
     'mailer_api_key' => 'YOUR_API_KEY',
     'mailer_domain' => 'example.com',

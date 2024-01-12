@@ -6,6 +6,11 @@ prompt_for_input() {
     echo $response
 }
 
+prompt_for_password() {
+    read -sp "$1: " password
+    echo $password
+}
+
 # Function to edit or add a configuration line in php.ini
 edit_php_ini() {
     local file=$1
@@ -34,24 +39,37 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
     DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
     DB_USER=$(prompt_for_input "Enter database user")
-    DB_PASSWORD=$(prompt_for_input "Enter database password")
-    PANEL_USER=$(prompt_for_input "Enter panel user")
-    PANEL_PASSWORD=$(prompt_for_input "Enter panel password")
+    DB_PASSWORD=$(prompt_for_password "Enter database password")
+    echo ""  # Add a newline after the password input
+    PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
+    PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
+    echo ""  # Add a newline after the password input
+    current_user=$(whoami)
 
     # Step 1 - Components Installation
-    echo "Installing required packages..."
-    apt install -y curl software-properties-common ufw
-    echo "Adding PHP repository..."
-    add-apt-repository ppa:ondrej/php
-    apt install -y debian-keyring debian-archive-keyring apt-transport-https
-    echo "Setting up Caddy repository..."
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-    gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-    echo "Updating package lists and upgrading packages..."
-    apt update && apt upgrade
+    if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
+        echo "Installing required packages..."
+        apt update -y
+        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring  software-properties-common ufw
+        add-apt-repository ppa:ondrej/php -y
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    else
+        echo "Installing required packages..."
+        apt update -y
+        apt install -y apt-transport-https ca-certificates curl debian-archive-keyring debian-keyring gnupg lsb-release software-properties-common ufw
+        curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+        sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    fi
+
+    echo "Updating package lists..."
+    apt update -y
     echo "Installing additional required packages..."
-    apt install -y bzip2 caddy composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+    apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
     
     # Set timezone to UTC if it's not already
     currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
@@ -76,7 +94,10 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         edit_php_ini "$file" "session.cookie_domain" "example.com"
         edit_php_ini "$file" "memory_limit" "512M"
     done
-
+    
+    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
+    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
+    
     # Restart PHP-FPM service
     echo "Restarting PHP 8.2-FPM service..."
     systemctl restart php8.2-fpm
@@ -85,7 +106,10 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     if [ "$DB_TYPE" == "MariaDB" ]; then
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
-        cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+        
+        # Check for Ubuntu 22.04
+        if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
+            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
     # MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
     # https://mariadb.org/download/
     X-Repolib-Name: MariaDB
@@ -95,7 +119,22 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     Suites: jammy
     Components: main main/debug
     Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-    EOF
+EOF
+        else
+            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+    # MariaDB 10.11 repository list - created 2024-01-05 12:23 UTC
+    # https://mariadb.org/download/
+    X-Repolib-Name: MariaDB
+    Types: deb
+    # deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
+    # URIs: https://deb.mariadb.org/10.11/debian
+    URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/debian
+    Suites: bookworm
+    Components: main
+    Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+EOF
+        fi
+
         apt-get update
         apt install -y mariadb-client mariadb-server php8.2-mysql
         echo "Please follow the prompts for secure installation of MariaDB."
@@ -124,6 +163,13 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         echo "Configuring PostgreSQL..."
         sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
         sudo -u postgres psql -c "CREATE DATABASE registry;"
+        sudo -u postgres psql -c "CREATE DATABASE registryTransaction;"
+        sudo -u postgres psql -c "CREATE DATABASE registryAudit;"
+        
+        echo "Importing SQL files into PostgreSQL..."
+        sudo -u postgres psql -U postgres -d registry -f /opt/registry/database/registry.postgres.sql
+        sudo -u postgres psql -U postgres -d registrytransaction -f /opt/registry/database/registryTransaction.postgres.sql
+        echo "SQL import completed."
     fi
     
     mkdir /usr/share/adminer
@@ -135,6 +181,8 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     chown -R www-data:www-data /var/log/namingo
     
     echo "Setting up firewall rules..."
+    ufw allow 22/tcp
+    ufw allow 22/udp
     ufw allow 43/tcp
     ufw allow 80/tcp
     ufw allow 80/udp
@@ -171,6 +219,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         encode gzip
         file_server
         tls $YOUR_EMAIL
+        header -Server
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -190,6 +239,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         php_fastcgi unix//run/php/php8.2-fpm.sock
         file_server
         tls $YOUR_EMAIL
+        header -Server
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -209,6 +259,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         encode gzip
         file_server
         tls $YOUR_EMAIL
+        header -Server
         log {
             output file /var/log/caddy/access.log
             format console
@@ -233,13 +284,14 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
             Permissions-Policy: accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), speaker=(), usb=(), vr=();
         }
     }
-    EOF
+EOF
     
     systemctl enable caddy
     systemctl restart caddy
     
-    echo "Control Panel Setup..."
-    cp -r /opt/registry/cp /var/www/
+    echo "Installing Control Panel."
+    mkdir -p /var/www
+    cp -r /opt/registry/cp /var/www
     mv /var/www/cp/env-sample /var/www/cp/.env
 
     # Update .env file with the actual values
@@ -248,44 +300,109 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     sed -i "s|example.com|$REGISTRY_DOMAIN|g" /var/www/cp/.env
     sed -i "s/DB_USERNAME=root/DB_USERNAME=$DB_USER/g" /var/www/cp/.env
     sed -i "s/DB_PASSWORD=/DB_PASSWORD=$DB_PASSWORD/g" /var/www/cp/.env
+    
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+    ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+
+    if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
+    then
+        >&2 echo 'ERROR: Invalid installer signature'
+        rm composer-setup.php
+        exit 1
+    fi
+
+    echo 'Composer installer verified'
+    php composer-setup.php --quiet
+    rm composer-setup.php
+    mv composer.phar /usr/local/bin/composer
+    echo 'Composer installed'
 
     cd /var/www/cp
     composer install
-    echo "Control Panel configured."
-   
+    
+    echo "Importing database."
+    mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+
+    echo "Installing Web WHOIS."
     mkdir -p /var/www/whois
     cd /opt/registry/whois/web
     cp -r * /var/www/whois
     cd /var/www/whois
     composer require gregwar/captcha
-    mv config.php.dist config.php
-    
+    mv /var/www/whois/config.php.dist /var/www/whois/config.php
+    sed -i "s|'whois_url' => '.*'|'whois_url' => 'whois.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
+    sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
+
     echo "Installing WHOIS Server."
     cd /opt/registry/whois/port43
     composer install
-    mv config.php.dist config.php
-    
+    mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
+    cp /opt/registry/docs/whois.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable whois.service
+
     echo "Installing RDAP Server."
     cd /opt/registry/rdap
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/rdap.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/rdap.service
+    cp /opt/registry/docs/rdap.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable rdap.service
 
     echo "Installing EPP Server."
     cd /opt/registry/epp
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/epp.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/epp.service
+    cp /opt/registry/docs/epp.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable epp.service
 
     echo "Installing Automation Scripts."
     cd /opt/registry/automation
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
 
     echo "Installing DAS Server."
     cd /opt/registry/das
     composer install
-    mv config.php.dist config.php
+    mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
+    cp /opt/registry/docs/das.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable das.service
+   
+    echo "Configuring control panel admin."
+    sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
+    sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
+    php /var/www/cp/bin/create_admin_user.php
 
-    echo "Installation complete! Please now configure components according to the instructions and start them one by one."
+    echo "Downloading initial data."
+    php /var/www/cp/bin/file_cache.php
+
+    echo -e "Installation complete!\n"
+    echo -e "Next steps:\n"
+    echo -e "1. Configure each component by editing their respective configuration files."
+    echo -e "2. Once configuration is complete, start each service with the following command:\n   systemctl start SERVICE_NAME.service\n   Replace 'SERVICE_NAME' with the specific service (whois, rdap, epp, das) as needed."
+    echo -e "3. To initiate the automation system, please refer to the configuration manual.\n"
+    echo -e "For more detailed information, please consult the accompanying documentation or support resources."
 else
     echo "Unsupported Linux distribution or version"
 fi

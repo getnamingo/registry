@@ -30,7 +30,7 @@
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">
-                        Domain {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
+                        {{ __('Domain') }} {{ domain.name }}&nbsp;<input type="hidden" name="domainName" value="{{ domain.name }}">
                         {% if domainStatus.status or domain.rgpstatus %}
                             {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
@@ -52,19 +52,19 @@
                   <div class="card-body">
                     <div class="datagrid">
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Registered On</div>
+                        <div class="datagrid-title">{{ __('Registered On') }}</div>
                         <div class="datagrid-content">{{ domain.crdate }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Last Updated</div>
+                        <div class="datagrid-title">{{ __('Last Updated') }}</div>
                         <div class="datagrid-content">{{ domain.lastupdate }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Expiration Date</div>
+                        <div class="datagrid-title">{{ __('Expiration Date') }}</div>
                         <div class="datagrid-content">{{ domain.exdate }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Registrar</div>
+                        <div class="datagrid-title">{{ __('Registrar') }}</div>
                         <div class="datagrid-content">{{ registrar.name }}</div>
                       </div>
                     </div>
@@ -299,19 +299,7 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script>
 var csrfTokenName = "{{ csrfTokenName }}";

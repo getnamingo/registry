@@ -5,6 +5,9 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use Selective\XmlDSig\PublicKeyStore;
+use Selective\XmlDSig\CryptoVerifier;
+use Selective\XmlDSig\XmlSignatureVerifier;
 
 class ApplicationsController extends Controller
 {
@@ -65,12 +68,8 @@ class ApplicationsController extends Controller
             $invalid_domain = validate_label($domainName, $db);
 
             if ($invalid_domain) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Invalid domain name in application',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid domain name');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             $valid_tld = false;
@@ -85,12 +84,8 @@ class ApplicationsController extends Controller
             }
 
             if (!$valid_tld) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Invalid domain extension in application',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid domain extension');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
             $domain_already_exist = $db->selectValue(
@@ -99,12 +94,8 @@ class ApplicationsController extends Controller
             );
 
             if ($domain_already_exist) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Application already exists',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Application already exists');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             $currentDateTime = new \DateTime();
@@ -122,25 +113,16 @@ class ApplicationsController extends Controller
             );
 
             if ($phase_details !== 'Application') {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             if ($phaseType === 'claims') {
                 if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
                     !isset($data['notafter']) || $data['notafter'] === '' ||
                     !isset($data['accepted']) || $data['accepted'] === '') {
-                    // Trigger an error or handle the situation as needed
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => "Error: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'",
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', "Error creating application: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'");
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
 
                 $noticeid = $data['noticeid'];
@@ -151,6 +133,66 @@ class ApplicationsController extends Controller
                 $notafter = null;
                 $accepted = null;
             }
+            
+            if ($phaseType === 'sunrise') {
+                if ($smd !== null && $smd !== '') {
+                    // Extract the BASE64 encoded part
+                    $beginMarker = "-----BEGIN ENCODED SMD-----";
+                    $endMarker = "-----END ENCODED SMD-----";
+                    $beginPos = strpos($smd, $beginMarker) + strlen($beginMarker);
+                    $endPos = strpos($smd, $endMarker);
+                    $encodedSMD = trim(substr($smd, $beginPos, $endPos - $beginPos));
+
+                    // Decode the BASE64 content
+                    $xmlContent = base64_decode($encodedSMD);
+
+                    // Load the XML content using DOMDocument
+                    $domDocument = new \DOMDocument();
+                    $domDocument->preserveWhiteSpace = false;
+                    $domDocument->formatOutput = true;
+                    $domDocument->loadXML($xmlContent);
+
+                    // Parse data
+                    $xpath = new \DOMXPath($domDocument);
+                    $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
+                    $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+
+                    $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
+                    $notAfter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
+                    $markName = $xpath->evaluate('string(//mark:markName)');
+                    $labels = [];
+                    foreach ($xpath->query('//mark:label') as $x_label) {
+                        $labels[] = $x_label->nodeValue;
+                    }
+
+                    if (!in_array($label, $labels)) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: SMD file is not valid for the application being created');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    // Check if current date and time is between notBefore and notAfter
+                    $now = new \DateTime();
+                    if (!($now >= $notBefore && $now <= $notAfter)) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: Current time is outside the valid range in the SMD file');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    // Verify the signature
+                    $publicKeyStore = new PublicKeyStore();
+                    $publicKeyStore->loadFromDocument($domDocument);
+                    $cryptoVerifier = new CryptoVerifier($publicKeyStore);
+                    $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
+                    $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+
+                    if (!$isValid) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: The XML signature of the SMD file is not valid');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+                } else {
+                    $this->container->get('flash')->addMessage('error', "Error creating application: SMD upload is required in the 'sunrise' phase.");
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+            }
 
             $domain_already_reserved = $db->selectValue(
                 'SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1',
@@ -158,12 +200,8 @@ class ApplicationsController extends Controller
             );
 
             if ($domain_already_reserved) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Domain name in application is reserved or restricted',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Domain name in application is reserved or restricted');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
        
             $date_add = 12;
@@ -177,21 +215,13 @@ class ApplicationsController extends Controller
             $price = $returnValue['price'];
 
             if (!$price) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'The price, period and currency for such TLD are not declared',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: The price, period and currency for such TLD are not declared');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
             if (($registrar_balance + $creditLimit) < $price) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Low credit: minimum threshold reached',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Low credit: minimum threshold reached');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             $nameservers = array_filter($data['nameserver'] ?? [], function($value) {
@@ -206,31 +236,19 @@ class ApplicationsController extends Controller
             
             if (!empty($nameservers)) {
                 if (count($nameservers) !== count(array_unique($nameservers))) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Duplicate nameservers detected. Please provide unique nameservers.');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
                 
                 foreach ($nameservers as $index => $nameserver) {
                     if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
-                        return view($response, 'admin/domains/createApplication.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Invalid hostName',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid hostName');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
                     
                     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
-                        return view($response, 'admin/domains/createApplication.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Invalid hostName',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid hostName');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
                 }
             }
@@ -240,21 +258,13 @@ class ApplicationsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactRegistrant]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Registrant does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Registrant does not exist');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
             }
             
@@ -263,21 +273,13 @@ class ApplicationsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactAdmin]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Admin contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Admin contact does not exist');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
             }
             
@@ -286,21 +288,13 @@ class ApplicationsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactTech]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Tech contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Tech contact does not exist');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
             }
             
@@ -309,49 +303,29 @@ class ApplicationsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactBilling]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Billing contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Billing contact does not exist');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createApplication.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
             }
             
             if (!$authInfo) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Missing application authinfo',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Missing application authinfo');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
             if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Password needs to be at least 6 and up to 16 characters long',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Password needs to be at least 6 and up to 16 characters long');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
             if (!preg_match('/[A-Z]/', $authInfo)) {
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Password should have both upper and lower case characters',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Password should have both upper and lower case characters');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             $registrant_id = $db->selectValue(
@@ -535,12 +509,8 @@ class ApplicationsController extends Controller
                             
                             if ($internal_host) {
                                 if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
-                                    return view($response, 'admin/domains/createApplication.twig', [
-                                        'domainName' => $domainName,
-                                        'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
-                                        'registrars' => $registrars,
-                                        'registrar' => $registrar,
-                                    ]);
+                                    $this->container->get('flash')->addMessage('error', 'Error creating application: No IPv4 or IPv6 addresses provided for internal host');
+                                    return $response->withHeader('Location', '/application/create')->withStatus(302);
                                 }
     
                                 if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
@@ -604,20 +574,12 @@ class ApplicationsController extends Controller
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Database failure: ' . $e->getMessage(),
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
-                return view($response, 'admin/domains/createApplication.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Database failure: ' . $e->getMessage(),
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
             
             $crdate = $db->selectValue(

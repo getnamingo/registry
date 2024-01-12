@@ -24,54 +24,30 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              {% if deposit is defined %}
-                  <div class="alert alert-important alert-success alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Deposit successfully added. The registrar\'s account balance has been updated.') }}
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% elseif error is defined %}
-                  <div class="alert alert-important alert-danger alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                      </div>
-                      <div>
-                        &nbsp;{{ __('Unable to process the deposit due to a system error. Please retry or contact support for help') }}: <strong>{{ error }}</strong>
-                      </div>
-                    </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-                  </div>
-              {% endif %}
+            {% include 'partials/flash.twig' %}
               <div class="card">
                 <div class="card-body">
                   <form id="depositForm" action="/deposit" method="post">
                   {{ csrf.field | raw }}                 
                     <div class="deposit-info">
-                        <h5>Current Balance for {{ balance.name }}</h5>
-                        <p class="fs-4">${{ balance.accountBalance }}</p>
+                        <h5>{{ __('Current Balance for') }} {{ balance.name }}</h5>
+                        <p class="fs-4">{{ currency }} {{ balance.accountBalance }}</p>
                     </div>
 
                     <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Enter deposit amount" required>
+                        <label for="amount" class="form-label">{{ __('Amount') }}</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="{{ __('Enter deposit amount') }}" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional deposit description"></textarea>
+                        <label for="description" class="form-label">{{ __('Description') }}</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="{{ __('Optional deposit description') }}"></textarea>
                     </div>
                 </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-stripe" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.453 8.056c0 -.623 .518 -.979 1.442 -.979c1.69 0 3.41 .343 4.605 .923l.5 -4c-.948 -.449 -2.82 -1 -5.5 -1c-1.895 0 -3.373 .087 -4.5 1c-1.172 .956 -2 2.33 -2 4c0 3.03 1.958 4.906 5 6c1.961 .69 3 .743 3 1.5c0 .735 -.851 1.5 -2 1.5c-1.423 0 -3.963 -.609 -5.5 -1.5l-.5 4c1.321 .734 3.474 1.5 6 1.5c2 0 3.957 -.468 5.084 -1.36c1.263 -.979 1.916 -2.268 1.916 -4.14c0 -3.096 -1.915 -4.547 -5 -5.637c-1.646 -.605 -2.544 -1.07 -2.544 -1.807z" /></svg> Deposit with Stripe</button>
+                      <button type="submit" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-stripe" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.453 8.056c0 -.623 .518 -.979 1.442 -.979c1.69 0 3.41 .343 4.605 .923l.5 -4c-.948 -.449 -2.82 -1 -5.5 -1c-1.895 0 -3.373 .087 -4.5 1c-1.172 .956 -2 2.33 -2 4c0 3.03 1.958 4.906 5 6c1.961 .69 3 .743 3 1.5c0 .735 -.851 1.5 -2 1.5c-1.423 0 -3.963 -.609 -5.5 -1.5l-.5 4c1.321 .734 3.474 1.5 6 1.5c2 0 3.957 -.468 5.084 -1.36c1.263 -.979 1.916 -2.268 1.916 -4.14c0 -3.096 -1.915 -4.547 -5 -5.637c-1.646 -.605 -2.544 -1.07 -2.544 -1.807z" /></svg> {{ __('Deposit with Stripe') }}</button>
                     </div>
                   </div>
                 </div>
@@ -81,23 +57,11 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 <script src="https://js.stripe.com/v3/"></script>
 <script type="text/javascript">
-    var stripe = Stripe('YOUR_PUBLISHABLE_KEY'); // Replace with your publishable key
+    var stripe = Stripe('{{ stripe_key }}');
 
     document.getElementById('depositForm').addEventListener('submit', function (e) {
         e.preventDefault();

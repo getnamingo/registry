@@ -6,6 +6,9 @@ use App\Models\Domain;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use Selective\XmlDSig\PublicKeyStore;
+use Selective\XmlDSig\CryptoVerifier;
+use Selective\XmlDSig\XmlSignatureVerifier;
 
 class DomainsController extends Controller
 {
@@ -145,13 +148,8 @@ class DomainsController extends Controller
             $invalid_domain = validate_label($domainName, $db);
 
             if ($invalid_domain) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Invalid domain name',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain name');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $valid_tld = false;
@@ -166,13 +164,8 @@ class DomainsController extends Controller
             }
 
             if (!$valid_tld) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Invalid domain extension',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain extension');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
 
             $domain_already_exist = $db->selectValue(
@@ -181,13 +174,8 @@ class DomainsController extends Controller
             );
 
             if ($domain_already_exist) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Domain name already exists',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Domain name already exists');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $currentDateTime = new \DateTime();
@@ -207,40 +195,20 @@ class DomainsController extends Controller
             if ($phase_details !== 'First-Come-First-Serve') {
                 if ($phaseType !== 'none') {
                     if ($phaseType == null && $phaseType == '') {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     } else if ($phase_details == null) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'The launch phase ' . $phaseType . ' is currently not active.',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: The launch phase ' . $phaseType . ' is currently not active.');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                 }
             } else if ($phaseType !== 'none') {
                 if ($phaseType == null && $phaseType == '') {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 } else if ($phase_details == null) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The launch phase ' . $phaseType . ' is currently not active.',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The launch phase ' . $phaseType . ' is currently not active.');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
@@ -248,14 +216,8 @@ class DomainsController extends Controller
                 if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
                     !isset($data['notafter']) || $data['notafter'] === '' ||
                     !isset($data['accepted']) || $data['accepted'] === '') {
-                    // Trigger an error or handle the situation as needed
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => "Error: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'",
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', "Error creating domain: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'");
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 $noticeid = $data['noticeid'];
@@ -265,6 +227,66 @@ class DomainsController extends Controller
                 $noticeid = null;
                 $notafter = null;
                 $accepted = null;
+            }
+            
+            if ($phaseType === 'sunrise') {
+                if ($smd !== null && $smd !== '') {
+                    // Extract the BASE64 encoded part
+                    $beginMarker = "-----BEGIN ENCODED SMD-----";
+                    $endMarker = "-----END ENCODED SMD-----";
+                    $beginPos = strpos($smd, $beginMarker) + strlen($beginMarker);
+                    $endPos = strpos($smd, $endMarker);
+                    $encodedSMD = trim(substr($smd, $beginPos, $endPos - $beginPos));
+
+                    // Decode the BASE64 content
+                    $xmlContent = base64_decode($encodedSMD);
+
+                    // Load the XML content using DOMDocument
+                    $domDocument = new \DOMDocument();
+                    $domDocument->preserveWhiteSpace = false;
+                    $domDocument->formatOutput = true;
+                    $domDocument->loadXML($xmlContent);
+
+                    // Parse data
+                    $xpath = new \DOMXPath($domDocument);
+                    $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
+                    $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+
+                    $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
+                    $notAfter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
+                    $markName = $xpath->evaluate('string(//mark:markName)');
+                    $labels = [];
+                    foreach ($xpath->query('//mark:label') as $x_label) {
+                        $labels[] = $x_label->nodeValue;
+                    }
+
+                    if (!in_array($label, $labels)) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: SMD file is not valid for the domain name being registered.');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                    }
+
+                    // Check if current date and time is between notBefore and notAfter
+                    $now = new \DateTime();
+                    if (!($now >= $notBefore && $now <= $notAfter)) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Current time is outside the valid range in the SMD.');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                    }
+
+                    // Verify the signature
+                    $publicKeyStore = new PublicKeyStore();
+                    $publicKeyStore->loadFromDocument($domDocument);
+                    $cryptoVerifier = new CryptoVerifier($publicKeyStore);
+                    $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
+                    $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+
+                    if (!$isValid) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: The XML signature of the SMD file is not valid.');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                    }
+                } else {
+                    $this->container->get('flash')->addMessage('error', "Error creating domain: SMD upload is required in the 'sunrise' phase.");
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                }
             }
 
             $domain_already_reserved = $db->selectValue(
@@ -280,25 +302,15 @@ class DomainsController extends Controller
                         $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
                         return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
-                } else {    
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Domain name is reserved or restricted',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                } else {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Domain name is reserved or restricted');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
             if ($registrationYears && (($registrationYears < 1) || ($registrationYears > 10))) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Domain period must be from 1 to 10',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Domain period must be from 1 to 10');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             } elseif (!$registrationYears) {
                 $registrationYears = 1;
             }
@@ -323,23 +335,13 @@ class DomainsController extends Controller
             $price = $returnValue['price'];
 
             if (!$price) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'The price, period and currency for such TLD are not declared',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: The price, period and currency for such TLD are not declared');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
 
             if (($registrar_balance + $creditLimit) < $price) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Low credit: minimum threshold reached',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Low credit: minimum threshold reached');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $nameservers = array_filter($data['nameserver'] ?? [], function($value) {
@@ -354,34 +356,19 @@ class DomainsController extends Controller
             
             if (!empty($nameservers)) {
                 if (count($nameservers) !== count(array_unique($nameservers))) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Duplicate nameservers detected. Please provide unique nameservers.',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Duplicate nameservers detected. Please provide unique nameservers.');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
                 
                 foreach ($nameservers as $index => $nameserver) {
                     if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Invalid hostName',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid hostName');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                     
                     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Invalid hostName',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid hostName');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                 }
             }
@@ -391,23 +378,13 @@ class DomainsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactRegistrant]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Registrant does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Registrant does not exist');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
@@ -416,23 +393,13 @@ class DomainsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactAdmin]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Admin contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Admin contact does not exist');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
@@ -441,23 +408,13 @@ class DomainsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactTech]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Tech contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Tech contact does not exist');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
@@ -466,54 +423,29 @@ class DomainsController extends Controller
                 $row = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?', [$contactBilling]);
 
                 if (!$row) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Billing contact does not exist',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Billing contact does not exist');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 if ($clid != $row['clid']) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'The contact requested in the command does NOT belong to the current registrar',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The contact requested in the command does NOT belong to the current registrar');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
             }
             
             if (!$authInfo) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Missing domain authinfo',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Missing domain authinfo');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
 
             if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Password needs to be at least 6 and up to 16 characters long',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Password needs to be at least 6 and up to 16 characters long');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
 
             if (!preg_match('/[A-Z]/', $authInfo)) {
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Password should have both upper and lower case characters',
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Password should have both upper and lower case characters');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $registrant_id = $db->selectValue(
@@ -617,47 +549,27 @@ class DomainsController extends Controller
                 // Validate keyTag
                 if (!empty($dsKeyTag)) {
                     if (!is_int($dsKeyTag)) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Incomplete key tag provided',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete key tag provided');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                 
                     if ($dsKeyTag < 0 || $dsKeyTag > 65535) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Incomplete key tag provided',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete key tag provided');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                 }
 
                 // Validate alg
                 $validAlgorithms = [8, 13, 14, 15, 16];
                 if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Incomplete algorithm provided',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete algorithm provided');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 // Validate digestType and digest
                 if (!empty($dsDigestType) && !is_int($dsDigestType)) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Incomplete digest type provided',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete digest type provided');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
                 $validDigests = [
                 2 => 64,  // SHA-256
@@ -665,13 +577,8 @@ class DomainsController extends Controller
                 ];
                 if (!empty($dsDigest)) {
                     if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
-                        return view($response, 'admin/domains/createDomain.twig', [
-                            'domainName' => $domainName,
-                            'error' => 'Invalid digest length or format',
-                            'registrars' => $registrars,
-                            'registrar' => $registrar,
-                            'launch_phases' => $launch_phases
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid digest length or format');
+                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
                     }
                 }
 
@@ -679,46 +586,26 @@ class DomainsController extends Controller
                 // Validate flags
                 $validFlags = [256, 257];
                 if (!empty($dnskeyFlags) && !in_array($dnskeyFlags, $validFlags)) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Invalid flags provided',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid flags provided');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 // Validate protocol
                 if (!empty($dnskeyProtocol) && $dnskeyProtocol != 3) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Invalid protocol provided',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid protocol provided');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 // Validate algKeyData
                 if (!empty($dnskeyAlg)) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Invalid algorithm encoding',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid algorithm encoding');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 // Validate pubKey
                 if (!empty($dnskeyPubKey) && base64_encode(base64_decode($dnskeyPubKey, true)) !== $dnskeyPubKey) {
-                    return view($response, 'admin/domains/createDomain.twig', [
-                        'domainName' => $domainName,
-                        'error' => 'Invalid public key encoding',
-                        'registrars' => $registrars,
-                        'registrar' => $registrar,
-                        'launch_phases' => $launch_phases
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid public key encoding');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
 
                 if (!empty($dsKeyTag)) {
@@ -874,13 +761,8 @@ class DomainsController extends Controller
                             
                             if ($internal_host) {
                                 if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
-                                    return view($response, 'admin/domains/createDomain.twig', [
-                                        'domainName' => $domainName,
-                                        'error' => 'Error: No IPv4 or IPv6 addresses provided for internal host',
-                                        'registrars' => $registrars,
-                                        'registrar' => $registrar,
-                                        'launch_phases' => $launch_phases
-                                    ]);
+                                    $this->container->get('flash')->addMessage('error', 'Error creating domain: No IPv4 or IPv6 addresses provided for internal host');
+                                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
                                 }
     
                                 if (isset($nameserver_ipv4[$index]) && !empty($nameserver_ipv4[$index])) {
@@ -965,22 +847,12 @@ class DomainsController extends Controller
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Database failure: ' . $e->getMessage(),
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
-                return view($response, 'admin/domains/createDomain.twig', [
-                    'domainName' => $domainName,
-                    'error' => 'Database failure: ' . $e->getMessage(),
-                    'registrars' => $registrars,
-                    'registrar' => $registrar,
-                    'launch_phases' => $launch_phases
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $crdate = $db->selectValue(
@@ -1020,7 +892,8 @@ class DomainsController extends Controller
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
             'registrar' => $registrar,
-            'launch_phases' => $launch_phases
+            'launch_phases' => $launch_phases,
+            'currency' => $currency,
         ]);
     }
     
@@ -2000,7 +1873,8 @@ class DomainsController extends Controller
                     'maxYears' => $maxYears,
                     'currentUri' => $uri,
                     'currencySymbol' => $symbol,
-                    'currencyPosition' => $position
+                    'currencyPosition' => $position,
+                    'currency' => $currency
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -2635,6 +2509,7 @@ class DomainsController extends Controller
             'registrars' => $registrars,
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
+            'currency' => $currency
         ]);
     }
     

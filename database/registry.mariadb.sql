@@ -601,6 +601,20 @@ CREATE TABLE IF NOT EXISTS `registry`.`users` (
     UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users';
 
+CREATE TABLE IF NOT EXISTS `registry`.`users_audit` (
+    `user_id` int(10) unsigned NOT NULL,
+    `user_event` VARCHAR(255) NOT NULL,
+    `user_resource` VARCHAR(255) default NULL,
+    `user_agent` VARCHAR(255) NOT NULL,
+    `user_ip` VARCHAR(45) NOT NULL,
+    `user_location` VARCHAR(45) default NULL,
+    `event_time` DATETIME(3) NOT NULL,
+    `user_data` JSON default NULL,
+    KEY `user_id` (`user_id`),
+    KEY `user_event` (`user_event`),
+    KEY `user_ip` (`user_ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel User Audit';
+
 CREATE TABLE IF NOT EXISTS `registry`.`users_confirmations` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `user_id` int(10) unsigned NOT NULL,
@@ -616,24 +630,24 @@ CREATE TABLE IF NOT EXISTS `registry`.`users_confirmations` (
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_remembered` (
     `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-    `user` int(10) unsigned NOT NULL,
+    `user_id` int(10) unsigned NOT NULL,
     `selector` varchar(24) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
     `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
     `expires` int(10) unsigned NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `selector` (`selector`),
-    KEY `user` (`user`)
+    KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Remember';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_resets` (
     `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-    `user` int(10) unsigned NOT NULL,
+    `user_id` int(10) unsigned NOT NULL,
     `selector` varchar(20) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
     `token` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_cs NOT NULL,
     `expires` int(10) unsigned NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `selector` (`selector`),
-    KEY `user_expires` (`user`,`expires`)
+    KEY `user_expires` (`user_id`,`expires`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users Reset';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_throttling` (
@@ -866,7 +880,8 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('email',    'contact@example.com'),
 ('launch_phases',    'on'),
 ('whois_server',    'whois.example.com'),
-('rdap_server',    'https://rdap.example.com');
+('rdap_server',    'https://rdap.example.com'),
+('currency',    'USD');
 
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 

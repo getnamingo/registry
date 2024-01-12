@@ -115,18 +115,18 @@
         resizableColumns:false,
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"Name", field:"name", width:250, headerSort:false, formatter: domainLinkFormatter, responsive:0},
-            {title:"Applicant", width:150, field:"registrant.identifier", headerSort:false, responsive:2},
-            {title:"Creation Date", width:250, minWidth:150, field:"crdate", headerSort:false, responsive:2},
-            {title:"Phase", width:150, minWidth:100, field:"phase_type", formatter: phaseFormatter, headerSort:false, responsive:2},
-            {title:"Status", width:200, field:"application_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
-            {title: "Actions", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
+            {title:"{{ __('Name') }}", field:"name", width:250, headerSort:false, formatter: domainLinkFormatter, responsive:0},
+            {title:"{{ __('Applicant') }}", width:150, field:"registrant.identifier", headerSort:false, responsive:2},
+            {title:"{{ __('Creation Date') }}", width:250, minWidth:150, field:"crdate", headerSort:false, responsive:2},
+            {title:"{{ __('Phase') }}", width:150, minWidth:100, field:"phase_type", formatter: phaseFormatter, headerSort:false, responsive:2},
+            {title:"{{ __('Status') }}", width:200, field:"application_status", formatter: statusFormatter, headerSort:false, download:false, responsive:2},
+            {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
                 if (e.target.closest('.delete-btn')) {
                     e.preventDefault(); // Prevent the default link behavior
                     Swal.fire({
-                      title: "Are you sure you want to delete this application?",
+                      title: "{{ __('Are you sure you want to delete this application?') }}",
                       showCancelButton: true,
-                      confirmButtonText: "Confirm"
+                      confirmButtonText: "{{ __('Confirm') }}"
                     }).then((result) => {
                       if (result.isConfirmed) {
                         let deleteUrl = e.target.closest('.delete-btn').getAttribute('data-delete-url');
@@ -137,7 +137,7 @@
             }},
         ],
         placeholder:function(){
-            return this.getHeaderFilters().length ? "No Matching Data" : "No Data"; //set placeholder based on if there are currently any header filters
+            return this.getHeaderFilters().length ? "No Matching Data" : "{{ __('No Data') }}"; //set placeholder based on if there are currently any header filters
         }
     });
     var searchInput = document.getElementById("search-input");

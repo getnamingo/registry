@@ -30,7 +30,7 @@
                 <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">Ticket #{{ ticket.id }} - {{ ticket.subject }}</h5>&nbsp;
+                        <h5 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h5>&nbsp;
                         {% if ticket.status == 'Open' %}
                             <span class="badge bg-success-lt">{{ ticket.status }}</span>
                         {% elseif ticket.status == 'In Progress' %}
@@ -40,18 +40,18 @@
                         {% elseif ticket.status == 'Closed' %}
                             <span class="badge bg-secondary-lt">{{ ticket.status }}</span>
                         {% else %}
-                            <span class="badge bg-dark-lt">Unknown Status</span>
+                            <span class="badge bg-dark-lt">{{ __('Unknown Status') }}</span>
                         {% endif %}
                     </div>
                     <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">Ticket Details</h6>
-                        <p><span>Created on:</span> <strong>{{ ticket.date_created }}</strong></p>
-                        <p><span>Category:</span> <strong>{{ category }}</strong></p>
-                        <p><span>Priority:</span> <strong>{{ ticket.priority }}</strong></p>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ __('Ticket Details') }}</h6>
+                        <p><span>{{ __('Created On') }}:</span> <strong>{{ ticket.date_created }}</strong></p>
+                        <p><span>{{ __('Category') }}:</span> <strong>{{ category }}</strong></p>
+                        <p><span>{{ __('Priority') }}:</span> <strong>{{ ticket.priority }}</strong></p>
 
                         <div class="card mt-3">
                             <div class="card-body">
-                                <h6 class="card-subtitle mb-2 text-muted">Conversation</h6>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ __('Conversation') }}</h6>
                                     {% for reply in replies %}
                                         <div class="d-flex align-items-start mb-3">
                                             <div class="flex-shrink-0">
@@ -77,14 +77,14 @@
                         </div>
 
                         <div class="mt-3">
-                            <label for="responseText" class="form-label">Your Response</label>
+                            <label for="responseText" class="form-label">{{ __('Your Response') }}</label>
                             <textarea class="form-control" id="responseText" name="responseText" rows="3" required></textarea>
                         </div>
                     </div>
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">Submit Response</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Submit Response') }}</button>
                       </div>
                     </div>
                   </div>
@@ -93,18 +93,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

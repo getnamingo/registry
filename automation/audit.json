@@ -204,6 +204,10 @@
             "audit": true,
             "skip": null
         },
+        "users_audit": {
+            "audit": true,
+            "skip": null
+        },
         "users_confirmations": {
             "audit": null,
             "skip": null

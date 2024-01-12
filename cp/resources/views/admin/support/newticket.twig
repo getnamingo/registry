@@ -42,24 +42,24 @@
                     <form action="/support/new" method="post">
                     {{ csrf.field | raw }}
                         <div class="mb-3">
-                            <label for="category" class="form-label">Category</label>
+                            <label for="category" class="form-label">{{ __('Category') }}</label>
                             <select class="form-select" name="category" id="category" required>
-                                <option selected disabled value="">Select a category...</option>
+                                <option selected disabled value="">{{ __('Select a category') }}...</option>
                                 {% for category in categories %}
                                     <option value="{{ category.id }}">{{ category.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="subject" class="form-label">Subject</label>
+                            <label for="subject" class="form-label">{{ __('Subject') }}</label>
                             <input type="text" class="form-control" id="subject" name="subject" required>
                         </div>
                         <div class="mb-3">
-                            <label for="message" class="form-label">Message</label>
+                            <label for="message" class="form-label">{{ __('Message') }}</label>
                             <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <button type="submit" class="btn btn-primary">Create Ticket</button>
+                            <button type="submit" class="btn btn-primary">{{ __('Create Ticket') }}</button>
                         </div>
                     </form>
                 </div>
@@ -67,18 +67,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

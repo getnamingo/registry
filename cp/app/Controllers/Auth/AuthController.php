@@ -59,6 +59,8 @@ class AuthController extends Controller
      * @throws \Pinga\Auth\AuthError
      */
     public function login(Request $request, Response $response){
+        global $container;
+
         $data = $request->getParsedBody();
         if(isset($data['remember'])){
             $remember = $data['remember'];
@@ -71,8 +73,25 @@ class AuthController extends Controller
             $code = null;
         }
         $login = Auth::login($data['email'], $data['password'], $remember, $code);
-        if($login===true)
+        if($login===true) {
+            $db = $container->get('db');
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            $db->insert(
+                'users_audit',
+                [
+                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_event' => 'user.login',
+                    'user_resource' => 'control.panel',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'user_ip' => get_client_ip(),
+                    'user_location' => get_client_location(),
+                    'event_time' => $currentDate,
+                    'user_data' => null
+                ]
+            );
             redirect()->route('home');
+        }
     }
 
     /**
@@ -80,6 +99,23 @@ class AuthController extends Controller
      */
     public function logout()
     {
+        global $container;
+        $db = $container->get('db');
+        $currentDateTime = new \DateTime();
+        $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+        $db->insert(
+            'users_audit',
+            [
+                'user_id' => $_SESSION['auth_user_id'],
+                'user_event' => 'user.logout',
+                'user_resource' => 'control.panel',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                'user_ip' => get_client_ip(),
+                'user_location' => get_client_location(),
+                'event_time' => $currentDate,
+                'user_data' => null
+            ]
+        );
         Auth::logout();
         redirect()->route('login');
     }

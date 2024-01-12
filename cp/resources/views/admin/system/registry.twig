@@ -31,38 +31,48 @@
                 <div class="card-body">
                   <div class="row">
                     <div class="col-md-6">
-                      <h3 class="mb-3">System Settings</h3>
+                      <h3 class="mb-3">{{ __('System Settings') }}</h3>
 
                       <div class="mb-3">
-                        <label for="registryOperator" class="form-label required">Registry Operator Name</label>
-                        <input type="text" class="form-control" id="registryOperator" name="registryOperator" placeholder="Enter registry operator's name" value="{{ company_name }}" required>
-                        <small class="form-hint">The official name of the organization operating the registry.</small>
+                        <label for="registryOperator" class="form-label required">{{ __('Registry Operator Name') }}</label>
+                        <input type="text" class="form-control" id="registryOperator" name="registryOperator" placeholder="{{ __('Enter registry operator\'s name') }}" value="{{ company_name }}" required>
+                        <small class="form-hint">{{ __('The official name of the organization operating the registry.') }}</small>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
+                        <input type="text" class="form-control" id="rdapServer" name="rdapServer" placeholder="{{ __('Enter registry RDAP server') }}" value="{{ rdap_server }}" required>
+                        <small class="form-hint">{{ __('Enter the URL of the registry\'s RDAP server. Example:') }} https://rdap.example.com</small>
                       </div>
              
                       <div class="mb-3">
-                        <label for="registryHandle" class="form-label required">Registry Handle</label>
-                        <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="Enter registry handle" value="{{ handle }}" required>
-                        <small class="form-hint">A unique identifier for the registry which will be appended to each object handle.</small>
+                        <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
+                        <input type="text" class="form-control" id="whoisServer" name="whoisServer" placeholder="{{ __('Enter registry whois server') }}" value="{{ whois_server }}" required>
+                        <small class="form-hint">{{ __('Enter the URL of the registry\'s WHOIS server. Example:') }} whois.example.com</small>
+                      </div>
+
+                      <div class="mb-3">
+                        <label for="registryHandle" class="form-label required">{{ __('Registry Handle') }}</label>
+                        <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="{{ __('Enter registry handle') }}" value="{{ handle }}" required>
+                        <small class="form-hint">{{ __('A unique identifier for the registry which will be appended to each object handle.') }}</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="whoisServer" class="form-label required">WHOIS Server</label>
-                        <input type="text" class="form-control" id="whoisServer" name="whoisServer" placeholder="Enter registry whois server" value="{{ whois_server }}" required>
-                        <small class="form-hint">Enter the URL of the registry's WHOIS server. Example: whois.example.com</small>
+                        <label for="registryCurrency" class="form-label required">{{ __('Registry Currency') }}</label>
+                        <select class="form-select" id="registryCurrency" name="currency" required="required">
+                            {% for currencyCode, currencyName in uniqueCurrencies %}
+                                <option value="{{ currencyCode }}" {% if currency == currencyCode %}selected{% endif %}>{{ currencyName }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-hint">{{ __('Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes.') }}</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="rdapServer" class="form-label required">RDAP Server</label>
-                        <input type="text" class="form-control" id="rdapServer" name="rdapServer" placeholder="Enter registry RDAP server" value="{{ rdap_server }}" required>
-                        <small class="form-hint">Enter the URL of the registry's RDAP server. Example: https://rdap.example.com</small>
-                      </div>
-                      
-                      <div class="mb-3">
-                        <label class="form-label">Features</label>
+                        <label class="form-label">{{ __('Features') }}</label>
                         <div class="divide-y">
                           <div>
                             <label class="row">
-                              <span class="col">Require Launch Phases</span>
+                              <span class="col">{{ __('Require Launch Phases') }}</span>
                               <span class="col-auto">
                                 <label class="form-check form-check-single form-switch">
                                   <input class="form-check-input" type="checkbox" name="launchPhases" {% if launch_phases == 'on' %}checked{% endif %}>
@@ -76,36 +86,36 @@
                     </div>
                           
                     <div class="col-md-6">
-                      <h3 class="mb-3">Operator Details</h3>
+                      <h3 class="mb-3">{{ __('Operator Details') }}</h3>
                       
                       <div class="mb-3">
-                        <label for="registryOperatorVat" class="form-label required">Registry VAT/Company Number</label>
-                        <input type="text" class="form-control" id="registryOperatorVat" name="registryOperatorVat" placeholder="Enter registry operator's VAT number" value="{{ vat_number }}" required>
-                        <small class="form-hint">Enter the VAT number of the organization operating the registry, or company number if VAT is unavailable.</small>
+                        <label for="registryOperatorVat" class="form-label required">{{ __('Registry VAT/Company Number') }}</label>
+                        <input type="text" class="form-control" id="registryOperatorVat" name="registryOperatorVat" placeholder="{{ __('Enter registry operator\'s VAT number') }}" value="{{ vat_number }}" required>
+                        <small class="form-hint">{{ __('Enter the VAT number of the organization operating the registry, or company number if VAT is unavailable.') }}</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="contactAddress" class="form-label required">Contact Address</label>
-                        <input type="text" class="form-control" id="contactAddress" name="contactAddress" placeholder="Enter contact address" value="{{ address }}" required>
-                        <small class="form-hint">The contact address of the registry.</small>
+                        <label for="contactAddress" class="form-label required">{{ __('Contact Address') }}</label>
+                        <input type="text" class="form-control" id="contactAddress" name="contactAddress" placeholder="{{ __('Enter contact address') }}" value="{{ address }}" required>
+                        <small class="form-hint">{{ __('The contact address of the registry.') }}</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="contactAddress2" class="form-label required">Contact Address (Line 2)</label>
-                        <input type="text" class="form-control" id="contactAddress2" name="contactAddress2" placeholder="Enter contact address" value="{{ address2 }}" required>
-                        <small class="form-hint">The contact address of the registry. (Line 2)</small>
+                        <label for="contactAddress2" class="form-label required">{{ __('Contact Address') }} (Line 2)</label>
+                        <input type="text" class="form-control" id="contactAddress2" name="contactAddress2" placeholder="{{ __('Enter contact address') }}" value="{{ address2 }}" required>
+                        <small class="form-hint">{{ __('The contact address of the registry.') }} (Line 2)</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="contactEmail" class="form-label required">Contact Email</label>
-                        <input type="email" class="form-control" id="contactEmail" name="contactEmail" placeholder="Enter contact email" value="{{ email }}" required>
-                        <small class="form-hint">The email address for general inquiries to the registry.</small>
+                        <label for="contactEmail" class="form-label required">{{ __('Contact Email') }}</label>
+                        <input type="email" class="form-control" id="contactEmail" name="contactEmail" placeholder="{{ __('Enter contact email') }}" value="{{ email }}" required>
+                        <small class="form-hint">{{ __('The email address for general inquiries to the registry.') }}</small>
                       </div>
                       
                       <div class="mb-3">
-                        <label for="contactPhone" class="form-label required">Contact Phone</label>
-                        <input type="tel" class="form-control" id="contactPhone" name="contactPhone" placeholder="Enter contact phone" value="{{ phone }}" required>
-                        <small class="form-hint">The phone number for general inquiries to the registry.</small>
+                        <label for="contactPhone" class="form-label required">{{ __('Contact Phone') }}</label>
+                        <input type="tel" class="form-control" id="contactPhone" name="contactPhone" placeholder="{{ __('Enter contact phone') }}" value="{{ phone }}" required>
+                        <small class="form-hint">{{ __('The phone number for general inquiries to the registry.') }}</small>
                       </div>
 
                     </div>
@@ -115,7 +125,7 @@
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">Update Details</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Update Details') }}</button>
                     </div>
                   </div>
                  </form>
@@ -124,18 +134,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}

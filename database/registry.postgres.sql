@@ -1,10 +1,4 @@
-CREATE SCHEMA registry;
-CREATE SCHEMA registryTransaction;
-CREATE SCHEMA registryAudit;
-
-SET search_path TO registry, registryTransaction, registryAudit, public;
-
-CREATE TABLE registry.launch_phases (
+CREATE TABLE launch_phases (
     "id" SERIAL PRIMARY KEY,
     "tld_id" INT CHECK ("tld_id" >= 0),
     "phase_name" VARCHAR(75) DEFAULT NULL,
@@ -14,7 +8,6 @@ CREATE TABLE registry.launch_phases (
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) DEFAULT NULL,
     "lastupdate"   timestamp(3),
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
     UNIQUE(phase_name)
 );
 
@@ -25,26 +18,25 @@ BEGIN
 END;
 ' LANGUAGE 'plpgsql';
 
-CREATE TRIGGER add_current_date_to_launch_phases BEFORE UPDATE ON registry.launch_phases FOR EACH ROW EXECUTE PROCEDURE
+CREATE TRIGGER add_current_date_to_launch_phases BEFORE UPDATE ON launch_phases FOR EACH ROW EXECUTE PROCEDURE
 update_phases();
 
-CREATE TABLE registry.domain_tld (
+CREATE TABLE domain_tld (
      "id" SERIAL PRIMARY KEY,
      "tld"   varchar(32) NOT NULL,
      "idn_table"   varchar(255) NOT NULL,
      "secure"   SMALLINT NOT NULL,
      "launch_phase_id" INTEGER DEFAULT NULL,
-     FOREIGN KEY (launch_phase_id) REFERENCES launch_phase(id),
      unique ("tld") 
 );
 
-CREATE TABLE registry.settings (
+CREATE TABLE settings (
      "name" varchar(64) NOT NULL,
      "value" varchar(255) default NULL,
      PRIMARY KEY ("name")
 );
 
-CREATE TABLE registry.domain_price (
+CREATE TABLE domain_price (
      "id"  SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer' )) NOT NULL default 'create',
@@ -62,14 +54,14 @@ CREATE TABLE registry.domain_price (
      unique ("tldid", "command") 
 );
 
-CREATE TABLE registry.domain_restore_price (
+CREATE TABLE domain_restore_price (
      "id" SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "price"   decimal(10,2) NOT NULL default '0.00',
      unique ("tldid") 
 );
 
-CREATE TABLE registry.allocation_tokens (
+CREATE TABLE allocation_tokens (
      "token" VARCHAR(255) NOT NULL,
      "domain_name" VARCHAR(255),
      "tokenStatus" VARCHAR(100),
@@ -80,29 +72,26 @@ CREATE TABLE registry.allocation_tokens (
      "tlds" JSON,
      "eppActions" JSON,
      "reducePremium" BOOLEAN NOT NULL,
-     "reduceYears" INT NOT NULL CHECK (reduceYears BETWEEN 0 AND 10),
+     "reduceYears" INT NOT NULL CHECK ("reduceYears" BETWEEN 0 AND 10),
     PRIMARY KEY (token)
 );
 
-CREATE TABLE registry.error_log (
-    "id" INT(11) NOT NULL AUTO_INCREMENT,
-    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,,
+CREATE TABLE error_log (
+    "id" SERIAL PRIMARY KEY,
+    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
     "log" TEXT NOT NULL,
-    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    primary key ("id"),
-    FOREIGN KEY (registrar_id) REFERENCES registrar(id)
+    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE registry.reserved_domain_names (
-     "id" serial8,
+CREATE TABLE reserved_domain_names (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'reserved','restricted' )) NOT NULL default 'reserved',
-     primary key ("id"),
      unique ("name") 
 );
 
-CREATE TABLE registry.registrar (
-     "id" serial8,
+CREATE TABLE registrar (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(255) NOT NULL,
      "iana_id"   int DEFAULT NULL,
      "clid"   varchar(16) NOT NULL,
@@ -122,9 +111,8 @@ CREATE TABLE registry.registrar (
      "vat_number" VARCHAR(30) DEFAULT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "lastupdate"   timestamp(3),
-     primary key ("id"),
-     unique ("clid") ,
-     unique ("prefix") ,
+     unique ("clid"),
+     unique ("prefix"),
      unique ("email") 
 );
 
@@ -136,19 +124,18 @@ END;
 ' LANGUAGE 'plpgsql';
 
 -- before INSERT is handled by 'default CURRENT_TIMESTAMP'
-CREATE TRIGGER add_current_date_to_registrar BEFORE UPDATE ON registry.registrar FOR EACH ROW EXECUTE PROCEDURE
+CREATE TRIGGER add_current_date_to_registrar BEFORE UPDATE ON registrar FOR EACH ROW EXECUTE PROCEDURE
 update_registrar();
 
-CREATE TABLE registry.registrar_whitelist (
-     "id" serial8,
+CREATE TABLE registrar_whitelist (
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "addr"   varchar(45) NOT NULL,
-     primary key ("id"),
      unique ("registrar_id", "addr") 
 );
 
-CREATE TABLE registry.registrar_contact (
-     "id" serial8,
+CREATE TABLE registrar_contact (
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'owner','admin','billing','tech','abuse' )) NOT NULL default 'admin',
      "title"   varchar(255) default NULL,
@@ -166,19 +153,18 @@ CREATE TABLE registry.registrar_contact (
      "voice"   varchar(17) default NULL,
      "fax"   varchar(17) default NULL,
      "email"   varchar(255) NOT NULL,
-     primary key ("id"),
      unique ("registrar_id", "type") 
 );
 
-CREATE TABLE registry.registrar_ote (
+CREATE TABLE registrar_ote (
      "registrar_id" integer NOT NULL,
      "command" varchar(75) NOT NULL,
      "result" int NOT NULL,
      CONSTRAINT test UNIQUE ("registrar_id", "command", "result")
 );
 
-CREATE TABLE registry.poll (
-     "id" serial8,
+CREATE TABLE poll (
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "qdate"   timestamp(3) without time zone NOT NULL,
      "msg"   text default NULL,
@@ -194,21 +180,19 @@ CREATE TABLE registry.poll (
      "creditlimit"   decimal(12,2) default '0.00',
      "creditthreshold"   decimal(12,2) default '0.00',
      "creditthresholdtype" varchar CHECK ("creditthresholdtype" IN ( 'FIXED','PERCENT' )),
-     "availablecredit"   decimal(12,2) default '0.00',
-     primary key ("id")
+     "availablecredit"   decimal(12,2) default '0.00'
 );
 
-CREATE TABLE registry.payment_history (
-     "id" serial8,
+CREATE TABLE payment_history (
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "description"   text NOT NULL,
-     "amount"   decimal(12,2) NOT NULL,
-     primary key ("id")
+     "amount"   decimal(12,2) NOT NULL
 );
 
-CREATE TABLE registry.statement (
-     "id" serial8,
+CREATE TABLE statement (
+     "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer','restore','autoRenew' )) NOT NULL default 'create',
@@ -216,11 +200,10 @@ CREATE TABLE registry.statement (
      "length_in_months"  smallint CHECK ("length_in_months" >= 0) NOT NULL,
      "fromS"   timestamp(3) without time zone NOT NULL,
      "toS"   timestamp(3) without time zone NOT NULL,
-     "amount"   decimal(12,2) NOT NULL,
-     primary key ("id")
+     "amount"   decimal(12,2) NOT NULL
 );
 
-CREATE TABLE registry.invoices (
+CREATE TABLE invoices (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" INT,
      "invoice_number" varchar(25) DEFAULT NULL,
@@ -231,13 +214,11 @@ CREATE TABLE registry.invoices (
      "payment_status" VARCHAR(10) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'overdue', 'cancelled')),
      "notes" TEXT DEFAULT NULL,
      "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-     "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (registrar_id) REFERENCES registrar(id),
-    FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id)
+     "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE registry.contact (
-     "id" serial8,
+CREATE TABLE contact (
+     "id" SERIAL PRIMARY KEY,
      "identifier"   varchar(255) NOT NULL,
      "voice"   varchar(17) default NULL,
      "voice_x"   int default NULL,
@@ -260,12 +241,11 @@ CREATE TABLE registry.contact (
      "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
      "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
      "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id"),
      unique ("identifier") 
 );
 
-CREATE TABLE registry.contact_postalinfo (
-     "id" serial8,
+CREATE TABLE contact_postalinfo (
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'int','loc' )) NOT NULL default 'int',
      "name"   varchar(255) NOT NULL,
@@ -283,29 +263,26 @@ CREATE TABLE registry.contact_postalinfo (
      "disclose_org_loc" varchar CHECK ("disclose_org_loc" IN ( '0','1' )) NOT NULL default '1',
      "disclose_addr_int" varchar CHECK ("disclose_addr_int" IN ( '0','1' )) NOT NULL default '1',
      "disclose_addr_loc" varchar CHECK ("disclose_addr_loc" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id"),
      unique ("contact_id", "type") 
 );
 
-CREATE TABLE registry.contact_authinfo (
-     "id" serial8,
+CREATE TABLE contact_authinfo (
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
      "authinfo"   varchar(64) NOT NULL,
-     primary key ("id"),
      unique ("contact_id") 
 );
 
-CREATE TABLE registry.contact_status (
-     "id" serial8,
+CREATE TABLE contact_status (
+     "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientTransferProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("contact_id", "status") 
 );
 
-CREATE TABLE registry.domain (
-     "id" serial8,
+CREATE TABLE domain (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
@@ -349,12 +326,11 @@ CREATE TABLE registry.domain (
      "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
      "tm_smd_id" TEXT DEFAULT NULL,
      "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
-     primary key ("id"),
      unique ("name") 
 );
 
-CREATE TABLE registry.application (
-     "id" serial8,
+CREATE TABLE application (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
@@ -384,55 +360,49 @@ CREATE TABLE registry.application (
      "tm_notice_id" VARCHAR(150) DEFAULT NULL,
      "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
      "tm_smd_id" TEXT DEFAULT NULL,
-     "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
-     primary key ("id")
+     "tm_phase" text DEFAULT 'NONE'::text NOT NULL
 );
 
-CREATE TABLE registry.domain_contact_map (
-     "id" serial8,
+CREATE TABLE domain_contact_map (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
-     primary key ("id"),
      unique ("domain_id", "contact_id", "type") 
 );
 
-CREATE TABLE registry.application_contact_map (
-     "id" serial8,
+CREATE TABLE application_contact_map (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "type" varchar CHECK ("type" IN ( 'admin','billing','tech' )) NOT NULL default 'admin',
-     primary key ("id"),
      unique ("domain_id", "contact_id", "type") 
 );
 
-CREATE TABLE registry.domain_authinfo (
-     "id" serial8,
+CREATE TABLE domain_authinfo (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
      "authinfo"   varchar(64) NOT NULL,
-     primary key ("id"),
      unique ("domain_id") 
 );
 
-CREATE TABLE registry.domain_status (
-     "id" serial8,
+CREATE TABLE domain_status (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientHold','clientRenewProhibited','clientTransferProhibited','clientUpdateProhibited','inactive','ok','pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverHold','serverRenewProhibited','serverTransferProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("domain_id", "status") 
 );
 
-CREATE TABLE registry.application_status (
-     "id" serial8,
+CREATE TABLE application_status (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'pendingValidation','validated','invalid','pendingAllocation','allocated','rejected','custom' )) NOT NULL default 'pendingValidation',
-     primary key ("id"),
      unique ("domain_id", "status") 
 );
 
-CREATE TABLE registry.secdns (
-     "id" serial8,
+CREATE TABLE secdns (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "maxsiglife" int CHECK ("maxsiglife" >= 0) default '604800',
      "interface" varchar CHECK ("interface" IN ( 'dsData','keyData' )) NOT NULL default 'dsData',
@@ -444,12 +414,11 @@ CREATE TABLE registry.secdns (
      "protocol" smallint CHECK ("protocol" >= 0) default NULL,
      "keydata_alg"  smallint CHECK ("keydata_alg" >= 0) default NULL,
      "pubkey"   varchar(255) default NULL,
-     primary key ("id"),
      unique ("domain_id", "digest") 
 );
 
-CREATE TABLE registry.host (
-     "id" serial8,
+CREATE TABLE host (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(255) NOT NULL,
      "domain_id" int CHECK ("domain_id" >= 0) default NULL,
      "clid" int CHECK ("clid" >= 0) NOT NULL,
@@ -458,45 +427,40 @@ CREATE TABLE registry.host (
      "upid" int CHECK ("upid" >= 0) default NULL,
      "lastupdate"   timestamp(3) without time zone default NULL,
      "trdate"   timestamp(3) without time zone default NULL,
-     primary key ("id"),
      unique ("name") 
 );
 
-CREATE TABLE registry.domain_host_map (
-     "id" serial8,
+CREATE TABLE domain_host_map (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-     primary key ("id"),
      unique ("domain_id", "host_id") 
 );
 
-CREATE TABLE registry.application_host_map (
-     "id" serial8,
+CREATE TABLE application_host_map (
+     "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
-     primary key ("id"),
      unique ("domain_id", "host_id") 
 );
 
-CREATE TABLE registry.host_addr (
-     "id" serial8,
+CREATE TABLE host_addr (
+     "id" SERIAL PRIMARY KEY,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
      "addr"   varchar(45) NOT NULL,
      "ip" varchar CHECK ("ip" IN ( 'v4','v6' )) NOT NULL default 'v4',
-     primary key ("id"),
      unique ("host_id", "addr", "ip") 
 );
 
-CREATE TABLE registry.host_status (
-     "id" serial8,
+CREATE TABLE host_status (
+     "id" SERIAL PRIMARY KEY,
      "host_id" int CHECK ("host_id" >= 0) NOT NULL,
      "status" varchar CHECK ("status" IN ( 'clientDeleteProhibited','clientUpdateProhibited','linked','ok','pendingCreate','pendingDelete','pendingTransfer','pendingUpdate','serverDeleteProhibited','serverUpdateProhibited' )) NOT NULL default 'ok',
-     primary key ("id"),
      unique ("host_id", "status") 
 );
 
-CREATE TABLE registry.domain_auto_approve_transfer (
-     "id" serial8,
+CREATE TABLE domain_auto_approve_transfer (
+     "id" SERIAL PRIMARY KEY,
      "name"   varchar(68) NOT NULL,
      "registrant" int CHECK ("registrant" >= 0) default NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
@@ -511,12 +475,11 @@ CREATE TABLE registry.domain_auto_approve_transfer (
      "redate"   timestamp(3) without time zone default NULL,
      "acid" int CHECK ("acid" >= 0) default NULL,
      "acdate"   timestamp(3) without time zone default NULL,
-     "transfer_exdate"   timestamp(3) without time zone default NULL,
-     primary key ("id")
+     "transfer_exdate"   timestamp(3) without time zone default NULL
 );
 
-CREATE TABLE registry.contact_auto_approve_transfer (
-     "id" serial8,
+CREATE TABLE contact_auto_approve_transfer (
+     "id" SERIAL PRIMARY KEY,
      "identifier"   varchar(255) NOT NULL,
      "voice"   varchar(17) default NULL,
      "voice_x"   int default NULL,
@@ -538,12 +501,11 @@ CREATE TABLE registry.contact_auto_approve_transfer (
      "acdate"   timestamp(3) without time zone default NULL,
      "disclose_voice" varchar CHECK ("disclose_voice" IN ( '0','1' )) NOT NULL default '1',
      "disclose_fax" varchar CHECK ("disclose_fax" IN ( '0','1' )) NOT NULL default '1',
-     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
-     primary key ("id")
+     "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1'
 );
 
-CREATE TABLE registry.statistics (
-     "id" serial8,
+CREATE TABLE statistics (
+     "id" SERIAL PRIMARY KEY,
      "date"   date NOT NULL,
      "total_domains" int CHECK ("total_domains" >= 0) NOT NULL DEFAULT '0',
      "created_domains" int CHECK ("created_domains" >= 0) NOT NULL DEFAULT '0',
@@ -551,11 +513,10 @@ CREATE TABLE registry.statistics (
      "transfered_domains" int CHECK ("transfered_domains" >= 0) NOT NULL DEFAULT '0',
      "deleted_domains" int CHECK ("deleted_domains" >= 0) NOT NULL DEFAULT '0',
      "restored_domains" int CHECK ("restored_domains" >= 0) NOT NULL DEFAULT '0',
-     primary key ("id"),
      unique ("date") 
 );
 
-CREATE TABLE IF NOT EXISTS registry.users (
+CREATE TABLE IF NOT EXISTS users (
     "id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
     "email" VARCHAR(249) UNIQUE NOT NULL,
     "password" VARCHAR(255) NOT NULL,
@@ -570,10 +531,23 @@ CREATE TABLE IF NOT EXISTS registry.users (
     "tfa_secret" VARCHAR(32),
     "tfa_enabled" BOOLEAN DEFAULT false,
     "auth_method" VARCHAR(255) DEFAULT 'password',
-    "backup_codes" TEXT,
+    "backup_codes" TEXT
 );
 
-CREATE TABLE IF NOT EXISTS registry.users_confirmations (
+CREATE TABLE IF NOT EXISTS users_audit (
+    "user_id" INT NOT NULL,
+    "user_event" VARCHAR(255) NOT NULL,
+    "user_resource" VARCHAR(255) DEFAULT NULL,
+    "user_agent" VARCHAR(255) NOT NULL,
+    "user_ip" VARCHAR(45) NOT NULL,
+    "user_location" VARCHAR(45) DEFAULT NULL,
+    "event_time" TIMESTAMP(3) NOT NULL,
+    "user_data" JSONB DEFAULT NULL
+);
+CREATE INDEX idx_user_event ON users_audit (user_event);
+CREATE INDEX idx_user_ip ON users_audit (user_ip);
+
+CREATE TABLE IF NOT EXISTS users_confirmations (
     "id" SERIAL PRIMARY KEY CHECK ("id" >= 0),
     "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
     "email" VARCHAR(249) NOT NULL,
@@ -581,36 +555,36 @@ CREATE TABLE IF NOT EXISTS registry.users_confirmations (
     "token" VARCHAR(255) NOT NULL,
     "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "email_expires" ON registry.users_confirmations ("email", "expires");
-CREATE INDEX IF NOT EXISTS "user_id" ON registry.users_confirmations ("user_id");
+CREATE INDEX IF NOT EXISTS "email_expires" ON users_confirmations ("email", "expires");
+CREATE INDEX IF NOT EXISTS "user_id" ON users_confirmations ("user_id");
 
-CREATE TABLE IF NOT EXISTS registry.users_remembered (
+CREATE TABLE IF NOT EXISTS users_remembered (
     "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
     "selector" VARCHAR(24) UNIQUE NOT NULL,
     "token" VARCHAR(255) NOT NULL,
     "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "user" ON registry.users_remembered ("user");
+CREATE INDEX IF NOT EXISTS "re_user_id" ON users_remembered ("user_id");
 
-CREATE TABLE IF NOT EXISTS registry.users_resets (
+CREATE TABLE IF NOT EXISTS users_resets (
     "id" BIGSERIAL PRIMARY KEY CHECK ("id" >= 0),
-    "user" INTEGER NOT NULL CHECK ("user" >= 0),
+    "user_id" INTEGER NOT NULL CHECK ("user_id" >= 0),
     "selector" VARCHAR(20) UNIQUE NOT NULL,
     "token" VARCHAR(255) NOT NULL,
     "expires" INTEGER NOT NULL CHECK ("expires" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "user_expires" ON registry.users_resets ("user", "expires");
+CREATE INDEX IF NOT EXISTS "user_expires" ON users_resets ("user_id", "expires");
 
-CREATE TABLE IF NOT EXISTS registry.users_throttling (
+CREATE TABLE IF NOT EXISTS users_throttling (
     "bucket" VARCHAR(44) PRIMARY KEY,
     "tokens" REAL NOT NULL CHECK ("tokens" >= 0),
     "replenished_at" INTEGER NOT NULL CHECK ("replenished_at" >= 0),
     "expires_at" INTEGER NOT NULL CHECK ("expires_at" >= 0)
 );
-CREATE INDEX IF NOT EXISTS "expires_at" ON registry.users_throttling ("expires_at");
+CREATE INDEX IF NOT EXISTS "expires_at" ON users_throttling ("expires_at");
 
-CREATE TABLE IF NOT EXISTS registry.users_webauthn (
+CREATE TABLE IF NOT EXISTS users_webauthn (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL,
     "credential_id" BYTEA NOT NULL,
@@ -619,21 +593,16 @@ CREATE TABLE IF NOT EXISTS registry.users_webauthn (
     "sign_count" BIGINT NOT NULL,
     "user_agent" TEXT,
     "created_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    "last_used_at" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS registry.registrar_users (
-     "registrar_id" int NOT NULL,
-     "user_id" int NOT NULL,
-     "PRIMARY KEY" (registrar_id, user_id),
-     "FOREIGN KEY" (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE,
-     "FOREIGN KEY" (user_id) REFERENCES users(id) ON DELETE CASCADE
-) WITH (OIDS=FALSE);
-COMMENT ON TABLE registrar_users IS 'Linking Registrars with Panel Users';
+CREATE TABLE IF NOT EXISTS registrar_users (
+     "registrar_id" int NOT NULL PRIMARY KEY,
+     "user_id" int NOT NULL
+);
 
-CREATE TABLE registry.urs_actions (
-     "id" serial8  PRIMARY KEY,
+CREATE TABLE urs_actions (
+     "id" SERIAL PRIMARY KEY,
      "domain_name"   VARCHAR(255) NOT NULL,
      "urs_provider"   VARCHAR(255) NOT NULL,
      "action_date"   DATE NOT NULL,
@@ -645,8 +614,8 @@ CREATE TYPE deposit_type_enum AS ENUM ('Full', 'Incremental', 'Differential');
 CREATE TYPE status_enum AS ENUM ('Deposited', 'Retrieved', 'Failed');
 CREATE TYPE verification_status_enum AS ENUM ('Verified', 'Failed', 'Pending');
 
-CREATE TABLE registry.rde_escrow_deposits (
-    "id" serial8 PRIMARY KEY,
+CREATE TABLE rde_escrow_deposits (
+    "id" SERIAL PRIMARY KEY,
     "deposit_id" VARCHAR(255) UNIQUE,  -- Unique deposit identifier
     "deposit_date" DATE NOT NULL,
     "revision" INTEGER NOT NULL DEFAULT 1,
@@ -665,7 +634,7 @@ CREATE TABLE registry.rde_escrow_deposits (
 
 CREATE TYPE report_status_enum AS ENUM ('Pending', 'Submitted', 'Accepted', 'Rejected');
 
-CREATE TABLE registry.icann_reports (
+CREATE TABLE icann_reports (
     "id" serial8 PRIMARY KEY,
     "report_date" DATE NOT NULL,
     "type" VARCHAR(255) NOT NULL,
@@ -675,7 +644,7 @@ CREATE TABLE registry.icann_reports (
     "notes" TEXT
 );
 
-CREATE TABLE registry.promotion_pricing (
+CREATE TABLE promotion_pricing (
     "id" SERIAL PRIMARY KEY,
     "tld_id" INT CHECK ("tld_id" >= 0),
     "promo_name" varchar(255) NOT NULL,
@@ -696,39 +665,36 @@ CREATE TABLE registry.promotion_pricing (
     "created_by" varchar(255),
     "created_at" timestamp(3) without time zone,
     "updated_by" varchar(255),
-    "updated_at" timestamp(3) without time zone,
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id")
+    "updated_at" timestamp(3) without time zone
 );
 
 CREATE INDEX idx_promotion_pricing_tld_id ON promotion_pricing (tld_id);
 
-CREATE TABLE registry.premium_domain_categories (
+CREATE TABLE premium_domain_categories (
     "category_id" serial8 PRIMARY KEY,
     "category_name" VARCHAR(255) NOT NULL,
     "category_price" NUMERIC(10, 2) NOT NULL,
     UNIQUE (category_name)
 );
 
-CREATE TABLE registry.premium_domain_pricing (
+CREATE TABLE premium_domain_pricing (
     "id" serial8 PRIMARY KEY,
     "domain_name" VARCHAR(255) NOT NULL,
     "tld_id" INT CHECK ("tld_id" >= 0) NOT NULL,
-    "category_id" INT,
-    FOREIGN KEY ("tld_id") REFERENCES registry.domain_tld("id"),
-    FOREIGN KEY ("category_id") REFERENCES registry.premium_domain_categories("category_id")
+    "category_id" INT
 );
 
 -- Create custom types for status and priority
 CREATE TYPE ticket_status AS ENUM ('Open', 'In Progress', 'Resolved', 'Closed');
 CREATE TYPE ticket_priority AS ENUM ('Low', 'Medium', 'High', 'Critical');
 
-CREATE TABLE registry.ticket_categories (
+CREATE TABLE ticket_categories (
     "id" SERIAL PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT
 );
 
-CREATE TABLE registry.support_tickets (
+CREATE TABLE support_tickets (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL, 
     "category_id" INTEGER NOT NULL,
@@ -742,21 +708,18 @@ CREATE TABLE registry.support_tickets (
     "relevant_urls" TEXT DEFAULT NULL,
     "date_of_incident" DATE DEFAULT NULL,
     "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "last_updated" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES registry.users(id),
-    FOREIGN KEY (category_id) REFERENCES registry.ticket_categories(id)
+    "last_updated" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE registry.ticket_responses (
+CREATE TABLE ticket_responses (
     "id" SERIAL PRIMARY KEY,
     "ticket_id" INTEGER NOT NULL,
     "responder_id" INTEGER NOT NULL,
     "response" TEXT NOT NULL,
-    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id)
+    "date_created" TIMESTAMP(3) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE registry.tmch_claims (
+CREATE TABLE tmch_claims (
     "id" SERIAL PRIMARY KEY,
     "domain_label" VARCHAR(100) NOT NULL,
     "claim_key" VARCHAR(200) NOT NULL,
@@ -764,42 +727,42 @@ CREATE TABLE registry.tmch_claims (
     CONSTRAINT tmch_claims_unique UNIQUE (claim_key, domain_label)
 );
 
-CREATE TABLE registry.tmch_revocation (
+CREATE TABLE tmch_revocation (
     "id" SERIAL PRIMARY KEY,
     "smd_id" VARCHAR(100) NOT NULL,
     "revocation_time" TIMESTAMP(3) NOT NULL,
     CONSTRAINT tmch_revocation_unique UNIQUE (smd_id)
 );
 
-CREATE TABLE registry.tmch_crl (
+CREATE TABLE tmch_crl (
     "id" SERIAL PRIMARY KEY,
     "content" TEXT NOT NULL,
     "url" VARCHAR(255) NOT NULL,
     "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
-INSERT INTO registry.domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
-INSERT INTO registry.domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 
-INSERT INTO registry.domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'3',E'1',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'4',E'2',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'5',E'2',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO registry.domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'3',E'1',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'4',E'2',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'5',E'2',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 
-INSERT INTO registry.domain_restore_price VALUES (E'1',E'1',E'50.00');
-INSERT INTO registry.domain_restore_price VALUES (E'2',E'2',E'50.00');
+INSERT INTO domain_restore_price VALUES (E'1',E'1',E'50.00');
+INSERT INTO domain_restore_price VALUES (E'2',E'2',E'50.00');
 
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-INSERT INTO registry.registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.test',E'whois.leonet.test',E'rdap.leonet.test',E'https://www.leonet.test',E'abuse@leonet.test',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+INSERT INTO registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.test',E'whois.nordregistrar.test',E'rdap.nordregistrar.test',E'https://www.nordregistrar.test',E'abuse@nordregistrar.test',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
-INSERT INTO registry.registrar_whitelist ("registrar_id", "addr") VALUES
+INSERT INTO registrar_whitelist ("registrar_id", "addr") VALUES
 ('1',    '1.2.3.4');
-INSERT INTO registry.registrar_whitelist ("registrar_id", "addr") VALUES
+INSERT INTO registrar_whitelist ("registrar_id", "addr") VALUES
 ('2',    '5.6.7.8');
 
-INSERT INTO registry.registrar_contact (id, registrar_id, type, title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email) VALUES
+INSERT INTO registrar_contact (id, registrar_id, type, title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email) VALUES
 ('1',    '1',    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 ('2',    '1',    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 ('3',    '1',    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
@@ -807,7 +770,7 @@ INSERT INTO registry.registrar_contact (id, registrar_id, type, title, first_nam
 ('5',    '2',    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 ('6',    '2',    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
 
-INSERT INTO registry.ticket_categories (name, description) VALUES 
+INSERT INTO ticket_categories (name, description) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),
 ('Registration Errors', 'Errors or issues encountered during domain registration'),
 ('Billing & Payments', 'Questions or issues related to invoicing, payments, or account balances'),
@@ -821,7 +784,7 @@ INSERT INTO registry.ticket_categories (name, description) VALUES
 ('RDAP Updates', 'Issues or queries related to the Registration Data Access Protocol (RDAP) updates'),
 ('URS Cases', 'Reports of URS cases');
 
-INSERT INTO registry.settings (name, value) VALUES
+INSERT INTO settings (name, value) VALUES
 ('dns-tcp-queries-received', '0'),
 ('dns-tcp-queries-responded', '0'),
 ('dns-udp-queries-received', '0'),
@@ -839,64 +802,58 @@ INSERT INTO registry.settings (name, value) VALUES
 ('email', 'contact@example.com'),
 ('launch_phases', 'on'),
 ('whois_server', 'whois.example.com'),
-('rdap_server', 'https://rdap.example.com');
+('rdap_server', 'https://rdap.example.com'),
+('currency', 'USD');
  
-ALTER TABLE registry.domain_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
-ALTER TABLE registry.domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
-ALTER TABLE registry.registrar_whitelist ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.registrar_contact ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.poll ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.payment_history ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.statement ADD FOREIGN KEY ("registrar_id") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.contact ADD FOREIGN KEY ("clid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.contact ADD FOREIGN KEY ("crid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.contact ADD FOREIGN KEY ("upid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.contact_postalinfo ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
-ALTER TABLE registry.contact_authinfo ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
-ALTER TABLE registry.contact_status ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("clid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("crid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("upid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("registrant") REFERENCES registry.contact ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("reid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("acid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.domain ADD FOREIGN KEY ("tldid") REFERENCES registry.domain_tld ("id");
-ALTER TABLE registry.domain_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.domain_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
-ALTER TABLE registry.application_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
-ALTER TABLE registry.application_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES registry.contact ("id");
-ALTER TABLE registry.domain_authinfo ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.domain_status ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.application_status ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
-ALTER TABLE registry.secdns ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.host ADD FOREIGN KEY ("clid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.host ADD FOREIGN KEY ("crid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.host ADD FOREIGN KEY ("upid") REFERENCES registry.registrar ("id");
-ALTER TABLE registry.host ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.domain_host_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.domain ("id");
-ALTER TABLE registry.domain_host_map ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
-ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("domain_id") REFERENCES registry.application ("id");
-ALTER TABLE registry.application_host_map ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
-ALTER TABLE registry.host_addr ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
-ALTER TABLE registry.host_status ADD FOREIGN KEY ("host_id") REFERENCES registry.host ("id");
-
-CREATE TABLE registryTransaction.transaction_identifier (
-    id BIGSERIAL PRIMARY KEY,
-    registrar_id INT NOT NULL,
-    clTRID VARCHAR(64),
-    clTRIDframe TEXT,
-    cldate TIMESTAMP(3) WITHOUT TIME ZONE,
-    clmicrosecond INT,
-    cmd VARCHAR(10) CHECK (cmd IN ('login','logout','check','info','poll','transfer','create','delete','renew','update')),
-    obj_type VARCHAR(10) CHECK (obj_type IN ('domain','host','contact')),
-    obj_id TEXT,
-    code SMALLINT,
-    msg VARCHAR(255),
-    svTRID VARCHAR(64),
-    svTRIDframe TEXT,
-    svdate TIMESTAMP(3) WITHOUT TIME ZONE,
-    svmicrosecond INT,
-    CONSTRAINT unique_clTRID UNIQUE (clTRID),
-    CONSTRAINT unique_svTRID UNIQUE (svTRID),
-    CONSTRAINT transaction_identifier_ibfk_1 FOREIGN KEY (registrar_id) REFERENCES registry.registrar (id) ON DELETE RESTRICT
-);
+ALTER TABLE domain_tld ADD FOREIGN KEY (launch_phase_id) REFERENCES launch_phases(id);
+ALTER TABLE launch_phases ADD FOREIGN KEY (tld_id) REFERENCES domain_tld(id);
+ALTER TABLE error_log ADD FOREIGN KEY (registrar_id) REFERENCES registrar(id);
+ALTER TABLE invoices ADD FOREIGN KEY (registrar_id) REFERENCES registrar(id);
+ALTER TABLE invoices ADD FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id);
+ALTER TABLE users_webauthn ADD FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE domain_price ADD FOREIGN KEY ("tldid") REFERENCES domain_tld ("id");
+ALTER TABLE domain_restore_price ADD FOREIGN KEY ("tldid") REFERENCES domain_tld ("id");
+ALTER TABLE registrar_whitelist ADD FOREIGN KEY ("registrar_id") REFERENCES registrar ("id");
+ALTER TABLE registrar_users ADD FOREIGN KEY (registrar_id) REFERENCES registrar(id) ON DELETE CASCADE;
+ALTER TABLE registrar_users ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE registrar_contact ADD FOREIGN KEY ("registrar_id") REFERENCES registrar ("id");
+ALTER TABLE poll ADD FOREIGN KEY ("registrar_id") REFERENCES registrar ("id");
+ALTER TABLE payment_history ADD FOREIGN KEY ("registrar_id") REFERENCES registrar ("id");
+ALTER TABLE statement ADD FOREIGN KEY ("registrar_id") REFERENCES registrar ("id");
+ALTER TABLE contact ADD FOREIGN KEY ("clid") REFERENCES registrar ("id");
+ALTER TABLE contact ADD FOREIGN KEY ("crid") REFERENCES registrar ("id");
+ALTER TABLE contact ADD FOREIGN KEY ("upid") REFERENCES registrar ("id");
+ALTER TABLE contact_postalinfo ADD FOREIGN KEY ("contact_id") REFERENCES contact ("id");
+ALTER TABLE contact_authinfo ADD FOREIGN KEY ("contact_id") REFERENCES contact ("id");
+ALTER TABLE contact_status ADD FOREIGN KEY ("contact_id") REFERENCES contact ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("clid") REFERENCES registrar ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("crid") REFERENCES registrar ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("upid") REFERENCES registrar ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("registrant") REFERENCES contact ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("reid") REFERENCES registrar ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("acid") REFERENCES registrar ("id");
+ALTER TABLE domain ADD FOREIGN KEY ("tldid") REFERENCES domain_tld ("id");
+ALTER TABLE domain_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE domain_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES contact ("id");
+ALTER TABLE application_contact_map ADD FOREIGN KEY ("domain_id") REFERENCES application ("id");
+ALTER TABLE application_contact_map ADD FOREIGN KEY ("contact_id") REFERENCES contact ("id");
+ALTER TABLE domain_authinfo ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE domain_status ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE application_status ADD FOREIGN KEY ("domain_id") REFERENCES application ("id");
+ALTER TABLE secdns ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE host ADD FOREIGN KEY ("clid") REFERENCES registrar ("id");
+ALTER TABLE host ADD FOREIGN KEY ("crid") REFERENCES registrar ("id");
+ALTER TABLE host ADD FOREIGN KEY ("upid") REFERENCES registrar ("id");
+ALTER TABLE host ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE domain_host_map ADD FOREIGN KEY ("domain_id") REFERENCES domain ("id");
+ALTER TABLE domain_host_map ADD FOREIGN KEY ("host_id") REFERENCES host ("id");
+ALTER TABLE application_host_map ADD FOREIGN KEY ("domain_id") REFERENCES application ("id");
+ALTER TABLE application_host_map ADD FOREIGN KEY ("host_id") REFERENCES host ("id");
+ALTER TABLE host_addr ADD FOREIGN KEY ("host_id") REFERENCES host ("id");
+ALTER TABLE host_status ADD FOREIGN KEY ("host_id") REFERENCES host ("id");
+ALTER TABLE promotion_pricing ADD FOREIGN KEY ("tld_id") REFERENCES domain_tld("id");    
+ALTER TABLE premium_domain_pricing ADD FOREIGN KEY ("tld_id") REFERENCES domain_tld("id");
+ALTER TABLE premium_domain_pricing ADD FOREIGN KEY ("category_id") REFERENCES premium_domain_categories("category_id");
+ALTER TABLE support_tickets ADD FOREIGN KEY ("user_id") REFERENCES users(id);
+ALTER TABLE support_tickets ADD FOREIGN KEY ("category_id") REFERENCES ticket_categories(id);
+ALTER TABLE ticket_responses ADD FOREIGN KEY ("ticket_id") REFERENCES support_tickets(id);

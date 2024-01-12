@@ -25,11 +25,16 @@
                       {{ __('Manage Reserved Names') }}
                     </a>
                   </span>
+                  <span class="d-sm-none">
+                    <a href="{{route('manageReserved')}}" class="btn btn-secondary btn-icon" title="{{ __('Manage Reserved Names') }}" aria-label="{{ __('Manage Reserved Names') }}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 20h6" /><path d="M12 14v6" /><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 9h6" /></svg>
+                    </a>
+                  </span>
                   <a href="{{route('createTld')}}" class="btn btn-primary d-none d-sm-inline-block">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     {{ __('Create New TLD') }}
                   </a>
-                  <a href="{{route('createTld')}}" class="btn btn-primary d-sm-none btn-icon" aria-label="{{ __('Create New TLD') }}">
+                  <a href="{{route('createTld')}}" class="btn btn-primary d-sm-none btn-icon" title="{{ __('Create New TLD') }}" aria-label="{{ __('Create New TLD') }}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                   </a>
                 </div>
@@ -52,9 +57,9 @@
                       <button class="btn btn-red btn-icon" onclick="downloadPDF()"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 8v8h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-2z"></path><path d="M3 12h2a2 2 0 1 0 0 -4h-2v8"></path><path d="M17 12h3"></path><path d="M21 8h-4v8"></path></svg></button>
                     </div>
                     <div class="ms-auto text-secondary">
-                      Search:
+                      {{ __('Search') }}:
                       <div class="ms-2 d-inline-block">
-                        <input id="search-input" type="text" class="form-control" aria-label="Search tickets">
+                        <input id="search-input" type="text" class="form-control" aria-label="{{ __('Search TLDs') }}">
                       </div>
                     </div>
                   </div>
@@ -66,18 +71,6 @@
             </div>
           </div>
         </div>
-        <footer class="footer footer-transparent d-print-none">
-          <div class="container-xl">
-              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-                <ul class="list-inline list-inline-dots mb-0">
-                  <li class="list-inline-item">
-                    Copyright &copy; 2023
-                    <a href="https://namingo.org" target="_blank" class="link-secondary">Namingo</a>.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {% include 'partials/footer.twig' %}
       </div>
 {% endblock %}
