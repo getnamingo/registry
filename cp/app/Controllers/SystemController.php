@@ -6,6 +6,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use Respect\Validation\Validator as v;
+use League\ISO3166\ISO3166;
 
 class SystemController extends Controller
 {
@@ -142,8 +143,19 @@ class SystemController extends Controller
                         'name' => "rdap_server"
                     ]
                 );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['currency']
+                    ],
+                    [
+                        'name' => "currency"
+                    ]
+                );
 
                 $db->commit();
+                $_SESSION['_currency'] = $data['currency'];
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
@@ -154,7 +166,9 @@ class SystemController extends Controller
             return $response->withHeader('Location', '/registry')->withStatus(302);
             
         }
-        
+
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
         $db = $this->container->get('db');
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
         $vat_number = $db->selectValue("SELECT value FROM settings WHERE name = 'vat_number'");
@@ -166,6 +180,17 @@ class SystemController extends Controller
         $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
         $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
         $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
+        $currency = $db->selectValue("SELECT value FROM settings WHERE name = 'currency'");
+        
+        $uniqueCurrencies = [];
+        foreach ($countries as $country) {
+            // Assuming each country has a 'currency' field with an array of currencies
+            foreach ($country['currency'] as $currencyCode) {
+                if (!array_key_exists($currencyCode, $uniqueCurrencies)) {
+                    $uniqueCurrencies[$currencyCode] = $currencyCode; // Or any other currency detail you have
+                }
+            }
+        }
         
         return view($response,'admin/system/registry.twig', [
             'company_name' => $company_name,
@@ -177,7 +202,9 @@ class SystemController extends Controller
             'handle' => $handle,
             'launch_phases' => $launch_phases,
             'whois_server' => $whois_server,
-            'rdap_server' => $rdap_server
+            'rdap_server' => $rdap_server,
+            'uniqueCurrencies' => $uniqueCurrencies,
+            'currency' => $currency
         ]);
     }
     

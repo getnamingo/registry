@@ -131,22 +131,20 @@ $container->set('view', function ($container) {
     }
 
     $db = $container->get('db');
-    $query = 'SELECT r.currency, ru.registrar_id
+    $user_data = 'SELECT ru.registrar_id
               FROM registrar_users ru
               JOIN registrar r ON ru.registrar_id = r.id
               WHERE ru.user_id = ?';
+    $currency_data = "SELECT value FROM settings WHERE name = 'currency'";
 
     if (isset($_SESSION['auth_user_id'])) {
-        $result = $db->select($query, [$_SESSION['auth_user_id']]);
+        $result = $db->select($user_data, [$_SESSION['auth_user_id']]);
+        $db_currency = $db->select($currency_data);
 
-        // Default values
-        $_SESSION['_currency'] = 'USD';
+        $_SESSION['_currency'] = $db_currency[0]['value'];
         $_SESSION['auth_registrar_id'] = null;  // Default registrar_id
 
         if ($result !== null && count($result) > 0) {
-            if (isset($result[0]['currency'])) {
-                $_SESSION['_currency'] = $result[0]['currency'];
-            }
             if (isset($result[0]['registrar_id'])) {
                 $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
             }

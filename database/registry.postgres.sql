@@ -802,7 +802,8 @@ INSERT INTO settings (name, value) VALUES
 ('email', 'contact@example.com'),
 ('launch_phases', 'on'),
 ('whois_server', 'whois.example.com'),
-('rdap_server', 'https://rdap.example.com');
+('rdap_server', 'https://rdap.example.com'),
+('currency', 'USD');
  
 ALTER TABLE domain_tld ADD FOREIGN KEY (launch_phase_id) REFERENCES launch_phases(id);
 ALTER TABLE launch_phases ADD FOREIGN KEY (tld_id) REFERENCES domain_tld(id);

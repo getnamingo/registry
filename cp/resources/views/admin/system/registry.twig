@@ -38,7 +38,19 @@
                         <input type="text" class="form-control" id="registryOperator" name="registryOperator" placeholder="{{ __('Enter registry operator\'s name') }}" value="{{ company_name }}" required>
                         <small class="form-hint">{{ __('The official name of the organization operating the registry.') }}</small>
                       </div>
+                      
+                      <div class="mb-3">
+                        <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
+                        <input type="text" class="form-control" id="rdapServer" name="rdapServer" placeholder="{{ __('Enter registry RDAP server') }}" value="{{ rdap_server }}" required>
+                        <small class="form-hint">{{ __('Enter the URL of the registry\'s RDAP server. Example:') }} https://rdap.example.com</small>
+                      </div>
              
+                      <div class="mb-3">
+                        <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
+                        <input type="text" class="form-control" id="whoisServer" name="whoisServer" placeholder="{{ __('Enter registry whois server') }}" value="{{ whois_server }}" required>
+                        <small class="form-hint">{{ __('Enter the URL of the registry\'s WHOIS server. Example:') }} whois.example.com</small>
+                      </div>
+
                       <div class="mb-3">
                         <label for="registryHandle" class="form-label required">{{ __('Registry Handle') }}</label>
                         <input type="text" class="form-control" id="registryHandle" name="registryHandle" placeholder="{{ __('Enter registry handle') }}" value="{{ handle }}" required>
@@ -46,15 +58,13 @@
                       </div>
                       
                       <div class="mb-3">
-                        <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
-                        <input type="text" class="form-control" id="whoisServer" name="whoisServer" placeholder="{{ __('Enter registry whois server') }}" value="{{ whois_server }}" required>
-                        <small class="form-hint">{{ __('Enter the URL of the registry\'s WHOIS server. Example:') }} whois.example.com</small>
-                      </div>
-                      
-                      <div class="mb-3">
-                        <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
-                        <input type="text" class="form-control" id="rdapServer" name="rdapServer" placeholder="{{ __('Enter registry RDAP server') }}" value="{{ rdap_server }}" required>
-                        <small class="form-hint">{{ __('Enter the URL of the registry\'s RDAP server. Example:') }} https://rdap.example.com</small>
+                        <label for="registryCurrency" class="form-label required">{{ __('Registry Currency') }}</label>
+                        <select class="form-select" id="registryCurrency" name="currency" required="required">
+                            {% for currencyCode, currencyName in uniqueCurrencies %}
+                                <option value="{{ currencyCode }}" {% if currency == currencyCode %}selected{% endif %}>{{ currencyName }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-hint">{{ __('Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes.') }}</small>
                       </div>
                       
                       <div class="mb-3">

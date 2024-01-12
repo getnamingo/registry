@@ -1339,3 +1339,8 @@ msgstr "TLDs"
 msgid "Support"
 msgstr "Підтримка"
 
+msgid "Registry Currency"
+msgstr "Валюта реєстру"
+
+msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
+msgstr "Виберіть валюту для всіх операцій. Це впливає на рахунки та фінансові звіти. Інформувати зацікавлених сторін про зміни."

@@ -880,7 +880,8 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('email',    'contact@example.com'),
 ('launch_phases',    'on'),
 ('whois_server',    'whois.example.com'),
-('rdap_server',    'https://rdap.example.com');
+('rdap_server',    'https://rdap.example.com'),
+('currency',    'USD');
 
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 
