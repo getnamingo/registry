@@ -32,8 +32,11 @@ class PasswordController extends Controller
      * @throws \Pinga\Auth\AuthError
      */
     public function forgotPassword(Request $request, Response $response){
+        global $container;
+        $db = $container->get('db');
         $data = $request->getParsedBody();
-        Auth::forgotPassword($data['email']);
+        $username = $db->selectValue('SELECT username FROM users WHERE email = ?', [$data['email']]);
+        Auth::forgotPassword($data['email'],$username);
     }
 
     /**

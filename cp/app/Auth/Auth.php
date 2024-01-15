@@ -183,14 +183,16 @@ class Auth
      * @param $email
      * @throws \Pinga\Auth\AuthError
      */
-    public static function forgotPassword($email){
+    public static function forgotPassword($email,$username){
         $auth = self::$auth;
         try {
-            $auth->forgotPassword($email, function ($selector, $token) use ($email) {
+            $auth->forgotPassword($email, function ($selector, $token) use ($email,$username) {
                 $link = url('reset.password',[],['selector'=>urlencode($selector),'token'=>urlencode($token)]);
                 $message = file_get_contents(__DIR__.'/../../resources/views/auth/mail/reset-password.html');
-                $message = str_replace(['{link}','{app_name}'],[$link,envi('APP_NAME')],$message);
-                $subject = 'Reset Password';
+                $placeholders = ['{user_first_name}', '{link}', '{app_name}'];
+                $replacements = [ucfirst($username), $link, envi('APP_NAME')];
+                $message = str_replace($placeholders, $replacements, $message);            
+                $subject = '[' . envi('APP_NAME') . '] Action Required: Reset Your Password';
                 $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
                 $to = ['email'=>$email, 'name'=>''];
                 // send message
