@@ -796,7 +796,7 @@ INSERT INTO settings (name, value) VALUES
 ('address', '123 Example Street, Example City'),
 ('address2', '48000'),
 ('cc', 'Ukraine'),
-('vat_number', '0'),
+('vat_number', '12345678'),
 ('phone', '+123456789'),
 ('handle', 'RXX'),
 ('email', 'contact@example.com'),
