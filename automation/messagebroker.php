@@ -35,7 +35,7 @@ $logFilePath = '/var/log/namingo/messagebroker.log';
 $log = setupLogger($logFilePath, 'Message_Broker');
 $log->info('job started.');
 
-$server->on("request", function (Request $request, Response $response) use ($c) {
+$server->on("request", function (Request $request, Response $response) use ($c,$log) {
     // Parse the received data
     $data = json_decode($request->rawContent(), true);
 
