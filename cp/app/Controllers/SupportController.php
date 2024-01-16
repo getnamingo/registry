@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Tickets;
+use App\Lib\Mail;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
@@ -65,6 +66,20 @@ class SupportController extends Controller
                 $ticket_id = $db->getLastInsertId();
 
                 $db->commit();
+                
+                $link = envi('APP_URL').'/ticket/'.$ticket_id;
+                $email = $db->selectValue('SELECT email FROM users WHERE id = ?', [$_SESSION['auth_user_id']]);
+                $registry = $db->selectValue('SELECT value FROM settings WHERE name = ?', ['company_name']);
+                $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
+                $message = file_get_contents(__DIR__.'/../../resources/views/mail/ticket.html');
+                $placeholders = ['{registry}', '{link}', '{app_name}', '{app_url}', '{crdate}', '{ticket_id}', '{subject}'];
+                $replacements = [$registry, $link, envi('APP_NAME'), envi('APP_URL'), $crdate, $ticket_id, $subject];
+                $message = str_replace($placeholders, $replacements, $message);            
+                $mailsubject = '[' . envi('APP_NAME') . '] New Support Ticket Created';
+                $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
+                $to = ['email'=>$email, 'name'=>''];
+                // send message
+                Mail::send($mailsubject, $message, $from, $to);
             } catch (Exception $e) {
                 $db->rollBack();
                 return view($response, 'admin/support/newticket.twig', [
@@ -72,7 +87,7 @@ class SupportController extends Controller
                     'categories' => $categories
                 ]);
             }
-			
+            
             $this->container->get('flash')->addMessage('success', 'Support ticket ' . $subject . ' has been created successfully!');
             return $response->withHeader('Location', '/support')->withStatus(302);          
         }
@@ -157,6 +172,23 @@ class SupportController extends Controller
                         'date_created' => $crdate,
                     ]
                 );
+
+                $link = envi('APP_URL').'/ticket/'.$ticket_id;
+                $email = $db->selectValue('SELECT email FROM users WHERE id = ?', [$_SESSION['auth_user_id']]);
+                $registry = $db->selectValue('SELECT value FROM settings WHERE name = ?', ['company_name']);
+                $responseBrief = mb_substr($responseText, 0, 100);
+                if (mb_strlen($responseText) > 100) {
+                    $responseBrief .= "...";
+                }
+                $message = file_get_contents(__DIR__.'/../../resources/views/mail/ticket-reply.html');
+                $placeholders = ['{registry}', '{link}', '{app_name}', '{app_url}', '{latest}', '{ticket_id}'];
+                $replacements = [$registry, $link, envi('APP_NAME'), envi('APP_URL'), $responseBrief, $ticket_id];
+                $message = str_replace($placeholders, $replacements, $message);            
+                $mailsubject = '[' . envi('APP_NAME') . '] Update on Your Support Ticket';
+                $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
+                $to = ['email'=>$email, 'name'=>''];
+                // send message
+                Mail::send($mailsubject, $message, $from, $to);
 
                 $this->container->get('flash')->addMessage('success', 'Reply has been created successfully on ' . $crdate);
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);

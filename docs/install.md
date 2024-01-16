@@ -300,6 +300,22 @@ composer install
 
 This command will install the dependencies defined in your ```composer.json``` file, ensuring that your control panel has all the necessary components to operate effectively.
 
+### Install Optional Dependencies:
+
+Execute one of the following commands to install the optional dependencies:
+
+```bash
+composer require utopia-php/messaging
+```
+
+or
+
+```bash
+composer require phpmailer/phpmailer
+```
+
+This command will install one of the packages which are essential for the mailing system of the control panel to function correctly.
+
 ### Creating an Admin User:
 
 1. Navigate to the 'bin' Directory: Change to the 'bin' subdirectory where the admin user creation script is located. (```create_admin_user.php```)
