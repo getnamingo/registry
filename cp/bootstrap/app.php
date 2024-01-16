@@ -88,7 +88,7 @@ $container->set('view', function ($container) {
     ]);
 
     // Known set of languages
-    $allowedLanguages = ['en_US', 'uk_UA', 'jp_JP']; // Add more as needed
+    $allowedLanguages = ['en_US', 'uk_UA', 'jp_JP', 'fr_FR']; // Add more as needed
 
     if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
         // Use regex to validate the format: two letters, underscore, two letters
