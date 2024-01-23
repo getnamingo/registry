@@ -169,8 +169,20 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
 
                     $clidF = $stmt3->fetch(PDO::FETCH_ASSOC);
 
+                    // Check if the domain name is non-ASCII or starts with 'xn--'
+                    $isNonAsciiOrPunycode = !mb_check_encoding($f['name'], 'ASCII') || strpos($f['name'], 'xn--') === 0;
+
                     $res = "Domain Name: ".strtoupper($f['name'])
-                        ."\nRegistry Domain ID: D".$f['id']."-".$c['roid']
+                        ."\n";
+
+                    // Add the Internationalized Domain Name line if the condition is met
+                    if ($isNonAsciiOrPunycode) {
+                        // Convert the domain name to UTF-8 and make it uppercase
+                        $internationalizedName = idn_to_utf8($f['name'], 0, INTL_IDNA_VARIANT_UTS46);
+                        $res .= "Internationalized Domain Name: " . mb_strtoupper($internationalizedName) . "\n";
+                    }
+
+                    $res .= "Registry Domain ID: D".$f['id']."-".$c['roid']
                         ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
                         ."\nRegistrar URL: ".$clidF['url']
                         ."\nUpdated Date: ".$f['lastupdate']

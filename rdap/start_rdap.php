@@ -172,7 +172,8 @@ $http->start();
 
 function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     // Extract and validate the domain name from the request
-    $domain = trim($domainName);
+    $domain = urldecode($domainName);
+    $domain = trim($domain);
 
     // Empty domain check
     if (!$domain) {
@@ -1013,7 +1014,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
 
 function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c, $log) {
     // Extract and validate the nameserver handle from the request
-    $ns = trim($nameserverHandle);
+    $ns = urldecode($nameserverHandle);
+    $ns = trim($ns);
 
     // Empty nameserver check
     if (!$ns) {
@@ -1375,8 +1377,9 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
 
 function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, $searchType) {
     // Extract and validate the domain name from the request
-    $domain = trim($searchPattern);
-    
+    $domain = urldecode($searchPattern);
+    $domain = trim($domain);
+
     // Empty domain check
     if (!$domain) {
         $response->header('Content-Type', 'application/json');
@@ -1946,7 +1949,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
 function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, $searchType) {
     // Extract and validate the nameserver handle from the request
-    $ns = trim($searchPattern);
+    $ns = urldecode($searchPattern);
+    $ns = trim($ns);
 
     // Perform the RDAP lookup
     try {

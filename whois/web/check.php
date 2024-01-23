@@ -19,6 +19,20 @@ $rdapServer = 'https://' . $c['rdap_url'] . '/domain/';
 
 $sanitized_domain = filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
 
+// Check if the domain is in Unicode and convert it to Punycode
+if (mb_check_encoding($domain, 'UTF-8') && !filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+    $punycodeDomain = idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+
+    if ($punycodeDomain !== false) {
+        $domain = $punycodeDomain;
+    } else {
+        echo json_encode(['error' => 'Invalid domain.']);
+        exit;
+    }
+}
+
+$sanitized_domain = filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+
 if ($sanitized_domain) {
     $domain = $sanitized_domain;
 } else {
