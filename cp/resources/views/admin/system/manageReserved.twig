@@ -36,11 +36,15 @@
                     <div class="card mb-3">
                         <div class="card-header">{{ type|capitalize }} Names</div>
                         <div class="card-body">
-                            <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line" required>{{ names|join('\n') }}</textarea>
+                            {% if names is not empty %}
+                                <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line" required>{{ names|join('\n') }}</textarea>
+                            {% else %}
+                                <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="No {{ type|lower }} names. Enter new names, one per line" required></textarea>
+                            {% endif %}
                             <small class="form-hint">
                                 <strong>{{ type|capitalize }} Names:</strong> These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. 
                                 <br><em>Enter each {{ type }} name on a new line, without the extension. For instance, use "example" in place of "example.com".</em>
-                        </small>
+                            </small>
                         </div>
                     </div>
                 {% endfor %}

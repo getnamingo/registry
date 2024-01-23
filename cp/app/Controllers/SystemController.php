@@ -971,18 +971,27 @@ class SystemController extends Controller
         }
 
         $db = $this->container->get('db');
-        $types = $db->select("SELECT DISTINCT type FROM reserved_domain_names");
-        // Get the current URI
-        $uri = $request->getUri()->getPath();
-        
-        // Set default types if $types is empty
-        if (empty($types)) {
-            $types = [
-                ['type' => 'reserved'],
-                ['type' => 'restricted']
-            ];
+        $typesResult = $db->select("SELECT DISTINCT type FROM reserved_domain_names");
+
+        // Initialize $types as an empty array if the query result is null
+        $types = $typesResult ?: [];
+
+        // Ensure all default types are represented
+        $defaultTypes = ['reserved', 'restricted'];
+        foreach ($defaultTypes as $defaultType) {
+            $found = false;
+            foreach ($types as $type) {
+                if ($type['type'] === $defaultType) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                $types[] = ['type' => $defaultType];
+            }
         }
-        
+
         $categories = [];
         foreach ($types as $type) {
             $typeNames = $db->select(
@@ -990,7 +999,6 @@ class SystemController extends Controller
                 [ $type['type'] ]
             );
 
-            // Initialize the type with an empty array if no names are found
             $categories[$type['type']] = $typeNames ? array_column($typeNames, 'name') : [];
         }
 
