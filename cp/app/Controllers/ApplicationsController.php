@@ -214,7 +214,7 @@ class ApplicationsController extends Controller
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
        
-            $date_add = 12;
+            $date_add = 0;
 
             $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
 
