@@ -80,7 +80,7 @@ $container->set('flash', function() {
 
 $container->set('view', function ($container) {
     $view = Twig::create(__DIR__ . '/../resources/views', [
-        'cache' => false,
+        'cache' => __DIR__ . '/../cache',
     ]);
     $view->getEnvironment()->addGlobal('auth', [
         'isLogin' => $container->get('auth')->isLogin(),

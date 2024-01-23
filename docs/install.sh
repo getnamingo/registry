@@ -396,6 +396,8 @@ EOF
 
     echo "Downloading initial data."
     php /var/www/cp/bin/file_cache.php
+    echo "Setting up cache."
+    chown www-data:www-data /var/www/cp/cache
 
     echo -e "Installation complete!\n"
     echo -e "Next steps:\n"

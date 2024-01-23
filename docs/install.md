@@ -336,6 +336,14 @@ To get the starting list of TLDs (Top-Level Domains) from ICANN and cache it for
 php /var/www/cp/bin/file_cache.php
 ```
 
+### Setup Cache Directory:
+
+To setup the correct owner of the panel cache directory, please run the following command:
+
+```bash
+chown www-data:www-data /var/www/cp/cache
+```
+
 ### Setting Up Redis Session Storage:
 
 To utilize Redis for session storage, you need to install the necessary packages and configure your environment accordingly. Follow these steps to set up Redis session storage:
