@@ -195,7 +195,7 @@ function validate_label($label, $pdo) {
     if (strlen($label) < 2) {
         return 'Total lenght of your domain must be greater then 2 characters';
     }
-    if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
+    if (strpos($label, 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
         return 'Invalid domain name format, cannot begin or end with a hyphen (-)';
     }
     
@@ -223,6 +223,10 @@ function validate_label($label, $pdo) {
         return 'Failed to fetch domain IDN table';
     }
 
+    if (strpos($parts['domain'], 'xn--') === 0) {
+        $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+    }
+
     // Check for invalid characters using fetched regex
     if (!preg_match($idnRegex, $label)) {
         $server->send($fd, "Domain name invalid format");
@@ -247,7 +251,7 @@ function extractDomainAndTLD($urlString) {
     // Parse the URL to get the host
     $parts = parse_url($urlString);
     $host = $parts['host'] ?? $urlString;
-	
+    
     // Sort test TLDs by length (longest first) to match the longest possible TLD
     usort($testTlds, function ($a, $b) {
         return strlen($b) - strlen($a);

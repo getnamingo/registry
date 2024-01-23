@@ -173,7 +173,7 @@ $http->start();
 function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     // Extract and validate the domain name from the request
     $domain = trim($domainName);
-    
+
     // Empty domain check
     if (!$domain) {
         $response->header('Content-Type', 'application/json');
@@ -189,9 +189,22 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $response->end(json_encode(['error' => 'Domain name is too long']));
         return;
     }
-    
+
+    // Convert to Punycode if the domain is not in ASCII
+    if (!mb_detect_encoding($domain, 'ASCII', true)) {
+        $convertedDomain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+        if ($convertedDomain === false) {
+            $response->header('Content-Type', 'application/json');
+            $response->status(400); // Bad Request
+            $response->end(json_encode(['error' => 'Domain conversion to Punycode failed']));
+            return;
+        } else {
+            $domain = $convertedDomain;
+        }
+    }
+
     // Check for prohibited patterns in domain names
-    if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
+    if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid format']));
@@ -241,10 +254,15 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     }
 
     // Check for invalid characters using fetched regex
-    if (!preg_match($idnRegex, $domain)) {
+    if (strpos($parts[0], 'xn--') === 0) {
+        $label = idn_to_utf8($parts[0], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+    } else {
+        $label = $parts[0];
+    }
+    if (!preg_match($idnRegex, $label)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
-        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        $response->end(json_encode(['error' => 'Domain name invalid IDN characters']));
         return;
     }
 
@@ -1018,9 +1036,22 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         $response->end(json_encode(['error' => 'Nameserver is too long']));
         return;
     }
+    
+    // Convert to Punycode if the host is not in ASCII
+    if (!mb_detect_encoding($ns, 'ASCII', true)) {
+        $convertedDomain = idn_to_ascii($ns, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+        if ($convertedDomain === false) {
+            $response->header('Content-Type', 'application/json');
+            $response->status(400); // Bad Request
+            $response->end(json_encode(['error' => 'Host conversion to Punycode failed']));
+            return;
+        } else {
+            $ns = $convertedDomain;
+        }
+    }
 
     // Check for prohibited patterns in nameserver
-    if (!preg_match("/^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/", $ns)) {
+    if (!preg_match('/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $ns)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Nameserver invalid format']));
@@ -1420,8 +1451,21 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         return;
     }
     
+    // Convert to Punycode if the domain is not in ASCII
+    if (!mb_detect_encoding($domain, 'ASCII', true)) {
+        $convertedDomain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+        if ($convertedDomain === false) {
+            $response->header('Content-Type', 'application/json');
+            $response->status(400); // Bad Request
+            $response->end(json_encode(['error' => 'Domain conversion to Punycode failed']));
+            return;
+        } else {
+            $domain = $convertedDomain;
+        }
+    }
+    
     // Check for prohibited patterns in domain names
-    if (preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $domain)) {
+    if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid format']));
@@ -1471,10 +1515,15 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     }
 
     // Check for invalid characters using fetched regex
-    if (!preg_match($idnRegex, $domain)) {
+    if (strpos($parts[0], 'xn--') === 0) {
+        $label = idn_to_utf8($parts[0], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+    } else {
+        $label = $parts[0];
+    }
+    if (!preg_match($idnRegex, $label)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
-        $response->end(json_encode(['error' => 'Domain name invalid format']));
+        $response->end(json_encode(['error' => 'Domain name invalid IDN characters']));
         return;
     }
 
@@ -1928,8 +1977,21 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     return;
                 }
 
+                // Convert to Punycode if the host is not in ASCII
+                if (!mb_detect_encoding($ns, 'ASCII', true)) {
+                    $convertedDomain = idn_to_ascii($ns, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    if ($convertedDomain === false) {
+                        $response->header('Content-Type', 'application/json');
+                        $response->status(400); // Bad Request
+                        $response->end(json_encode(['error' => 'Host conversion to Punycode failed']));
+                        return;
+                    } else {
+                        $ns = $convertedDomain;
+                    }
+                }
+
                 // Check for prohibited patterns in nameserver
-                if (!preg_match("/^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/", $ns)) {
+                if (!preg_match('/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $ns)) {
                     $response->header('Content-Type', 'application/json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Nameserver invalid format']));

@@ -34,6 +34,17 @@ class HostsController extends Controller
             if ($hostName) {
                 $hostModel = new Host($this->container->get('db'));
                 
+                // Convert to Punycode if the host is not in ASCII
+                if (!mb_detect_encoding($hostName, 'ASCII', true)) {
+                    $convertedDomain = idn_to_ascii($hostName, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    if ($convertedDomain === false) {
+                        $this->container->get('flash')->addMessage('error', 'Host conversion to Punycode failed');
+                        return $response->withHeader('Location', '/host/create')->withStatus(302);
+                    } else {
+                        $hostName = $convertedDomain;
+                    }
+                }
+                
                 if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
                     $host_id_already_exist = $hostModel->getHostByNom($hostName);
                     if ($host_id_already_exist) {
@@ -235,14 +246,14 @@ class HostsController extends Controller
 
         function isValidHostname($hostname) {
             $hostname = trim($hostname);
-            
+
             // Check for IDN and convert to ASCII if necessary
             if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
-                $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
+                $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
             }
 
-            // Regular expression for validating a hostname (simplified version)
-            $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+            // Regular expression for validating a hostname
+            $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
 
             return preg_match($pattern, $hostname);
         }
@@ -306,14 +317,14 @@ class HostsController extends Controller
 
         function isValidHostname($hostname) {
             $hostname = trim($hostname);
-            
+
             // Check for IDN and convert to ASCII if necessary
             if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
-                $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
+                $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
             }
 
-            // Regular expression for validating a hostname (simplified version)
-            $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+            // Regular expression for validating a hostname
+            $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
 
             return preg_match($pattern, $hostname);
         }

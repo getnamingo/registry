@@ -345,7 +345,7 @@ class SystemController extends Controller
                 return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
             }
             
-            switch ($data['extension']) {
+            switch ($data['script']) {
                 case 'ascii':
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     break;
@@ -365,9 +365,21 @@ class SystemController extends Controller
 
             try {
                 $db->beginTransaction();
-                
+
                 $currentDateTime = new \DateTime();
                 $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                // Convert to Punycode if the domain is not in ASCII
+                if (!mb_detect_encoding($data['extension'], 'ASCII', true)) {
+                    $data['extension'] = str_replace('.', '', $data['extension']);
+                    $convertedDomain = idn_to_ascii($data['extension'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    if ($convertedDomain === false) {
+                        $this->container->get('flash')->addMessage('error', 'TLD conversion to Punycode failed');
+                        return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
+                    } else {
+                        $data['extension'] = '.' . $convertedDomain;
+                    }
+                }
 
                 $db->insert('domain_tld', [
                     'tld' => $data['extension'],
@@ -536,11 +548,11 @@ class SystemController extends Controller
             if ($args) {
                 $args = trim($args);
 
-                if (!preg_match('/^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?[^\.]$/', $args)) {
+                if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
                     return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
                 }
-                
+
                 $validators = [
                     'extension' => v::stringType()->notEmpty()->length(3, 64),
                     'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
@@ -827,7 +839,7 @@ class SystemController extends Controller
         if ($args) {
             $args = trim($args);
 
-            if (!preg_match('/^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?[^\.]$/', $args)) {
+            if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
             }

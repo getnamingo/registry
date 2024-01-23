@@ -42,19 +42,19 @@ Coroutine::create(function () use ($pool, $log, $c) {
         while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
             $tldRE = preg_quote($tld, '/');
             $cleanedTld = ltrim(strtolower($tld), '.');
-            $zone = new Zone('.');
+            $zone = new Zone($cleanedTld.'.');
             $zone->setDefaultTtl(3600);
             
             $soa = new ResourceRecord;
-            $soa->setName($cleanedTld . '.');
+            $soa->setName('@');
             $soa->setClass(Classes::INTERNET);
             $soa->setRdata(Factory::Soa(
                 $c['ns']['ns1'] . '.',
                 $c['dns_soa'] . '.',
                 $timestamp, 
-                3600, 
-                14400, 
-                604800, 
+                900, 
+                1800, 
+                3600000, 
                 3600
             ));
             $zone->addResourceRecord($soa);
@@ -91,7 +91,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
             while (list($did, $dname) = $sthDomains->fetch(PDO::FETCH_NUM)) {
                 if (isset($statuses[$did])) continue;
 
-                $dname_clean = trim($dname, "$tldRE.");
+                $dname_clean = $dname;
                 $dname_clean = ($dname_clean == "$tld.") ? '@' : $dname_clean;
 
                 // NS records for the domain
@@ -109,7 +109,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 $sthHostRecords = $pdo->prepare("SELECT host.name, host_addr.ip, host_addr.addr FROM host INNER JOIN host_addr ON host.id = host_addr.host_id WHERE host.domain_id = :did ORDER BY host.name");
                 $sthHostRecords->execute([':did' => $did]);
                 while (list($hname, $type, $addr) = $sthHostRecords->fetch(PDO::FETCH_NUM)) {
-                    $hname_clean = trim($hname, "$tldRE.");
+                    $hname_clean = $hname;
                     $hname_clean = ($hname_clean == "$tld.") ? '@' : $hname_clean;
                     $record = new ResourceRecord;
                     $record->setName($hname_clean . '.');

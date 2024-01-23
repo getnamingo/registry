@@ -27,6 +27,17 @@ class DomainsController extends Controller
             $claims = $data['claims'] ?? null;
 
             if ($domainName) {
+                // Convert to Punycode if the domain is not in ASCII
+                if (!mb_detect_encoding($domainName, 'ASCII', true)) {
+                    $convertedDomain = idn_to_ascii($domainName, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    if ($convertedDomain === false) {
+                        $this->container->get('flash')->addMessage('error', 'Domain conversion to Punycode failed');
+                        return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                    } else {
+                        $domainName = $convertedDomain;
+                    }
+                }
+
                 $domainName = preg_replace('/[^\p{L}0-9-.]/u', '', $domainName);
                 $parts = extractDomainAndTLD($domainName);
 
@@ -105,6 +116,16 @@ class DomainsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
+            // Convert to Punycode if the domain is not in ASCII
+            if (!mb_detect_encoding($domainName, 'ASCII', true)) {
+                $convertedDomain = idn_to_ascii($domainName, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($convertedDomain === false) {
+                    $this->container->get('flash')->addMessage('error', 'Domain conversion to Punycode failed');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                } else {
+                    $domainName = $convertedDomain;
+                }
+            }
             $registrar_id = $data['registrar'] ?? null;
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
             if ($_SESSION["auth_roles"] != 0) {
@@ -2229,6 +2250,16 @@ class DomainsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
+            // Convert to Punycode if the domain is not in ASCII
+            if (!mb_detect_encoding($domainName, 'ASCII', true)) {
+                $convertedDomain = idn_to_ascii($domainName, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($convertedDomain === false) {
+                    $this->container->get('flash')->addMessage('error', 'Domain conversion to Punycode failed');
+                    return $response->withHeader('Location', '/transfers')->withStatus(302);
+                } else {
+                    $domainName = $convertedDomain;
+                }
+            }
             $registrar_id = $data['registrar'] ?? null;
             $authInfo = $data['authInfo'] ?? null;
             $transferYears = $data['transferYears'] ?? null;

@@ -23,7 +23,7 @@ class ApplicationsController extends Controller
             return $response->withHeader('Location', '/domains')->withStatus(302);
         }
     }
-    
+
     public function createApplication(Request $request, Response $response)
     {
         if ($request->getMethod() === 'POST') {
@@ -31,6 +31,16 @@ class ApplicationsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
+            // Convert to Punycode if the domain is not in ASCII
+            if (!mb_detect_encoding($domainName, 'ASCII', true)) {
+                $convertedDomain = idn_to_ascii($domainName, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($convertedDomain === false) {
+                    $this->container->get('flash')->addMessage('error', 'Application name conversion to Punycode failed');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                } else {
+                    $domainName = $convertedDomain;
+                }
+            }
             $registrar_id = $data['registrar'] ?? null;
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
             if ($_SESSION["auth_roles"] != 0) {

@@ -232,6 +232,10 @@ function validate_label($label, $db) {
         return 'Failed to fetch domain IDN table';
     }
 
+    if (strpos($parts['domain'], 'xn--') === 0) {
+        $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+    }
+
     // Check for invalid characters using fetched regex
     if (!preg_match($idnRegex['idn_table'], $label)) {
         return 'Invalid domain name format, please review registry policy about accepted labels';
