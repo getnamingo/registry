@@ -485,7 +485,7 @@ class DomainsController extends Controller
                 $exdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Expiry timestamp after $date_add months
 
                 $db->insert('domain', [
-                    'name' => $domainName,
+                    'name' => strtolower($domainName),
                     'tldid' => $tld_id,
                     'registrant' => $registrant_id,
                     'crdate' => $crdate,

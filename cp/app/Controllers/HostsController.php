@@ -128,7 +128,7 @@ class HostsController extends Controller
                         $db->insert(
                             'host',
                             [
-                                'name' => $hostName,
+                                'name' => strtolower($hostName),
                                 'domain_id' => $superordinate_dom,
                                 'clid' => $clid,
                                 'crid' => $clid,
@@ -195,7 +195,7 @@ class HostsController extends Controller
                     $db->insert(
                         'host',
                         [
-                            'name' => $hostName,
+                            'name' => strtolower($hostName),
                             'clid' => $clid,
                             'crid' => $clid,
                             'crdate' => $crdate
