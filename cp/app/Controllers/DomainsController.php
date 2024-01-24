@@ -664,7 +664,7 @@ class DomainsController extends Controller
 
                 $db->exec(
                     'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
-                    [$clid, "create domain $domainName for period $date_add MONTH", "-$price"]
+                    [$clid, "create domain " . strtolower($domainName) . " for period $date_add MONTH", "-$price"]
                 );
 
                 $row = $db->selectRow(
@@ -682,7 +682,7 @@ class DomainsController extends Controller
                         'registrar_id' => $clid,
                         'date' => $stdate,
                         'command' => 'create',
-                        'domain_name' => $domainName,
+                        'domain_name' => strtolower($domainName),
                         'length_in_months' => $date_add,
                         'fromS' => $from,
                         'toS' => $to,
@@ -692,13 +692,15 @@ class DomainsController extends Controller
 
                 if (!empty($nameservers)) {
                     foreach ($nameservers as $index => $nameserver) {
-                        
+
                         $internal_host = false;
                         
+                        $parts_host = extractDomainAndTLD($nameserver);
+                        $host_extension = $parts_host['tld'];
                         $result = $db->select('SELECT tld FROM domain_tld');
 
                         foreach ($result as $row) {
-                            if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
+                            if ('.' . strtoupper($host_extension) === strtoupper($row['tld'])) {
                                 $internal_host = true;
                                 break;
                             }
@@ -743,7 +745,7 @@ class DomainsController extends Controller
                                 $db->insert(
                                     'host',
                                     [
-                                        'name' => $nameserver,
+                                        'name' => strtolower($nameserver),
                                         'domain_id' => $domain_id,
                                         'clid' => $clid,
                                         'crid' => $clid,
@@ -755,7 +757,7 @@ class DomainsController extends Controller
                                 $db->insert(
                                     'host',
                                     [
-                                        'name' => $nameserver,
+                                        'name' => strtolower($nameserver),
                                         'clid' => $clid,
                                         'crid' => $clid,
                                         'crdate' => $host_date
