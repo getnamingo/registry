@@ -97,7 +97,7 @@ function sendGreeting($conn) {
 }
 
 function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
-    if (!isset($clTRID)) {
+    if ($clTRID === "000") {
         $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));
     }
     if (!isset($trans)) {
