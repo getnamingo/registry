@@ -60,25 +60,25 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
     try {
         // Validate and sanitize the domain name
         if (!$domain) {
-            $server->send($fd, "please enter a domain name");
+            $server->send($fd, "2");
             $server->close($fd);
         }
         if (strlen($domain) > 68) {
-            $server->send($fd, "domain name is too long");
+            $server->send($fd, "2");
             $server->close($fd);
         }
         // Convert to Punycode if the domain is not in ASCII
         if (!mb_detect_encoding($domain, 'ASCII', true)) {
             $convertedDomain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
             if ($convertedDomain === false) {
-                $server->send($fd, "Domain conversion to Punycode failed");
+                $server->send($fd, "2");
                 $server->close($fd);
             } else {
                 $domain = $convertedDomain;
             }
         }
         if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
-            $server->send($fd, "domain name invalid format");
+            $server->send($fd, "2");
             $server->close($fd);
         }
         $domain = strtoupper($domain);
@@ -94,7 +94,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         $tldExists = $stmtTLD->fetchColumn();
 
         if (!$tldExists) {
-            $server->send($fd, "Invalid TLD. Please search only allowed TLDs");
+            $server->send($fd, "2");
             $server->close($fd);
             return;
         }
@@ -105,7 +105,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         $domain_already_reserved = $stmtReserved->fetchColumn();
 
         if ($domain_already_reserved) {
-            $server->send($fd, "Domain name is reserved or restricted");
+            $server->send($fd, "3");
             $server->close($fd);
             return;
         }
@@ -117,7 +117,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         $idnRegex = $stmtRegex->fetchColumn();
 
         if (!$idnRegex) {
-            $server->send($fd, "Failed to fetch domain IDN table");
+            $server->send($fd, "2");
             $server->close($fd);
             return;
         }
@@ -129,7 +129,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
             $label = strtolower($parts[0]);
         }
         if (!preg_match($idnRegex, $label)) {
-            $server->send($fd, "Domain name invalid IDN characters");
+            $server->send($fd, "2");
             $server->close($fd);
             return;
         }

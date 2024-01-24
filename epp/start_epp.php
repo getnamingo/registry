@@ -101,6 +101,11 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             libxml_use_internal_errors(true);
 
             $xml = simplexml_load_string($xmlData);
+            if ($xml === false) {
+                sendEppError($conn, $pdo, 2001, 'Invalid XML');
+                break;
+            }
+
             $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
             $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
             $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
@@ -113,11 +118,6 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
             $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
 
-            if ($xml === false) {
-                sendEppError($conn, $pdo, 2001, 'Invalid XML');
-                break;
-            }
-        
             if ($xml->getName() != 'epp') {
                 continue;  // Skip this iteration if not an EPP command
             }
