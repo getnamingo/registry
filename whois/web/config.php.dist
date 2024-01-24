@@ -2,5 +2,6 @@
 
 return [
     'whois_url' => 'whois.example.com',
-    'rdap_url' => 'rdap.example.com'
+    'rdap_url' => 'rdap.example.com',
+    'ignore_captcha' => false
 ];

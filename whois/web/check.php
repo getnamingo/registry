@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if ($_POST['captcha'] !== $_SESSION['captcha']) {
+if ($c['ignore_captcha'] === false && $_POST['captcha'] !== $_SESSION['captcha']) {
     echo json_encode(['error' => 'Captcha verification failed.']);
     exit;
 }

@@ -1,5 +1,6 @@
 <?php
 session_start();
+$c = require_once 'config.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -10,7 +11,14 @@ session_start();
     <link rel="stylesheet" href="chota.min.css">
     <style>
     #bottom {
-    display: none;
+        display: none;
+    }
+    pre {
+        background-color: #f3f3f6;
+        border: 1px solid #3f4144;
+    }
+    code {
+        color: #333!important;
     }
     </style>
 </head>
@@ -19,8 +27,10 @@ session_start();
       <h1>Domain Lookup</h1>
       <div class="row">
         <div class="col col-4-md col-8-lg"><input type="text" id="domainInput" placeholder="Enter Domain Name" autocapitalize="none"></div>
+        <?php if ($c['ignore_captcha'] === false) { ?>
         <div class="col col-2-md col-4-lg"><img id="captchaImg" src="captcha.php" onclick="this.src='captcha.php?'+Math.random();"></div>
         <div class="col col-3-md col-6-lg"><input type="text" id="captchaInput" placeholder="Enter Captcha" autocapitalize="none"></div>
+        <?php } ?>
         <div class="col col-3-md col-6-lg"><button class="button primary" id="whoisButton">WHOIS</button> <button class="button secondary" id="rdapButton">RDAP</button></div>
       </div>
 
@@ -32,10 +42,25 @@ session_start();
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('domainInput').addEventListener('keypress', function(event) {
+                // Check if the key pressed is 'Enter'
+                if (event.key === 'Enter') {
+                    // Prevent the default action to avoid form submission or any other default behavior
+                    event.preventDefault();
+
+                    // Trigger the click event of the whoisButton
+                    document.getElementById('whoisButton').click();
+                }
+            });
+
             document.getElementById('whoisButton').addEventListener('click', function() {
                 var domain = document.getElementById('domainInput').value;
+                <?php if ($c['ignore_captcha'] === false) { ?>
                 var captcha = document.getElementById('captchaInput').value;
-
+                <?php } else { ?>
+                var captcha = '';
+                <?php } ?>
+                
                 fetch('check.php', {
                     method: 'POST',
                     headers: {
@@ -55,7 +80,11 @@ session_start();
             
             document.getElementById('rdapButton').addEventListener('click', function() {
                 var domain = document.getElementById('domainInput').value;
+                <?php if ($c['ignore_captcha'] === false) { ?>
                 var captcha = document.getElementById('captchaInput').value;
+                <?php } else { ?>
+                var captcha = '';
+                <?php } ?>
 
                 fetch('check.php', {
                     method: 'POST',
