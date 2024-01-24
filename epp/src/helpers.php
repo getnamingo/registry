@@ -98,7 +98,7 @@ function sendGreeting($conn) {
 
 function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
     if (!isset($clTRID)) {
-        $clTRID = "000";
+        $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));
     }
     if (!isset($trans)) {
         $trans = "0";
@@ -190,10 +190,10 @@ function validate_label($label, $pdo) {
         return 'You must enter a domain name';
     }
     if (strlen($label) > 63) {
-        return 'Total lenght of your domain must be less then 63 characters';
+        return 'Total length of your domain must be less then 63 characters';
     }
     if (strlen($label) < 2) {
-        return 'Total lenght of your domain must be greater then 2 characters';
+        return 'Total length of your domain must be greater then 2 characters';
     }
     if (strpos($label, 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
         return 'Invalid domain name format, cannot begin or end with a hyphen (-)';
@@ -335,6 +335,11 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
     if (empty($clTRID)) {
         // If $clTRID is empty, generate a random string prefixed with "client-not-provided-"
         $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));  // Generates a 16 character hexadecimal string
+    }
+
+    if (empty($clid)) {
+        // If $clid is empty, throw an exception
+        throw new Exception("Malformed command received.");
     }
 
     // Execute the statement
