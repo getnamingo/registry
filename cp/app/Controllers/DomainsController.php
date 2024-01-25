@@ -976,6 +976,9 @@ class DomainsController extends Controller
                     WHERE dcm.domain_id = ?';
                 $domainContacts = $db->select($domainContactsQuery, [$domain['id']]);
 
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                }
                 return view($response,'admin/domains/viewDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
@@ -1064,6 +1067,9 @@ class DomainsController extends Controller
                 $csrfTokenName = $this->container->get('csrf')->getTokenName();
                 $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
 
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                }
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
@@ -1889,6 +1895,10 @@ class DomainsController extends Controller
                 // Determine currency position (before or after)
                 $position = (strpos($pattern, '¤') < strpos($pattern, '#')) ? 'before' : 'after';
 
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['punycode'] = $domain['name'];
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                }
                 return view($response,'admin/domains/renewDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,

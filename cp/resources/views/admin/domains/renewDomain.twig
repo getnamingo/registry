@@ -31,7 +31,7 @@
                         {{ csrf.field | raw }}{% endif %}
                             <div class="mb-3">
                                 <label for="domainName" class="form-label">{{ __('Domain Name') }}</label>
-                                <div class="form-control-plaintext">{{ domain.name }}</div><input type="hidden" name="domainName" id="domainName" value="{{ domain.name }}">
+                                <div class="form-control-plaintext">{{ domain.name }}</div><input type="hidden" name="domainName" id="domainName" value="{{ domain.punycode }}">
                             </div>
                             
                             {% if maxYears >= 1 %}

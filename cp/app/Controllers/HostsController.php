@@ -288,6 +288,9 @@ class HostsController extends Controller
                 $hostIPv6 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v6'",
                 [ $host['id'] ]);
                 
+                if (strpos($host['name'], 'xn--') === 0) {
+                    $host['name'] = idn_to_utf8($host['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                }
                 return view($response,'admin/hosts/viewHost.twig', [
                     'host' => $host,
                     'hostStatus' => $hostStatus,
@@ -382,6 +385,9 @@ class HostsController extends Controller
                     $hostIPv6 = $db->select("SELECT addr FROM host_addr WHERE host_id = ? AND ip = 'v6'",
                     [ $host['id'] ]);
 
+                    if (strpos($host['name'], 'xn--') === 0) {
+                        $host['name'] = idn_to_utf8($host['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    }
                     return view($response,'admin/hosts/updateHost.twig', [
                         'host' => $host,
                         'hostIPv4' => $hostIPv4,
