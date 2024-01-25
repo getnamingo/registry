@@ -1070,6 +1070,8 @@ class DomainsController extends Controller
                 if (strpos($domain['name'], 'xn--') === 0) {
                     $domain['punycode'] = $domain['name'];
                     $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $domain['punycode'] = $domain['name'];
                 }
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
@@ -1899,6 +1901,8 @@ class DomainsController extends Controller
                 if (strpos($domain['name'], 'xn--') === 0) {
                     $domain['punycode'] = $domain['name'];
                     $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $domain['punycode'] = $domain['name'];
                 }
                 return view($response,'admin/domains/renewDomain.twig', [
                     'domain' => $domain,

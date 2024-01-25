@@ -388,6 +388,8 @@ class HostsController extends Controller
                     if (strpos($host['name'], 'xn--') === 0) {
                         $host['punycode'] = $host['name'];
                         $host['name'] = idn_to_utf8($host['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                    } else {
+                        $host['punycode'] = $host['name'];
                     }
                     return view($response,'admin/hosts/updateHost.twig', [
                         'host' => $host,
