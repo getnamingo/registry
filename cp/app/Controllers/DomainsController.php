@@ -1104,19 +1104,18 @@ class DomainsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
+            $domain_id = $db->selectValue('SELECT id FROM domain WHERE name = ?', [$domainName]);
             
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-
             if ($_SESSION["auth_roles"] != 0) {
-                $clid = $result['registrar_id'];
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $domain_clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                if ($domain_clid != $clid) {
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
             } else {
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
             
-            $domain_id = $db->selectValue(
-                'SELECT id FROM domain WHERE name = ?',
-                [$domainName]
-            );
             $results = $db->select(
                 'SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain_id ]
@@ -1737,11 +1736,16 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Low credit: minimum threshold reached');
                 return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
             }
-            
-            $domain_id = $db->selectValue(
-                'SELECT id FROM domain WHERE name = ?',
+
+            $domain_query = $db->selectRow(
+                'SELECT id, clid FROM domain WHERE name = ?',
                 [$domainName]
             );
+            $domain_id = $domain_query['id'];
+            $domain_clid = $domain_query['clid'];
+            if ($domain_clid != $clid) {
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
             $results = $db->select(
                 'SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain_id ]
@@ -1836,7 +1840,7 @@ class DomainsController extends Controller
             }
            
             $this->container->get('flash')->addMessage('success','Domain ' . $domainName . ' has been renewed for ' . $renewalYears . ' ' . ($renewalYears > 1 ? 'years' : 'year'));
-            return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
+            return $response->withHeader('Location', '/domains')->withStatus(302);
         }
 
         $db = $this->container->get('db');
@@ -1939,7 +1943,7 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 }
-            
+        
                 $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
                 [ $args ]);
             
@@ -1968,6 +1972,13 @@ class DomainsController extends Controller
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
                 $domain_extension = $parts['tld'];
+                
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                    if ($registrar_id_domain != $clid) {
+                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                    }
+                }
 
                 $result = $db->select('SELECT id, tld FROM domain_tld');
                 foreach ($result as $row) {
@@ -1976,15 +1987,7 @@ class DomainsController extends Controller
                         break;
                     }
                 }
-                
-                $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-
-                if ($_SESSION["auth_roles"] != 0) {
-                    $clid = $result['registrar_id'];
-                } else {
-                    $clid = $registrar_id_domain;
-                }
-                
+          
                 $results = $db->select(
                     'SELECT status FROM domain_status WHERE domain_id = ?',
                     [ $domain_id ]
@@ -2882,7 +2885,15 @@ class DomainsController extends Controller
 
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
-                return $response->withHeader('Location', '/transfers')->withStatus(302);
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $registrar_id_domain = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                if ($registrar_id_domain != $clid) {
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
             }
             
             $temp_id_rgpstatus = $db->selectValue(
@@ -2957,7 +2968,15 @@ class DomainsController extends Controller
             
             if (!$domainName) {
                 $this->container->get('flash')->addMessage('error', 'Please provide the domain name');
-                return $response->withHeader('Location', '/transfers')->withStatus(302);
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $registrar_id_domain = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
+                if ($registrar_id_domain != $clid) {
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
             }
             
             $temp_id = $db->selectValue(

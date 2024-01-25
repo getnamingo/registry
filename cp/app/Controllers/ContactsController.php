@@ -507,17 +507,18 @@ class ContactsController extends Controller
             $db = $this->container->get('db');
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
-
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $identifier = $data['identifier'] ?? null;
 
             if ($_SESSION["auth_roles"] != 0) {
-                $clid = $result['registrar_id'];
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $contact_clid = $db->selectValue('SELECT clid FROM contact WHERE identifier = ?', [$identifier]);
+                if ($contact_clid != $clid) {
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
+                }
             } else {
                 $clid = $db->selectValue('SELECT clid FROM contact WHERE identifier = ?', [$identifier]);
             }
-
-            $identifier = $data['identifier'] ?? null;
-            
+          
             $postalInfoIntName = $data['intName'] ?? null;
             $postalInfoIntOrg = $data['org'] ?? null;
             $postalInfoIntStreet1 = $data['street1'] ?? null;
@@ -863,8 +864,17 @@ class ContactsController extends Controller
                     return $response->withHeader('Location', '/contacts')->withStatus(302);
                 }
             
-                $contact_id = $db->selectValue('SELECT id FROM contact WHERE identifier = ?',
+                $contact = $db->selectRow('SELECT id, clid FROM contact WHERE identifier = ?',
                 [ $args ]);
+                $contact_id = $contact['id'];
+                $registrar_id_contact = $contact['clid'];
+                
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                    if ($registrar_id_contact != $clid) {
+                        return $response->withHeader('Location', '/contacts')->withStatus(302);
+                    }
+                }
                 
                 $is_linked_registrant = $db->selectRow('SELECT id FROM domain WHERE registrant = ?',
                 [ $contact_id ]);

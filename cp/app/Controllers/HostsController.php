@@ -416,26 +416,36 @@ class HostsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $hostName = $data['hostName'] ?? null;
+            $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?', [$hostName]);
             
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-
             if ($_SESSION["auth_roles"] != 0) {
-                $clid = $result['registrar_id'];
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $host_clid = $db->selectValue('SELECT clid FROM host WHERE name = ?', [$hostName]);
+                if ($host_clid != $clid) {
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
             } else {
                 $clid = $db->selectValue('SELECT clid FROM host WHERE name = ?', [$hostName]);
             }
-            
+       
             $ipv4 = $data['ipv4'] ?? null;
             $ipv6 = $data['ipv6'] ?? null;
-      
+            
+            // Validate IPv4 address
+            if ($ipv4 !== null && !filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid IPv4 address');
+                return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
+            }
+
+            // Validate IPv6 address
+            if ($ipv6 !== null && !filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid IPv6 address');
+                return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
+            }
+            
             try {
                 $db->beginTransaction();
-                
-                $host_id = $db->selectValue(
-                    'SELECT id FROM host WHERE name = ?',
-                    [$hostName]
-                );
-                
+         
                 if (isset($ipv4) && !empty($ipv4)) {
                     $ipv4 = normalize_v4_address($ipv4);
                     
@@ -539,8 +549,17 @@ class HostsController extends Controller
             }
 
             if ($args && isValidHostname($args)) {
-                $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?',
+                $host = $db->selectRow('SELECT id, clid FROM host WHERE name = ?',
                 [ $args ]);
+                $host_id = $host['id'];
+                $registrar_id_host = $host['clid'];
+                
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                    if ($registrar_id_host != $clid) {
+                        return $response->withHeader('Location', '/hosts')->withStatus(302);
+                    }
+                }
                 
                 $is_linked = $db->selectRow('SELECT domain_id FROM domain_host_map WHERE host_id = ?',
                 [ $host_id ]);

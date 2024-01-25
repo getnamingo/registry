@@ -785,19 +785,18 @@ class ApplicationsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $domainName = $data['domainName'] ?? null;
+            $domain_id = $db->selectValue('SELECT id FROM application WHERE name = ?', [$domainName]);
             
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-
             if ($_SESSION["auth_roles"] != 0) {
-                $clid = $result['registrar_id'];
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $domain_clid = $db->selectValue('SELECT clid FROM application WHERE name = ?', [$domainName]);
+                if ($domain_clid != $clid) {
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
             } else {
                 $clid = $db->selectValue('SELECT clid FROM application WHERE name = ?', [$domainName]);
             }
             
-            $domain_id = $db->selectValue(
-                'SELECT id FROM application WHERE name = ?',
-                [$domainName]
-            );
             $results = $db->select(
                 'SELECT status FROM application_status WHERE domain_id = ?',
                 [ $domain_id ]
@@ -1305,16 +1304,24 @@ class ApplicationsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
-            
-                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
+
+                $domain = $db->selectRow('SELECT id, clid, name FROM application WHERE name = ?',
                 [ $args ]);
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
+                $registrar_id_domain = $domain['clid'];
 
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
                 $domain_extension = $parts['tld'];
+                
+                if ($_SESSION["auth_roles"] != 0) {
+                    $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                    if ($registrar_id_domain != $clid) {
+                        return $response->withHeader('Location', '/applications')->withStatus(302);
+                    }
+                }
 
                 $result = $db->select('SELECT id, tld FROM domain_tld');
                 foreach ($result as $row) {
