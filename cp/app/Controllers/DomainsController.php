@@ -1068,6 +1068,7 @@ class DomainsController extends Controller
                 $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
 
                 if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['punycode'] = $domain['name'];
                     $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
                 }
                 return view($response,'admin/domains/updateDomain.twig', [

@@ -386,6 +386,7 @@ class HostsController extends Controller
                     [ $host['id'] ]);
 
                     if (strpos($host['name'], 'xn--') === 0) {
+                        $host['punycode'] = $host['name'];
                         $host['name'] = idn_to_utf8($host['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
                     }
                     return view($response,'admin/hosts/updateHost.twig', [
@@ -529,8 +530,8 @@ class HostsController extends Controller
                     $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
                 }
 
-                // Regular expression for validating a hostname (simplified version)
-                $pattern = '/^([a-zA-Z0-9-]{1,63}\.){1,}[a-zA-Z]{2,63}$/';
+                // Regular expression for validating a hostname
+                $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
 
                 return preg_match($pattern, $hostname);
             }
