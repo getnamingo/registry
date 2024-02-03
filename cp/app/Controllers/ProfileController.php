@@ -148,17 +148,13 @@ class ProfileController extends Controller
         $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*4, null, 'required', null);
 
         $response->getBody()->write(json_encode($createArgs));
-        $challenge = $this->webAuthn->getChallenge();
-        $_SESSION['challenge_data'] = $challenge->getBinaryString();
-
+        $_SESSION['challenge'] = $this->webAuthn->getChallenge();
+        
         return $response->withHeader('Content-Type', 'application/json');
     }
     
     public function verifyRegistration(Request $request, Response $response)
     {
-        $challengeData = $_SESSION['challenge_data'];
-        //$challenge = new \lbuchs\WebAuthn\Binary\ByteBuffer($challengeData);
-
         global $container;
         $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
         $userName = $_SESSION['auth_username'];
@@ -171,10 +167,10 @@ class ProfileController extends Controller
             $attestationObject = base64_decode($data->attestationObject);
 
             // Retrieve the challenge from the session
-            //$challenge = $_SESSION['challenge'];
+            $challenge = $_SESSION['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challengeData, 'required', true, false);
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'required', true, false);
             
             // add user infos
             $credential->userId = $userId;

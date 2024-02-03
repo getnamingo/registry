@@ -112,12 +112,11 @@ class AuthController extends Controller
         
         try {
             $db = $container->get('db');
-            $user = $db->selectValue('SELECT id FROM users WHERE email = ?', [$data['email']]);
+            $userId = $db->selectValue('SELECT id FROM users WHERE email = ?', [$data['email']]);
 
-            if ($user) {
+            if ($userId) {
                 // User found, get the user ID
-                $userId = $user;
-                $registrations = $db->select('SELECT id,credential_id FROM users_webauthn WHERE user_id = ?', [$user]);
+                $registrations = $db->select('SELECT id,credential_id FROM users_webauthn WHERE user_id = ?', [$userId]);
             
                 if ($registrations) {
                     foreach ($registrations as $reg) {
@@ -141,8 +140,7 @@ class AuthController extends Controller
         $getArgs = $this->webAuthn->getGetArgs($ids, 60*4, true, true, true, true, true, 'required');
 
         $response->getBody()->write(json_encode($getArgs));
-        $challenge = $this->webAuthn->getChallenge();
-        $_SESSION['challenge_data'] = $challenge->getBinaryString();
+        $_SESSION['challenge'] = $this->webAuthn->getChallenge();
 
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -151,8 +149,7 @@ class AuthController extends Controller
     {
         global $container;
         
-        $challengeData = $_SESSION['challenge_data'];
-        $challenge = new \lbuchs\WebAuthn\Binary\ByteBuffer($challengeData);
+        $challenge = $_SESSION['challenge'];
         $credentialPublicKey = null;
         
         $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
@@ -185,7 +182,7 @@ class AuthController extends Controller
             }
 
             // process the get request. throws WebAuthnException if it fails
-            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challengeData, null, 'required');       
+            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, 'required');       
 
             $return = new \stdClass();
             $return->success = true;
