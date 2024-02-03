@@ -145,10 +145,10 @@ class ProfileController extends Controller
         if(strlen($hexUserId) % 2 != 0){
             $hexUserId = '0' . $hexUserId;
         }
-        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*4, null, 'required', null);
+        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 30, false, true);
 
         $response->getBody()->write(json_encode($createArgs));
-        $_SESSION['challenge'] = $this->webAuthn->getChallenge();
+        $_SESSION["challenge"] = ($this->webAuthn->getChallenge())->getBinaryString();
         
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -170,8 +170,8 @@ class ProfileController extends Controller
             $challenge = $_SESSION['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'required', true, false);
-            
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, true, true, false);
+
             // add user infos
             $credential->userId = $userId;
             $credential->userName = $userEmail;
@@ -183,7 +183,7 @@ class ProfileController extends Controller
             $db->insert(
                 'users_webauthn',
                 [
-                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_id' => $userId,
                     'credential_id' => base64_encode($credential->credentialId),
                     'public_key' => $credential->credentialPublicKey,
                     'attestation_object' => base64_encode($attestationObject),

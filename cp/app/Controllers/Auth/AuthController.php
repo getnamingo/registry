@@ -109,18 +109,18 @@ class AuthController extends Controller
         $ids = [];
         $rawData = $request->getBody();
         $data = json_decode($rawData, true);
-        
+
         try {
             $db = $container->get('db');
             $userId = $db->selectValue('SELECT id FROM users WHERE email = ?', [$data['email']]);
 
             if ($userId) {
                 // User found, get the user ID
-                $registrations = $db->select('SELECT id,credential_id FROM users_webauthn WHERE user_id = ?', [$userId]);
+                $registrations = $db->select('SELECT id, credential_id FROM users_webauthn WHERE user_id = ?', [$userId]);
             
                 if ($registrations) {
                     foreach ($registrations as $reg) {
-                        $ids[] = $reg['credential_id'];
+                        $ids[] = base64_decode($reg['credential_id']);
                     }
                 }
 
@@ -137,10 +137,10 @@ class AuthController extends Controller
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        $getArgs = $this->webAuthn->getGetArgs($ids, 60*4, true, true, true, true, true, 'required');
+        $getArgs = $this->webAuthn->getGetArgs($ids[0], 30);
 
         $response->getBody()->write(json_encode($getArgs));
-        $_SESSION['challenge'] = $this->webAuthn->getChallenge();
+        $_SESSION['challenge'] = ($this->webAuthn->getChallenge())->getBinaryString();
 
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -160,39 +160,71 @@ class AuthController extends Controller
             $authenticatorData = base64_decode($data->authenticatorData);
             $signature = base64_decode($data->signature);
             $userHandle = base64_decode($data->userHandle);
-            $id = base64_decode($data->id);
-            
+            $id = $data->id;
+
             $db = $container->get('db');
-            $credential = $db->select('SELECT public_key FROM users_webauthn WHERE user_id = ?', [$id]);
-            
-            if ($credential) {
-                foreach ($registrations as $reg) {
-                    $credentialPublicKey = $reg['public_key'];
-                    break;
+            $credentials = $db->select('SELECT * FROM users_webauthn WHERE credential_id = ?', [$id]);
+
+            if ($credentials) {
+                foreach ($credentials as $reg) {
+                    if ($reg['credential_id'] === $id) {
+                        $credentialPublicKey = $reg['public_key'];
+                        $user_id = $reg['user_id'];
+                        break;
+                    }
                 }
             }
 
             if ($credentialPublicKey === null) {
-                throw new Exception('Public Key for credential ID not found!');
-            }
-
-            // if we have resident key, we have to verify that the userHandle is the provided userId at registration
-            if ($requireResidentKey && $userHandle !== hex2bin($reg->userId)) {
-                throw new \Exception('userId doesnt match (is ' . bin2hex($userHandle) . ' but expect ' . $reg->userId . ')');
+                throw new \Exception('Public Key for credential ID not found!');
             }
 
             // process the get request. throws WebAuthnException if it fails
-            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, 'required');       
+            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge);       
 
-            $return = new \stdClass();
-            $return->success = true;
-            $return->msg = $msg;
+            $return = array();
+            $return['success'] = true;
+            $return['msg'] = $msg;
 
-            // Send success response
-            $response->getBody()->write(json_encode($return));
-            return $response->withHeader('Content-Type', 'application/json');
+            if($return['success']===true) {
+                // Send success response
+                $user = $db->selectRow('SELECT * FROM users WHERE id = ?', [$user_id]);
+
+                Session::regenerate(true);
+                $_SESSION['auth_logged_in'] = true;
+                $_SESSION['auth_user_id'] = $user['id'];
+                $_SESSION['auth_email'] = $user['email'];
+                $_SESSION['auth_username'] = $user['username'];
+                $_SESSION['auth_status'] = $user['status'];
+                $_SESSION['auth_roles'] = $user['roles_mask'];
+                $_SESSION['auth_force_logout'] = $user['force_logout'];
+                $_SESSION['auth_remembered'] = 0;
+                $_SESSION['auth_last_resync'] = \time();
+
+                $db = $container->get('db');
+                $currentDateTime = new \DateTime();
+                $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                $db->insert(
+                    'users_audit',
+                    [
+                        'user_id' => $_SESSION['auth_user_id'],
+                        'user_event' => 'user.login',
+                        'user_resource' => 'control.panel',
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                        'user_ip' => get_client_ip(),
+                        'user_location' => get_client_location(),
+                        'event_time' => $currentDate,
+                        'user_data' => null
+                    ]
+                );
+                $response->getBody()->write(json_encode($return));
+                return $response->withHeader('Content-Type', 'application/json');
+            } else {
+                $response->getBody()->write(json_encode($return));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            $response->getBody()->write(json_encode(['msg' => $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
     }
