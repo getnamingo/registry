@@ -20,25 +20,7 @@ class AuthController extends Controller
     public function __construct() {
         $rpName = 'Namingo';
         $rpId = envi('APP_DOMAIN');
-        $formats = [
-            'android-key',
-            'android-safetynet',
-            'apple',
-            'fido-u2f',
-            'none',
-            'packed',
-            'tpm'
-        ];
-
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, $formats);
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/solo.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/apple.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/yubico.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/hypersecu.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/globalSign.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/googleHardware.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/microsoftTpmCollection.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/mds');
+        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['none']);
     }
 
     /**
@@ -135,11 +117,11 @@ class AuthController extends Controller
             if ($user) {
                 // User found, get the user ID
                 $userId = $user;
-                $registrations = $db->select('SELECT id FROM users_webauthn WHERE user_id = ?', [$user]);
+                $registrations = $db->select('SELECT id,credential_id FROM users_webauthn WHERE user_id = ?', [$user]);
             
                 if ($registrations) {
                     foreach ($registrations as $reg) {
-                        $ids[] = $reg['credentialId'];
+                        $ids[] = $reg['credential_id'];
                     }
                 }
 
@@ -203,7 +185,7 @@ class AuthController extends Controller
             }
 
             // process the get request. throws WebAuthnException if it fails
-            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, $userVerification === 'required');       
+            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challengeData, null, 'required');       
 
             $return = new \stdClass();
             $return->success = true;

@@ -13,25 +13,7 @@ class ProfileController extends Controller
     public function __construct() {
         $rpName = 'Namingo';
         $rpId = envi('APP_DOMAIN');
-        $formats = [
-            'android-key',
-            'android-safetynet',
-            'apple',
-            'fido-u2f',
-            'none',
-            'packed',
-            'tpm'
-        ];
-
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, $formats);
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/solo.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/apple.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/yubico.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/hypersecu.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/globalSign.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/googleHardware.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/microsoftTpmCollection.pem');
-        $this->webAuthn->addRootCertificates(envi('APP_ROOT').'/vendor/lbuchs/webauthn/_test/rootCertificates/mds');
+        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['none']);
     }
 
     public function profile(Request $request, Response $response)
@@ -163,7 +145,7 @@ class ProfileController extends Controller
         if(strlen($hexUserId) % 2 != 0){
             $hexUserId = '0' . $hexUserId;
         }
-        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userName, $userName, 60*4, true, 'required', null);
+        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*4, null, 'required', null);
 
         $response->getBody()->write(json_encode($createArgs));
         $challenge = $this->webAuthn->getChallenge();
@@ -175,7 +157,7 @@ class ProfileController extends Controller
     public function verifyRegistration(Request $request, Response $response)
     {
         $challengeData = $_SESSION['challenge_data'];
-        $challenge = new \lbuchs\WebAuthn\Binary\ByteBuffer($challengeData);
+        //$challenge = new \lbuchs\WebAuthn\Binary\ByteBuffer($challengeData);
 
         global $container;
         $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
@@ -192,11 +174,11 @@ class ProfileController extends Controller
             //$challenge = $_SESSION['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'required', true, false);
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challengeData, 'required', true, false);
             
             // add user infos
             $credential->userId = $userId;
-            $credential->userName = $userName;
+            $credential->userName = $userEmail;
             $credential->userDisplayName = $userName;
 
             // Store the credential data in the database
