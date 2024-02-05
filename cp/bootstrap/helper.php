@@ -288,6 +288,12 @@ function extractDomainAndTLD($urlString) {
     $cachedFile = $cache->getItem($cacheKey);
     $fileContent = $cachedFile->get();
 
+    // Check if fileContent is not null
+    if (null === $fileContent) {
+        // Handle the error gracefully
+        throw new \Exception("The TLDs cache file is missing or unreadable");
+    }
+
     // Load a list of test TLDs used in your QA environment
     $testTlds = explode(',', envi('TEST_TLDS'));
 

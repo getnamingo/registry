@@ -39,7 +39,13 @@ class DomainsController extends Controller
                 }
 
                 $domainName = preg_replace('/[^\p{L}0-9-.]/u', '', $domainName);
-                $parts = extractDomainAndTLD($domainName);
+                try {
+                    $parts = extractDomainAndTLD($domainName);
+                } catch (\Exception $e) {
+                    $errorMessage = $e->getMessage();
+                    $this->container->get('flash')->addMessage('error', "Error: " . $errorMessage);
+                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                }
 
                 $domainModel = new Domain($this->container->get('db'));
                 $availability = $domainModel->getDomainByName($domainName);
@@ -163,7 +169,13 @@ class DomainsController extends Controller
             
             $authInfo = $data['authInfo'] ?? null;
             
-            $parts = extractDomainAndTLD($domainName);
+            try {
+                $parts = extractDomainAndTLD($domainName);
+            } catch (\Exception $e) {
+                $errorMessage = $e->getMessage();
+                $this->container->get('flash')->addMessage('error', "Error: " . $errorMessage);
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
+            }
             $label = $parts['domain'];
             $domain_extension = $parts['tld'];
             $invalid_domain = validate_label($domainName, $db);
