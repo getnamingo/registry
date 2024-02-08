@@ -24,200 +24,183 @@
         <div class="page-body">
           <div class="container-xl">
           {% include 'partials/flash.twig' %}
-            <div class="card">
-              <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
-                  <li class="nav-item">
-                    <a href="#tabs-details" class="nav-link active" data-bs-toggle="tab">{{ __('Details') }}</a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#tabs-2fa" class="nav-link" data-bs-toggle="tab">2FA</a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#tabs-webauthn" class="nav-link" data-bs-toggle="tab">WebAuthn</a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#tabs-log" class="nav-link" data-bs-toggle="tab">{{ __('Log') }}</a>
-                  </li>
-                </ul>
-              </div>
-              <div class="card-body">
-                <div class="tab-content">
-                  <div class="tab-pane active show" id="tabs-details">
-                    <h4 class="card-title">{{ __('Details') }}</h4>
-                    <div class="card">
-                      <div class="card-body">
-                        <form action="{{route('change.password')}}" name="register" method="post">
-                            {{ csrf.field | raw }}
-                            <div class="row g-3">
-                              <div class="col-md">
-                                <div class="form-label">{{ __('User Name') }}</div>
-                                <div class="form-control-plaintext">{{ username }}</div>
-                              </div>
-                              <div class="col-md">
-                                <div class="form-label">{{ __('Email') }}</div>
-                                <div class="form-control-plaintext">{{ email }}</div>
-                              </div>
-                              <div class="col-md">
-                                <div class="form-label">{{ __('Status') }}</div>
-                                <span class="badge bg-green text-bg-green mt-2">{{ status }}</span>
-                              </div>
-                              <div class="col-md">
-                                <div class="form-label">{{ __('Role') }}</div>
-                                <span class="badge bg-blue text-bg-blue mt-2">{{ role }}</span>
-                              </div>
-                            </div>
-                            <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
-                            <div class="row g-3">
-                              <div class="col-md">
-                                <div class="form-label required">{{ __('Old Password') }}</div>
-                                <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="Enter old password" required>
-                                {% if errors.old_password %}
-                                    <small class="form-hint">{{ errors.old_password | first }}</small>
-                                {% endif %}
-                              </div>
-                              <div class="col-md">
-                                <div class="form-label required">{{ __('New Password') }}</div>
-                                <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="Enter new password" required>
-                                {% if errors.new_password %}
-                                    <small class="form-hint">{{ errors.new_password | first }}</small>
-                                {% endif %}
-                              </div>
-                            </div>
+            <div class="card-tabs">
+              <ul class="nav nav-tabs" data-bs-toggle="tabs">
+                <li class="nav-item">
+                  <a href="#tabs-details" class="nav-link active" data-bs-toggle="tab">{{ __('Details') }}</a>
+                </li>
+                <li class="nav-item">
+                  <a href="#tabs-2fa" class="nav-link" data-bs-toggle="tab">2FA</a>
+                </li>
+                <li class="nav-item">
+                  <a href="#tabs-webauthn" class="nav-link" data-bs-toggle="tab">WebAuthn</a>
+                </li>
+                <li class="nav-item">
+                  <a href="#tabs-log" class="nav-link" data-bs-toggle="tab">{{ __('Log') }}</a>
+                </li>
+              </ul>
+              <div class="tab-content">
+                <div class="card tab-pane active show" id="tabs-details">
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('Details') }}</h3>
+                    <form action="{{route('change.password')}}" name="register" method="post">
+                    {{ csrf.field | raw }}
+                    <div class="row g-3">
+                      <div class="col-md">
+                        <div class="form-label">{{ __('User Name') }}</div>
+                        <div class="form-control-plaintext">{{ username }}</div>
                       </div>
-                      <div class="card-footer bg-transparent mt-auto">
-                        <div class="btn-list justify-content-end">
-                          <a href="{{route('home')}}" class="btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1"></path></svg> {{ __('Back') }}
-                          </a>
-                          <button type="submit" class="btn btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
-                          </button>
-                        </div>
+                      <div class="col-md">
+                        <div class="form-label">{{ __('Email') }}</div>
+                        <div class="form-control-plaintext">{{ email }}</div>
                       </div>
-                      </form>
+                      <div class="col-md">
+                        <div class="form-label">{{ __('Status') }}</div>
+                        <span class="badge bg-green-lt mt-2">{{ status }}</span>
+                      </div>
+                      <div class="col-md">
+                        <div class="form-label">{{ __('Role') }}</div>
+                        <span class="badge bg-purple-lt mt-2">{{ role }}</span>
+                      </div>
+                    </div>
+                    <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
+                    <div class="row g-3">
+                      <div class="col-md">
+                        <div class="form-label required">{{ __('Old Password') }}</div>
+                        <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="Enter old password" required>
+                        {% if errors.old_password %}
+                            <small class="form-hint">{{ errors.old_password | first }}</small>
+                        {% endif %}
+                      </div>
+                      <div class="col-md">
+                        <div class="form-label required">{{ __('New Password') }}</div>
+                        <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="Enter new password" required>
+                        {% if errors.new_password %}
+                            <small class="form-hint">{{ errors.new_password | first }}</small>
+                        {% endif %}
+                      </div>
                     </div>
                   </div>
-                  <div class="tab-pane" id="tabs-2fa">
-                    <h4 class="card-title">{{ __('Two-Factor Authentication') }} (2FA)</h4>
-                        <div class="card">
-                            {% if secret is defined %}
-                            <form action="{{route('activate2fa')}}" name="2fa" method="post">
-                            {{ csrf.field | raw }}
-                            <div class="card-body">
-                                <p>{{ __('Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify.') }}</p>
-                                <!-- QR Code -->
-                                <div class="mb-3">
-                                    <img src="{{ qrcodeDataUri }}" alt="2FA QR Code" class="img-fluid">
-                                </div>
-                                <!-- Secret for Manual Entry -->
-                                <div class="mb-3">
-                                    <p class="font-weight-bold">{{ __('Manual Entry Secret') }}</p>
-                                    <code>{{ secret|split(4)|join(' ') }}</code>
-                                    <small class="form-text text-muted">
-                                        {{ __('If you\'re unable to scan the QR code, enter this secret manually into your authentication app. The secret is case-sensitive and should be entered exactly as shown.') }}
-                                    </small>
-                                </div>
-                                <!-- Verification Code Input -->
-                                <div class="mb-3">
-                                    <label for="verificationCode" class="form-label required">{{ __('Verification Code') }}</label>
-                                    <input type="number" class="form-control" id="verificationCode" name="verificationCode" placeholder="{{ __('Enter code') }}" required="required">
-                                    <small class="form-text text-muted">
-                                        {{ __('Enter the code generated by your authentication app. This code verifies that your 2FA setup is working correctly. Once entered, click') }} {{ __('Save 2FA Settings') }} {{ __('to activate two-factor authentication for your account.') }}
-                                    </small>
-                                </div>
-                                <!-- Save Button -->
-                                <button type="submit" class="btn btn-primary">{{ __('Save 2FA Settings') }}</button>
-                            </div>
-                            </form>
-                            {% else %}
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge bg-green text-green-fg me-3"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg></span>
-                                    <div>
-                                        <h5 class="card-title mb-1">{{ __('Your account is secured with an additional layer of protection.') }}</h5>
-                                        <p class="text-muted mb-2">{{ __('2FA is currently') }} <strong>{{ __('enabled') }}</strong> {{ __('for your account. If you encounter any issues or need to disable 2FA, please contact our support team for assistance.') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                  </div>
-                  <div class="tab-pane" id="tabs-webauthn">
-                    <h4 class="card-title">{{ __('WebAuthn Authentication') }}</h4>
-                    <div class="card">
-                        <div class="card-body">
-                            <p>{{ __('Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.') }}</p>
-                            <!-- Connect WebAuthn Button -->
-                            <button type="button" class="btn btn-success" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
-                            <!-- WebAuthn Devices Table -->
-                            <div class="table-responsive mt-4">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>{{ __('Device/Browser Info') }}</th>
-                                            <th>{{ __('Registration Date') }}</th>
-                                            <th>{{ __('Action') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for device in weba %}
-                                        <tr>
-                                            <td>{{ device.user_agent }}</td>
-                                            <td>{{ device.created_at }}</td>
-                                            <td>
-                                                <a href="/path/to/action?deviceId={{ device.id }}">{{ __('Edit') }}</a>
-                                            </td>
-                                        </tr>
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="3">{{ __('No devices found.') }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                  <div class="card-footer bg-transparent mt-auto">
+                    <div class="btn-list justify-content-end">
+                      <a href="{{route('home')}}" class="btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1"></path></svg> {{ __('Back') }}
+                      </a>
+                      <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
+                      </button>
                     </div>
                   </div>
-                  <div class="tab-pane" id="tabs-log">
-                    <h4 class="card-title">{{ __('User Audit Log') }}</h4>
-                    <div class="card">
-                        <div class="card-body">
-                            <p>{{ __('Track and review all user activities in your account below. Monitor logins, profile changes, and other key actions to ensure security and transparency.') }}</p>
-                            <div class="table-responsive mt-4">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>{{ __('Event') }}</th>
-                                            <th>{{ __('User Agent') }}</th>
-                                            <th>IP</th>
-                                            <th>{{ __('Location') }}</th>
-                                            <th>{{ __('Timestamp') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for user in userAudit %}
-                                        <tr>
-                                            <td>{{ user.user_event }}</td>
-                                            <td>{{ user.user_agent }}</td>
-                                            <td>{{ user.user_ip }}</td>
-                                            <td>{{ user.user_location }}</td>
-                                            <td>{{ user.event_time }}</td>
-                                        </tr>
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="5">{{ __('No log data for user.') }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    </form>
+                </div>
+                <div class="card tab-pane" id="tabs-2fa">
+                  {% if secret is defined %}
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('Two-Factor Authentication') }} (2FA)</h3>
+                    <form action="{{route('activate2fa')}}" name="2fa" method="post">
+                    {{ csrf.field | raw }}
+                      <p>{{ __('Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify.') }}</p>
+                      <div class="mb-3">
+                        <img src="{{ qrcodeDataUri }}" alt="2FA QR Code" class="img-fluid">
+                      </div>
+                      <div class="mb-3">
+                        <p class="font-weight-bold">{{ __('Manual Entry Secret') }}</p>
+                        <code>{{ secret|split(4)|join(' ') }}</code>
+                        <small class="form-text text-muted">
+                          {{ __('If you\'re unable to scan the QR code, enter this secret manually into your authentication app. The secret is case-sensitive and should be entered exactly as shown.') }}
+                        </small>
+                      </div>
+                      <div class="mb-3">
+                        <label for="verificationCode" class="form-label required">{{ __('Verification Code') }}</label>
+                        <input type="number" class="form-control" id="verificationCode" name="verificationCode" placeholder="{{ __('Enter code') }}" required="required">
+                        <small class="form-text text-muted">
+                          {{ __('Enter the code generated by your authentication app. This code verifies that your 2FA setup is working correctly. Once entered, click') }} {{ __('Save 2FA Settings') }} {{ __('to activate two-factor authentication for your account.') }}
+                        </small>
+                      </div>
+                      <button type="submit" class="btn btn-primary">{{ __('Save 2FA Settings') }}</button>
+                    </form>
+                  </div>
+                  {% else %}
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('Two-Factor Authentication') }} (2FA)</h3>
+                    <div class="d-flex align-items-center">
+                      <span class="badge bg-green text-green-fg me-3"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg></span>
+                      <div>
+                        <h5 class="card-title mb-1">{{ __('Your account is secured with an additional layer of protection.') }}</h5>
+                        <p class="text-muted mb-2">{{ __('2FA is currently') }} <strong>{{ __('enabled') }}</strong> {{ __('for your account. If you encounter any issues or need to disable 2FA, please contact our support team for assistance.') }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="card tab-pane" id="tabs-webauthn">
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('WebAuthn Authentication') }}</h3>
+                    <p>{{ __('Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.') }}</p>
+                    <button type="button" class="btn btn-success" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
+                    <div class="table-responsive mt-4">
+                      <table class="table table-striped">
+                        <thead>
+                          <tr>
+                            <th>{{ __('Device/Browser Info') }}</th>
+                            <th>{{ __('Registration Date') }}</th>
+                            <th>{{ __('Action') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        {% for device in weba %}
+                          <tr>
+                            <td>{{ device.user_agent }}</td>
+                            <td>{{ device.created_at }}</td>
+                            <td>
+                              <a href="/path/to/action?deviceId={{ device.id }}">{{ __('Edit') }}</a>
+                            </td>
+                          </tr>
+                        {% else %}
+                          <tr>
+                            <td colspan="3">{{ __('No devices found.') }}</td>
+                          </tr>
+                        {% endfor %}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
-            </div>
+                <div class="card tab-pane" id="tabs-log">
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('User Audit Log') }}</h3>
+                    <p>{{ __('Track and review all user activities in your account below. Monitor logins, profile changes, and other key actions to ensure security and transparency.') }}</p>
+                    <div class="table-responsive mt-4">
+                      <table class="table table-striped">
+                        <thead>
+                          <tr>
+                            <th>{{ __('Event') }}</th>
+                            <th>{{ __('User Agent') }}</th>
+                            <th>IP</th>
+                            <th>{{ __('Location') }}</th>
+                            <th>{{ __('Timestamp') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        {% for user in userAudit %}
+                          <tr>
+                            <td>{{ user.user_event }}</td>
+                            <td>{{ user.user_agent }}</td>
+                            <td>{{ user.user_ip }}</td>
+                            <td>{{ user.user_location }}</td>
+                            <td>{{ user.event_time }}</td>
+                          </tr>
+                        {% else %}
+                          <tr>
+                            <td colspan="5">{{ __('No log data for user.') }}</td>
+                          </tr>
+                        {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
           </div>
         </div>
         {% include 'partials/footer.twig' %}
