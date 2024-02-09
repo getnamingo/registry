@@ -122,7 +122,7 @@ class FinancialsController extends Controller
             $registrar_id = $data['registrar'];
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
             $amount = $data['amount'];
-            $description = empty($data['description']) ? "Funds Added to Account Balance" : $data['description'];
+            $description = empty($data['description']) ? "funds added to account balance" : $data['description'];
             
             $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
 
