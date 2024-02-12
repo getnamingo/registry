@@ -12,11 +12,36 @@ Once you have completed the installation process, we encourage you to proceed to
 apt install -y curl software-properties-common ufw
 add-apt-repository ppa:ondrej/php
 apt install -y debian-keyring debian-archive-keyring apt-transport-https
+apt update
+apt install -y bzip2 composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+```
+
+Then install the webserver you prefer:
+
+### 1a. Install Caddy webserver:
+
+```bash
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
 gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-apt update && apt upgrade
-apt install -y bzip2 caddy composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+apt update
+apt install -y caddy
+```
+
+### 1b. Install Nginx webserver:
+
+```bash
+add-apt-repository ppa:ondrej/nginx-mainline
+apt update
+apt install -y nginx python3-certbot-nginx
+```
+
+### 1c. Install Apache2 webserver:
+
+```bash
+add-apt-repository ppa:ondrej/apache2
+apt update
+apt install -y apache2 python3-certbot-apache
 ```
 
 ### Configure time:
@@ -187,7 +212,9 @@ ufw allow 53/tcp
 ufw allow 53/udp
 ```
 
-## 6. Configure Caddy webserver:
+## 6. Configure webserver:
+
+### 6a. Caddy:
 
 Edit ```/etc/caddy/Caddyfile``` and place the following content:
 
@@ -271,6 +298,76 @@ Activate and reload Caddy:
 systemctl enable caddy
 systemctl restart caddy
 ```
+
+### 6b. Nginx:
+
+Move configuration files and create symbolic links:
+
+```bash
+mv /opt/registry/docs/nginx/cp.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/cp.conf /etc/nginx/sites-enabled/
+
+mv /opt/registry/docs/nginx/whois.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/whois.conf /etc/nginx/sites-enabled/
+
+mv /opt/registry/docs/nginx/rdap.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/rdap.conf /etc/nginx/sites-enabled/
+
+rm /etc/nginx/sites-enabled/default
+```
+
+Edit all 3 files that you just moved in `/etc/nginx/sites-available`, and replace `server_name` with the correct hostname for the service; also replace `YOUR_IPV4_ADDRESS` and/or `YOUR_IPV6_ADDRESS` accordingly.
+
+Generate the required SSL certificates:
+
+```bash
+systemctl stop nginx
+certbot --nginx -d whois.example.com -d rdap.example.com -d cp.example.com
+```
+
+Activate and reload Nginx:
+
+```bash
+systemctl enable nginx
+systemctl restart nginx
+```
+
+### 6c. Apache2:
+
+Move configuration files and create symbolic links:
+
+```bash
+mv /opt/registry/docs/apache2/cp.conf /etc/apache2/sites-available/
+ln -s /etc/apache2/sites-available/cp.conf /etc/apache2/sites-enabled/
+
+mv /opt/registry/docs/apache2/whois.conf /etc/apache2/sites-available/
+ln -s /etc/apache2/sites-available/whois.conf /etc/apache2/sites-enabled/
+
+mv /opt/registry/docs/apache2/rdap.conf /etc/apache2/sites-available/
+ln -s /etc/apache2/sites-available/rdap.conf /etc/apache2/sites-enabled/
+
+rm /etc/apache2/sites-enabled/000-default.conf
+```
+
+Edit all 3 files that you just moved in `/etc/apache2/sites-available`, and replace `server_name` with the correct hostname for the service.
+
+Generate the required SSL certificates:
+
+```bash
+a2enmod headers proxy proxy_http proxy_fcgi setenvif rewrite
+systemctl restart apache2
+systemctl stop apache2
+certbot --apache -d whois.example.com -d rdap.example.com -d cp.example.com
+```
+
+Activate and reload Apache2:
+
+```bash
+systemctl enable apache2
+systemctl restart apache2
+```
+
+_________________
 
 **And now is the right time to import the provided database file(s) for your database type using Adminer.**
 
