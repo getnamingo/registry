@@ -716,6 +716,9 @@ msgid "Deposit Payment Unsuccessful"
 msgstr "Помилка платежу за депозит"
 
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
+msgstr "Ми помітили, що ваш процес оплати за депозит не завершений. Схоже, що платіж було скасовано або скасовано під час транзакції. Якщо це була помилка, або у вас виникли будь-які питання, не соромтеся звертатися до нас. Ми тут, щоб допомогти забезпечити легку і безпечну транзакцію."
+
+msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 msgstr "Готові спробувати ще раз? Коли ви встановили для продовження свого депозиту, просто повернутися до"
 
 msgid "Deposit Page"

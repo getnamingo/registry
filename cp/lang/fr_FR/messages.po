@@ -715,6 +715,9 @@ msgstr "Facultatif"
 msgid "Deposit Payment Unsuccessful"
 msgstr "Échec du paiement du dépôt"
 
+msgid "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
+msgstr "Nous avons remarqué que le processus de paiement de votre dépôt n'a pas été achevé. Il semble que le paiement ait été annulé ou qu'il ait échoué au cours de la transaction. S'il s'agit d'une erreur ou si vous avez des questions, n'hésitez pas à nous contacter. Nous sommes là pour vous aider à faire en sorte que votre transaction se déroule sans problème et en toute sécurité."
+
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 msgstr "Prêt à réessayer ? Lorsque vous êtes prêt à procéder à votre dépôt, retournez simplement à la"
 

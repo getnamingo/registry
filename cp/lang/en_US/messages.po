@@ -715,6 +715,9 @@ msgstr "Optional"
 msgid "Deposit Payment Unsuccessful"
 msgstr "Deposit Payment Unsuccessful"
 
+msgid "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
+msgstr "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
+
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 msgstr "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 

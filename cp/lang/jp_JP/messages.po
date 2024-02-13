@@ -715,6 +715,9 @@ msgstr "オプション"
 msgid "Deposit Payment Unsuccessful"
 msgstr "預金支払い失敗"
 
+msgid "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
+msgstr "ご入金手続きが完了していないことに気づきました。お支払いがキャンセルされたか、お取引中に失敗したようです。これがエラーであった場合、またはご不明な点がございましたら、ご遠慮なくお問い合わせください。お客様のお取引がスムーズで安全なものとなるよう、お手伝いさせていただきます。"
+
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 msgstr "再試行する準備ができましたか？預金を行う準備ができたら、単に"
 
