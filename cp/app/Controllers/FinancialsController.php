@@ -6,6 +6,8 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use Mpociot\VatCalculator\VatCalculator;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 
 class FinancialsController extends Controller
 {
@@ -122,7 +124,7 @@ class FinancialsController extends Controller
             $registrar_id = $data['registrar'];
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
             $amount = $data['amount'];
-            $description = empty($data['description']) ? "funds added to account balance" : $data['description'];
+            $description = empty($data['description']) ? "Funds Added to Account Balance" : $data['description'];
             
             $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
 
@@ -189,7 +191,7 @@ class FinancialsController extends Controller
         ]);
     }
     
-    public function createPayment(Request $request, Response $response)
+    public function createStripePayment(Request $request, Response $response)
     {
         $postData = $request->getParsedBody();
         $amount = $postData['amount']; // Make sure to validate and sanitize this amount
@@ -223,11 +225,41 @@ class FinancialsController extends Controller
         return $response->withHeader('Content-Type', 'application/json');
     }
     
-    public function success(Request $request, Response $response)
+    public function createAdyenPayment(Request $request, Response $response)
+    {
+        $postData = $request->getParsedBody();
+        $amount = $postData['amount']; // Make sure to validate and sanitize this amount
+
+        // Convert amount to cents
+        $amountInCents = $amount * 100;
+
+        $client = new \Adyen\Client();
+        $client->setApplicationName('Namingo');
+        $client->setEnvironment(\Adyen\Environment::TEST);
+        $client->setXApiKey(envi('ADYEN_API_KEY'));
+        $service = new \Adyen\Service\Checkout($client);
+        $params = array(
+           'amount' => array(
+               'currency' => $_SESSION['_currency'],
+               'value' => $amountInCents
+           ),
+           'merchantAccount' => envi('ADYEN_MERCHANT_ID'),
+           'reference' => 'Registrar Balance Deposit',
+           'returnUrl' => envi('APP_URL').'/payment-success-adyen',
+           'mode' => 'hosted',
+           'themeId' => envi('ADYEN_THEME_ID')
+        );
+        $result = $service->sessions($params);
+        
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    public function successStripe(Request $request, Response $response)
     {
         $session_id = $request->getQueryParams()['session_id'] ?? null;
         $db = $this->container->get('db');
-            
+
         if ($session_id) {
             \Stripe\Stripe::setApiKey(envi('STRIPE_SECRET_KEY'));
 
@@ -265,7 +297,7 @@ class FinancialsController extends Controller
                             [
                                 'registrar_id' => $_SESSION['auth_registrar_id'],
                                 'date' => $date,
-                                'description' => 'Registrar Balance Deposit via Stripe ('.$paymentIntentId.')',
+                                'description' => 'registrar balance deposit via Stripe ('.$paymentIntentId.')',
                                 'amount' => $amount
                             ]
                         );
@@ -280,46 +312,60 @@ class FinancialsController extends Controller
                         
                         $db->commit();
                     } catch (Exception $e) {
-                        $db->rollBack();
-                        $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
-                            [ $_SESSION["auth_registrar_id"] ]
-                        );
-                        
-                        return view($response, 'admin/financials/deposit-registrar.twig', [
-                            'error' => $e->getMessage(),
-                            'balance' => $balance
-                        ]);
+                        $this->container->get('flash')->addMessage('error', 'Failure: '.$e->getMessage());
+                        return $response->withHeader('Location', '/deposit')->withStatus(302);
                     }
                     
-                    $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
-                        [ $_SESSION["auth_registrar_id"] ]
-                    );
-
-                    return view($response, 'admin/financials/deposit-registrar.twig', [
-                        'deposit' => $amount,
-                        'balance' => $balance
-                    ]);
+                    $this->container->get('flash')->addMessage('success', 'Deposit successfully added. The registrar\'s account balance has been updated.');
+                    return $response->withHeader('Location', '/deposit')->withStatus(302);
                 } else {
-                    $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
-                        [ $_SESSION["auth_registrar_id"] ]
-                    );
-                    
-                    return view($response, 'admin/financials/deposit-registrar.twig', [
-                        'error' => 'Invalid entry: Deposit amount must be positive. Please enter a valid amount.',
-                        'balance' => $balance
-                    ]);
+                    $this->container->get('flash')->addMessage('error', 'Invalid entry: Deposit amount must be positive. Please enter a valid amount.');
+                    return $response->withHeader('Location', '/deposit')->withStatus(302);
                 }
             } catch (\Exception $e) {
-                $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
-                    [ $_SESSION["auth_registrar_id"] ]
-                );
-                
-                return view($response, 'admin/financials/deposit-registrar.twig', [
-                    'error' => 'We encountered an issue while processing your payment. Please check your payment details and try again.',
-                     'balance' => $balance
-                ]);
+                $this->container->get('flash')->addMessage('error', 'We encountered an issue while processing your payment. Please check your payment details and try again.');
+                return $response->withHeader('Location', '/deposit')->withStatus(302);
             }
         }
+    }
+    
+    public function successAdyen(Request $request, Response $response)
+    {
+        $sessionId = $request->getQueryParams()['sessionId'] ?? null;
+        $sessionResult = $request->getQueryParams()['sessionResult'] ?? null;
+        $db = $this->container->get('db');
+
+        $client = new Client([
+            'base_uri' => envi('ADYEN_BASE_URI'),
+            'timeout'  => 2.0,
+        ]);
+
+        try {
+            $apicall = $client->request('GET', "sessions/$sessionId", [
+                'query' => ['sessionResult' => $sessionResult],
+                'headers' => [
+                    'X-API-Key' => envi('ADYEN_API_KEY'),
+                    'Content-Type' => 'application/json',
+                ],
+            ]);
+
+            $data = json_decode($apicall->getBody(), true);
+
+            $status = $data['status'] ?? 'unknown';
+            if ($status == 'completed') {
+                echo $status;
+                $this->container->get('flash')->addMessage('success', 'Deposit successfully added. The registrar\'s account balance has been updated.');
+                return $response->withHeader('Location', '/deposit')->withStatus(302);
+            } else {
+                $this->container->get('flash')->addMessage('error', 'We encountered an issue while processing your payment. Please check your payment details and try again.');
+                return $response->withHeader('Location', '/deposit')->withStatus(302);
+            }
+
+        } catch (RequestException $e) {
+            $this->container->get('flash')->addMessage('error', 'Failure: '.$e->getMessage());
+            return $response->withHeader('Location', '/deposit')->withStatus(302);
+        }
+
     }
     
     public function cancel(Request $request, Response $response)

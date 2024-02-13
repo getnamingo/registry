@@ -27,4 +27,9 @@ MAIL_API_PROVIDER='sendgrid'
 STRIPE_SECRET_KEY='stripe-secret-key'
 STRIPE_PUBLISHABLE_KEY='stripe-publishable-key'
 
+ADYEN_API_KEY='adyen-api-key'
+ADYEN_MERCHANT_ID='adyen-merchant-id'
+ADYEN_THEME_ID='adyen-theme-id'
+ADYEN_BASE_URI='https://checkout-test.adyen.com/v70/'
+
 TEST_TLDS=.test,.com.test
