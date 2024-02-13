@@ -183,6 +183,45 @@ $app->any('/api[/{params:.*}]', function (
             }
             $_SESSION['user'] = $_SESSION['auth_username'];
         },
+        'customization.afterHandler' => function ($operation, $tableName, &$response, $environment) {
+            $bodyContent = (string) $response->getBody();
+            $response->getBody()->rewind();
+            $data = json_decode($bodyContent, true);
+
+            if ($tableName == 'domain') {
+                if (isset($data['records']) && is_array($data['records'])) {
+                    foreach ($data['records'] as &$record) {
+                        if (isset($record['name']) && stripos($record['name'], 'xn--') === 0) {
+                            $record['name_o'] = $record['name'];
+                            $record['name'] = idn_to_utf8($record['name'], 0, INTL_IDNA_VARIANT_UTS46);
+                        } else {
+                            $record['name_o'] = $record['name'];
+                        }
+                    }
+                    unset($record);
+                }
+            }
+            else if ($tableName == 'domain_tld') {
+                if (isset($data['records']) && is_array($data['records'])) {
+                    foreach ($data['records'] as &$record) {
+                        if (isset($record['tld']) && stripos($record['tld'], '.xn--') === 0) {
+                            $punycodeTld = ltrim($record['tld'], '.');
+                            $record['tld_o'] = $record['tld'];
+                            $record['tld'] = '.'.idn_to_utf8(strtolower($punycodeTld), 0, INTL_IDNA_VARIANT_UTS46);
+                        } else {
+                            $record['tld_o'] = $record['tld'];
+                        }
+                    }
+                    unset($record);
+                }
+            }
+
+            $modifiedBodyContent = json_encode($data, JSON_UNESCAPED_UNICODE);
+            $stream = \Nyholm\Psr7\Stream::create($modifiedBodyContent);
+            $response = $response->withBody($stream);
+            $response = $response->withHeader('Content-Length', strlen($modifiedBodyContent));
+            return $response;
+        },
         'dbAuth.usersTable' => 'users',
         'dbAuth.usernameColumn' => 'email',
         'dbAuth.passwordColumn' => 'password',

@@ -23,7 +23,7 @@
 
         // Function to create a badge with color based on status
         function createBadge(text, badgeClass) {
-            return `<span class="badge bg-${badgeClass} text-${badgeClass}-fg">${text}</span>`;
+            return `<span class="status status-${badgeClass}">${text}</span>`;
         }
 
         switch (status) {
