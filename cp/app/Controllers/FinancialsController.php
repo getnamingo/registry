@@ -8,6 +8,7 @@ use Psr\Container\ContainerInterface;
 use Mpociot\VatCalculator\VatCalculator;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Ramsey\Uuid\Uuid;
 
 class FinancialsController extends Controller
 {
@@ -232,6 +233,14 @@ class FinancialsController extends Controller
 
         // Convert amount to cents
         $amountInCents = $amount * 100;
+        
+        // Your registrar ID and unique identifier
+        $registrarId = $_SESSION['auth_registrar_id'];
+        $uniqueIdentifier = Uuid::uuid4()->toString(); // Generates a unique UUID
+
+        $delimiter = '|';
+        $combinedString = $registrarId . $delimiter . $uniqueIdentifier;
+        $merchantReference = bin2hex($combinedString);
 
         $client = new \Adyen\Client();
         $client->setApplicationName('Namingo');
@@ -244,7 +253,7 @@ class FinancialsController extends Controller
                'value' => $amountInCents
            ),
            'merchantAccount' => envi('ADYEN_MERCHANT_ID'),
-           'reference' => 'Registrar Balance Deposit',
+           'reference' => $merchantReference,
            'returnUrl' => envi('APP_URL').'/payment-success-adyen',
            'mode' => 'hosted',
            'themeId' => envi('ADYEN_THEME_ID')
@@ -366,6 +375,102 @@ class FinancialsController extends Controller
             return $response->withHeader('Location', '/deposit')->withStatus(302);
         }
 
+    }
+    
+    public function webhookAdyen(Request $request, Response $response)
+    {
+        $data = json_decode($request->getBody()->getContents(), true);
+        $db = $this->container->get('db');
+
+        foreach ($data['notificationItems'] as $item) {
+            $notificationRequestItem = $item['NotificationRequestItem'];
+            
+            if (isset($notificationRequestItem['eventCode']) && $notificationRequestItem['eventCode'] == 'AUTHORISATION' && $notificationRequestItem['success'] == 'true') {
+                $merchantReference = $notificationRequestItem['merchantReference'] ?? null;
+                $paymentStatus = $notificationRequestItem['success'] ?? null;
+
+                if ($merchantReference && $paymentStatus) {
+                    try {
+                        $amountPaid = $notificationRequestItem['amount']['value']; // Amount paid, in cents
+                        $amount = $amountPaid / 100;
+                        $amountPaidFormatted = number_format($amount, 2, '.', '');
+                        $paymentIntentId = $notificationRequestItem['reason'];
+                        $merchantReference = hex2bin($merchantReference);
+                        $delimiter = '|';
+
+                        // Split to get the original components
+                        list($registrarId, $uniqueIdentifier) = explode($delimiter, $merchantReference, 2);
+
+                        $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
+
+                        if ($isPositiveNumberWithTwoDecimals) {
+                            $db->beginTransaction();
+
+                            try {
+                                $currentDateTime = new \DateTime();
+                                $date = $currentDateTime->format('Y-m-d H:i:s.v');
+                                $db->insert(
+                                    'statement',
+                                    [
+                                        'registrar_id' => $registrarId,
+                                        'date' => $date,
+                                        'command' => 'create',
+                                        'domain_name' => 'deposit',
+                                        'length_in_months' => 0,
+                                        'fromS' => $date,
+                                        'toS' => $date,
+                                        'amount' => $amount
+                                    ]
+                                );
+
+                                $db->insert(
+                                    'payment_history',
+                                    [
+                                        'registrar_id' => $registrarId,
+                                        'date' => $date,
+                                        'description' => 'registrar balance deposit via Adyen ('.$paymentIntentId.')',
+                                        'amount' => $amount
+                                    ]
+                                );
+                                
+                                $db->exec(
+                                    'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
+                                    [
+                                        $amount,
+                                        $registrarId,
+                                    ]
+                                );
+                                
+                                $db->commit();
+                            } catch (Exception $e) {
+                                $response = $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+                                $response->getBody()->write(json_encode(['failure' => true]));
+                                return $response;
+                            }
+                            
+                            $response->getBody()->write(json_encode(['received' => true]));
+                            return $response->withHeader('Content-Type', 'application/json');
+                        } else {
+                            $response = $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+                            $response->getBody()->write(json_encode(['failure' => true]));
+                            return $response;
+                        }
+                    } catch (\Exception $e) {
+                        $response = $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+                        $response->getBody()->write(json_encode(['failure' => true]));
+                        return $response;
+                    }
+                }            
+            } else {
+                $response = $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+                $response->getBody()->write(json_encode(['failure' => true]));
+                return $response;
+            }
+        }
+        
+        $response = $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        $response->getBody()->write(json_encode(['failure' => true]));
+        return $response;
     }
     
     public function cancel(Request $request, Response $response)
