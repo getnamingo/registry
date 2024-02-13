@@ -326,6 +326,7 @@ CREATE TABLE domain (
      "tm_notice_validator" VARCHAR(30) DEFAULT NULL,
      "tm_smd_id" TEXT DEFAULT NULL,
      "tm_phase" text DEFAULT 'NONE'::text NOT NULL,
+     "phase_name" VARCHAR(75) DEFAULT NULL,
      unique ("name") 
 );
 

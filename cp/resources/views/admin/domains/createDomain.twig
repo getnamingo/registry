@@ -207,6 +207,12 @@
                                     <option value="custom">Custom</option>
                                 </select>
                             </div>
+							
+                            <div class="mb-3">
+                                <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
+                                <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
+                                <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
+                            </div>
 
                             <div class="mb-3">
                               <label class="form-label">{{ __('Signed Mark Information') }}</label>

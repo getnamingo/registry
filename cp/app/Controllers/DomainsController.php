@@ -150,7 +150,8 @@ class DomainsController extends Controller
             
             $phaseType = $data['phaseType'] ?? 'none';
             $smd = $data['smd'] ?? null;
-            
+            $phaseName = $data['phaseName'] ?? null;
+
             $token = $data['token'] ?? null;
 
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
@@ -514,6 +515,7 @@ class DomainsController extends Controller
                     'acdate' => null,
                     'rgpstatus' => 'addPeriod',
                     'addPeriod' => $date_add,
+                    'phase_name' => $phaseName,
                     'tm_phase' => $phaseType,
                     'tm_smd_id' => $smd,
                     'tm_notice_id' => $noticeid,
