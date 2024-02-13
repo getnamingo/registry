@@ -1,0 +1,58 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Crypto Payment Status') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Crypto Payment Status') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+            {% if status is defined and paymentId is defined %}
+            <div class="card">
+              <div class="card-body">
+                <h4>{{ __('Payment Status:') }} {{ status }}</h4>
+                {% if status == 'finished' %}
+                    <p class="text-success">Your payment has been successfully processed and finished.</p>
+                {% elseif status == 'expired' %}
+                    <p class="text-warning">Your payment has expired. Please initiate a new payment if you wish to proceed.</p>
+                {% else %}
+                    <p class="text-primary">The status of your payment is currently '{{ status }}'. Please <a href="#" onclick="window.location.reload(); return false;"><u>check back</u></a> later for updates.</p>
+                {% endif %}
+              </div>
+            </div>
+            {% else %}
+            <div class="card">
+              <div class="card-body">
+                <h4>{{ __('Payment Status Unavailable') }}</h4>
+                <p class="text-secondary">{{ __('It appears you\'ve accessed this page directly without specifying a payment ID. To view the status of your payment and ensure it is credited once completed, please make sure to include the paymentId parameter in the URL, like so:') }}</p>
+                <p class="text-secondary"><strong>/payment-success-crypto?paymentId=YOUR_PAYMENT_ID_HERE</strong></p>
+                <p class="text-secondary">{{ __('Replace') }} <strong>YOUR_PAYMENT_ID_HERE</strong> {{ __('with your actual payment ID.') }}</p>
+                <p class="text-secondary">{{ __('If you\'re unsure of your payment ID or if you\'ve encountered this message after completing a payment, please check your email for the payment confirmation, which should include the necessary payment ID. Alternatively, you can contact our support team for assistance.') }}</p>
+              </div>
+            </div>
+            {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

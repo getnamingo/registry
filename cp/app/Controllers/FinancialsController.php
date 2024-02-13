@@ -264,6 +264,50 @@ class FinancialsController extends Controller
         return $response->withHeader('Content-Type', 'application/json');
     }
     
+    public function createCryptoPayment(Request $request, Response $response)
+    {
+        $postData = $request->getParsedBody();
+        $amount = $postData['amount']; // Make sure to validate and sanitize this amount
+
+        // Your registrar ID and unique identifier
+        $registrarId = $_SESSION['auth_registrar_id'];
+        $uniqueIdentifier = Uuid::uuid4()->toString(); // Generates a unique UUID
+
+        $delimiter = '|';
+        $combinedString = $registrarId . $delimiter . $uniqueIdentifier;
+        $merchantReference = bin2hex($combinedString);
+        
+        $data = [
+            'price_amount' => $amount,
+            'price_currency' => $_SESSION['_currency'],
+            'order_id' => $merchantReference,
+            'success_url' => envi('APP_URL').'/payment-success-crypto',
+            'cancel_url' => envi('APP_URL').'/payment-cancel',
+        ];
+        
+        $client = new Client();
+        $apiKey = envi('NOW_API_KEY');
+        
+        try {
+            $response = $client->request('POST', 'https://api.nowpayments.io/v1/invoice', [
+                'headers' => [
+                    'x-api-key' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $data,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+            
+            $response->getBody()->write(json_encode($body));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (GuzzleException $e) {
+            $this->container->get('flash')->addMessage('error', 'We encountered an issue while processing your payment. Details: ' . $e->getMessage());
+            return $response->withHeader('Location', '/deposit')->withStatus(302);
+        }
+    }
+    
     public function successStripe(Request $request, Response $response)
     {
         $session_id = $request->getQueryParams()['session_id'] ?? null;
@@ -374,7 +418,124 @@ class FinancialsController extends Controller
             $this->container->get('flash')->addMessage('error', 'Failure: '.$e->getMessage());
             return $response->withHeader('Location', '/deposit')->withStatus(302);
         }
+    }
+    
+    public function successCrypto(Request $request, Response $response)
+    {
+        $client = new Client();
+        
+        $queryParams = $request->getQueryParams();
 
+        if (!isset($queryParams['paymentId']) || $queryParams['paymentId'] == 0) {
+            $this->container->get('flash')->addMessage('info', 'No paymentId provided.');
+            return view($response,'admin/financials/success-crypto.twig');
+        } else {
+            $paymentId = $queryParams['paymentId'];
+            $apiKey = envi('NOW_API_KEY');
+            $url = 'https://api.nowpayments.io/v1/payment/' . $paymentId;
+
+            try {
+                $apiclient = $client->request('GET', $url, [
+                    'headers' => [
+                        'x-api-key' => $apiKey,
+                    ],
+                ]);
+
+                $statusCode = $apiclient->getStatusCode();
+                $body = $apiclient->getBody()->getContents();
+                $data = json_decode($body, true);
+
+                if ($statusCode === 200) { // Check if the request was successful
+                    if (isset($data['payment_status']) && $data['payment_status'] === 'finished') {
+                        try {
+                            $amount = $data['pay_amount'];
+                            $merchantReference = hex2bin($data['order_description']);
+                            $delimiter = '|';
+
+                            // Split to get the original components
+                            list($registrarId, $uniqueIdentifier) = explode($delimiter, $merchantReference, 2);
+
+                            $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
+
+                            if ($isPositiveNumberWithTwoDecimals) {
+                                $db->beginTransaction();
+
+                                try {
+                                    $currentDateTime = new \DateTime();
+                                    $date = $currentDateTime->format('Y-m-d H:i:s.v');
+                                    $db->insert(
+                                        'statement',
+                                        [
+                                            'registrar_id' => $registrarId,
+                                            'date' => $date,
+                                            'command' => 'create',
+                                            'domain_name' => 'deposit',
+                                            'length_in_months' => 0,
+                                            'fromS' => $date,
+                                            'toS' => $date,
+                                            'amount' => $amount
+                                        ]
+                                    );
+
+                                    $db->insert(
+                                        'payment_history',
+                                        [
+                                            'registrar_id' => $registrarId,
+                                            'date' => $date,
+                                            'description' => 'registrar balance deposit via Crypto ('.$data['payment_id'].')',
+                                            'amount' => $amount
+                                        ]
+                                    );
+                                    
+                                    $db->exec(
+                                        'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
+                                        [
+                                            $amount,
+                                            $registrarId,
+                                        ]
+                                    );
+                                    
+                                    $db->commit();
+                                } catch (Exception $e) {
+                                    $this->container->get('flash')->addMessage('success', 'Request failed: ' . $e->getMessage());
+                                    return $response->withHeader('Location', '/payment-success-crypto')->withStatus(302);
+                                }
+                                
+                                return view($response, 'admin/financials/success-crypto.twig', [
+                                    'status' => $data['payment_status'],
+                                    'paymentId' => $paymentId
+                                ]);
+                            } else {
+                                $this->container->get('flash')->addMessage('success', 'Request failed. Reload page.');
+                                return $response->withHeader('Location', '/payment-success-crypto')->withStatus(302);
+                            }
+                        } catch (\Exception $e) {
+                            $this->container->get('flash')->addMessage('success', 'Request failed: ' . $e->getMessage());
+                            return $response->withHeader('Location', '/payment-success-crypto')->withStatus(302);
+                        }
+                    } else if (isset($data['payment_status']) && $data['payment_status'] === 'expired') {
+                        return view($response, 'admin/financials/success-crypto.twig', [
+                            'status' => $data['payment_status'],
+                            'paymentId' => $paymentId
+                        ]);
+                    } else {
+                        return view($response, 'admin/financials/success-crypto.twig', [
+                            'status' => $data['payment_status'],
+                            'paymentId' => $paymentId
+                        ]);
+                    }
+                } else {
+                    $this->container->get('flash')->addMessage('success', 'Failed to retrieve payment information. Status Code: ' . $statusCode);
+                    return $response->withHeader('Location', '/payment-success-crypto')->withStatus(302);
+                }
+
+            } catch (GuzzleException $e) {
+                $this->container->get('flash')->addMessage('success', 'Request failed: ' . $e->getMessage());
+                return $response->withHeader('Location', '/payment-success-crypto')->withStatus(302);
+            }
+        }
+        
+        return view($response,'admin/financials/success-crypto.twig');
     }
     
     public function webhookAdyen(Request $request, Response $response)

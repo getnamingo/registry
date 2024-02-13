@@ -35,4 +35,6 @@ ADYEN_BASIC_AUTH_USER='adyen-basic-auth-user'
 ADYEN_BASIC_AUTH_PASS='adyen-basic-auth-pass'
 ADYEN_HMAC_KEY='adyen-hmac-key'
 
+NOW_API_KEY='now-api-key'
+
 TEST_TLDS=.test,.com.test
