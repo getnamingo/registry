@@ -848,6 +848,14 @@ INSERT INTO `registry`.`registrar_contact` (`id`, `registrar_id`, `type`, `title
 (5,    2,    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 (6,    2,    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
 
+INSERT INTO `registry`.`users` (`email`, `password`, `username`, `status`, `verified`, `resettable`, `roles_mask`, `registered`, `last_login`, `force_logout`, `tfa_secret`, `tfa_enabled`, `auth_method`, `backup_codes`) VALUES
+('info@leonet.com',    '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk',    'leonet',    0,    1,    1,    4,    1,    NULL,    0,    NULL,    0,    'password',    NULL),
+('info@nordregistrar.com',    '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk',    'nordregistrar',    0,    1,    1,    4,    1,    NULL,    0,    NULL,    0,    'password',    NULL);
+
+INSERT INTO `registry`.`registrar_users` (`registrar_id`, `user_id`) VALUES
+(1,    1),
+(2,    2);
+
 INSERT INTO `registry`.`ticket_categories` (`name`, `description`) VALUES 
 ('Domain Transfer', 'Issues related to domain transfers between registrars'),
 ('Registration Errors', 'Errors or issues encountered during domain registration'),
