@@ -31,5 +31,8 @@ ADYEN_API_KEY='adyen-api-key'
 ADYEN_MERCHANT_ID='adyen-merchant-id'
 ADYEN_THEME_ID='adyen-theme-id'
 ADYEN_BASE_URI='https://checkout-test.adyen.com/v70/'
+ADYEN_BASIC_AUTH_USER='adyen-basic-auth-user'
+ADYEN_BASIC_AUTH_PASS='adyen-basic-auth-pass'
+ADYEN_HMAC_KEY='adyen-hmac-key'
 
 TEST_TLDS=.test,.com.test

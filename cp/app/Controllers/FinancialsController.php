@@ -381,6 +381,25 @@ class FinancialsController extends Controller
     {
         $data = json_decode($request->getBody()->getContents(), true);
         $db = $this->container->get('db');
+        
+        // Basic auth credentials
+        $username = envi('ADYEN_BASIC_AUTH_USER');
+        $password = envi('ADYEN_BASIC_AUTH_PASS');
+
+        // Check for basic auth header
+        if (!isset($_SERVER['PHP_AUTH_USER'])) {
+            return $response->withStatus(401)->withHeader('WWW-Authenticate', 'Basic realm="MyRealm"');
+        }
+
+        // Validate username and password
+        if ($_SERVER['PHP_AUTH_USER'] != $username || $_SERVER['PHP_AUTH_PW'] != $password) {
+            $response = $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode(['forbidden' => true]));
+            return $response;
+        }
+        
+        $hmac = new \Adyen\Util\HmacSignature();
+        $hmacKey = envi('ADYEN_HMAC_KEY');
 
         foreach ($data['notificationItems'] as $item) {
             $notificationRequestItem = $item['NotificationRequestItem'];
@@ -389,7 +408,7 @@ class FinancialsController extends Controller
                 $merchantReference = $notificationRequestItem['merchantReference'] ?? null;
                 $paymentStatus = $notificationRequestItem['success'] ?? null;
 
-                if ($merchantReference && $paymentStatus) {
+                if ($merchantReference && $paymentStatus && $hmac->isValidNotificationHMAC($hmacKey, $notificationRequestItem)) {
                     try {
                         $amountPaid = $notificationRequestItem['amount']['value']; // Amount paid, in cents
                         $amount = $amountPaid / 100;
