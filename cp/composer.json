@@ -42,7 +42,8 @@
         "mpociot/vat-calculator": "^3.7",
         "ramsey/uuid": "^4.7",
         "selective/xmldsig": "^3.1",
-        "adyen/php-api-library": "^17.1"
+        "adyen/php-api-library": "^17.1",
+        "giggsey/libphonenumber-for-php-lite": "^8.13"
     },
     "autoload": {
         "psr-4": {
