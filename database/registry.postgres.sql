@@ -742,8 +742,9 @@ CREATE TABLE tmch_crl (
     "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
-INSERT INTO domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
-INSERT INTO domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+SELECT setval('domain_tld_id_seq', COALESCE((SELECT MAX(id) FROM domain_tld), 0) + 1);
 
 INSERT INTO domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
@@ -751,17 +752,21 @@ INSERT INTO domain_price VALUES (E'3',E'1',E'transfer',E'0.00',E'5.00',E'10.00',
 INSERT INTO domain_price VALUES (E'4',E'2',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO domain_price VALUES (E'5',E'2',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 INSERT INTO domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+SELECT setval('domain_price_id_seq', COALESCE((SELECT MAX(id) FROM domain_price), 0) + 1);
 
 INSERT INTO domain_restore_price VALUES (E'1',E'1',E'50.00');
 INSERT INTO domain_restore_price VALUES (E'2',E'2',E'50.00');
+SELECT setval('domain_restore_price_id_seq', COALESCE((SELECT MAX(id) FROM domain_restore_price), 0) + 1);
 
 INSERT INTO registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.ua',E'whois.leonet.ua',E'rdap.leonet.ua',E'https://www.leonet.ua',E'abuse@leonet.ua',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 INSERT INTO registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "crdate", "lastupdate") VALUES (E'Nord Registrar AB',E'nordregistrar',E'$argon2id$v=19$m=131072,t=6,p=4$MU9Eei5UMjA0M2cxYjd3bg$2yBHTWVVY4xQlMGhnhol9MRbVyVQg8qkcZ6cpdeID1U',E'NR',E'info@nordregistrar.com',E'whois.nordregistrar.com',E'rdap.nordregistrar.com',E'https://www.nordregistrar.com',E'abuse@nordregistrar.com',E'+46.80203',E'100000.00',E'100000.00',E'500.00',E'fixed',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+SELECT setval('registrar_id_seq', COALESCE((SELECT MAX(id) FROM registrar), 0) + 1);
 
 INSERT INTO registrar_whitelist ("registrar_id", "addr") VALUES
 ('1',    '1.2.3.4');
 INSERT INTO registrar_whitelist ("registrar_id", "addr") VALUES
 ('2',    '5.6.7.8');
+SELECT setval('registrar_whitelist_id_seq', COALESCE((SELECT MAX(id) FROM registrar_whitelist), 0) + 1);
 
 INSERT INTO registrar_contact (id, registrar_id, type, title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email) VALUES
 ('1',    '1',    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
@@ -770,10 +775,12 @@ INSERT INTO registrar_contact (id, registrar_id, type, title, first_name, middle
 ('4',    '2',    'owner',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 ('5',    '2',    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 ('6',    '2',    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
+SELECT setval('registrar_contact_id_seq', COALESCE((SELECT MAX(id) FROM registrar_contact), 0) + 1);
 
 INSERT INTO users (email, password, username, status, verified, resettable, roles_mask, registered, last_login, force_logout, tfa_secret, tfa_enabled, auth_method, backup_codes) VALUES
-('info@leonet.com', '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk', 'leonet', 0, 1, 1, 4, 1, NULL, 0, NULL, 0, 'password', NULL),
-('info@nordregistrar.com', '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk', 'nordregistrar', 0, 1, 1, 4, 1, NULL, 0, NULL, 0, 'password', NULL);
+('info@leonet.com', '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk', 'leonet', 0, 1, 1, 4, 1, NULL, 0, NULL, false, 'password', NULL),
+('info@nordregistrar.com', '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk', 'nordregistrar', 0, 1, 1, 4, 1, NULL, 0, NULL, false, 'password', NULL);
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1);
 
 INSERT INTO registrar_users (registrar_id, user_id) VALUES
 ('1', '1'),
