@@ -247,7 +247,6 @@ class SystemController extends Controller
 
             $validators = [
                 'extension' => v::stringType()->notEmpty()->length(3, 64),
-                'tldType' => v::stringType()->notEmpty(),
                 'script' => v::stringType()->notEmpty(),
                 'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
                 'createm12' => v::numericVal()->between(0.00, 9999999.99, true),
@@ -879,8 +878,17 @@ class SystemController extends Controller
                     $scriptName = 'Unknown'; // Default or fallback script name
                 }
 
+                if (strpos(strtolower($tld['tld']), '.xn--') === 0) {
+                    $tld['tld'] = ltrim($tld['tld'], '.');
+                    $tld_u = '.'.idn_to_utf8($tld['tld'], 0, INTL_IDNA_VARIANT_UTS46);
+                    $tld['tld'] = '.'.$tld['tld'];
+                } else {
+                    $tld_u = $tld['tld'];
+                }
+
                 return view($response,'admin/system/manageTld.twig', [
                     'tld' => $tld,
+                    'tld_u' => $tld_u,
                     'scriptName' => $scriptName,
                     'createPrices' => $createPrices,
                     'renewPrices' => $renewPrices,

@@ -60,6 +60,8 @@ class Mail
                 echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
                 return false;
             }
+        } else {
+            return true;
         }
     }
 }

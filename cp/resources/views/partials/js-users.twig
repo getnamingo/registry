@@ -23,9 +23,9 @@
     function roleLabelFormatter(cell) {
         var value = cell.getValue();
         if (value === 0) {
-            return '<span class="badge bg-purple-lt">Administrator</span>';
+            return '<span class="status status-purple">Administrator</span>';
         } else if (value === 4) {
-            return '<span class="badge bg-indigo-lt">Registrar</span>';
+            return '<span class="status status-indigo">Registrar</span>';
         }
         return value; // If the value is neither 0 nor 4, return it as is
     }
@@ -33,11 +33,11 @@
     function verifiedFormatter(cell) {
         var value = cell.getValue();
         if (value === false) {
-            return '<span class="badge bg-orange-lt">Pending</span>';
+            return '<span class="status status-orange">Pending</span>';
         } else if (value === true) {
-            return '<span class="badge bg-green-lt">ok</span>';
+            return '<span class="status status-green">ok</span>';
         } else {
-            return '<span class="badge bg-dark-lt">?</span>';
+            return '<span class="status status-dark">?</span>';
         }
         return value;
     }
@@ -45,9 +45,9 @@
     function statusBadgeFormatter(cell) {
         var value = cell.getValue();
         if (value === 0) {
-            return '<span class="badge bg-green-lt">ok</span>';
+            return '<span class="status status-green">ok</span>';
         } else {
-            return '<span class="badge bg-red-lt">Trouble</span>';
+            return '<span class="status status-red">Trouble</span>';
         }
     }
 

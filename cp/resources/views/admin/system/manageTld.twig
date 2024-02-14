@@ -14,7 +14,7 @@
                   {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
-                  {{ __('Manage TLD') }} {{ tld.tld }}
+                  {{ __('Manage TLD') }} {{ tld_u }}
                 </h2>
               </div>
             </div>
@@ -34,7 +34,7 @@
                   <div class="card-body">
                     <div class="mb-3">
                         <label for="tldName" class="form-label">{{ __('TLD Extension') }}</label>
-                        <div class="form-control-plaintext">{{ tld.tld }}</div>
+                        <div class="form-control-plaintext">{{ tld_u }}</div>
                         <input type="hidden" name="extension" value="{{ tld.tld }}">
                     </div>
                     <div class="mb-3">
@@ -45,7 +45,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="tldTypeSelector" class="form-label">{{ __('TLD Type') }}</label>
-                        <div class="form-control-plaintext">ccTLD/gTLD</div>
+                        <div class="form-control-plaintext">{{ tld_u|length == 3 ? 'ccTLD' : (tld_u|length > 3 ? 'gTLD' : '') }}</div>
                     </div>
                     <div class="mb-3">
                         <label for="scriptDropdown" class="form-label">{{ __('Supported Script') }}</label>
@@ -141,7 +141,7 @@
                       <label for="premiumNamesFile" class="form-label">{{ __('Upload CSV File') }}</label>
                       <input type="file" class="form-control" id="premiumNamesFile" name="premiumNamesFile" accept=".csv">
                       <small class="form-text text-muted">
-					    {{ __('Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload.') }}
+                        {{ __('Please upload a CSV file containing premium names. Each row should include a name and its corresponding pricing category, separated by a comma. Note: If one or more names in the file already exist in our system, they will be overwritten with the new information provided in the upload.') }}
                       </small>
                     </div>
                             
@@ -184,7 +184,7 @@
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">{{ __('Update TLD') }} {{ tld.tld }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update TLD') }} {{ tld_u }}</button>
                       </div>
                     </div>
                   </div>
