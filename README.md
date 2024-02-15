@@ -76,7 +76,7 @@ Your feedback and inquiries are invaluable to Namingo's evolutionary journey. If
 
 - **Email**: Feel free to reach out directly at [help@namingo.org](mailto:help@namingo.org).
 
-- **Discord**: Or chat with us on our [Discord](https://discord.gg/Rhy5KT7s) channel.
+- **Discord**: Or chat with us on our [Discord](https://discord.gg/97R9VCrWgc) channel.
   
 - **GitHub Issues**: For bug reports or feature requests, please use the [Issues](https://github.com/getnamingo/registry/issues) section of our GitHub repository.
 
