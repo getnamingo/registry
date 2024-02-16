@@ -45,7 +45,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="tldTypeSelector" class="form-label">{{ __('TLD Type') }}</label>
-                        <div class="form-control-plaintext">{{ tld_u|length == 3 ? 'ccTLD' : (tld_u|length > 3 ? 'gTLD' : '') }}</div>
+                        <div class="form-control-plaintext">{{ tld_u|length == 3 ? 'ccTLD' : (tld_u|length > 3 ? 'gTLD' : (tld_u|length == 2 ? 'Test TLD' : '')) }}</div>
                     </div>
                     <div class="mb-3">
                         <label for="scriptDropdown" class="form-label">{{ __('Supported Script') }}</label>
