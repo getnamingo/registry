@@ -15,11 +15,13 @@ class HomeController extends Controller
         $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
         $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+        $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
         
         return view($response, 'index.twig', [
             'whois_server' => $whois_server,
             'rdap_server' => $rdap_server,
             'company_name' => $company_name,
+            'email' => $email
         ]);
     }
 
@@ -41,26 +43,34 @@ class HomeController extends Controller
         }
 
         if ($clid !== null) {
-            $domains = $db->selectRow('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);
-            $hosts = $db->selectRow('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
-            $contacts = $db->selectRow('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
+            $domains = $db->selectValue('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);
+            $latest_domains = $db->select('SELECT name, crdate FROM domain WHERE clid = ? ORDER BY crdate DESC LIMIT 10', [$clid]);
+            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 10', [$clid]);
+            $hosts = $db->selectValue('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
+            $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
             
             return view($response, 'admin/dashboard/index.twig', [
-                'domains' => $domains['domains'],
-                'hosts' => $hosts['hosts'],
-                'contacts' => $contacts['contacts'],
+                'domains' => $domains,
+                'hosts' => $hosts,
+                'contacts' => $contacts,
+                'latest_domains' => $latest_domains,
+                'tickets' => $tickets,
             ]);
         } else {
-            $domains = $db->selectRow('SELECT count(id) as domains FROM domain');
-            $hosts = $db->selectRow('SELECT count(id) as hosts FROM host');
-            $contacts = $db->selectRow('SELECT count(id) as contacts FROM contact');
-            $registrars = $db->selectRow('SELECT count(id) as registrars FROM registrar');
+            $domains = $db->selectValue('SELECT count(id) as domains FROM domain');
+            $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 10');
+            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets ORDER BY date_created DESC LIMIT 10');
+            $hosts = $db->selectValue('SELECT count(id) as hosts FROM host');
+            $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact');
+            $registrars = $db->selectValue('SELECT count(id) as registrars FROM registrar');
             
             return view($response, 'admin/dashboard/index.twig', [
-                'domains' => $domains['domains'],
-                'hosts' => $hosts['hosts'],
-                'contacts' => $contacts['contacts'],
-                'registrars' => $registrars['registrars'],
+                'domains' => $domains,
+                'hosts' => $hosts,
+                'contacts' => $contacts,
+                'registrars' => $registrars,
+                'latest_domains' => $latest_domains,
+                'tickets' => $tickets,
             ]);
         }
     }

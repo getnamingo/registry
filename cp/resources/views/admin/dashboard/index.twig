@@ -22,6 +22,7 @@
                 <div class="btn-list">
                   <span class="d-none d-sm-inline">
                     <a href="{{route('reports')}}" class="btn btn-pink">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h5.697" /><path d="M18 14v4h4" /><path d="M18 11v-4a2 2 0 0 0 -2 -2h-2" /><path d="M8 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M8 11h4" /><path d="M8 15h3" /></svg>
                       {{ __('View Reports') }}
                     </a>
                   </span>
@@ -165,6 +166,64 @@
                     </a>
                   </div>
                   {% endif %}
+                  <div class="col-12 col-md-6 mt-5">
+                  <h3 class="card-title">Recent Domains</h3>
+                    <div class="card">
+                      <div class="table-responsive">
+                        <table
+            class="table table-vcenter card-table table-striped">
+                          <thead>
+                            <tr>
+                              <th>{{ __('Name') }}</th>
+                              <th>{{ __('Creation Date') }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                          {% if latest_domains|length > 0 %}
+                            {% for domain in latest_domains %}
+                                <tr>
+                                    <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
+                                    <td class="text-secondary">{{ domain.crdate }}</td>
+                                </tr>
+                            {% endfor %}
+                          {% else %}
+                                <tr><td colspan="2">{{ __('No Data') }}</td></tr>
+                          {% endif %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6 mt-5">
+                  <h3 class="card-title">Recent Support Tickets</h3>
+                    <div class="card">
+                      <div class="table-responsive">
+                        <table
+            class="table table-vcenter card-table table-striped">
+                          <thead>
+                            <tr>
+                              <th>{{ __('Subject') }}</th>
+                              <th>{{ __('Status') }}</th>
+                              <th>{{ __('Priority') }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                          {% if tickets|length > 0 %}
+                            {% for ticket in tickets %}
+                                <tr>
+                                    <td><a href="/domain/view/{{ ticket.id }}">{{ ticket.subject }}</a></td>
+                                    <td class="text-secondary">{{ ticket.status }}</td>
+                                    <td class="text-secondary">{{ ticket.priority }}</td>
+                                </tr>
+                            {% endfor %}
+                          {% else %}
+                                <tr><td colspan="3">{{ __('No Data') }}</td></tr>
+                          {% endif %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

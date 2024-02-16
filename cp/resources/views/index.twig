@@ -70,8 +70,8 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                Help Center
+                            <a class="nav-link" href="mailto:{{ email }}">
+                                Support Team
                             </a>
                         </li>
                     </ul>
@@ -88,7 +88,7 @@
                 <ul class="custom-bullet">
                 <li>{% if auth.isLogin %}<a href="{{route('home')}}"><strong>Open panel</strong></a>{% else %}<a href="{{route('login')}}"><strong>Log in</strong></a>{% endif %} to access your registrar dashboard and manage domains.</li>
                 <li>Access our <a href="https://{{ whois_server }}" target="_blank"><strong>WHOIS</strong></a> and <a href="{{ rdap_server }}" target="_blank"><strong>RDAP</strong></a> services for domain information lookup.</li>
-                <li>Visit our <a href="#"><strong>Help Center</strong></a> for guides, FAQs, and support.</li>
+                <li>Contact our <a href="mailto:{{ email }}"><strong>Support Team</strong></a> for assistance, guidance, FAQs, and further support needs.</li>
                 <li>Interested in partnering with us? <a href="#"><strong>Apply</strong></a> to become an official registrar.</li>
                 </ul>
                 <code>Personalize this template to fit the unique needs and branding of your registry by editing `resources/views/index.twig`</code>
