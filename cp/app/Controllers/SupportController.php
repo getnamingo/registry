@@ -24,7 +24,7 @@ class SupportController extends Controller
             $categories = $db->select("SELECT * FROM ticket_categories");
             
             $category = $data['category'] ?? null;
-            $subject = $data['subject'] ?? null;
+            $subject = htmlspecialchars($data['subject'], ENT_QUOTES, 'UTF-8') ?? null;
             $message = $data['message'] ?? null;
             
             if (!$subject) {
@@ -103,15 +103,22 @@ class SupportController extends Controller
     
     public function viewTicket(Request $request, Response $response, $args)
     {
-        $rawNumber = $args; 
-        $ticketNumber = filter_var($rawNumber, FILTER_VALIDATE_INT);
+        $ticketNumber = filter_var($args, FILTER_VALIDATE_INT);
+        $db = $this->container->get('db');
 
         if ($ticketNumber === false) {
             $this->container->get('flash')->addMessage('error', 'Invalid ticket number');
             return $response->withHeader('Location', '/support')->withStatus(302);
         }
+        
+        $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+        $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
+        $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticketNumber]);
+            
+        if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
       
-        $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
         
@@ -142,7 +149,7 @@ class SupportController extends Controller
     }
     
     public function replyTicket(Request $request, Response $response)
-    {      
+    {
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -153,6 +160,15 @@ class SupportController extends Controller
             
             $ticket_id = $data['ticket_id'] ?? null;
             $responseText = $data['responseText'] ?? null;
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
+            $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticket_id]);
+            
+            if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+                $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
+                return $response->withHeader('Location', '/support')->withStatus(302);
+            }
 
             if (!$responseText) {
                 $this->container->get('flash')->addMessage('error', 'Please enter a reply');
@@ -170,6 +186,17 @@ class SupportController extends Controller
                         'responder_id' => $_SESSION['auth_user_id'],
                         'response' => $responseText,
                         'date_created' => $crdate,
+                    ]
+                );
+                
+                $db->update(
+                    'support_tickets',
+                    [
+                        'status' => 'In Progress',
+                        'last_updated' => $crdate
+                    ],
+                    [
+                        'id' => $ticket_id
                     ]
                 );
 
@@ -190,8 +217,90 @@ class SupportController extends Controller
                 // send message
                 Mail::send($mailsubject, $message, $from, $to);
 
-                $this->container->get('flash')->addMessage('success', 'Reply has been created successfully on ' . $crdate);
+                $this->container->get('flash')->addMessage('success', 'Reply has been posted successfully on ' . $crdate);
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+            } catch (Exception $e) {
+                $this->container->get('flash')->addMessage('error', 'Database error: '.$e->getMessage());
+                return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+            }
+        }
+    }
+    
+    public function statusTicket(Request $request, Response $response)
+    {
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+            $categories = $db->select("SELECT * FROM ticket_categories");
+            
+            $ticket_id = $data['ticket_id'] ?? null;
+            $action = $data['action'] ?? null;
+            
+            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
+            $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticket_id]);
+            
+            if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+                $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
+                return $response->withHeader('Location', '/support')->withStatus(302);
+            }
+            
+            if (!$action) {
+                $this->container->get('flash')->addMessage('error', 'Please select an action');
+                return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+            }
+
+            try {    
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v');
+                
+                if ($action === 'close') {
+                    $db->update(
+                        'support_tickets',
+                        [
+                            'status' => 'Closed',
+                            'last_updated' => $update
+                        ],
+                        [
+                            'id' => $ticket_id
+                        ]
+                    );
+                    $this->container->get('flash')->addMessage('success', 'Ticket has been closed successfully');
+                    return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+                } else if ($action === 'escalate') {            
+                    $db->update(
+                        'support_tickets',
+                        [
+                            'priority' => 'High',
+                            'last_updated' => $update
+                        ],
+                        [
+                            'id' => $ticket_id
+                        ]
+                    );
+                    $this->container->get('flash')->addMessage('success', 'Ticket has been escalated successfully');
+                    return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+                } else if ($action === 'reopen') {            
+                    $db->update(
+                        'support_tickets',
+                        [
+                            'status' => 'In Progress',
+                            'last_updated' => $update
+                        ],
+                        [
+                            'id' => $ticket_id
+                        ]
+                    );
+                    $this->container->get('flash')->addMessage('success', 'Ticket has been escalated successfully');
+                    return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+                } else {
+                    $this->container->get('flash')->addMessage('error', 'Incorrect action specified');
+                    return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+                }
+
             } catch (Exception $e) {
                 $this->container->get('flash')->addMessage('error', 'Database error: '.$e->getMessage());
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);

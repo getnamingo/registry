@@ -25,33 +25,65 @@
           <div class="container-xl">
             <div class="col-12">
             {% include 'partials/flash.twig' %}
-              <form action="/support/reply" method="post">
+              <form action="/support/status" method="post">
                 {{ csrf.field | raw }}
                 <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h5>&nbsp;
+                        <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>&nbsp;
                         {% if ticket.status == 'Open' %}
-                            <span class="badge bg-success-lt">{{ ticket.status }}</span>
+                            <span class="status status-success">{{ ticket.status }}</span>
                         {% elseif ticket.status == 'In Progress' %}
-                            <span class="badge bg-warning-lt">{{ ticket.status }}</span>
+                            <span class="status status-warning">{{ ticket.status }}</span>
                         {% elseif ticket.status == 'Resolved' %}
-                            <span class="badge bg-info-lt">{{ ticket.status }}</span>
+                            <span class="status status-info">{{ ticket.status }}</span>
                         {% elseif ticket.status == 'Closed' %}
-                            <span class="badge bg-secondary-lt">{{ ticket.status }}</span>
+                            <span class="status status-cyan">{{ ticket.status }}</span>
                         {% else %}
-                            <span class="badge bg-dark-lt">{{ __('Unknown Status') }}</span>
+                            <span class="status status-teal">{{ __('Unknown Status') }}</span>
                         {% endif %}
+                        <div class="card-actions">
+                        {% if ticket.status != 'Closed' %}
+                          <button type="submit" name="action" value="close" class="btn btn-ghost-warning">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5.641 5.631a9 9 0 1 0 12.719 12.738m1.68 -2.318a9 9 0 0 0 -12.074 -12.098" /><path d="M12 17v.01" /><path d="M12 13.5a1.5 1.5 0 0 1 .394 -1.1m2.106 -1.9a2.6 2.6 0 0 0 -3.347 -3.361" /><path d="M3 3l18 18" /></svg>
+                            Close Ticket
+                          </button>
+                          <button type="submit" name="action" value="escalate" class="btn btn-outline-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.5 7h-2.672a2 2 0 0 0 -1.414 .586l-8.414 8.414h-2.5a2.5 2.5 0 1 0 0 5h3.672a2 2 0 0 0 1.414 -.586l8.414 -8.414h1.5a2.5 2.5 0 1 0 0 -5z" /><path d="M6 10v-7" /><path d="M3 6l3 -3l3 3" /></svg>
+                            Escalate Ticket
+                          </button>
+                          {% else %}
+                          <button type="submit" name="action" value="reopen" class="btn btn-outline-pink">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /></svg>
+                            Reopen Ticket
+                          </button>
+                          {% endif %}
+                        </div>
                     </div>
+              </form>
+              {% if ticket.status != 'Closed' %}<form action="/support/reply" method="post">
+                {{ csrf.field | raw }}
+                <input type="hidden" name="ticket_id" value="{{ ticket.id }}">{% endif %}
                     <div class="card-body">
                         <h6 class="card-subtitle mb-2 text-muted">{{ __('Ticket Details') }}</h6>
                         <p><span>{{ __('Created On') }}:</span> <strong>{{ ticket.date_created }}</strong></p>
-                        <p><span>{{ __('Category') }}:</span> <strong>{{ category }}</strong></p>
-                        <p><span>{{ __('Priority') }}:</span> <strong>{{ ticket.priority }}</strong></p>
+                        <p><span>{{ __('Category') }}:</span> <span class="status status-indigo">{{ category }}</span></p>
+                        <p><span>{{ __('Priority') }}:</span> 
+                        {% if ticket.priority == 'Low' %}
+                            <span class="status status-teal">{{ ticket.priority }}</span>
+                        {% elseif ticket.priority == 'Medium' %}
+                            <span class="status status-blue">{{ ticket.priority }}</span>
+                        {% elseif ticket.priority == 'High' %}
+                            <span class="status status-orange">{{ ticket.priority }}</span>
+                        {% elseif ticket.priority == 'Critical' %}
+                            <span class="status status-red">{{ ticket.priority }}</span>
+                        {% else %}
+                            <span class="status status-cyan">{{ ticket.priority }}</span>
+                        {% endif %}</p>
 
-                        <div class="card mt-3">
+                        <div class="card mt-4">
                             <div class="card-body">
-                                <h6 class="card-subtitle mb-2 text-muted">{{ __('Conversation') }}</h6>
+                                <h6 class="card-subtitle text-muted">{{ __('Conversation') }}</h6>
                                     {% for reply in replies %}
                                         <div class="d-flex align-items-start mb-3">
                                             <div class="flex-shrink-0">
@@ -64,7 +96,7 @@
                                             </div>
                                         </div>
                                     {% endfor %}
-                                    <div class="d-flex align-items-start mb-3">
+                                    <div class="d-flex align-items-start">
                                         <div class="flex-shrink-0">
                                             <span class="avatar">{{ ticket.ticket_creator|slice(0, 2) }}</span>
                                         </div>
@@ -76,11 +108,14 @@
                             </div>
                         </div>
 
+                        {% if ticket.status != 'Closed' %}
                         <div class="mt-3">
                             <label for="responseText" class="form-label">{{ __('Your Response') }}</label>
                             <textarea class="form-control" id="responseText" name="responseText" rows="3" required></textarea>
                         </div>
+                        {% endif %}
                     </div>
+                  {% if ticket.status != 'Closed' %}
                   <div class="card-footer">
                     <div class="row align-items-center">
                       <div class="col-auto">
@@ -88,8 +123,9 @@
                       </div>
                     </div>
                   </div>
+                  {% endif %}
                 </div>
-              </form>
+              {% if ticket.status != 'Closed' %}</form>{% endif %}
             </div>
           </div>
         </div>

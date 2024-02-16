@@ -28,13 +28,13 @@
 
         switch (status) {
             case 'Open':
-                return createBadge(status, 'primary');
+                return createBadge(status, 'success');
             case 'In Progress':
                 return createBadge(status, 'warning');
             case 'Resolved':
-                return createBadge(status, 'success');
+                return createBadge(status, 'info');
             case 'Closed':
-                return createBadge(status, 'secondary');
+                return createBadge(status, 'cyan');
             default:
                 return "";
         }
@@ -45,21 +45,32 @@
 
         // Function to create an outline badge with color based on priority
         function createBadge(text, badgeClass) {
-            return `<span class="badge bg-${badgeClass}-lt">${text}</span>`;
+            return `<span class="status status-${badgeClass}">${text}</span>`;
         }
 
         switch (priority) {
             case 'Low':
-                return createBadge(priority, 'info');
+                return createBadge(priority, 'teal');
             case 'Medium':
-                return createBadge(priority, 'secondary');
+                return createBadge(priority, 'blue');
             case 'High':
-                return createBadge(priority, 'warning');
+                return createBadge(priority, 'orange');
             case 'Critical':
-                return createBadge(priority, 'danger');
+                return createBadge(priority, 'red');
             default:
                 return "";
         }
+    }
+    
+    function catFormatter(cell) {
+        var category = cell.getValue();
+
+        // Function to create an outline badge with color based on category
+        function createBadge(text, badgeClass) {
+            return `<span class="status status-${badgeClass}">${text}</span>`;
+        }
+
+        return createBadge(category, 'indigo');
     }
 
     table = new Tabulator("#supportTable", {
@@ -74,10 +85,13 @@
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
+        initialSort:[
+            {column:"status", dir:"desc"},
+        ],
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Subject') }}", field:"subject", width:350, minWidth:100, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
-            {title:"{{ __('Category') }}", field:"category_id.name", width:250, minWidth:80, headerSort:true, responsive:0},
+            {title:"{{ __('Category') }}", field:"category_id.name", width:250, minWidth:80, formatter: catFormatter, headerSort:true, responsive:0},
             {title:"{{ __('Status') }}", field:"status", headerSort:true, width:250, minWidth:100, formatter: statusFormatter, responsive:2},
             {title:"{{ __('Priority') }}", field:"priority", headerSort:true, width:250, minWidth:100, formatter: priorityFormatter, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
