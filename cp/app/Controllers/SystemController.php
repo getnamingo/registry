@@ -246,7 +246,7 @@ class SystemController extends Controller
             }
 
             $validators = [
-                'extension' => v::stringType()->notEmpty()->length(1, 64),
+                'extension' => v::stringType()->notEmpty()->length(2, 64),
                 'script' => v::stringType()->notEmpty(),
                 'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
                 'createm12' => v::numericVal()->between(0.00, 9999999.99, true),
@@ -553,7 +553,7 @@ class SystemController extends Controller
                 }
 
                 $validators = [
-                    'extension' => v::stringType()->notEmpty()->length(1, 64),
+                    'extension' => v::stringType()->notEmpty()->length(2, 64),
                     'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
                     'createm12' => v::numericVal()->between(0.00, 9999999.99, true),
                     'createm24' => v::numericVal()->between(0.00, 9999999.99, true),
