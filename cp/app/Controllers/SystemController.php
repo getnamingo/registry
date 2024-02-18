@@ -127,6 +127,36 @@ class SystemController extends Controller
                 $db->update(
                     'settings',
                     [
+                        'value' => $data['verifyPhone']
+                    ],
+                    [
+                        'name' => "verifyPhone"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['verifyEmail']
+                    ],
+                    [
+                        'name' => "verifyEmail"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
+                        'value' => $data['verifyPostal']
+                    ],
+                    [
+                        'name' => "verifyPostal"
+                    ]
+                );
+                
+                $db->update(
+                    'settings',
+                    [
                         'value' => $data['whoisServer']
                     ],
                     [
@@ -181,6 +211,9 @@ class SystemController extends Controller
         $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
         $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
         $currency = $db->selectValue("SELECT value FROM settings WHERE name = 'currency'");
+        $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+        $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+        $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
         
         $uniqueCurrencies = [];
         foreach ($countries as $country) {
@@ -204,7 +237,10 @@ class SystemController extends Controller
             'whois_server' => $whois_server,
             'rdap_server' => $rdap_server,
             'uniqueCurrencies' => $uniqueCurrencies,
-            'currency' => $currency
+            'currency' => $currency,
+            'verifyPhone' => $verifyPhone,
+            'verifyEmail' => $verifyEmail,
+            'verifyPostal' => $verifyPostal
         ]);
     }
     
