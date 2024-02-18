@@ -73,6 +73,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':createContact')->setName('createContact');
     $route->get('/contact/view/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
     $route->get('/contact/update/{contact}', ContactsController::class . ':updateContact')->setName('updateContact');
+    $route->get('/contact/validate/{contact}', ContactsController::class . ':validateContact')->setName('validateContact');
     $route->post('/contact/update', ContactsController::class . ':updateContactProcess')->setName('updateContactProcess');
     $route->map(['GET', 'POST'], '/contact/delete/{contact}', ContactsController::class . ':deleteContact')->setName('deleteContact');
     

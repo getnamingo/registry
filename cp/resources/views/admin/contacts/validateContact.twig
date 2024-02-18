@@ -1,0 +1,87 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Contact Validation') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Contact Validation') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h3 class="card-title">{{ __('Contact') }} {{ contact.identifier }}&nbsp;<span class="status status-green">{{ contactStatus.status }}</span>{% if contactLinked is not null %}&nbsp;<span class="status status-info">{{ __('linked') }}</span>{% endif %}
+                  {% if validation_enabled is not null %}
+                    <span class="status {% if contact_valid == 0 %}status-warning{% elseif contact_valid == 1 %}status-success{% elseif contact_valid == 2 %}status-success{% elseif contact_valid == 3 %}status-info{% endif %}" title="{% if contact_valid == 0 %}Pending Validation{% elseif contact_valid == 1 %}Validated by Phone{% elseif contact_valid == 2 %}Validated by Email{% elseif contact_valid == 3 %}Validated by Postal Mail{% endif %}">
+                        {% if contact_valid == 0 %}
+                            Pending Validation
+                        {% elseif contact_valid == 1 %}
+                            Validated by Phone
+                        {% elseif contact_valid == 2 %}
+                            Validated by Email
+                        {% elseif contact_valid == 3 %}
+                            Validated by Postal Mail
+                        {% endif %}
+                    </span>
+                  {% endif %}</h3>
+                    <div class="card-actions">
+                      <a href="/contact/update/{{ contact.identifier }}" class="btn btn-outline-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
+                        {{ __('Back to Contact Update') }}
+                      </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                {% if verifyPhone == 'on' %}
+                    {# The content you want to echo if verifyPhone is 'on' #}
+                    <h4>
+                      Phone verification is enabled.
+                    </h4>
+                    <div>
+                      <pre><code>Validation TBD.</code></pre>
+                    </div>
+                {% endif %}
+
+                {% if verifyEmail == 'on' %}
+                    {# The content you want to echo if verifyEmail is 'on' #}
+                    <h4>
+                      Email verification is enabled.
+                    </h4>
+                    <div>
+                      <pre><code>Validation TBD.</code></pre>
+                    </div>
+                {% endif %}        
+
+                {% if verifyPostal == 'on' %}
+                    {# The content you want to echo if verifyPostal is 'on' #}
+                    <h4>
+                      Postal Mail verification is enabled.
+                    </h4>
+                    <div>
+                      <pre><code>Validation TBD.</code></pre>
+                    </div>
+                {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

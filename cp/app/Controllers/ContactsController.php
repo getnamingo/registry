@@ -523,6 +523,81 @@ class ContactsController extends Controller
 
     }
     
+    public function validateContact(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+            
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
+            [ $args ]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $contact_clid = $contact['clid'];
+                if ($contact_clid != $clid) {
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
+                }
+            } else {
+                $clid = $contact['clid'];
+            }
+
+            if ($contact) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
+                $iso3166 = new ISO3166();
+                $countries = $iso3166->all();
+
+                $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
+                [ $contact['id'] ]);
+                
+                $responseData = [
+                    'contact' => $contact,
+                    'contactStatus' => $contactStatus,
+                    'contactAuth' => $contactAuth,
+                    'contactPostal' => $contactPostal,
+                    'registrars' => $registrars,
+                    'countries' => $countries,
+                    'currentUri' => $uri
+                ];
+                
+                $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+                $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+                $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+        
+                if ($verifyPhone == 'on' || $verifyEmail == 'on' || $verifyPostal == 'on') {
+                    $contact_validation = $db->selectRow('SELECT validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
+                    $responseData['contact_valid'] = $contact_validation['validation'];
+                    $responseData['validation_enabled'] = true;
+                    $responseData['verifyPhone'] = $verifyPhone;
+                    $responseData['verifyEmail'] = $verifyEmail;
+                    $responseData['verifyPostal'] = $verifyPostal;
+                }
+
+                return view($response, 'admin/contacts/validateContact.twig', $responseData);
+            } else {
+                // Contact does not exist, redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the contacts view
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
+    }
+    
     public function updateContactProcess(Request $request, Response $response)
     {
         if ($request->getMethod() === 'POST') {
