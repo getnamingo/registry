@@ -413,8 +413,8 @@ class ContactsController extends Controller
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
-
-                return view($response,'admin/contacts/viewContact.twig', [
+                
+                $responseData = [
                     'contact' => $contact,
                     'contactStatus' => $contactStatus,
                     'contactLinked' => $contactLinked,
@@ -422,7 +422,19 @@ class ContactsController extends Controller
                     'contactPostal' => $contactPostal,
                     'registrars' => $registrars,
                     'currentUri' => $uri
-                ]);
+                ];
+                
+                $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+                $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+                $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+        
+                if ($verifyPhone == 'on' || $verifyEmail == 'on' || $verifyPostal == 'on') {
+                    $contact_validation = $db->selectRow('SELECT validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
+                    $responseData['contact_valid'] = $contact_validation['validation'];
+                    $responseData['validation_enabled'] = true;
+                }
+
+                return view($response, 'admin/contacts/viewContact.twig', $responseData);
             } else {
                 // Contact does not exist, redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
@@ -477,8 +489,8 @@ class ContactsController extends Controller
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
-
-                return view($response,'admin/contacts/updateContact.twig', [
+                
+                $responseData = [
                     'contact' => $contact,
                     'contactStatus' => $contactStatus,
                     'contactAuth' => $contactAuth,
@@ -486,7 +498,19 @@ class ContactsController extends Controller
                     'registrars' => $registrars,
                     'countries' => $countries,
                     'currentUri' => $uri
-                ]);
+                ];
+                
+                $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+                $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+                $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+        
+                if ($verifyPhone == 'on' || $verifyEmail == 'on' || $verifyPostal == 'on') {
+                    $contact_validation = $db->selectRow('SELECT validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
+                    $responseData['contact_valid'] = $contact_validation['validation'];
+                    $responseData['validation_enabled'] = true;
+                }
+
+                return view($response, 'admin/contacts/updateContact.twig', $responseData);
             } else {
                 // Contact does not exist, redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
