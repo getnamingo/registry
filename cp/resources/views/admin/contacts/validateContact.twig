@@ -51,27 +51,27 @@
                 {% if verifyPhone == 'on' %}
                     {# The content you want to echo if verifyPhone is 'on' #}
                     <h4>
-                      Phone verification is enabled.
+                      Phone Validation
                     </h4>
                     <div>
-                      <pre><code>Validation TBD.</code></pre>
+                      <pre><code>{{ phoneDetails ? 'Number valid' : 'Number invalid' }}</code></pre>
                     </div>
                 {% endif %}
 
                 {% if verifyEmail == 'on' %}
                     {# The content you want to echo if verifyEmail is 'on' #}
                     <h4>
-                      Email verification is enabled.
+                      Email Validation
                     </h4>
                     <div>
-                      <pre><code>Validation TBD.</code></pre>
+                      <pre><code>{{ emailDetails == 1 ? 'Email valid' : 'Email invalid' }}</code></pre>
                     </div>
                 {% endif %}        
 
                 {% if verifyPostal == 'on' %}
                     {# The content you want to echo if verifyPostal is 'on' #}
                     <h4>
-                      Postal Mail verification is enabled.
+                      Postal Mail Validation
                     </h4>
                     <div>
                       <pre><code>Validation TBD.</code></pre>

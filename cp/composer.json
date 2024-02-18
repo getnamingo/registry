@@ -43,7 +43,8 @@
         "ramsey/uuid": "^4.7",
         "selective/xmldsig": "^3.1",
         "adyen/php-api-library": "^17.1",
-        "giggsey/libphonenumber-for-php-lite": "^8.13"
+        "giggsey/libphonenumber-for-php-lite": "^8.13",
+        "egulias/email-validator": "^4.0"
     },
     "autoload": {
         "psr-4": {

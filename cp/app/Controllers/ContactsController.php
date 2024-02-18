@@ -7,6 +7,10 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use League\ISO3166\ISO3166;
+use Egulias\EmailValidator\EmailValidator;
+use Egulias\EmailValidator\Validation\DNSCheckValidation;
+use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
+use Egulias\EmailValidator\Validation\RFCValidation;
 
 class ContactsController extends Controller
 {
@@ -561,7 +565,7 @@ class ContactsController extends Controller
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
-                
+           
                 $responseData = [
                     'contact' => $contact,
                     'contactStatus' => $contactStatus,
@@ -583,6 +587,27 @@ class ContactsController extends Controller
                     $responseData['verifyPhone'] = $verifyPhone;
                     $responseData['verifyEmail'] = $verifyEmail;
                     $responseData['verifyPostal'] = $verifyPostal;
+                }
+                
+                if ($verifyPhone == 'on') {
+                    $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+                    try {
+                        $numberProto = $phoneUtil->parse($contact['voice'], $contactPostal[0]['cc']);
+                        $isValid = $phoneUtil->isValidNumber($numberProto);
+                        $responseData['phoneDetails'] = $isValid;
+                    } catch (\libphonenumber\NumberParseException $e) {
+                        $responseData['phoneDetails'] = $e;
+                    }
+                }
+                
+                if ($verifyEmail == 'on') {
+                    $validator = new EmailValidator();
+                    $multipleValidations = new MultipleValidationWithAnd([
+                        new RFCValidation(),
+                        new DNSCheckValidation()
+                    ]);
+                    $isValid = $validator->isValid($contact['email'], $multipleValidations);
+                    $responseData['emailDetails'] = $isValid;
                 }
 
                 return view($response, 'admin/contacts/validateContact.twig', $responseData);
