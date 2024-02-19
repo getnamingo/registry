@@ -41,10 +41,16 @@
                     </span>
                   {% endif %}</h3>
                     <div class="card-actions">
-                      <a href="/contact/update/{{ contact.identifier }}" class="btn btn-outline-primary">
+                      <form action="/contact/approve" method="post">
+                      {{ csrf.field | raw }}<input type="hidden" name="identifier" value="{{ contact.identifier }}">
+                      <a href="/contact/update/{{ contact.identifier }}" class="btn btn-outline-secondary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
                         {{ __('Back to Contact Update') }}
                       </a>
+                      <button type="submit" class="btn btn-outline-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8" /><path d="M14 19l2 2l4 -4" /><path d="M9 8h4" /><path d="M9 12h2" /></svg>
+                        {{ __('Validate Contact') }}
+                      </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -54,8 +60,10 @@
                       Phone Validation
                     </h4>
                     <div>
-                      <pre><code>{{ phoneDetails ? 'Number valid' : 'Number invalid' }}</code></pre>
+                      <pre><code>{{ phoneDetails ? 'Phone format is valid' : 'Phone format is not valid' }}</code></pre>
                     </div>
+                    <input type="hidden" name="verify" value="1">
+                    <input type="hidden" name="v_log[]" value="{{ phoneDetails ? 'Phone format is valid' : 'Phone format is not valid' }}">
                 {% endif %}
 
                 {% if verifyEmail == 'on' %}
@@ -64,8 +72,10 @@
                       Email Validation
                     </h4>
                     <div>
-                      <pre><code>{{ emailDetails == 1 ? 'Email valid' : 'Email invalid' }}</code></pre>
+                      <pre><code>{{ emailDetails == 1 ? 'Email format is valid' : 'Email format is not valid' }}</code></pre>
                     </div>
+                    <input type="hidden" name="verify" value="2">
+                    <input type="hidden" name="v_log[]" value="{{ emailDetails == 1 ? 'Email format is valid' : 'Email format is not valid' }}">
                 {% endif %}        
 
                 {% if verifyPostal == 'on' %}
@@ -74,9 +84,12 @@
                       Postal Mail Validation
                     </h4>
                     <div>
-                      <pre><code>Validation TBD.</code></pre>
+                      <pre><code>{{ postalDetails is empty ? 'Postal code format is not valid' : 'Postal code format is valid' }}</code></pre>
                     </div>
+                    <input type="hidden" name="verify" value="3">
+                    <input type="hidden" name="v_log[]" value="{{ postalDetails is empty ? 'Postal code format is not valid' : 'Postal code format is valid' }}">
                 {% endif %}
+                      </form>
                 </div>
               </div>
             </div>

@@ -165,7 +165,7 @@
                                     <div class="mb-3">
                                         <a href="/contact/validate/{{ contact.identifier }}" class="btn btn-outline-{% if contact_valid == 0 %}secondary{% elseif contact_valid == 1 %}success{% elseif contact_valid == 2 %}success{% elseif contact_valid == 3 %}info{% endif %} w-100" {% if contact_valid == 1 %}disabled{% elseif contact_valid == 2 %}disabled{% elseif contact_valid == 3 %}disabled{% endif %}>
                                         {% if contact_valid == 0 %}
-                                            Trigger Validation
+                                            Contact Validation
                                         {% elseif contact_valid == 1 %}
                                             Validated by Phone
                                         {% elseif contact_valid == 2 %}

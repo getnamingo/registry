@@ -399,19 +399,11 @@ This command will install the dependencies defined in your ```composer.json``` f
 
 ### Install Optional Dependencies:
 
-Execute one of the following commands to install the optional dependencies:
-
-```bash
-composer require utopia-php/messaging
-```
-
-or
+Execute the following command to install the optional dependencies:
 
 ```bash
 composer require phpmailer/phpmailer
 ```
-
-This command will install one of the packages which are essential for the mailing system of the control panel to function correctly.
 
 ### Creating an Admin User:
 

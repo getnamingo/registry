@@ -17,7 +17,7 @@
         "slim/slim": "4.12.0",
         "slim/twig-view": "^3.3.0",
         "monolog/monolog": "^3.5.0",
-        "respect/validation": "^2.2.4",
+        "respect/validation": "^2.3",
         "slim/csrf": "^1.3",
         "slim/flash": "^0.4",
         "vlucas/phpdotenv": "^5.6",
@@ -31,7 +31,7 @@
         "gettext/gettext": "^5.7",
         "punic/punic": "^3.8",
         "league/iso3166": "^4.3",
-        "stripe/stripe-php": "^13.3",
+        "stripe/stripe-php": "^13.11",
         "robthree/twofactorauth": "^2.1",
         "lbuchs/webauthn": "^2.1",
         "bacon/bacon-qr-code": "^2.0",
@@ -44,7 +44,9 @@
         "selective/xmldsig": "^3.1",
         "adyen/php-api-library": "^17.1",
         "giggsey/libphonenumber-for-php-lite": "^8.13",
-        "egulias/email-validator": "^4.0"
+        "egulias/email-validator": "^4.0",
+        "utopia-php/messaging": "^0.9.1",
+        "brick/postcode": "^0.3.1"
     },
     "autoload": {
         "psr-4": {

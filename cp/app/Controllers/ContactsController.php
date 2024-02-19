@@ -11,6 +11,7 @@ use Egulias\EmailValidator\EmailValidator;
 use Egulias\EmailValidator\Validation\DNSCheckValidation;
 use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
 use Egulias\EmailValidator\Validation\RFCValidation;
+use Brick\Postcode\PostcodeFormatter;
 
 class ContactsController extends Controller
 {
@@ -609,6 +610,21 @@ class ContactsController extends Controller
                     $isValid = $validator->isValid($contact['email'], $multipleValidations);
                     $responseData['emailDetails'] = $isValid;
                 }
+                
+                if ($verifyPostal == 'on') {
+                    $formatter = new PostcodeFormatter();
+                    try {
+                        $isValid = $formatter->format($contactPostal[0]['cc'], $contactPostal[0]['pc']);
+                        $responseData['postalDetails'] = $isValid;
+                    } catch (\Brick\Postcode\UnknownCountryException $e) {
+                        $responseData['postalDetails'] = null;
+                        $responseData['postalDetailsI'] = $e;
+                    } catch (\Brick\Postcode\InvalidPostcodeException $e) {
+                        $responseData['postalDetails'] = null;
+                        $responseData['postalDetailsI'] = $e;
+                    }
+                    
+                }
 
                 return view($response, 'admin/contacts/validateContact.twig', $responseData);
             } else {
@@ -621,6 +637,72 @@ class ContactsController extends Controller
             return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
 
+    }
+    
+    public function approveContact(Request $request, Response $response) 
+    {
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+            
+            $identifier = trim($data['identifier']);
+            
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $identifier)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+            
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
+            [ $identifier ]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $contact_clid = $contact['clid'];
+                if ($contact_clid != $clid) {
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
+                }
+            } else {
+                $clid = $contact['clid'];
+            }
+            
+            if ($contact) {
+                try {
+                    $db->beginTransaction();
+                    $currentDateTime = new \DateTime();
+                    $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $db->update(
+                        'contact',
+                        [
+                            'validation' => $data['verify'],
+                            'validation_stamp' => $stamp,
+                            'validation_log' => json_encode($data['v_log']),
+                            'upid' => $clid,
+                            'lastupdate' => $stamp
+                        ],
+                        [
+                            'identifier' => $identifier
+                        ]
+                    );                
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                }
+                
+                $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been validated successfully on ' . $stamp);
+                return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+
+            } else {
+                // Contact does not exist, redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+        }
+        
     }
     
     public function updateContactProcess(Request $request, Response $response)
