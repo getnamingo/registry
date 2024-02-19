@@ -283,7 +283,7 @@ class SupportController extends Controller
                     );
                     $this->container->get('flash')->addMessage('success', 'Ticket has been escalated successfully');
                     return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
-                } else if ($action === 'reopen') {            
+                } else if ($action === 'reopen') {
                     $db->update(
                         'support_tickets',
                         [
@@ -294,7 +294,7 @@ class SupportController extends Controller
                             'id' => $ticket_id
                         ]
                     );
-                    $this->container->get('flash')->addMessage('success', 'Ticket has been escalated successfully');
+                    $this->container->get('flash')->addMessage('success', 'Ticket has been reopened successfully');
                     return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
                 } else {
                     $this->container->get('flash')->addMessage('error', 'Incorrect action specified');

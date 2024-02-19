@@ -1347,3 +1347,108 @@ msgstr "レジストリ通貨"
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
 msgstr "すべての取引の通貨を選択してください。これは請求書と財政報告に影響します。変更をステークホルダーに通知してください。"
+
+msgid "Contact Validation"
+msgstr "連絡先の検証"
+
+msgid "Validate by Phone"
+msgstr "電話による検証"
+
+msgid "Validated by Phone"
+msgstr "電話によって検証済み"
+
+msgid "Phone Validation"
+msgstr "電話検証"
+
+msgid "Validated by Email"
+msgstr "メールによって検証済み"
+
+msgid "Validate by Email"
+msgstr "メールによる検証"
+
+msgid "Email Validation"
+msgstr "メール検証"
+
+msgid "Validate by Postal Mail"
+msgstr "郵便による検証"
+
+msgid "Validated by Postal Mail"
+msgstr "郵便によって検証済み"
+
+msgid "Postal Mail Validation"
+msgstr "郵便検証"
+
+msgid "Pending Validation"
+msgstr "検証待ち"
+
+msgid "Back to Contact Update"
+msgstr "連絡先更新に戻る"
+
+msgid "Validate Contact"
+msgstr "連絡先を検証する"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Manage Settings"
+msgstr "設定を管理する"
+
+msgid "Not signed"
+msgstr "未署名"
+
+msgid "Signed"
+msgstr "署名済み"
+
+msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgstr "これらのドメイン名は、特別な規制または登録要件の対象となります。登録可能ですが、資格の証明や追加の文書など、特定の条件の下でのみです。"
+
+msgid "Enter each"
+msgstr "各項目を入力"
+
+msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgstr "拡張子を除いた名前を新しい行に入力してください。たとえば、「example.com」の代わりに「example」を使用します。"
+
+msgid "View Ticket"
+msgstr "チケットを見る"
+
+msgid "Open"
+msgstr "開く"
+
+msgid "In Progress"
+msgstr "進行中"
+
+msgid "Resolved"
+msgstr "解決済み"
+
+msgid "Low"
+msgstr "低"
+
+msgid "Medium"
+msgstr "中"
+
+msgid "High"
+msgstr "高"
+
+msgid "Critical"
+msgstr "重大"
+
+msgid "Close Ticket"
+msgstr "チケットを閉じる"
+
+msgid "Escalate Ticket"
+msgstr "チケットをエスカレートする"
+
+msgid "Reopen Ticket"
+msgstr "チケットを再開する"
+
+msgid "Enter old password"
+msgstr "古いパスワードを入力"
+
+msgid "Enter new password"
+msgstr "新しいパスワードを入力"
+
+msgid "Recent Domains"
+msgstr "最近のドメイン"
+
+msgid "Recent Support Tickets"
+msgstr "最近のサポートチケット"

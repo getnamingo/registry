@@ -1347,3 +1347,108 @@ msgstr "Registry Currency"
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
 msgstr "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
+
+msgid "Contact Validation"
+msgstr "Contact Validation"
+
+msgid "Validate by Phone"
+msgstr "Validate by Phone"
+
+msgid "Validated by Phone"
+msgstr "Validated by Phone"
+
+msgid "Phone Validation"
+msgstr "Phone Validation"
+
+msgid "Validated by Email"
+msgstr "Validated by Email"
+
+msgid "Validate by Email"
+msgstr "Validate by Email"
+
+msgid "Email Validation"
+msgstr "Email Validation"
+
+msgid "Validate by Postal Mail"
+msgstr "Validate by Postal Mail"
+
+msgid "Validated by Postal Mail"
+msgstr "Validated by Postal Mail"
+
+msgid "Postal Mail Validation"
+msgstr "Postal Mail Validation"
+
+msgid "Pending Validation"
+msgstr "Pending Validation"
+
+msgid "Back to Contact Update"
+msgstr "Back to Contact Update"
+
+msgid "Validate Contact"
+msgstr "Validate Contact"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Manage Settings"
+msgstr "Manage Settings"
+
+msgid "Not signed"
+msgstr "Not signed"
+
+msgid "Signed"
+msgstr "Signed"
+
+msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgstr "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+
+msgid "Enter each"
+msgstr "Enter each"
+
+msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgstr "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+
+msgid "View Ticket"
+msgstr "View Ticket"
+
+msgid "Open"
+msgstr "Open"
+
+msgid "In Progress"
+msgstr "In Progress"
+
+msgid "Resolved"
+msgstr "Resolved"
+
+msgid "Low"
+msgstr "Low"
+
+msgid "Medium"
+msgstr "Medium"
+
+msgid "High"
+msgstr "High"
+
+msgid "Critical"
+msgstr "Critical"
+
+msgid "Close Ticket"
+msgstr "Close Ticket"
+
+msgid "Escalate Ticket"
+msgstr "Escalate Ticket"
+
+msgid "Reopen Ticket"
+msgstr "Reopen Ticket"
+
+msgid "Enter old password"
+msgstr "Enter old password"
+
+msgid "Enter new password"
+msgstr "Enter new password"
+
+msgid "Recent Domains"
+msgstr "Recent Domains"
+
+msgid "Recent Support Tickets"
+msgstr "Recent Support Tickets"

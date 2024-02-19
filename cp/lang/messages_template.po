@@ -1347,3 +1347,108 @@ msgstr ""
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
 msgstr ""
+
+msgid "Contact Validation"
+msgstr ""
+
+msgid "Validate by Phone"
+msgstr ""
+
+msgid "Validated by Phone"
+msgstr ""
+
+msgid "Phone Validation"
+msgstr ""
+
+msgid "Validated by Email"
+msgstr ""
+
+msgid "Validate by Email"
+msgstr ""
+
+msgid "Email Validation"
+msgstr ""
+
+msgid "Validate by Postal Mail"
+msgstr ""
+
+msgid "Validated by Postal Mail"
+msgstr ""
+
+msgid "Postal Mail Validation"
+msgstr ""
+
+msgid "Pending Validation"
+msgstr ""
+
+msgid "Back to Contact Update"
+msgstr ""
+
+msgid "Validate Contact"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Manage Settings"
+msgstr ""
+
+msgid "Not signed"
+msgstr ""
+
+msgid "Signed"
+msgstr ""
+
+msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgstr ""
+
+msgid "Enter each"
+msgstr ""
+
+msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgstr ""
+
+msgid "View Ticket"
+msgstr ""
+
+msgid "Open"
+msgstr ""
+
+msgid "In Progress"
+msgstr ""
+
+msgid "Resolved"
+msgstr ""
+
+msgid "Low"
+msgstr ""
+
+msgid "Medium"
+msgstr ""
+
+msgid "High"
+msgstr ""
+
+msgid "Critical"
+msgstr ""
+
+msgid "Close Ticket"
+msgstr ""
+
+msgid "Escalate Ticket"
+msgstr ""
+
+msgid "Reopen Ticket"
+msgstr ""
+
+msgid "Enter old password"
+msgstr ""
+
+msgid "Enter new password"
+msgstr ""
+
+msgid "Recent Domains"
+msgstr ""
+
+msgid "Recent Support Tickets"
+msgstr ""

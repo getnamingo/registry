@@ -30,13 +30,13 @@
                   {% if validation_enabled is not null %}
                     <span class="status {% if contact_valid == 0 %}status-warning{% elseif contact_valid == 1 %}status-success{% elseif contact_valid == 2 %}status-success{% elseif contact_valid == 3 %}status-info{% endif %}" title="{% if contact_valid == 0 %}Pending Validation{% elseif contact_valid == 1 %}Validated by Phone{% elseif contact_valid == 2 %}Validated by Email{% elseif contact_valid == 3 %}Validated by Postal Mail{% endif %}">
                         {% if contact_valid == 0 %}
-                            Pending Validation
+                            {{ __('Pending Validation') }}
                         {% elseif contact_valid == 1 %}
-                            Validated by Phone
+                            {{ __('Validated by Phone') }}
                         {% elseif contact_valid == 2 %}
-                            Validated by Email
+                            {{ __('Validated by Email') }}
                         {% elseif contact_valid == 3 %}
-                            Validated by Postal Mail
+                            {{ __('Validated by Postal Mail') }}
                         {% endif %}
                     </span>
                 {% endif %}</h3>

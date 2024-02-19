@@ -30,13 +30,13 @@
                   {% if validation_enabled is not null %}
                     <span class="status {% if contact_valid == 0 %}status-warning{% elseif contact_valid == 1 %}status-success{% elseif contact_valid == 2 %}status-success{% elseif contact_valid == 3 %}status-info{% endif %}" title="{% if contact_valid == 0 %}Pending Validation{% elseif contact_valid == 1 %}Validated by Phone{% elseif contact_valid == 2 %}Validated by Email{% elseif contact_valid == 3 %}Validated by Postal Mail{% endif %}">
                         {% if contact_valid == 0 %}
-                            Pending Validation
+                            {{ __('Pending Validation') }}
                         {% elseif contact_valid == 1 %}
-                            Validated by Phone
+                            {{ __('Validated by Phone') }}
                         {% elseif contact_valid == 2 %}
-                            Validated by Email
+                            {{ __('Validated by Email') }}
                         {% elseif contact_valid == 3 %}
-                            Validated by Postal Mail
+                            {{ __('Validated by Postal Mail') }}
                         {% endif %}
                     </span>
                   {% endif %}</h3>
@@ -57,7 +57,7 @@
                 {% if verifyPhone == 'on' %}
                     {# The content you want to echo if verifyPhone is 'on' #}
                     <h4>
-                      Phone Validation
+                      {{ __('Phone Validation') }}
                     </h4>
                     <div>
                       <pre><code>{{ phoneDetails ? 'Phone format is valid' : 'Phone format is not valid' }}</code></pre>
@@ -69,7 +69,7 @@
                 {% if verifyEmail == 'on' %}
                     {# The content you want to echo if verifyEmail is 'on' #}
                     <h4>
-                      Email Validation
+                      {{ __('Email Validation') }}
                     </h4>
                     <div>
                       <pre><code>{{ emailDetails == 1 ? 'Email format is valid' : 'Email format is not valid' }}</code></pre>
@@ -81,7 +81,7 @@
                 {% if verifyPostal == 'on' %}
                     {# The content you want to echo if verifyPostal is 'on' #}
                     <h4>
-                      Postal Mail Validation
+                      {{ __('Postal Mail Validation') }}
                     </h4>
                     <div>
                       <pre><code>{{ postalDetails is empty ? 'Postal code format is not valid' : 'Postal code format is valid' }}</code></pre>

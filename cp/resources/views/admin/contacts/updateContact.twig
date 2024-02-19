@@ -165,13 +165,13 @@
                                     <div class="mb-3">
                                         <a href="/contact/validate/{{ contact.identifier }}" class="btn btn-outline-{% if contact_valid == 0 %}secondary{% elseif contact_valid == 1 %}success{% elseif contact_valid == 2 %}success{% elseif contact_valid == 3 %}info{% endif %} w-100" {% if contact_valid == 1 %}disabled{% elseif contact_valid == 2 %}disabled{% elseif contact_valid == 3 %}disabled{% endif %}>
                                         {% if contact_valid == 0 %}
-                                            Contact Validation
+                                            {{ __('Contact Validation') }}
                                         {% elseif contact_valid == 1 %}
-                                            Validated by Phone
+                                            {{ __('Validated by Phone') }}
                                         {% elseif contact_valid == 2 %}
-                                            Validated by Email
+                                            {{ __('Validated by Email') }}
                                         {% elseif contact_valid == 3 %}
-                                            Validated by Postal Mail
+                                            {{ __('Validated by Postal Mail') }}
                                         {% endif %}
                                         </a>
                                     </div>

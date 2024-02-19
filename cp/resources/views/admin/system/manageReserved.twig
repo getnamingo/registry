@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}{{ __('Managed Reserved Names') }}{% endblock %}
+{% block title %}{{ __('Manage Reserved Names') }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -14,7 +14,7 @@
                   {{ __('Overview') }}
                 </div>
                 <h2 class="page-title">
-                  {{ __('Managed Reserved Names') }}
+                  {{ __('Manage Reserved Names') }}
                 </h2>
               </div>
             </div>
@@ -42,8 +42,8 @@
                                 <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="No {{ type|lower }} names. Enter new names, one per line" required></textarea>
                             {% endif %}
                             <small class="form-hint">
-                                <strong>{{ type|capitalize }} Names:</strong> These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. 
-                                <br><em>Enter each {{ type }} name on a new line, without the extension. For instance, use "example" in place of "example.com".</em>
+                                <strong>{{ type|capitalize }} Names:</strong> {{ __('These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. ') }}
+                                <br><em>{{ __('Enter each') }} {{ type }} {{ __('name on a new line, without the extension. For instance, use "example" in place of "example.com".') }}</em>
                             </small>
                         </div>
                     </div>

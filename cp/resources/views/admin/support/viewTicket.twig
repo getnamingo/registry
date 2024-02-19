@@ -46,16 +46,16 @@
                         {% if ticket.status != 'Closed' %}
                           <button type="submit" name="action" value="close" class="btn btn-ghost-warning">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5.641 5.631a9 9 0 1 0 12.719 12.738m1.68 -2.318a9 9 0 0 0 -12.074 -12.098" /><path d="M12 17v.01" /><path d="M12 13.5a1.5 1.5 0 0 1 .394 -1.1m2.106 -1.9a2.6 2.6 0 0 0 -3.347 -3.361" /><path d="M3 3l18 18" /></svg>
-                            Close Ticket
+                            {{ __('Close Ticket') }}
                           </button>
                           <button type="submit" name="action" value="escalate" class="btn btn-outline-secondary">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.5 7h-2.672a2 2 0 0 0 -1.414 .586l-8.414 8.414h-2.5a2.5 2.5 0 1 0 0 5h3.672a2 2 0 0 0 1.414 -.586l8.414 -8.414h1.5a2.5 2.5 0 1 0 0 -5z" /><path d="M6 10v-7" /><path d="M3 6l3 -3l3 3" /></svg>
-                            Escalate Ticket
+                            {{ __('Escalate Ticket') }}
                           </button>
                           {% else %}
                           <button type="submit" name="action" value="reopen" class="btn btn-outline-pink">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /></svg>
-                            Reopen Ticket
+                            {{ __('Reopen Ticket') }}
                           </button>
                           {% endif %}
                         </div>
@@ -70,15 +70,15 @@
                         <p><span>{{ __('Category') }}:</span> <span class="status status-indigo">{{ category }}</span></p>
                         <p><span>{{ __('Priority') }}:</span> 
                         {% if ticket.priority == 'Low' %}
-                            <span class="status status-teal">{{ ticket.priority }}</span>
+                            <span class="status status-teal">{{ __('Low') }}</span>
                         {% elseif ticket.priority == 'Medium' %}
-                            <span class="status status-blue">{{ ticket.priority }}</span>
+                            <span class="status status-blue">{{ __('Medium') }}</span>
                         {% elseif ticket.priority == 'High' %}
-                            <span class="status status-orange">{{ ticket.priority }}</span>
+                            <span class="status status-orange">{{ __('High') }}</span>
                         {% elseif ticket.priority == 'Critical' %}
-                            <span class="status status-red">{{ ticket.priority }}</span>
+                            <span class="status status-red">{{ __('Critical') }}</span>
                         {% else %}
-                            <span class="status status-cyan">{{ ticket.priority }}</span>
+                            <span class="status status-cyan">{{ __('Unknown') }}</span>
                         {% endif %}</p>
 
                         <div class="card mt-4">

@@ -1347,3 +1347,108 @@ msgstr "Devise du registre"
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
 msgstr "Choisissez la devise pour toutes les transactions. Cela a un impact sur la facturation et les rapports financiers. Informer les parties prenantes des changements."
+
+msgid "Contact Validation"
+msgstr "Validation de Contact"
+
+msgid "Validate by Phone"
+msgstr "Valider par Téléphone"
+
+msgid "Validated by Phone"
+msgstr "Validé par Téléphone"
+
+msgid "Phone Validation"
+msgstr "Validation Téléphonique"
+
+msgid "Validated by Email"
+msgstr "Validé par Email"
+
+msgid "Validate by Email"
+msgstr "Valider par Email"
+
+msgid "Email Validation"
+msgstr "Validation d'Email"
+
+msgid "Validate by Postal Mail"
+msgstr "Valider par Courrier Postal"
+
+msgid "Validated by Postal Mail"
+msgstr "Validé par Courrier Postal"
+
+msgid "Postal Mail Validation"
+msgstr "Validation par Courrier"
+
+msgid "Pending Validation"
+msgstr "Validation en Attente"
+
+msgid "Back to Contact Update"
+msgstr "Retour à la Mise à Jour des Contacts"
+
+msgid "Validate Contact"
+msgstr "Valider le Contact"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Manage Settings"
+msgstr "Gérer les Paramètres"
+
+msgid "Not signed"
+msgstr "Non signé"
+
+msgid "Signed"
+msgstr "Signé"
+
+msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgstr "Ces noms de domaine sont soumis à des réglementations spéciales ou à des exigences d'enregistrement. Ils pourraient être disponibles à l'enregistrement mais sous certaines conditions, telles que la preuve d'éligibilité ou des documents supplémentaires."
+
+msgid "Enter each"
+msgstr "Entrez chaque"
+
+msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgstr "nom sur une nouvelle ligne, sans l'extension. Par exemple, utilisez \"exemple\" au lieu de \"exemple.com\"."
+
+msgid "View Ticket"
+msgstr "Voir le Ticket"
+
+msgid "Open"
+msgstr "Ouvrir"
+
+msgid "In Progress"
+msgstr "En Cours"
+
+msgid "Resolved"
+msgstr "Résolu"
+
+msgid "Low"
+msgstr "Faible"
+
+msgid "Medium"
+msgstr "Moyen"
+
+msgid "High"
+msgstr "Élevé"
+
+msgid "Critical"
+msgstr "Critique"
+
+msgid "Close Ticket"
+msgstr "Fermer le Ticket"
+
+msgid "Escalate Ticket"
+msgstr "Escalader le Ticket"
+
+msgid "Reopen Ticket"
+msgstr "Rouvrir le Ticket"
+
+msgid "Enter old password"
+msgstr "Entrez l'ancien mot de passe"
+
+msgid "Enter new password"
+msgstr "Entrez le nouveau mot de passe"
+
+msgid "Recent Domains"
+msgstr "Domaines Récents"
+
+msgid "Recent Support Tickets"
+msgstr "Tickets de Support Récents"

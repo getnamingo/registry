@@ -1347,3 +1347,108 @@ msgstr "Валюта реєстру"
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
 msgstr "Виберіть валюту для всіх операцій. Це впливає на рахунки та фінансові звіти. Інформувати зацікавлених сторін про зміни."
+
+msgid "Contact Validation"
+msgstr "Перевірка контакту"
+
+msgid "Validate by Phone"
+msgstr "Перевірка телефоном"
+
+msgid "Validated by Phone"
+msgstr "Перевірено телефоном"
+
+msgid "Phone Validation"
+msgstr "Телефонна перевірка"
+
+msgid "Validated by Email"
+msgstr "Перевірено електронною поштою"
+
+msgid "Validate by Email"
+msgstr "Перевірка електронною поштою"
+
+msgid "Email Validation"
+msgstr "Перевірка електронної пошти"
+
+msgid "Validate by Postal Mail"
+msgstr "Перевірка поштою"
+
+msgid "Validated by Postal Mail"
+msgstr "Перевірено поштою"
+
+msgid "Postal Mail Validation"
+msgstr "Перевірка поштовою скринькою"
+
+msgid "Pending Validation"
+msgstr "Очікує на перевірку"
+
+msgid "Back to Contact Update"
+msgstr "Повернутися до оновлення контактів"
+
+msgid "Validate Contact"
+msgstr "Підтвердити контакт"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Manage Settings"
+msgstr "Керування налаштуваннями"
+
+msgid "Not signed"
+msgstr "Не підписано"
+
+msgid "Signed"
+msgstr "Підписано"
+
+msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgstr "Ці доменні імена підлягають спеціальним правилам або вимогам реєстрації. Вони можуть бути доступні для реєстрації, але за певних умов, наприклад, надання доказів відповідності або додаткової документації."
+
+msgid "Enter each"
+msgstr "Введіть кожен"
+
+msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgstr "введіть ім'я на новому рядку без розширення. Наприклад, використовуйте \"приклад\" замість \"example.com\"."
+
+msgid "View Ticket"
+msgstr "Переглянути квиток"
+
+msgid "Open"
+msgstr "Відкрити"
+
+msgid "In Progress"
+msgstr "В процесі"
+
+msgid "Resolved"
+msgstr "Вирішено"
+
+msgid "Low"
+msgstr "Низький"
+
+msgid "Medium"
+msgstr "Середній"
+
+msgid "High"
+msgstr "Високий"
+
+msgid "Critical"
+msgstr "Критичний"
+
+msgid "Close Ticket"
+msgstr "Закрити квиток"
+
+msgid "Escalate Ticket"
+msgstr "Ескалація квитка"
+
+msgid "Reopen Ticket"
+msgstr "Відновити квиток"
+
+msgid "Enter old password"
+msgstr "Введіть старий пароль"
+
+msgid "Enter new password"
+msgstr "Введіть новий пароль"
+
+msgid "Recent Domains"
+msgstr "Останні домени"
+
+msgid "Recent Support Tickets"
+msgstr "Останні запити підтримки"
