@@ -390,7 +390,7 @@ class ContactsController extends Controller
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
         
-            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, lastupdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
             [ $args ]);
 
             if ($contact) {
