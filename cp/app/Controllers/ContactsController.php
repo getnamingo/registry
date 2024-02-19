@@ -531,6 +531,15 @@ class ContactsController extends Controller
     public function validateContact(Request $request, Response $response, $args) 
     {
         $db = $this->container->get('db');
+        $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+        $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+        $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+                
+        if ($verifyPhone === NULL && $verifyEmail === NULL && $verifyPostal === NULL) {
+            // Redirect to the contacts view
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         // Get the current URI
         $uri = $request->getUri()->getPath();
 
@@ -642,9 +651,18 @@ class ContactsController extends Controller
     public function approveContact(Request $request, Response $response) 
     {
         if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+            $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+            $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+                    
+            if ($verifyPhone === NULL && $verifyEmail === NULL && $verifyPostal === NULL) {
+                // Redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+        
             // Retrieve POST data
             $data = $request->getParsedBody();
-            $db = $this->container->get('db');
             // Get the current URI
             $uri = $request->getUri()->getPath();
             
