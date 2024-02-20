@@ -37,7 +37,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
     YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
     YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
-    DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
+    #DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
     DB_USER=$(prompt_for_input "Enter database user")
     DB_PASSWORD=$(prompt_for_password "Enter database password")
     echo ""  # Add a newline after the password input
@@ -103,7 +103,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     systemctl restart php8.2-fpm
     echo "PHP configuration update complete!"
     
-    if [ "$DB_TYPE" == "MariaDB" ]; then
+    #if [ "$DB_TYPE" == "MariaDB" ]; then
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
         
@@ -153,24 +153,24 @@ EOF
         mysql -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
         mysql -u root -e "FLUSH PRIVILEGES;"
 
-    elif [ "$DB_TYPE" == "PostgreSQL" ]; then
-        echo "Setting up PostgreSQL..."
-        sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-        wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
-        apt update
-        apt install -y postgresql postgresql-client php8.2-pgsql
-        psql --version
-        echo "Configuring PostgreSQL..."
-        sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
-        sudo -u postgres psql -c "CREATE DATABASE registry;"
-        sudo -u postgres psql -c "CREATE DATABASE registryTransaction;"
-        sudo -u postgres psql -c "CREATE DATABASE registryAudit;"
+    #elif [ "$DB_TYPE" == "PostgreSQL" ]; then
+    #    echo "Setting up PostgreSQL..."
+    #    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+    #    wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
+    #    apt update
+    #    apt install -y postgresql postgresql-client php8.2-pgsql
+    #    psql --version
+    #    echo "Configuring PostgreSQL..."
+    #    sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
+    #    sudo -u postgres psql -c "CREATE DATABASE registry;"
+    #    sudo -u postgres psql -c "CREATE DATABASE registryTransaction;"
+    #    sudo -u postgres psql -c "CREATE DATABASE registryAudit;"
         
-        echo "Importing SQL files into PostgreSQL..."
-        sudo -u postgres psql -U postgres -d registry -f /opt/registry/database/registry.postgres.sql
-        sudo -u postgres psql -U postgres -d registrytransaction -f /opt/registry/database/registryTransaction.postgres.sql
-        echo "SQL import completed."
-    fi
+    #    echo "Importing SQL files into PostgreSQL..."
+    #    sudo -u postgres psql -U postgres -d registry -f /opt/registry/database/registry.postgres.sql
+    #    sudo -u postgres psql -U postgres -d registrytransaction -f /opt/registry/database/registryTransaction.postgres.sql
+    #    echo "SQL import completed."
+    #fi
     
     mkdir /usr/share/adminer
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php

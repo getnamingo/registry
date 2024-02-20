@@ -111,7 +111,7 @@ systemctl restart php8.2-fpm
 
 ## 2. Database installation (please choose one):
 
-### 2a. Install and configure MariaDB:
+### 2a. Install and configure MariaDB: (please use this for v1.0)
 
 ```bash
 curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
@@ -140,7 +140,7 @@ mysql_secure_installation
 
 [Tune your MariaDB](https://github.com/major/MySQLTuner-perl)
 
-### 2b. Install and configure PostgreSQL:
+### 2b. Install and configure PostgreSQL: (beta!)
 
 ```bash
 sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
