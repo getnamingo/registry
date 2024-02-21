@@ -57,8 +57,8 @@
 
                                     <!-- Internationalized Organization -->
                                     <div class="mb-3">
-                                        <label for="intOrg" class="form-label required">{{ __('Organization') }}</label>
-                                        <input type="text" class="form-control" id="intOrg" name="org" required="required">
+                                        <label for="intOrg" class="form-label">{{ __('Organization') }}</label>
+                                        <input type="text" class="form-control" id="intOrg" name="org">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseOrgInt" name="disclose_org_int">
                                           <span class="form-check-label" for="discloseOrgInt">{{ __('Disclose in WHOIS') }}</span>
@@ -114,6 +114,7 @@
                                     <div class="mb-3">
                                         <label for="contactid" class="form-label required">{{ __('Contact ID') }}</label>
                                         <input type="text" class="form-control" id="contactid" name="contactid" required="required">
+                                        <small class="form-text text-muted">{{ __('Auto-generated ID for the contact') }}.</small>
                                     </div>
 
                                     <!-- Voice -->
@@ -280,6 +281,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
     
+    // Generate ID for Contact
+    const contactidInput = document.getElementById('contactid');
+    contactidInput.value = generateAuthInfo();
+    
     // Generate authInfo for Contact
     const authInfoInput = document.getElementById('authInfo');
     authInfoInput.value = generateAuthInfo();
@@ -288,10 +293,29 @@ document.addEventListener("DOMContentLoaded", function() {
         const length = 16;
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let retVal = "";
+        let digitCount = 0;
+
+        // Generate initial random string
         for (let i = 0; i < length; i++) {
             const randomIndex = Math.floor(Math.random() * charset.length);
-            retVal += charset.charAt(randomIndex);
+            const char = charset.charAt(randomIndex);
+            retVal += char;
+            if (char >= '0' && char <= '9') {
+                digitCount++;
+            }
         }
+
+        // Ensure there are at least two digits in the string
+        while (digitCount < 2) {
+            // Replace a non-digit character at a random position with a digit
+            const replacePosition = Math.floor(Math.random() * length);
+            if (!(retVal[replacePosition] >= '0' && retVal[replacePosition] <= '9')) {
+                const randomDigit = Math.floor(Math.random() * 10); // Generate a digit from 0 to 9
+                retVal = retVal.substring(0, replacePosition) + randomDigit + retVal.substring(replacePosition + 1);
+                digitCount++;
+            }
+        }
+
         return retVal;
     }
 });

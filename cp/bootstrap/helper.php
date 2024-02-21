@@ -14,6 +14,9 @@ use MatthiasMullie\Scrapbook\Psr6\Pool;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Guid\Guid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
+use libphonenumber\PhoneNumberUtil;
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\NumberParseException;
 
 /**
  * @return mixed|string|string[]
@@ -435,4 +438,43 @@ function get_client_location() {
     $country  = $json['country'];
 
     return $country;
+}
+
+function normalizePhoneNumber($number, $defaultRegion = 'US') {
+    $phoneUtil = PhoneNumberUtil::getInstance();
+    
+    // Strip only empty spaces and dashes from the number.
+    $number = str_replace([' ', '-'], '', $number);
+    
+    // Prepend '00' if the number does not start with '+' or '0'.
+    if (strpos($number, '+') !== 0 && strpos($number, '0') !== 0) {
+        $number = '00' . $number;
+    }
+
+    // Convert a leading '+' to '00' for international format compatibility.
+    if (strpos($number, '+') === 0) {
+        $number = '00' . substr($number, 1);
+    }
+
+    // Now, clean the number to ensure it consists only of digits.
+    $cleanNumber = preg_replace('/\D/', '', $number);
+
+    try {
+        // Parse the clean, digit-only string, which may start with '00' for international format.
+        $numberProto = $phoneUtil->parse($cleanNumber, $defaultRegion);
+
+        // Format the number to E.164 to ensure it includes the correct country code.
+        $formattedNumberE164 = $phoneUtil->format($numberProto, PhoneNumberFormat::E164);
+
+        // Extract the country code and national number.
+        $countryCode = $numberProto->getCountryCode();
+        $nationalNumber = $numberProto->getNationalNumber();
+
+        // Reconstruct the number in the desired EPP format: +CountryCode.NationalNumber
+        $formattedNumber = '+' . $countryCode . '.' . $nationalNumber;
+        return ['success' => $formattedNumber];
+        
+    } catch (NumberParseException $e) {
+        return ['error' => 'Failed to parse and normalize phone number: ' . $e->getMessage()];
+    }
 }

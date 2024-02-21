@@ -56,8 +56,8 @@
                                     
                                     <!-- Internationalized Organization -->
                                     <div class="mb-3">
-                                        <label for="intOrg" class="form-label required">{{ __('Organization') }}</label>
-                                        <input type="text" class="form-control" id="intOrg" name="org" required="required" value="{{ postal_int.org }}">
+                                        <label for="intOrg" class="form-label">{{ __('Organization') }}</label>
+                                        <input type="text" class="form-control" id="intOrg" name="org" value="{{ postal_int.org }}">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseOrgInt" name="disclose_org_int" {% if postal_int.disclose_org_int == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseOrgInt">{{ __('Disclose in WHOIS') }}</span>
@@ -95,7 +95,7 @@
                                         <label for="cc" class="form-label required">{{ __('Country') }}</label>
                                         <select class="form-select" id="cc" name="cc" required="required">
                                             {% for country in countries %}
-                                                <option value="{{ country.alpha2 }}" {% if postal_int.cc == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
+                                                <option value="{{ country.alpha2|lower }}" {% if postal_int.cc|lower == country.alpha2|lower %}selected{% endif %}>{{ country.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>            
@@ -252,7 +252,7 @@
                                         <label for="locCC" class="form-label">{{ __('Country') }}</label>
                                         <select class="form-select" id="locCC" name="locCC">
                                             {% for country in countries %}
-                                                <option value="{{ country.alpha2 }}" {% if postal_loc.cc == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
+                                                <option value="{{ country.alpha2|lower }}" {% if postal_loc.cc|lower == country.alpha2|lower %}selected{% endif %}>{{ country.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>                        

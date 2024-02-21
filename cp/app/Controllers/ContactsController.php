@@ -59,7 +59,7 @@ class ContactsController extends Controller
             
             $voice = $data['voice'] ?? null;
             $fax = $data['fax'] ?? null;
-            $email = $data['email'] ?? null;
+            $email = strtolower($data['email']) ?? null;
             $authInfo_pw = $data['authInfo'] ?? null;
 
             if (!$contactID) {
@@ -207,15 +207,22 @@ class ContactsController extends Controller
                 }
 
             }
-
-            if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+            
+            $normalizedVoice = normalizePhoneNumber($voice, strtoupper($postalInfoIntCc));
+            if (isset($normalizedVoice['error'])) {
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $normalizedVoice['error']);
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
+            $voice = $normalizedVoice['success'];
 
-            if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+            if (!empty($fax)) {
+                $normalizedFax = normalizePhoneNumber($fax, strtoupper($postalInfoIntCc));
+                if (isset($normalizedFax['error'])) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $normalizedFax['error']);
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                }
+                // Update the fax number only if normalization was successful.
+                $fax = $normalizedFax['success'];
             }
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -395,6 +402,8 @@ class ContactsController extends Controller
 
             if ($contact) {
                 $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
+                $iso3166 = new ISO3166();
+                $countries = $iso3166->all();
 
                 // Check if the user is not an admin (assuming role 0 is admin)
                 if ($_SESSION["auth_roles"] != 0) {
@@ -426,7 +435,8 @@ class ContactsController extends Controller
                     'contactAuth' => $contactAuth,
                     'contactPostal' => $contactPostal,
                     'registrars' => $registrars,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'countries' => $countries
                 ];
                 
                 $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
