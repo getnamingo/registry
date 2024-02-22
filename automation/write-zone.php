@@ -135,7 +135,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
                     $zone->addResourceRecord($dsRecord);
                 }
             }
-            
+
             $builder = new ZoneBuilder();
             $completed_zone = $builder->build($zone);
 
@@ -151,6 +151,12 @@ Coroutine::create(function () use ($pool, $log, $c) {
             }
 
             file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
+
+            if ($c['dns_server'] == 'opendnssec') {
+                chown("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
+                chgrp("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
+            }
+
         }
 
         if ($c['dns_server'] == 'bind') {
@@ -175,6 +181,20 @@ Coroutine::create(function () use ($pool, $log, $c) {
             }
 
             exec("knotc zone-notify {$cleanedTld}.", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to notify secondary servers. ' . $return_var);
+            }
+        } elseif ($c['dns_server'] == 'opendnssec') {
+            exec("ods-signer sign {$cleanedTld}");
+            sleep(1);
+            copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
+
+            exec("rndc reload {$cleanedTld}.", $output, $return_var);
+            if ($return_var != 0) {
+                $log->error('Failed to reload BIND. ' . $return_var);
+            }
+
+            exec("rndc notify {$cleanedTld}.", $output, $return_var);
             if ($return_var != 0) {
                 $log->error('Failed to notify secondary servers. ' . $return_var);
             }

@@ -699,7 +699,42 @@ key "test.key" {
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
 
-### Configure the Named Configuration File:
+### Configure the Named Configuration File (Please Choose One):
+
+1. Without DNSSEC:
+
+Edit the named.conf.local file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Add the following zone definition:
+
+```bash
+zone "test." {
+    type master;
+    file "/var/lib/bind/test.zone";
+    allow-transfer { key "test.key"; };
+    also-notify { <slave-server-IP>; };
+};
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Use rndc to reload BIND:
+
+```bash
+systemctl restart bind9
+```
+
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
+2. Using DNSSEC with BIND9:
 
 Edit the named.conf.local file:
 
@@ -755,7 +790,61 @@ systemctl restart bind9
 rndc loadkeys test.
 ```
 
-Configure the ```write-zone.php``` file and activate it in the automation script.
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
+3. Using DNSSEC with OpenDNSSEC:
+
+Edit the named.conf.local file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Add the following zone definition:
+
+```bash
+zone "test." {
+    type master;
+    file "/var/lib/bind/test.zone.signed";
+    allow-transfer { key "test.key"; };
+    also-notify { <slave-server-IP>; };
+};
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Install OpenDNSSEC:
+
+```bash
+apt install opendnssec opendnssec-enforcer-sqlite3 opendnssec-signer softhsm2
+```
+
+Update files in `/etc/opendnssec` to match your registry policy. As minimum, please enable at least Signer Threads in `/etc/opendnssec/conf.xml`, but we recommend to fully review [all the files](https://wiki.opendnssec.org/configuration/confxml/). Then run the following commands:
+
+```bash
+softhsm2-util --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234
+ods-enforcer-db-setup
+rm /etc/opendnssec/prevent-startup
+ods-control start
+ods-enforcer policy import
+ods-enforcer zone add -z test -p default -i /var/lib/bind/test.zone
+```
+
+Use rndc to reload BIND:
+
+```bash
+systemctl restart bind9
+```
+
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
 
 ### Check BIND9 Configuration:
 
