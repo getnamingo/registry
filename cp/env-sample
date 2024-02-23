@@ -11,7 +11,7 @@ DB_USERNAME=root
 DB_PASSWORD=
 DB_PORT=3306
 
-#mailer settings (Driver = smtp or utopia, Api Provder = sendgrid or mailgun)
+#mailer settings (Driver = smtp, utopia or msg [for local message broker]; Api Provder = sendgrid or mailgun)
 
 MAIL_DRIVER=none
 MAIL_HOST=smtp.mailtrap.io

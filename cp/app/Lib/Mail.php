@@ -60,6 +60,32 @@ class Mail
                 echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
                 return false;
             }
+        } else if (envi('MAIL_DRIVER') == 'msg') {
+            $url = 'http://127.0.0.1:8250';
+            $data = ['type' => 'sendmail', 'mailer' => 'phpmailer', 'toEmail' => $to['email'], 'subject' => $subject, 'body' => $body];
+
+            $options = [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST  => 'POST',
+                CURLOPT_POSTFIELDS     => json_encode($data),
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen(json_encode($data))
+                ],
+            ];
+
+            $curl = curl_init($url);
+            curl_setopt_array($curl, $options);
+
+            $response = curl_exec($curl);
+
+            if ($response === false) {
+                throw new Exception(curl_error($curl), curl_errno($curl));
+            }
+
+            curl_close($curl);
+
+            return true;
         } else {
             return true;
         }

@@ -566,7 +566,14 @@ You can easily configure the message broker for email delivery in ```config.php`
 
 For establishing your own mail server, Mox, available at [GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then enter the required details in the ```config.php``` file.
 
-To run the messagebroker.php script, execute the following command: ```/usr/bin/php /opt/registry/automation/messagebroker.php &```. This will start the script and place it in the background, allowing it to run independently of your current terminal session.
+To run the Message Broker, execute the following commands:
+
+```bash
+/usr/bin/php /opt/registry/automation/msg_producer.php &
+/usr/bin/php /opt/registry/automation/msg_worker.php &
+```
+
+This will start the system and place it in the background, allowing it to run independently of your current terminal session.
 
 ### Setting Up an Audit Trail Database for Namingo
 
