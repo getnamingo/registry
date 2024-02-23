@@ -167,7 +167,7 @@ class WhoisTest {
         if (strpos($result, 'Domain Name:') !== false && strpos($result, 'Registrar:') !== false) {
             echo "Test: $domain - PASS\n";
         } else {
-            echo "Test: $fail - PASS\n";
+            echo "Test: $domain - FAIL\n";
         }
     }
     
