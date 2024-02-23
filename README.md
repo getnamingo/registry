@@ -14,37 +14,29 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 ## Get Involved
 
-We're on a mission to make **Namingo** the best it can be, and we need your expertise! Whether you're adept in development, have a keen eye for design, or simply brim with innovative ideas, your contribution can make a world of difference.
+**Namingo** has successfully reached its initial completion milestone, thanks to the collective effort and dedication of our community. However, the journey doesn't end here! We are committed to continuously enhancing Namingo to ensure it remains the best in its class. Whether you excel in coding, have an exceptional sense of design, or are bursting with innovative concepts, your contributions are invaluable. Join us in refining and expanding Namingo's capabilities to meet and exceed the ever-evolving needs of our users.
 
-### Current Status:
-
-We've completed the core development of Namingo, including WHOIS, DAS, EPP, RDAP servers, and control panel. The system handles 150,000 domains efficiently (on a VPS with 2 cores, 4GB of RAM, and a 100GB SSD) and has passed basic QA and security tests.
-
-Namingo currently supports Ubuntu 22.04 LTS and Debian 12, accommodating both MariaDB/MySQL databases. We are eagerly inviting volunteers to assist in testing and developing installation manuals for AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, encompassing setups with either MariaDB/MySQL or PostgreSQL databases.
-
-We're currently in the phase of external testing and are aware that there might be bugs or incomplete features in the project. If you're able to identify and fix any issues, we encourage you to submit a pull request. If you're not sure how to fix an issue, please don't hesitate to report it to us, and we'll work on addressing it. Your contributions and feedback are valuable in helping us improve Namingo. For any inquiries or suggestions, feel free to reach out.
+**Namingo** efficiently manages 150,000 domains on a VPS setup (2 cores, 4GB RAM, 100GB SSD) and is compatible with Ubuntu 22.04 LTS and Debian 12, supporting MariaDB/MySQL databases. After successful QA and security assessments, we're expanding our reach. We seek volunteers for testing and creating installation guides for AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, aiming to include both MariaDB/MySQL and PostgreSQL database options. This effort will broaden Namingo's adaptability and ensure it remains a comprehensive domain registry solution.
 
 ## Features
 
 Namingo is equipped with a comprehensive suite of features to meet the diverse needs of modern domain registries:
 
 - **ICANN Compliant**: Robust support for both ccTLDs and gTLDs in line with ICANN requirements.
+
+- **Control Panel**: A sleek, user-friendly interface for effortless domain management and TLD administration, enhanced with advanced security measures (2FA, WebAuthn), Stripe/Adyen/Crypto payment options for registrars, and multilingual support, ensuring global accessibility. Seamlessly integrated with a robust API for direct access to the registry database.
   
 - **EPP Server**: Enables secure and robust communication for domain registration and management.
   
 - **WHOIS Service**: Offers both port 43 access and web access, ensuring transparency in domain information retrieval.
   
 - **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
-  
-- **Control Panel**: An intuitive and modern interface designed for streamlined domain management and administration. This control panel supports advanced security features like Two-Factor Authentication (2FA) and WebAuthn, ensuring a high level of account security for users. Notably, it includes a feature for registrars to directly make deposit payments through Stripe, providing a straightforward and secure method for managing financial transactions. Additionally, the control panel is multilingual, making it accessible to a diverse global user base.
 
-- **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
-  
 - **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
   
-- **API Integration**: Control panel integrated with a powerful API, facilitating direct access to the registry database.
+- **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
 
-- **Database Compatibility**: Our system is versatile in its database support, accommodating both MySQL/MariaDB and PostgreSQL databases. This flexibility allows users to choose the database solution that best fits their technical preferences and existing infrastructure, ensuring seamless integration and optimal performance.
+- **Database Compatibility**: Fully supports MySQL/MariaDB and offers beta support for PostgreSQL, providing flexibility to match users' technical needs and infrastructure for seamless integration and peak performance.
 
 - **GDPR-Compliant Database Encryption**: Supports comprehensive database encryption to ensure GDPR compliance. For more details, see our [Encryption Guide](docs/encryption.md).
   
