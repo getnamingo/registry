@@ -8,6 +8,6 @@
         "league/flysystem": "^3.23",
         "league/flysystem-sftp-v3": "^3.22",
         "peppeocchi/php-cron-scheduler": "^4.0",
-        "predis/predis": "^2.2",
+        "predis/predis": "^2.2"
     }
 }
