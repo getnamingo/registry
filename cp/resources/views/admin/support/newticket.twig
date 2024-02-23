@@ -38,11 +38,11 @@
                   </div>
               {% endif %}
               <div class="card">
-                <div class="card-body border-bottom py-3">
+                <div class="card-body">
                     <form action="/support/new" method="post">
                     {{ csrf.field | raw }}
                         <div class="mb-3">
-                            <label for="category" class="form-label">{{ __('Category') }}</label>
+                            <label for="category" class="form-label required">{{ __('Category') }}</label>
                             <select class="form-select" name="category" id="category" required>
                                 <option selected disabled value="">{{ __('Select a category') }}...</option>
                                 {% for category in categories %}
@@ -51,18 +51,20 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="subject" class="form-label">{{ __('Subject') }}</label>
+                            <label for="subject" class="form-label required">{{ __('Subject') }}</label>
                             <input type="text" class="form-control" id="subject" name="subject" required>
                         </div>
                         <div class="mb-3">
-                            <label for="message" class="form-label">{{ __('Message') }}</label>
+                            <label for="message" class="form-label required">{{ __('Message') }}</label>
                             <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                         </div>
-                        <div class="mb-3">
-                            <button type="submit" class="btn btn-primary">{{ __('Create Ticket') }}</button>
-                        </div>
-                    </form>
                 </div>
+                <div class="card-footer text-end">
+                  <div class="d-flex">
+                    <button type="submit" class="btn btn-primary">{{ __('Create Ticket') }}</button>
+                  </div>
+                </div>
+                    </form>
               </div>
             </div>
           </div>
