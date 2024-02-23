@@ -403,47 +403,55 @@ class EppWriter {
             $writer->writeAttribute('count', $resp['count']);
             $writer->writeAttribute('id', $resp['id']);
             $writer->writeElement('qDate', $resp['qDate']);
-            $writer->writeElement('msg', $resp['msg'], ['lang' => $resp['lang']]);
+            $writer->startElement('msg');
+            if (!empty($resp['lang'])) { // Check if lang is provided and not empty
+                $writer->writeAttribute('lang', $resp['lang']);
+            }
+            $writer->text($resp['msg']);
+            $writer->endElement(); // End of 'msg'
             $writer->endElement();  // End of 'msgQ'
-        if ($resp['poll_msg_type'] === 'lowBalance') {
-            $writer->startElement('resData');
-                $writer->startElement('lowbalance-poll:pollData');
-                $writer->writeAttribute('xmlns:lowbalance-poll', 'http://www.verisign.com/epp/lowbalance-poll-1.0');
-                $writer->writeAttribute('xsi:schemaLocation', 'http://www.verisign.com/epp/lowbalance-poll-1.0 lowbalance-poll-1.0.xsd');
-                $writer->writeElement('lowbalance-poll:registrarName', $resp['registrarName']);
-                $writer->writeElement('lowbalance-poll:creditLimit', $resp['creditLimit']);
-                $writer->writeElement('lowbalance-poll:creditThreshold', $resp['creditThreshold'], ['type' => $resp['creditThresholdType']]);
-                $writer->writeElement('lowbalance-poll:availableCredit', $resp['availableCredit']);
-                $writer->endElement();  // End of 'lowbalance-poll:pollData'
-            $writer->endElement();  // End of 'resData'
-        } elseif ($resp['poll_msg_type'] === 'domainTransfer') {
-            $writer->startElement('resData');
-                $writer->startElement('domain:trnData');
-                $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
-                $writer->writeElement('domain:name', $resp['name']);
-                $writer->writeElement('domain:trStatus', $resp['obj_trStatus']);
-                $writer->writeElement('domain:reID', $resp['obj_reID']);
-                $writer->writeElement('domain:reDate', $resp['obj_reDate']);
-                $writer->writeElement('domain:acID', $resp['obj_acID']);
-                $writer->writeElement('domain:acDate', $resp['obj_acDate']);
-                if (isset($resp['obj_exDate'])) {
-                    $writer->writeElement('domain:exDate', $resp['obj_exDate']);
-                }
-                $writer->endElement();  // End of 'domain:trnData'
-            $writer->endElement();  // End of 'resData'
-        } elseif ($resp['poll_msg_type'] === 'contactTransfer') {
-            $writer->startElement('resData');
-                $writer->startElement('contact:trnData');
-                $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
-                $writer->writeElement('contact:id', $resp['identifier']);
-                $writer->writeElement('contact:trStatus', $resp['obj_trStatus']);
-                $writer->writeElement('contact:reID', $resp['obj_reID']);
-                $writer->writeElement('contact:reDate', $resp['obj_reDate']);
-                $writer->writeElement('contact:acID', $resp['obj_acID']);
-                $writer->writeElement('contact:acDate', $resp['obj_acDate']);
-                $writer->endElement();  // End of 'contact:trnData'
-            $writer->endElement();  // End of 'resData'
-        }
+            if ($resp['poll_msg_type'] === 'lowBalance') {
+                $writer->startElement('resData');
+                    $writer->startElement('lowbalance-poll:pollData');
+                    $writer->writeAttribute('xmlns:lowbalance-poll', 'http://www.verisign.com/epp/lowbalance-poll-1.0');
+                    $writer->writeAttribute('xsi:schemaLocation', 'http://www.verisign.com/epp/lowbalance-poll-1.0 lowbalance-poll-1.0.xsd');
+                    $writer->writeElement('lowbalance-poll:registrarName', $resp['registrarName']);
+                    $writer->writeElement('lowbalance-poll:creditLimit', $resp['creditLimit']);
+                    $writer->startElement('lowbalance-poll:creditThreshold');
+                    $writer->writeAttribute('type', $resp['creditThresholdType']);
+                    $writer->text($resp['creditThreshold']);
+                    $writer->endElement(); // End of 'lowbalance-poll:creditThreshold'
+                    $writer->writeElement('lowbalance-poll:availableCredit', $resp['availableCredit']);
+                    $writer->endElement();  // End of 'lowbalance-poll:pollData'
+                $writer->endElement();  // End of 'resData'
+            } elseif ($resp['poll_msg_type'] === 'domainTransfer') {
+                $writer->startElement('resData');
+                    $writer->startElement('domain:trnData');
+                    $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
+                    $writer->writeElement('domain:name', $resp['name']);
+                    $writer->writeElement('domain:trStatus', $resp['obj_trStatus']);
+                    $writer->writeElement('domain:reID', $resp['obj_reID']);
+                    $writer->writeElement('domain:reDate', $resp['obj_reDate']);
+                    $writer->writeElement('domain:acID', $resp['obj_acID']);
+                    $writer->writeElement('domain:acDate', $resp['obj_acDate']);
+                    if (isset($resp['obj_exDate'])) {
+                        $writer->writeElement('domain:exDate', $resp['obj_exDate']);
+                    }
+                    $writer->endElement();  // End of 'domain:trnData'
+                $writer->endElement();  // End of 'resData'
+            } elseif ($resp['poll_msg_type'] === 'contactTransfer') {
+                $writer->startElement('resData');
+                    $writer->startElement('contact:trnData');
+                    $writer->writeAttribute('xmlns:contact', 'urn:ietf:params:xml:ns:contact-1.0');
+                    $writer->writeElement('contact:id', $resp['identifier']);
+                    $writer->writeElement('contact:trStatus', $resp['obj_trStatus']);
+                    $writer->writeElement('contact:reID', $resp['obj_reID']);
+                    $writer->writeElement('contact:reDate', $resp['obj_reDate']);
+                    $writer->writeElement('contact:acID', $resp['obj_acID']);
+                    $writer->writeElement('contact:acDate', $resp['obj_acDate']);
+                    $writer->endElement();  // End of 'contact:trnData'
+                $writer->endElement();  // End of 'resData'
+            }
         }
         
         $this->_postamble($writer, $resp);
