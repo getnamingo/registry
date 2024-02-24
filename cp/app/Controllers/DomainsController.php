@@ -1986,12 +1986,14 @@ class DomainsController extends Controller
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
                 $domain_extension = $parts['tld'];
-                
+
                 if ($_SESSION["auth_roles"] != 0) {
                     $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
                     if ($registrar_id_domain != $clid) {
                         return $response->withHeader('Location', '/domains')->withStatus(302);
                     }
+                } else {
+                    $clid = $registrar_id_domain;
                 }
 
                 $result = $db->select('SELECT id, tld FROM domain_tld');
