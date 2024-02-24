@@ -2290,9 +2290,9 @@ class DomainsController extends Controller
         } else {
             $clid = 0;
         }
-    
+
         return view($response,'admin/domains/listTransfers.twig', [
-            'clid' => $clid
+            'clid' => base64_encode($clid)
         ]);
     }
     
