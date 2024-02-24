@@ -118,29 +118,30 @@ class SupportController extends Controller
         if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/support')->withStatus(302);
         }
-      
+
         // Get the current URI
         $uri = $request->getUri()->getPath();
         
-        $ticket = $db->selectRow('SELECT st.*, u.username AS ticket_creator 
+        $ticket = $db->selectRow('SELECT st.*, u.username AS ticket_creator, st.user_id 
                 FROM support_tickets AS st 
                 JOIN users AS u ON st.user_id = u.id 
                 WHERE st.id = ?', [$ticketNumber]);
 
         if ($ticket) {
-            $replies = $db->select('SELECT tr.*, u.username AS responder_name 
+            $replies = $db->select('SELECT tr.*, u.username AS responder_name, tr.responder_id 
                 FROM ticket_responses AS tr 
                 JOIN users AS u ON tr.responder_id = u.id 
                 WHERE tr.ticket_id = ?
-                ORDER BY tr.date_created DESC', [$ticketNumber]);
+                ORDER BY tr.date_created ASC', [$ticketNumber]);
             $category = $db->selectValue('SELECT name FROM ticket_categories WHERE id = ?', [$ticket['category_id']]);
-            
+
             $_SESSION['current_ticket'] = [$ticket['id']];
             return view($response,'admin/support/viewTicket.twig', [
                 'ticket' => $ticket,
                 'replies' => $replies,
                 'category' => $category,
-                'currentUri' => $uri
+                'currentUri' => $uri,
+                'user_id' => $_SESSION['auth_user_id']
             ]);
         } else {
             $this->container->get('flash')->addMessage('error', 'Invalid ticket number');

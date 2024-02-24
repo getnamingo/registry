@@ -29,18 +29,7 @@
                 {{ csrf.field | raw }}
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>&nbsp;
-                        {% if ticket.status == 'Open' %}
-                            <span class="status status-success">{{ ticket.status }}</span>
-                        {% elseif ticket.status == 'In Progress' %}
-                            <span class="status status-warning">{{ ticket.status }}</span>
-                        {% elseif ticket.status == 'Resolved' %}
-                            <span class="status status-info">{{ ticket.status }}</span>
-                        {% elseif ticket.status == 'Closed' %}
-                            <span class="status status-cyan">{{ ticket.status }}</span>
-                        {% else %}
-                            <span class="status status-teal">{{ __('Unknown Status') }}</span>
-                        {% endif %}
+                        <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>
                         <div class="card-actions">
                         {% if ticket.status != 'Closed' %}
                           <button type="submit" name="action" value="close" class="btn btn-ghost-warning">
@@ -63,48 +52,143 @@
               {% if ticket.status != 'Closed' %}<form action="/support/reply" method="post">
                 {{ csrf.field | raw }}
               {% endif %}
+              <div class="row g-0">
+                <div class="col-12 col-lg-5 col-xl-3 border-end">
                     <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">{{ __('Ticket Details') }}</h6>
-                        <p><span>{{ __('Created On') }}:</span> <strong>{{ ticket.date_created }}</strong></p>
-                        <p><span>{{ __('Category') }}:</span> <span class="status status-indigo">{{ category }}</span></p>
-                        <p><span>{{ __('Priority') }}:</span> 
-                        {% if ticket.priority == 'Low' %}
-                            <span class="status status-teal">{{ __('Low') }}</span>
-                        {% elseif ticket.priority == 'Medium' %}
-                            <span class="status status-blue">{{ __('Medium') }}</span>
-                        {% elseif ticket.priority == 'High' %}
-                            <span class="status status-orange">{{ __('High') }}</span>
-                        {% elseif ticket.priority == 'Critical' %}
-                            <span class="status status-red">{{ __('Critical') }}</span>
-                        {% else %}
-                            <span class="status status-cyan">{{ __('Unknown') }}</span>
-                        {% endif %}</p>
-
-                        <div class="card mt-4">
-                            <div class="card-body">
-                                <h6 class="card-subtitle text-muted">{{ __('Conversation') }}</h6>
-                                    {% for reply in replies %}
-                                        <div class="d-flex align-items-start mb-3">
-                                            <div class="flex-shrink-0">
-                                                <span class="avatar">{{ reply.responder_name|slice(0, 2) }}</span>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <strong>{{ reply.responder_name }}</strong> 
-                                                <small class="text-muted">{{ reply.date_created|date("Y-m-d H:i") }}</small>
-                                                <p>{{ reply.response }}</p>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                    <div class="d-flex align-items-start">
-                                        <div class="flex-shrink-0">
-                                            <span class="avatar">{{ ticket.ticket_creator|slice(0, 2) }}</span>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <strong>{{ ticket.ticket_creator }}</strong> <small class="text-muted">{{ ticket.date_created|date("Y-m-d H:i") }}</small>
-                                            <p>{{ ticket.message }}</p>
-                                        </div>
-                                    </div>
+                        <div class="datagrid">
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Created On') }}</div>
+                            <div class="datagrid-content"><strong>{{ ticket.date_created }}</strong></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Category') }}</div>
+                            <div class="datagrid-content"><span class="status status-indigo">{{ category }}</span></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Status') }}</div>
+                            <div class="datagrid-content">
+                            {% if ticket.status == 'Open' %}
+                                <span class="status status-success">{{ ticket.status }}</span>
+                            {% elseif ticket.status == 'In Progress' %}
+                                <span class="status status-warning">{{ ticket.status }}</span>
+                            {% elseif ticket.status == 'Resolved' %}
+                                <span class="status status-info">{{ ticket.status }}</span>
+                            {% elseif ticket.status == 'Closed' %}
+                                <span class="status status-cyan">{{ ticket.status }}</span>
+                            {% else %}
+                                <span class="status status-teal">{{ __('Unknown Status') }}</span>
+                            {% endif %}
                             </div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Priority') }}</div>
+                            <div class="datagrid-content">
+                            {% if ticket.priority == 'Low' %}
+                                <span class="status status-teal">{{ __('Low') }}</span>
+                            {% elseif ticket.priority == 'Medium' %}
+                                <span class="status status-blue">{{ __('Medium') }}</span>
+                            {% elseif ticket.priority == 'High' %}
+                                <span class="status status-orange">{{ __('High') }}</span>
+                            {% elseif ticket.priority == 'Critical' %}
+                                <span class="status status-red">{{ __('Critical') }}</span>
+                            {% else %}
+                                <span class="status status-cyan">{{ __('Unknown') }}</span>
+                            {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-lg-7 col-xl-9 d-flex flex-column">
+                    <div class="card-body">
+                        <div class="card mt-4">
+                          <div class="card-body scrollable" style="height: 35rem">
+                            <div class="chat">
+                              <div class="chat-bubbles">
+                                {% if ticket.user_id != user_id %}
+                                <div class="chat-item">
+                                  <div class="row align-items-end">
+                                    <div class="col-auto"><span class="avatar">{{ ticket.ticket_creator|slice(0, 2) }}</span></div>
+                                    <div class="col col-lg-6">
+                                      <div class="chat-bubble">
+                                        <div class="chat-bubble-title">
+                                          <div class="row">
+                                            <div class="col chat-bubble-author">{{ ticket.ticket_creator }}</div>
+                                            <div class="col-auto chat-bubble-date">{{ ticket.date_created|date("Y-m-d H:i") }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="chat-bubble-body">
+                                          <p>{{ ticket.message }}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {% else %}
+                                <div class="chat-item">
+                                  <div class="row align-items-end justify-content-end">
+                                    <div class="col col-lg-6">
+                                      <div class="chat-bubble chat-bubble-me">
+                                        <div class="chat-bubble-title">
+                                          <div class="row">
+                                            <div class="col chat-bubble-author">{{ ticket.ticket_creator }}</div>
+                                            <div class="col-auto chat-bubble-date">{{ ticket.date_created|date("Y-m-d H:i") }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="chat-bubble-body">
+                                          <p>{{ ticket.message }}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="col-auto"><span class="avatar">{{ ticket.ticket_creator|slice(0, 2) }}</span></div>
+                                  </div>
+                                </div>
+                                {% endif %}
+                                {% for reply in replies %}
+                                {% if reply.responder_id == user_id %}
+                                <div class="chat-item">
+                                  <div class="row align-items-end justify-content-end">
+                                    <div class="col col-lg-6">
+                                      <div class="chat-bubble chat-bubble-me">
+                                        <div class="chat-bubble-title">
+                                          <div class="row">
+                                            <div class="col chat-bubble-author">{{ reply.responder_name }}</div>
+                                            <div class="col-auto chat-bubble-date">{{ reply.date_created|date("Y-m-d H:i") }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="chat-bubble-body">
+                                          <p>{{ reply.response }}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="col-auto"><span class="avatar">{{ reply.responder_name|slice(0, 2) }}</span></div>
+                                  </div>
+                                </div>
+                                {% else %}
+                                <div class="chat-item">
+                                  <div class="row align-items-end">
+                                    <div class="col-auto"><span class="avatar">{{ reply.responder_name|slice(0, 2) }}</span></div>
+                                    <div class="col col-lg-6">
+                                      <div class="chat-bubble">
+                                        <div class="chat-bubble-title">
+                                          <div class="row">
+                                            <div class="col chat-bubble-author">{{ reply.responder_name }}</div>
+                                            <div class="col-auto chat-bubble-date">{{ reply.date_created|date("Y-m-d H:i") }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="chat-bubble-body">
+                                          <p>{{ reply.response }}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         {% if ticket.status != 'Closed' %}
@@ -114,6 +198,9 @@
                         </div>
                         {% endif %}
                     </div>
+                </div>
+                
+
                   {% if ticket.status != 'Closed' %}
                   <div class="card-footer">
                     <div class="row align-items-center">
