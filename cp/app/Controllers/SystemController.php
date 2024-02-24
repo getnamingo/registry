@@ -582,6 +582,13 @@ class SystemController extends Controller
             
             if ($args) {
                 $args = trim($args);
+                
+                if (!empty($_SESSION['u_tld_extension'])) {
+                    $tld_extension = $_SESSION['u_tld_extension'][0];
+                } else {
+                    $this->container->get('flash')->addMessage('error', 'No TLD specified for update');
+                    return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+                }
 
                 if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
@@ -589,7 +596,6 @@ class SystemController extends Controller
                 }
 
                 $validators = [
-                    'extension' => v::stringType()->notEmpty()->length(2, 64),
                     'createm0' => v::numericVal()->between(0.00, 9999999.99, true),
                     'createm12' => v::numericVal()->between(0.00, 9999999.99, true),
                     'createm24' => v::numericVal()->between(0.00, 9999999.99, true),
@@ -683,7 +689,7 @@ class SystemController extends Controller
                     $errorText = rtrim($errorText, '; ');
                     
                     $this->container->get('flash')->addMessage('error', $errorText);
-                    return $response->withHeader('Location', '/registry/tld/'.$data['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 }
              
                 try {
@@ -691,7 +697,7 @@ class SystemController extends Controller
                     
                     $tld_id = $db->selectValue(
                         'SELECT id FROM domain_tld WHERE tld = ?',
-                        [$data['extension']]
+                        [$tld_extension]
                     );
                     
                     $db->update(
@@ -809,13 +815,13 @@ class SystemController extends Controller
                         // Check if the upload was successful
                         if ($file->getError() !== UPLOAD_ERR_OK) {
                             $this->container->get('flash')->addMessage('error', 'Upload failed with error code ' . $file->getError());
-                            return $response->withHeader('Location', '/registry/tld/'.$data['extension'])->withStatus(302);
+                            return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                         }
 
                         // Validate file type and size
                         if ($file->getClientMediaType() !== 'text/csv' || $file->getSize() > 5 * 1024 * 1024) {
                             $this->container->get('flash')->addMessage('error', 'Invalid file type or size');
-                            return $response->withHeader('Location', '/registry/tld/'.$data['extension'])->withStatus(302);
+                            return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                         }
 
                         // Process the CSV file
@@ -845,20 +851,23 @@ class SystemController extends Controller
                                     );
                                 } else {
                                     $this->container->get('flash')->addMessage('error', 'Premium names category ' . $categoryName . ' not found');
-                                    return $response->withHeader('Location', '/registry/tld/'.$data['extension'])->withStatus(302);
+                                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                                 }
                             }
                         }
                     }
 
                     $db->commit();
-                    
-                    $this->container->get('flash')->addMessage('success', 'TLD ' . $data['extension'] . ' has been updated successfully');
+
+                    unset($_SESSION['u_tld_id']);
+                    unset($_SESSION['u_tld_extension']);
+
+                    $this->container->get('flash')->addMessage('success', 'TLD ' . $tld_extension . ' has been updated successfully');
                     return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
                 } catch (Exception $e) {
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                    return $response->withHeader('Location', '/registry/tld/'.$data['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 }
             } else {
                 // Redirect to the tlds view
@@ -921,6 +930,9 @@ class SystemController extends Controller
                 } else {
                     $tld_u = $tld['tld'];
                 }
+
+                $_SESSION['u_tld_id'] = [$tld['id']];
+                $_SESSION['u_tld_extension'] = [$tld['tld']];
 
                 return view($response,'admin/system/manageTld.twig', [
                     'tld' => $tld,
@@ -1062,11 +1074,25 @@ class SystemController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            
+            if (!empty($_SESSION['u_tld_id'])) {
+                $tld_id = $_SESSION['u_tld_id'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+            
+            if (!empty($_SESSION['u_tld_extension'])) {
+                $tld_extension = $_SESSION['u_tld_extension'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
 
             $sData = array();
 
-            $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
-            $sData['extension'] = substr(trim($data['extension']), 0, 10);
+            $sData['tldid'] = filter_var($tld_id, FILTER_SANITIZE_NUMBER_INT);
+            $sData['extension'] = substr(trim($tld_extension), 0, 10);
             $sData['promotionName'] = substr(trim($data['promotionName']), 0, 255);
             $sData['promotionStart'] = str_replace('T', ' ', $data['promotionStart']) . ':00';
             $sData['promotionEnd'] = str_replace('T', ' ', $data['promotionEnd']) . ':00';
@@ -1115,6 +1141,9 @@ class SystemController extends Controller
 
                 $db->commit();
                 
+                unset($_SESSION['u_tld_id']);
+                unset($_SESSION['u_tld_extension']);
+                
                 $this->container->get('flash')->addMessage('success', 'Promotion updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
             } catch (Exception $e) {
@@ -1140,11 +1169,25 @@ class SystemController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            
+            if (!empty($_SESSION['u_tld_id'])) {
+                $tld_id = $_SESSION['u_tld_id'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+            
+            if (!empty($_SESSION['u_tld_extension'])) {
+                $tld_extension = $_SESSION['u_tld_extension'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
 
             $sData = array();
 
-            $sData['tldid'] = filter_var($data['tldid'], FILTER_SANITIZE_NUMBER_INT);
-            $sData['extension'] = substr(trim($data['extension']), 0, 10);
+            $sData['tldid'] = filter_var($tld_id, FILTER_SANITIZE_NUMBER_INT);
+            $sData['extension'] = substr(trim($tld_extension), 0, 10);
             $sData['phaseName'] = substr(trim($data['phaseName']), 0, 255);
             $sData['phaseCategory'] = substr(trim($data['phaseCategory']), 0, 255);
             $sData['phaseType'] = substr(trim($data['phaseType']), 0, 255);
@@ -1215,6 +1258,9 @@ class SystemController extends Controller
                 );
 
                 $db->commit();
+                
+                unset($_SESSION['u_tld_id']);
+                unset($_SESSION['u_tld_extension']);
                 
                 $this->container->get('flash')->addMessage('success', 'Launch phase updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);

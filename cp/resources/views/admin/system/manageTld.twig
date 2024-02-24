@@ -32,24 +32,27 @@
                     <h5 class="card-title">{{ __('General Details') }}</h5>
                   </div>
                   <div class="card-body">
-                    <div class="mb-3">
-                        <label for="tldName" class="form-label">{{ __('TLD Extension') }}</label>
-                        <div class="form-control-plaintext">{{ tld_u }}</div>
-                        <input type="hidden" name="extension" value="{{ tld.tld }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="dnssecToggle" disabled>
-                          <span class="form-check-label">DNSSEC</span>
-                        </label>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tldTypeSelector" class="form-label">{{ __('TLD Type') }}</label>
-                        <div class="form-control-plaintext">{{ tld_u|length == 3 ? 'ccTLD' : (tld_u|length > 3 ? 'gTLD' : (tld_u|length == 2 ? 'Test TLD' : '')) }}</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="scriptDropdown" class="form-label">{{ __('Supported Script') }}</label>
-                        <div class="form-control-plaintext">{{ scriptName }}</div>
+                    <div class="datagrid">
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('TLD Extension') }}</div>
+                        <div class="datagrid-content">{{ tld_u }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('TLD Type') }}</div>
+                        <div class="datagrid-content">{{ tld_u|length == 3 ? 'ccTLD' : (tld_u|length > 3 ? 'gTLD' : (tld_u|length == 2 ? 'Test TLD' : '')) }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('Supported Script') }}</div>
+                        <div class="datagrid-content">{{ scriptName }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">DNSSEC</div>
+                        <div class="datagrid-content">
+                          <span class="status status-yellow">
+                            {{ __('Manual') }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -147,7 +150,7 @@
                             
                     <hr>
 
-                    <h6 class="mt-4 mb-3">{{ __('Set Premium Name Price Categories') }}</h6>
+                    <h5 class="card-title mb-3">{{ __('Set Premium Name Price Categories') }}</h5>
                     <table class="table" id="categoriesTable">
                       <thead>
                         <tr>
@@ -226,10 +229,9 @@
                         </tbody>
                     </table>
                   </div>
-                      <h4 class="card-subtitle mt-3 mb-3">{{ __('Create New Promotion') }}</h4>
+                      <h5 class="card-title mb-3">{{ __('Create New Promotion') }}</h5>
                       <form action="/registry/promotions" method="post">
                       {{ csrf.field | raw }}
-                      <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
                           <div class="mb-3">
                               <label for="promotionName" class="form-label required">{{ __('Promotion Name') }}</label>
                               <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name" required>
@@ -319,10 +321,9 @@
                         </tbody>
                     </table>
                   </div>
-                      <h4 class="card-subtitle mt-3 mb-3">{{ __('Create New Phase') }}</h4>
+                      <h5 class="card-title mb-3">{{ __('Create New Phase') }}</h5>
                       <form action="/registry/phases" method="post">
                       {{ csrf.field | raw }}
-                      <input type="hidden" name="tldid" value="{{ tld.id }}"><input type="hidden" name="extension" value="{{ tld.tld }}">
                           <div class="mb-3">
                               <label for="phaseType" class="form-label required">{{ __('Phase Type') }}</label>
                               <select class="form-select" id="phaseType" name="phaseType" required>
