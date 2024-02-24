@@ -28,6 +28,9 @@
               <form action="/support/status" method="post">
                 {{ csrf.field | raw }}
                 <div class="card">
+                {% if ticket.priority == 'High' or ticket.priority == 'Critical' %}
+                <div class="card-status-top bg-danger"></div>
+                {% endif %}
                     <div class="card-header">
                         <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>
                         <div class="card-actions">
@@ -68,13 +71,13 @@
                             <div class="datagrid-title">{{ __('Status') }}</div>
                             <div class="datagrid-content">
                             {% if ticket.status == 'Open' %}
-                                <span class="status status-success">{{ ticket.status }}</span>
+                                <span class="status status-success">{{ __('Open') }}</span>
                             {% elseif ticket.status == 'In Progress' %}
-                                <span class="status status-warning">{{ ticket.status }}</span>
+                                <span class="status status-warning">{{ __('In Progress') }}</span>
                             {% elseif ticket.status == 'Resolved' %}
-                                <span class="status status-info">{{ ticket.status }}</span>
+                                <span class="status status-info">{{ __('Resolved') }}</span>
                             {% elseif ticket.status == 'Closed' %}
-                                <span class="status status-cyan">{{ ticket.status }}</span>
+                                <span class="status status-cyan">{{ __('Closed') }}</span>
                             {% else %}
                                 <span class="status status-teal">{{ __('Unknown Status') }}</span>
                             {% endif %}
