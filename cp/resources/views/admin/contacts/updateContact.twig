@@ -28,7 +28,7 @@
                 <div class="card">
                     <div class="card-body">
                         <form action="/contact/update" method="post">
-                        {{ csrf.field | raw }}<input type="hidden" name="identifier" value="{{ contact.identifier }}">
+                        {{ csrf.field | raw }}
                         {% set postal_int = null %}
                         {% set postal_loc = null %}
 

@@ -27,7 +27,6 @@
             {% include 'partials/flash.twig' %}
               <form action="/support/status" method="post">
                 {{ csrf.field | raw }}
-                <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>&nbsp;
@@ -63,7 +62,7 @@
               </form>
               {% if ticket.status != 'Closed' %}<form action="/support/reply" method="post">
                 {{ csrf.field | raw }}
-                <input type="hidden" name="ticket_id" value="{{ ticket.id }}">{% endif %}
+              {% endif %}
                     <div class="card-body">
                         <h6 class="card-subtitle mb-2 text-muted">{{ __('Ticket Details') }}</h6>
                         <p><span>{{ __('Created On') }}:</span> <strong>{{ ticket.date_created }}</strong></p>

@@ -135,7 +135,7 @@ class SupportController extends Controller
                 ORDER BY tr.date_created DESC', [$ticketNumber]);
             $category = $db->selectValue('SELECT name FROM ticket_categories WHERE id = ?', [$ticket['category_id']]);
             
-            // Default view for GET requests or if POST data is not set
+            $_SESSION['current_ticket'] = [$ticket['id']];
             return view($response,'admin/support/viewTicket.twig', [
                 'ticket' => $ticket,
                 'replies' => $replies,
@@ -158,7 +158,12 @@ class SupportController extends Controller
             $uri = $request->getUri()->getPath();
             $categories = $db->select("SELECT * FROM ticket_categories");
             
-            $ticket_id = $data['ticket_id'] ?? null;
+            if (!empty($_SESSION['current_ticket'])) {
+                $ticket_id = $_SESSION['current_ticket'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No ticket selected');
+                return $response->withHeader('Location', '/support')->withStatus(302);
+            }
             $responseText = $data['responseText'] ?? null;
             
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -217,6 +222,7 @@ class SupportController extends Controller
                 // send message
                 Mail::send($mailsubject, $message, $from, $to);
 
+                unset($_SESSION['current_ticket']);
                 $this->container->get('flash')->addMessage('success', 'Reply has been posted successfully on ' . $crdate);
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
             } catch (Exception $e) {
@@ -236,7 +242,12 @@ class SupportController extends Controller
             $uri = $request->getUri()->getPath();
             $categories = $db->select("SELECT * FROM ticket_categories");
             
-            $ticket_id = $data['ticket_id'] ?? null;
+            if (!empty($_SESSION['current_ticket'])) {
+                $ticket_id = $_SESSION['current_ticket'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No ticket selected');
+                return $response->withHeader('Location', '/support')->withStatus(302);
+            }
             $action = $data['action'] ?? null;
             
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -294,6 +305,7 @@ class SupportController extends Controller
                             'id' => $ticket_id
                         ]
                     );
+                    unset($_SESSION['current_ticket']);
                     $this->container->get('flash')->addMessage('success', 'Ticket has been reopened successfully');
                     return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
                 } else {

@@ -1087,6 +1087,8 @@ class DomainsController extends Controller
                 } else {
                     $domain['punycode'] = $domain['name'];
                 }
+                $_SESSION['domains_to_update'] = [$domain['punycode']];
+
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
@@ -1117,9 +1119,14 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $data['domainName'] ?? null;
+            if (!empty($_SESSION['domains_to_update'])) {
+                $domainName = $_SESSION['domains_to_update'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No domain specified for update');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
             $domain_id = $db->selectValue('SELECT id FROM domain WHERE name = ?', [$domainName]);
-            
+
             if ($_SESSION["auth_roles"] != 0) {
                 $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
                 $domain_clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
@@ -1598,7 +1605,8 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
-   
+
+            unset($_SESSION['domains_to_update']);
             $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
         }
@@ -1707,7 +1715,13 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $data['domainName'] ?? null;
+            if (!empty($_SESSION['domains_to_renew'])) {
+                $domainName = $_SESSION['domains_to_renew'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No domain specified for renewal');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
             $renewalYears = $data['renewalYears'] ?? null;
             
             $parts = extractDomainAndTLD($domainName);
@@ -1729,7 +1743,7 @@ class DomainsController extends Controller
             } else {
                 $clid = $db->selectValue('SELECT clid FROM domain WHERE name = ?', [$domainName]);
             }
-                
+
             $date_add = 0;
             $date_add = ($renewalYears * 12);
             
@@ -1852,7 +1866,8 @@ class DomainsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during renew: ' . $e->getMessage());
                 return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
             }
-           
+
+            unset($_SESSION['domains_to_renew']);
             $this->container->get('flash')->addMessage('success','Domain ' . $domainName . ' has been renewed for ' . $renewalYears . ' ' . ($renewalYears > 1 ? 'years' : 'year'));
             return $response->withHeader('Location', '/domains')->withStatus(302);
         }
@@ -1922,6 +1937,8 @@ class DomainsController extends Controller
                 } else {
                     $domain['punycode'] = $domain['name'];
                 }
+                $_SESSION['domains_to_renew'] = [$domain['punycode']];
+
                 return view($response,'admin/domains/renewDomain.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,

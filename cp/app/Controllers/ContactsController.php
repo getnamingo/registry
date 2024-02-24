@@ -504,7 +504,9 @@ class ContactsController extends Controller
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
-                
+
+                $_SESSION['contacts_to_update'] = [$contact['identifier']];
+
                 $responseData = [
                     'contact' => $contact,
                     'contactStatus' => $contactStatus,
@@ -585,7 +587,9 @@ class ContactsController extends Controller
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
-           
+
+                $_SESSION['contacts_to_validate'] = [$contact['identifier']];
+
                 $responseData = [
                     'contact' => $contact,
                     'contactStatus' => $contactStatus,
@@ -676,7 +680,12 @@ class ContactsController extends Controller
             // Get the current URI
             $uri = $request->getUri()->getPath();
             
-            $identifier = trim($data['identifier']);
+            if (!empty($_SESSION['contacts_to_validate'])) {
+                $identifier = $_SESSION['contacts_to_validate'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No contact specified for validation');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
             
             if (!preg_match('/^[a-zA-Z0-9\-]+$/', $identifier)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
@@ -720,7 +729,8 @@ class ContactsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
-                
+
+                unset($_SESSION['contacts_to_validate']);
                 $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been validated successfully on ' . $stamp);
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
 
@@ -741,7 +751,12 @@ class ContactsController extends Controller
             $db = $this->container->get('db');
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
-            $identifier = $data['identifier'] ?? null;
+            if (!empty($_SESSION['contacts_to_update'])) {
+                $identifier = $_SESSION['contacts_to_update'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No contact specified for update');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
 
             if ($_SESSION["auth_roles"] != 0) {
                 $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -1077,7 +1092,8 @@ class ContactsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
-            
+
+            unset($_SESSION['contacts_to_update']);
             $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
         }

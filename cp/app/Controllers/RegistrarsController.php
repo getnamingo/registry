@@ -395,19 +395,22 @@ class RegistrarsController extends Controller
                 $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
 
-                    return view($response,'admin/registrars/updateRegistrar.twig', [
-                        'registrar' => $registrar,
-                        'contacts' => $contacts,
-                        'ote' => $ote,
-                        'user' => $user,
-                        'whitelist' => $whitelist,
-                        'currentUri' => $uri,
-                        'countries' => $countries
-                    ]);
-                } else {
-                    // Registrar does not exist, redirect to the registrars view
-                    return $response->withHeader('Location', '/registrars')->withStatus(302);
-                }
+                $_SESSION['registrars_to_update'] = [$registrar['clid']];
+                $_SESSION['registrars_user_email'] = [$user['email']];
+
+                return view($response,'admin/registrars/updateRegistrar.twig', [
+                    'registrar' => $registrar,
+                    'contacts' => $contacts,
+                    'ote' => $ote,
+                    'user' => $user,
+                    'whitelist' => $whitelist,
+                    'currentUri' => $uri,
+                    'countries' => $countries
+                ]);
+            } else {
+                // Registrar does not exist, redirect to the registrars view
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
         } else {
             // Redirect to the registrars view
             return $response->withHeader('Location', '/registrars')->withStatus(302);
@@ -424,7 +427,12 @@ class RegistrarsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $registrar = $data['reg_clid'] ?? null;
+            if (!empty($_SESSION['registrars_to_update'])) {
+                $registrar = $_SESSION['registrars_to_update'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No registrar specified for update');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
 
             $data['ipAddress'] = array_filter($data['ipAddress']);
             $iso3166 = new ISO3166();
@@ -495,6 +503,13 @@ class RegistrarsController extends Controller
                 $errorText = rtrim($errorText, '; ');
                 
                 $this->container->get('flash')->addMessage('error', $errorText);
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+            
+            if (!empty($_SESSION['registrars_user_email'])) {
+                $regEmail = $_SESSION['registrars_user_email'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No email specified for update');
                 return $response->withHeader('Location', '/registrars')->withStatus(302);
             }
 
@@ -634,7 +649,7 @@ class RegistrarsController extends Controller
                             'password' => $panelPassword,
                         ],
                         [
-                            'email' => $data['reg_email']
+                            'email' => $regEmail
                         ]
                     );
                 }
@@ -645,7 +660,9 @@ class RegistrarsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
-            
+
+            unset($_SESSION['registrars_to_update']);
+            unset($_SESSION['registrars_user_email']);
             $this->container->get('flash')->addMessage('success', 'Registrar ' . $data['name'] . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
         }

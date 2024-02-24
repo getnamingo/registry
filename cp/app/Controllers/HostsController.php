@@ -391,6 +391,8 @@ class HostsController extends Controller
                     } else {
                         $host['punycode'] = $host['name'];
                     }
+                    $_SESSION['hosts_to_update'] = [$host['punycode']];
+
                     return view($response,'admin/hosts/updateHost.twig', [
                         'host' => $host,
                         'hostIPv4' => $hostIPv4,
@@ -415,7 +417,12 @@ class HostsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $hostName = $data['hostName'] ?? null;
+            if (!empty($_SESSION['hosts_to_update'])) {
+                $hostName = $_SESSION['hosts_to_update'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No host specified for update');
+                return $response->withHeader('Location', '/hosts')->withStatus(302);
+            }
             $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?', [$hostName]);
             
             if ($_SESSION["auth_roles"] != 0) {
@@ -430,15 +437,21 @@ class HostsController extends Controller
        
             $ipv4 = $data['ipv4'] ?? null;
             $ipv6 = $data['ipv6'] ?? null;
-            
-            // Validate IPv4 address
-            if ($ipv4 !== null && !filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+
+            // Check if both IPv4 and IPv6 are empty or null
+            if (empty($ipv4) && empty($ipv6)) {
+                $this->container->get('flash')->addMessage('error', 'At least one IP address (IPv4 or IPv6) is required');
+                return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
+            }
+
+            // Validate IPv4 address, if provided
+            if (!empty($ipv4) && !filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid IPv4 address');
                 return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
             }
 
-            // Validate IPv6 address
-            if ($ipv6 !== null && !filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            // Validate IPv6 address, if provided
+            if (!empty($ipv6) && !filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid IPv6 address');
                 return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
             }
@@ -446,56 +459,73 @@ class HostsController extends Controller
             try {
                 $db->beginTransaction();
          
-                if (isset($ipv4) && !empty($ipv4)) {
-                    $ipv4 = normalize_v4_address($ipv4);
-                    
-                    $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v4'", [$host_id]);
-                    
-                    if ($does_it_exist) {
-                        $db->update(
-                            'host_addr',
-                            [
-                                'addr' => $ipv4
-                            ],
-                            [
-                                'host_id' => $host_id,
-                                'ip' => 'v4'
-                            ]
-                        );
+                if (isset($ipv4)) {
+                    if (!empty($ipv4)) {
+                        $ipv4 = normalize_v4_address($ipv4);
+                        
+                        $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v4'", [$host_id]);
+                        
+                        if ($does_it_exist) {
+                            $db->update(
+                                'host_addr',
+                                ['addr' => $ipv4],
+                                [
+                                    'host_id' => $host_id,
+                                    'ip' => 'v4'
+                                ]
+                            );
+                        } else {
+                            $db->insert(
+                                'host_addr',
+                                [
+                                    'addr' => $ipv4,
+                                    'host_id' => $host_id,
+                                    'ip' => 'v4'
+                                ]
+                            );
+                        }
                     } else {
-                        $db->insert(
+                        // If $ipv4 is set but is an empty string, delete the existing IPv4 address entry
+                        $db->delete(
                             'host_addr',
                             [
-                                'addr' => $ipv4,
                                 'host_id' => $host_id,
                                 'ip' => 'v4'
                             ]
                         );
                     }
-
                 }
 
-                if (isset($ipv6) && !empty($ipv6)) {
-                    $ipv6 = normalize_v6_address($ipv6);
-                            
-                    $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v6'", [$host_id]);
-                    
-                    if ($does_it_exist) {
-                        $db->update(
-                            'host_addr',
-                            [
-                                'addr' => $ipv6
-                            ],
-                            [
-                                'host_id' => $host_id,
-                                'ip' => 'v6'
-                            ]
-                        );
+                if (isset($ipv6)) {
+                    if (!empty($ipv6)) {
+                        $ipv6 = normalize_v6_address($ipv6);
+                        
+                        $does_it_exist = $db->selectValue("SELECT id FROM host_addr WHERE host_id = ? AND ip = 'v6'", [$host_id]);
+                        
+                        if ($does_it_exist) {
+                            $db->update(
+                                'host_addr',
+                                ['addr' => $ipv6],
+                                [
+                                    'host_id' => $host_id,
+                                    'ip' => 'v6'
+                                ]
+                            );
+                        } else {
+                            $db->insert(
+                                'host_addr',
+                                [
+                                    'addr' => $ipv6,
+                                    'host_id' => $host_id,
+                                    'ip' => 'v6'
+                                ]
+                            );
+                        }
                     } else {
-                        $db->insert(
+                        // If $ipv6 is set but is an empty string, delete the existing IPv6 address entry
+                        $db->delete(
                             'host_addr',
                             [
-                                'addr' => $ipv6,
                                 'host_id' => $host_id,
                                 'ip' => 'v6'
                             ]
@@ -521,7 +551,8 @@ class HostsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
             }
-   
+
+            unset($_SESSION['hosts_to_update']);
             $this->container->get('flash')->addMessage('success', 'Host ' . $hostName . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/host/update/'.$hostName)->withStatus(302);
         }

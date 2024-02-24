@@ -25,7 +25,7 @@
           <div class="container-xl">
             <div class="col-12">
             {% include 'partials/flash.twig' %}
-              <form action="/registrar/update" method="post" autocomplete="off"><input type="hidden" name="reg_clid" value="{{ registrar.clid }}">
+              <form action="/registrar/update" method="post" autocomplete="off">
               {{ csrf.field | raw }}
                 <!-- Registrar Details Card -->
                 <div class="card mb-3">
@@ -378,7 +378,7 @@
                             <thead>
                               <tr>
                                 <th scope="col required">{{ __('Username/CLID') }}</th>
-                                <th scope="col">{{ __('Login Email') }}</th><input type="hidden" name="reg_email" value="{{ user.email }}">
+                                <th scope="col">{{ __('Login Email') }}</th>
                                 <th scope="col">{{ __('Panel Password') }} <span class="text-red">*</span></th>
                                 <th scope="col">{{ __('EPP Password') }} <span class="text-red">*</span></th>
                               </tr>

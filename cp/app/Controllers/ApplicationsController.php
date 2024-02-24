@@ -755,6 +755,14 @@ class ApplicationsController extends Controller
                 
                 $csrfTokenName = $this->container->get('csrf')->getTokenName();
                 $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
+                
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['punycode'] = $domain['name'];
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $domain['punycode'] = $domain['name'];
+                }
+                $_SESSION['applications_to_update'] = [$domain['punycode']];
 
                 return view($response,'admin/domains/updateApplication.twig', [
                     'domain' => $domain,
@@ -784,7 +792,12 @@ class ApplicationsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            $domainName = $data['domainName'] ?? null;
+            if (!empty($_SESSION['applications_to_update'])) {
+                $domainName = $_SESSION['applications_to_update'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No application specified for update');
+                return $response->withHeader('Location', '/applications')->withStatus(302);
+            }
             $domain_id = $db->selectValue('SELECT id FROM application WHERE name = ?', [$domainName]);
             
             if ($_SESSION["auth_roles"] != 0) {
@@ -948,7 +961,8 @@ class ApplicationsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
                 return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
             }
-   
+
+            unset($_SESSION['applications_to_update']);
             $this->container->get('flash')->addMessage('success', 'Application ' . $domainName . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
         }
