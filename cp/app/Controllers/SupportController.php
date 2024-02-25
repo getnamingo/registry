@@ -26,19 +26,20 @@ class SupportController extends Controller
             $category = $data['category'] ?? null;
             $subject = htmlspecialchars($data['subject'], ENT_QUOTES, 'UTF-8') ?? null;
             $message = $data['message'] ?? null;
-            
+
             if (!$subject) {
-                return view($response, 'admin/support/newticket.twig', [
-                    'error' => 'Please enter a subject',
-                    'categories' => $categories,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Please enter a subject');
+                return $response->withHeader('Location', '/support/new')->withStatus(302);
             }
             
             if (!$message) {
-                return view($response, 'admin/support/newticket.twig', [
-                    'error' => 'Please enter a message',
-                    'categories' => $categories,
-                ]);
+                $this->container->get('flash')->addMessage('error', 'Please enter a message');
+                return $response->withHeader('Location', '/support/new')->withStatus(302);
+            }
+            
+            if (mb_strlen($message, 'UTF-8') > 5000) {
+                $this->container->get('flash')->addMessage('error', 'The provided message exceeds the 5,000 character limit');
+                return $response->withHeader('Location', '/support/new')->withStatus(302);
             }
             
             try {    
@@ -82,10 +83,9 @@ class SupportController extends Controller
                 Mail::send($mailsubject, $message, $from, $to);
             } catch (Exception $e) {
                 $db->rollBack();
-                return view($response, 'admin/support/newticket.twig', [
-                    'error' => $e->getMessage(),
-                    'categories' => $categories
-                ]);
+
+                $this->container->get('flash')->addMessage('error', 'Database error: ' . $e->getMessage());
+                return $response->withHeader('Location', '/support/new')->withStatus(302);
             }
             
             $this->container->get('flash')->addMessage('success', 'Support ticket ' . $subject . ' has been created successfully!');
@@ -166,7 +166,12 @@ class SupportController extends Controller
                 return $response->withHeader('Location', '/support')->withStatus(302);
             }
             $responseText = $data['responseText'] ?? null;
-            
+
+            if (mb_strlen($responseText, 'UTF-8') > 5000) {
+                $this->container->get('flash')->addMessage('error', 'The provided message exceeds the 5,000 character limit');
+                return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
+            }
+
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
             $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
             $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticket_id]);
