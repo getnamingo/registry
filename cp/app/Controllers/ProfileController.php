@@ -29,7 +29,7 @@ class ProfileController extends Controller
 
         $db = $container->get('db');
         
-        $qrCodeProvider = new BaconQRCodeProvider($borderWidth = 4, $backgroundColour = '#ffffff', $foregroundColour = '#000000', $format = 'svg');
+        $qrCodeProvider = new BaconQRCodeProvider($borderWidth = 0, $backgroundColour = '#ffffff', $foregroundColour = '#000000', $format = 'svg');
         $tfa = new TwoFactorAuth(
             issuer: "Namingo",
             qrcodeprovider: $qrCodeProvider,
