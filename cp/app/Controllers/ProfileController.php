@@ -5,6 +5,8 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
 
 class ProfileController extends Controller
 {
@@ -26,8 +28,14 @@ class ProfileController extends Controller
         $status = $_SESSION['auth_status'];
 
         $db = $container->get('db');
-        $tfa = new \RobThree\Auth\TwoFactorAuth('Namingo');
-        $secret = $tfa->createSecret();
+        
+        $qrCodeProvider = new BaconQRCodeProvider($borderWidth = 4, $backgroundColour = '#ffffff', $foregroundColour = '#000000', $format = 'svg');
+        $tfa = new TwoFactorAuth(
+            issuer: "Namingo",
+            qrcodeprovider: $qrCodeProvider,
+        );
+
+        $secret = $tfa->createSecret(160, true);
         $qrcodeDataUri = $tfa->getQRCodeImageAsDataUri($email, $secret);
         
         if ($status == 0) {
@@ -100,6 +108,7 @@ class ProfileController extends Controller
             }
             
             try {
+                $db->beginTransaction();
                 $currentDateTime = new \DateTime();
                 $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
                 $db->insert(
@@ -127,14 +136,17 @@ class ProfileController extends Controller
                         'id' => $userId
                     ]
                 );
+                $db->commit();
             } catch (Exception $e) {
-                return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+                $db->rollBack();
+                $container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/profile')->withStatus(302);
             }
-
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            $container->get('flash')->addMessage('success', '2FA for your user has been activated successfully');
+            return $response->withHeader('Location', '/profile')->withStatus(302);
         }
     }
-    
+
     public function getRegistrationChallenge(Request $request, Response $response)
     {
         $userName = $_SESSION['auth_username'];

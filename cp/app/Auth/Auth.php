@@ -151,7 +151,7 @@ class Auth
                 if (!is_null($code) && $code !== "" && preg_match('/^\d{6}$/', $code)) {
                 // If tfa_secret exists and is not empty, verify the 2FA code
                 $tfaService = new \RobThree\Auth\TwoFactorAuth('Namingo');
-                    if ($tfaService->verifyCode($tfa_secret, $code) === true) {
+                    if ($tfaService->verifyCode($tfa_secret, $code, 0) === true) {
                         // 2FA verification successful
                         return true;
                     } else {
