@@ -33,6 +33,21 @@ class AuthController extends Controller
     public function createLogin(Request $request, Response $response){
         return view($response,'auth/login.twig');
     }
+    
+    /**
+     * Show 2FA verification form.
+     *
+     * @param Request $request
+     * @param Response $response
+     * @return mixed
+     */
+    public function verify2FA(Request $request, Response $response){
+        if (isset($_SESSION['is2FAEnabled']) && $_SESSION['is2FAEnabled'] === true) {
+            return view($response, 'auth/verify2fa.twig');
+        } else {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+    }
 
     /**
      * @param Request $request
@@ -42,20 +57,34 @@ class AuthController extends Controller
      */
     public function login(Request $request, Response $response){
         global $container;
-
         $data = $request->getParsedBody();
-        if(isset($data['remember'])){
-            $remember = $data['remember'];
-        }else{
-            $remember = null;
+        $db = $container->get('db');
+        $is2FAEnabled = $db->selectValue('SELECT tfa_enabled, tfa_secret FROM users WHERE email = ?', [$data['email']]);
+
+        // If 2FA is enabled and no code is provided, redirect to 2FA code entry
+        if($is2FAEnabled && !isset($data['code'])) {
+            $_SESSION['2fa_email'] = $data['email'];
+            $_SESSION['2fa_password'] = $data['password'];
+            $_SESSION['is2FAEnabled'] = true;
+            return $response->withHeader('Location', '/login/verify')->withStatus(302);
+        } else {
+            $email = $data['email'];
+            $password = $data['password'];
+            $_SESSION['is2FAEnabled'] = false;
         }
-        if(isset($data['code'])){
-            $code = $data['code'];
-        }else{
-            $code = null;
+
+        // If the 2FA code is present, this might be a 2FA verification attempt
+        if (isset($data['code']) && isset($_SESSION['2fa_email']) && isset($_SESSION['2fa_password'])) {
+            $email = $_SESSION['2fa_email'];
+            $password = $_SESSION['2fa_password'];
+            // Clear the session variables immediately after use
+            unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
         }
-        $login = Auth::login($data['email'], $data['password'], $remember, $code);
-        if($login===true) {
+
+        $login = Auth::login($email, $password, $data['remember'] ?? null, $data['code'] ?? null);
+        unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
+
+        if ($login===true) {
             $db = $container->get('db');
             $currentDateTime = new \DateTime();
             $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp

@@ -26,6 +26,7 @@ $app->get('/', HomeController::class .':index')->setName('index');
 
 $app->group('', function ($route) {
     $route->get('/login', AuthController::class . ':createLogin')->setName('login');
+    $route->map(['GET', 'POST'], '/login/verify', AuthController::class . ':verify2FA')->setName('verify2FA');
     $route->post('/login', AuthController::class . ':login');
     $route->post('/webauthn/login/challenge', AuthController::class . ':getLoginChallenge')->setName('webauthn.login.challenge');
     $route->post('/webauthn/login/verify', AuthController::class . ':verifyLogin')->setName('webauthn.login.verify');

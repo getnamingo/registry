@@ -142,25 +142,31 @@ class Auth
 
             $auth->login($email, $password, $rememberDuration);
 
+            // check if a valid code is provided
             global $container;
             $db = $container->get('db');
-            $tfa = $db->selectRow('SELECT tfa_enabled, tfa_secret FROM users WHERE id = ?', [$auth->getUserId()]);
+            $tfa_secret = $db->selectValue('SELECT tfa_secret FROM users WHERE id = ?', [$auth->getUserId()]);
 
-            if ($tfa) {
-                if ($tfa['tfa_enabled'] == 1) {
-                    $tfaService = new \RobThree\Auth\TwoFactorAuth('Namingo');
-                        if ($tfaService->verifyCode($tfa['tfa_secret'], $code) === true) {
-                            return true;
-                        } else {
-                            self::$auth->logOut();
-                            redirect()->route('login')->with('error','Incorrect 2FA Code. Please check and enter the correct code. 2FA codes are time-sensitive. For continuous issues, contact support.');
-                        }
-                } elseif ($tfa['tfa_enabled'] == 0) {
-                    return true;
+            if (!is_null($tfa_secret)) {
+                if (!is_null($code) && $code !== "" && preg_match('/^\d{6}$/', $code)) {
+                // If tfa_secret exists and is not empty, verify the 2FA code
+                $tfaService = new \RobThree\Auth\TwoFactorAuth('Namingo');
+                    if ($tfaService->verifyCode($tfa_secret, $code) === true) {
+                        // 2FA verification successful
+                        return true;
+                    } else {
+                        // 2FA verification failed
+                        self::$auth->logOut();
+                        redirect()->route('login')->with('error','Incorrect 2FA Code. Please check and enter the correct code. 2FA codes are time-sensitive. For continuous issues, contact support.');
+                        //return false; // Ensure to return false or handle accordingly
+                    }
+                } else {
+                    self::$auth->logOut();
+                    redirect()->route('login')->with('error','2FA Code Required. Please enter your 6-digit 2FA code to proceed with the login.');
+                    //return false;
                 }
             } else {
-                self::$auth->logOut();
-                redirect()->route('login')->with('error','Temporary Database Issue. Please try again shortly. If this problem persists, kindly reach out to our support team for assistance.');
+                return true;
             }
         }
         catch (InvalidEmailException $e) {

@@ -1,0 +1,101 @@
+{% extends "layouts/auth.twig" %}
+
+{% block title %}Two-Factor Authentication{% endblock %}
+
+{% block content %}
+    <div class="page page-center">
+      <div class="container container-tight py-4">
+        <div class="text-center mb-4">
+          <a href="." class="navbar-brand navbar-brand-autodark"><img src="./static/logo-bw.svg" height="36" alt=""></a>
+          {% include 'partials/flash.twig' %}
+        </div>
+        <form class="card card-md" action="{{route('login')}}" id="login" method="post" autocomplete="off" novalidate>
+        {{ csrf.field | raw }}
+          <div class="card-body">
+            <h2 class="card-title card-title-lg text-center mb-4">Two-Factor Authentication</h2>
+            <p class="my-4 text-center">Please enter the <strong>6-digit</strong> verification code from your authenticator app to continue.</p>
+            <div class="my-5">
+              <div class="row g-4">
+                <div class="col">
+                  <div class="row g-2">
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="row g-2">
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                    <div class="col">
+                      <input type="text" class="form-control form-control-lg text-center py-3" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-code-input />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-footer">
+              <div class="btn-list flex-nowrap">
+                <a href="{{route('login')}}" class="btn w-100">
+                  Cancel
+                </a>
+                <input type="hidden" name="code" id="fullCode">
+                <button type="submit" class="btn btn-primary w-100">
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+<script>
+document.querySelectorAll('[data-code-input]').forEach(function(input, idx, inputs) {
+    // Handle input to move forward
+    input.addEventListener('input', function(e) {
+        // Move to the next box if the current one is filled and it's not the last box
+        if (input.value && idx < inputs.length - 1) {
+            inputs[idx + 1].focus();
+        }
+    });
+
+    // Handle backspace to move backward
+    input.addEventListener('keydown', function(e) {
+        // If backspace is pressed and the input is empty or becomes empty, focus the previous box
+        if (e.key === 'Backspace' && (input.value === '' || input.value.length === 1)) {
+            if (idx > 0) {
+                // Delay moving focus to handle case where backspace is hit and the input is not yet empty
+                setTimeout(() => inputs[idx - 1].focus(), 0);
+            }
+        }
+    });
+});
+
+document.getElementById('login').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent the form from submitting immediately
+    
+    // Concatenate the values from each input
+    var inputs = document.querySelectorAll('[data-code-input]');
+    var code = '';
+    inputs.forEach(function(input) {
+        code += input.value;
+    });
+        
+    // Set the concatenated value to the hidden input
+    document.getElementById('fullCode').value = code;
+    console.log(code);
+    // Now submit the form
+    this.submit();
+});
+</script>
+{% endblock %}
