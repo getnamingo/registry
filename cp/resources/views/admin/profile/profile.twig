@@ -134,17 +134,23 @@
                   {% endif %}
                 </div>
                 <div class="card tab-pane" id="tabs-webauthn">
+                  {% if weba is defined %}
                   <div class="card-body">
                     <h3 class="card-title">{{ __('WebAuthn Authentication') }}</h3>
-                    <p>{{ __('Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.') }}</p>
-                    <button type="button" class="btn btn-success" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
+                    <div class="d-flex align-items-center">
+                      <span class="badge bg-green text-green-fg me-3"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 12l0 2.5" /></svg></span>
+                      <div>
+                        <h5 class="card-title mb-1">{{ __('Your account is secured with an additional layer of protection.') }}</h5>
+                        <p class="text-muted mb-2">{{ __('WebAuthn is currently') }} <strong>{{ __('enabled') }}</strong> {{ __('for your account. If you encounter any issues or need to disable WebAuthn, please contact our support team for assistance.') }}</p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-primary mt-4" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
                     <div class="table-responsive mt-4">
                       <table class="table table-striped">
                         <thead>
                           <tr>
                             <th>{{ __('Device/Browser Info') }}</th>
                             <th>{{ __('Registration Date') }}</th>
-                            <th>{{ __('Action') }}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -152,9 +158,6 @@
                           <tr>
                             <td>{{ device.user_agent }}</td>
                             <td>{{ device.created_at }}</td>
-                            <td>
-                              <a href="/path/to/action?deviceId={{ device.id }}">{{ __('Edit') }}</a>
-                            </td>
                           </tr>
                         {% else %}
                           <tr>
@@ -165,38 +168,20 @@
                       </table>
                     </div>
                   </div>
+                  {% else %}
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('WebAuthn Authentication') }}</h3>
+                    <p>{{ __('Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.') }}</p>
+                    <button type="button" class="btn btn-primary" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
+                  </div>
+                  {% endif %}
                 </div>
                 <div class="card tab-pane" id="tabs-log">
                   <div class="card-body">
                     <h3 class="card-title">{{ __('User Audit Log') }}</h3>
                     <p>{{ __('Track and review all user activities in your account below. Monitor logins, profile changes, and other key actions to ensure security and transparency.') }}</p>
                     <div class="table-responsive mt-4">
-                      <table class="table table-striped">
-                        <thead>
-                          <tr>
-                            <th>{{ __('Event') }}</th>
-                            <th>{{ __('User Agent') }}</th>
-                            <th>IP</th>
-                            <th>{{ __('Location') }}</th>
-                            <th>{{ __('Timestamp') }}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                        {% for user in userAudit %}
-                          <tr>
-                            <td>{{ user.user_event }}</td>
-                            <td>{{ user.user_agent }}</td>
-                            <td>{{ user.user_ip }}</td>
-                            <td>{{ user.user_location }}</td>
-                            <td>{{ user.event_time }}</td>
-                          </tr>
-                        {% else %}
-                          <tr>
-                            <td colspan="5">{{ __('No log data for user.') }}</td>
-                          </tr>
-                        {% endfor %}
-                        </tbody>
-                      </table>
+                      <div id="auditTable"></div>
                     </div>
                   </div>
                 </div>
@@ -205,108 +190,4 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const connectButton = document.getElementById('connectWebAuthnButton');
-
-    connectButton.addEventListener('click', async function() {
-        try {
-
-            // check browser support
-            if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
-                throw new Error('Browser not supported.');
-            }
-
-            // get create args
-            let rep = await window.fetch('/webauthn/register/challenge', {method:'GET', cache:'no-cache'});
-            const createArgs = await rep.json();
-
-            // error handling
-            if (createArgs.success === false) {
-                throw new Error(createArgs.msg || 'unknown error occured');
-            }
-
-            // replace binary base64 data with ArrayBuffer. a other way to do this
-            // is the reviver function of JSON.parse()
-            recursiveBase64StrToArrayBuffer(createArgs);
-
-            // create credentials
-            const cred = await navigator.credentials.create(createArgs);
-
-            // create object
-            const authenticatorAttestationResponse = {
-                transports: cred.response.getTransports  ? cred.response.getTransports() : null,
-                clientDataJSON: cred.response.clientDataJSON  ? arrayBufferToBase64(cred.response.clientDataJSON) : null,
-                attestationObject: cred.response.attestationObject ? arrayBufferToBase64(cred.response.attestationObject) : null
-            };
-
-            // check auth on server side
-            rep = await window.fetch('/webauthn/register/verify', {
-                method  : 'POST',
-                body    : JSON.stringify(authenticatorAttestationResponse),
-                cache   : 'no-cache'
-            });
-            const authenticatorAttestationServerResponse = await rep.json();
-
-            // prompt server response
-            if (authenticatorAttestationServerResponse.success) {
-                //location.reload();
-                window.alert(authenticatorAttestationServerResponse.msg || 'registration success');
-            } else {
-                throw new Error(authenticatorAttestationServerResponse.msg);
-            }
-
-        } catch (err) {
-            //location.reload();
-            window.alert(err.message || 'unknown error occured');
-        }
-
-    });
-    
-        /**
-         * convert RFC 1342-like base64 strings to array buffer
-         * @param {mixed} obj
-         * @returns {undefined}
-         */
-        function recursiveBase64StrToArrayBuffer(obj) {
-            let prefix = '=?BINARY?B?';
-            let suffix = '?=';
-            if (typeof obj === 'object') {
-                for (let key in obj) {
-                    if (typeof obj[key] === 'string') {
-                        let str = obj[key];
-                        if (str.substring(0, prefix.length) === prefix && str.substring(str.length - suffix.length) === suffix) {
-                            str = str.substring(prefix.length, str.length - suffix.length);
-
-                            let binary_string = window.atob(str);
-                            let len = binary_string.length;
-                            let bytes = new Uint8Array(len);
-                            for (let i = 0; i < len; i++)        {
-                                bytes[i] = binary_string.charCodeAt(i);
-                            }
-                            obj[key] = bytes.buffer;
-                        }
-                    } else {
-                        recursiveBase64StrToArrayBuffer(obj[key]);
-                    }
-                }
-            }
-        }
-
-        /**
-         * Convert a ArrayBuffer to Base64
-         * @param {ArrayBuffer} buffer
-         * @returns {String}
-         */
-        function arrayBufferToBase64(buffer) {
-            let binary = '';
-            let bytes = new Uint8Array(buffer);
-            let len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode( bytes[ i ] );
-            }
-            return window.btoa(binary);
-        }
-});
-</script>
 {% endblock %}

@@ -60,19 +60,15 @@ class ProfileController extends Controller
             [$userId]
         );
         $is_weba_activated = $db->select(
-            'SELECT * FROM users_webauthn WHERE user_id = ?',
-            [$userId]
-        );
-        $user_audit = $db->select(
-            'SELECT * FROM users_audit WHERE user_id = ? ORDER BY event_time DESC',
+            'SELECT * FROM users_webauthn WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
             [$userId]
         );
         if ($is_2fa_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'userAudit' => $user_audit]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         } else if ($is_weba_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated, 'userAudit' => $user_audit]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
         } else {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'userAudit' => $user_audit]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         }
 
     }
@@ -203,10 +199,19 @@ class ProfileController extends Controller
                     'sign_count' => $counter
                 ]
             );
-            
-            $msg = 'registration success.';
+            $db->update(
+                'users',
+                [
+                    'auth_method' => 'webauthn'
+                ],
+                [
+                    'id' => $userId
+                ]
+            );
+
+            $msg = 'Registration success.';
             if ($credential->rootValid === false) {
-                $msg = 'registration ok, but certificate does not match any of the selected root ca.';
+                $msg = 'Registration ok, but certificate does not match any of the selected root ca.';
             }
 
             $return = new \stdClass();

@@ -7,6 +7,7 @@ use App\Controllers\Controller;
 use Respect\Validation\Validator as v;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Pinga\Session;
 
 /**
  * AuthController
@@ -59,7 +60,13 @@ class AuthController extends Controller
         global $container;
         $data = $request->getParsedBody();
         $db = $container->get('db');
-        $is2FAEnabled = $db->selectValue('SELECT tfa_enabled, tfa_secret FROM users WHERE email = ?', [$data['email']]);
+        $is2FAEnabled = $db->selectValue('SELECT tfa_enabled FROM users WHERE email = ?', [$data['email']]);
+        $isWebaEnabled = $db->selectValue('SELECT auth_method FROM users WHERE email = ?', [$data['email']]);
+
+        if ($isWebaEnabled == 'webauthn') {
+            $container->get('flash')->addMessage('error', 'WebAuthn enabled for this account');
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
 
         // If 2FA is enabled and no code is provided, redirect to 2FA code entry
         if($is2FAEnabled && !isset($data['code'])) {
@@ -219,7 +226,7 @@ class AuthController extends Controller
                 // Send success response
                 $user = $db->selectRow('SELECT * FROM users WHERE id = ?', [$user_id]);
 
-                Session::regenerate(true);
+                session_regenerate_id();
                 $_SESSION['auth_logged_in'] = true;
                 $_SESSION['auth_user_id'] = $user['id'];
                 $_SESSION['auth_email'] = $user['email'];
@@ -237,7 +244,7 @@ class AuthController extends Controller
                     'users_audit',
                     [
                         'user_id' => $_SESSION['auth_user_id'],
-                        'user_event' => 'user.login',
+                        'user_event' => 'user.login.webauthn',
                         'user_resource' => 'control.panel',
                         'user_agent' => $_SERVER['HTTP_USER_AGENT'],
                         'user_ip' => get_client_ip(),

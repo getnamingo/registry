@@ -56,20 +56,15 @@
         </div>
       </div>
     </div>
+<script src="/assets/js/sweetalert2.min.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
     const loginButton = document.getElementById('loginWebAuthnButton');
     const emailInput = document.querySelector('input[name="email"]');
-    const passwordInput = document.querySelector('input[name="password"]');
-    const codeInput = document.querySelector('input[name="code"]');
 
     loginButton.addEventListener('click', async function() {
         try {
-            // Disable password and 2FA fields
-            passwordInput.disabled = true;
-            codeInput.disabled = true;
-
             if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
                 throw new Error('Browser not supported.');
             }
@@ -112,19 +107,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(authenticatorAttestationResponse),
                 cache:'no-cache'
             });
-            const authenticatorAttestationServerResponse = await rep.json();
+            
+            // Check the Content-Type of the response
+            const contentType = rep.headers.get('Content-Type');
 
-            // check server response
-            if (authenticatorAttestationServerResponse.success) {
-                //reloadServerPreview();
-                window.alert(authenticatorAttestationServerResponse.msg || 'login success');
+            if (contentType && contentType.includes('application/json')) {
+                // If the response is JSON, proceed with parsing
+                const authenticatorAttestationServerResponse = await rep.json();
+
+                // check server response
+                if (authenticatorAttestationServerResponse.success) {
+                    Swal.fire({
+                      title: 'WebAuthn Login',
+                      text: authenticatorAttestationServerResponse.msg || 'Login success',
+                      icon: "success"
+                    });
+                } else {
+                    Swal.fire({
+                      title: 'WebAuthn Login',
+                      text: authenticatorAttestationServerResponse.msg,
+                      icon: "error"
+                    });
+                }
+            } else if (contentType && (contentType.includes('text/html') || contentType.includes('application/xhtml+xml'))) {
+                // If the response is HTML, redirect to /dashboard
+                window.location.href = '/dashboard';
             } else {
-                throw new Error(authenticatorAttestationServerResponse.msg);
+                // Handle other content types or unexpected responses
+                console.error('Unexpected response type:', contentType);
             }
-
         } catch (err) {
-            //reloadServerPreview();
-            window.alert(err.message || 'unknown error occured');
+            Swal.fire({
+              title: 'WebAuthn Login',
+              text: err.message || 'Unknown error occured',
+              icon: "error"
+            });
         }
 
     });

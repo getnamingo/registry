@@ -877,5 +877,6 @@ ALTER TABLE promotion_pricing ADD FOREIGN KEY ("tld_id") REFERENCES domain_tld("
 ALTER TABLE premium_domain_pricing ADD FOREIGN KEY ("tld_id") REFERENCES domain_tld("id");
 ALTER TABLE premium_domain_pricing ADD FOREIGN KEY ("category_id") REFERENCES premium_domain_categories("category_id");
 ALTER TABLE support_tickets ADD FOREIGN KEY ("user_id") REFERENCES users(id);
+ALTER TABLE users_audit ADD FOREIGN KEY ("user_id") REFERENCES users(id);
 ALTER TABLE support_tickets ADD FOREIGN KEY ("category_id") REFERENCES ticket_categories(id);
 ALTER TABLE ticket_responses ADD FOREIGN KEY ("ticket_id") REFERENCES support_tickets(id);

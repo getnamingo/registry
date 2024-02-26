@@ -248,13 +248,14 @@ $app->any('/api[/{params:.*}]', function (
                 'registrar' => 'id',
                 'payment_history' => 'registrar_id',
                 'statement' => 'registrar_id',
-                'support_tickets' => 'user_id',  // Note: this still uses user_id
+                'support_tickets' => 'user_id', // Continues to use user_id
+                'users_audit' => 'user_id', // Continues to use user_id
             ];
 
             if (array_key_exists($tableName, $columnMap)) {
                 // Use registrarId for tables where 'registrar_id' is the filter
-                // For 'support_tickets', continue to use userId
-                return [$columnMap[$tableName] => ($tableName === 'support_tickets' ? $_SESSION['auth_user_id'] : $registrarId)];
+                // For 'support_tickets' and 'users_audit', use userId
+                return [$columnMap[$tableName] => (in_array($tableName, ['support_tickets', 'users_audit']) ? $_SESSION['auth_user_id'] : $registrarId)];
             }
 
             return ['1' => '0'];

@@ -616,7 +616,8 @@ CREATE TABLE IF NOT EXISTS `registry`.`users_audit` (
     `user_data` JSON default NULL,
     KEY `user_id` (`user_id`),
     KEY `user_event` (`user_event`),
-    KEY `user_ip` (`user_ip`)
+    KEY `user_ip` (`user_ip`),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel User Audit';
 
 CREATE TABLE IF NOT EXISTS `registry`.`users_confirmations` (
