@@ -13,14 +13,18 @@ class LogsController extends Controller
     {
         return view($response,'admin/logs/index.twig');
     }
-	
+    
     public function poll(Request $request, Response $response)
     {
         return view($response,'admin/logs/poll.twig');
     }
-	
+    
     public function log(Request $request, Response $response)
     {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
         return view($response,'admin/logs/log.twig');
     }
 }

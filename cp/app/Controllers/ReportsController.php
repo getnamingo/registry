@@ -11,6 +11,10 @@ class ReportsController extends Controller
 {
     public function view(Request $request, Response $response)
     {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
         return view($response,'admin/reports/index.twig');
     }
 }

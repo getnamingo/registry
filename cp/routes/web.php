@@ -90,7 +90,9 @@ $app->group('', function ($route) {
     $route->get('/registrar/view/{registrar}', RegistrarsController::class . ':viewRegistrar')->setName('viewRegistrar');
     $route->get('/registrar/update/{registrar}', RegistrarsController::class . ':updateRegistrar')->setName('updateRegistrar');
     $route->post('/registrar/update', RegistrarsController::class . ':updateRegistrarProcess')->setName('updateRegistrarProcess');
-    
+    $route->get('/registrar', RegistrarsController::class .':registrar')->setName('registrar');
+    $route->map(['GET', 'POST'], '/registrar/edit', RegistrarsController::class .':editRegistrar')->setName('editRegistrar');
+
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
