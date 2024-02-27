@@ -138,7 +138,6 @@ $app->group('', function ($route) {
 
     $route->get('/mode', HomeController::class .':mode')->setName('mode');
     $route->get('/lang', HomeController::class .':lang')->setName('lang');
-    $route->get('/avatar', HomeController::class .':avatar')->setName('avatar');
     $route->get('/logout', AuthController::class . ':logout')->setName('logout');
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');
 })->add(new AuthMiddleware($container));
