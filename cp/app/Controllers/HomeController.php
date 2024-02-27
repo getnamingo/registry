@@ -57,13 +57,102 @@ class HomeController extends Controller
                 'tickets' => $tickets,
             ]);
         } else {
+            $endDate = new \DateTime();
+            $startDate = (new \DateTime())->modify('-4 days');
+
+            // Format dates for comparison
+            $startDateFormatted = $startDate->format('Y-m-d');
+            $endDateFormatted = $endDate->format('Y-m-d');
+
+            $query = "SELECT DATE(crdate) as date, COUNT(id) as count
+                      FROM domain
+                      WHERE crdate >= :startDate AND crdate <= :endDate
+                      GROUP BY DATE(crdate)
+                      ORDER BY DATE(crdate) ASC";
+
+            $params = [
+                ':startDate' => $startDateFormatted,
+                ':endDate' => $endDateFormatted,
+            ];
+
+            $domainsCount = $db->select($query, $params);
+            
+            $dates = [];
+            $counts = [];
+
+            foreach ($domainsCount as $row) {
+                // Extract just the date part from the datetime string
+                $date = (new \DateTime($row['date']))->format('Y-m-d');
+                $count = (int)$row['count']; // Ensure count is an integer
+
+                $dates[] = $date;
+                $counts[] = $count;
+            }
+            
+            $query = "
+            SELECT 
+                r.id, 
+                r.name, 
+                COUNT(d.id) AS domain_count
+            FROM 
+                registrar r
+            JOIN 
+                domain d ON r.id = d.clid
+            GROUP BY 
+                r.id
+            ORDER BY 
+                domain_count DESC
+            LIMIT 10;
+            ";
+
+            // Execute the query
+            $results = $db->select($query);
+
+            // Prepare data for the chart
+            $labels = [];
+            $series = [];
+
+            foreach ($results as $row) {
+                $labels[] = $row['name']; // Registrar names for chart labels
+                $series[] = (int)$row['domain_count']; // Domain counts for chart data
+            }
+            
+            $query = "
+                SELECT 
+                    DATE(date_created) as ticket_date, 
+                    SUM(CASE WHEN status IN ('Open', 'In Progress') THEN 1 ELSE 0 END) AS unanswered,
+                    SUM(CASE WHEN status IN ('Resolved', 'Closed') THEN 1 ELSE 0 END) AS answered
+                FROM 
+                    support_tickets
+                WHERE 
+                    date_created >= CURRENT_DATE - INTERVAL 7 DAY
+                GROUP BY 
+                    DATE(date_created)
+                ORDER BY 
+                    DATE(date_created) ASC;
+            ";
+
+            // Execute the query
+            $results = $db->select($query);
+
+            // Prepare data for ApexCharts
+            $labels3 = [];
+            $answeredData = [];
+            $unansweredData = [];
+
+            foreach ($results as $row) {
+                $labels3[] = $row['ticket_date'];
+                $answeredData[] = (int) $row['answered']; // Cast to int for ApexCharts
+                $unansweredData[] = (int) $row['unanswered']; // Cast to int for ApexCharts
+            }
+
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain');
             $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 10');
             $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets ORDER BY date_created DESC LIMIT 10');
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host');
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact');
             $registrars = $db->selectValue('SELECT count(id) as registrars FROM registrar');
-            
+
             return view($response, 'admin/dashboard/index.twig', [
                 'domains' => $domains,
                 'hosts' => $hosts,
@@ -71,6 +160,13 @@ class HomeController extends Controller
                 'registrars' => $registrars,
                 'latest_domains' => $latest_domains,
                 'tickets' => $tickets,
+                'dates' => json_encode($dates),
+                'counts' => json_encode($counts),
+                'labels' => json_encode($labels),
+                'series' => json_encode($series),
+                'labels3' => json_encode($labels3),
+                'answeredData' => json_encode($answeredData),
+                'unansweredData' => json_encode($unansweredData),
             ]);
         }
     }

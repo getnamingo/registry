@@ -166,6 +166,30 @@
                     </a>
                   </div>
                   {% endif %}
+              <div class="col-lg-6 col-xl-4">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('Last 5 Days: Domain Registrations') }}</h3>
+                    <div id="last-5-days"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 col-xl-4">
+                <div class="card">
+                  <div class="card-body">
+                  <h3 class="card-title">{{ __('Top Registrars by Domains') }}</h3>
+                    <div id="top-registrars"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 col-xl-4">
+                <div class="card">
+                  <div class="card-body">
+                  <h3 class="card-title">{{ __('Support Tickets: Last Week') }}</h3>
+                    <div id="support-tickets"></div>
+                  </div>
+                </div>
+              </div>
                   <div class="col-12 col-md-6 mt-5">
                   <h3 class="card-title">{{ __('Recent Domains') }}</h3>
                     <div class="card">
@@ -229,4 +253,198 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var dates = JSON.parse('{{ dates|raw }}');
+        var counts = JSON.parse('{{ counts|raw }}');
+        
+        var labels = JSON.parse('{{ labels|raw }}');
+        var series = JSON.parse('{{ series|raw }}');
+        
+        var labels3 = JSON.parse('{{ labels3|raw }}');
+        var answeredData = JSON.parse('{{ answeredData|raw }}');
+        var unansweredData = JSON.parse('{{ unansweredData|raw }}');
+    
+          window.ApexCharts && (new ApexCharts(document.getElementById('last-5-days'), {
+              chart: {
+                  type: "bar",
+                  fontFamily: 'inherit',
+                  height: 240,
+                  parentHeightOffset: 0,
+                  toolbar: {
+                      show: false,
+                  },
+                  animations: {
+                      enabled: false
+                  },
+              },
+              plotOptions: {
+                  bar: {
+                      columnWidth: '50%',
+                  }
+              },
+              dataLabels: {
+                  enabled: false,
+              },
+              fill: {
+                  opacity: 1,
+              },
+              series: [{
+                  name: "Domain Registrations",
+                  data: counts
+              }],
+              tooltip: {
+                  theme: 'dark'
+              },
+              grid: {
+                  padding: {
+                      top: -20,
+                      right: 0,
+                      left: -4,
+                      bottom: -4
+                  },
+                  strokeDashArray: 4,
+              },
+              xaxis: {
+                  labels: {
+                      padding: 0,
+                  },
+                  tooltip: {
+                      enabled: false
+                  },
+                  axisBorder: {
+                      show: false,
+                  },
+                  type: 'category',
+                categories: dates,
+                labels: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+              },
+              yaxis: {
+                  labels: {
+                      padding: 4
+                  },
+              },
+              labels: dates,
+              colors: [tabler.getColor("primary")],
+              legend: {
+                  show: false,
+              },
+          })).render();
+
+          window.ApexCharts && (new ApexCharts(document.getElementById('top-registrars'), {
+              chart: {
+                  type: "donut",
+                  fontFamily: 'inherit',
+                  height: 278,
+                  sparkline: {
+                      enabled: true
+                  },
+                  animations: {
+                      enabled: false
+                  },
+              },
+              fill: {
+                  opacity: 1,
+              },
+              series: series,
+              labels: labels,
+              tooltip: {
+                  theme: 'dark'
+              },
+              grid: {
+                  strokeDashArray: 4,
+              },
+              colors: [tabler.getColor("primary"), tabler.getColor("primary", 0.8), tabler.getColor("primary", 0.6), tabler.getColor("gray-300")],
+              legend: {
+                  show: true,
+                  position: 'bottom',
+                  offsetY: 12,
+                  markers: {
+                      width: 10,
+                      height: 10,
+                      radius: 100,
+                  },
+                  itemMargin: {
+                      horizontal: 8,
+                      vertical: 8
+                  },
+              },
+              tooltip: {
+                  fillSeriesColor: false
+              },
+          })).render();
+
+          window.ApexCharts && (new ApexCharts(document.getElementById('support-tickets'), {
+              chart: {
+                  type: "bar",
+                  fontFamily: 'inherit',
+                  height: 240,
+                  parentHeightOffset: 0,
+                  toolbar: {
+                      show: false,
+                  },
+                  animations: {
+                      enabled: false
+                  },
+                  stacked: true,
+              },
+              plotOptions: {
+                  bar: {
+                      columnWidth: '50%',
+                  }
+              },
+              dataLabels: {
+                  enabled: false,
+              },
+              fill: {
+                  opacity: 1,
+              },
+              series: [{
+                  name: "Answered",
+                  data: answeredData
+              },{
+                  name: "Pending",
+                  data: unansweredData
+              }],
+              tooltip: {
+                  theme: 'dark'
+              },
+              grid: {
+                  padding: {
+                      top: -20,
+                      right: 0,
+                      left: -4,
+                      bottom: -4
+                  },
+                  strokeDashArray: 4,
+              },
+              xaxis: {
+                  labels: {
+                      padding: 0,
+                  },
+                  tooltip: {
+                      enabled: false
+                  },
+                  axisBorder: {
+                      show: false,
+                  },
+                  type: 'category',
+                  categories: labels3,
+              },
+              yaxis: {
+                  labels: {
+                      padding: 4
+                  },
+              },
+              colors: [tabler.getColor("primary"), tabler.getColor("red")],
+              legend: {
+                  show: false,
+              },
+          })).render();
+      });
+    </script>
 {% endblock %}
