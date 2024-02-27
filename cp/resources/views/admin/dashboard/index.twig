@@ -316,16 +316,14 @@
                       show: false,
                   },
                   type: 'category',
-                categories: dates,
-                labels: {
-                    formatter: function (value) {
-                        return value;
-                    }
-                },
+                  categories: dates,
               },
               yaxis: {
                   labels: {
-                      padding: 4
+                      padding: 4,
+                      formatter: function (value) {
+                        return value;
+                      }
                   },
               },
               labels: dates,
@@ -437,7 +435,10 @@
               },
               yaxis: {
                   labels: {
-                      padding: 4
+                      padding: 4,
+                      formatter: function (value) {
+                        return value;
+                      }
                   },
               },
               colors: [tabler.getColor("primary"), tabler.getColor("red")],
