@@ -21,7 +21,7 @@ class AuthController extends Controller
     public function __construct() {
         $rpName = 'Namingo';
         $rpId = envi('APP_DOMAIN');
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['none']);
+        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['android-key', 'android-safetynet', 'apple', 'fido-u2f', 'packed', 'tpm']);
     }
 
     /**
@@ -173,7 +173,7 @@ class AuthController extends Controller
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        $getArgs = $this->webAuthn->getGetArgs($ids[0], 30);
+        $getArgs = $this->webAuthn->getGetArgs($ids[0], 60*4, true, true, true, true, true, 'discouraged');
 
         $response->getBody()->write(json_encode($getArgs));
         $_SESSION['challenge'] = ($this->webAuthn->getChallenge())->getBinaryString();
@@ -216,11 +216,11 @@ class AuthController extends Controller
             }
 
             // process the get request. throws WebAuthnException if it fails
-            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge);       
+            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, 'discouraged');       
 
             $return = array();
             $return['success'] = true;
-            $return['msg'] = $msg;
+            $return['msg'] = "Authentication successful.";
 
             if($return['success']===true) {
                 // Send success response
@@ -261,6 +261,11 @@ class AuthController extends Controller
             }
         } catch (\Exception $e) {
             $response->getBody()->write(json_encode(['msg' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        } catch (WebAuthnException $e) {
+            $return = array();
+            $return['success'] = false;
+            $response->getBody()->write(json_encode(['msg' => "Authentication failed: " . $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
     }

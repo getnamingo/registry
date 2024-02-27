@@ -50,9 +50,15 @@
             // prompt server response
             if (authenticatorAttestationServerResponse.success) {
                 Swal.fire({
-                  title: 'WebAuthn Passkey',
-                  text: authenticatorAttestationServerResponse.msg || 'Created successfully',
-                  icon: "success"
+                    title: 'WebAuthn Passkey',
+                    text: authenticatorAttestationServerResponse.msg || 'Created successfully',
+                    icon: "success"
+                }).then((result) => {
+                    // Checks if the result is successful (user clicked "OK")
+                    if (result.value) {
+                        // Reload the page
+                        location.reload();
+                    }
                 });
             } else {
                 throw new Error(authenticatorAttestationServerResponse.msg);
@@ -63,6 +69,12 @@
               title: 'WebAuthn Passkey',
               text: err.message || 'Unknown error occured',
               icon: "error"
+            }).then((result) => {
+                // Checks if the result is successful (user clicked "OK")
+                if (result.value) {
+                    // Reload the page
+                    location.reload();
+                }
             });
         }
 

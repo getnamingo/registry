@@ -15,7 +15,7 @@ class ProfileController extends Controller
     public function __construct() {
         $rpName = 'Namingo';
         $rpId = envi('APP_DOMAIN');
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['none']);
+        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['android-key', 'android-safetynet', 'apple', 'fido-u2f', 'packed', 'tpm']);
     }
 
     public function profile(Request $request, Response $response)
@@ -153,7 +153,7 @@ class ProfileController extends Controller
         if(strlen($hexUserId) % 2 != 0){
             $hexUserId = '0' . $hexUserId;
         }
-        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 30, false, true);
+        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*4, false, 'discouraged', null);
 
         $response->getBody()->write(json_encode($createArgs));
         $_SESSION["challenge"] = ($this->webAuthn->getChallenge())->getBinaryString();
@@ -178,7 +178,7 @@ class ProfileController extends Controller
             $challenge = $_SESSION['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, true, true, false);
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'discouraged', true, false);
 
             // add user infos
             $credential->userId = $userId;
