@@ -333,9 +333,15 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
                 if (is_array($registrarOte) && !empty($registrarOte)) {
-                    // Split the results into two groups
-                    $firstHalf = array_slice($registrarOte, 0, 5);
-                    $secondHalf = array_slice($registrarOte, 5);
+                    // Calculate the total number of elements
+                    $totalElements = count($registrarOte);
+
+                    // Calculate the size of the first half. If the total number is odd, add 1 to include the extra item in the first half.
+                    $firstHalfSize = ceil($totalElements / 2);
+
+                    // Split the array into two halves
+                    $firstHalf = array_slice($registrarOte, 0, $firstHalfSize);
+                    $secondHalf = array_slice($registrarOte, $firstHalfSize);
                 } else {
                     // If RegistrarOTE is empty, set both halves to empty arrays
                     $firstHalf = [];
@@ -387,9 +393,15 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
                 if (is_array($registrarOte) && !empty($registrarOte)) {
-                    // Split the results into two groups
-                    $firstHalf = array_slice($registrarOte, 0, 5);
-                    $secondHalf = array_slice($registrarOte, 5);
+                    // Calculate the total number of elements
+                    $totalElements = count($registrarOte);
+
+                    // Calculate the size of the first half. If the total number is odd, add 1 to include the extra item in the first half.
+                    $firstHalfSize = ceil($totalElements / 2);
+
+                    // Split the array into two halves
+                    $firstHalf = array_slice($registrarOte, 0, $firstHalfSize);
+                    $secondHalf = array_slice($registrarOte, $firstHalfSize);
                 } else {
                     // If RegistrarOTE is empty, set both halves to empty arrays
                     $firstHalf = [];
@@ -442,7 +454,7 @@ class RegistrarsController extends Controller
 
                 $contacts = $db->select("SELECT * FROM registrar_contact WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
-                $ote = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
+                $registrarOte = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
                 $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
@@ -450,6 +462,22 @@ class RegistrarsController extends Controller
                 [ $user_id ]);
                 $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
+                // Check if RegistrarOTE is not empty
+                if (is_array($registrarOte) && !empty($registrarOte)) {
+                    // Calculate the total number of elements
+                    $totalElements = count($registrarOte);
+
+                    // Calculate the size of the first half. If the total number is odd, add 1 to include the extra item in the first half.
+                    $firstHalfSize = ceil($totalElements / 2);
+
+                    // Split the array into two halves
+                    $firstHalf = array_slice($registrarOte, 0, $firstHalfSize);
+                    $secondHalf = array_slice($registrarOte, $firstHalfSize);
+                } else {
+                    // If RegistrarOTE is empty, set both halves to empty arrays
+                    $firstHalf = [];
+                    $secondHalf = [];
+                }
 
                 $_SESSION['registrars_to_update'] = [$registrar['clid']];
                 $_SESSION['registrars_user_email'] = [$user['email']];
@@ -457,7 +485,8 @@ class RegistrarsController extends Controller
                 return view($response,'admin/registrars/updateRegistrar.twig', [
                     'registrar' => $registrar,
                     'contacts' => $contacts,
-                    'ote' => $ote,
+                    'firstHalf' => $firstHalf,
+                    'secondHalf' => $secondHalf,
                     'user' => $user,
                     'whitelist' => $whitelist,
                     'currentUri' => $uri,
@@ -970,7 +999,7 @@ class RegistrarsController extends Controller
             if ($registrar) {
                 $contacts = $db->select("SELECT * FROM registrar_contact WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
-                $ote = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
+                $registrarOte = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
                 $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
@@ -978,6 +1007,22 @@ class RegistrarsController extends Controller
                 [ $user_id ]);
                 $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
+                // Check if RegistrarOTE is not empty
+                if (is_array($registrarOte) && !empty($registrarOte)) {
+                    // Calculate the total number of elements
+                    $totalElements = count($registrarOte);
+
+                    // Calculate the size of the first half. If the total number is odd, add 1 to include the extra item in the first half.
+                    $firstHalfSize = ceil($totalElements / 2);
+
+                    // Split the array into two halves
+                    $firstHalf = array_slice($registrarOte, 0, $firstHalfSize);
+                    $secondHalf = array_slice($registrarOte, $firstHalfSize);
+                } else {
+                    // If RegistrarOTE is empty, set both halves to empty arrays
+                    $firstHalf = [];
+                    $secondHalf = [];
+                }
 
                 $_SESSION['registrars_to_update'] = [$registrar['clid']];
                 $_SESSION['registrars_user_email'] = [$user['email']];
@@ -985,7 +1030,8 @@ class RegistrarsController extends Controller
                 return view($response,'admin/registrars/updateRegistrarUser.twig', [
                     'registrar' => $registrar,
                     'contacts' => $contacts,
-                    'ote' => $ote,
+                    'firstHalf' => $firstHalf,
+                    'secondHalf' => $secondHalf,
                     'user' => $user,
                     'whitelist' => $whitelist,
                     'currentUri' => $uri,
@@ -998,6 +1044,120 @@ class RegistrarsController extends Controller
         } else {
             // Redirect to the registrars view
             return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+    }
+    
+    public function oteCheck(Request $request, Response $response) 
+    {
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+        
+        if ($_SESSION["auth_roles"] != 0) {
+            $reg_id = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+            if (!$reg_id) {
+                return $response->withHeader('Location', '/dashboard')->withStatus(302);
+            }
+        } else {
+            $queryParams = $request->getQueryParams();
+            $reg_id = $queryParams['reg'] ?? '1';
+        }
+
+        if (!preg_match('/^\d+$/', $reg_id)) {
+            $this->container->get('flash')->addMessage('error', 'Invalid registrar');
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+       
+        $registrar = $db->selectRow('SELECT id,name FROM registrar WHERE id = ?',
+        [ $reg_id ]);
+
+        if ($registrar) {
+            $host = envi('DB_HOST');
+            $dsn = "mysql:host=$host;dbname=registryTransaction;charset=utf8mb4";
+
+            $options = [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+            ];
+
+            try {
+                $pdo = new \PDO($dsn, envi('DB_USERNAME'), envi('DB_PASSWORD'), $options);
+                $commands = $db->select('SELECT command FROM registrar_ote WHERE registrar_id = ? ORDER by command',
+                [ $registrar['id'] ]);
+                $commands = array_map(function($item) {
+                    return $item['command'];
+                }, $commands);
+                
+                // Function to execute query and fetch first result
+                function fetchFirstMatchingResult($pdo, $sql, $params) {
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                    return $stmt->fetch(\PDO::FETCH_ASSOC); // Fetch the first row
+                }
+
+                foreach ($commands as $command) {
+                    if (strpos($command, ':') !== false) {
+                        // Command contains ':', split and prepare query for obj_type and cmd
+                        list($obj_type, $cmd) = explode(':', $command, 2);
+                        $sql = "SELECT * FROM transaction_identifier WHERE registrar_id = ? AND obj_type = ? AND cmd = ? LIMIT 1";
+                        $params = [$reg_id, $obj_type, $cmd];
+                    } else {
+                        // Command is a single word
+                        $sql = "SELECT * FROM transaction_identifier WHERE registrar_id = ? AND cmd = ? LIMIT 1";
+                        $params = [$reg_id, $command];
+                    }
+
+                    $result = fetchFirstMatchingResult($pdo, $sql, $params);
+
+                    if ($result) {
+                        $cmd = '';
+                        if (isset($result['cmd']) && ($result['cmd'] == 'login' || $result['cmd'] == 'logout')) {
+                            $cmd = $result['cmd'];
+                        } elseif (isset($result['obj_type']) && isset($result['cmd'])) {
+                            $cmd = $result['obj_type'] . ':' . $result['cmd'];
+                        }
+                        if (isset($result['code']) && strpos(strval($result['code']), '1') === 0) {
+                            $db->update(
+                                'registrar_ote',
+                                [
+                                    'result' => 0
+                                ],
+                                [
+                                    'registrar_id' => $reg_id,
+                                    'command' => $cmd,
+                                ]
+                            );
+                        } else {
+                            $db->update(
+                                'registrar_ote',
+                                [
+                                    'result' => 1
+                                ],
+                                [
+                                    'registrar_id' => $reg_id,
+                                    'command' => $cmd,
+                                ]
+                            );
+                        }
+                    }
+                }
+            } catch (\PDOException $e) {
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrar/view/'.$registrar['name'])->withStatus(302);
+            } catch (Exception $e) {
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrar/view/'.$registrar['name'])->withStatus(302);
+            } catch (Throwable $e) {
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrar/view/'.$registrar['name'])->withStatus(302);
+            }
+            
+            $this->container->get('flash')->addMessage('success', 'Registrar test results updated successfully');
+            return $response->withHeader('Location', '/registrar/view/'.$registrar['name'])->withStatus(302);
+        } else {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
     }
 

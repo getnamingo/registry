@@ -24,6 +24,7 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+            {% include 'partials/flash.twig' %}
               <div class="card mb-3">
                 <div class="card-header">
                   <h3 class="card-title">{{ __('Registrar') }} {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span></h3>
@@ -140,9 +141,18 @@
               <div class="card mb-3">
                 <div class="card-body">
                   <h5 class="card-title">{{ __('Operational Test and Evaluation (OTE)') }}</h5>
-                  <p class="card-text">
-                    {{ __('Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar\'s system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:') }}
-                  </p>
+                  <div class="row mb-3">
+                    <div class="col-md-11">
+                      <p class="card-text">
+                        {{ __('Successfully passing the Operational Test and Evaluation (OTE) is a mandatory requirement for registrars. The OTE process evaluates the interaction and compliance of the registrar\'s system with registry operations through a series of EPP command tests in a controlled environment. Below you can find the results of these essential EPP command tests for your account:') }}
+                      </p>
+                    </div>
+                    <div class="col-md-1 text-end">
+                      <a href="{% if roles == 0 %}/registrar/check?reg={{ registrar.id }}{% else %}/registrar/check{% endif %}" title="Check Results" class="btn btn-icon btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M9 17v-4" /><path d="M12 17v-1" /><path d="M15 17v-2" /><path d="M12 17v-1" /></svg>
+                      </a>
+                    </div>
+                  </div>
                   <div class="row">
                     <div class="col-md-6">
                         <ul class="list-group">

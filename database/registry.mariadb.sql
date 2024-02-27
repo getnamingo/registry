@@ -853,6 +853,32 @@ INSERT INTO `registry`.`registrar_contact` (`id`, `registrar_id`, `type`, `title
 (5,    2,    'billing',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org'),
 (6,    2,    'abuse',    NULL,    'Test',    NULL,    'Name',    '',    '',    NULL,    NULL,    'Lviv',    '',    '',    'ua',    '',    NULL,    'test@namingo.org');
 
+INSERT INTO `registry`.`registrar_ote` (`registrar_id`, `command`, `result`) VALUES
+(1, 'contact:create', 9),
+(1, 'domain:check', 9),
+(1, 'domain:info', 9),
+(1, 'domain:renew', 9),
+(1, 'domain:transfer', 9),
+(1, 'login', 9),
+(1, 'host:create', 9),
+(1, 'host:info', 9),
+(1, 'contact:update', 9),
+(1, 'domain:delete', 9),
+(1, 'poll:request', 9),
+(1, 'logout', 9),
+(2, 'contact:create', 9),
+(2, 'domain:check', 9),
+(2, 'domain:info', 9),
+(2, 'domain:renew', 9),
+(2, 'domain:transfer', 9),
+(2, 'login', 9),
+(2, 'host:create', 9),
+(2, 'host:info', 9),
+(2, 'contact:update', 9),
+(2, 'domain:delete', 9),
+(2, 'poll:request', 9),
+(2, 'logout', 9);
+
 INSERT INTO `registry`.`users` (`email`, `password`, `username`, `status`, `verified`, `resettable`, `roles_mask`, `registered`, `last_login`, `force_logout`, `tfa_secret`, `tfa_enabled`, `auth_method`, `backup_codes`) VALUES
 ('info@leonet.com',    '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk',    'leonet',    0,    1,    1,    4,    1,    NULL,    0,    NULL,    0,    'password',    NULL),
 ('info@nordregistrar.com',    '$argon2id$v=19$m=2048,t=4,p=4$STNMRDZRblBBVmRMeFhpdg$DpPnVyIHXJag11Pdi4J7xFAdtnmWfiNCgAjkIOpVtYk',    'nordregistrar',    0,    1,    1,    4,    1,    NULL,    0,    NULL,    0,    'password',    NULL);

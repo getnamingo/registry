@@ -93,6 +93,7 @@ $app->group('', function ($route) {
     $route->post('/registrar/update', RegistrarsController::class . ':updateRegistrarProcess')->setName('updateRegistrarProcess');
     $route->get('/registrar', RegistrarsController::class .':registrar')->setName('registrar');
     $route->map(['GET', 'POST'], '/registrar/edit', RegistrarsController::class .':editRegistrar')->setName('editRegistrar');
+    $route->get('/registrar/check', RegistrarsController::class . ':oteCheck')->setName('oteCheck');
 
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     
