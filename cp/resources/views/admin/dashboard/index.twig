@@ -113,6 +113,30 @@
                       </div>
                     </a>
                   </div>
+                  <div class="col-lg-6 col-xl-4">
+                    <div class="card">
+                      <div class="card-body">
+                        <h3 class="card-title">{{ __('Last 7 Days: Domain Registrations') }}</h3>
+                        <div id="last-7-days"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-lg-6 col-xl-4">
+                    <div class="card">
+                      <div class="card-body">
+                      <h3 class="card-title">{{ __('Top Registrars by Domains') }}</h3>
+                        <div id="top-registrars"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-lg-6 col-xl-4">
+                    <div class="card">
+                      <div class="card-body">
+                      <h3 class="card-title">{{ __('Support Tickets: Last Week') }}</h3>
+                        <div id="support-tickets"></div>
+                      </div>
+                    </div>
+                  </div>
                   {% else %}
                   <div class="col-sm-4 col-lg-4">
                     <a class="card card-link" href="{{route('listDomains')}}">
@@ -166,30 +190,6 @@
                     </a>
                   </div>
                   {% endif %}
-              <div class="col-lg-6 col-xl-4">
-                <div class="card">
-                  <div class="card-body">
-                    <h3 class="card-title">{{ __('Last 5 Days: Domain Registrations') }}</h3>
-                    <div id="last-5-days"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6 col-xl-4">
-                <div class="card">
-                  <div class="card-body">
-                  <h3 class="card-title">{{ __('Top Registrars by Domains') }}</h3>
-                    <div id="top-registrars"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6 col-xl-4">
-                <div class="card">
-                  <div class="card-body">
-                  <h3 class="card-title">{{ __('Support Tickets: Last Week') }}</h3>
-                    <div id="support-tickets"></div>
-                  </div>
-                </div>
-              </div>
                   <div class="col-12 col-md-6 mt-5">
                   <h3 class="card-title">{{ __('Recent Domains') }}</h3>
                     <div class="card">
@@ -265,7 +265,7 @@
         var answeredData = JSON.parse('{{ answeredData|raw }}');
         var unansweredData = JSON.parse('{{ unansweredData|raw }}');
     
-          window.ApexCharts && (new ApexCharts(document.getElementById('last-5-days'), {
+          window.ApexCharts && (new ApexCharts(document.getElementById('last-7-days'), {
               chart: {
                   type: "bar",
                   fontFamily: 'inherit',

@@ -57,22 +57,17 @@ class HomeController extends Controller
                 'tickets' => $tickets,
             ]);
         } else {
-            $endDate = new \DateTime();
-            $startDate = (new \DateTime())->modify('-4 days');
-
-            // Format dates for comparison
+            $startDate = (new \DateTime())->modify('-6 days');
             $startDateFormatted = $startDate->format('Y-m-d');
-            $endDateFormatted = $endDate->format('Y-m-d');
 
             $query = "SELECT DATE(crdate) as date, COUNT(id) as count
                       FROM domain
-                      WHERE crdate >= :startDate AND crdate <= :endDate
+                      WHERE crdate >= :startDate
                       GROUP BY DATE(crdate)
                       ORDER BY DATE(crdate) ASC";
 
             $params = [
                 ':startDate' => $startDateFormatted,
-                ':endDate' => $endDateFormatted,
             ];
 
             $domainsCount = $db->select($query, $params);
@@ -88,7 +83,7 @@ class HomeController extends Controller
                 $dates[] = $date;
                 $counts[] = $count;
             }
-            
+
             $query = "
             SELECT 
                 r.id, 
