@@ -169,7 +169,7 @@ EOF
     #fi
     
     mkdir /usr/share/adminer
-    wget -4 "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
+    wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
     
     git clone https://github.com/getnamingo/registry /opt/registry
@@ -299,8 +299,8 @@ EOF
     sed -i "s/DB_USERNAME=root/DB_USERNAME=$DB_USER/g" /var/www/cp/.env
     sed -i "s/DB_PASSWORD=/DB_PASSWORD=$DB_PASSWORD/g" /var/www/cp/.env
     
-    curl -4sS https://getcomposer.org/installer -o composer-setup.php
-    EXPECTED_SIGNATURE="$(wget -4 -q -O - https://composer.github.io/installer.sig)"
+    curl -sS https://getcomposer.org/installer -o composer-setup.php
+    EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
     ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
 
     if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
