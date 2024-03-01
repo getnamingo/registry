@@ -47,3 +47,22 @@ function isIpWhitelisted($ip, $pdo) {
     $count = $stmt->fetchColumn();
     return $count > 0;
 }
+
+// Function to update the permitted IPs from the database
+function updatePermittedIPs($pool, $permittedIPsTable) {
+    $pdo = $pool->get();
+    $query = "SELECT addr FROM registrar_whitelist";
+    $stmt = $pdo->query($query);
+    $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $pool->put($pdo);
+
+    // Manually clear the table by removing each entry
+    foreach ($permittedIPsTable as $key => $value) {
+        $permittedIPsTable->del($key);
+    }
+
+    // Insert new values
+    foreach ($permittedIPs as $ip) {
+        $permittedIPsTable->set($ip, ['addr' => $ip]);
+    }
+}
