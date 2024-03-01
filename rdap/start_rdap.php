@@ -7,6 +7,7 @@ if (!extension_loaded('swoole')) {
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Namingo\Rately\Rately;
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
@@ -44,13 +45,25 @@ $http->set([
     'reload_async' => true,
     'http_compression' => true
 ]);
+
+$rateLimiter = new Rately();
 $log->info('server started.');
 
 // Handle incoming HTTP requests
-$http->on('request', function ($request, $response) use ($c, $pool, $log) {
+$http->on('request', function ($request, $response) use ($c, $pool, $log, $rateLimiter) {
     // Get a PDO connection from the pool
     $pdo = $pool->get();
-    
+
+    $remoteAddr = $request->server['remote_addr'];
+    if (!isIpWhitelisted($remoteAddr, $pdo)) {
+        if (($c['rately'] == true) && ($rateLimiter->isRateLimited('rdap', $remoteAddr, $c['limit'], $c['period']))) {
+            $log->error('rate limit exceeded for ' . $remoteAddr);
+            $response->header('Content-Type', 'application/json');
+            $response->status(429);
+            $response->end(json_encode(['error' => 'Rate limit exceeded. Please try again later.']));
+        }
+    }
+
     try {
         // Extract the request path
         $requestPath = $request->server['request_uri'];

@@ -10,4 +10,7 @@ return [
     'roid' => 'XX',
     'registry_url' => 'https://example.com/rdap-terms',
     'rdap_url' => 'https://rdap.example.com',
+    'rately' => false,
+    'limit' => 1000,
+    'period' => 60,
 ];

@@ -4,6 +4,7 @@
         "jeremykendall/php-domain-parser": "^6.3",
         "matthiasmullie/scrapbook": "^1.5",
         "guzzlehttp/guzzle": "^7.8",
-        "league/flysystem": "^3.23"
+        "league/flysystem": "^3.23",
+        "namingo/rately": "^0.1.0"
     }
 }

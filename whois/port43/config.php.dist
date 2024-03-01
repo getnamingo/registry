@@ -9,4 +9,7 @@ return [
     'db_password' => 'your_password',
     'privacy' => false,
     'roid' => 'XX',
+    'rately' => false,
+    'limit' => 25,
+    'period' => 60,
 ];

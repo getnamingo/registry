@@ -5,6 +5,7 @@ if (!extension_loaded('swoole')) {
 }
 
 use Swoole\Server;
+use Namingo\Rately\Rately;
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
@@ -43,6 +44,8 @@ $server->set([
     'open_eof_check' => true,
     'package_eof' => "\r\n"
 ]);
+
+$rateLimiter = new Rately();
 $log->info('server started.');
 
 // Register a callback to handle incoming connections
@@ -51,10 +54,22 @@ $server->on('connect', function ($server, $fd) use ($log) {
 });
 
 // Register a callback to handle incoming requests
-$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool, $log) {
+$server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool, $log, $rateLimiter) {
     // Get a PDO connection from the pool
     $pdo = $pool->get();
     $domain = trim($data);
+    
+    $clientInfo = $server->getClientInfo($fd);
+    $remoteAddr = $clientInfo['remote_ip'];
+
+    if (!isIpWhitelisted($remoteAddr, $pdo)) {
+        if (($c['rately'] == true) && ($rateLimiter->isRateLimited('das', $remoteAddr, $c['limit'], $c['period']))) {
+            $log->error('rate limit exceeded for ' . $remoteAddr);
+            $server->send($fd, "rate limit exceeded. Please try again later");
+            $server->close($fd);
+            return;
+        }
+    }
     
     // Perform the DAS lookup
     try {
@@ -62,10 +77,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         if (!$domain) {
             $server->send($fd, "2");
             $server->close($fd);
+            return;
         }
         if (strlen($domain) > 68) {
             $server->send($fd, "2");
             $server->close($fd);
+            return;
         }
         // Convert to Punycode if the domain is not in ASCII
         if (!mb_detect_encoding($domain, 'ASCII', true)) {
@@ -73,6 +90,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
             if ($convertedDomain === false) {
                 $server->send($fd, "2");
                 $server->close($fd);
+                return;
             } else {
                 $domain = $convertedDomain;
             }
@@ -80,6 +98,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
             $server->send($fd, "2");
             $server->close($fd);
+            return;
         }
         $domain = strtoupper($domain);
         
@@ -171,7 +190,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
 
 // Register a callback to handle client disconnections
 $server->on('close', function ($server, $fd) use ($log) {
-    $log->info('client ' . $fd . ' connected.');
+    $log->info('client ' . $fd . ' disconnected.');
 });
 
 // Start the server

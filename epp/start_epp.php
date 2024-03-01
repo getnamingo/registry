@@ -20,6 +20,7 @@ use Swoole\Table;
 use Swoole\Timer;
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
+use Namingo\Rately\Rately;
 
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
@@ -64,9 +65,11 @@ $server->set([
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
     'ssl_ciphers' => 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384',
 ]);
+
+$rateLimiter = new Rately();
 $log->info('Namingo EPP server started');
 
-$server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permittedIPsTable) {
+$server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
     // Get the client information
     $clientInfo = $conn->exportSocket()->getpeername();
     $clientIP = $clientInfo['address'] ?? '';
@@ -77,7 +80,13 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
         $conn->close();
         return;
     }
-    
+
+    if (($c['rately'] == true) && ($rateLimiter->isRateLimited('epp', $clientIP, $c['limit'], $c['period']))) {
+        $log->error('rate limit exceeded for ' . $clientIP);
+        $conn->close();
+        return;
+    }
+
     $log->info('new client from ' . $clientIP . ' connected');
     sendGreeting($conn);
   

@@ -92,3 +92,10 @@ function mapContactToVCard($contactDetails, $role, $c) {
         ],
     ];
 }
+
+function isIpWhitelisted($ip, $pdo) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM registrar_whitelist WHERE addr = ?");
+    $stmt->execute([$ip]);
+    $count = $stmt->fetchColumn();
+    return $count > 0;
+}
