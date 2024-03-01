@@ -50,11 +50,9 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
         echo "Installing required packages..."
         apt update -y
-        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring  software-properties-common ufw
-        if ! add-apt-repository ppa:ondrej/php -y; then
-            echo "Failed to add the PPA repository. Check your internet connection and try again." >&2
-            exit 1
-        fi
+        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw
+        gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
+        echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
         gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
@@ -171,7 +169,7 @@ EOF
     #fi
     
     mkdir /usr/share/adminer
-    wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
+    wget -4 "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
     
     git clone https://github.com/getnamingo/registry /opt/registry
