@@ -182,24 +182,25 @@ function toArray($data){
 
 function validate_identifier($identifier) {
     if (!$identifier) {
-        return 'Please provide a contact ID';
+        return 'Oops! It looks like you forgot to provide a contact ID. Please make sure to include one.';
     }
 
     $length = strlen($identifier);
 
     if ($length < 3) {
-        return 'Identifier type minLength value=3, maxLength value=16';
+        return 'The contact ID seems too short. It should be at least 3 characters long. Please try again.';
     }
 
     if ($length > 16) {
-        return 'Identifier type minLength value=3, maxLength value=16';
+        return 'The contact ID seems too long. It should be no more than 16 characters. Please try again.';
     }
 
     $pattern1 = '/^[A-Z]+\-[0-9]+$/';
     $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
+    $pattern3 = '/^[a-zA-Z0-9]{16}$/';
 
-    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier)) {
-        return 'The ID of the contact must contain letters (A-Z) (ASCII), hyphen (-), and digits (0-9).';
+    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier) && !preg_match($pattern3, $identifier)) {
+        return 'Your contact ID must contain letters (A-Z, a-z), digits (0-9), and optionally a hyphen (-). Please adjust and try again.';
     }
 }
 

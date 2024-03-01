@@ -59,7 +59,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     else
         echo "Installing required packages..."
         apt update -y
-        apt install -y apt-transport-https ca-certificates curl debian-archive-keyring debian-keyring gnupg lsb-release software-properties-common ufw
+        apt install -y apt-transport-https ca-certificates cron curl debian-archive-keyring debian-keyring gnupg lsb-release software-properties-common ufw
         curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
         sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
