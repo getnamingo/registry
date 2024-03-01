@@ -140,11 +140,6 @@ EOF
         echo "Please follow the prompts for secure installation of MariaDB."
         mysql_secure_installation
         
-        # Import SQL file into MariaDB, which includes database creation
-        echo "Importing SQL file into MariaDB..."
-        mysql -u root < /opt/registry/database/registry.mariadb.sql
-        echo "SQL import completed."
-
         # Create user and grant privileges
         echo "Creating user $DB_USER and setting privileges..."
         mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
@@ -190,12 +185,14 @@ EOF
     ufw allow 443/udp
     ufw allow 700/tcp
     ufw allow 700/udp
+    ufw allow 1043/tcp
+    ufw allow 1043/udp
     ufw allow 53/tcp
     ufw allow 53/udp
 
     # Enable the firewall
     echo "Enabling the firewall..."
-    ufw enable
+    ufw --force enable
     
     # Function to generate bind line
     generate_bind_line() {
@@ -323,6 +320,7 @@ EOF
     
     echo "Importing database."
     mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+    echo "SQL import completed."
 
     echo "Installing Web WHOIS."
     mkdir -p /var/www/whois
