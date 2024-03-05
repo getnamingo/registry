@@ -29,6 +29,7 @@ try {
 
         $date_add = 0;
         $price = 0;
+        $domain_id = $id;
 
         [$registrar_balance, $creditLimit] = $dbh->query("SELECT accountBalance,creditLimit FROM registrar WHERE id = '$reid' LIMIT 1")->fetch(PDO::FETCH_NUM);
 
