@@ -577,3 +577,33 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
 
     return ['type' => 'not_found', 'price' => 0];
 }
+
+function generateAuthInfo(): string {
+    $length = 16;
+    $charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    $retVal = "";
+    $digitCount = 0;
+
+    // Generate initial random string
+    for ($i = 0; $i < $length; $i++) {
+        $randomIndex = random_int(0, strlen($charset) - 1);
+        $char = $charset[$randomIndex];
+        $retVal .= $char;
+        if ($char >= '0' && $char <= '9') {
+            $digitCount++;
+        }
+    }
+
+    // Ensure there are at least two digits in the string
+    while ($digitCount < 2) {
+        // Replace a non-digit character at a random position with a digit
+        $replacePosition = random_int(0, $length - 1);
+        if (!($retVal[$replacePosition] >= '0' && $retVal[$replacePosition] <= '9')) {
+            $randomDigit = random_int(0, 9); // Generate a digit from 0 to 9
+            $retVal = substr_replace($retVal, (string)$randomDigit, $replacePosition, 1);
+            $digitCount++;
+        }
+    }
+
+    return $retVal;
+}

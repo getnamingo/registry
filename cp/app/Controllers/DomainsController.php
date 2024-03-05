@@ -2703,6 +2703,88 @@ class DomainsController extends Controller
                 try {
                     $db->beginTransaction();
                     
+                    $contactMap = $db->select('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?', [$domain_id]);
+
+                    // Prepare an array to hold new contact IDs to prevent duplicating contacts
+                    $newContactIds = [];
+                    
+                    $registrantData = $db->selectRow('SELECT * FROM contact WHERE id = ?', [$registrant]);
+                    unset($registrantData['id']); // Remove the ID to ensure a new record is created
+                    $registrantData['identifier'] = generateAuthInfo();
+                    $registrantData['clid'] = $reid;
+                    $db->insert('contact', $registrantData);
+                    $newRegistrantId = $db->getlastInsertId();
+                    $newContactIds[$registrant] = $newRegistrantId;
+
+                    // Fetch associated contact_postalInfo records
+                    $postalInfos = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?', [$registrant]);
+
+                    foreach ($postalInfos as $postalInfo) {
+                        unset($postalInfo['id']); // Remove the ID to ensure a new record is created
+                        $postalInfo['contact_id'] = $newRegistrantId; // Replace with new contact ID
+
+                        // Insert new contact_postalInfo record
+                        $db->insert('contact_postalInfo', $postalInfo);
+                    }
+                    
+                    $new_authinfo = generateAuthInfo();
+                    $db->insert(
+                        'contact_authInfo',
+                        [
+                            'contact_id' => $newRegistrantId,
+                            'authtype' => 'pw',
+                            'authinfo' => $new_authinfo
+                        ]
+                    );
+
+                    $db->insert(
+                        'contact_status',
+                        [
+                            'contact_id' => $newRegistrantId,
+                            'status' => 'ok'
+                        ]
+                    );
+                    
+                    foreach ($contactMap as $contact) {
+                        if (!array_key_exists($contact['contact_id'], $newContactIds)) { // Check if not already copied
+                            $contactData = $db->selectRow('SELECT * FROM contact WHERE id = ?', [$contact['contact_id']]);
+                            unset($contactData['id']); // Remove the ID to ensure a new record is created
+                            $contactData['identifier'] = generateAuthInfo();
+                            $contactData['clid'] = $reid;
+                            $db->insert('contact', $contactData);
+                            $newContactId = $db->getlastInsertId();
+                            $newContactIds[$contact['contact_id']] = $newContactId;
+
+                            // Fetch and copy associated contact_postalInfo records
+                            $postalInfos = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?', [$contact['contact_id']]);
+                            foreach ($postalInfos as $postalInfo) {
+                                unset($postalInfo['id']); // Ensure a new record is created
+                                $postalInfo['contact_id'] = $newContactId; // Assign to new contact ID
+
+                                // Insert new contact_postalInfo record
+                                $db->insert('contact_postalInfo', $postalInfo);
+                            }
+                            
+                            $new_authinfo = generateAuthInfo();
+                            $db->insert(
+                                'contact_authInfo',
+                                [
+                                    'contact_id' => $newContactId,
+                                    'authtype' => 'pw',
+                                    'authinfo' => $new_authinfo
+                                ]
+                            );
+
+                            $db->insert(
+                                'contact_status',
+                                [
+                                    'contact_id' => $newContactId,
+                                    'status' => 'ok'
+                                ]
+                            );
+                        }
+                    }
+                    
                     $row = $db->selectRow(
                         'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
                         [$domainName]
@@ -2710,9 +2792,25 @@ class DomainsController extends Controller
                     $from = $row['exdate'];
                             
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
-                        [$date_add, $reid, $clid, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
+                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
+                        [$date_add, $reid, $clid, $newRegistrantId, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
                     );
+                    
+                    $new_authinfo = generateAuthInfo();
+                    $db->exec(
+                        'UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?',
+                        [$new_authinfo, $domain_id]
+                    );
+                    
+                    foreach ($contactMap as $contact) {
+                        $db->update('domain_contact_map', [
+                            'contact_id' => $newContactIds[$contact['contact_id']],
+                        ], [
+                            'domain_id' => $domain_id,
+                            'type' => $contact['type'],
+                            'contact_id' => $contact['contact_id'] // Ensure we're updating the correct existing record
+                        ]);
+                    }
 
                     $db->exec(
                         'UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?',
