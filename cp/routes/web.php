@@ -245,6 +245,7 @@ $app->any('/api[/{params:.*}]', function (
                 'application' => 'clid',
                 'host' => 'clid',
                 'poll' => 'registrar_id',
+                'invoices' => 'registrar_id',
                 'registrar' => 'id',
                 'payment_history' => 'registrar_id',
                 'statement' => 'registrar_id',
