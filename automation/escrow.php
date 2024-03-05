@@ -249,7 +249,7 @@ try {
 
         foreach ($contacts as $contact) {
             $xml->startElement('rdeContact:contact');
-            $xml->writeElement('rdeContact:id', $contact['id']);
+            $xml->writeElement('rdeContact:id', $contact['identifier']);
             $xml->writeElement('rdeContact:roid', 'C' . $contact['id'] . '-' . $c['roid']);
             $xml->startElement('rdeContact:status');
             $xml->writeAttribute('s', 'ok');

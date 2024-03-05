@@ -63,7 +63,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
             'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
-            'id' => $contact['id'],
+            'id' => $contact['identifier'],
             'roid' => 'C' . $contact['id'],
             'status' => $statusArray,
             'postal' => $postalArray,
