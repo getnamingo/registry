@@ -408,7 +408,8 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
     }
 
     // -  An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
-    $authInfo_pw = (string)$xml->xpath('//domain:authInfo/domain:pw[1]')[0];
+    $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
+    $authInfo_pw = $result ? (string)$result[0] : null;
 
     if (!$domainName) {
         sendEppError($conn, $db, 2003, 'Please provide the domain name', $clTRID, $trans);
@@ -488,11 +489,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             // Copy registrant data
             $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
-            $stmt->execute([$registrant]);
+            $stmt->execute([$row['registrant']]);
             $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
             unset($registrantData['id']);
             $registrantData['identifier'] = generateAuthInfo();
-            $registrantData['clid'] = $reid;
+            $registrantData['clid'] = $row['reid'];
 
             $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
             foreach ($registrantData as $key => $value) {
@@ -500,11 +501,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
             $stmt->execute();
             $newRegistrantId = $db->lastInsertId();
-            $newContactIds[$registrant] = $newRegistrantId;
+            $newContactIds[$row['registrant']] = $newRegistrantId;
 
             // Copy postal info for the registrant
             $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-            $stmt->execute([$registrant]);
+            $stmt->execute([$row['registrant']]);
             $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($postalInfos as $postalInfo) {
@@ -531,7 +532,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
                     unset($contactData['id']);
                     $contactData['identifier'] = generateAuthInfo();
-                    $contactData['clid'] = $reid;
+                    $contactData['clid'] = $row["reid"];
 
                     $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
                     foreach ($contactData as $key => $value) {
@@ -568,7 +569,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $from = $stmt->fetchColumn();
 
             $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
-            $stmt->execute([$date_add, $row["reid"], $newRegistrantId, $clid, $date_add, $domain_id]);
+            $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
             $new_authinfo = generateAuthInfo();
             $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
@@ -599,18 +600,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 return;
             } else {
                 $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :reid");
-                $stmt->execute(['price' => $price, 'reid' => $reid]);
+                $stmt->execute(['price' => $price, 'reid' => $row['reid']]);
 
                 $stmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:reid, CURRENT_TIMESTAMP(3), :description, :amount)");
                 $description = "transfer domain $domainName for period $date_add MONTH";
-                $stmt->execute(['reid' => $reid, 'description' => $description, 'amount' => -$price]);
+                $stmt->execute(['reid' => $row['reid'], 'description' => $description, 'amount' => -$price]);
 
                 $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
                 $stmt->execute(['domain_id' => $domain_id]);
                 $to = $stmt->fetchColumn();
 
                 $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
-                $stmt->execute(['registrar_id' => $reid, 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
+                $stmt->execute(['registrar_id' => $row['reid'], 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
 
                 $stmt = $db->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                 $stmt->execute(['name' => $domainName]);
@@ -1101,6 +1102,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                         ':acdate' => $acdate
                     ]);
                     
+                    $svTRID = generateSvTRID();
                     $response = [
                         'command' => 'transfer_domain',
                         'resultCode' => 1001,
