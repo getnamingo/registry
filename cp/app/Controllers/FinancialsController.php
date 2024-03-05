@@ -9,6 +9,7 @@ use Mpociot\VatCalculator\VatCalculator;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Ramsey\Uuid\Uuid;
+use League\ISO3166\ISO3166;
 
 class FinancialsController extends Controller
 {
@@ -39,6 +40,7 @@ class FinancialsController extends Controller
             return $response->withHeader('Location', '/invoices')->withStatus(302);
         }
 
+        $iso3166 = new ISO3166();
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
@@ -78,6 +80,8 @@ class FinancialsController extends Controller
             $validVAT = null;
         }
         $totalAmount = $grossPrice + $taxValue;
+        $billing_country = $iso3166->alpha2($billing['cc']);
+        $billing_country = $billing_country['name'];
 
         return view($response,'admin/financials/viewInvoice.twig', [
             'invoice_details' => $invoice_details,
@@ -92,11 +96,12 @@ class FinancialsController extends Controller
             'phone' => $phone,
             'email' => $email,
             'vatRate' => ($taxRate * 100) . "%",
-            'vatAmount' => $taxValue,
+            'vatAmount' => sprintf("%.2f", $taxValue),
             'validVAT' => $validVAT,
-            'netPrice' => $netPrice,
-            'total' => $totalAmount,
-            'currentUri' => $uri
+            'netPrice' => sprintf("%.2f", $netPrice),
+            'total' => sprintf("%.2f", $totalAmount),
+            'currentUri' => $uri,
+            'billing_country' => $billing_country,
         ]);
 
     }
