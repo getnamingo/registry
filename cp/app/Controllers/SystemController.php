@@ -1027,6 +1027,7 @@ class SystemController extends Controller
         }
 
         $db = $this->container->get('db');
+        $uri = $request->getUri()->getPath();
         $typesResult = $db->select("SELECT DISTINCT type FROM reserved_domain_names");
 
         // Initialize $types as an empty array if the query result is null

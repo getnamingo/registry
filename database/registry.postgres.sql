@@ -66,13 +66,13 @@ CREATE TABLE allocation_tokens (
      "domain_name" VARCHAR(255),
      "tokenStatus" VARCHAR(100),
      "tokenType" VARCHAR(100),
-     "createDateTime" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-     "lastUpdate" TIMESTAMP(3),
+     "crdate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     "lastupdate" TIMESTAMP(3),
      "registrars" JSON,
      "tlds" JSON,
      "eppActions" JSON,
-     "reducePremium" BOOLEAN NOT NULL,
-     "reduceYears" INT NOT NULL CHECK ("reduceYears" BETWEEN 0 AND 10),
+     "reducePremium" BOOLEAN,
+     "reduceYears" INT CHECK ("reduceYears" BETWEEN 0 AND 10),
     PRIMARY KEY (token)
 );
 

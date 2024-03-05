@@ -68,13 +68,13 @@ CREATE TABLE IF NOT EXISTS `registry`.`allocation_tokens` (
     domain_name VARCHAR(255) DEFAULT NULL,
     tokenStatus VARCHAR(100) DEFAULT NULL,
     tokenType VARCHAR(100) DEFAULT NULL,
-    createDateTime TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    lastUpdate DATETIME(3) DEFAULT NULL,
+    crdate DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    lastupdate DATETIME(3) DEFAULT NULL,
     registrars JSON DEFAULT NULL,
     tlds JSON DEFAULT NULL,
     eppActions JSON DEFAULT NULL,
-    reducePremium TINYINT(1) NOT NULL,
-    reduceYears INT NOT NULL CHECK (reduceYears BETWEEN 0 AND 10),
+    reducePremium TINYINT(1) DEFAULT NULL,
+    reduceYears INT DEFAULT NULL CHECK (reduceYears BETWEEN 0 AND 10),
     PRIMARY KEY (token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='allocation tokens';
 
