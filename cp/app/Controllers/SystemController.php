@@ -1065,6 +1065,26 @@ class SystemController extends Controller
         ]);
     }
     
+    public function manageTokens(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        if ($request->getMethod() === 'POST') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        $uri = $request->getUri()->getPath();
+        $tokens = $db->select("SELECT * FROM allocation_tokens");
+
+        return view($response,'admin/system/manageTokens.twig', [
+            'tokens' => $tokens,
+            'currentUri' => $uri
+        ]);
+    }
+    
     public function managePromo(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
