@@ -2314,6 +2314,12 @@ class DomainsController extends Controller
                 }
             }
             $registrar_id = $data['registrar'] ?? null;
+            $registrars = $db->select("SELECT id, clid, name FROM registrar");
+            if ($_SESSION["auth_roles"] != 0) {
+                $registrar = true;
+            } else {
+                $registrar = null;
+            }
             $authInfo = $data['authInfo'] ?? null;
             $transferYears = $data['transferYears'] ?? null;
 
@@ -2575,6 +2581,11 @@ class DomainsController extends Controller
         
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        if ($_SESSION["auth_roles"] != 0) {
+            $registrar = true;
+        } else {
+            $registrar = null;
+        }
             
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
         $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
@@ -2591,6 +2602,7 @@ class DomainsController extends Controller
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/domains/requestTransfer.twig', [
             'registrars' => $registrars,
+            'registrar' => $registrar,
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
             'currency' => $currency
