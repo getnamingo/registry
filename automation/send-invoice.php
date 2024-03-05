@@ -132,10 +132,9 @@ try {
             }
 
             curl_close($curl);
-
-            $log->info('job finished successfully.');
         }
     }
+    $log->info('job finished successfully.');
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
 } catch (Throwable $e) {
