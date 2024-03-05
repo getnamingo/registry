@@ -235,7 +235,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $res .= "\nDomain Status: ok https://icann.org/epp#ok";
                     }
 
-                    $query5 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query5 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                     FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id";
                     $stmt5 = $pdo->prepare($query5);
                     $stmt5->bindParam(':registrant', $f['registrant'], PDO::PARAM_INT);
@@ -257,7 +257,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nRegistrant Fax: REDACTED FOR PRIVACY"
                         ."\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    $res .= "\nRegistry Registrant ID: C".$f2['identifier']."-".$c['roid']
+                    $res .= "\nRegistry Registrant ID: C".$f2['id']."-".$c['roid']
                         ."\nRegistrant Name: ".$f2['name']
                         ."\nRegistrant Organization: ".$f2['org']
                         ."\nRegistrant Street: ".$f2['street1']
@@ -272,7 +272,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nRegistrant Email: ".$f2['email'];
                     }
 
-                    $query6 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query6 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='admin' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt6 = $pdo->prepare($query6);
                     $stmt6->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -294,8 +294,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nAdmin Fax: REDACTED FOR PRIVACY"
                         ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['identifier'])) {
-                        $res .= "\nRegistry Admin ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    if (!empty($f2['id'])) {
+                        $res .= "\nRegistry Admin ID: C" . $f2['id'] . "-" . $c['roid'];
                     } else {
                         $res .= "\nRegistry Admin ID:";
                     }
@@ -313,7 +313,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nAdmin Email: ".$f2['email'];
                     }
 
-                    $query7 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query7 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='billing' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt7 = $pdo->prepare($query7);
                     $stmt7->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -335,8 +335,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nBilling Fax: REDACTED FOR PRIVACY"
                         ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['identifier'])) {
-                        $res .= "\nRegistry Billing ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    if (!empty($f2['id'])) {
+                        $res .= "\nRegistry Billing ID: C" . $f2['id'] . "-" . $c['roid'];
                     } else {
                         $res .= "\nRegistry Billing ID:";
                     }
@@ -354,7 +354,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nBilling Email: ".$f2['email'];
                     }
 
-                    $query8 = "SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query8 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='tech' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt8 = $pdo->prepare($query8);
                     $stmt8->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -376,8 +376,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nTech Fax: REDACTED FOR PRIVACY"
                         ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['identifier'])) {
-                        $res .= "\nRegistry Tech ID: C" . $f2['identifier'] . "-" . $c['roid'];
+                    if (!empty($f2['id'])) {
+                        $res .= "\nRegistry Tech ID: C" . $f2['id'] . "-" . $c['roid'];
                     } else {
                         $res .= "\nRegistry Tech ID:";
                     }

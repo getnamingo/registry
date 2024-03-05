@@ -64,7 +64,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'id' => $contact['id'],
-            'roid' => 'C' . $contact['identifier'],
+            'roid' => 'C' . $contact['id'],
             'status' => $statusArray,
             'postal' => $postalArray,
             'voice' => $contact['voice'],
@@ -82,7 +82,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'info', 'contact', 'C_'.$contact['identifier'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'info', 'contact', 'C_'.$contact['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {

@@ -29,6 +29,7 @@ return [
     'escrow_report_url' => 'https://ry-api.icann.org/report/',
     'escrow_report_username' => 'your_username',
     'escrow_report_password' => 'your_password',
+    'roid' => 'XX',
 
     // Reporting Configuration
     'reporting_path' => '/opt/reporting',

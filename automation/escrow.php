@@ -172,7 +172,7 @@ try {
         foreach ($domains as $domain) {
             $xml->startElement('rdeDom:domain');
             $xml->writeElement('rdeDom:name', $domain['name']);
-            $xml->writeElement('rdeDom:roid', 'D' . $domain['id']);
+            $xml->writeElement('rdeDom:roid', 'D' . $domain['id'] . '-' . $c['roid']);
             $xml->writeElement('rdeDom:uName', $domain['name']);
             $xml->writeElement('rdeDom:idnTableId', 'Latn');
 
@@ -227,7 +227,7 @@ try {
         foreach ($hosts as $host) {
             $xml->startElement('rdeHost:host');
             $xml->writeElement('rdeHost:name', $host['name']);
-            $xml->writeElement('rdeHost:roid', 'H' . $host['id']);
+            $xml->writeElement('rdeHost:roid', 'H' . $host['id'] . '-' . $c['roid']);
             
             $xml->startElement('rdeHost:status');
             $xml->writeAttribute('s', 'ok');
@@ -249,8 +249,8 @@ try {
 
         foreach ($contacts as $contact) {
             $xml->startElement('rdeContact:contact');
-            $xml->writeElement('rdeContact:id', $contact['identifier']);
-            $xml->writeElement('rdeContact:roid', 'C' . $contact['id']);
+            $xml->writeElement('rdeContact:id', $contact['id']);
+            $xml->writeElement('rdeContact:roid', 'C' . $contact['id'] . '-' . $c['roid']);
             $xml->startElement('rdeContact:status');
             $xml->writeAttribute('s', 'ok');
             $xml->text('ok');
@@ -299,7 +299,7 @@ try {
 
         $xml->startElement('rdeRegistrar:registrar');
         foreach ($registrars as $registrar) {
-            $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
+            $xml->writeElement('rdeRegistrar:id', $registrar['id']);
             $xml->writeElement('rdeRegistrar:name', $registrar['name']);
             $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
             $xml->writeElement('rdeRegistrar:status', 'ok');
@@ -702,7 +702,7 @@ try {
             foreach ($domains as $domain) {
                 $xml->startElement('rdeDom:domain');
                 $xml->writeElement('rdeDom:name', $domain['name']);
-                $xml->writeElement('rdeDom:roid', 'D' . $domain['id']);
+                $xml->writeElement('rdeDom:roid', 'D' . $domain['id'] . '-' . $c['roid']);
                 $xml->writeElement('rdeDom:uName', $domain['name']);
                 $xml->writeElement('rdeDom:idnTableId', 'Latn');
 
@@ -756,7 +756,7 @@ try {
 
             $xml->startElement('rdeRegistrar:registrar');
             foreach ($registrars as $registrar) {
-                $xml->writeElement('rdeRegistrar:id', $registrar['clid']);
+                $xml->writeElement('rdeRegistrar:id', $registrar['id']);
                 $xml->writeElement('rdeRegistrar:name', $registrar['name']);
                 $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
                 $xml->writeElement('rdeRegistrar:status', 'ok');

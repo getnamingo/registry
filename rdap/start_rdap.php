@@ -416,7 +416,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $registrarAbuseDetails = $stmt3a->fetch(PDO::FETCH_ASSOC);
 
         // Query 4: Get registrant details
-        $stmt4 = $pdo->prepare("SELECT contact.identifier,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.voice_x,contact.fax,contact.fax_x,contact.email FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id");
+        $stmt4 = $pdo->prepare("SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.voice_x,contact.fax,contact.fax_x,contact.email FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id");
         $stmt4->bindParam(':registrant', $domainDetails['registrant'], PDO::PARAM_INT);
         $stmt4->execute();
         $registrantDetails = $stmt4->fetch(PDO::FETCH_ASSOC);
@@ -432,7 +432,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $billingDetails = [];
 
         foreach ($contactMap as $map) {
-            $stmtDetails = $pdo->prepare("SELECT contact.identifier, contact_postalInfo.name, contact_postalInfo.org, contact_postalInfo.street1, contact_postalInfo.street2, contact_postalInfo.street3, contact_postalInfo.city, contact_postalInfo.sp, contact_postalInfo.pc, contact_postalInfo.cc, contact.voice, contact.voice_x, contact.fax, contact.fax_x, contact.email FROM contact, contact_postalInfo WHERE contact.id = :contact_id AND contact_postalInfo.contact_id = contact.id");
+            $stmtDetails = $pdo->prepare("SELECT contact.id, contact_postalInfo.name, contact_postalInfo.org, contact_postalInfo.street1, contact_postalInfo.street2, contact_postalInfo.street3, contact_postalInfo.city, contact_postalInfo.sp, contact_postalInfo.pc, contact_postalInfo.cc, contact.voice, contact.voice_x, contact.fax, contact.fax_x, contact.email FROM contact, contact_postalInfo WHERE contact.id = :contact_id AND contact_postalInfo.contact_id = contact.id");
             $stmtDetails->bindParam(':contact_id', $map['contact_id'], PDO::PARAM_INT);
             $stmtDetails->execute();
     

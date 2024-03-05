@@ -44,7 +44,7 @@ function setupLogger($logFilePath, $channelName = 'app') {
 function mapContactToVCard($contactDetails, $role, $c) {
     return [
         'objectClassName' => 'entity',
-        'handle' => ['C' . $contactDetails['identifier'] . '-' . $c['roid']],
+        'handle' => ['C' . $contactDetails['id'] . '-' . $c['roid']],
         'roles' => [$role],
         'remarks' => [
             [
