@@ -222,7 +222,7 @@ try {
     $stmt_contact = null;
     $dbh->commit();
     $log->info('job finished successfully.');
-} catch (PDOException $e) {
+} catch (Exception $e) {
     $dbh->rollBack();
     $log->error('Database error: ' . $e->getMessage());
 } catch (PDOException $e) {

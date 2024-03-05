@@ -17,6 +17,8 @@ try {
 }
 
 try {
+    $dbh->beginTransaction();
+    
     // Prepare and execute the SQL statement to select unused hosts
     $stmt = $dbh->prepare("SELECT h.id, h.name FROM host AS h
     LEFT JOIN domain_host_map AS m ON h.id = m.host_id
@@ -56,11 +58,17 @@ try {
         $dbh->prepare("DELETE FROM contact_authInfo WHERE contact_id IN ($placeholders)")->execute($contact_ids);
         $dbh->prepare("DELETE FROM contact WHERE id IN ($placeholders)")->execute($contact_ids);
     }
-    
+
+    $dbh->commit();
     $log->info('job finished successfully.');
 
+} catch (Exception $e) {
+    $dbh->rollBack();
+    $log->error('Database error: ' . $e->getMessage());
 } catch (PDOException $e) {
+    $dbh->rollBack();
     $log->error('Database error: ' . $e->getMessage());
 } catch (Throwable $e) {
+    $dbh->rollBack();
     $log->error('Error: ' . $e->getMessage());
 }
