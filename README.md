@@ -8,7 +8,7 @@ Open-source domain registry platform. Revolutionizing ccTLD and gTLD management 
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023, it adheres to the latest standards, ensuring a cutting-edge experience. 
+Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2024, it adheres to the latest standards, ensuring a cutting-edge experience. 
 
 Namingo is optimally designed for the upcoming ICANN application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
@@ -30,17 +30,23 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **WHOIS Service**: Offers both port 43 access and web access, ensuring transparency in domain information retrieval.
   
-- **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data.
+- **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data. Also offers web RDAP client.
 
 - **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
   
-- **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
+- **DNS Interface**: State-of-the-art zone generator tailored to support BIND, NSD, and KnotDNS, offering flexibility in DNS software choices. Seamlessly integrates with industry-leading solutions for DNSSEC signing, including native, OpenDNSSEC and DNS-tool, ensuring enhanced domain security and reliability.
 
 - **Database Compatibility**: Fully supports MySQL/MariaDB and offers beta support for PostgreSQL, providing flexibility to match users' technical needs and infrastructure for seamless integration and peak performance.
 
 - **GDPR-Compliant Database Encryption**: Supports comprehensive database encryption to ensure GDPR compliance. For more details, see our [Encryption Guide](docs/encryption.md).
   
-- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Advanced scripting capabilities also facilitate the generation of RDE deposits, the creation of ICANN's monthly reports, Spec 11 abuse monitoring, and ensure full compliance with other ICANN gTLD requirements for streamlined regulatory adherence.
+- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Included scripts for spec 11 abuse monitoring; automated approval of domain transfers; contact and host cleanup; backup processing and upload; domain lifetime status change; generation and upload of RDE deposits, LORDN file, ICANN's monthly reports, invoices; email dispatcher system; statistics generation; TMCH and URS processing; zone generator and signing.
+
+### In beta
+
+- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding-beta) - New registrars can join by filling up a form, signing the agreement online and even paying the application fee online. Then their account is activated after check by registry staff. No more emails, Word or PDF forms or copy-paste between systems.
+
+- [**Domain Registry API**](https://github.com/getnamingo/registry-api-beta) - Provides REST API access to domain availability checks and to the domain droplist.
 
 ## Documentation
 
