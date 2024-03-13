@@ -677,7 +677,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -1009,7 +1009,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -1372,7 +1372,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -1944,7 +1944,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -2490,7 +2490,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -2823,7 +2823,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             $server->send($fd, "General error");
             $server->close($fd);
         }
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
@@ -2912,7 +2912,7 @@ function handleHelpQuery($request, $response, $pdo, $c) {
     ];
 
     // Send the RDAP response
-    $response->header('Content-Type', 'application/json');
+    $response->header('Content-Type', 'application/rdap+json');
     $response->status(200);
     $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
 }
