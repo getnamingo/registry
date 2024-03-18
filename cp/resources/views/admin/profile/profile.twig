@@ -45,22 +45,30 @@
                     <h3 class="card-title">{{ __('Details') }}</h3>
                     <form action="{{route('change.password')}}" name="register" method="post">
                     {{ csrf.field | raw }}
-                    <div class="row g-3">
-                      <div class="col-md">
-                        <div class="form-label">{{ __('User Name') }}</div>
-                        <div class="form-control-plaintext">{{ username }}</div>
+                    <div class="datagrid">
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('User Name') }}</div>
+                        <div class="datagrid-content">{{ username }}</div>
                       </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Email') }}</div>
-                        <div class="form-control-plaintext">{{ email }}</div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('Email') }}</div>
+                        <div class="datagrid-content">{{ email }}</div>
                       </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Status') }}</div>
-                        <span class="badge bg-green-lt mt-2">{{ status }}</span>
-                      </div>
-                      <div class="col-md">
-                        <div class="form-label">{{ __('Role') }}</div>
-                        <span class="badge bg-purple-lt mt-2">{{ role }}</span>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('Status') }}</div>
+                        <div class="datagrid-content">
+                          <span class="status status-azure">
+                            {{ status }}
+                          </span>
+                        </div>
+                      </div>                
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">{{ __('Role') }}</div>
+                        <div class="datagrid-content">
+                          <span class="status status-{% if role == 'Admin' %}primary{% else %}green{% endif %}">
+                            {{ role }}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
