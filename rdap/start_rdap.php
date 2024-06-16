@@ -227,7 +227,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     
     // Extract TLD from the domain
     $parts = explode('.', $domain);
-    $tld = "." . end($parts);
+    
+    // Handle multi-segment TLDs (e.g., co.uk, ngo.us, etc.)
+    if (count($parts) > 2) {
+        $tld = "." . $parts[count($parts) - 2] . "." . $parts[count($parts) - 1];
+    } else {
+        $tld = "." . end($parts);
+    }
 
     // Check if the TLD exists in the domain_tld table
     $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
