@@ -6,6 +6,8 @@ As you follow along with this document, it's important to also review the [Confi
 
 Once you have completed the installation process, we encourage you to proceed to the [Initial Operation Guide](docs/iog.md) for detailed instructions on how to configure your registry, add registrars, and other essential operational steps.
 
+**To install Namingo on Ubuntu 24.04 LTS with PHP 8.3 and MariaDB 10.11.8, use the automated installer currently provided.**
+
 ## 1. Install the required packages:
 
 ```bash

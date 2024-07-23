@@ -31,7 +31,7 @@ if [[ -e /etc/os-release ]]; then
 fi
 
 # Proceed if it's Ubuntu 22.04 or Debian 12
-if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" && "$VER" == "12") ]]; then
+if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" == "24.04") || ("$OS" == "Debian GNU/Linux" && "$VER" == "12") ]]; then
     # Prompt for details
     REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
     YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
@@ -56,6 +56,15 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
         gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+        echo "Installing required packages..."
+        apt update -y
+        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw
+        gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
+        echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
     else
         echo "Installing required packages..."
         apt update -y
@@ -70,7 +79,11 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     echo "Updating package lists..."
     apt update -y
     echo "Installing additional required packages..."
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.3 php8.3-cli php8.3-common php8.3-curl php8.3-ds php8.3-fpm php8.3-gd php8.3-gmp php8.3-gnupg php8.3-igbinary php8.3-imap php8.3-intl php8.3-mbstring php8.3-opcache php8.3-readline php8.3-redis php8.3-soap php8.3-swoole php8.3-uuid php8.3-xml pv redis unzip wget whois
+    else
     apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+    fi
     
     # Set timezone to UTC if it's not already
     currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
@@ -80,8 +93,13 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     fi
 
     # Edit php.ini files
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    phpIniCli='/etc/php/8.3/cli/php.ini'
+    phpIniFpm='/etc/php/8.3/fpm/php.ini'
+    else
     phpIniCli='/etc/php/8.2/cli/php.ini'
     phpIniFpm='/etc/php/8.2/fpm/php.ini'
+    fi
 
     echo "Updating PHP configuration..."
     for file in "$phpIniCli" "$phpIniFpm"; do
@@ -96,12 +114,21 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
         edit_php_ini "$file" "memory_limit" "512M"
     done
     
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    edit_php_ini "/etc/php/8.3/mods-available/opcache.ini" "opcache.jit" "1255"
+    edit_php_ini "/etc/php/8.3/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
+    else
     edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
     edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
+    fi
     
     # Restart PHP-FPM service
-    echo "Restarting PHP 8.2-FPM service..."
+    echo "Restarting PHP FPM service..."
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    systemctl restart php8.3-fpm
+    else
     systemctl restart php8.2-fpm
+    fi
     echo "PHP configuration update complete!"
     
     #if [ "$DB_TYPE" == "MariaDB" ]; then
@@ -121,6 +148,19 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Debian GNU/Linux" &
     Components: main main/debug
     Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
+        elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+    # MariaDB 11.4 repository list - created 2024-07-23 18:24 UTC
+    # https://mariadb.org/download/
+    X-Repolib-Name: MariaDB
+    Types: deb
+    # deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
+    # URIs: https://deb.mariadb.org/11.4/ubuntu
+    URIs: https://fastmirror.pp.ua/mariadb/repo/11.4/ubuntu
+    Suites: noble
+    Components: main main/debug
+    Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+EOF
         else
             cat > /etc/apt/sources.list.d/mariadb.sources << EOF
     # MariaDB 10.11 repository list - created 2024-01-05 12:23 UTC
@@ -137,7 +177,11 @@ EOF
         fi
 
         apt-get update
+        if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+        apt install -y mariadb-client mariadb-server php8.3-mysql
+else
         apt install -y mariadb-client mariadb-server php8.2-mysql
+fi
         echo "Please follow the prompts for secure installation of MariaDB."
         mysql_secure_installation
         
@@ -210,6 +254,81 @@ EOF
     BIND_LINE=$(generate_bind_line $YOUR_IPV4_ADDRESS $YOUR_IPV6_ADDRESS)
 
     # Update Caddyfile
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    cat > /etc/caddy/Caddyfile << EOF
+    rdaptest.$REGISTRY_DOMAIN {
+        $BIND_LINE
+        reverse_proxy localhost:7500
+        encode gzip
+        file_server
+        tls $YOUR_EMAIL
+        header -Server
+        header * {
+            Referrer-Policy "no-referrer"
+            Strict-Transport-Security max-age=31536000;
+            X-Content-Type-Options nosniff
+            X-Frame-Options DENY
+            X-XSS-Protection "1; mode=block"
+            Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; form-action 'self'; worker-src 'none'; frame-src 'none';"
+            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
+            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
+        }
+    }
+
+    whoistest.$REGISTRY_DOMAIN {
+        $BIND_LINE
+        root * /var/www/whois
+        encode gzip
+        php_fastcgi unix//run/php/php8.3-fpm.sock
+        file_server
+        tls $YOUR_EMAIL
+        header -Server
+        header * {
+            Referrer-Policy "no-referrer"
+            Strict-Transport-Security max-age=31536000;
+            X-Content-Type-Options nosniff
+            X-Frame-Options DENY
+            X-XSS-Protection "1; mode=block"
+            Content-Security-Policy: default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'none'; form-action 'self'; worker-src 'none'; frame-src 'none';
+            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
+            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
+        }
+    }
+
+    cptest.$REGISTRY_DOMAIN {
+        $BIND_LINE
+        root * /var/www/cp/public
+        php_fastcgi unix//run/php/php8.3-fpm.sock
+        encode gzip
+        file_server
+        tls $YOUR_EMAIL
+        header -Server
+        log {
+            output file /var/log/caddy/access.log
+            format console
+        }
+        log {
+            output file /var/log/caddy/error.log
+            level ERROR
+        }
+        # Adminer Configuration
+        route /adminer.php* {
+            root * /usr/share/adminer
+            php_fastcgi unix//run/php/php8.3-fpm.sock
+        }
+        header * {
+            Referrer-Policy "same-origin"
+            Strict-Transport-Security max-age=31536000;
+            X-Content-Type-Options nosniff
+            X-Frame-Options DENY
+            X-XSS-Protection "1; mode=block"
+            Content-Security-Policy: default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://rsms.me; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/; form-action 'self'; worker-src 'none'; frame-src 'none';
+            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
+            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
+        }
+    }
+EOF
+else
     cat > /etc/caddy/Caddyfile << EOF
     rdap.$REGISTRY_DOMAIN {
         $BIND_LINE
@@ -283,6 +402,7 @@ EOF
         }
     }
 EOF
+fi
     
     systemctl enable caddy
     systemctl restart caddy
