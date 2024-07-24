@@ -18,6 +18,7 @@ try {
 
 try {
     $dbh->beginTransaction();
+    $minimum_data = $c['minimum_data'];
     
     $query_domain = "SELECT id, name, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE CURRENT_TIMESTAMP > acdate AND trstatus = 'pending'";
     $stmt_domain = $dbh->prepare($query_domain);
@@ -60,44 +61,46 @@ try {
             }
         }
         
-        // Fetch contact map
-        $stmt = $dbh->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
-        $stmt->execute([$domain_id]);
-        $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!$minimum_data) {
+            // Fetch contact map
+            $stmt = $dbh->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
+            $stmt->execute([$domain_id]);
+            $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Prepare an array to hold new contact IDs to prevent duplicating contacts
-        $newContactIds = [];
+            // Prepare an array to hold new contact IDs to prevent duplicating contacts
+            $newContactIds = [];
 
-        // Copy registrant data
-        $stmt = $dbh->prepare('SELECT * FROM contact WHERE id = ?');
-        $stmt->execute([$registrant]);
-        $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
-        unset($registrantData['id']);
-        $registrantData['identifier'] = generateAuthInfo();
-        $registrantData['clid'] = $reid;
+            // Copy registrant data
+            $stmt = $dbh->prepare('SELECT * FROM contact WHERE id = ?');
+            $stmt->execute([$registrant]);
+            $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
+            unset($registrantData['id']);
+            $registrantData['identifier'] = generateAuthInfo();
+            $registrantData['clid'] = $reid;
 
-        $stmt = $dbh->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
-        foreach ($registrantData as $key => $value) {
-            $stmt->bindValue(':' . $key, $value);
-        }
-        $stmt->execute();
-        $newRegistrantId = $dbh->lastInsertId();
-        $newContactIds[$registrant] = $newRegistrantId;
-
-        // Copy postal info for the registrant
-        $stmt = $dbh->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-        $stmt->execute([$registrant]);
-        $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($postalInfos as $postalInfo) {
-            unset($postalInfo['id']);
-            $postalInfo['contact_id'] = $newRegistrantId;
-            $columns = array_keys($postalInfo);
-            $stmt = $dbh->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-            foreach ($postalInfo as $key => $value) {
+            $stmt = $dbh->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
+            foreach ($registrantData as $key => $value) {
                 $stmt->bindValue(':' . $key, $value);
             }
             $stmt->execute();
+            $newRegistrantId = $dbh->lastInsertId();
+            $newContactIds[$registrant] = $newRegistrantId;
+
+            // Copy postal info for the registrant
+            $stmt = $dbh->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+            $stmt->execute([$registrant]);
+            $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($postalInfos as $postalInfo) {
+                unset($postalInfo['id']);
+                $postalInfo['contact_id'] = $newRegistrantId;
+                $columns = array_keys($postalInfo);
+                $stmt = $dbh->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                foreach ($postalInfo as $key => $value) {
+                    $stmt->bindValue(':' . $key, $value);
+                }
+                $stmt->execute();
+            }
         }
 
         // Insert auth info and status for the new registrant
@@ -105,43 +108,45 @@ try {
         $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
         $dbh->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
 
-        // Process each contact in the contact map
-        foreach ($contactMap as $contact) {
-            if (!array_key_exists($contact['contact_id'], $newContactIds)) {
-                $stmt = $dbh->prepare('SELECT * FROM contact WHERE id = ?');
-                $stmt->execute([$contact['contact_id']]);
-                $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
-                unset($contactData['id']);
-                $contactData['identifier'] = generateAuthInfo();
-                $contactData['clid'] = $reid;
+        if (!$minimum_data) {
+            // Process each contact in the contact map
+            foreach ($contactMap as $contact) {
+                if (!array_key_exists($contact['contact_id'], $newContactIds)) {
+                    $stmt = $dbh->prepare('SELECT * FROM contact WHERE id = ?');
+                    $stmt->execute([$contact['contact_id']]);
+                    $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
+                    unset($contactData['id']);
+                    $contactData['identifier'] = generateAuthInfo();
+                    $contactData['clid'] = $reid;
 
-                $stmt = $dbh->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
-                foreach ($contactData as $key => $value) {
-                    $stmt->bindValue(':' . $key, $value);
-                }
-                $stmt->execute();
-                $newContactId = $dbh->lastInsertId();
-                $newContactIds[$contact['contact_id']] = $newContactId;
-
-                // Repeat postal info and auth info/status insertion for each new contact
-                $stmt = $dbh->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-                $stmt->execute([$contact['contact_id']]);
-                $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                foreach ($postalInfos as $postalInfo) {
-                    unset($postalInfo['id']);
-                    $postalInfo['contact_id'] = $newContactId;
-                    $columns = array_keys($postalInfo);
-                    $stmt = $dbh->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-                    foreach ($postalInfo as $key => $value) {
+                    $stmt = $dbh->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
+                    foreach ($contactData as $key => $value) {
                         $stmt->bindValue(':' . $key, $value);
                     }
                     $stmt->execute();
-                }
+                    $newContactId = $dbh->lastInsertId();
+                    $newContactIds[$contact['contact_id']] = $newContactId;
 
-                $new_authinfo = generateAuthInfo();
-                $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
-                $dbh->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
+                    // Repeat postal info and auth info/status insertion for each new contact
+                    $stmt = $dbh->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+                    $stmt->execute([$contact['contact_id']]);
+                    $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    foreach ($postalInfos as $postalInfo) {
+                        unset($postalInfo['id']);
+                        $postalInfo['contact_id'] = $newContactId;
+                        $columns = array_keys($postalInfo);
+                        $stmt = $dbh->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                        foreach ($postalInfo as $key => $value) {
+                            $stmt->bindValue(':' . $key, $value);
+                        }
+                        $stmt->execute();
+                    }
+
+                    $new_authinfo = generateAuthInfo();
+                    $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                    $dbh->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
+                }
             }
         }
 
@@ -154,21 +159,23 @@ try {
         $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
         $stmt_update_auth->execute();
 
-        foreach ($contactMap as $contact) {
-            // Construct the SQL update query
-            $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
-            
-            // Prepare the SQL statement
-            $stmt = $dbh->prepare($sql);
-            
-            // Bind the values to the placeholders
-            $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
-            $stmt->bindValue(':domain_id', $domain_id);
-            $stmt->bindValue(':type', $contact['type']);
-            $stmt->bindValue(':contact_id', $contact['contact_id']);
-            
-            // Execute the update statement
-            $stmt->execute();
+        if (!$minimum_data) {
+            foreach ($contactMap as $contact) {
+                // Construct the SQL update query
+                $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
+                
+                // Prepare the SQL statement
+                $stmt = $dbh->prepare($sql);
+                
+                // Bind the values to the placeholders
+                $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
+                $stmt->bindValue(':domain_id', $domain_id);
+                $stmt->bindValue(':type', $contact['type']);
+                $stmt->bindValue(':contact_id', $contact['contact_id']);
+                
+                // Execute the update statement
+                $stmt->execute();
+            }
         }
 
         $stmt_update_host = $dbh->prepare("UPDATE host SET clid = '$reid', upid = NULL, lastupdate = CURRENT_TIMESTAMP, trdate = CURRENT_TIMESTAMP WHERE domain_id = '$domain_id'");

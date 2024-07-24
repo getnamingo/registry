@@ -19,6 +19,7 @@ try {
 try {
     // Auto-Renew Grace Period
     $auto_renew = 0;
+    $minimum_data = $c['minimum_data'];
 
     if ($auto_renew) {
         $sth_autorenewperiod = $dbh->prepare("SELECT id, name, tldid, exdate, clid FROM domain WHERE CURRENT_TIMESTAMP > exdate AND rgpstatus IS NULL");
@@ -194,7 +195,9 @@ try {
                 $dbh->exec("DELETE FROM domain_host_map WHERE host_id = '$host_id'");
             }
 
-            $dbh->exec("DELETE FROM domain_contact_map WHERE domain_id = '$domain_id'");
+            if (!$minimum_data) {
+                $dbh->exec("DELETE FROM domain_contact_map WHERE domain_id = '$domain_id'");
+            }
             $dbh->exec("DELETE FROM domain_host_map WHERE domain_id = '$domain_id'");
             $dbh->exec("DELETE FROM domain_authInfo WHERE domain_id = '$domain_id'");
             $dbh->exec("DELETE FROM domain_status WHERE domain_id = '$domain_id'");

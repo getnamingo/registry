@@ -75,4 +75,7 @@ return [
     // LORDN Configuration
     'lordn_user' => 'your_username',
     'lordn_pass' => 'your_password',
+
+    // Minimum Data Set
+    'minimum_data' => false,
 ];
