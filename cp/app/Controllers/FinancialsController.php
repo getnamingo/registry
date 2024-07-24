@@ -50,7 +50,10 @@ class FinancialsController extends Controller
         $billing = $db->selectRow('SELECT * FROM registrar_contact WHERE id = ?',
         [ $invoice_details['billing_contact_id'] ]
         );
-        $billing_vat = $db->selectValue('SELECT vat_number FROM registrar WHERE id = ?',
+        $billing_company = $db->selectValue('SELECT companyNumber FROM registrar WHERE id = ?',
+        [ $invoice_details['registrar_id'] ]
+        );
+        $billing_vat = $db->selectValue('SELECT vatNumber FROM registrar WHERE id = ?',
         [ $invoice_details['registrar_id'] ]
         );
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
@@ -60,14 +63,14 @@ class FinancialsController extends Controller
         $vat_number = $db->selectValue("SELECT value FROM settings WHERE name = 'vat_number'");
         $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
-        
+
         $issueDate = new \DateTime($invoice_details['issue_date']);
         $firstDayPrevMonth = (clone $issueDate)->modify('first day of last month')->format('Y-m-d');
         $lastDayPrevMonth = (clone $issueDate)->modify('last day of last month')->format('Y-m-d');
         $statement = $db->select('SELECT * FROM statement WHERE date BETWEEN ? AND ? AND registrar_id = ?',
         [ $firstDayPrevMonth, $lastDayPrevMonth, $invoice_details['registrar_id'] ]
         );
-        
+
         $vatCalculator = new VatCalculator();
         $vatCalculator->setBusinessCountryCode(strtoupper($cc));
         $grossPrice = $vatCalculator->calculate($invoice_details['total_amount'], strtoupper($billing['cc']));
@@ -86,6 +89,7 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/viewInvoice.twig', [
             'invoice_details' => $invoice_details,
             'billing' => $billing,
+            'billing_company' => $billing_company,
             'billing_vat' => $billing_vat,
             'statement' => $statement,
             'company_name' => $company_name,

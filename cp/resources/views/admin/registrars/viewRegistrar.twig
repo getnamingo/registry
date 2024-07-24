@@ -27,7 +27,7 @@
             {% include 'partials/flash.twig' %}
               <div class="card mb-3">
                 <div class="card-header">
-                  <h3 class="card-title">{{ __('Registrar') }} {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span></h3>
+                  <h3 class="card-title">{{ __('Registrar') }} {{ registrar.name }}&nbsp;<span class="status status-green" title="Prefix">{{ registrar.prefix }}</span>&nbsp;<span class="status status-info" title="IANA ID">{{ registrar.iana_id|default('N/A') }}</span>&nbsp;<span class="status status-indigo" title="{{ __('Company Number') }}">{{ registrar.companyNumber|default('N/A') }}</span>&nbsp;<span class="status status-cyan" title="{{ __('VAT Number') }}">{{ registrar.vatNumber|default('N/A') }}</span></h3>
                   {% if roles != 0 %}
                   <div class="card-actions">
                     <a href="{{route('editRegistrar')}}" type="button" class="btn btn-primary">

@@ -58,7 +58,7 @@ class RegistrarsController extends Controller
                 v::key('fax', v::optional(v::phone()), false),
                 v::key('email', v::email(), true)
             ];
-            
+
             $validators = [
                 'name' => v::stringType()->notEmpty()->length(1, 255),
                 'ianaId' => v::optional(v::positive()->length(1, 5)),
@@ -75,6 +75,8 @@ class RegistrarsController extends Controller
                 'creditLimit' => v::numericVal(),
                 'creditThreshold' => v::numericVal(),
                 'thresholdType' => v::in(['fixed', 'percent']),
+                'companyNumber' => v::positive()->length(1, 30),
+                'vatNumber' => v::optional(v::length(1, 30)),
                 'ipAddress' => v::optional($ipAddressValidator),
                 'user_name' => v::stringType()->notEmpty()->length(1, 255),
                 'user_email' => v::email(),
@@ -122,6 +124,9 @@ class RegistrarsController extends Controller
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
                 }
+                if (empty($data['vatNumber'])) {
+                    $data['vatNumber'] = null;
+                }
 
                 $db->insert(
                     'registrar',
@@ -141,6 +146,8 @@ class RegistrarsController extends Controller
                         'creditLimit' => $data['creditLimit'],
                         'creditThreshold' => $data['creditThreshold'],
                         'thresholdType' => $data['thresholdType'],
+                        'companyNumber' => $data['companyNumber'],
+                        'vatNumber' => $data['vatNumber'],
                         'currency' => $currency,
                         'crdate' => $crdate,
                         'lastupdate' => $crdate

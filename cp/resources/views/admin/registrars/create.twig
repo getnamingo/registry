@@ -89,21 +89,21 @@
                     <h5 class="card-title">{{ __('Financial Information') }}</h5>
                       <div class="row">
                         <!-- First Column -->
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                           <div class="mb-3">
                             <label for="accountBalance" class="form-label required">{{ __('Account Balance') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="accountBalance" name="accountBalance" required>
+                            <input type="number" step="0.01" class="form-control" id="accountBalance" name="accountBalance" value="0" required>
                             <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" required>
+                            <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" value="0" required>
                             <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
                           </div>
                         </div>
 
                         <!-- Second Column -->
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                           <div class="mb-3">
                             <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
                             <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required>
@@ -116,6 +116,20 @@
                               <option value="percent">{{ __('Percent') }}</option>
                             </select>
                             <small class="text-muted">{{ __('Type of threshold: fixed value or percentage.') }}</small>
+                          </div>
+                        </div>
+                        
+                        <!-- Third Column -->
+                        <div class="col-md-4">
+                          <div class="mb-3">
+                            <label for="companyNumber" class="form-label required">{{ __('Company Number') }}</label>
+                            <input type="text" class="form-control" id="companyNumber" name="companyNumber" required>
+                            <small class="text-muted">{{ __('Official registration number provided by the relevant authority.') }}</small>
+                          </div>
+                          <div class="mb-3">
+                            <label for="vatNumber" class="form-label">{{ __('VAT Number') }}</label>
+                            <input type="text" class="form-control" id="vatNumber" name="vatNumber">
+                            <small class="text-muted">{{ __('VAT number for tax purposes, if registered for VAT.') }}</small>
                           </div>
                         </div>
                       </div>
