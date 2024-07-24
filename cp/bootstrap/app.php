@@ -126,6 +126,11 @@ $container->set('view', function ($container) {
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
     }
+    if (envi('MINIMUM_DATA') === 'true') {
+        $view->getEnvironment()->addGlobal('minimum_data', 'true');
+    } else {
+        $view->getEnvironment()->addGlobal('minimum_data', 'false');
+    }
     if (isset($_SESSION['auth_roles'])) {
         $view->getEnvironment()->addGlobal('roles', $_SESSION['auth_roles']);
     }

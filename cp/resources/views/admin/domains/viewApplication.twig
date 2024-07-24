@@ -64,7 +64,7 @@
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Registrar') }}</div>
                       <div class="datagrid-content">{{ registrars.name }}</div>
-                    </div>
+                    </div>{% if minimum_data == 'false' %}
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Registrant') }}</div>
                       <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
@@ -74,7 +74,7 @@
                         <div class="datagrid-title">{{ contact.type }} {{ __('contact') }}</div>
                         <div class="datagrid-content">{{ contact.identifier }}</div>
                       </div>
-                    {% endfor %}
+                    {% endfor %}{% endif %}
                       <div class="datagrid-item">
                         <div class="datagrid-title">{{ __('Auth Type') }}</div>
                         <div class="datagrid-content">

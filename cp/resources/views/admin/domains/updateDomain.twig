@@ -77,7 +77,7 @@
                     <div class="row">
                         <!-- Fields for 4 contacts with roles -->
                         <div class="col-md-6">
-                            <div class="mb-3">
+                            {% if minimum_data == 'false' %}<div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">{{ __('Registrant Contact') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
                                         
@@ -99,9 +99,9 @@
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" id="contactAdmin" value="{{ contactAdmin }}" required>
                                 <label for="contactTech" class="form-label required">{{ __('Tech Contact') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech" id="contactTech" value="{{ contactTech }}" required>
-                                <label for="contactBilling" class="form-label required">{{ __('Billing Contact') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}" required>
-                            </div>
+                                <label for="contactBilling" class="form-label">{{ __('Billing Contact') }}</label>
+                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}">
+                            </div>{% endif %}
                             
                             <div class="hr-text">
                               <span>{{ __('Domain Security') }}</span>

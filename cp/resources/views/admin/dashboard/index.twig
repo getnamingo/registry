@@ -45,7 +45,7 @@
               <div class="col-12">
                 <div class="row row-cards">
                   {% if registrars %}
-                  <div class="col-sm-6 col-lg-3">
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
                     <a class="card card-link" href="{{route('listDomains')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
@@ -61,7 +61,7 @@
                         </div>
                       </div>
                     </a>
-                  </div>
+                  </div>{% if minimum_data == 'false' %}
                   <div class="col-sm-6 col-lg-3">
                     <a class="card card-link" href="{{route('listContacts')}}">
                       <div class="card-body">
@@ -78,8 +78,8 @@
                         </div>
                       </div>
                     </a>
-                  </div>
-                  <div class="col-sm-6 col-lg-3">
+                  </div>{% endif %}
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
                     <a class="card card-link" href="{{route('listHosts')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
@@ -96,7 +96,7 @@
                       </div>
                     </a>
                   </div>
-                  <div class="col-sm-6 col-lg-3">
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
                     <a class="card card-link" href="{{route('registrars')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
@@ -138,7 +138,7 @@
                     </div>
                   </div>
                   {% else %}
-                  <div class="col-sm-4 col-lg-4">
+                  <div class="{% if minimum_data == 'false' %}col-sm-4 col-lg-4{% else %}col-sm-6 col-lg-6{% endif %}">
                     <a class="card card-link" href="{{route('listDomains')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
@@ -154,7 +154,7 @@
                         </div>
                       </div>
                     </a>
-                  </div>
+                  </div>{% if minimum_data == 'false' %}
                   <div class="col-sm-4 col-lg-4">
                     <a class="card card-link" href="{{route('listContacts')}}">
                       <div class="card-body">
@@ -171,8 +171,8 @@
                         </div>
                       </div>
                     </a>
-                  </div>
-                  <div class="col-sm-4 col-lg-4">
+                  </div>{% endif %}
+                  <div class="{% if minimum_data == 'false' %}col-sm-4 col-lg-4{% else %}col-sm-6 col-lg-6{% endif %}">
                     <a class="card card-link" href="{{route('listHosts')}}">
                       <div class="card-body">
                         <div class="row align-items-center">

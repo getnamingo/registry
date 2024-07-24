@@ -57,14 +57,14 @@
                                 <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">{{ currency }} 0.00</span>
                             </div>
 
-                            <!-- Fields for 4 contacts with roles -->
+                            {% if minimum_data == 'false' %}<!-- Fields for 4 contacts with roles -->
                             <div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">{{ __('Contacts') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" required="required">
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin">
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech">
                                 <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling">
-                            </div>
+                            </div>{% endif %}
 
                             <!-- Fields for nameservers -->
                             <div id="nameserverFields">

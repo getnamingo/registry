@@ -1183,8 +1183,10 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
             } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide registrant identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                if (envi('MINIMUM_DATA') === 'false') {
+                    $this->container->get('flash')->addMessage('error', 'Please provide registrant identifier');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
             }
             
             if ($contactAdmin) {
@@ -1201,8 +1203,10 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
             } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide admin contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                if (envi('MINIMUM_DATA') === 'false') {
+                    $this->container->get('flash')->addMessage('error', 'Please provide admin contact identifier');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
             }
             
             if ($contactTech) {
@@ -1219,8 +1223,10 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
             } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide tech contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                if (envi('MINIMUM_DATA') === 'false') {
+                    $this->container->get('flash')->addMessage('error', 'Please provide tech contact identifier');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
             }
             
             if ($contactBilling) {
@@ -1236,9 +1242,6 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'The contact requested in the command does NOT belong to the current registrar');
                     return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
                 }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'Please provide billing contact identifier');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
             if (!$authInfo) {

@@ -14,6 +14,7 @@ return [
     'url' => $_ENV['APP_URL'] ?? 'http://localhost',
     'domain' => $_ENV['APP_DOMAIN'] ?? 'example.com',
     'root' => $_ENV['APP_ROOT'] ?? '/var/www/cp',
+    'minimum_data' => $_ENV['MINIMUM_DATA'] ?? false,
     'timezone' => $_ENV['TIME_ZONE'] ?? 'UTC',
     'default' => $_ENV['DB_DRIVER'] ?? 'mysql',
     'connections' => [
@@ -46,16 +47,6 @@ return [
             'prefix' => '',
             'schema' => 'public',
             'sslmode' => 'prefer',
-        ],
-        'sqlsrv' => [
-            'driver' => 'sqlsrv',
-            'host' => $_ENV['DB_HOST'] ?? 'localhost',
-            'port' => $_ENV['DB_PORT'] ?? '1433',
-            'database' => $_ENV['DB_DATABASE'] ?? 'db_username',
-            'username' => $_ENV['DB_USERNAME'] ?? 'db_password',
-            'password' => $_ENV['DB_PASSWORD'] ?? '',
-            'charset' => 'utf8',
-            'prefix' => '',
         ],
     ],
     'mail' => [

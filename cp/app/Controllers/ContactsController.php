@@ -17,11 +17,19 @@ class ContactsController extends Controller
 {
     public function listContacts(Request $request, Response $response)
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         return view($response,'admin/contacts/listContacts.twig');
     }
 
     public function createContact(Request $request, Response $response)
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -385,6 +393,10 @@ class ContactsController extends Controller
     
     public function viewContact(Request $request, Response $response, $args) 
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
@@ -464,6 +476,10 @@ class ContactsController extends Controller
     
     public function updateContact(Request $request, Response $response, $args) 
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
@@ -542,6 +558,10 @@ class ContactsController extends Controller
     
     public function validateContact(Request $request, Response $response, $args) 
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         $db = $this->container->get('db');
         $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
         $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
@@ -664,6 +684,10 @@ class ContactsController extends Controller
     
     public function approveContact(Request $request, Response $response) 
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
@@ -745,6 +769,10 @@ class ContactsController extends Controller
     
     public function updateContactProcess(Request $request, Response $response)
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -1101,6 +1129,10 @@ class ContactsController extends Controller
     
     public function deleteContact(Request $request, Response $response, $args)
     {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI
