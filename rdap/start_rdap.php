@@ -554,18 +554,20 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     ],
                     ],
                 ],
-                [
-                    mapContactToVCard($registrantDetails, 'registrant', $c)
-                ],
-                array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'admin', $c);
-                }, $adminDetails),
-                array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'tech', $c);
-                }, $techDetails),
-                array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'billing', $c);
-                }, $billingDetails)
+                !$c['minimum_data'] ? [
+                    [
+                        mapContactToVCard($registrantDetails, 'registrant', $c)
+                    ],
+                    array_map(function ($contact) use ($c) {
+                        return mapContactToVCard($contact, 'admin', $c);
+                    }, $adminDetails),
+                    array_map(function ($contact) use ($c) {
+                        return mapContactToVCard($contact, 'tech', $c);
+                    }, $techDetails),
+                    array_map(function ($contact) use ($c) {
+                        return mapContactToVCard($contact, 'billing', $c);
+                    }, $billingDetails)
+                ] : []
             ),
             'events' => $events,
             'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
