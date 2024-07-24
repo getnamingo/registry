@@ -16,7 +16,7 @@ To comply with this new policy, registries need to configure their Namingo insta
 
 #### 1. Locate the Configuration File:
 
-Each component in your system (e.g., EPP server, Whois server) has a configuration file. These files are typically named config.php, or similar, depending on your setup.
+Each component in your system (e.g., EPP server, Whois server) has a configuration file. These files are typically named config.php, .env, or similar, depending on your setup.
 
 #### 2. Set Minimum Data to True:
 
