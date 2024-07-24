@@ -58,6 +58,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
     // Get a PDO connection from the pool
     $pdo = $pool->get();
     $privacy = $c['privacy'];
+    $minimum_data = $c['minimum_data'];
     $parsedQuery = parseQuery($data);
     $queryType = $parsedQuery['type'];
     $queryData = $parsedQuery['data'];
@@ -241,6 +242,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $res .= "\nDomain Status: ok https://icann.org/epp#ok";
                     }
 
+                    if (!$minimum_data) {
                     $query5 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
                     FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id";
                     $stmt5 = $pdo->prepare($query5);
@@ -400,7 +402,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nTech Fax: ".$f2['fax']
                         ."\nTech Email: ".$f2['email'];
                     }
-
+                    }
+                    
                     $query9 = "SELECT name FROM domain_host_map,host WHERE domain_host_map.domain_id = :domain_id AND domain_host_map.host_id = host.id";
                     $stmt9 = $pdo->prepare($query9);
                     $stmt9->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
