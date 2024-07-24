@@ -18,7 +18,7 @@ To comply with this new policy, registries need to configure their Namingo insta
 
 Each component in your system (e.g., EPP server, Whois server) has a configuration file. These files are typically named config.php, or similar, depending on your setup.
 
-#### Set Minimum Data to True:
+#### 2. Set Minimum Data to True:
 
 Open the configuration file and find the setting for **minimum_data**. Set this variable to **true** to activate the Minimum Data Set mode.
 
@@ -31,7 +31,7 @@ return [
 ];
 ```
 
-### Restart Your Services:
+### 3. Restart Your Services:
 
 After updating the configuration files, restart your services to apply the changes. This ensures that the new settings take effect.
 
