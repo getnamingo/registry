@@ -25,7 +25,10 @@ $pool = new Swoole\Database\PDOPool(
 );
 
 // Create a Swoole TCP server
-$server = new Server('0.0.0.0', 1043);
+$server = new Server($c['das_ipv4'], 1043);
+if ($c['das_ipv6'] !== false) {
+    $server->addListener($c['das_ipv6'], 1043, SWOOLE_SOCK_TCP6);
+}
 $server->set([
     'daemonize' => false,
     'log_file' => '/var/log/namingo/das_application.log',

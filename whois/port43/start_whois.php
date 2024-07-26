@@ -25,7 +25,10 @@ $pool = new Swoole\Database\PDOPool(
 );
 
 // Create a Swoole TCP server
-$server = new Server('0.0.0.0', 43);
+$server = new Server($c['whois_ipv4'], 43);
+if ($c['whois_ipv6'] !== false) {
+    $server->addListener($c['whois_ipv6'], 43, SWOOLE_SOCK_TCP6);
+}
 $server->set([
     'daemonize' => false,
     'log_file' => '/var/log/namingo/whois_application.log',
