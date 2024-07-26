@@ -279,13 +279,15 @@ function processDomainInfo($conn, $db, $xml, $trans) {
                 'name' => $domain['name'],
                 'roid' => 'A' . $domain['id'],
                 'status' => $status['status'],
-                'registrant' => $registrant_id,
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
                 'crID' => getRegistrarClid($db, $domain['crid']),
                 'crDate' => $domain['crdate'],
                 'exDate' => $domain['exdate']
             ];
+            if ($registrant_id !== null && $registrant_id !== false) {
+                $response['registrant'] = $registrant_id;
+            }
             if (isset($domain['authinfo'])) {
                 $response['authInfo'] = 'valid';
                 $response['authInfo_type'] = $domain['authtype'];
@@ -432,13 +434,15 @@ function processDomainInfo($conn, $db, $xml, $trans) {
                 'name' => $domain['name'],
                 'roid' => 'D' . $domain['id'],
                 'status' => $statusArray,
-                'registrant' => $registrant_id,
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
                 'crID' => getRegistrarClid($db, $domain['crid']),
                 'crDate' => $domain['crdate'],
                 'exDate' => $domain['exdate']
             ];
+            if ($registrant_id !== null && $registrant_id !== false) {
+                $response['registrant'] = $registrant_id;
+            }
             // Conditionally add upID, upDate, and trDate to the response
             if (isset($domain['upid']) && $domain['upid']) {
                 $response['upID'] = getRegistrarClid($db, $domain['upid']);

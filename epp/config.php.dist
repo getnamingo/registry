@@ -18,4 +18,5 @@ return [
     'rately' => false,
     'limit' => 1000,
     'period' => 60,
+    'minimum_data' => false,
 ];

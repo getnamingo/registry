@@ -260,6 +260,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                     }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                    }
                     processContactCheck($conn, $pdo, $xml, $trans);
                     break;
                 }
@@ -273,6 +277,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                    }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
                     }
                     processContactCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -290,6 +298,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                     }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                    }
                     processContactInfo($conn, $pdo, $xml, $trans);
                     break;
                 }
@@ -303,6 +315,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                    }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
                     }
                     processContactUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -320,6 +336,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                     }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                    }
                     processContactDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     break;
                 }
@@ -333,6 +353,10 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                    }
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
                     }
                     processContactTransfer($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -395,7 +419,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                     }
-                    processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data']);
                     break;
                 }
                 

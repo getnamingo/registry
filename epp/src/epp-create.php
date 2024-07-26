@@ -570,7 +570,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
 }
 
-function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
+function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
     
@@ -980,12 +980,41 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     // Registrant
     $registrant = $xml->xpath('//domain:registrant[1]');
-    $registrant_id = (string)$registrant[0][0];
+    $registrant_id = null; // Default to null
 
-    if ($registrant) {
+    if ($registrant && count($registrant) > 0) {
+        $registrant_id = (string)$registrant[0][0];
+    }
+
+    // Check $minimum_data and handle registrant_id accordingly
+    if ($minimum_data) {
+        // In minimal data mode, registrant_id should always be null
+        if ($registrant_id !== null) {
+            // If registrant_id is submitted, give an error
+            sendEppError($conn, $db, 2306, 'domain:registrant field is not supported in minimal data mode', $clTRID);
+            $conn->close();
+            return;
+        }
+    } else {
+        // Non-minimal data mode: registrant_id must not be null
+        if ($registrant_id === null) {
+            sendEppError($conn, $db, 2303, 'domain:registrant is required and does not exist', $clTRID, $trans);
+            return;
+        }
+
         $validRegistrant = validate_identifier($registrant_id);
 
-        $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = :registrant LIMIT 1");
+        $registrantStmt = $db->prepare("SELECT id FROM contact WHERE identifier = :registrant LIMIT 1");
+        $registrantStmt->execute([':registrant' => $registrant_id]);
+        $registrant_id = $registrantStmt->fetchColumn();
+
+        // Set registrant_id to null if it returns false
+        if ($registrant_id === false) {
+            sendEppError($conn, $db, 2303, 'domain:registrant does not exist', $clTRID, $trans);
+            return;
+        }
+
+        $stmt = $db->prepare("SELECT id, clid FROM contact WHERE id = :registrant LIMIT 1");
         $stmt->bindParam(':registrant', $registrant_id);
         $stmt->execute();
 
@@ -1055,10 +1084,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    $registrantStmt = $db->prepare("SELECT id FROM contact WHERE identifier = :registrant LIMIT 1");
-    $registrantStmt->execute([':registrant' => $registrant_id]);
-    $registrant_id = $registrantStmt->fetchColumn();
-
     try {
         $db->beginTransaction();
         
