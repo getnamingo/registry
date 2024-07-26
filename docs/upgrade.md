@@ -39,12 +39,16 @@ mysql -u your_username -p
 2. Update `registrar` Table:
 
 ```sql
-USE your_database_name;
+USE registry;
 
 ALTER TABLE registrar 
 CHANGE COLUMN `vat_number` `vatNumber` varchar(30) DEFAULT NULL,
 ADD COLUMN `companyNumber` varchar(30) DEFAULT NULL BEFORE `vatNumber`;
+
+UPDATE settings SET value = NULL WHERE name = 'launch_phases';
 ```
+
+**Warning: If you have already activated the database audit feature, you will need to update the respective audit table to reflect these changes as well.**
 
 ## Step 4: Update Configuration Files
 

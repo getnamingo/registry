@@ -921,7 +921,7 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('phone',    '+123456789'),
 ('handle',    'RXX'),
 ('email',    'contact@example.com'),
-('launch_phases',    'on'),
+('launch_phases',    NULL),
 ('whois_server',    'whois.example.com'),
 ('rdap_server',    'https://rdap.example.com'),
 ('currency',    'USD');
