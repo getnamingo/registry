@@ -256,7 +256,7 @@ fi
     # Update Caddyfile
     if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
     cat > /etc/caddy/Caddyfile << EOF
-    rdaptest.$REGISTRY_DOMAIN {
+    rdap.$REGISTRY_DOMAIN {
         $BIND_LINE
         reverse_proxy localhost:7500
         encode gzip
@@ -275,7 +275,7 @@ fi
         }
     }
 
-    whoistest.$REGISTRY_DOMAIN {
+    whois.$REGISTRY_DOMAIN {
         $BIND_LINE
         root * /var/www/whois
         encode gzip
@@ -295,7 +295,7 @@ fi
         }
     }
 
-    cptest.$REGISTRY_DOMAIN {
+    cp.$REGISTRY_DOMAIN {
         $BIND_LINE
         root * /var/www/cp/public
         php_fastcgi unix//run/php/php8.3-fpm.sock
