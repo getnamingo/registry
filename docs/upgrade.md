@@ -3,7 +3,7 @@
 ## Introduction
 
 This guide will walk you through the steps to upgrade your registry system. The process involves backing up your current setup, cloning the latest code, making database changes, and updating configuration files.
-**This upgrade guide is a work in progress, and some instructions might be generic, so please tune them for your specific situation.**
+**This upgrade guide is a work in progress, and some instructions might be generic or unclear, so please tune them for your specific situation.**
 
 ## Step 1: Backup Your Current Setup
 
@@ -72,6 +72,8 @@ MINIMAL_DATA=false // or true based on your requirement
 // In .env
 ZONE_MODE=nice // or default based on your requirement
 ```
+
+3. Change records `whois_ipv4`/`whois_ipv6`/`epp_host_ipv6`/`das_ipv4`/`das_ipv6` in `config.php` Files for WHOIS/DAS/EPP components to match the new version.
 
 ## Step 5: Replace Old Files with New Files
 
