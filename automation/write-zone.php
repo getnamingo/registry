@@ -7,6 +7,7 @@ use Badcow\DNS\Rdata\Factory;
 use Badcow\DNS\ResourceRecord;
 use Badcow\DNS\Classes;
 use Badcow\DNS\ZoneBuilder;
+use Badcow\DNS\AlignedBuilder;
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
@@ -136,7 +137,11 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 }
             }
 
-            $builder = new ZoneBuilder();
+            if (isset($c['zone_mode']) && $c['zone_mode'] === 'nice') {
+                $builder = new AlignedBuilder();
+            } else {
+                $builder = new ZoneBuilder();
+            }
             $completed_zone = $builder->build($zone);
 
             if ($c['dns_server'] == 'bind') {
