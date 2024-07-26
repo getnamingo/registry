@@ -1,6 +1,6 @@
 {
     "require": {
-        "monolog/monolog": "^3.5",
+        "monolog/monolog": "^3.7",
         "namingo/rately": "^0.1.0"
     }
 }

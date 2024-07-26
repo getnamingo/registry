@@ -1,10 +1,10 @@
 {
     "require": {
-        "monolog/monolog": "^3.5",
+        "monolog/monolog": "^3.7",
         "jeremykendall/php-domain-parser": "^6.3",
         "matthiasmullie/scrapbook": "^1.5",
-        "guzzlehttp/guzzle": "^7.8",
-        "league/flysystem": "^3.23",
+        "guzzlehttp/guzzle": "^7.9.2",
+        "league/flysystem": "^3.28",
         "namingo/rately": "^0.1.0"
     }
 }
