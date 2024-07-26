@@ -52,15 +52,15 @@ UPDATE settings SET value = NULL WHERE name = 'launch_phases';
 
 ## Step 4: Update Configuration Files
 
-1. Add `minimal_data` Setting in `config.php`/`.env` Files:
+1. Add `minimum_data` Setting in `config.php`/`.env` Files:
 Open your configuration files and add the following setting:
 
 ```php
 // In config.php
-'minimal_data' => false, // or true based on your requirement
+'minimum_data' => false, // or true based on your requirement
 
 // In .env
-MINIMAL_DATA=false // or true based on your requirement
+MINIMUM_DATA=false // or true based on your requirement
 ```
 
 2. Add `zone_mode` Setting in `config.php`/`.env` Files:
