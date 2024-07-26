@@ -86,13 +86,15 @@ cp -r /opt/upgrade/* /opt/registry/
 cp -r /opt/upgrade/web/* /var/www/
 ```
 
-## Step 6: Delete Panel Cache
+## Step 6: Delete Panel Cache and Update Composer
 
 1. Delete All Folders in `/var/www/cp/cache`:
 
 ```bash
 find /var/www/cp/cache/* -type d -exec rm -rf {} +
 ```
+
+2. Run `composer update` in each component directory.
 
 ## Step 7: Restart Services
 
