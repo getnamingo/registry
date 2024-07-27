@@ -4,11 +4,11 @@ Welcome to the Installation Guide for Namingo, the comprehensive domain registry
 
 As you follow along with this document, it's important to also review the [Configuration Guide](configuration.md). This guide will provide you with detailed information on how to configure various components of Namingo, ensuring that your system is tailored to meet your specific requirements. Familiarizing yourself with these configuration steps during installation will help in setting up Namingo for optimal performance and functionality.
 
-Once you have completed the installation process, we encourage you to proceed to the [Initial Operation Guide](docs/iog.md) for detailed instructions on how to configure your registry, add registrars, and other essential operational steps.
+Once you have completed the installation process, we encourage you to proceed to the [Initial Operation Guide](iog.md) for detailed instructions on how to configure your registry, add registrars, and other essential operational steps.
 
 **To install Namingo on Ubuntu 24.04 LTS with PHP 8.3 and MariaDB 10.11.8, use the automated installer currently provided.**
 
-***To upgrade from v1.0.0-RC4, please see our [upgrade guide](docs/upgrade.md)***
+***To upgrade from v1.0.0-RC4, please see our [upgrade guide](upgrade.md)***
 
 ## 1. Install the required packages:
 

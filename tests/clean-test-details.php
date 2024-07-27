@@ -48,7 +48,6 @@ try {
 
     $dbh->prepare("DELETE FROM domain_restore_price")->execute();
     $dbh->prepare("DELETE FROM domain_price")->execute();
-    $dbh->prepare("DELETE FROM domain_price")->execute();
     $dbh->prepare("DELETE FROM domain_tld")->execute();
     
     $dbh->commit();
