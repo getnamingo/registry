@@ -8,6 +8,8 @@ Once you have completed the installation process, we encourage you to proceed to
 
 **To install Namingo on Ubuntu 24.04 LTS with PHP 8.3 and MariaDB 10.11.8, use the automated installer currently provided.**
 
+***To upgrade from v1.0.0-RC4, please see our [upgrade guide](docs/upgrade.md)***
+
 ## 1. Install the required packages:
 
 ```bash
