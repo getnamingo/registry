@@ -4,6 +4,11 @@ function processContactInfo($conn, $db, $xml, $trans) {
     $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
+    if (!$contactID) {
+        sendEppError($conn, $db, 2003, 'Missing contact:id', $clTRID, $trans);
+        return;
+    }
+
     // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
@@ -94,6 +99,11 @@ function processHostInfo($conn, $db, $xml, $trans) {
     $hostName = $xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
+    if (!$hostName) {
+        sendEppError($conn, $db, 2003, 'Specify your host name', $clTRID, $trans);
+        return;
+    }
+
     // Validation for host name
     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) > 254) {
         sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
@@ -171,7 +181,12 @@ function processHostInfo($conn, $db, $xml, $trans) {
 function processDomainInfo($conn, $db, $xml, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
-    
+
+    if (!$domainName) {
+        sendEppError($conn, $db, 2003, 'Please specify a domain name', $clTRID, $trans);
+        return;
+    }
+
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_info = $xml->xpath('//launch:info')[0] ?? null;

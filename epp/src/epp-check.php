@@ -4,6 +4,12 @@ function processContactCheck($conn, $db, $xml, $trans) {
     $contactIDs = $xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
+    // Check if contactIDs is null or empty
+    if ($contactIDs === null || count($contactIDs) == 0) {
+        sendEppError($conn, $db, 2003, 'contact id', $clTRID, $trans);
+        return;
+    }
+
     $results = [];
     foreach ($contactIDs as $contactID) {
         $contactID = (string)$contactID;
@@ -59,6 +65,12 @@ function processHostCheck($conn, $db, $xml, $trans) {
     $hosts = $xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check->{'name'};
     $clTRID = (string) $xml->command->clTRID;
 
+    // Check if hosts is null or empty
+    if ($hosts === null || count($hosts) == 0) {
+        sendEppError($conn, $db, 2003, 'host name', $clTRID, $trans);
+        return;
+    }
+
     $results = [];
     foreach ($hosts as $host) {
         $host = (string)$host;
@@ -108,7 +120,13 @@ function processHostCheck($conn, $db, $xml, $trans) {
 function processDomainCheck($conn, $db, $xml, $trans) {
     $domains = $xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check->name;
     $clTRID = (string) $xml->command->clTRID;
-    
+
+    // Check if domains is null or empty
+    if ($domains === null || count($domains) == 0) {
+        sendEppError($conn, $db, 2003, 'domain name', $clTRID, $trans);
+        return;
+    }
+
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_check = $xml->xpath('//launch:check')[0] ?? null;
