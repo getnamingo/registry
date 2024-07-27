@@ -928,6 +928,8 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $domainAdd = $xml->xpath('//domain:add')[0] ?? null;
     $domainChg = $xml->xpath('//domain:chg')[0] ?? null;
     $extensionNode = $xml->command->extension;
+    $launch_update = null;
+
     if (isset($extensionNode)) {
         $rgp_update = $xml->xpath('//rgp:update')[0] ?? null;
         $secdns_update = $xml->xpath('//secDNS:update')[0] ?? null;
@@ -965,6 +967,40 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     
     $domain_id = $row['id'];
+    
+    // Check if launch extension is enabled in database settings
+    $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
+    $stmt->execute();
+    $launch_extension_enabled = $stmt->fetchColumn();
+
+    if ($launch_extension_enabled && isset($launch_update)) {
+        $phase = (string) $launch_update->xpath('launch:phase')[0];
+        $applicationID = (string) $launch_update->xpath('launch:applicationID')[0];
+
+        if (!$phase || !$applicationID) {
+            sendEppError($conn, $db, 2003, 'Launch phase or applicationID is missing', $clTRID, $trans);
+            return;
+        }
+
+        // Validate the phase and application ID in the appropriate table
+        if ($phase === 'sunrise') {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM application WHERE id = ? AND phase_type = ? AND application_id = ?");
+            $stmt->execute([$domain_id, $phase, $applicationID]);
+        } elseif (in_array($phase, ['landrush', 'custom', 'claims'])) {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM domain WHERE id = ? AND phase_name = ?");
+            $stmt->execute([$domain_id, $phase]);
+        } else {
+            sendEppError($conn, $db, 2003, 'Unsupported phase name', $clTRID, $trans);
+            return;
+        }
+
+        $launch_valid = $stmt->fetchColumn();
+
+        if (!$launch_valid) {
+            sendEppError($conn, $db, 2304, 'Invalid launch phase or applicationID for this domain', $clTRID, $trans);
+            return;
+        }
+    }
 
     $stmt = $db->prepare("SELECT status FROM domain_status WHERE domain_id = ?");
     $stmt->execute([$row['id']]);

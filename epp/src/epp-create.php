@@ -575,12 +575,66 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $clTRID = (string) $xml->command->clTRID;
     
     $extensionNode = $xml->command->extension;
+    $launch_create = null;
     if (isset($extensionNode)) {
         $fee_create = $xml->xpath('//fee:create')[0] ?? null;
         $launch_create = $xml->xpath('//launch:create')[0] ?? null;
         $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
     }
     
+    if ($launch_create) {
+        $launch_phase = (string) $launch_create->xpath('launch:phase')[0] ?? null;
+        $smd_encodedSignedMark = $launch_create->xpath('smd:encodedSignedMark')[0] ?? null;
+        $launch_notice = $launch_create->xpath('launch:notice')[0] ?? null;
+        $launch_noticeID = $launch_notice ? (string) $launch_notice->xpath('launch:noticeID')[0] ?? null : null;
+        $launch_notAfter = $launch_notice ? (string) $launch_notice->xpath('launch:notAfter')[0] ?? null : null;
+        $launch_acceptedDate = $launch_notice ? (string) $launch_notice->xpath('launch:acceptedDate')[0] ?? null : null;
+
+        // Validate and handle each specific case
+        if ($launch_phase === 'sunrise' && $smd_encodedSignedMark) {
+            // Parse and validate SMD encoded signed mark, then return unimplemented error
+            sendEppError($conn, $db, 2101, 'sunrise with encodedSignedMark', $clTRID, $trans);
+            return;
+        } elseif ($launch_phase === 'claims') {
+            // Check for missing notice elements and validate dates
+            if (!$launch_notice || !$launch_noticeID || !$launch_notAfter || !$launch_acceptedDate) {
+                sendEppError($conn, $db, 2003, 'Missing required elements in claims phase', $clTRID, $trans);
+                return;
+            }
+
+            // Validate that acceptedDate is before notAfter
+            try {
+                $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $launch_acceptedDate);
+                $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $launch_notAfter);
+                
+                if (!$acceptedDate || !$notAfterDate) {
+                    sendEppError($conn, $db, 2003, 'Invalid date format', $clTRID, $trans);
+                    return;
+                }
+
+                if ($acceptedDate >= $notAfterDate) {
+                    sendEppError($conn, $db, 2003, 'Invalid dates: acceptedDate must be before notAfter', $clTRID, $trans);
+                    return;
+                }
+            } catch (Exception $e) {
+                sendEppError($conn, $db, 2003, 'Invalid date format', $clTRID, $trans);
+                return;
+            }
+
+            // If all validations pass, return unimplemented error
+            sendEppError($conn, $db, 2101, 'claims with notice', $clTRID, $trans);
+            return;
+        } elseif ($launch_phase === 'landrush') {
+            // Parse phase and type attributes, then return unimplemented error
+            sendEppError($conn, $db, 2101, 'landrush', $clTRID, $trans);
+            return;
+        } else {
+            // Mixed or unsupported form
+            sendEppError($conn, $db, 2101, 'unsupported or mixed form', $clTRID, $trans);
+            return;
+        }
+    }
+
     $parts = extractDomainAndTLD($domainName);
     $label = $parts['domain'];
     $domain_extension = $parts['tld'];
