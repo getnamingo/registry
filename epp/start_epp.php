@@ -48,9 +48,6 @@ $pool = new Swoole\Database\PDOPool(
 
 Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port']);
-if ($c['epp_host_ipv6'] !== false) {
-    //$server->addListener($c['epp_host_ipv6'], $c['epp_port'], SWOOLE_SOCK_TCP6);
-}
 $server->set([
     'enable_coroutine' => true,
     'log_file' => '/var/log/namingo/epp_application.log',
@@ -78,7 +75,7 @@ $log->info('Namingo EPP server started');
 $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
     // Get the client information
     $clientInfo = $conn->exportSocket()->getpeername();
-    $clientIP = $clientInfo['address'] ?? '';
+    $clientIP = isset($clientInfo['address']) ? (strpos($clientInfo['address'], '::ffff:') === 0 ? substr($clientInfo['address'], 7) : $clientInfo['address']) : '';
 
     // Check if the IP is in the permitted list
     if (!$permittedIPsTable->exist($clientIP)) {

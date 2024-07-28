@@ -7,8 +7,7 @@ return [
     'db_database' => 'registry',
     'db_username' => 'your_username',
     'db_password' => 'your_password',
-    'epp_host' => '0.0.0.0',
-    'epp_host_ipv6' => '::', // Set to false if no IPv6 support
+    'epp_host' => '::', // Set to 0.0.0.0 if no IPv6 support
     'epp_port' => 700,
     'epp_pid' => '/var/run/epp.pid',
     'epp_greeting' => 'Namingo EPP Server 1.0',
