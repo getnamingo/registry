@@ -301,7 +301,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $addPeriod_id = $stmt->fetchColumn();
 
                 if ($addPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create');
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create', $clid);
                     $price = $returnValue['price'];
             
                     if (!isset($price)) {
@@ -359,7 +359,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $autoRenewPeriod_id = $stmt->fetchColumn();
 
                 if ($autoRenewPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew');
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew', $clid);
                     $price = $returnValue['price'];
 
                     if (!isset($price)) {
@@ -382,7 +382,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $renewPeriod_id = $stmt->fetchColumn();
 
                 if ($renewPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew');
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew', $clid);
                     $price = $returnValue['price'];
 
                     if (!isset($price)) {
@@ -407,7 +407,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 if ($transferPeriod_id) {
                     // Return money if a transfer was also a renew
                     if ($transferPeriod > 0) {
-                        $returnValue = getDomainPrice($db, $domainName, $tldid, $transferPeriod, 'renew');
+                        $returnValue = getDomainPrice($db, $domainName, $tldid, $transferPeriod, 'renew', $clid);
                         $price = $returnValue['price'];
 
                         if (!isset($price)) {

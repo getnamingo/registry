@@ -869,7 +869,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $registrar_balance = $result['accountBalance'];
     $creditLimit = $result['creditLimit'];
     
-    $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+    $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
     $price = $returnValue['price'];
 
     if (!$price) {

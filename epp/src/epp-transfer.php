@@ -470,7 +470,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([$domainName]);
                 $date_add = $stmt->fetchColumn();
 
-                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
                 $price = $returnValue['price'];
                 
                 if (($registrar_balance + $creditLimit) < $price) {
@@ -992,7 +992,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $registrar_balance = $result["accountBalance"];
                 $creditLimit = $result["creditLimit"];
                 
-                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
                 $price = $returnValue['price'];
 
                 if (($registrar_balance + $creditLimit) < $price) {

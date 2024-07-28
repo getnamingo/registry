@@ -52,7 +52,7 @@ try {
                 }
             }
             
-            $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer');
+            $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer', $reid);
             $price = $returnValue['price'];
 
             if (($registrar_balance + $creditLimit) < $price) {

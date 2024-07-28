@@ -45,7 +45,7 @@ try {
 
             if ($set_autorenewPeriod) {
                 list($registrar_balance, $creditLimit) = $dbh->query("SELECT accountBalance, creditLimit FROM registrar WHERE id = '$clid' LIMIT 1")->fetch(PDO::FETCH_NUM);
-                $returnValue = getDomainPrice($dbh, $name, $tldid, 12, 'renew');
+                $returnValue = getDomainPrice($dbh, $name, $tldid, 12, 'renew', $clid);
                 $price = $returnValue['price'];
 
                 if (($registrar_balance + $creditLimit) > $price) {

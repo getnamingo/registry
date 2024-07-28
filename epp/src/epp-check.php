@@ -117,7 +117,7 @@ function processHostCheck($conn, $db, $xml, $trans) {
     sendEppResponse($conn, $xml);
 }
 
-function processDomainCheck($conn, $db, $xml, $trans) {
+function processDomainCheck($conn, $db, $xml, $trans, $clid) {
     $domains = $xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -374,7 +374,7 @@ function processDomainCheck($conn, $db, $xml, $trans) {
                         $tld_id = $result['id'];
 
                         // Calculate or retrieve fee for this command
-                        $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName);
+                        $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName, $clid);
                         $price = $returnValue['price'];
                         
                         $sth = $db->prepare("SELECT price FROM domain_restore_price WHERE tldid = ? LIMIT 1");

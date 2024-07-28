@@ -377,7 +377,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                     }
-                    processDomainCheck($conn, $pdo, $xml, $trans);
+                    processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
                     break;
                 }
 

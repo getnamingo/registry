@@ -113,7 +113,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $registrar_balance = $row['accountBalance'];
         $creditLimit = $row['creditLimit'];
         
-        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew');
+        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid);
         $price = $returnValue['price'];
 
         if (($registrar_balance + $creditLimit) < $price) {
