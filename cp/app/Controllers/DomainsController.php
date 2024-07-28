@@ -3159,13 +3159,24 @@ class DomainsController extends Controller
                 $creditLimit = $result['creditLimit'];
 
                 $renew_price = $db->selectValue(
-                    'SELECT m12 FROM domain_price WHERE tldid = ? AND command = ? LIMIT 1',
-                    [$tldid, 'renew']
+                    "SELECT m12 
+                    FROM domain_price 
+                    WHERE tldid = ? 
+                    AND command = ? 
+                    AND (registrar_id = ? OR registrar_id IS NULL)
+                    ORDER BY registrar_id DESC
+                    LIMIT 1",
+                    [$tldid, 'renew', $clid]
                 );
-                
+
                 $restore_price = $db->selectValue(
-                    'SELECT price FROM domain_restore_price WHERE tldid = ? LIMIT 1',
-                    [$tldid]
+                    "SELECT price 
+                    FROM domain_restore_price 
+                    WHERE tldid = ? 
+                    AND (registrar_id = ? OR registrar_id IS NULL)
+                    ORDER BY registrar_id DESC
+                    LIMIT 1",
+                    [$tldid, $clid]
                 );
 
                 if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {

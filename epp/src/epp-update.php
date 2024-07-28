@@ -1795,12 +1795,27 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth->execute([$clid]);
                 list($registrar_balance, $creditLimit) = $sth->fetch();
 
-                $sth = $db->prepare("SELECT m12 FROM domain_price WHERE tldid = ? AND command = 'renew' LIMIT 1");
-                $sth->execute([$row['tldid']]);
+                $sth = $db->prepare("
+                    SELECT m12 
+                    FROM domain_price 
+                    WHERE tldid = ? 
+                    AND command = 'renew' 
+                    AND (registrar_id = ? OR registrar_id IS NULL)
+                    ORDER BY registrar_id DESC
+                    LIMIT 1
+                ");
+                $sth->execute([$row['tldid'], $clid]);
                 $renew_price = $sth->fetchColumn();
 
-                $sth = $db->prepare("SELECT price FROM domain_restore_price WHERE tldid = ? LIMIT 1");
-                $sth->execute([$row['tldid']]);
+                $sth = $db->prepare("
+                    SELECT price 
+                    FROM domain_restore_price 
+                    WHERE tldid = ? 
+                    AND (registrar_id = ? OR registrar_id IS NULL)
+                    ORDER BY registrar_id DESC
+                    LIMIT 1
+                ");
+                $sth->execute([$row['tldid'], $clid]);
                 $restore_price = $sth->fetchColumn();
 
                 if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
