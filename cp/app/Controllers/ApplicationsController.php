@@ -221,7 +221,7 @@ class ApplicationsController extends Controller
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -1076,7 +1076,7 @@ class ApplicationsController extends Controller
                 
                 $date_add = 12;
                 
-                $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+                $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
                 $price = $returnValue['price'];
                 
                 try {

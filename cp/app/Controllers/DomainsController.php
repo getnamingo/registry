@@ -365,7 +365,7 @@ class DomainsController extends Controller
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create');
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -1755,7 +1755,7 @@ class DomainsController extends Controller
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew');
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew', $clid);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -2068,7 +2068,7 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($addPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create');
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create', $clid);
                             $price = $returnValue['price'];
             
                             if (!$price) {
@@ -2193,7 +2193,7 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($autoRenewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew');
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew', $clid);
                             $price = $returnValue['price'];
                             
                             if (!$price) {
@@ -2220,7 +2220,7 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($renewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew');
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew', $clid);
                             $price = $returnValue['price'];
 
                             if (!$price) {
@@ -2247,7 +2247,7 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($transferPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew');
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew', $clid);
                             $price = $returnValue['price'];
                             
                             if (!$price) {
@@ -2459,7 +2459,7 @@ class DomainsController extends Controller
                     $registrar_balance = $result['accountBalance'];
                     $creditLimit = $result['creditLimit'];
                     
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
                     $price = $returnValue['price'];
 
                     if (!$price) {
@@ -2694,7 +2694,7 @@ class DomainsController extends Controller
                         ]
                     );
                     
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer');
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
                     $price = $returnValue['price'];
                     
                     if (($registrar_balance + $creditLimit) < $price) {
