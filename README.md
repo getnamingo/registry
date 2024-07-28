@@ -14,7 +14,7 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 ## Get Involved
 
-**Namingo** version 1.0.0 is now complete, thanks to our dedicated community. However, the journey doesn't end here! We are seeking volunteers to help test Namingo, which currently manages 150,000 domains on a VPS setup (2 cores, 4GB RAM, 100GB SSD). We also need testers for new OS and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options. Additionally, we seek assistance from gTLD operators to help us test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
+**Namingo** version 1.0.0 is now complete, thanks to our dedicated community. However, the journey doesn't end here! We are seeking volunteers to help test Namingo, which currently manages 150,000 domains on a VPS setup (2 cores, 4GB RAM, 100GB SSD) and is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We also need testers for new OS and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options. Additionally, we seek assistance from gTLD operators to help us test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
 
 ## Features
 
