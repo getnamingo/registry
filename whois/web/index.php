@@ -55,11 +55,7 @@ $c = require_once 'config.php';
 
             document.getElementById('whoisButton').addEventListener('click', function() {
                 var domain = document.getElementById('domainInput').value;
-                <?php if ($c['ignore_captcha'] === false) { ?>
-                var captcha = document.getElementById('captchaInput').value;
-                <?php } else { ?>
                 var captcha = '';
-                <?php } ?>
                 
                 fetch('check.php', {
                     method: 'POST',
@@ -77,15 +73,11 @@ $c = require_once 'config.php';
                 })
                 .catch(error => console.error('Error:', error));
             });
-            
+
             document.getElementById('rdapButton').addEventListener('click', function() {
                 var domain = document.getElementById('domainInput').value;
-                <?php if ($c['ignore_captcha'] === false) { ?>
-                var captcha = document.getElementById('captchaInput').value;
-                <?php } else { ?>
                 var captcha = '';
-                <?php } ?>
-
+                
                 fetch('check.php', {
                     method: 'POST',
                     headers: {
@@ -110,7 +102,7 @@ $c = require_once 'config.php';
                 .catch(error => console.error('Error:', error));
             });
         });
-        
+
         function parseRdapResponse(data) {
             let output = '';
 
@@ -121,25 +113,10 @@ $c = require_once 'config.php';
             // Parsing entities for specific roles like registrar and registrant
             if (data.entities && data.entities.length > 0) {
                 data.entities.forEach(entity => {
-                    if (entity.roles) {
-                        output += entity.roles.join(', ').toUpperCase() + ' Contact:\n';
-                        if (entity.vcardArray && entity.vcardArray.length > 1) {
-                            output += parseVcard(entity.vcardArray[1]);
-                        }
-                        if (entity.roles.includes('registrar') && entity.publicIds) {
-                            output += '   IANA ID: ' + entity.publicIds.map(id => id.identifier).join(', ') + '\n';
-                        }
-                        if (entity.roles.includes('abuse') && entity.vcardArray) {
-                            const emailEntry = entity.vcardArray[1].find(entry => entry[0] === 'email');
-                            if (emailEntry) {
-                                output += '   Abuse Email: ' + emailEntry[3] + '\n';
-                            }
-                        }
-                        output += '\n';
-                    }
+                    output += parseEntity(entity);
                 });
             }
-        
+
             // Nameservers
             if (data.nameservers && data.nameservers.length > 0) {
                 output += 'Nameservers:\n';
@@ -176,6 +153,35 @@ $c = require_once 'config.php';
             return output;
         }
 
+        function parseEntity(entity) {
+            let output = '';
+
+            if (entity.roles) {
+                output += entity.roles.join(', ').toUpperCase() + ' Contact:\n';
+                if (entity.vcardArray && entity.vcardArray.length > 1) {
+                    output += parseVcard(entity.vcardArray[1]);
+                }
+                if (entity.roles.includes('registrar') && entity.publicIds) {
+                    output += '   IANA ID: ' + entity.publicIds.map(id => id.identifier).join(', ') + '\n';
+                }
+                if (entity.roles.includes('abuse') && entity.vcardArray) {
+                    const emailEntry = entity.vcardArray[1].find(entry => entry[0] === 'email');
+                    if (emailEntry) {
+                        output += '   Abuse Email: ' + emailEntry[3] + '\n';
+                    }
+                }
+                output += '\n';
+            }
+
+            if (entity.entities && entity.entities.length > 0) {
+                entity.entities.forEach(subEntity => {
+                    output += parseEntity(subEntity);
+                });
+            }
+
+            return output;
+        }
+
         function parseVcard(vcard) {
             let vcardOutput = '';
             vcard.forEach(entry => {
@@ -185,7 +191,6 @@ $c = require_once 'config.php';
                         break;
                     case 'adr':
                         if (Array.isArray(entry[3]) && entry[3].length > 0) {
-                            // Assuming that the address parts are in the correct order
                             const addressParts = entry[3];
                             vcardOutput += '   Address: ' + addressParts.join(', ') + '\n';
                         }
