@@ -38,6 +38,7 @@ return [
     'escrow_report_url' => 'https://ry-api.icann.org/report/', // URL for escrow reporting
     'escrow_report_username' => 'your_username', // Username for escrow reporting
     'escrow_report_password' => 'your_password', // Password for escrow reporting
+    'roid' => 'XX', // ROID value in escrow
 
     // Reporting Configuration
     'reporting_path' => '/opt/reporting', // Path for reporting
@@ -53,7 +54,8 @@ return [
         // ... more name servers as needed ...
     ],
     'dns_soa' => 'hostmaster.example.com', // SOA email address
-    
+    'zone_mode' => 'default', // How the BIND zone is generated, 'nice' is also available
+
     // URS Configuration
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX', // IMAP host for URS
     'urs_imap_username' => 'your_username', // IMAP username for URS
@@ -83,6 +85,9 @@ return [
     // LORDN Configuration
     'lordn_user' => 'your_username', // Username for LORDN
     'lordn_pass' => 'your_password', // Password for LORDN
+	
+    // Minimum Data Set
+    'minimum_data' => false, // Set to true to enable minimum data set support
 ];
 ```
 
@@ -96,6 +101,7 @@ APP_ENV=public
 APP_URL=https://cp.example.com
 APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
+MINIMUM_DATA=false
 
 DB_DRIVER=mysql # Type of the database (e.g., 'mysql', 'pgsql')
 DB_HOST=localhost # Database server host
@@ -104,7 +110,7 @@ DB_USERNAME=root # Database username
 DB_PASSWORD= # Database password
 DB_PORT=3306 # Database server port
 
-# Mailer settings (Driver = smtp or utopia, API Provider = sendgrid or mailgun)
+# Mailer settings (Driver = smtp, utopia or msg [for local message broker]; Api Provder = sendgrid or mailgun)
 MAIL_DRIVER=smtp
 MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=2525
@@ -118,6 +124,16 @@ MAIL_API_PROVIDER='sendgrid'
 
 STRIPE_SECRET_KEY='stripe-secret-key'
 STRIPE_PUBLISHABLE_KEY='stripe-publishable-key'
+
+ADYEN_API_KEY='adyen-api-key'
+ADYEN_MERCHANT_ID='adyen-merchant-id'
+ADYEN_THEME_ID='adyen-theme-id'
+ADYEN_BASE_URI='https://checkout-test.adyen.com/v70/'
+ADYEN_BASIC_AUTH_USER='adyen-basic-auth-user'
+ADYEN_BASIC_AUTH_PASS='adyen-basic-auth-pass'
+ADYEN_HMAC_KEY='adyen-hmac-key'
+
+NOW_API_KEY='now-api-key'
 
 TEST_TLDS=.test,.com.test
 ```
@@ -136,6 +152,11 @@ return [
     'db_database' => 'registry', // Name of the database
     'db_username' => 'your_username', // Database username
     'db_password' => 'your_password' // Database password
+    'das_ipv4' => '0.0.0.0',
+    'das_ipv6' => '::', // Set to false if no IPv6 support
+    'rately' => false, // Enable rate limit
+    'limit' => 1000, // Request limit per period below
+    'period' => 60, // 60 Seconds
 ];
 ```
 
@@ -161,6 +182,10 @@ return [
     'ssl_cert' => '', // Path to the SSL certificate that will be used by the server
     'ssl_key' => '', // Path to the SSL keyfile that will be used by the server
     'test_tlds' => '.test,.com.test', // Test TLDs for debugging purposes
+    'rately' => false, // Enable rate limit
+    'limit' => 1000, // Request limit per period below
+    'period' => 60, // 60 Seconds
+    'minimum_data' => false, // Set to true to enable minimum data set support
 ];
 ```
 
@@ -181,6 +206,9 @@ return [
     'roid' => 'XX', // Registry Object ID
     'registry_url' => 'https://example.com/rdap-terms', // URL of registry website
     'rdap_url' => 'https://rdap.example.com', // URL of RDAP server
+    'rately' => false, // Enable rate limit
+    'limit' => 1000, // Request limit per period below
+    'period' => 60, // 60 Seconds
 ];
 ```
 
@@ -198,8 +226,14 @@ return [
     'db_database' => 'registry', // Name of the database
     'db_username' => 'your_username', // Database username
     'db_password' => 'your_password', // Database password
+    'whois_ipv4' => '0.0.0.0',
+    'whois_ipv6' => '::', // Set to false if no IPv6 support
     'privacy' => false, // Toggle for privacy mode
+    'minimum_data' => false, // Set to true to enable minimum data set support
     'roid' => 'XX', // Registry Object ID
+    'rately' => false, // Enable rate limit
+    'limit' => 1000, // Request limit per period below
+    'period' => 60, // 60 Seconds
 ];
 ```
 
