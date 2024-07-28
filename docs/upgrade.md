@@ -1,4 +1,4 @@
-# Namingo Upgrade Guide (v1.0.0-RC4 to v1.0.0-RC5)
+# Namingo Upgrade Guide (from v1.0.0-RC4 or v1.0.0-RC5)
 
 ## Introduction
 
