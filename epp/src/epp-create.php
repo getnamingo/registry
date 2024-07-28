@@ -1295,7 +1295,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             ':date_add2' => $date_add,
             ':registrar_id' => $clid,
             ':phase_name' => $launch_phase_name ?? null,
-            ':tm_phase' => $launch_phase ?? null,
+            ':tm_phase' => $launch_phase ?? 'none',
             ':tm_smd_id' => $smd_encodedSignedMark ?? null,
             ':tm_notice_id' => $noticeid ?? null,
             ':tm_notice_accepted' => $accepted ?? null,
