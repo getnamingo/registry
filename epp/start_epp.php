@@ -49,7 +49,7 @@ $pool = new Swoole\Database\PDOPool(
 Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port']);
 if ($c['epp_host_ipv6'] !== false) {
-    $server->addListener($c['epp_host_ipv6'], $c['epp_port'], SWOOLE_SOCK_TCP6);
+    //$server->addListener($c['epp_host_ipv6'], $c['epp_port'], SWOOLE_SOCK_TCP6);
 }
 $server->set([
     'enable_coroutine' => true,
