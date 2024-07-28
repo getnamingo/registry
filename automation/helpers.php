@@ -104,7 +104,7 @@ function checkUrlhaus($domain, Map $urlhausData) {
     return $urlhausData->get($domain, false);
 }
 
-function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create') {
+function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null) {
     // Check if the domain is a premium domain
     $stmt = $pdo->prepare("
         SELECT c.category_price 
@@ -145,8 +145,17 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
 
     // Get regular price for the specified period
     $priceColumn = "m" . $date_add;
-    $stmt = $pdo->prepare("SELECT $priceColumn FROM domain_price WHERE tldid = ? AND command = '$command' LIMIT 1");
-    $stmt->execute([$tld_id]);
+    $sql = "
+        SELECT $priceColumn 
+        FROM domain_price 
+        WHERE tldid = ? 
+        AND command = ? 
+        AND (registrar_id = ? OR registrar_id IS NULL)
+        ORDER BY registrar_id DESC
+        LIMIT 1
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$tld_id, $command, $registrar_id]);
     
     if ($stmt->rowCount() > 0) {
         $regularPrice = $stmt->fetch()[$priceColumn];

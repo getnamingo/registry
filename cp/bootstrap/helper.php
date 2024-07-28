@@ -338,7 +338,7 @@ function extractDomainAndTLD($urlString) {
     return ['domain' => $sld, 'tld' => $tld];
 }
 
-function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create') {
+function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null) {
     // Check if the domain is a premium domain
     $premiumDomain = $db->selectRow(
         'SELECT c.category_price 
@@ -377,8 +377,8 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
     // Get regular price for the specified period
     $priceColumn = "m" . $date_add;
     $regularPrice = $db->selectValue(
-        "SELECT $priceColumn FROM domain_price WHERE tldid = ? AND command = ? LIMIT 1",
-        [$tld_id, $command]
+        "SELECT $priceColumn FROM domain_price WHERE tldid = ? AND command = ? AND (registrar_id = ? OR registrar_id IS NULL) ORDER BY registrar_id DESC LIMIT 1",
+        [$tld_id, $command, $registrar_id]
     );
 
     if ($regularPrice !== false) {
