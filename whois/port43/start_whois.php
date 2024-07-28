@@ -246,7 +246,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     }
 
                     if (!$minimum_data) {
-                    $query5 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query5 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email,contact.disclose_voice,contact.disclose_fax,contact.disclose_email,contact_postalInfo.type,contact_postalInfo.disclose_name_int,contact_postalInfo.disclose_name_loc,contact_postalInfo.disclose_org_int,contact_postalInfo.disclose_org_loc,contact_postalInfo.disclose_addr_int,contact_postalInfo.disclose_addr_loc
                     FROM contact,contact_postalInfo WHERE contact.id=:registrant AND contact_postalInfo.contact_id=contact.id";
                     $stmt5 = $pdo->prepare($query5);
                     $stmt5->bindParam(':registrant', $f['registrant'], PDO::PARAM_INT);
@@ -268,22 +268,49 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nRegistrant Fax: REDACTED FOR PRIVACY"
                         ."\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    $res .= "\nRegistry Registrant ID: C".$f2['id']."-".$c['roid']
-                        ."\nRegistrant Name: ".$f2['name']
-                        ."\nRegistrant Organization: ".$f2['org']
-                        ."\nRegistrant Street: ".$f2['street1']
-                        ."\nRegistrant Street: ".$f2['street2']
-                        ."\nRegistrant Street: ".$f2['street3']
-                        ."\nRegistrant City: ".$f2['city']
-                        ."\nRegistrant State/Province: ".$f2['sp']
-                        ."\nRegistrant Postal Code: ".$f2['pc']
-                        ."\nRegistrant Country: ".strtoupper($f2['cc'])
-                        ."\nRegistrant Phone: ".$f2['voice']
-                        ."\nRegistrant Fax: ".$f2['fax']
-                        ."\nRegistrant Email: ".$f2['email'];
+                        $res .= "\nRegistry Registrant ID: C".$f2['id']."-".$c['roid'];
+                        
+                        // Determine which type of disclosure to use
+                        $disclose_name = ($f2['type'] == 'loc') ? $f2['disclose_name_loc'] : $f2['disclose_name_int'];
+                        $disclose_org = ($f2['type'] == 'loc') ? $f2['disclose_org_loc'] : $f2['disclose_org_int'];
+                        $disclose_addr = ($f2['type'] == 'loc') ? $f2['disclose_addr_loc'] : $f2['disclose_addr_int'];
+                        
+                        // Registrant Name
+                        $res .= ($disclose_name ? "\nRegistrant Name: ".$f2['name'] : "\nRegistrant Name: REDACTED FOR PRIVACY");
+                        
+                        // Registrant Organization
+                        $res .= ($disclose_org ? "\nRegistrant Organization: ".$f2['org'] : "\nRegistrant Organization: REDACTED FOR PRIVACY");
+                        
+                        // Registrant Address
+                        if ($disclose_addr) {
+                            $res .= "\nRegistrant Street: ".$f2['street1']
+                                  ."\nRegistrant Street: ".$f2['street2']
+                                  ."\nRegistrant Street: ".$f2['street3']
+                                  ."\nRegistrant City: ".$f2['city']
+                                  ."\nRegistrant State/Province: ".$f2['sp']
+                                  ."\nRegistrant Postal Code: ".$f2['pc']
+                                  ."\nRegistrant Country: ".strtoupper($f2['cc']);
+                        } else {
+                            $res .= "\nRegistrant Street: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant Street: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant Street: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant City: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant State/Province: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant Postal Code: REDACTED FOR PRIVACY"
+                                  ."\nRegistrant Country: REDACTED FOR PRIVACY";
+                        }
+                        
+                        // Registrant Phone
+                        $res .= ($f2['disclose_voice'] ? "\nRegistrant Phone: ".$f2['voice'] : "\nRegistrant Phone: REDACTED FOR PRIVACY");
+                        
+                        // Registrant Fax
+                        $res .= ($f2['disclose_fax'] ? "\nRegistrant Fax: ".$f2['fax'] : "\nRegistrant Fax: REDACTED FOR PRIVACY");
+                        
+                        // Registrant Email
+                        $res .= ($f2['disclose_email'] ? "\nRegistrant Email: ".$f2['email'] : "\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.");
                     }
 
-                    $query6 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query6 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email,contact.disclose_voice,contact.disclose_fax,contact.disclose_email,contact_postalInfo.type,contact_postalInfo.disclose_name_int,contact_postalInfo.disclose_name_loc,contact_postalInfo.disclose_org_int,contact_postalInfo.disclose_org_loc,contact_postalInfo.disclose_addr_int,contact_postalInfo.disclose_addr_loc
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='admin' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt6 = $pdo->prepare($query6);
                     $stmt6->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -305,26 +332,53 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nAdmin Fax: REDACTED FOR PRIVACY"
                         ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['id'])) {
-                        $res .= "\nRegistry Admin ID: C" . $f2['id'] . "-" . $c['roid'];
-                    } else {
-                        $res .= "\nRegistry Admin ID:";
-                    }
-                    $res .= "\nAdmin Name: ".$f2['name']
-                        ."\nAdmin Organization: ".$f2['org']
-                        ."\nAdmin Street: ".$f2['street1']
-                        ."\nAdmin Street: ".$f2['street2']
-                        ."\nAdmin Street: ".$f2['street3']
-                        ."\nAdmin City: ".$f2['city']
-                        ."\nAdmin State/Province: ".$f2['sp']
-                        ."\nAdmin Postal Code: ".$f2['pc']
-                        ."\nAdmin Country: ".strtoupper($f2['cc'])
-                        ."\nAdmin Phone: ".$f2['voice']
-                        ."\nAdmin Fax: ".$f2['fax']
-                        ."\nAdmin Email: ".$f2['email'];
+                        if (!empty($f2['id'])) {
+                            $res .= "\nRegistry Admin ID: C" . $f2['id'] . "-" . $c['roid'];
+                        } else {
+                            $res .= "\nRegistry Admin ID:";
+                        }
+
+                        // Determine which type of disclosure to use
+                        $disclose_name = ($f2['type'] == 'loc') ? $f2['disclose_name_loc'] : $f2['disclose_name_int'];
+                        $disclose_org = ($f2['type'] == 'loc') ? $f2['disclose_org_loc'] : $f2['disclose_org_int'];
+                        $disclose_addr = ($f2['type'] == 'loc') ? $f2['disclose_addr_loc'] : $f2['disclose_addr_int'];
+
+                        // Admin Name
+                        $res .= ($disclose_name ? "\nAdmin Name: ".$f2['name'] : "\nAdmin Name: REDACTED FOR PRIVACY");
+
+                        // Admin Organization
+                        $res .= ($disclose_org ? "\nAdmin Organization: ".$f2['org'] : "\nAdmin Organization: REDACTED FOR PRIVACY");
+
+                        // Admin Address
+                        if ($disclose_addr) {
+                            $res .= "\nAdmin Street: ".$f2['street1']
+                                  ."\nAdmin Street: ".$f2['street2']
+                                  ."\nAdmin Street: ".$f2['street3']
+                                  ."\nAdmin City: ".$f2['city']
+                                  ."\nAdmin State/Province: ".$f2['sp']
+                                  ."\nAdmin Postal Code: ".$f2['pc']
+                                  ."\nAdmin Country: ".strtoupper($f2['cc']);
+                        } else {
+                            $res .= "\nAdmin Street: REDACTED FOR PRIVACY"
+                                  ."\nAdmin Street: REDACTED FOR PRIVACY"
+                                  ."\nAdmin Street: REDACTED FOR PRIVACY"
+                                  ."\nAdmin City: REDACTED FOR PRIVACY"
+                                  ."\nAdmin State/Province: REDACTED FOR PRIVACY"
+                                  ."\nAdmin Postal Code: REDACTED FOR PRIVACY"
+                                  ."\nAdmin Country: REDACTED FOR PRIVACY";
+                        }
+
+                        // Admin Phone
+                        $res .= ($f2['disclose_voice'] ? "\nAdmin Phone: ".$f2['voice'] : "\nAdmin Phone: REDACTED FOR PRIVACY");
+
+                        // Admin Fax
+                        $res .= ($f2['disclose_fax'] ? "\nAdmin Fax: ".$f2['fax'] : "\nAdmin Fax: REDACTED FOR PRIVACY");
+
+                        // Admin Email
+                        $res .= ($f2['disclose_email'] ? "\nAdmin Email: ".$f2['email'] : "\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.");
                     }
 
-                    $query7 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query7 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email,contact.disclose_voice,contact.disclose_fax,contact.disclose_email,contact_postalInfo.type,contact_postalInfo.disclose_name_int,contact_postalInfo.disclose_name_loc,contact_postalInfo.disclose_org_int,contact_postalInfo.disclose_org_loc,contact_postalInfo.disclose_addr_int,contact_postalInfo.disclose_addr_loc
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='billing' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt7 = $pdo->prepare($query7);
                     $stmt7->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -346,26 +400,53 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nBilling Fax: REDACTED FOR PRIVACY"
                         ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['id'])) {
-                        $res .= "\nRegistry Billing ID: C" . $f2['id'] . "-" . $c['roid'];
-                    } else {
-                        $res .= "\nRegistry Billing ID:";
-                    }
-                    $res .= "\nBilling Name: ".$f2['name']
-                        ."\nBilling Organization: ".$f2['org']
-                        ."\nBilling Street: ".$f2['street1']
-                        ."\nBilling Street: ".$f2['street2']
-                        ."\nBilling Street: ".$f2['street3']
-                        ."\nBilling City: ".$f2['city']
-                        ."\nBilling State/Province: ".$f2['sp']
-                        ."\nBilling Postal Code: ".$f2['pc']
-                        ."\nBilling Country: ".strtoupper($f2['cc'])
-                        ."\nBilling Phone: ".$f2['voice']
-                        ."\nBilling Fax: ".$f2['fax']
-                        ."\nBilling Email: ".$f2['email'];
+                        if (!empty($f2['id'])) {
+                            $res .= "\nRegistry Billing ID: C" . $f2['id'] . "-" . $c['roid'];
+                        } else {
+                            $res .= "\nRegistry Billing ID:";
+                        }
+
+                        // Determine which type of disclosure to use
+                        $disclose_name = ($f2['type'] == 'loc') ? $f2['disclose_name_loc'] : $f2['disclose_name_int'];
+                        $disclose_org = ($f2['type'] == 'loc') ? $f2['disclose_org_loc'] : $f2['disclose_org_int'];
+                        $disclose_addr = ($f2['type'] == 'loc') ? $f2['disclose_addr_loc'] : $f2['disclose_addr_int'];
+
+                        // Billing Name
+                        $res .= ($disclose_name ? "\nBilling Name: ".$f2['name'] : "\nBilling Name: REDACTED FOR PRIVACY");
+
+                        // Billing Organization
+                        $res .= ($disclose_org ? "\nBilling Organization: ".$f2['org'] : "\nBilling Organization: REDACTED FOR PRIVACY");
+
+                        // Billing Address
+                        if ($disclose_addr) {
+                            $res .= "\nBilling Street: ".$f2['street1']
+                                  ."\nBilling Street: ".$f2['street2']
+                                  ."\nBilling Street: ".$f2['street3']
+                                  ."\nBilling City: ".$f2['city']
+                                  ."\nBilling State/Province: ".$f2['sp']
+                                  ."\nBilling Postal Code: ".$f2['pc']
+                                  ."\nBilling Country: ".strtoupper($f2['cc']);
+                        } else {
+                            $res .= "\nBilling Street: REDACTED FOR PRIVACY"
+                                  ."\nBilling Street: REDACTED FOR PRIVACY"
+                                  ."\nBilling Street: REDACTED FOR PRIVACY"
+                                  ."\nBilling City: REDACTED FOR PRIVACY"
+                                  ."\nBilling State/Province: REDACTED FOR PRIVACY"
+                                  ."\nBilling Postal Code: REDACTED FOR PRIVACY"
+                                  ."\nBilling Country: REDACTED FOR PRIVACY";
+                        }
+
+                        // Billing Phone
+                        $res .= ($f2['disclose_voice'] ? "\nBilling Phone: ".$f2['voice'] : "\nBilling Phone: REDACTED FOR PRIVACY");
+
+                        // Billing Fax
+                        $res .= ($f2['disclose_fax'] ? "\nBilling Fax: ".$f2['fax'] : "\nBilling Fax: REDACTED FOR PRIVACY");
+
+                        // Billing Email
+                        $res .= ($f2['disclose_email'] ? "\nBilling Email: ".$f2['email'] : "\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.");
                     }
 
-                    $query8 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email
+                    $query8 = "SELECT contact.id,contact_postalInfo.name,contact_postalInfo.org,contact_postalInfo.street1,contact_postalInfo.street2,contact_postalInfo.street3,contact_postalInfo.city,contact_postalInfo.sp,contact_postalInfo.pc,contact_postalInfo.cc,contact.voice,contact.fax,contact.email,contact.disclose_voice,contact.disclose_fax,contact.disclose_email,contact_postalInfo.type,contact_postalInfo.disclose_name_int,contact_postalInfo.disclose_name_loc,contact_postalInfo.disclose_org_int,contact_postalInfo.disclose_org_loc,contact_postalInfo.disclose_addr_int,contact_postalInfo.disclose_addr_loc
                     FROM domain_contact_map,contact,contact_postalInfo WHERE domain_contact_map.domain_id=:domain_id AND domain_contact_map.type='tech' AND domain_contact_map.contact_id=contact.id AND domain_contact_map.contact_id=contact_postalInfo.contact_id";
                     $stmt8 = $pdo->prepare($query8);
                     $stmt8->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
@@ -387,24 +468,50 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         ."\nTech Fax: REDACTED FOR PRIVACY"
                         ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                     } else {
-                    if (!empty($f2['id'])) {
-                        $res .= "\nRegistry Tech ID: C" . $f2['id'] . "-" . $c['roid'];
-                    } else {
-                        $res .= "\nRegistry Tech ID:";
-                    }
-                    $res .= "\nTech Name: ".$f2['name']
-                        ."\nTech Organization: ".$f2['org']
-                        ."\nTech Street: ".$f2['street1']
-                        ."\nTech Street: ".$f2['street2']
-                        ."\nTech Street: ".$f2['street3']
-                        ."\nTech City: ".$f2['city']
-                        ."\nTech State/Province: ".$f2['sp']
-                        ."\nTech Postal Code: ".$f2['pc']
-                        ."\nTech Country: ".strtoupper($f2['cc'])
-                        ."\nTech Phone: ".$f2['voice']
-                        ."\nTech Fax: ".$f2['fax']
-                        ."\nTech Email: ".$f2['email'];
-                    }
+                        if (!empty($f2['id'])) {
+                            $res .= "\nRegistry Tech ID: C" . $f2['id'] . "-" . $c['roid'];
+                        } else {
+                            $res .= "\nRegistry Tech ID:";
+                        }
+
+                        // Determine which type of disclosure to use
+                        $disclose_name = ($f2['type'] == 'loc') ? $f2['disclose_name_loc'] : $f2['disclose_name_int'];
+                        $disclose_org = ($f2['type'] == 'loc') ? $f2['disclose_org_loc'] : $f2['disclose_org_int'];
+                        $disclose_addr = ($f2['type'] == 'loc') ? $f2['disclose_addr_loc'] : $f2['disclose_addr_int'];
+
+                        // Tech Name
+                        $res .= ($disclose_name ? "\nTech Name: ".$f2['name'] : "\nTech Name: REDACTED FOR PRIVACY");
+
+                        // Tech Organization
+                        $res .= ($disclose_org ? "\nTech Organization: ".$f2['org'] : "\nTech Organization: REDACTED FOR PRIVACY");
+
+                        // Tech Address
+                        if ($disclose_addr) {
+                            $res .= "\nTech Street: ".$f2['street1']
+                                  ."\nTech Street: ".$f2['street2']
+                                  ."\nTech Street: ".$f2['street3']
+                                  ."\nTech City: ".$f2['city']
+                                  ."\nTech State/Province: ".$f2['sp']
+                                  ."\nTech Postal Code: ".$f2['pc']
+                                  ."\nTech Country: ".strtoupper($f2['cc']);
+                        } else {
+                            $res .= "\nTech Street: REDACTED FOR PRIVACY"
+                                  ."\nTech Street: REDACTED FOR PRIVACY"
+                                  ."\nTech Street: REDACTED FOR PRIVACY"
+                                  ."\nTech City: REDACTED FOR PRIVACY"
+                                  ."\nTech State/Province: REDACTED FOR PRIVACY"
+                                  ."\nTech Postal Code: REDACTED FOR PRIVACY"
+                                  ."\nTech Country: REDACTED FOR PRIVACY";
+                        }
+
+                        // Tech Phone
+                        $res .= ($f2['disclose_voice'] ? "\nTech Phone: ".$f2['voice'] : "\nTech Phone: REDACTED FOR PRIVACY");
+
+                        // Tech Fax
+                        $res .= ($f2['disclose_fax'] ? "\nTech Fax: ".$f2['fax'] : "\nTech Fax: REDACTED FOR PRIVACY");
+
+                        // Tech Email
+                        $res .= ($f2['disclose_email'] ? "\nTech Email: ".$f2['email'] : "\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.");
                     }
                     
                     $query9 = "SELECT name FROM domain_host_map,host WHERE domain_host_map.domain_id = :domain_id AND domain_host_map.host_id = host.id";

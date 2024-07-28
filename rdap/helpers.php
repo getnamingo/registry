@@ -42,6 +42,14 @@ function setupLogger($logFilePath, $channelName = 'app') {
 }
 
 function mapContactToVCard($contactDetails, $role, $c) {
+    // Determine which type of disclosure to use
+    $disclose_name = ($contactDetails['type'] == 'loc') ? $contactDetails['disclose_name_loc'] : $contactDetails['disclose_name_int'];
+    $disclose_org = ($contactDetails['type'] == 'loc') ? $contactDetails['disclose_org_loc'] : $contactDetails['disclose_org_int'];
+    $disclose_addr = ($contactDetails['type'] == 'loc') ? $contactDetails['disclose_addr_loc'] : $contactDetails['disclose_addr_int'];
+    $disclose_voice = $contactDetails['disclose_voice'];
+    $disclose_fax = $contactDetails['disclose_fax'];
+    $disclose_email = $contactDetails['disclose_email'];
+
     return [
         'objectClassName' => 'entity',
         'handle' => ['C' . $contactDetails['id'] . '-' . $c['roid']],
@@ -74,20 +82,21 @@ function mapContactToVCard($contactDetails, $role, $c) {
             "vcard",
             [
                 ['version', new stdClass(), 'text', '4.0'],
-                ["fn", new stdClass(), 'text', $contactDetails['name']],
-                ["org", $contactDetails['org']],
+                ["fn", new stdClass(), 'text', $disclose_name ? $contactDetails['name'] : "REDACTED FOR PRIVACY"],
+                ["org", new stdClass(), 'text', $disclose_org ? $contactDetails['org'] : "REDACTED FOR PRIVACY"],
                 ["adr", [
                     "", // Post office box
-                    $contactDetails['street1'], // Extended address
-                    $contactDetails['street2'], // Street address
-                    $contactDetails['city'], // Locality
-                    $contactDetails['sp'], // Region
-                    $contactDetails['pc'], // Postal code
-                    $contactDetails['cc']  // Country name
+                    $disclose_addr ? $contactDetails['street1'] : "REDACTED FOR PRIVACY", // Extended address
+                    $disclose_addr ? $contactDetails['street2'] : "REDACTED FOR PRIVACY", // Street address
+                    $disclose_addr ? $contactDetails['street3'] : "REDACTED FOR PRIVACY", // Additional street address
+                    $disclose_addr ? $contactDetails['city'] : "REDACTED FOR PRIVACY", // Locality
+                    $disclose_addr ? $contactDetails['sp'] : "REDACTED FOR PRIVACY", // Region
+                    $disclose_addr ? $contactDetails['pc'] : "REDACTED FOR PRIVACY", // Postal code
+                    $disclose_addr ? strtoupper($contactDetails['cc']) : "REDACTED FOR PRIVACY"  // Country name
                 ]],
-                ["tel", $contactDetails['voice'], ["type" => "voice"]],
-                ["tel", $contactDetails['fax'], ["type" => "fax"]],
-                ["email", $contactDetails['email']],
+                ["tel", new stdClass(), 'uri', $disclose_voice ? "tel:" . $contactDetails['voice'] : "REDACTED FOR PRIVACY", ["type" => "voice"]],
+                ["tel", new stdClass(), 'uri', $disclose_fax ? "tel:" . $contactDetails['fax'] : "REDACTED FOR PRIVACY", ["type" => "fax"]],
+                ["email", new stdClass(), 'text', $disclose_email ? $contactDetails['email'] : "REDACTED FOR PRIVACY"],
             ]
         ],
     ];
