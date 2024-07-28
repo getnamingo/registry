@@ -39,6 +39,7 @@ CREATE TABLE settings (
 CREATE TABLE domain_price (
      "id"  SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
+     "registrar_id" int DEFAULT NULL,
      "command" varchar CHECK ("command" IN ( 'create','renew','transfer' )) NOT NULL default 'create',
      "m0"   decimal(10,2) NOT NULL default '0.00',
      "m12"   decimal(10,2) NOT NULL default '0.00',
@@ -51,14 +52,15 @@ CREATE TABLE domain_price (
      "m96"   decimal(10,2) NOT NULL default '0.00',
      "m108"   decimal(10,2) NOT NULL default '0.00',
      "m120"   decimal(10,2) NOT NULL default '0.00',
-     unique ("tldid", "command") 
+     unique ("tldid", "command", "registrar_id") 
 );
 
 CREATE TABLE domain_restore_price (
      "id" SERIAL PRIMARY KEY,
      "tldid" int CHECK ("tldid" >= 0) NOT NULL,
+     "registrar_id" int DEFAULT NULL,
      "price"   decimal(10,2) NOT NULL default '0.00',
-     unique ("tldid") 
+     unique ("tldid", "registrar_id") 
 );
 
 CREATE TABLE allocation_tokens (
@@ -750,16 +752,16 @@ INSERT INTO domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(
 INSERT INTO domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 SELECT setval('domain_tld_id_seq', COALESCE((SELECT MAX(id) FROM domain_tld), 0) + 1);
 
-INSERT INTO domain_price VALUES (E'1',E'1',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO domain_price VALUES (E'2',E'1',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO domain_price VALUES (E'3',E'1',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO domain_price VALUES (E'4',E'2',E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO domain_price VALUES (E'5',E'2',E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
-INSERT INTO domain_price VALUES (E'6',E'2',E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'1',E'1',NULL,E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'2',E'1',NULL,E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'3',E'1',NULL,E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'4',E'2',NULL,E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'5',E'2',NULL,E'renew',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
+INSERT INTO domain_price VALUES (E'6',E'2',NULL,E'transfer',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');
 SELECT setval('domain_price_id_seq', COALESCE((SELECT MAX(id) FROM domain_price), 0) + 1);
 
-INSERT INTO domain_restore_price VALUES (E'1',E'1',E'50.00');
-INSERT INTO domain_restore_price VALUES (E'2',E'2',E'50.00');
+INSERT INTO domain_restore_price VALUES (E'1',E'1',NULL,E'50.00');
+INSERT INTO domain_restore_price VALUES (E'2',E'2',NULL,E'50.00');
 SELECT setval('domain_restore_price_id_seq', COALESCE((SELECT MAX(id) FROM domain_restore_price), 0) + 1);
 
 INSERT INTO registrar ("name", "clid", "pw", "prefix", "email", "whois_server", "rdap_server", "url", "abuse_email", "abuse_phone", "accountbalance", "creditlimit", "creditthreshold", "thresholdtype", "companyNumber", "crdate", "lastupdate") VALUES (E'LeoNet LLC',E'leonet',E'$argon2id$v=19$m=131072,t=6,p=4$M0ViOHhzTWFtQW5YSGZ2MA$g2pKb+PEYtfs4QwLmf2iUtPM4+7evuqYQFp6yqGZmQg',E'LN',E'info@leonet.ua',E'whois.leonet.ua',E'rdap.leonet.ua',E'https://www.leonet.ua',E'abuse@leonet.ua',E'+380.325050',E'100000.00',E'100000.00',E'500.00',E'fixed',E'100000000',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);

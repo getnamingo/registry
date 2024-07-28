@@ -892,11 +892,11 @@ class SystemController extends Controller
             [ $args ]);
 
             if ($tld) {
-                $createPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND command = ?', [$tld['id'], 'create']);
-                $renewPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND command = ?', [$tld['id'], 'renew']);
-                $transferPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND command = ?', [$tld['id'], 'transfer']);
-                $tld_restore = $db->selectRow('SELECT * FROM domain_restore_price WHERE tldid = ?',
-                [ $tld['id'] ]);
+                $createPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ?', [$tld['id'], NULL, 'create']);
+                $renewPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ?', [$tld['id'], NULL, 'renew']);
+                $transferPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ?', [$tld['id'], NULL, 'transfer']);
+                $tld_restore = $db->selectRow('SELECT * FROM domain_restore_price WHERE tldid = ? AND registrar_id = ? ',
+                [ $tld['id'], NULL ]);
                 $premium_pricing = $db->selectRow('SELECT * FROM premium_domain_pricing WHERE tld_id = ?',
                 [ $tld['id'] ]);
                 $premium_categories = $db->select('SELECT * FROM premium_domain_categories');
