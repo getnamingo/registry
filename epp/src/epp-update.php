@@ -1358,6 +1358,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
                 $stmt->bindParam(':host_id', $host_id, PDO::PARAM_INT);
                 $stmt->execute();
+                
+                $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                if (!$sth->execute([$clid, $domain_id])) {
+                    sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -1385,6 +1391,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt = $db->prepare("DELETE FROM host WHERE id = :host_id");
                     $stmt->bindParam(':host_id', $host_id, PDO::PARAM_INT);
                     $stmt->execute();
+                    
+                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                    if (!$sth->execute([$clid, $domain_id])) {
+                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                        return;
+                    }
                 }
             }
         }
@@ -1404,6 +1416,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
                 $stmt->bindParam(':contact_type', $contact_type, PDO::PARAM_STR);
                 $stmt->execute();
+                
+                $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                if (!$sth->execute([$clid, $domain_id])) {
+                    sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -1414,6 +1432,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
             $stmt->bindParam(':status', $status, PDO::PARAM_STR);
             $stmt->execute();
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
+            }
         }
     }
     
@@ -1445,6 +1469,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
                     $stmt->bindParam(':hostObj_already_exist', $hostObj_already_exist, PDO::PARAM_INT);
                     $stmt->execute();
+                    
+                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                    if (!$sth->execute([$clid, $domain_id])) {
+                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                        return;
+                    }
                 } else {
                     $stmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(:registrar_id, :log, CURRENT_TIMESTAMP(3))");
                     $log = "Domain : $domainName ;   hostObj : $hostObj - se dubleaza";
@@ -1484,6 +1514,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                             return;
                         }
+                        
+                        $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                        if (!$sth->execute([$clid, $domain_id])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
                     }
                 } else {
                     $sth = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
@@ -1498,8 +1534,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                         return;
                     }
+                    
+                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                    if (!$sth->execute([$clid, $domain_id])) {
+                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                        return;
+                    }
                 }
-                }
+            }
     }
 
         foreach ($hostAttr_list as $node) {
@@ -1512,54 +1554,66 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->execute();
                 $hostName_already_exist = $stmt->fetchColumn();
                 
-               if ($hostName_already_exist) {
-                $sth = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
-                $sth->execute([$domain_id, $hostName_already_exist]);
-                $domain_host_map_id = $sth->fetchColumn();
+                if ($hostName_already_exist) {
+                    $sth = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
+                    $sth->execute([$domain_id, $hostName_already_exist]);
+                    $domain_host_map_id = $sth->fetchColumn();
 
-                if (!$domain_host_map_id) {
-                    $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                    if (!$sth->execute([$domain_id, $hostName_already_exist])) {
-                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                        return;
+                    if (!$domain_host_map_id) {
+                        $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
+                        if (!$sth->execute([$domain_id, $hostName_already_exist])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
+                        
+                        $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                        if (!$sth->execute([$clid, $domain_id])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
+                    } else {
+                        $logMessage = "Domain : $domainName ;   hostName : $hostName - se dubleaza";
+                        $sth = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
+                        if (!$sth->execute([$clid, $logMessage])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
                     }
                 } else {
-                    $logMessage = "Domain : $domainName ;   hostName : $hostName - se dubleaza";
-                    $sth = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
-                    if (!$sth->execute([$clid, $logMessage])) {
+                    // Insert into the host table
+                    $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                    $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);
+                    
+                    $host_id = $db->lastInsertId();
+
+                    // Insert into the domain_host_map table
+                    $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
+                    $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
+
+                    // Iterate over the hostAddr_list
+                    $hostAddr_list = $xml->xpath('domain:hostAddr', $node);
+                    foreach ($hostAddr_list as $node) {
+                        $hostAddr = (string)$node;
+                        $addr_type = isset($node['ip']) ? (string)$node['ip'] : 'v4';
+
+                        // Normalize
+                        if ($addr_type == 'v6') {
+                            $hostAddr = _normalise_v6_address($hostAddr); // PHP function to normalize IPv6
+                        } else {
+                            $hostAddr = _normalise_v4_address($hostAddr); // PHP function to normalize IPv4
+                        }
+
+                        // Insert into the host_addr table
+                        $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
+                        $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
+                    }
+                   
+                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                    if (!$sth->execute([$clid, $domain_id])) {
                         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                         return;
                     }
                 }
-            } else {
-                // Insert into the host table
-                $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);
-                
-                $host_id = $db->lastInsertId();
-
-                // Insert into the domain_host_map table
-                $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
-
-                // Iterate over the hostAddr_list
-                $hostAddr_list = $xml->xpath('domain:hostAddr', $node);
-                foreach ($hostAddr_list as $node) {
-                    $hostAddr = (string)$node;
-                    $addr_type = isset($node['ip']) ? (string)$node['ip'] : 'v4';
-
-                    // Normalize
-                    if ($addr_type == 'v6') {
-                        $hostAddr = _normalise_v6_address($hostAddr); // PHP function to normalize IPv6
-                    } else {
-                        $hostAddr = _normalise_v4_address($hostAddr); // PHP function to normalize IPv4
-                    }
-
-                    // Insert into the host_addr table
-                    $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
-                    $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
-                }
-               }
             }
         }
 
@@ -1585,6 +1639,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     return;
                 }
             }
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
+            }
         }
 
         foreach ($status_list as $node) {
@@ -1601,6 +1661,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
+            }
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
             }
         }
     }
@@ -1639,6 +1705,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                 return;
             }
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
+            }
         }
 
         $authInfoExtNodes = $xml->xpath('//domain:ext[1]');
@@ -1650,6 +1722,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                 return;
             }
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
+            }
         }
 
         $authInfoNullNodes = $xml->xpath('//domain:null[1]');
@@ -1658,6 +1736,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         if (isset($authInfo_null)) {
             $sth = $db->prepare("DELETE FROM domain_authInfo WHERE domain_id = ?");
             if (!$sth->execute([$domain_id])) {
+                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                return;
+            }
+            
+            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+            if (!$sth->execute([$clid, $domain_id])) {
                 sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                 return;
             }
@@ -1839,6 +1923,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 ':digestType' => $digestType,
                                 ':digest' => $digest
                             ]);
+                            
+                            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                            $sth->execute([$clid, $domain_id]);
                         } catch (PDOException $e) {
                             sendEppError($conn, $db, 2400, 'Database error during dsData removal', $clTRID, $trans);
                             return;
@@ -1887,6 +1974,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 ':algKeyData' => $algKeyData,
                                 ':pubKey' => $pubKey
                             ]);
+                            
+                            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                            $sth->execute([$clid, $domain_id]);
                         } catch (PDOException $e) {
                             sendEppError($conn, $db, 2400, 'Database error during keyData removal', $clTRID, $trans);
                             return;
@@ -2001,6 +2091,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 ':keydata_alg' => $algKeyData ?? null,
                                 ':pubkey' => $pubKey ?? null
                             ]);
+                            
+                            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                            $sth->execute([$clid, $domain_id]);
                         } catch (PDOException $e) {
                             $isMySQLUniqueViolation = $e->getCode() === '23000' && strpos($e->getMessage(), '1062 Duplicate entry') !== false;
                             $isPostgreSQLUniqueViolation = $e->getCode() === '23505';
@@ -2065,6 +2158,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                                 ':keydata_alg' => $algKeyData ?? null,
                                 ':pubkey' => $pubKey ?? null
                             ]);
+                            
+                            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                            $sth->execute([$clid, $domain_id]);
                         } catch (PDOException $e) {
                             $isMySQLUniqueViolation = $e->getCode() === '23000' && strpos($e->getMessage(), '1062 Duplicate entry') !== false;
                             $isPostgreSQLUniqueViolation = $e->getCode() === '23505';
@@ -2092,6 +2188,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         ':maxSigLife' => $maxSigLife,
                         ':domain_id' => $domain_id
                     ]);
+                    
+                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                    $sth->execute([$clid, $domain_id]);
                 } catch (PDOException $e) {
                     sendEppError($conn, $db, 2400, 'Database error during maxSigLife update', $clTRID, $trans);
                     return;
