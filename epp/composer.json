@@ -5,6 +5,7 @@
         "matthiasmullie/scrapbook": "^1.5",
         "guzzlehttp/guzzle": "^7.9.2",
         "league/flysystem": "^3.28",
+        "selective/xmldsig": "^3.1",
         "namingo/rately": "^0.1.0"
     }
 }

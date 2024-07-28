@@ -21,6 +21,9 @@ use Swoole\Timer;
 use Swoole\Coroutine\Server;
 use Swoole\Coroutine\Server\Connection;
 use Namingo\Rately\Rately;
+use Selective\XmlDSig\PublicKeyStore;
+use Selective\XmlDSig\CryptoVerifier;
+use Selective\XmlDSig\XmlSignatureVerifier;
 
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);

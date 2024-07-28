@@ -934,6 +934,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $rgp_update = $xml->xpath('//rgp:update')[0] ?? null;
         $secdns_update = $xml->xpath('//secDNS:update')[0] ?? null;
         $launch_update = $xml->xpath('//launch:update')[0] ?? null;
+        
+        // Check if launch extension is enabled in database settings
+        $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
+        $stmt->execute();
+        $launch_extension_enabled = $stmt->fetchColumn();
     }
 
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {
@@ -968,11 +973,6 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     
     $domain_id = $row['id'];
     
-    // Check if launch extension is enabled in database settings
-    $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
-    $stmt->execute();
-    $launch_extension_enabled = $stmt->fetchColumn();
-
     if ($launch_extension_enabled && isset($launch_update)) {
         $phase = (string) $launch_update->xpath('launch:phase')[0];
         $applicationID = (string) $launch_update->xpath('launch:applicationID')[0];

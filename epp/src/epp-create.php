@@ -580,10 +580,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $fee_create = $xml->xpath('//fee:create')[0] ?? null;
         $launch_create = $xml->xpath('//launch:create')[0] ?? null;
         $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
+
+        // Check if launch extension is enabled in database settings
+        $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
+        $stmt->execute();
+        $launch_extension_enabled = $stmt->fetchColumn();
     }
-    
-    if ($launch_create) {
-        $launch_phase = (string) $launch_create->xpath('launch:phase')[0] ?? null;
+
+    if ($launch_extension_enabled && isset($launch_create)) {
+        $launch_phase_node = $launch_create->xpath('launch:phase')[0] ?? null;
+        $launch_phase = $launch_phase_node ? (string)$launch_phase_node : null;
+        $launch_phase_name = $launch_phase_node ? (string)$launch_phase_node['name'] : null;
         $smd_encodedSignedMark = $launch_create->xpath('smd:encodedSignedMark')[0] ?? null;
         $launch_notice = $launch_create->xpath('launch:notice')[0] ?? null;
         $launch_noticeID = $launch_notice ? (string) $launch_notice->xpath('launch:noticeID')[0] ?? null : null;
@@ -592,9 +599,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
         // Validate and handle each specific case
         if ($launch_phase === 'sunrise' && $smd_encodedSignedMark) {
-            // Parse and validate SMD encoded signed mark, then return unimplemented error
-            sendEppError($conn, $db, 2101, 'sunrise with encodedSignedMark', $clTRID, $trans);
-            return;
+            // Parse and validate SMD encoded signed mark later
         } elseif ($launch_phase === 'claims') {
             // Check for missing notice elements and validate dates
             if (!$launch_notice || !$launch_noticeID || !$launch_notAfter || !$launch_acceptedDate) {
@@ -621,16 +626,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 return;
             }
 
-            // If all validations pass, return unimplemented error
-            sendEppError($conn, $db, 2101, 'claims with notice', $clTRID, $trans);
-            return;
+            // If all validations pass, continue
         } elseif ($launch_phase === 'landrush') {
-            // Parse phase and type attributes, then return unimplemented error
-            sendEppError($conn, $db, 2101, 'landrush', $clTRID, $trans);
-            return;
+            // Continue
         } else {
             // Mixed or unsupported form
-            sendEppError($conn, $db, 2101, 'unsupported or mixed form', $clTRID, $trans);
+            sendEppError($conn, $db, 2101, 'unsupported launch phase or mixed form', $clTRID, $trans);
             return;
         }
     }
@@ -669,6 +670,124 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     if ($domain_already_exist) {
         sendEppError($conn, $db, 2302, 'Domain name already exists', $clTRID, $trans);
         return;
+    }
+
+    if ($launch_extension_enabled && isset($launch_create)) {
+        $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
+        $stmt->execute();
+        $launch_phases = $stmt->fetchColumn();
+
+        $currentDateTime = new \DateTime();
+        $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+        
+        $stmt = $db->prepare("
+            SELECT phase_category 
+            FROM launch_phases 
+            WHERE tld_id = ? 
+            AND phase_type = ? 
+            AND start_date <= ? 
+            AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+            LIMIT 1
+        ");
+        $stmt->execute([$tld_id, $launch_phase, $currentDate, $currentDate]);
+        $phase_details = $stmt->fetchColumn();
+
+        if ($phase_details !== 'First-Come-First-Serve') {
+            if ($launch_phase !== 'none') {
+                if ($launch_phase == null && $launch_phase == '') {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: The launch phase ' . $launch_phase . ' is improperly configured. Please check the settings or contact support.', $clTRID, $trans);
+                    return;
+                } else if ($phase_details == null) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: The launch phase ' . $launch_phase . ' is currently not active.', $clTRID, $trans);
+                    return;
+                }
+            }
+        } else if ($launch_phase !== 'none') {
+            if ($launch_phase == null && $launch_phase == '') {
+                sendEppError($conn, $db, 2306, 'Error creating domain: The launch phase ' . $launch_phase . ' is improperly configured. Please check the settings or contact support.', $clTRID, $trans);
+                return;
+            } else if ($phase_details == null) {
+                sendEppError($conn, $db, 2306, 'Error creating domain: The launch phase ' . $launch_phase . ' is currently not active.', $clTRID, $trans);
+                return;
+            }
+        }
+                
+        if ($launch_phase === 'claims') {
+            if (!isset($launch_noticeID) || $launch_noticeID === '' ||
+                !isset($launch_notAfter) || $launch_notAfter === '' ||
+                !isset($launch_acceptedDate) || $launch_acceptedDate === '') {
+                sendEppError($conn, $db, 2306, "Error creating domain: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'", $clTRID, $trans);
+                return;
+            }
+
+            $noticeid = $launch_noticeID;
+            $notafter = $launch_notAfter;
+            $accepted = $launch_acceptedDate;
+        } else {
+            $noticeid = null;
+            $notafter = null;
+            $accepted = null;
+        }
+
+        if ($launch_phase === 'sunrise') {
+            if ($smd_encodedSignedMark !== null && $smd_encodedSignedMark !== '') {
+                // Extract the BASE64 encoded part
+                $beginMarker = "-----BEGIN ENCODED SMD-----";
+                $endMarker = "-----END ENCODED SMD-----";
+                $beginPos = strpos($smd_encodedSignedMark, $beginMarker) + strlen($beginMarker);
+                $endPos = strpos($smd_encodedSignedMark, $endMarker);
+                $encodedSMD = trim(substr($smd_encodedSignedMark, $beginPos, $endPos - $beginPos));
+
+                // Decode the BASE64 content
+                $xmlContent = base64_decode($encodedSMD);
+
+                // Load the XML content using DOMDocument
+                $domDocument = new \DOMDocument();
+                $domDocument->preserveWhiteSpace = false;
+                $domDocument->formatOutput = true;
+                $domDocument->loadXML($xmlContent);
+
+                // Parse data
+                $xpath = new \DOMXPath($domDocument);
+                $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
+                $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+
+                $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
+                $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
+                $markName = $xpath->evaluate('string(//mark:markName)');
+                $labels = [];
+                foreach ($xpath->query('//mark:label') as $x_label) {
+                    $labels[] = $x_label->nodeValue;
+                }
+
+                if (!in_array($label, $labels)) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD file is not valid for the domain name being registered.', $clTRID, $trans);
+                    return;
+                }
+
+                // Check if current date and time is between notBefore and notAfter
+                $now = new \DateTime();
+                if (!($now >= $notBefore && $now <= $notafter)) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: Current time is outside the valid range in the SMD.', $clTRID, $trans);
+                    return;
+                }
+
+                // Verify the signature
+                $publicKeyStore = new PublicKeyStore();
+                $publicKeyStore->loadFromDocument($domDocument);
+                $cryptoVerifier = new CryptoVerifier($publicKeyStore);
+                $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
+                $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+
+                if (!$isValid) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: The XML signature of the SMD file is not valid.', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                sendEppError($conn, $db, 2306, "Error creating domain: SMD upload is required in the 'sunrise' phase.", $clTRID, $trans);
+                return;
+            }
+        }
     }
 
     $stmt = $db->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
@@ -1159,8 +1278,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             }
         }
         
-        $domainSql = "INSERT INTO domain (name,tldid,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,rgpstatus,addPeriod)
-        VALUES(:name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2)";
+        $domainSql = "INSERT INTO domain (
+            name, tldid, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod,
+            phase_name, tm_phase, tm_smd_id, tm_notice_id, tm_notice_accepted, tm_notice_expires
+        ) VALUES (
+            :name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2,
+            :phase_name, :tm_phase, :tm_smd_id, :tm_notice_id, :tm_notice_accepted, :tm_notice_expires
+        )";
 
         $domainStmt = $db->prepare($domainSql);
         $domainStmt->execute([
@@ -1169,8 +1293,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             ':registrant_id' => $registrant_id,
             ':date_add' => $date_add,
             ':date_add2' => $date_add,
-            ':registrar_id' => $clid
+            ':registrar_id' => $clid,
+            ':phase_name' => $launch_phase_name ?? null,
+            ':tm_phase' => $launch_phase ?? null,
+            ':tm_smd_id' => $smd_encodedSignedMark ?? null,
+            ':tm_notice_id' => $noticeid ?? null,
+            ':tm_notice_accepted' => $accepted ?? null,
+            ':tm_notice_expires' => $notafter ?? null
         ]);
+
         $domain_id = $db->lastInsertId();
 
         $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
