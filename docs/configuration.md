@@ -203,6 +203,58 @@ return [
 ];
 ```
 
+## Adminer Security settings
+
+To enhance the security of your Adminer installation, we recommend the following settings for Caddy, Apache2, and Nginx:
+
+1. **Rename Adminer File:** Change `adminer.php` to `dbtool.php` to make it less predictable.
+
+2. **Restrict Access by IP:** Only allow access from specific IP addresses.
+
+Below are example configurations for each web server:
+
+### Caddy
+
+```bash
+# Adminer Configuration
+route /dbtool.php* {
+    root * /usr/share/adminer
+    php_fastcgi unix//run/php/php8.2-fpm.sock
+
+    # Define the allowed IP address
+    @allowed {
+        remote_ip your.ip.address.here
+    }
+
+    # Route for allowed IP addresses
+    handle @allowed {
+        file_server
+    }
+
+    # Respond with 403 for any IP address not allowed
+    respond "Access Denied" 403
+}
+```
+
+### Apache .htaccess
+
+```bash
+<Files "dbtool.php">
+    Order Deny,Allow
+    Deny from all
+    Allow from your.ip.address.here
+</Files>
+```
+
+### Nginx
+
+```bash
+location /dbtool.php {
+    allow your.ip.address.here;
+    deny all;
+}
+```
+
 In conclusion, this detailed configuration guide aims to streamline the setup process of the Namingo system for users of all expertise levels. The guide meticulously details each configuration file, providing clear explanations and guidance for customization to suit your specific needs. This approach ensures that you can configure Namingo with confidence, optimizing it for your registry management requirements. We are committed to making the configuration process as straightforward as possible, and we welcome any questions or requests for further assistance. Your successful deployment and efficient management of Namingo is our top priority.
 
 After finalizing the configuration of Namingo, the next step is to consult the [Initial Operation Guide](docs/iog.md). This guide provides comprehensive details on configuring your registry, adding registrars, and much more, to ensure a smooth start with your system.
