@@ -28,7 +28,7 @@ mysqldump -u your_username -p your_database_name > database_backup.sql
 git clone https://github.com/getnamingo/registry /opt/upgrade
 ```
 
-## Step 3: Make Database Changes
+## Step 3a: Make Database Changes (from v1.0.0-RC4)
 
 1. Access MySQL Terminal:
 
@@ -46,6 +46,34 @@ CHANGE COLUMN `vat_number` `vatNumber` varchar(30) DEFAULT NULL,
 ADD COLUMN `companyNumber` varchar(30) DEFAULT NULL BEFORE `vatNumber`;
 
 UPDATE settings SET value = NULL WHERE name = 'launch_phases';
+```
+
+## Step 3b: Make Database Changes (from v1.0.0-RC5)
+
+1. Access MySQL Terminal:
+
+```bash
+mysql -u your_username -p
+```
+
+2. Update `registrar` Table:
+
+```sql
+USE registry;
+
+ALTER TABLE `domain_price`
+ADD `registrar_id` int(10) unsigned NULL AFTER `tldid`;
+
+ALTER TABLE `domain_price`
+ADD UNIQUE `tldid_command_registrar_id` (`tldid`, `command`, `registrar_id`),
+DROP INDEX `unique_record`;
+
+ALTER TABLE `domain_restore_price`
+ADD `registrar_id` int(10) unsigned NULL AFTER `tldid`;
+
+ALTER TABLE `domain_restore_price`
+ADD UNIQUE `tldid_registrar_id` (`tldid`, `registrar_id`),
+DROP INDEX `tldid`;
 ```
 
 **Warning: If you have already activated the database audit feature, you will need to update the respective audit table to reflect these changes as well.**
