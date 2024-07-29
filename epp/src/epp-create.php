@@ -403,6 +403,8 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
 
+    $hostName = strtolower($hostName);
+
     $host_addr_list = $xml->xpath('//addr'); 
     if (count($host_addr_list) > 13) {
         sendEppError($conn, $db, 2306, 'No more than 13 host:addr are allowed', $clTRID, $trans);
@@ -573,7 +575,9 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
-    
+
+    $domainName = strtolower($domainName);
+
     $extensionNode = $xml->command->extension;
     $launch_create = null;
     if (isset($extensionNode)) {
