@@ -1167,5 +1167,60 @@ class RegistrarsController extends Controller
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
     }
+    
+    public function updateCustomPricing(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        //TODO
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            
+            var_dump ($data);die();
+        }
+        
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath(); 
+        
+        if ($args) {
+            $args = trim($args);
+
+            $registrar = $db->selectRow('SELECT id,clid,name FROM registrar WHERE clid = ?',
+            [ $args ]);
+            $tlds = $db->select('SELECT id, tld FROM domain_tld');
+            
+            $result = [];
+
+            foreach ($tlds as $tld) {
+                $createPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'create']);
+                $renewPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'renew']);
+                $transferPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'transfer']);
+                $tld_restore = $db->selectRow('SELECT * FROM domain_restore_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id']]);
+
+                $result[] = [
+                    'tld' => $tld['tld'],
+                    'createPrices' => ($createPrices && $createPrices['registrar_id'] === $registrar['id']) ? $createPrices : null,
+                    'renewPrices' => ($renewPrices && $renewPrices['registrar_id'] === $registrar['id']) ? $renewPrices : null,
+                    'transferPrices' => ($transferPrices && $transferPrices['registrar_id'] === $registrar['id']) ? $transferPrices : null,
+                    'tld_restore' => ($tld_restore && $tld_restore['registrar_id'] === $registrar['id']) ? $tld_restore : null,
+                ];
+            }
+
+            return view($response, 'admin/registrars/customPricing.twig', [
+                'tlds' => $result,
+                'name' => $registrar['name'],
+                'clid' => $registrar['clid'],
+                'currentUri' => $uri,
+            ]);
+            
+        } else {
+            // Redirect to the registrars view
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+    }
 
 }

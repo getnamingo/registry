@@ -90,6 +90,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
     $route->get('/registrar/view/{registrar}', RegistrarsController::class . ':viewRegistrar')->setName('viewRegistrar');
     $route->get('/registrar/update/{registrar}', RegistrarsController::class . ':updateRegistrar')->setName('updateRegistrar');
+    $route->map(['GET', 'POST'], '/registrar/pricing/{registrar}', RegistrarsController::class . ':updateCustomPricing')->setName('updateCustomPricing');
     $route->post('/registrar/update', RegistrarsController::class . ':updateRegistrarProcess')->setName('updateRegistrarProcess');
     $route->get('/registrar', RegistrarsController::class .':registrar')->setName('registrar');
     $route->map(['GET', 'POST'], '/registrar/edit', RegistrarsController::class .':editRegistrar')->setName('editRegistrar');
