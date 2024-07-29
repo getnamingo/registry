@@ -101,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const yearInput = document.getElementById('transferYears');
     const priceDisplay = document.getElementById('domainPriceDisplay');
     const priceValue = document.getElementById('domainPrice');
+    const registrarDropdown = document.getElementById('registrarDropdown');
 
     function extractTLD(domain) {
         const parts = domain.split('.');
@@ -115,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    function getDomainPrice(domain, years) {
+    function getDomainPrice(domain, years, registrarId) {
         const tld = extractTLD(domain);
         if (!tld) {
             return Promise.reject("Invalid TLD");
@@ -140,11 +141,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 (!record.years_of_promotion || record.years_of_promotion >= years)
             );
 
-            // Find the regular price for the TLD
-            const tldData = pricingData.records.find(record => 
+            // Find the regular price for the TLD with registrar ID
+            let tldData = pricingData.records.find(record => 
                 record.tldid && tldRegex.test(record.tldid.tld.toLowerCase()) &&
-                record.command === 'transfer'
+                record.command === 'transfer' &&
+                record.registrar_id == registrarId
             );
+
+            // If no registrar-specific price found, find the generic price
+            if (!tldData) {
+                tldData = pricingData.records.find(record => 
+                    record.tldid && tldRegex.test(record.tldid.tld.toLowerCase()) &&
+                    record.command === 'transfer' &&
+                    record.registrar_id == null
+                );
+            }
 
             if (tldData) {
                 const priceField = `m${years * 12}`;
@@ -178,7 +189,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function updatePrice() {
         if (domainInput.value) {
-            getDomainPrice(domainInput.value, yearInput.value).then(price => {
+            const registrarId = registrarDropdown.value;
+            getDomainPrice(domainInput.value, yearInput.value, registrarId).then(price => {
                 priceValue.innerText = formatPrice(price);
                 priceDisplay.style.display = 'block';
             });
@@ -189,6 +201,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     domainInput.addEventListener('input', updatePrice);
     yearInput.addEventListener('input', updatePrice);
+    registrarDropdown.addEventListener('change', updatePrice);
 });
 </script>
 {% endblock %}
