@@ -20,23 +20,23 @@ Currently, Namingo is able to manage 150,000 domains on a VPS setup featuring 2 
 
 Additionally, we are looking for assistance from gTLD operators to test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
 
-### Benchmark Summary (per registrar)
+### EPP Benchmark Summary (per registrar)
 
-- VPS Setup: 2 virtual CPU cores (AMD EPYC-Rome, 2 GHz), 2 GB RAM, SSD drive, Ubuntu 22.04
+- VPS Setup: 2 virtual CPU cores (AMD EPYC-Rome, 2 GHz), 2 GB RAM, SSD drive, Ubuntu 24.04
 
-#### Domain Checks:
+#### Domain Check:
 
 - Operations per Second: 217.55
 
 - Average Time per Operation: 4.596 ms
 
-#### Domain Info Queries:
+#### Domain Info:
 
 - Operations per Second: 94.65
 
 - Average Time per Operation: 10.57 ms
 
-#### Domain Creations:
+#### Domain Create:
 
 - Operations per Second: 42.17
 
