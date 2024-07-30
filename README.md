@@ -66,11 +66,11 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
   
 - **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Included scripts for spec 11 abuse monitoring; automated approval of domain transfers; contact and host cleanup; backup processing and upload; domain lifetime status change; generation and upload of RDE deposits, LORDN file, ICANN's monthly reports, invoices; email dispatcher system; statistics generation; TMCH and URS processing; zone generator and signing.
 
-### In beta
+### Optional components
 
-- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding-beta) - New registrars can join by filling up a form, signing the agreement online and even paying the application fee online. Then their account is activated after check by registry staff. No more emails, Word or PDF forms or copy-paste between systems.
+- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding) - New registrars can join by filling up a form, signing the agreement online and even paying the application fee online. Then their account is activated after check by registry staff. No more emails, Word or PDF forms or copy-paste between systems.
 
-- [**Domain Registry API**](https://github.com/getnamingo/registry-api-beta) - Provides REST API access to domain availability checks and to the domain droplist.
+- [**Domain Registry API**](https://github.com/getnamingo/registry-api) - Provides REST API access to domain availability checks and to the domain droplist.
 
 ## Documentation
 
