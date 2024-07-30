@@ -1452,3 +1452,21 @@ msgstr ""
 
 msgid "Recent Support Tickets"
 msgstr ""
+
+msgid "Company Number"
+msgstr ""
+
+msgid "Official registration number provided by the relevant authority."
+msgstr ""
+
+msgid "VAT Number"
+msgstr ""
+
+msgid "VAT number for tax purposes, if registered for VAT."
+msgstr ""
+
+msgid "Manage Registrar"
+msgstr ""
+
+msgid "Manage Custom Pricing"
+msgstr ""

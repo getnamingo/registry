@@ -1452,3 +1452,21 @@ msgstr "Domaines Récents"
 
 msgid "Recent Support Tickets"
 msgstr "Tickets de Support Récents"
+
+msgid "Company Number"
+msgstr "Numéro d'entreprise"
+
+msgid "Official registration number provided by the relevant authority."
+msgstr "Numéro d'enregistrement officiel fourni par l'autorité compétente."
+
+msgid "VAT Number"
+msgstr "Numéro de TVA"
+
+msgid "VAT number for tax purposes, if registered for VAT."
+msgstr "Numéro de TVA à des fins fiscales, si vous êtes enregistré à la TVA."
+
+msgid "Manage Registrar"
+msgstr "Gérer le registraire"
+
+msgid "Manage Custom Pricing"
+msgstr "Gérer les prix personnalisés"

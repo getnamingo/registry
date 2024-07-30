@@ -1452,3 +1452,21 @@ msgstr "Останні домени"
 
 msgid "Recent Support Tickets"
 msgstr "Останні запити підтримки"
+
+msgid "Company Number"
+msgstr "Номер компанії"
+
+msgid "Official registration number provided by the relevant authority."
+msgstr "Офіційний реєстраційний номер, наданий відповідним органом."
+
+msgid "VAT Number"
+msgstr "Номер ПДВ"
+
+msgid "VAT number for tax purposes, if registered for VAT."
+msgstr "Номер ПДВ для цілей оподаткування, якщо зареєстрований платником ПДВ."
+
+msgid "Manage Registrar"
+msgstr "Керувати реєстратором"
+
+msgid "Manage Custom Pricing"
+msgstr "Керуйте індивідуальними цінами"

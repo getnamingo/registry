@@ -1452,3 +1452,21 @@ msgstr "最近のドメイン"
 
 msgid "Recent Support Tickets"
 msgstr "最近のサポートチケット"
+
+msgid "Company Number"
+msgstr "会社番号"
+
+msgid "Official registration number provided by the relevant authority."
+msgstr "関係当局から提供された公式登録番号。"
+
+msgid "VAT Number"
+msgstr "VAT番号"
+
+msgid "VAT number for tax purposes, if registered for VAT."
+msgstr "VAT に登録されている場合、税務上の VAT 番号。"
+
+msgid "Manage Registrar"
+msgstr "レジストラの管理"
+
+msgid "Manage Custom Pricing"
+msgstr "カスタム価格設定の管理"
