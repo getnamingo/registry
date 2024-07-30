@@ -76,6 +76,9 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
     // Get the client information
     $clientInfo = $conn->exportSocket()->getpeername();
     $clientIP = isset($clientInfo['address']) ? (strpos($clientInfo['address'], '::ffff:') === 0 ? substr($clientInfo['address'], 7) : $clientInfo['address']) : '';
+    if (isIPv6($clientIP)) {
+        $clientIP = expandIPv6($clientIP);
+    }
 
     // Check if the IP is in the permitted list
     if (!$permittedIPsTable->exist($clientIP)) {

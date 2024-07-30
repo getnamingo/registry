@@ -616,3 +616,30 @@ function generateAuthInfo(): string {
 
     return $retVal;
 }
+
+function isIPv6($ip) {
+    // Validate if the IP is in IPv6 format
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+}
+
+function expandIPv6($ip) {
+    if (strpos($ip, '::') !== false) {
+        // Split the IP by '::'
+        $parts = explode('::', $ip);
+        $left = explode(':', $parts[0]);
+        $right = isset($parts[1]) ? explode(':', $parts[1]) : [];
+
+        // Calculate the number of missing groups and fill them with '0000'
+        $fill = array_fill(0, 8 - (count($left) + count($right)), '0000');
+        $expanded = array_merge($left, $fill, $right);
+    } else {
+        $expanded = explode(':', $ip);
+    }
+
+    // Ensure each block is four characters
+    foreach ($expanded as &$block) {
+        $block = str_pad($block, 4, '0', STR_PAD_LEFT);
+    }
+
+    return implode(':', $expanded);
+}
