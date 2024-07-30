@@ -1,4 +1,4 @@
-# Minimal Data Set Documentation	
+# Minimum Data Set Documentation	
 
 This document provides guidance on transitioning to the Minimum Data Set for domain registration data. This change requires registries to update their systems to stop accepting specific contact data for domain names. The purpose of this document is to provide an overview of the Minimum Data Set, how to activate it in your configuration files, and the implications of this change.
 

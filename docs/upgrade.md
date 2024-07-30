@@ -1,4 +1,4 @@
-# Namingo Upgrade Guide (from v1.0.0-RC4 or v1.0.0-RC5)
+# Namingo Upgrade Guide (from v1.0.0-RC4 or later)
 
 ## Introduction
 
@@ -111,7 +111,8 @@ ZONE_MODE=nice // or default based on your requirement
 
 ```bash
 cp -r /opt/upgrade/* /opt/registry/
-cp -r /opt/upgrade/web/* /var/www/
+cp -r /opt/upgrade/cp/* /var/www/
+cp -r /opt/upgrade/whois/* /var/www/
 ```
 
 ## Step 6: Delete Panel Cache and Update Composer
@@ -122,7 +123,16 @@ cp -r /opt/upgrade/web/* /var/www/
 find /var/www/cp/cache/* -type d -exec rm -rf {} +
 ```
 
-2. Run `composer update` in each component directory.
+2. Run `composer update` in each component directory:
+
+```bash
+/opt/registry/epp
+/opt/registry/das
+/opt/registry/rdap
+/opt/registry/whois/port43
+/var/www/cp
+/var/www/whois
+```
 
 ## Step 7: Restart Services
 

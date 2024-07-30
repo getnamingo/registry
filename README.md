@@ -14,7 +14,33 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 ## Get Involved
 
-**Namingo** version 1.0.0 is now complete, thanks to our dedicated community. However, the journey doesn't end here! We are seeking volunteers to help test Namingo, which currently manages 150,000 domains on a VPS setup (2 cores, 4GB RAM, 100GB SSD) and is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We also need testers for new OS and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options. Additionally, we seek assistance from gTLD operators to help us test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
+**Namingo** version 1.0.0 is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
+
+Currently, Namingo is able to manage 150,000 domains on a VPS setup featuring 2 cores, 4GB RAM, and a 100GB SSD. It is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options.
+
+Additionally, we are looking for assistance from gTLD operators to test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
+
+### Benchmark Summary (per registrar)
+
+- VPS Setup: 2 virtual CPU cores (AMD EPYC-Rome, 2 GHz), 2 GB RAM, SSD drive, Ubuntu 22.04
+
+#### Domain Checks:
+
+- Operations per Second: 217.55
+
+- Average Time per Operation: 4.596 ms
+
+#### Domain Info Queries:
+
+- Operations per Second: 94.65
+
+- Average Time per Operation: 10.57 ms
+
+#### Domain Creations:
+
+- Operations per Second: 42.17
+
+- Average Time per Operation: 23.72 ms
 
 ## Features
 
@@ -48,13 +74,15 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 ## Documentation
 
-We invite you to thoroughly review all the `.md` files within the `docs` directory to familiarize yourself with the various aspects of Namingo. These documents provide comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
+Our documentation provides comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
 
-### Installation Instructions
+### Installation and Upgrade Instructions
 
 #### Automated Install
 
-For a quick and easy installation, you can use the automated install script by running the following command:
+To begin, simply copy the command below and paste it into your server terminal. This installation process is optimized for a fresh VPS running Ubuntu 22.04/24.04 or Debian 12.
+
+**Minimum requirement:** a VPS with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space. Please use MySQL or MariaDB.
 
 ```bash
 wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./install.sh
@@ -62,9 +90,37 @@ wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./in
 
 This command will download and execute the `install.sh` script from Namingo's website, which automates the installation process.
 
+*IPv6 Requirement:* If your system lacks IPv6 support, test with `ping -6 ipv6.google.com`. To prevent installer issues, edit `/etc/gai.conf` and uncomment or add the following line
+
+```bash
+precedence ::ffff:0:0/96 100
+```
+
+In the `config.php` files of WHOIS/DAS components make sure you replace `::` with `false` or for EPP - with `0.0.0.0`
+
 #### Manual Installation Steps
 
 For detailed installation steps, please refer to [install.md](docs/install.md).
+
+#### Upgrade Steps (from v1.0.0-RC4 or later)
+
+For detailed upgrade steps, please refer to [upgrade.md](docs/upgrade.md).
+
+### [Configuration Guide](docs/configuration.md)
+
+#### [Database Replication](docs/replication.md)
+
+#### [Data Encryption](docs/encryption.md)
+
+#### [Custom Pricing per Registrar](docs/custom-registrar-pricing.md)
+
+#### [Minimum Data Set](docs/minimum-data-set.md)
+
+### [Initial Operation Guide](docs/iog.md)
+
+### [FAQ](docs/faq.md)
+
+### [Architecture of Namingo](docs/architecture.md)
 
 ## Support
 
