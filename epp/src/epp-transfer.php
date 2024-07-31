@@ -954,8 +954,8 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $acdate = $row['acdate'];
 
         if (!$trstatus || $trstatus !== 'pending') {
-            $period = (int) ($xml->xpath('domain:period[1]')[0] ?? 0);
-            $period_unit = ($xml->xpath('domain:period/@unit[1]')[0] ?? '');
+            $period = (int) ($xml->xpath('//domain:period[1]')[0] ?? 0);
+            $period_unit = ($xml->xpath('//domain:period/@unit[1]')[0] ?? '');
 
             if ($period) {
                 if ($period < 1 || $period > 99) {
