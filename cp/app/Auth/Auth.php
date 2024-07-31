@@ -13,6 +13,8 @@ use Pinga\Auth\ResetDisabledException;
 use Pinga\Auth\TokenExpiredException;
 use Pinga\Auth\TooManyRequestsException;
 use Pinga\Auth\UserAlreadyExistsException;
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
 
 /**
  * Auth
@@ -149,8 +151,12 @@ class Auth
 
             if (!is_null($tfa_secret)) {
                 if (!is_null($code) && $code !== "" && preg_match('/^\d{6}$/', $code)) {
-                // If tfa_secret exists and is not empty, verify the 2FA code
-                $tfaService = new \RobThree\Auth\TwoFactorAuth('Namingo');
+                    // If tfa_secret exists and is not empty, verify the 2FA code
+                    $qrCodeProvider = new BaconQRCodeProvider($borderWidth = 0, $backgroundColour = '#ffffff', $foregroundColour = '#000000', $format = 'svg');
+                    $tfaService = new TwoFactorAuth(
+                        issuer: "Namingo",
+                        qrcodeprovider: $qrCodeProvider,
+                    );
                     if ($tfaService->verifyCode($tfa_secret, $code, 0) === true) {
                         // 2FA verification successful
                         return true;
