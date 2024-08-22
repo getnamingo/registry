@@ -22,25 +22,17 @@ Additionally, we are looking for assistance from gTLD operators to test Namingo 
 
 ### EPP Benchmark Summary (per registrar)
 
-- VPS Setup: 2 virtual CPU cores (AMD EPYC-Rome, 2 GHz), 2 GB RAM, SSD drive, Ubuntu 24.04
-
-#### Domain Check:
-
-- Operations per Second: 217.55
-
-- Average Time per Operation: 4.596 ms
-
-#### Domain Info:
-
-- Operations per Second: 94.65
-
-- Average Time per Operation: 10.57 ms
-
-#### Domain Create:
-
-- Operations per Second: 42.17
-
-- Average Time per Operation: 23.72 ms
+| **Metric**                      | 2 vCPU, 2 GB RAM, SSD | 8 vCPU, 32 GB RAM, NVMe |
+|---------------------------------|-----------------------|-------------------------|
+| _Domain Check_                  |                       |                         |
+| Operations per Second (Ops/sec) | 217.55                | 462.58                  |
+| Average Time per Operation (ms) | 4.596                 | 2.16                    |
+| _Domain Info_                   |                       |                         |
+| Operations per Second (Ops/sec) | 94.65                 | 225.55                  |
+| Average Time per Operation (ms) | 10.57                 | 4.43                    |
+| _Domain Create_                 |                       |                         |
+| Operations per Second (Ops/sec) | 42.17                 | 120.62                  |
+| Average Time per Operation (ms) | 23.72                 | 8.29                    |
 
 ## Features
 
