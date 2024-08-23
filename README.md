@@ -14,7 +14,7 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 ## Get Involved
 
-**Namingo** version 1.0.0 is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
+**Namingo** is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
 
 Namingo is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options.
 
@@ -96,9 +96,11 @@ In the `config.php` files of WHOIS/DAS components make sure you replace `::` wit
 
 For detailed installation steps, please refer to [install.md](docs/install.md).
 
-#### Update Steps (from v1.0.0 to v1.0.1)
+#### Update Steps
 
-To update from the first stable version, please backup and run the [update101.sh](docs/update101.sh) script.
+- v1.0.1 to v1.0.2 - backup registry, download and run the [update102.sh](docs/update102.sh) script.
+
+- v1.0.0 to v1.0.1 - backup registry, download and run the [update101.sh](docs/update101.sh) script.
 
 #### Update Steps (from v1.0.0-RC4 to v1.0.0)
 
