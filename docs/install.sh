@@ -215,8 +215,8 @@ fi
     mkdir /usr/share/adminer
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
-    
-    git clone https://github.com/getnamingo/registry /opt/registry
+
+    git clone --branch v1.0.1 --single-branch https://github.com/getnamingo/registry /opt/registry
     mkdir -p /var/log/namingo
     chown -R www-data:www-data /var/log/namingo
     
