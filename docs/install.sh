@@ -11,15 +11,16 @@ prompt_for_password() {
     echo $password
 }
 
-# Function to edit or add a configuration line in php.ini
-edit_php_ini() {
-    local file=$1
-    local setting=$2
+# Function to ensure a setting is present, uncommented, and correctly set
+set_php_ini_value() {
+    local ini_file=$1
+    local key=$2
     local value=$3
-    if grep -q "^;\?\s*${setting}\s*=" "$file"; then
-        sed -i "s/^\(;?\s*${setting}\s*=\).*/\1 ${value}/" "$file"
+
+    if grep -qE "^\s*;?\s*${key}\s*=" "$ini_file"; then
+        sed -i "s/^\s*;?\s*${key}\s*=.*/${key} = ${value}/" "$ini_file"
     else
-        echo "${setting} = ${value}" >> "$file"
+        echo "${key} = ${value}" >> "$ini_file"
     fi
 }
 
@@ -92,36 +93,43 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
         timedatectl set-timezone UTC
     fi
 
-    # Edit php.ini files
+    # Determine PHP configuration files based on OS and version
     if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-    phpIniCli='/etc/php/8.3/cli/php.ini'
-    phpIniFpm='/etc/php/8.3/fpm/php.ini'
+        phpIniCli='/etc/php/8.3/cli/php.ini'
+        phpIniFpm='/etc/php/8.3/fpm/php.ini'
+        phpIniOpcache='/etc/php/8.3/mods-available/opcache.ini'
     else
-    phpIniCli='/etc/php/8.2/cli/php.ini'
-    phpIniFpm='/etc/php/8.2/fpm/php.ini'
+        phpIniCli='/etc/php/8.2/cli/php.ini'
+        phpIniFpm='/etc/php/8.2/fpm/php.ini'
+        phpIniOpcache='/etc/php/8.2/mods-available/opcache.ini'
     fi
 
-    echo "Updating PHP configuration..."
-    for file in "$phpIniCli" "$phpIniFpm"; do
-        edit_php_ini "$file" "opcache.enable" "1"
-        edit_php_ini "$file" "opcache.enable_cli" "1"
-        edit_php_ini "$file" "opcache.jit_buffer_size" "100M"
-        edit_php_ini "$file" "opcache.jit" "1255"
-        edit_php_ini "$file" "session.cookie_secure" "1"
-        edit_php_ini "$file" "session.cookie_httponly" "1"
-        edit_php_ini "$file" "session.cookie_samesite" "\"Strict\""
-        edit_php_ini "$file" "session.cookie_domain" "example.com"
-        edit_php_ini "$file" "memory_limit" "512M"
-    done
-    
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-    edit_php_ini "/etc/php/8.3/mods-available/opcache.ini" "opcache.jit" "1255"
-    edit_php_ini "/etc/php/8.3/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
-    else
-    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit" "1255"
-    edit_php_ini "/etc/php/8.2/mods-available/opcache.ini" "opcache.jit_buffer_size" "100M"
-    fi
-    
+    # Update php.ini files
+    set_php_ini_value "$phpIniCli" "opcache.enable" "1"
+    set_php_ini_value "$phpIniCli" "opcache.enable_cli" "1"
+    set_php_ini_value "$phpIniCli" "opcache.jit_buffer_size" "100M"
+    set_php_ini_value "$phpIniCli" "opcache.jit" "1255"
+    set_php_ini_value "$phpIniCli" "session.cookie_secure" "1"
+    set_php_ini_value "$phpIniCli" "session.cookie_httponly" "1"
+    set_php_ini_value "$phpIniCli" "session.cookie_samesite" "\"Strict\""
+    set_php_ini_value "$phpIniCli" "session.cookie_domain" "\"$REGISTRY_DOMAIN,cp.$REGISTRY_DOMAIN,whois.$REGISTRY_DOMAIN\""
+    set_php_ini_value "$phpIniCli" "memory_limit" "2G"
+
+    # Repeat the same settings for php-fpm
+    set_php_ini_value "$phpIniFpm" "opcache.enable" "1"
+    set_php_ini_value "$phpIniFpm" "opcache.enable_cli" "1"
+    set_php_ini_value "$phpIniFpm" "opcache.jit_buffer_size" "100M"
+    set_php_ini_value "$phpIniFpm" "opcache.jit" "1255"
+    set_php_ini_value "$phpIniFpm" "session.cookie_secure" "1"
+    set_php_ini_value "$phpIniFpm" "session.cookie_httponly" "1"
+    set_php_ini_value "$phpIniFpm" "session.cookie_samesite" "\"Strict\""
+    set_php_ini_value "$phpIniFpm" "session.cookie_domain" "\"$REGISTRY_DOMAIN,cp.$REGISTRY_DOMAIN,whois.$REGISTRY_DOMAIN\""
+    set_php_ini_value "$phpIniFpm" "memory_limit" "2G"
+
+    # Update opcache.ini
+    set_php_ini_value "$phpIniOpcache" "opcache.jit" "1255"
+    set_php_ini_value "$phpIniOpcache" "opcache.jit_buffer_size" "100M"
+
     # Restart PHP-FPM service
     echo "Restarting PHP FPM service..."
     if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
@@ -215,8 +223,8 @@ fi
     mkdir /usr/share/adminer
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
-    
-    git clone https://github.com/getnamingo/registry /opt/registry
+
+    git clone --branch v1.0.1 --single-branch https://github.com/getnamingo/registry /opt/registry
     mkdir -p /var/log/namingo
     chown -R www-data:www-data /var/log/namingo
     

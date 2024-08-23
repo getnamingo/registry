@@ -132,7 +132,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
                     $dsRecord = new ResourceRecord;
                     $dsRecord->setName($dname_clean . '.');
                     $dsRecord->setClass(Classes::INTERNET);
-                    $dsRecord->setRdata(Factory::Ds($keytag, $alg, $digest, $digesttype));
+                    $dsRecord->setRdata(Factory::Ds($keytag, $alg, hex2bin($digest), $digesttype));
                     $zone->addResourceRecord($dsRecord);
                 }
             }

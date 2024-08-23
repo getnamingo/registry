@@ -75,13 +75,18 @@ class HomeController extends Controller
             $dates = [];
             $counts = [];
 
-            foreach ($domainsCount as $row) {
-                // Extract just the date part from the datetime string
-                $date = (new \DateTime($row['date']))->format('Y-m-d');
-                $count = (int)$row['count']; // Ensure count is an integer
+            if (is_array($domainsCount) || is_object($domainsCount)) {
+                foreach ($domainsCount as $row) {
+                    // Extract just the date part from the datetime string
+                    $date = (new \DateTime($row['date']))->format('Y-m-d');
+                    $count = (int)$row['count']; // Ensure count is an integer
 
-                $dates[] = $date;
-                $counts[] = $count;
+                    $dates[] = $date;
+                    $counts[] = $count;
+                }
+            } else {
+                $dates[] = 'No data';
+                $counts[] = 0;
             }
 
             $query = "
@@ -135,10 +140,16 @@ class HomeController extends Controller
             $answeredData = [];
             $unansweredData = [];
 
-            foreach ($results as $row) {
-                $labels3[] = $row['ticket_date'];
-                $answeredData[] = (int) $row['answered']; // Cast to int for ApexCharts
-                $unansweredData[] = (int) $row['unanswered']; // Cast to int for ApexCharts
+            if (is_array($results) || is_object($results)) {
+                foreach ($results as $row) {
+                    $labels3[] = $row['ticket_date'];
+                    $answeredData[] = (int) $row['answered']; // Cast to int for ApexCharts
+                    $unansweredData[] = (int) $row['unanswered']; // Cast to int for ApexCharts
+                }
+            } else {
+                $labels3[] = 0;
+                $answeredData[] = 0;
+                $unansweredData[] = 0;
             }
 
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain');

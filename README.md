@@ -16,31 +16,25 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 **Namingo** version 1.0.0 is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
 
-Currently, Namingo is able to manage 150,000 domains on a VPS setup featuring 2 cores, 4GB RAM, and a 100GB SSD. It is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options.
+Namingo is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options.
+
+Namingo efficiently manages up to 150,000 domains on a VPS setup with 2 cores, 4GB RAM, and an 11GB SSD. It can handle up to 1,000,000 domains on a more robust VPS configuration with 8 cores, 32GB RAM, and a 125GB NVMe SSD, though a few minor issues are noted in the [issues tab](https://github.com/getnamingo/registry/issues?q=is%3Aissue+is%3Aopen+label%3A%221+000+000+domains+issue%22). Zone generation for 1 million domains takes approximately 6 minutes.
 
 Additionally, we are looking for assistance from gTLD operators to test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
 
 ### EPP Benchmark Summary (per registrar)
 
-- VPS Setup: 2 virtual CPU cores (AMD EPYC-Rome, 2 GHz), 2 GB RAM, SSD drive, Ubuntu 24.04
-
-#### Domain Check:
-
-- Operations per Second: 217.55
-
-- Average Time per Operation: 4.596 ms
-
-#### Domain Info:
-
-- Operations per Second: 94.65
-
-- Average Time per Operation: 10.57 ms
-
-#### Domain Create:
-
-- Operations per Second: 42.17
-
-- Average Time per Operation: 23.72 ms
+| **Metric**                      | 2 vCPU, 2 GB RAM, SSD | 8 vCPU, 32 GB RAM, NVMe |
+|---------------------------------|-----------------------|-------------------------|
+| _Domain Check_                  |                       |                         |
+| Operations per Second (Ops/sec) | 217.55                | 462.58                  |
+| Average Time per Operation (ms) | 4.596                 | 2.16                    |
+| _Domain Info_                   |                       |                         |
+| Operations per Second (Ops/sec) | 94.65                 | 225.55                  |
+| Average Time per Operation (ms) | 10.57                 | 4.43                    |
+| _Domain Create_                 |                       |                         |
+| Operations per Second (Ops/sec) | 42.17                 | 120.62                  |
+| Average Time per Operation (ms) | 23.72                 | 8.29                    |
 
 ## Features
 

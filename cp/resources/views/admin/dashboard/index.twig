@@ -253,6 +253,7 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+    {% if registrars %}
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         var dates = JSON.parse('{{ dates|raw }}');
@@ -448,4 +449,5 @@
           })).render();
       });
     </script>
+    {% endif %}
 {% endblock %}
