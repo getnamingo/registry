@@ -3,5 +3,8 @@
 return [
     'whois_url' => 'whois.example.com',
     'rdap_url' => 'rdap.example.com',
-    'ignore_captcha' => true
+    'ignore_captcha' => true,
+    'registry_name' => 'Domain Registry LLC',
+    'registry_url' => 'https://example.com',
+    'branding' => false,
 ];

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Prompt the user for confirmation
-echo "This will update Namingo Registry from v1.0.0 to v1.0.1."
+echo "This will update Namingo Registry from v1.0.1 to v1.0.2."
 echo "Make sure you have a backup of the database, /var/www/cp, and /opt/registry."
 read -p "Are you sure you want to proceed? (y/n): " confirm
 
@@ -47,18 +47,18 @@ done
 # Stop services
 echo "Stopping services..."
 systemctl stop caddy
-#systemctl stop epp
-#systemctl stop whois
-#systemctl stop rdap
-#systemctl stop das
+systemctl stop epp
+systemctl stop whois
+systemctl stop rdap
+systemctl stop das
 
 # Clear cache
 echo "Clearing cache..."
 php /var/www/cp/bin/clear_cache.php
 
 # Clone the new version of the repository
-echo "Cloning v1.0.1 from the repository..."
-git clone --branch v1.0.1 --single-branch https://github.com/getnamingo/registry /opt/registry
+echo "Cloning v1.0.2 from the repository..."
+git clone --branch v1.0.2 --single-branch https://github.com/getnamingo/registry /opt/registry102
 
 # Copy files from the new version to the appropriate directories
 echo "Copying files..."
@@ -77,13 +77,23 @@ copy_files() {
 }
 
 # Copy specific directories
-copy_files "/opt/registry101/automation" "/opt/registry/automation"
-copy_files "/opt/registry101/cp" "/var/www/cp"
-#copy_files "/opt/registry101/das" "/opt/registry/das"
-#copy_files "/opt/registry101/whois/port43" "/opt/registry/whois/port43"
-#copy_files "/opt/registry101/rdap" "/opt/registry/rdap"
-#copy_files "/opt/registry101/epp" "/opt/registry/epp"
-copy_files "/opt/registry101/docs" "/opt/registry/docs"
+copy_files "/opt/registry102/automation" "/opt/registry/automation"
+copy_files "/opt/registry102/cp" "/var/www/cp"
+copy_files "/opt/registry102/whois/web" "/var/www/whois"
+#copy_files "/opt/registry102/das" "/opt/registry/das"
+#copy_files "/opt/registry102/whois/port43" "/opt/registry/whois/port43"
+#copy_files "/opt/registry102/rdap" "/opt/registry/rdap"
+#copy_files "/opt/registry102/epp" "/opt/registry/epp"
+copy_files "/opt/registry102/docs" "/opt/registry/docs"
+
+# Path to the config.php file
+config_file="/var/www/whois/config.php"
+
+# Use sed to find the line with 'ignore_captcha' and add a comma after 'true' or 'false'
+sed -i "/'ignore_captcha'/ s/\(true\|false\)\([^,]\)/\1,\2/" "$config_file"
+
+# Append the new lines after 'ignore_captcha' line
+sed -i "/'ignore_captcha'/a\    'registry_name' => 'Domain Registry LLC',\n    'registry_url' => 'https://example.com',\n    'branding' => false," "$config_file"
 
 # Run composer update in copied directories (excluding docs)
 echo "Running composer update..."
@@ -108,18 +118,18 @@ composer_update "/var/www/cp"
 
 # Start services
 echo "Starting services..."
-#systemctl start epp
-#systemctl start whois
-#systemctl start rdap
-#systemctl start das
+systemctl start epp
+systemctl start whois
+systemctl start rdap
+systemctl start das
 systemctl start caddy
 
 # Check if services started successfully
 if [[ $? -eq 0 ]]; then
-    echo "Services started successfully. Deleting /opt/registry101..."
-    rm -rf /opt/registry101
+    echo "Services started successfully. Deleting /opt/registry102..."
+    rm -rf /opt/registry102
 else
-    echo "There was an issue starting the services. /opt/registry101 will not be deleted."
+    echo "There was an issue starting the services. /opt/registry102 will not be deleted."
 fi
 
-echo "Upgrade to v1.0.1 completed successfully."
+echo "Upgrade to v1.0.2 completed successfully."
