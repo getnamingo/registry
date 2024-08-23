@@ -70,7 +70,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 Our documentation provides comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
 
-### Installation and Upgrade Instructions
+### Installation and Update Instructions
 
 #### Automated Install
 
@@ -96,9 +96,13 @@ In the `config.php` files of WHOIS/DAS components make sure you replace `::` wit
 
 For detailed installation steps, please refer to [install.md](docs/install.md).
 
-#### Upgrade Steps (from v1.0.0-RC4 or later)
+#### Update Steps (from v1.0.0 to v1.0.1)
 
-For detailed upgrade steps, please refer to [upgrade.md](docs/upgrade.md).
+To update from the first stable version, please backup and run the [update101.sh](docs/update101.sh) script.
+
+#### Update Steps (from v1.0.0-RC4 to v1.0.0)
+
+For detailed update steps, please refer to [upgrade.md](docs/upgrade.md).
 
 ### [Configuration Guide](docs/configuration.md)
 
