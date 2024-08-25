@@ -342,6 +342,21 @@ class Auth
     }
 
     /**
+     * Leave impersonation mode
+     * @throws \Pinga\Auth\AuthError
+     */
+    public static function leaveImpersonation(){
+        $auth = self::$auth;
+        if (self::$auth->isLoggedIn()) {
+            $auth->leaveImpersonation();
+            redirect()->route('registrars')->with('success','Left registrar panel successfully');
+        }
+        else {
+            return false;
+        }
+    }
+
+    /**
      * @throws \Pinga\Auth\AuthError
      */
     public static function logout(){

@@ -1247,4 +1247,9 @@ class RegistrarsController extends Controller
         }
     }
 
+    public function leave_impersonation(Request $request, Response $response)
+    {
+        Auth::leaveImpersonation();
+    }
+
 }

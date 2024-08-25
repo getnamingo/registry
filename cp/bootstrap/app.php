@@ -159,6 +159,10 @@ $container->set('view', function ($container) {
     $currency = isset($_SESSION['_currency']) ? $_SESSION['_currency'] : 'USD';
     $view->getEnvironment()->addGlobal('currency', $currency);
 
+    // Check if the user is impersonated from the admin, otherwise default to false
+    $isAdminImpersonation = isset($_SESSION['impersonator']) ? $_SESSION['impersonator'] : false;
+    $view->getEnvironment()->addGlobal('isAdminImpersonation', $isAdminImpersonation);
+
     $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
         // Find the translation
         $translation = $translations->find(null, $text);
