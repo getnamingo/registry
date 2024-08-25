@@ -245,42 +245,70 @@ function extractDomainAndTLD($urlString) {
     $cachedFile = $cache->getItem($cacheKey);
     $fileContent = $cachedFile->get();
 
+    // Check if fileContent is not null
+    if (null === $fileContent) {
+        // Handle the error gracefully
+        throw new \Exception("The TLDs cache file is missing or unreadable");
+    }
+
     // Load a list of test TLDs used in your QA environment
     $testTlds = explode(',', $c['test_tlds']);
 
     // Parse the URL to get the host
     $parts = parse_url($urlString);
     $host = $parts['host'] ?? $urlString;
-    
-    // Sort test TLDs by length (longest first) to match the longest possible TLD
-    usort($testTlds, function ($a, $b) {
-        return strlen($b) - strlen($a);
-    });
 
-    // Check if the TLD is a known test TLD
-    foreach ($testTlds as $testTld) {
-        if (str_ends_with($host, "$testTld")) {
-            // Handle the test TLD case
-            $tldLength = strlen($testTld); // No +1 for the dot
-            $hostWithoutTld = substr($host, 0, -$tldLength);
-            $hostParts = explode('.', $hostWithoutTld);
-            $sld = array_pop($hostParts);
-            if (strpos($testTld, '.') === 0) {
-                $testTld = ltrim($testTld, '.');
+    // Function to handle TLD extraction
+    $extractSLDandTLD = function($host, $tlds) {
+        foreach ($tlds as $tld) {
+            if (str_ends_with($host, ".$tld")) {
+                $tldLength = strlen($tld) + 1; // +1 for the dot
+                $hostWithoutTld = substr($host, 0, -$tldLength);
+                $hostParts = explode('.', $hostWithoutTld);
+                $sld = array_pop($hostParts);
+                return [
+                    'domain' => $sld,
+                    'tld' => $tld
+                ];
             }
-            return [
-                'domain' => implode('.', $hostParts) ? implode('.', $hostParts) . '.' . $sld : $sld, 
-                'tld' => $testTld
-            ];
         }
+        return null;
+    };
+
+    // First, check against test TLDs
+    $result = $extractSLDandTLD($host, $testTlds);
+    if ($result !== null) {
+        return $result;
     }
 
     // Use the PHP Domain Parser library for real TLDs
     $tlds = TopLevelDomains::fromString($fileContent);
     $domain = Domain::fromIDNA2008($host);
-    $result = $tlds->resolve($domain);
-    $sld = $result->secondLevelDomain()->toString();
-    $tld = $result->suffix()->toString();
+    $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
+
+    // Handle cases with multi-level TLDs
+    $possibleTLDs = [];
+    $hostParts = explode('.', $host);
+    $tld = '';
+    for ($i = count($hostParts) - 1; $i >= 0; $i--) {
+        $tld = $hostParts[$i] . ($tld ? '.' . $tld : '');
+        $possibleTLDs[] = $tld;
+    }
+
+    // Sort by length to match longest TLD first
+    usort($possibleTLDs, function ($a, $b) {
+        return strlen($b) - strlen($a);
+    });
+
+    // Check against real TLDs
+    $result = $extractSLDandTLD($host, $possibleTLDs);
+    if ($result !== null) {
+        return $result;
+    }
+
+    // Fallback if nothing matches
+    $sld = $domain->secondLevelDomain()->toString();
+    $tld = $resolvedTLD;
 
     return ['domain' => $sld, 'tld' => $tld];
 }
