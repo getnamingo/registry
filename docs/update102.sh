@@ -90,7 +90,7 @@ copy_files "/opt/registry102/docs" "/opt/registry/docs"
 config_file="/var/www/whois/config.php"
 
 # Use sed to find the line with 'ignore_captcha' and add a comma after 'true' or 'false'
-sed -i "/'ignore_captcha'/ s/\(true\|false\)\([^,]\)/\1,\2/" "$config_file"
+sed -i "/'ignore_captcha'/ s/\(true\|false\)\s*$/\1,/" "$config_file"
 
 # Append the new lines after 'ignore_captcha' line
 sed -i "/'ignore_captcha'/a\    'registry_name' => 'Domain Registry LLC',\n    'registry_url' => 'https://example.com',\n    'branding' => false," "$config_file"
