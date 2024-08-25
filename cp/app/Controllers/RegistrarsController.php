@@ -7,6 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use League\ISO3166\ISO3166;
 use Respect\Validation\Validator as v;
+use App\Auth\Auth;
 
 class RegistrarsController extends Controller
 {
@@ -1217,6 +1218,29 @@ class RegistrarsController extends Controller
                 'currentUri' => $uri,
             ]);
             
+        } else {
+            // Redirect to the registrars view
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+    }
+
+    public function impersonateRegistrar(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+
+        if ($args) {
+            $args = trim($args);
+
+            $registrar_id = $db->selectValue('SELECT id FROM registrar WHERE clid = ?',
+            [ $args ]);
+            $user_id = $db->selectValue('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
+            [ $registrar_id ]);
+
+            Auth::impersonateUser($user_id);
         } else {
             // Redirect to the registrars view
             return $response->withHeader('Location', '/registrars')->withStatus(302);

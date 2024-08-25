@@ -323,6 +323,25 @@ class Auth
     }
 
     /**
+     * Impersonate a user
+     * @param $userId
+     * @throws \Pinga\Auth\AuthError
+     */
+    public static function impersonateUser($userId){
+        $auth = self::$auth;
+        try {
+            $auth->admin()->logInAsUserById($userId);
+            redirect()->route('home')->with('success','Registrar impersonation started');
+        }
+        catch (UnknownIdException  $e) {
+            redirect()->route('registrars')->with('error','Unknown ID');
+        }
+        catch (EmailNotVerifiedException $e) {
+            redirect()->route('registrars')->with('error','Email address not verified');
+        }
+    }
+
+    /**
      * @throws \Pinga\Auth\AuthError
      */
     public static function logout(){
