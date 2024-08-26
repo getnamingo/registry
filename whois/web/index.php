@@ -23,7 +23,7 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
     /* Improved font settings using system fonts */
     body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        background-color: #f4f4f4;
+        background-color: #fff;
         color: #333;
         line-height: 1.6;
         padding: 20px;
