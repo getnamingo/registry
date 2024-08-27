@@ -224,7 +224,7 @@ fi
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
-    git clone --branch v1.0.2 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.3 --single-branch https://github.com/getnamingo/registry /opt/registry
     mkdir -p /var/log/namingo
     chown -R www-data:www-data /var/log/namingo
     
