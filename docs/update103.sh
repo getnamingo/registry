@@ -83,7 +83,7 @@ copy_files "/opt/registry103/whois/web" "/var/www/whois"
 #copy_files "/opt/registry103/das" "/opt/registry/das"
 #copy_files "/opt/registry103/whois/port43" "/opt/registry/whois/port43"
 #copy_files "/opt/registry103/rdap" "/opt/registry/rdap"
-#copy_files "/opt/registry103/epp" "/opt/registry/epp"
+copy_files "/opt/registry103/epp" "/opt/registry/epp"
 copy_files "/opt/registry103/docs" "/opt/registry/docs"
 
 # Path to the config.php file
@@ -114,7 +114,7 @@ composer_update "/var/www/cp"
 #composer_update "/opt/registry/das"
 #composer_update "/opt/registry/whois/port43"
 #composer_update "/opt/registry/rdap"
-#composer_update "/opt/registry/epp"
+composer_update "/opt/registry/epp"
 
 # Start services
 echo "Starting services..."
