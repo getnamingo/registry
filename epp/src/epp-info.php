@@ -178,7 +178,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
     }
 }
 
-function processDomainInfo($conn, $db, $xml, $trans) {
+function processDomainInfo($conn, $db, $xml, $clid, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -438,7 +438,7 @@ function processDomainInfo($conn, $db, $xml, $trans) {
 
             // Fetch RGP status
             $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
-            
+
             $svTRID = generateSvTRID();
             $response = [
                 'command' => 'info_domain',
@@ -468,14 +468,18 @@ function processDomainInfo($conn, $db, $xml, $trans) {
             if (isset($domain['trdate']) && $domain['trdate']) {
                 $response['trDate'] = $domain['trdate'];
             }
-            if (isset($domain_authinfo_id) && $domain_authinfo_id) {
+            if ($clid == $domain['clid']) {
+                $response['authInfo'] = 'valid';
+                $response['authInfo_type'] = $authInfo['authtype'];
+                $response['authInfo_val'] = $authInfo['authinfo'];
+            } else if (isset($domain_authinfo_id) && $domain_authinfo_id) {
                 $response['authInfo'] = 'valid';
                 $response['authInfo_type'] = $authInfo['authtype'];
                 $response['authInfo_val'] = $authInfo['authinfo'];
             } else {
                 $response['authInfo'] = 'invalid';
             }
-            
+
             // Conditionally add hostObj if hosts are available from domain_host_map
             if (!empty($transformedHosts)) {
                 $response['hostObj'] = $transformedHosts;
