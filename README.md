@@ -98,6 +98,8 @@ For detailed installation steps, please refer to [install.md](docs/install.md).
 
 #### Update Steps
 
+- v1.0.3 to v1.0.4 - backup registry, download and run the [update104.sh](docs/update104.sh) script.
+
 - v1.0.2 to v1.0.3 - backup registry, download and run the [update103.sh](docs/update103.sh) script.
 
 - v1.0.1 to v1.0.2 - backup registry, download and run the [update102.sh](docs/update102.sh) script.
