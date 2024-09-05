@@ -339,45 +339,47 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $contact_disclose = $xml->xpath('//contact:disclose');
-        $disclose_voice = 1;
-        $disclose_fax = 1;
-        $disclose_email = 1;
-        $disclose_name_int = 1;
-        $disclose_name_loc = 1;
-        $disclose_org_int = 1;
-        $disclose_org_loc = 1;
-        $disclose_addr_int = 1;
-        $disclose_addr_loc = 1;
+        $disclose = [
+            'voice' => 1,
+            'fax' => 1,
+            'email' => 1,
+            'name_int' => 1,
+            'name_loc' => 1,
+            'org_int' => 1,
+            'org_loc' => 1,
+            'addr_int' => 1,
+            'addr_loc' => 1,
+        ];
 
-        foreach ($contact_disclose as $node_disclose) {
+        foreach ($xml->xpath('//contact:disclose') as $node_disclose) {
             $flag = (string)$node_disclose['flag'];
 
             if ($node_disclose->xpath('contact:voice')) {
-                $disclose_voice = $flag;
+                $disclose['voice'] = $flag;
             }
             if ($node_disclose->xpath('contact:fax')) {
-                $disclose_fax = $flag;
+                $disclose['fax'] = $flag;
             }
             if ($node_disclose->xpath('contact:email')) {
-                $disclose_email = $flag;
+                $disclose['email'] = $flag;
             }
             if ($node_disclose->xpath('contact:name[@type="int"]')) {
-                $disclose_name_int = $flag;
+                $disclose['name_int'] = $flag;
             }
             if ($node_disclose->xpath('contact:name[@type="loc"]')) {
-                $disclose_name_loc = $flag;
+                $disclose['name_loc'] = $flag;
             }
             if ($node_disclose->xpath('contact:org[@type="int"]')) {
-                $disclose_org_int = $flag;
+                $disclose['org_int'] = $flag;
             }
             if ($node_disclose->xpath('contact:org[@type="loc"]')) {
-                $disclose_org_loc = $flag;
+                $disclose['org_loc'] = $flag;
             }
             if ($node_disclose->xpath('contact:addr[@type="int"]')) {
-                $disclose_addr_int = $flag;
+                $disclose['addr_int'] = $flag;
             }
             if ($node_disclose->xpath('contact:addr[@type="loc"]')) {
-                $disclose_addr_loc = $flag;
+                $disclose['addr_loc'] = $flag;
             }
         }
 
@@ -427,155 +429,202 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if ($contactChg) {
-    $stmt = $db->prepare("SELECT voice, voice_x, fax, fax_x, email, clid, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate, disclose_voice, disclose_fax, disclose_email FROM contact WHERE id = :contact_id LIMIT 1");
-    $stmt->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    extract($row);
+        $stmt = $db->prepare("SELECT voice, voice_x, fax, fax_x, email, clid, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate, disclose_voice, disclose_fax, disclose_email FROM contact WHERE id = :contact_id LIMIT 1");
+        $stmt->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        extract($row);
 
-/*     if ($postalInfoInt) {
-        // For contact_postalInfo table with type = 'int'
-        $stmt_int = $db->prepare("SELECT name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_int,disclose_org_int,disclose_addr_int FROM contact_postalInfo WHERE contact_id = :contact_id AND type = 'int' LIMIT 1");
-        $stmt_int->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
-        $stmt_int->execute();
-        $row_int = $stmt_int->fetch(PDO::FETCH_ASSOC);
-        extract($row_int);
-    }
+        if ($postalInfoInt) {
+            // For contact_postalInfo table with type = 'int'
+            $stmt_int = $db->prepare("SELECT name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_int,disclose_org_int,disclose_addr_int FROM contact_postalInfo WHERE contact_id = :contact_id AND type = 'int' LIMIT 1");
+            $stmt_int->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
+            $stmt_int->execute();
+            $row_int = $stmt_int->fetch(PDO::FETCH_ASSOC);
+            extract($row_int);
+        }
 
-    if ($postalInfoLoc) {
-        // For contact_postalInfo table with type = 'loc'
-        $stmt_loc = $db->prepare("SELECT name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_loc,disclose_org_loc,disclose_addr_loc FROM contact_postalInfo WHERE contact_id = :contact_id AND type = 'loc' LIMIT 1");
-        $stmt_loc->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
-        $stmt_loc->execute();
-        $row_loc = $stmt_loc->fetch(PDO::FETCH_ASSOC);
-        extract($row_loc);
-    } */
+        if ($postalInfoLoc) {
+            // For contact_postalInfo table with type = 'loc'
+            $stmt_loc = $db->prepare("SELECT name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_loc,disclose_org_loc,disclose_addr_loc FROM contact_postalInfo WHERE contact_id = :contact_id AND type = 'loc' LIMIT 1");
+            $stmt_loc->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
+            $stmt_loc->execute();
+            $row_loc = $stmt_loc->fetch(PDO::FETCH_ASSOC);
+            extract($row_loc);
+        }
 
-    // For contact_authInfo table with authtype = 'pw'
-    $stmt_pw = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' LIMIT 1");
-    $stmt_pw->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
-    $stmt_pw->execute();
-    $e_authInfo_pw = $stmt_pw->fetchColumn();
+        // For contact_authInfo table with authtype = 'pw'
+        $stmt_pw = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' LIMIT 1");
+        $stmt_pw->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
+        $stmt_pw->execute();
+        $e_authInfo_pw = $stmt_pw->fetchColumn();
 
-    // For contact_authInfo table with authtype = 'ext'
-    $stmt_ext = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'ext' LIMIT 1");
-    $stmt_ext->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
-    $stmt_ext->execute();
-    $e_authInfo_ext = $stmt_ext->fetchColumn();
+        // For contact_authInfo table with authtype = 'ext'
+        $stmt_ext = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'ext' LIMIT 1");
+        $stmt_ext->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
+        $stmt_ext->execute();
+        $e_authInfo_ext = $stmt_ext->fetchColumn();
 
-    $postalInfo_int = $xml->xpath("//contact:postalInfo[@type='int']")[0] ?? null;
-    if ($postalInfoInt) {
-        $int_name = (string)($postalInfo_int->xpath("contact:name")[0] ?? "");
-        $int_org = (string)($postalInfo_int->xpath("contact:org")[0] ?? "");
+        $postalInfo_int = $xml->xpath("//contact:postalInfo[@type='int']")[0] ?? null;
+        if ($postalInfoInt) {
+            $int_name = (string)($postalInfo_int->xpath("contact:name")[0] ?? "");
+            $int_org = (string)($postalInfo_int->xpath("contact:org")[0] ?? "");
 
-        $streets_int = $postalInfo_int->xpath("contact:addr/contact:street");
-        $int_street1 = (string)($streets_int[0] ?? "");
-        $int_street2 = (string)($streets_int[1] ?? "");
-        $int_street3 = (string)($streets_int[2] ?? "");
+            $streets_int = $postalInfo_int->xpath("contact:addr/contact:street");
+            $int_street1 = (string)($streets_int[0] ?? "");
+            $int_street2 = (string)($streets_int[1] ?? "");
+            $int_street3 = (string)($streets_int[2] ?? "");
 
-        $int_city = (string)($postalInfo_int->xpath("contact:addr/contact:city")[0] ?? "");
-        $int_sp = (string)($postalInfo_int->xpath("contact:addr/contact:sp")[0] ?? "");
-        $int_pc = (string)($postalInfo_int->xpath("contact:addr/contact:pc")[0] ?? "");
-        $int_cc = (string)($postalInfo_int->xpath("contact:addr/contact:cc")[0] ?? "");
-    }
+            $int_city = (string)($postalInfo_int->xpath("contact:addr/contact:city")[0] ?? "");
+            $int_sp = (string)($postalInfo_int->xpath("contact:addr/contact:sp")[0] ?? "");
+            $int_pc = (string)($postalInfo_int->xpath("contact:addr/contact:pc")[0] ?? "");
+            $int_cc = (string)($postalInfo_int->xpath("contact:addr/contact:cc")[0] ?? "");
+        }
 
-    $postalInfo_loc = $xml->xpath("//contact:postalInfo[@type='loc']")[0] ?? null;
-    if ($postalInfoLoc) {
-        $loc_name = (string)($postalInfo_loc->xpath("contact:name")[0] ?? "");
-        $loc_org = (string)($postalInfo_loc->xpath("contact:org")[0] ?? "");
+        $postalInfo_loc = $xml->xpath("//contact:postalInfo[@type='loc']")[0] ?? null;
+        if ($postalInfoLoc) {
+            $loc_name = (string)($postalInfo_loc->xpath("contact:name")[0] ?? "");
+            $loc_org = (string)($postalInfo_loc->xpath("contact:org")[0] ?? "");
 
-        $streets_loc = $postalInfo_loc->xpath("contact:addr/contact:street");
-        $loc_street1 = (string)($streets_loc[0] ?? "");
-        $loc_street2 = (string)($streets_loc[1] ?? "");
-        $loc_street3 = (string)($streets_loc[2] ?? "");
+            $streets_loc = $postalInfo_loc->xpath("contact:addr/contact:street");
+            $loc_street1 = (string)($streets_loc[0] ?? "");
+            $loc_street2 = (string)($streets_loc[1] ?? "");
+            $loc_street3 = (string)($streets_loc[2] ?? "");
 
-        $loc_city = (string)($postalInfo_loc->xpath("contact:addr/contact:city")[0] ?? "");
-        $loc_sp = (string)($postalInfo_loc->xpath("contact:addr/contact:sp")[0] ?? "");
-        $loc_pc = (string)($postalInfo_loc->xpath("contact:addr/contact:pc")[0] ?? "");
-        $loc_cc = (string)($postalInfo_loc->xpath("contact:addr/contact:cc")[0] ?? "");
-    }
+            $loc_city = (string)($postalInfo_loc->xpath("contact:addr/contact:city")[0] ?? "");
+            $loc_sp = (string)($postalInfo_loc->xpath("contact:addr/contact:sp")[0] ?? "");
+            $loc_pc = (string)($postalInfo_loc->xpath("contact:addr/contact:pc")[0] ?? "");
+            $loc_cc = (string)($postalInfo_loc->xpath("contact:addr/contact:cc")[0] ?? "");
+        }
 
-    $e_voice = (string)($xml->xpath("//contact:voice")[0] ?? "");
-    $e_voice_x = (string)($xml->xpath("//contact:voice/@x")[0] ?? "");
-    $e_fax = (string)($xml->xpath("//contact:fax")[0] ?? "");
-    $e_fax_x = (string)($xml->xpath("//contact:fax/@x")[0] ?? "");
-    $e_email = (string)($xml->xpath("//contact:email")[0] ?? "");
-    $e_authInfo_pw = (string)($xml->xpath("//contact:authInfo/contact:pw")[0] ?? "");
-    $e_authInfo_ext = (string)($xml->xpath("//contact:authInfo/contact:ext")[0] ?? "");
+        $e_voice = (string)($xml->xpath("//contact:voice")[0] ?? "");
+        $e_voice_x = (string)($xml->xpath("//contact:voice/@x")[0] ?? "");
+        $e_fax = (string)($xml->xpath("//contact:fax")[0] ?? "");
+        $e_fax_x = (string)($xml->xpath("//contact:fax/@x")[0] ?? "");
+        $e_email = (string)($xml->xpath("//contact:email")[0] ?? "");
+        $e_authInfo_pw = (string)($xml->xpath("//contact:authInfo/contact:pw")[0] ?? "");
+        $e_authInfo_ext = (string)($xml->xpath("//contact:authInfo/contact:ext")[0] ?? "");
 
-    if (!empty($e_voice) || !empty($e_voice_x) || !empty($e_fax) || !empty($e_fax_x) || !empty($e_email)) {
-        // Update contact
-        $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([
-            $e_voice ?: null,
-            $e_voice_x ?: null,
-            $e_fax ?: null,
-            $e_fax_x ?: null,
-            $e_email,
-            $clid,
-            $contact_id
-        ]);
-    }
+        if (!empty($e_voice) || !empty($e_voice_x) || !empty($e_fax) || !empty($e_fax_x) || !empty($e_email)) {
+            // Update contact
+            $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
+            $stmt = $db->prepare($query);
 
-    if ($postalInfoInt) {
-        // Update contact_postalInfo for 'int'
-        $query = "UPDATE contact_postalInfo SET name = ?, org = ?, street1 = ?, street2 = ?, street3 = ?, city = ?, sp = ?, pc = ?, cc = ? WHERE contact_id = ? AND type = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([
-            $int_name,
-            $int_org,
-            $int_street1,
-            $int_street2,
-            $int_street3,
-            $int_city,
-            $int_sp,
-            $int_pc,
-            $int_cc,
-            $contact_id,
-            'int'
-        ]);
-    }
+            $stmt->execute([
+                $e_voice ?: null,
+                $e_voice_x ?: null,
+                $e_fax ?: null,
+                $e_fax_x ?: null,
+                $e_email,
+                $clid,
+                $contact_id
+            ]);
+        }
+        
+        if (isset($disclose['voice']) || isset($disclose['fax']) || isset($disclose['email'])) {
+            // Update contact
+            $query = "UPDATE contact SET disclose_voice = ?, disclose_fax = ?, disclose_email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
+            $stmt = $db->prepare($query);
 
-    if ($postalInfoLoc) {
-        // Update contact_postalInfo for 'loc'
-        $query = "UPDATE contact_postalInfo SET name = ?, org = ?, street1 = ?, street2 = ?, street3 = ?, city = ?, sp = ?, pc = ?, cc = ? WHERE contact_id = ? AND type = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([
-            $loc_name,
-            $loc_org,
-            $loc_street1,
-            $loc_street2,
-            $loc_street3,
-            $loc_city,
-            $loc_sp,
-            $loc_pc,
-            $loc_cc,
-            $contact_id,
-            'loc'
-        ]);
-    }
+            $stmt->execute([
+                isset($disclose['voice']) ? $disclose['voice'] : $disclose_voice,  // Check if $disclose['voice'] is set, otherwise use $disclose_voice
+                isset($disclose['fax']) ? $disclose['fax'] : $disclose_fax,        // Same logic for fax
+                isset($disclose['email']) ? $disclose['email'] : $disclose_email,  // Same logic for email
+                $clid,
+                $contact_id
+            ]);
+        }
 
-    // Update contact_authInfo for 'pw'
-    if (!empty($e_authInfo_pw)) {
-        $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([
-            $e_authInfo_pw,
-            $contact_id,
-            'pw'
-        ]);
-    }
+        if ($postalInfoInt) {
+            // Update contact_postalInfo for 'int'
+            $query = "UPDATE contact_postalInfo SET name = ?, org = ?, street1 = ?, street2 = ?, street3 = ?, city = ?, sp = ?, pc = ?, cc = ? WHERE contact_id = ? AND type = ?";
+            $stmt = $db->prepare($query);
+            
+            // Use the disclose array if set, otherwise fall back to the extracted values
+            $stmt->execute([
+                $int_name,
+                $int_org,
+                $int_street1,
+                $int_street2,
+                $int_street3,
+                $int_city,
+                $int_sp,
+                $int_pc,
+                $int_cc,
+                $contact_id,
+                'int'
+            ]);
+            
+            if (isset($disclose['name_int']) || isset($disclose['org_int']) || isset($disclose['addr_int'])) {
+                $query = "UPDATE contact_postalInfo SET disclose_name_int = ?, disclose_org_int = ?, disclose_addr_int = ? WHERE contact_id = ? AND type = ?";
+                $stmt = $db->prepare($query);
+                
+                // Use the disclose array if set, otherwise fall back to the extracted values
+                $stmt->execute([
+                    isset($disclose['name_int']) ? $disclose['name_int'] : $disclose_name_int,  // Use disclose array if set, otherwise use the extracted value
+                    isset($disclose['org_int']) ? $disclose['org_int'] : $disclose_org_int,     // Same logic for org
+                    isset($disclose['addr_int']) ? $disclose['addr_int'] : $disclose_addr_int,  // Same logic for address
+                    $contact_id,
+                    'int'
+                ]);
+            }
+        }
 
-    // Update contact_authInfo for 'ext'
-    if (!empty($e_authInfo_ext)) {
-        $stmt = $db->prepare($query); // Same query as above, can reuse
-        $stmt->execute([
-            $e_authInfo_ext,
-            $contact_id,
-            'ext'
-        ]);
-    }
+        if ($postalInfoLoc) {
+            // Update contact_postalInfo for 'loc'
+            $query = "UPDATE contact_postalInfo SET name = ?, org = ?, street1 = ?, street2 = ?, street3 = ?, city = ?, sp = ?, pc = ?, cc = ? WHERE contact_id = ? AND type = ?";
+            $stmt = $db->prepare($query);
+
+            // Use the disclose array if set, otherwise fall back to the extracted values
+            $stmt->execute([
+                $loc_name,
+                $loc_org,
+                $loc_street1,
+                $loc_street2,
+                $loc_street3,
+                $loc_city,
+                $loc_sp,
+                $loc_pc,
+                $loc_cc,
+                $contact_id,
+                'loc'
+            ]);
+            
+            if (isset($disclose['name_loc']) || isset($disclose['org_loc']) || isset($disclose['addr_loc'])) {
+                $query = "UPDATE contact_postalInfo SET disclose_name_loc = ?, disclose_org_loc = ?, disclose_addr_loc = ? WHERE contact_id = ? AND type = ?";
+                $stmt = $db->prepare($query);
+                
+                // Use the disclose array if set, otherwise fall back to the extracted values
+                $stmt->execute([
+                    isset($disclose['name_loc']) ? $disclose['name_loc'] : $disclose_name_loc,  // Use disclose array if set, otherwise use the extracted value
+                    isset($disclose['org_loc']) ? $disclose['org_loc'] : $disclose_org_loc,     // Same logic for org
+                    isset($disclose['addr_loc']) ? $disclose['addr_loc'] : $disclose_addr_loc,  // Same logic for address
+                    $contact_id,
+                    'int'
+                ]);
+            }
+        }
+
+        // Update contact_authInfo for 'pw'
+        if (!empty($e_authInfo_pw)) {
+            $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
+            $stmt = $db->prepare($query);
+            $stmt->execute([
+                $e_authInfo_pw,
+                $contact_id,
+                'pw'
+            ]);
+        }
+
+        // Update contact_authInfo for 'ext'
+        if (!empty($e_authInfo_ext)) {
+            $stmt = $db->prepare($query); // Same query as above, can reuse
+            $stmt->execute([
+                $e_authInfo_ext,
+                $contact_id,
+                'ext'
+            ]);
+        }
 
     }
 
