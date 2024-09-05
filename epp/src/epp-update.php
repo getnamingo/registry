@@ -315,7 +315,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $email = (string) $contactUpdate->chg->email;
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             sendEppError($conn, $db, 2005, 'Email address failed check', $clTRID, $trans);
             return;
         }
@@ -503,18 +503,20 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $e_authInfo_pw = (string)($xml->xpath("//contact:authInfo/contact:pw")[0] ?? "");
     $e_authInfo_ext = (string)($xml->xpath("//contact:authInfo/contact:ext")[0] ?? "");
 
-    // Update contact
-    $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
-    $stmt = $db->prepare($query);
-    $stmt->execute([
-        $e_voice ?: null,
-        $e_voice_x ?: null,
-        $e_fax ?: null,
-        $e_fax_x ?: null,
-        $e_email,
-        $clid,
-        $contact_id
-    ]);
+    if (!empty($e_voice) || !empty($e_voice_x) || !empty($e_fax) || !empty($e_fax_x) || !empty($e_email)) {
+        // Update contact
+        $query = "UPDATE contact SET voice = ?, voice_x = ?, fax = ?, fax_x = ?, email = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?";
+        $stmt = $db->prepare($query);
+        $stmt->execute([
+            $e_voice ?: null,
+            $e_voice_x ?: null,
+            $e_fax ?: null,
+            $e_fax_x ?: null,
+            $e_email,
+            $clid,
+            $contact_id
+        ]);
+    }
 
     if ($postalInfoInt) {
         // Update contact_postalInfo for 'int'
@@ -555,21 +557,25 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     // Update contact_authInfo for 'pw'
-    $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
-    $stmt = $db->prepare($query);
-    $stmt->execute([
-        $e_authInfo_pw,
-        $contact_id,
-        'pw'
-    ]);
+    if (!empty($e_authInfo_pw)) {
+        $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
+        $stmt = $db->prepare($query);
+        $stmt->execute([
+            $e_authInfo_pw,
+            $contact_id,
+            'pw'
+        ]);
+    }
 
     // Update contact_authInfo for 'ext'
-    $stmt = $db->prepare($query); // Same query as above, can reuse
-    $stmt->execute([
-        $e_authInfo_ext,
-        $contact_id,
-        'ext'
-    ]);
+    if (!empty($e_authInfo_ext)) {
+        $stmt = $db->prepare($query); // Same query as above, can reuse
+        $stmt->execute([
+            $e_authInfo_ext,
+            $contact_id,
+            'ext'
+        ]);
+    }
 
     }
 
