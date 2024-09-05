@@ -86,15 +86,6 @@ copy_files "/opt/registry103/whois/web" "/var/www/whois"
 copy_files "/opt/registry103/epp" "/opt/registry/epp"
 copy_files "/opt/registry103/docs" "/opt/registry/docs"
 
-# Path to the config.php file
-config_file="/var/www/whois/config.php"
-
-# Use sed to find the line with 'ignore_captcha' and add a comma after 'true' or 'false'
-sed -i "/'ignore_captcha'/ s/\(true\|false\)\s*$/\1,/" "$config_file"
-
-# Append the new lines after 'ignore_captcha' line
-sed -i "/'ignore_captcha'/a\    'registry_name' => 'Domain Registry LLC',\n    'registry_url' => 'https://example.com',\n    'branding' => false," "$config_file"
-
 # Run composer update in copied directories (excluding docs)
 echo "Running composer update..."
 
