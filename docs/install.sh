@@ -180,9 +180,20 @@ EOF
         apt-get update
         if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
         apt install -y mariadb-client mariadb-server php8.3-mysql
+		
+        echo "Please follow the prompts for secure installation of MariaDB."
+        mariadb-secure-installation
+        
+        # Create user and grant privileges
+        echo "Creating user $DB_USER and setting privileges..."
+        mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "FLUSH PRIVILEGES;"
 else
         apt install -y mariadb-client mariadb-server php8.2-mysql
-fi
+		
         echo "Please follow the prompts for secure installation of MariaDB."
         mysql_secure_installation
         
@@ -193,6 +204,7 @@ fi
         mysql -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
         mysql -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
         mysql -u root -e "FLUSH PRIVILEGES;"
+fi
 
     #elif [ "$DB_TYPE" == "PostgreSQL" ]; then
     #    echo "Setting up PostgreSQL..."
