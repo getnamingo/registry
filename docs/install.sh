@@ -178,9 +178,9 @@ EOF
         fi
 
         apt-get update
-        if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
         apt install -y mariadb-client mariadb-server php8.3-mysql
-		
+        
         echo "Please follow the prompts for secure installation of MariaDB."
         mariadb-secure-installation
         
@@ -193,7 +193,7 @@ EOF
         mariadb -u root -e "FLUSH PRIVILEGES;"
 else
         apt install -y mariadb-client mariadb-server php8.2-mysql
-		
+        
         echo "Please follow the prompts for secure installation of MariaDB."
         mysql_secure_installation
         
@@ -452,9 +452,15 @@ fi
     cd /var/www/cp
     composer install
     
-    echo "Importing database."
-    mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
-    echo "SQL import completed."
+    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+        echo "Importing database."
+        mariadb -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+        echo "SQL import completed."
+    else
+        echo "Importing database."
+        mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+        echo "SQL import completed."
+    fi
 
     echo "Installing Web WHOIS."
     mkdir -p /var/www/whois
