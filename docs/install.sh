@@ -31,6 +31,30 @@ if [[ -e /etc/os-release ]]; then
     VER=$VERSION_ID
 fi
 
+# Minimum requirements
+MIN_RAM_MB=2048
+MIN_DISK_GB=10
+
+# Get the available RAM in MB
+AVAILABLE_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+
+# Get the available disk space in GB for the root partition
+AVAILABLE_DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+
+# Check RAM
+if [ "$AVAILABLE_RAM_MB" -lt "$MIN_RAM_MB" ]; then
+    echo "Error: At least 2GB of RAM is required. Only ${AVAILABLE_RAM_MB}MB is available."
+    exit 1
+fi
+
+# Check disk space
+if [ "$AVAILABLE_DISK_GB" -lt "$MIN_DISK_GB" ]; then
+    echo "Error: At least 10GB of free disk space is required. Only ${AVAILABLE_DISK_GB}GB is available."
+    exit 1
+fi
+
+echo "System meets the minimum requirements. Proceeding with installation..."
+
 # Proceed if it's Ubuntu or Debian
 if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" == "24.04") || ("$OS" == "Debian GNU/Linux" && "$VER" == "12") ]]; then
     # Prompt for details
