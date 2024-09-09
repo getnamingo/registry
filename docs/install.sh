@@ -311,7 +311,7 @@ EOF
         # Adminer Configuration
         route /adminer.php* {
             root * /usr/share/adminer
-            php_fastcgi unix//run/php/php8.2-fpm.sock
+            php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         }
         header * {
             Referrer-Policy "same-origin"
