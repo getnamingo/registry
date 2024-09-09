@@ -31,7 +31,7 @@ if [[ -e /etc/os-release ]]; then
     VER=$VERSION_ID
 fi
 
-# Proceed if it's Ubuntu 22.04 or Debian 12
+# Proceed if it's Ubuntu or Debian
 if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" == "24.04") || ("$OS" == "Debian GNU/Linux" && "$VER" == "12") ]]; then
     # Prompt for details
     REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
@@ -48,43 +48,44 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     current_user=$(whoami)
 
     # Step 1 - Components Installation
+    echo "Installing required packages..."
+    apt update -y
+
+    # Install common packages for all versions
+    apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 caddy gettext git gnupg2 net-tools pv redis unzip wget whois
+
+    # PHP version and repository setup based on the OS version
     if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
-        echo "Installing required packages..."
-        apt update -y
-        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw
         gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
         echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+        PHP_VERSION="php8.2"
+        DB_COMMAND="mysql"
+        SECURE_INSTALL_CMD="mysql_secure_installation"
     elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        echo "Installing required packages..."
-        apt update -y
-        apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw
         gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
         echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+        PHP_VERSION="php8.3"
+        DB_COMMAND="mariadb"
+        SECURE_INSTALL_CMD="mariadb-secure-installation"
     else
-        echo "Installing required packages..."
-        apt update -y
-        apt install -y apt-transport-https ca-certificates cron curl debian-archive-keyring debian-keyring gnupg lsb-release software-properties-common ufw
+        apt install -y ca-certificates cron gnupg lsb-release
         curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-        sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-        gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+        echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+        PHP_VERSION="php8.2"
+        DB_COMMAND="mysql"
+        SECURE_INSTALL_CMD="mysql_secure_installation"
     fi
+
+    # Common Caddy setup
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+    gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
 
     echo "Updating package lists..."
     apt update -y
-    echo "Installing additional required packages..."
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-    apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.3 php8.3-cli php8.3-common php8.3-curl php8.3-ds php8.3-fpm php8.3-gd php8.3-gmp php8.3-gnupg php8.3-igbinary php8.3-imap php8.3-intl php8.3-mbstring php8.3-opcache php8.3-readline php8.3-redis php8.3-soap php8.3-swoole php8.3-uuid php8.3-xml pv redis unzip wget whois
-    else
-    apt install -y bzip2 caddy gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
-    fi
+
+    echo "Installing PHP and required extensions..."
+    apt install -y ${PHP_VERSION} ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-opcache ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml
     
     # Set timezone to UTC if it's not already
     currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
@@ -132,11 +133,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
 
     # Restart PHP-FPM service
     echo "Restarting PHP FPM service..."
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-    systemctl restart php8.3-fpm
-    else
-    systemctl restart php8.2-fpm
-    fi
+    systemctl restart ${PHP_VERSION}-fpm
     echo "PHP configuration update complete!"
 
     #if [ "$DB_TYPE" == "MariaDB" ]; then
@@ -177,34 +174,22 @@ EOF
 EOF
         fi
 
-        apt-get update
-if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        apt install -y mariadb-client mariadb-server php8.3-mysql
-        
+        apt update
+
+        # Install MariaDB and PHP MySQL module
+        apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
+
+        # Secure installation of MariaDB
         echo "Please follow the prompts for secure installation of MariaDB."
-        mariadb-secure-installation
-        
+        $SECURE_INSTALL_CMD
+
         # Create user and grant privileges
         echo "Creating user $DB_USER and setting privileges..."
-        mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
-        mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
-        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
-        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
-        mariadb -u root -e "FLUSH PRIVILEGES;"
-else
-        apt install -y mariadb-client mariadb-server php8.2-mysql
-        
-        echo "Please follow the prompts for secure installation of MariaDB."
-        mysql_secure_installation
-        
-        # Create user and grant privileges
-        echo "Creating user $DB_USER and setting privileges..."
-        mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
-        mysql -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
-        mysql -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
-        mysql -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
-        mysql -u root -e "FLUSH PRIVILEGES;"
-fi
+        ${DB_COMMAND} -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
+        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
+        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
+        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
+        ${DB_COMMAND} -u root -e "FLUSH PRIVILEGES;"
 
     #elif [ "$DB_TYPE" == "PostgreSQL" ]; then
     #    echo "Setting up PostgreSQL..."
@@ -267,7 +252,6 @@ fi
     BIND_LINE=$(generate_bind_line $YOUR_IPV4_ADDRESS $YOUR_IPV6_ADDRESS)
 
     # Update Caddyfile
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
     cat > /etc/caddy/Caddyfile << EOF
     rdap.$REGISTRY_DOMAIN {
         $BIND_LINE
@@ -292,7 +276,7 @@ fi
         $BIND_LINE
         root * /var/www/whois
         encode gzip
-        php_fastcgi unix//run/php/php8.3-fpm.sock
+        php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         file_server
         tls $YOUR_EMAIL
         header -Server
@@ -311,81 +295,7 @@ fi
     cp.$REGISTRY_DOMAIN {
         $BIND_LINE
         root * /var/www/cp/public
-        php_fastcgi unix//run/php/php8.3-fpm.sock
-        encode gzip
-        file_server
-        tls $YOUR_EMAIL
-        header -Server
-        log {
-            output file /var/log/caddy/access.log
-            format console
-        }
-        log {
-            output file /var/log/caddy/error.log
-            level ERROR
-        }
-        # Adminer Configuration
-        route /adminer.php* {
-            root * /usr/share/adminer
-            php_fastcgi unix//run/php/php8.3-fpm.sock
-        }
-        header * {
-            Referrer-Policy "same-origin"
-            Strict-Transport-Security max-age=31536000;
-            X-Content-Type-Options nosniff
-            X-Frame-Options DENY
-            X-XSS-Protection "1; mode=block"
-            Content-Security-Policy: default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://rsms.me; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/; form-action 'self'; worker-src 'none'; frame-src 'none';
-            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
-            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
-        }
-    }
-EOF
-else
-    cat > /etc/caddy/Caddyfile << EOF
-    rdap.$REGISTRY_DOMAIN {
-        $BIND_LINE
-        reverse_proxy localhost:7500
-        encode gzip
-        file_server
-        tls $YOUR_EMAIL
-        header -Server
-        header * {
-            Referrer-Policy "no-referrer"
-            Strict-Transport-Security max-age=31536000;
-            X-Content-Type-Options nosniff
-            X-Frame-Options DENY
-            X-XSS-Protection "1; mode=block"
-            Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; form-action 'self'; worker-src 'none'; frame-src 'none';"
-            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
-            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
-        }
-    }
-
-    whois.$REGISTRY_DOMAIN {
-        $BIND_LINE
-        root * /var/www/whois
-        encode gzip
-        php_fastcgi unix//run/php/php8.2-fpm.sock
-        file_server
-        tls $YOUR_EMAIL
-        header -Server
-        header * {
-            Referrer-Policy "no-referrer"
-            Strict-Transport-Security max-age=31536000;
-            X-Content-Type-Options nosniff
-            X-Frame-Options DENY
-            X-XSS-Protection "1; mode=block"
-            Content-Security-Policy: default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'none'; form-action 'self'; worker-src 'none'; frame-src 'none';
-            Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
-            Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
-        }
-    }
-
-    cp.$REGISTRY_DOMAIN {
-        $BIND_LINE
-        root * /var/www/cp/public
-        php_fastcgi unix//run/php/php8.2-fpm.sock
+        php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         encode gzip
         file_server
         tls $YOUR_EMAIL
@@ -415,8 +325,7 @@ else
         }
     }
 EOF
-fi
-    
+
     systemctl enable caddy
     systemctl restart caddy
     
@@ -452,15 +361,10 @@ fi
     cd /var/www/cp
     composer install
     
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        echo "Importing database."
-        mariadb -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
-        echo "SQL import completed."
-    else
-        echo "Importing database."
-        mysql -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
-        echo "SQL import completed."
-    fi
+    # Importing the database
+    echo "Importing database."
+    $DB_COMMAND -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+    echo "SQL import completed."
 
     echo "Installing Web WHOIS."
     mkdir -p /var/www/whois
