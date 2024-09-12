@@ -304,12 +304,16 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -678,12 +682,16 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
         }
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
@@ -696,8 +704,10 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
@@ -733,12 +743,16 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -833,12 +847,16 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -1010,12 +1028,16 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
         }
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
@@ -1028,8 +1050,10 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
@@ -1103,12 +1127,16 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -1373,13 +1401,17 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
-        }
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
+        }    
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
@@ -1391,8 +1423,10 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
@@ -1422,12 +1456,16 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -1448,12 +1486,16 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -1569,12 +1611,16 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -1945,12 +1991,16 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
         }
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
@@ -1963,8 +2013,10 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
@@ -2079,12 +2131,16 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -2491,12 +2547,16 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
         }
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
@@ -2509,8 +2569,10 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
@@ -2587,12 +2649,16 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $stmt->execute();
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
-                $server->send($fd, "Error connecting to the whois database");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['Database error:' => $e->getMessage()]));
+                return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
-                $server->send($fd, "General error");
-                $server->close($fd);
+                $response->status(500);
+                $response->header('Content-Type', 'application/json');
+                $response->end(json_encode(['General error:' => $e->getMessage()]));
+                return;
             }
             $response->header('Content-Type', 'application/json');
             $response->status(404);
@@ -2824,12 +2890,16 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             $stmt->execute();
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
-            $server->send($fd, "Error connecting to the RDAP database");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['Database error:' => $e->getMessage()]));
+            return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
-            $server->send($fd, "General error");
-            $server->close($fd);
+            $response->status(500);
+            $response->header('Content-Type', 'application/json');
+            $response->end(json_encode(['General error:' => $e->getMessage()]));
+            return;
         }
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(200);
@@ -2842,8 +2912,10 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
-        $server->send($fd, "General error");
-        $server->close($fd);
+        $response->status(500);
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     }
 }
 
