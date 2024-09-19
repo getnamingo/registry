@@ -72,7 +72,7 @@ Our documentation provides comprehensive guidance on installation, configuration
 
 ### Installation and Update Instructions
 
-#### Automated Install
+#### Installer
 
 To begin, simply copy the command below and paste it into your server terminal. This installation process is optimized for a fresh VPS running Ubuntu 22.04/24.04 or Debian 12.
 
@@ -92,9 +92,9 @@ precedence ::ffff:0:0/96 100
 
 In the `config.php` files of WHOIS/DAS components make sure you replace `::` with `false` or for EPP - with `0.0.0.0`
 
-#### Manual Installation Steps
+#### Legacy Installation Guide
 
-For detailed installation steps, please refer to [install.md](docs/install.md).
+For those who prefer a more hands-on approach or need detailed installation instructions, refer to the [Legacy Installation Guide](docs/install.md). However, we recommend using the installer for a more streamlined experience.
 
 #### Update Steps
 
