@@ -30,7 +30,7 @@
         "gettext/gettext": "^5.7",
         "punic/punic": "^3.8.1",
         "league/iso3166": "^4.3.1",
-        "stripe/stripe-php": "^15.4.0",
+        "stripe/stripe-php": "^15.10.0",
         "robthree/twofactorauth": "^3.0.0",
         "lbuchs/webauthn": "^2.2",
         "bacon/bacon-qr-code": "^3.0",
@@ -45,7 +45,7 @@
         "giggsey/libphonenumber-for-php-lite": "^8.13",
         "egulias/email-validator": "^4.0",
         "utopia-php/messaging": "^0.12.0",
-        "brick/postcode": "^0.3.1"
+        "brick/postcode": "^0.3.3"
     },
     "autoload": {
         "psr-4": {
