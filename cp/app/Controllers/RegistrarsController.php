@@ -629,7 +629,7 @@ class RegistrarsController extends Controller
                     'creditLimit' => $data['creditLimit'],
                     'creditThreshold' => $data['creditThreshold'],
                     'currency' => $currency,
-                    'lastupdate' => $crdate
+                    'lastupdate' => $update
                 ];
                 
                 if (!empty($data['eppPassword'])) {
@@ -709,7 +709,7 @@ class RegistrarsController extends Controller
                     ]
                 );
                              
-                if (!empty($data['ipAddress'])) {
+                if (isset($data['ipAddress']) && $data['ipAddress']) {
                     $db->delete(
                         'registrar_whitelist',
                         [
@@ -728,7 +728,7 @@ class RegistrarsController extends Controller
                     }
                 }
                 
-                if ($data['panelPassword']) {
+                if (isset($data['panelPassword']) && $data['panelPassword']) {
                     $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
 
                     $db->update(
@@ -867,7 +867,7 @@ class RegistrarsController extends Controller
                     'abuse_email' => $data['abuseEmail'],
                     'abuse_phone' => $data['abusePhone'],
                     'currency' => $currency,
-                    'lastupdate' => $crdate
+                    'lastupdate' => $update
                 ];
                 
                 if (!empty($data['eppPassword'])) {
@@ -947,7 +947,7 @@ class RegistrarsController extends Controller
                     ]
                 );
                              
-                if (!empty($data['ipAddress'])) {
+                if (isset($data['ipAddress']) && $data['ipAddress']) {
                     $db->delete(
                         'registrar_whitelist',
                         [
@@ -966,7 +966,7 @@ class RegistrarsController extends Controller
                     }
                 }
                 
-                if ($data['panelPassword']) {
+                if (isset($data['panelPassword']) && $data['panelPassword']) {
                     $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
 
                     $db->update(

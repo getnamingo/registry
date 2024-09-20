@@ -112,11 +112,16 @@ class HomeController extends Controller
             $labels = [];
             $series = [];
 
-            foreach ($results as $row) {
-                $labels[] = $row['name']; // Registrar names for chart labels
-                $series[] = (int)$row['domain_count']; // Domain counts for chart data
+            if (is_array($results) || is_object($results)) {
+                foreach ($results as $row) {
+                    $labels[] = $row['name']; // Registrar names for chart labels
+                    $series[] = (int)$row['domain_count']; // Domain counts for chart data
+                }
+            } else {
+                $labels[] = 0;
+                $series[] = 0;
             }
-            
+
             $query = "
                 SELECT 
                     DATE(date_created) as ticket_date, 
