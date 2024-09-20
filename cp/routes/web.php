@@ -193,7 +193,7 @@ $app->any('/api[/{params:.*}]', function (
             }
             $_SESSION['user'] = $_SESSION['auth_username'];
         },
-        'customization.afterHandler' => function ($operation, $tableName, &$response, $environment) {
+        'customization.afterHandler' => function ($operation, $tableName, $response, $environment) {
             $bodyContent = (string) $response->getBody();
             $response->getBody()->rewind();
             $data = json_decode($bodyContent, true);
