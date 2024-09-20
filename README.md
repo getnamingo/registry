@@ -16,7 +16,7 @@ Namingo is optimally designed for the upcoming ICANN application round, providin
 
 **Namingo** is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
 
-Namingo is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including AlmaLinux, Alpine Linux, FreeBSD 14, and Windows, with both MariaDB/MySQL and PostgreSQL options.
+Namingo is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including Alpine Linux, and FreeBSD 14, with both MariaDB/MySQL and PostgreSQL options.
 
 Namingo efficiently manages up to 150,000 domains on a VPS setup with 2 cores, 4GB RAM, and an 11GB SSD. It can handle up to 1,000,000 domains on a more robust VPS configuration with 8 cores, 32GB RAM, and a 125GB NVMe SSD, though a few minor issues are noted in the [issues tab](https://github.com/getnamingo/registry/issues?q=is%3Aissue+is%3Aopen+label%3A%221+000+000+domains+issue%22). Zone generation for 1 million domains takes approximately 6 minutes.
 
@@ -74,27 +74,17 @@ Our documentation provides comprehensive guidance on installation, configuration
 
 #### Installer
 
-To begin, simply copy the command below and paste it into your server terminal. This installation process is optimized for a fresh VPS running Ubuntu 22.04/24.04 or Debian 12.
+To get started, copy the command below and paste it into your server terminal. This installer is optimized for a fresh VPS running Ubuntu 22.04/24.04 or Debian 12.
 
-**Minimum requirement:** a VPS with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space. Please use MySQL or MariaDB.
+**Minimum requirement:** a VPS with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
 
 ```bash
 wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./install.sh
 ```
 
-This command will download and execute the `install.sh` script from Namingo's website, which automates the installation process.
+After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration. If anything remains unclear, you can refer to the [Legacy Installation Guide](docs/install.md) for a detailed, step-by-step manual installation process.
 
-*IPv6 Requirement:* If your system lacks IPv6 support, test with `ping -6 ipv6.google.com`. To prevent installer issues, edit `/etc/gai.conf` and uncomment or add the following line
-
-```bash
-precedence ::ffff:0:0/96 100
-```
-
-In the `config.php` files of WHOIS/DAS components make sure you replace `::` with `false` or for EPP - with `0.0.0.0`
-
-#### Legacy Installation Guide
-
-For those who prefer a more hands-on approach or need detailed installation instructions, refer to the [Legacy Installation Guide](docs/install.md). However, we recommend using the installer for a more streamlined experience.
+If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
 
 #### Update Steps
 
@@ -106,9 +96,7 @@ For those who prefer a more hands-on approach or need detailed installation inst
 
 - v1.0.0 to v1.0.1 - backup registry, download and run the [update101.sh](docs/update101.sh) script.
 
-#### Update Steps (from v1.0.0-RC4 to v1.0.0)
-
-For detailed update steps, please refer to [upgrade.md](docs/upgrade.md).
+- v1.0.0-RC4 to v1.0.0 - backup registry, refer to [upgrade.md](docs/upgrade.md).
 
 ### [Configuration Guide](docs/configuration.md)
 
