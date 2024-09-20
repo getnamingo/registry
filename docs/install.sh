@@ -325,12 +325,7 @@ EOF
         tls $YOUR_EMAIL
         header -Server
         log {
-            output file /var/log/caddy/access.log
-            format console
-        }
-        log {
-            output file /var/log/caddy/error.log
-            level ERROR
+            output file /var/log/namingo/caddy.log
         }
         # Adminer Configuration
         route /adminer.php* {
