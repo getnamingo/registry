@@ -103,7 +103,9 @@ $app->group('', function ($route) {
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
     $route->get('/poll', LogsController::class .':poll')->setName('poll');
     $route->get('/log', LogsController::class .':log')->setName('log');
+
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
+    $route->get('/export', ReportsController::class .':exportDomains')->setName('exportDomains');
 
     $route->get('/invoices', FinancialsController::class .':invoices')->setName('invoices');
     $route->get('/invoice/{invoice}', FinancialsController::class . ':viewInvoice')->setName('viewInvoice');
