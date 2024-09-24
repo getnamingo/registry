@@ -205,3 +205,54 @@ function generateAuthInfo(): string {
 
     return $retVal;
 }
+
+// Function to fetch and cache URLAbuse data
+function getUrlAbuseData($cache, $cacheKey, $fileUrl) {
+    // Check if data is cached
+    $cachedFile = $cache->getItem($cacheKey);
+
+    if (!$cachedFile->isHit()) {
+        // Data is not cached, download it
+        $httpClient = new Client();
+        $response = $httpClient->get($fileUrl);
+        $fileContent = $response->getBody()->getContents();
+
+        // Cache the file content
+        $cachedFile->set($fileContent);
+        $cachedFile->expiresAfter(300); // Cache for 5 minutes
+        $cache->save($cachedFile);
+
+        return processUrlAbuseData($fileContent);
+    } else {
+        // Retrieve data from cache
+        $fileContent = $cachedFile->get();
+        return processUrlAbuseData($fileContent);
+    }
+}
+
+// Function to process URLAbuse data
+function processUrlAbuseData($fileContent) {
+    $lines = explode("\n", $fileContent);
+    $map = new \Ds\Map();
+
+    foreach ($lines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+
+        // Parse JSON data from each line
+        $entry = json_decode($line, true);
+        if ($entry && isset($entry['url'])) {
+            $domain = parse_url($entry['url'], PHP_URL_HOST); // Extract domain from URL
+            $map->put($domain, $entry); // Store data against domain
+        }
+    }
+
+    return $map;
+}
+
+// Function to check if a domain is listed in URLAbuse
+function checkUrlAbuse($domain, Map $urlAbuseData) {
+    return $urlAbuseData->get($domain, false);
+}
