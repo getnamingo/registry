@@ -68,23 +68,27 @@ function checkSpamhaus($domain) {
     return checkdnsrr($queryDomain, "A");
 }
 
-function getUrlhausData() {
-    $urlhausUrl = 'https://urlhaus.abuse.ch/downloads/json_recent/';
-    $data = [];
+function getUrlhausData($cache, $cacheKey, $urlhausUrl) {
+    // Check if data is cached
+    $cachedFile = $cache->getItem($cacheKey);
 
-    Coroutine::create(function () use ($urlhausUrl, &$data) {
-        $client = new Client('urlhaus.abuse.ch', 443, true); // SSL
-        $client->set(['timeout' => 5]); // 5 seconds timeout
-        $client->get('/downloads/json_recent/');
+    if (!$cachedFile->isHit()) {
+        // Data is not cached, download it
+        $httpClient = new Client();
+        $response = $httpClient->get($urlhausUrl);
+        $fileContent = $response->getBody()->getContents();
 
-        if ($client->statusCode == 200) {
-            $data = json_decode($client->body, true);
-        }
+        // Cache the file content
+        $cachedFile->set($fileContent);
+        $cachedFile->expiresAfter(86400 * 7); // Cache for 7 days
+        $cache->save($cachedFile);
 
-        $client->close();
-    });
-
-    return processUrlhausData($data);
+        return processUrlhausData($fileContent);
+    } else {
+        // Retrieve data from cache
+        $fileContent = $cachedFile->get();
+        return processUrlhausData($fileContent);
+    }
 }
 
 function processUrlhausData($data) {
@@ -102,6 +106,30 @@ function processUrlhausData($data) {
 
 function checkUrlhaus($domain, Map $urlhausData) {
     return $urlhausData->get($domain, false);
+}
+
+function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, $log) {
+    $userStmt = $pdo->prepare('SELECT user_id FROM registrar_users WHERE registrar_id = ?');
+    $userStmt->execute([$clid]);
+    $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($userData) {
+        // Prepare INSERT statement to add a ticket
+        $insertStmt = $pdo->prepare('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (NULL, ?, 8, ?, ?, "Open", "High", ?, "Abuse", ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))');
+
+        // Execute the prepared statement with appropriate values
+        $insertStmt->execute([
+            $userData['user_id'], // user_id
+            "Abuse Report for $domain ($abuseType)", // subject
+            "Abuse detected for domain $domain via $abuseType.", // message
+            $domain, // reported_domain
+            "Link to $abuseType", // evidence
+            $evidenceLink, // relevant_urls
+            date('Y-m-d H:i:s') // date_of_incident
+        ]);
+
+        $log->info("Abuse detected for domain $domain using $abuseType.");
+    }
 }
 
 function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null) {
