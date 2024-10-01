@@ -128,9 +128,9 @@
                                     </div>
                                 {% endfor %}
                             </div>
-                            
-                            {% set statuses = domainStatus|map(status => status.status) %}
-                            
+
+                            {% set statuses = domainStatus ? domainStatus|map(status => status.status) : [] %}
+
                             <div class="mb-3 mt-3">
                               <div class="form-label">{{ __('Statuses') }}</div>
                               <div>
