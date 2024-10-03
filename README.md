@@ -70,13 +70,11 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 Our documentation provides comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
 
-### Installation and Update Instructions
+### Installation
 
-#### Installer
+**Minimum requirement:** a VPS running Ubuntu 22.04/24.04 or Debian 12, with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
 
-To get started, copy the command below and paste it into your server terminal. This installer is optimized for a fresh VPS running Ubuntu 22.04/24.04 or Debian 12.
-
-**Minimum requirement:** a VPS with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
+To get started, copy the command below and paste it into your server terminal:
 
 ```bash
 wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./install.sh
@@ -84,9 +82,11 @@ wget https://namingo.org/install.sh -O install.sh && chmod +x install.sh && ./in
 
 After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration. If anything remains unclear, you can refer to the [Legacy Installation Guide](docs/install.md) for a detailed, step-by-step manual installation process.
 
-If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
+**Note for Systems with Partial or Misconfigured IPv6 Support:** If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
 
-#### Update Steps
+**Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
+
+### Update
 
 - v1.0.3 to v1.0.4 - backup registry, download and run the [update104.sh](docs/update104.sh) script.
 
