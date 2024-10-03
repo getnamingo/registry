@@ -385,7 +385,7 @@ class SystemController extends Controller
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     break;
                 case 'cyrillic':
-                    $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9\'ѫѣѭ]+$/u';
+                    $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u';
                     break;
                 case 'japanese':
                     $idntable = '/^[ぁ-んァ-ン一-龯々0-9]+$/u';
