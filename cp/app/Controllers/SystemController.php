@@ -385,13 +385,13 @@ class SystemController extends Controller
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     break;
                 case 'cyrillic':
-                    $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ]+$/u';
+                    $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9\'ѫѣѭ]+$/u';
                     break;
                 case 'japanese':
-                    $idntable = '/^[ぁ-んァ-ン一-龯々]+$/u';
+                    $idntable = '/^[ぁ-んァ-ン一-龯々0-9]+$/u';
                     break;
                 case 'korean':
-                    $idntable = '/^[가-힣]+$/u';
+                    $idntable = '/^[가-힣0-9]+$/u';
                     break;
                 default:
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
