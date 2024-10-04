@@ -108,7 +108,7 @@ This command will install one of the packages which are essential for the messag
 
 You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
 
-For establishing your own mail server, Mox, available at [GitHub](https://github.com/mjl-/mox), provides a comprehensive solution. Install Mox following its GitHub instructions, then enter the required details in the ```config.php``` file.
+For establishing your own mail server, both [Mox](https://github.com/mjl-/mox) and [Stalwart](https://stalw.art/) offer comprehensive solutions. You can install Mox by following its GitHub instructions, or Stalwart by referring to its official site. Once installed, enter the required details in the ```config.php``` file to complete the setup.
 
 To run the Message Broker, execute the following commands:
 
