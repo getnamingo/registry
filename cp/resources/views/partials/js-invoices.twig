@@ -35,6 +35,7 @@
         initialSort:[
             {column:"invoice_number", dir:"desc"},
         ],
+        placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Number') }}", field:"invoice_number", width:200, headerSort:true, formatter: invoiceLinkFormatter, responsive:0},
@@ -47,10 +48,7 @@
                 negativeSign:true,
             }},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
-        ],
-        placeholder:function(){
-            return this.getHeaderFilters().length ? "No Matching Data" : "{{ __('No Data') }}"; //set placeholder based on if there are currently any header filters
-        }
+        ]
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {
