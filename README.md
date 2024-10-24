@@ -88,6 +88,8 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 ### Update
 
+- v1.0.4 to v1.0.5 - backup registry, download and run the [update105.sh](docs/update105.sh) script.
+
 - v1.0.3 to v1.0.4 - backup registry, download and run the [update104.sh](docs/update104.sh) script.
 
 - v1.0.2 to v1.0.3 - backup registry, download and run the [update103.sh](docs/update103.sh) script.
