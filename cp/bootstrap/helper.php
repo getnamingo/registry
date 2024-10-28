@@ -187,19 +187,14 @@ function validate_identifier($identifier) {
 
     $length = strlen($identifier);
 
-    if ($length < 3) {
-        return 'The contact ID seems too short. It should be at least 3 characters long. Please try again.';
+    if ($length < 3 || $length > 16) {
+        return 'Identifier must be between 3 and 16 characters long. Please try again.';
     }
 
-    if ($length > 16) {
-        return 'The contact ID seems too long. It should be no more than 16 characters. Please try again.';
-    }
+    // Updated pattern: allows letters and digits at start and end, hyphens in the middle only
+    $pattern = '/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/';
 
-    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
-    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
-    $pattern3 = '/^[a-zA-Z0-9]{16}$/';
-
-    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier) && !preg_match($pattern3, $identifier)) {
+    if (!preg_match($pattern, $identifier)) {
         return 'Your contact ID must contain letters (A-Z, a-z), digits (0-9), and optionally a hyphen (-). Please adjust and try again.';
     }
 }

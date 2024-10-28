@@ -169,19 +169,15 @@ function validate_identifier($identifier) {
 
     $length = strlen($identifier);
 
-    if ($length < 3) {
-        return 'Identifier type minLength value=3, maxLength value=16';
+    if ($length < 3 || $length > 16) {
+        return 'Identifier must be between 3 and 16 characters long';
     }
 
-    if ($length > 16) {
-        return 'Identifier type minLength value=3, maxLength value=16';
-    }
+    // Updated pattern: allows letters and digits at start and end, hyphens in the middle only
+    $pattern = '/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/';
 
-    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
-    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
-
-    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier)) {
-        return 'The ID of the contact must contain letters (A-Z) (ASCII), hyphen (-), and digits (0-9).';
+    if (!preg_match($pattern, $identifier)) {
+        return 'The ID must start and end with a letter or digit and can contain hyphens (-) in the middle.';
     }
 }
 
