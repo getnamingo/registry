@@ -357,7 +357,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -370,7 +371,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -397,9 +399,9 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             $statuses[] = $domainDetails['rgpstatus'];
         }
 
-        // If statuses array is empty, add 'ok' to it
+        // If statuses array is empty, add 'active' to it
         if (empty($statuses)) {
-            $statuses[] = 'ok';
+            $statuses[] = 'active';
         }
         
         // Query: Get DNSSEC details
@@ -476,14 +478,14 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $events = [
             ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
             ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
-            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+            ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         // Check if domain last update is set and not empty
         if (isset($domainDetails['lastupdate']) && !empty($domainDetails['lastupdate'])) {
             $updateDateTime = new DateTime($domainDetails['lastupdate']);
             $events[] = [
-                'eventAction' => 'last domain update',
+                'eventAction' => 'last changed',
                 'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
             ];
         }
@@ -492,7 +494,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
             $transferDateTime = new DateTime($domainDetails['trdate']);
             $events[] = [
-                'eventAction' => 'domain transfer',
+                'eventAction' => 'transfer',
                 'eventDate' => $transferDateTime->format('Y-m-d\TH:i:s.v\Z')
             ];
         }
@@ -545,7 +547,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                         [
                             "description" => ["This record contains only a summary. For detailed information, please submit a query specifically for this object."],
                             "title" => "Incomplete Data",
-                            "type" => "object truncated"
+                            "type" => "object truncated due to authorization"
                         ]
                     ],
                     "roles" => ["registrar"],
@@ -652,7 +654,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                 "links" => [
                     [
                         "href" => "https://icann.org/epp",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/epp",
+                        "rel" => "glossary",
                         "type" => "text/html"
                     ]
                 ],
@@ -665,7 +668,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     "links" => [
                     [
                         "href" => "https://icann.org/wicf",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/wicf",
+                        "rel" => "help",
                         "type" => "text/html"
                     ]
                     ],
@@ -796,7 +800,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -809,7 +814,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -884,7 +890,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
 
         // Define the basic events
         $events = [
-            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+            ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         // Initialize an array to hold entity blocks
@@ -998,7 +1004,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -1011,7 +1018,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -1180,7 +1188,8 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -1193,7 +1202,8 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -1238,7 +1248,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         
         // Define the basic events
         $events = [
-            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+            ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
@@ -1309,7 +1319,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                         [
                             "description" => ["This record contains only a summary. For detailed information, please submit a query specifically for this object."],
                             "title" => "Incomplete Data",
-                            "type" => "object truncated"
+                            "type" => "object truncated due to authorization"
                         ]
                     ],
                     "roles" => ["registrar"],
@@ -1371,7 +1381,8 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                 "links" => [
                     [
                         "href" => "https://icann.org/epp",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/epp",
+                        "rel" => "glossary",
                         "type" => "text/html"
                     ]
                 ],
@@ -1384,7 +1395,8 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                     "links" => [
                     [
                         "href" => "https://icann.org/wicf",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/wicf",
+                        "rel" => "help",
                         "type" => "text/html"
                     ]
                     ],
@@ -1664,7 +1676,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -1677,7 +1690,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -1704,9 +1718,9 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             $statuses[] = $domainDetails['rgpstatus'];
         }
 
-        // If statuses array is empty, add 'ok' to it
+        // If statuses array is empty, add 'active' to it
         if (empty($statuses)) {
-            $statuses[] = 'ok';
+            $statuses[] = 'active';
         }
         
         // Query: Get DNSSEC details
@@ -1783,14 +1797,14 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $events = [
             ['eventAction' => 'registration', 'eventDate' => $domainDetails['crdate']],
             ['eventAction' => 'expiration', 'eventDate' => $domainDetails['exdate']],
-            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+            ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         // Check if domain last update is set and not empty
         if (isset($domainDetails['lastupdate']) && !empty($domainDetails['lastupdate'])) {
             $updateDateTime = new DateTime($domainDetails['lastupdate']);
             $events[] = [
-                'eventAction' => 'last domain update',
+                'eventAction' => 'last changed',
                 'eventDate' => $updateDateTime->format('Y-m-d\TH:i:s.v\Z')
             ];
         }
@@ -1799,7 +1813,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         if (isset($domainDetails['trdate']) && !empty($domainDetails['trdate'])) {
             $transferDateTime = new DateTime($domainDetails['trdate']);
             $events[] = [
-                'eventAction' => 'domain transfer',
+                'eventAction' => 'transfer',
                 'eventDate' => $transferDateTime->format('Y-m-d\TH:i:s.v\Z')
             ];
         }
@@ -1854,7 +1868,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                         [
                             "description" => ["This record contains only a summary. For detailed information, please submit a query specifically for this object."],
                             "title" => "Incomplete Data",
-                            "type" => "object truncated"
+                            "type" => "object truncated due to authorization"
                         ]
                     ],
                     "roles" => ["registrar"],
@@ -1961,7 +1975,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 "links" => [
                     [
                         "href" => "https://icann.org/epp",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/epp",
+                        "rel" => "glossary",
                         "type" => "text/html"
                     ]
                 ],
@@ -1974,7 +1989,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                     [
                         "href" => "https://icann.org/wicf",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/wicf",
+                        "rel" => "help",
                         "type" => "text/html"
                     ]
                     ],
@@ -2184,7 +2200,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -2197,7 +2214,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -2233,7 +2251,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
 
                 // Define the basic events
                 $events = [
-                    ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+                    ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
                 ];
 
                 // Build the 'ipAddresses' structure
@@ -2275,7 +2293,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         [
                             'description' => ['This record contains only a summary. For detailed information, please submit a query specifically for this object.'],
                             'title' => 'Incomplete Data',
-                            'type' => 'object truncated'
+                            'type' => 'object truncated due to authorization'
                         ]
                     ],
                 ];
@@ -2325,7 +2343,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -2338,7 +2357,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -2379,7 +2399,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             
             // Define the basic events
             $events = [
-                ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+                ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
             ];
 
             $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
@@ -2516,7 +2536,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -2529,7 +2550,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -2702,7 +2724,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                         [
                             "href" => "https://icann.org/epp",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
                             "type" => "text/html"
                         ]
                     ],
@@ -2715,7 +2738,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                         "links" => [
                         [
                             "href" => "https://icann.org/wicf",
-                            "rel" => "alternate",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
                             "type" => "text/html"
                         ]
                         ],
@@ -2742,7 +2766,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
         // Define the basic events
         $events = [
-            ['eventAction' => 'last rdap database update', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
+            ['eventAction' => 'last update of RDAP database', 'eventDate' => (new DateTime())->format('Y-m-d\TH:i:s.v\Z')],
         ];
 
         // Initialize an array to hold entity blocks
@@ -2860,7 +2884,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 "links" => [
                     [
                         "href" => "https://icann.org/epp",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/epp",
+                        "rel" => "glossary",
                         "type" => "text/html"
                     ]
                 ],
@@ -2873,7 +2898,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                     [
                         "href" => "https://icann.org/wicf",
-                        "rel" => "alternate",
+                        "value" => "https://icann.org/wicf",
+                        "rel" => "help",
                         "type" => "text/html"
                     ]
                     ],
