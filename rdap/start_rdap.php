@@ -334,11 +334,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -395,9 +397,9 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
         
         // Add rgpstatus to statuses if it's not empty
-        if (!empty($domainDetails['rgpstatus'])) {
-            $statuses[] = $domainDetails['rgpstatus'];
-        }
+        //if (!empty($domainDetails['rgpstatus'])) {
+            //$statuses[] = $domainDetails['rgpstatus'];
+        //}
 
         // If statuses array is empty, add 'active' to it
         if (empty($statuses)) {
@@ -505,8 +507,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
-                'icann_rdap_response_profile_0',
-                'icann_rdap_technical_implementation_guide_0',
+                'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'domain',
             'entities' => array_merge(
@@ -533,6 +535,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                            "value" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
@@ -581,11 +584,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             'links' => [
                 [
                     'href' => $c['rdap_url'] . '/domain/' . $domain,
+                    'value' => $c['rdap_url'] . '/domain/' . $domain,
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ],
                 [
                     'href' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
+                    'value' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -598,6 +603,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     'links' => [
                         [
                             'href' => $c['rdap_url'] . '/nameserver/' . $nameserverDetails['name'],
+                            'value' => $c['rdap_url'] . '/nameserver/' . $nameserverDetails['name'],
                             'rel' => 'self',
                             'type' => 'application/rdap+json',
                         ],
@@ -608,7 +614,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                                 "This record contains only a brief summary. To access the full details, please initiate a specific query targeting this entity."
                             ],
                             "title" => "Incomplete Data",
-                            "type" => "The object's information is incomplete due to reasons not currently understood."
+                            "type" => "object truncated due to authorization"
                         ],
                     ],
                 ];
@@ -631,11 +637,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                 "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
+                        "value" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
                         "href" => $c['registry_url'],
+                        "value" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -777,11 +785,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -929,8 +939,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
-                'icann_rdap_response_profile_0',
-                'icann_rdap_technical_implementation_guide_0',
+                'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'entity',
             'entities' => $entityBlocks,
@@ -981,11 +991,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -1165,11 +1177,13 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -1277,8 +1291,8 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
-                'icann_rdap_response_profile_0',
-                'icann_rdap_technical_implementation_guide_0',
+                'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'nameserver',
             'entities' => array_merge(
@@ -1305,6 +1319,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                            "value" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
@@ -1358,11 +1373,13 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                 "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
+                        "value" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
                         "href" => $c['registry_url'],
+                        "value" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -1653,11 +1670,13 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -1714,9 +1733,9 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
         
         // Add rgpstatus to statuses if it's not empty
-        if (!empty($domainDetails['rgpstatus'])) {
-            $statuses[] = $domainDetails['rgpstatus'];
-        }
+        //if (!empty($domainDetails['rgpstatus'])) {
+            //$statuses[] = $domainDetails['rgpstatus'];
+        //}
 
         // If statuses array is empty, add 'active' to it
         if (empty($statuses)) {
@@ -1824,8 +1843,8 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
-                'icann_rdap_response_profile_0',
-                'icann_rdap_technical_implementation_guide_0',
+                'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_1',
             ],
             'domainSearchResults' => [
             [
@@ -1854,6 +1873,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                            "value" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ]
@@ -1927,7 +1947,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                                 "This record contains only a brief summary. To access the full details, please initiate a specific query targeting this entity."
                             ],
                             "title" => "Incomplete Data",
-                            "type" => "The object's information is incomplete due to reasons not currently understood."
+                            "type" => "object truncated due to authorization"
                         ],
                     ],
                 ];
@@ -1952,11 +1972,13 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
+                        "value" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
                         "href" => $c['registry_url'],
+                        "value" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -2177,11 +2199,13 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -2303,8 +2327,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $rdapResponse = [
                 'rdapConformance' => [
                     'rdap_level_0',
-                    'icann_rdap_response_profile_0',
-                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_1',
                 ],
                 'nameserverSearchResults' => $rdapResult,
                 "notices" => [
@@ -2320,11 +2344,13 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -2428,8 +2454,8 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $rdapResponse = [
                 'rdapConformance' => [
                     'rdap_level_0',
-                    'icann_rdap_response_profile_0',
-                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_1',
                 ],
                 'nameserverSearchResults' => [
                 [
@@ -2458,6 +2484,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         "links" => [
                             [
                                 "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                                "value" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                                 "rel" => "self",
                                 "type" => "application/rdap+json"
                             ]
@@ -2513,11 +2540,13 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -2701,11 +2730,13 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
                             "rel" => "self",
                             "type" => "application/rdap+json"
                         ],
                         [
                             "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
                             "rel" => "alternate",
                             "type" => "text/html"
                         ],
@@ -2805,8 +2836,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
-                'icann_rdap_response_profile_0',
-                'icann_rdap_technical_implementation_guide_0',
+                'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_1',
             ],
             'entitySearchResults' => [
             [
@@ -2861,11 +2892,13 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 "links" => [
                     [
                         "href" => $c['rdap_url'] . "/help",
+                        "value" => $c['rdap_url'] . "/help",
                         "rel" => "self",
                         "type" => "application/rdap+json"
                     ],
                     [
                         "href" => $c['registry_url'],
+                        "value" => $c['registry_url'],
                         "rel" => "alternate",
                         "type" => "text/html"
                     ],
@@ -2949,8 +2982,8 @@ function handleHelpQuery($request, $response, $pdo, $c) {
     // Set the RDAP conformance levels
     $rdapConformance = [
         "rdap_level_0",
-        "icann_rdap_response_profile_0",
-        "icann_rdap_technical_implementation_guide_0"
+        "icann_rdap_response_profile_1",
+        "icann_rdap_technical_implementation_guide_1"
     ];
 
     // Set the descriptions and links for the help section
@@ -2996,11 +3029,13 @@ function handleHelpQuery($request, $response, $pdo, $c) {
         "links" => [
         [
             "href" => $c['rdap_url'] . "/help",
+            "value" => $c['rdap_url'] . "/help",
             "rel" => "self",
             "type" => "application/rdap+json"
         ],
         [
             "href" => $c['registry_url'],
+            "value" => $c['registry_url'],
             "rel" => "alternate",
             "type" => "text/html"
         ],
