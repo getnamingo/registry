@@ -69,7 +69,7 @@ class RegistrarsController extends Controller
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
                 'rdapServer' => v::domain(false),
-                'url' => v::domain(false),
+                'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
                 'accountBalance' => v::numericVal(),
@@ -133,6 +133,8 @@ class RegistrarsController extends Controller
                 if (empty($data['vatNumber'])) {
                     $data['vatNumber'] = null;
                 }
+                
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
 
                 $db->insert(
                     'registrar',
@@ -143,7 +145,7 @@ class RegistrarsController extends Controller
                         'pw' => $eppPassword,
                         'prefix' => $randomPrefix,
                         'email' => $data['email'],
-                        'url' => isset($data['url']) ? toUnicode($data['url']) : null,
+                        'url' => $data['url'],
                         'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
                         'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                         'abuse_email' => $data['abuseEmail'],
@@ -572,7 +574,7 @@ class RegistrarsController extends Controller
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
                 'rdapServer' => v::domain(false),
-                'url' => v::domain(false),
+                'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
                 'creditLimit' => v::numericVal(),
@@ -626,12 +628,14 @@ class RegistrarsController extends Controller
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
                 }
-                
+
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
+
                 $updateData = [
                     'name' => $data['name'],
                     'iana_id' => $data['ianaId'],
                     'email' => $data['email'],
-                    'url' => isset($data['url']) ? toUnicode($data['url']) : null,
+                    'url' => $data['url'],
                     'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
                     'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                     'abuse_email' => $data['abuseEmail'],
@@ -819,7 +823,7 @@ class RegistrarsController extends Controller
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
                 'rdapServer' => v::domain(false),
-                'url' => v::domain(false),
+                'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
                 'ipAddress' => v::optional($ipAddressValidator)
@@ -872,11 +876,13 @@ class RegistrarsController extends Controller
                     $data['ianaId'] = null;
                 }
                 
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
+                
                 $updateData = [
                     'name' => $data['name'],
                     'iana_id' => $data['ianaId'],
                     'email' => $data['email'],
-                    'url' => isset($data['url']) ? toUnicode($data['url']) : null,
+                    'url' => $data['url'],
                     'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
                     'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                     'abuse_email' => $data['abuseEmail'],
