@@ -164,57 +164,57 @@ Coroutine::create(function () use ($pool, $log, $c) {
 
         foreach ($tlds as $cleanedTld) {
             if ($c['dns_server'] == 'bind') {
-                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to reload BIND. ' . $return_var);
+                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
 
-                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
             } elseif ($c['dns_server'] == 'nsd') {
-                exec("nsd-control reload", $output, $return_var);
+                exec("nsd-control reload 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to reload NSD. ' . $return_var);
+                    $log->error("Failed to reload NSD. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
             } elseif ($c['dns_server'] == 'knot') {
-                exec("knotc reload", $output, $return_var);
+                exec("knotc reload 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to reload Knot DNS. ' . $return_var);
+                    $log->error("Failed to reload Knot DNS. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
 
-                exec("knotc zone-notify {$cleanedTld}.", $output, $return_var);
+                exec("knotc zone-notify {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
             } elseif ($c['dns_server'] == 'opendnssec') {
                 chown("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
                 chgrp("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
 
-                exec("ods-signer sign {$cleanedTld}");
+                exec("ods-signer sign {$cleanedTld} 2>&1");
                 sleep(1);
                 copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
 
-                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to reload BIND. ' . $return_var);
+                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
 
-                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
             } else {
                 // Default
-                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to reload BIND. ' . $return_var);
+                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
 
-                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
-                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
                 }
             }
         }
