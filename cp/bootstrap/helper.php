@@ -577,3 +577,13 @@ function validateUniversalEmail($email) {
     // Validate using regex
     return preg_match($emailPattern, $emailToValidate);
 }
+
+function toPunycode($value) {
+    // Convert to Punycode if it contains non-ASCII characters
+    return preg_match('/[^\x00-\x7F]/', $value) ? idn_to_ascii($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46) : $value;
+}
+
+function toUnicode($value) {
+    // Convert from Punycode to UTF-8 if it's a valid IDN format
+    return (strpos($value, 'xn--') === 0) ? idn_to_utf8($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46) : $value;
+}

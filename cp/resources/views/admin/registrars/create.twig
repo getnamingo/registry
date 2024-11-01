@@ -46,12 +46,17 @@
                           </div>
                           <div class="mb-3">
                             <label for="email" class="form-label required">{{ __('Email') }}</label>
-                            <input type="email" class="form-control" id="email" name="email" required autocapitalize="none">
+                            <input type="text" class="form-control" id="email" name="email" required autocapitalize="none">
                             <small class="text-muted">{{ __('Primary contact email of the registrar.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="url" class="form-label required">{{ __('URL') }}</label>
-                            <input type="url" class="form-control" id="url" name="url" required autocapitalize="none">
+                            <div class="input-group">
+                              <span class="input-group-text">
+                                https://
+                              </span>
+                              <input type="text" class="form-control" id="url" name="url" required autocapitalize="none">
+                            </div>
                             <small class="text-muted">{{ __('Registrar\'s official website URL.') }}</small>
                           </div>
                         </div>
@@ -70,7 +75,7 @@
                           </div>
                           <div class="mb-3">
                             <label for="abuseEmail" class="form-label required">{{ __('Abuse Email') }}</label>
-                            <input type="email" class="form-control" id="abuseEmail" name="abuseEmail" required autocapitalize="none">
+                            <input type="text" class="form-control" id="abuseEmail" name="abuseEmail" required autocapitalize="none">
                             <small class="text-muted">{{ __('Email address for reporting abuse.') }}</small>
                           </div>
                           <div class="mb-3">
@@ -212,7 +217,7 @@
                               </div>
                               <div class="mb-3">
                                 <label for="ownerEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="email" class="form-control" id="ownerEmail" name="owner[email]" required autocapitalize="none">
+                                <input type="text" class="form-control" id="ownerEmail" name="owner[email]" required autocapitalize="none">
                               </div>
                             </div>
                           </div>
@@ -271,7 +276,7 @@
                               </div>
                               <div class="mb-3">
                                 <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="email" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none">
+                                <input type="text" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none">
                               </div>
                             </div>
                           </div>
@@ -330,7 +335,7 @@
                               </div>
                               <div class="mb-3">
                                 <label for="abuseEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="email" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none">
+                                <input type="text" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none">
                               </div>
                             </div>
                           </div>
