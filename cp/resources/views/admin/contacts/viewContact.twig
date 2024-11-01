@@ -80,27 +80,39 @@
                   </div>
                 </div>
               </div>
+{% if contactPostal is not empty %}    
+    {% set intExists = false %}
+    {% set locExists = false %}
+
+    {% for postal in contactPostal %}
+        {% if not (intExists and locExists) %}
+            {% if postal.type == 'int' %}
+                {% set intExists = true %}
+            {% elseif postal.type == 'loc' %}
+                {% set locExists = true %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
               <div class="card mb-3">
                 <div class="card-header">
                   <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
                     <li class="nav-item">
-                      <a href="#tabs-int" class="nav-link active" data-bs-toggle="tab">{{ __('International') }}</a>
+                      <a href="#tabs-int" class="nav-link{% if intExists or (not intExists and not locExists) %} active{% endif %}" data-bs-toggle="tab">{{ __('Internationalized') }}</a>
                     </li>
                     <li class="nav-item">
-                      <a href="#tabs-loc" class="nav-link" data-bs-toggle="tab">{{ __('Localized') }}</a>
+                      <a href="#tabs-loc" class="nav-link{% if not intExists and locExists %} active{% endif %}" data-bs-toggle="tab">{{ __('Localized') }}</a>
                     </li>
                   </ul>
                 </div>
                 <div class="card-body">
                   <div class="tab-content">
-                  {% if contactPostal is not empty %}
-                        {% set intExists = false %}
-                        {% set locExists = false %}
-                        {% for postal in contactPostal %}
-                            {% if postal.type == 'int' %}
-                                {% set intExists = true %}
-                                <div class="tab-pane active show" id="tabs-int">
-                                  <h4>{{ __('International Contact Details') }}</h4>
+                  {% if contactPostal is not empty %}                
+                        {% if intExists %}
+                            {% for postal in contactPostal %}
+                                {% if postal.type == 'int' %}
+                                <div class="tab-pane {% if intExists or (not intExists and not locExists) %} show active{% endif %}" id="tabs-int">
+                                  <h4>{{ __('Internationalized Contact Details') }}</h4>
                                   <div class="datagrid">
                                     <div class="datagrid-item">
                                       <div class="datagrid-title">{{ __('Name') }}</div>
@@ -174,15 +186,19 @@
                                     </div>
                                   </div>
                                 </div>
-                            {% elseif postal.type == 'loc' %}
-                                {% set locExists = true %}
-                            {% endif %}
-                        {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                    <div class="tab-pane {% if intExists or (not intExists and not locExists) %} show active{% endif %}" id="tabs-int">
+                      <h4>{{ __('Internationalized Contact Details') }}</h4>
+                      <div>{{ __('No Internationalized Contact Information Available') }}</div>
+                    </div>
+                  {% endif %}
 
                         {% if locExists %}
                             {% for postal in contactPostal %}
                                 {% if postal.type == 'loc' %}
-                                <div class="tab-pane" id="tabs-loc">
+                                <div class="tab-pane{% if not intExists and locExists %} show active{% endif %}" id="tabs-loc">
                                   <h4>{{ __('Localized Contact Details') }}</h4>
                                   <div class="datagrid">
                                     <div class="datagrid-item">
@@ -260,7 +276,7 @@
                                 {% endif %}
                             {% endfor %}
                         {% else %}
-                    <div class="tab-pane" id="tabs-loc">
+                    <div class="tab-pane{% if not intExists and locExists %} show active{% endif %}" id="tabs-loc">
                       <h4>{{ __('Localized Contact Details') }}</h4>
                       <div>{{ __('No Localized Contact Information Available') }}</div>
                     </div>
