@@ -46,8 +46,8 @@
                                     
                                     <!-- Internationalized Name -->
                                     <div class="mb-3">
-                                        <label for="intName" class="form-label required">{{ __('Name') }}</label>
-                                        <input type="text" class="form-control" id="intName" name="intName" required="required" value="{{ postal_int.name }}">
+                                        <label for="intName" class="form-label{% if not postal_loc.name %} required{% endif %}">{{ __('Name') }}</label>
+                                        <input type="text" class="form-control" id="intName" name="intName"{% if not postal_loc.name %} required="required" {% endif %}value="{{ postal_int.name }}">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseNameInt" name="disclose_name_int" {% if postal_int.disclose_name_int == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseNameInt">{{ __('Disclose in WHOIS') }}</span>
@@ -66,8 +66,8 @@
 
                                     <!-- Internationalized Address: Street Details -->
                                     <div class="mb-3">
-                                        <label for="street1" class="form-label required">{{ __('Street') }} 1</label>
-                                        <input type="text" class="form-control" id="street1" name="street1" required="required" value="{{ postal_int.street1 }}">
+                                        <label for="street1" class="form-label{% if not postal_loc.street1 %} required{% endif %}">{{ __('Street') }} 1</label>
+                                        <input type="text" class="form-control" id="street1" name="street1"{% if not postal_loc.street1 %} required="required" {% endif %}value="{{ postal_int.street1 }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="street2" class="form-label">{{ __('Street') }} 2</label>
@@ -80,8 +80,8 @@
 
                                     <!-- Internationalized Address: City, SP, PC, CC -->
                                     <div class="mb-3">
-                                        <label for="city" class="form-label required">{{ __('City') }}</label>
-                                        <input type="text" class="form-control" id="city" name="city"  required="required" value="{{ postal_int.city }}">
+                                        <label for="city" class="form-label{% if not postal_loc.city %} required{% endif %}">{{ __('City') }}</label>
+                                        <input type="text" class="form-control" id="city" name="city"{% if not postal_loc.city %} required="required" {% endif %}value="{{ postal_int.city }}">
                                     </div>
                                     <div class="mb-3">
                                         <label for="sp" class="form-label">{{ __('State/Province') }}</label>
@@ -92,8 +92,8 @@
                                         <input type="text" class="form-control" id="pc" name="pc" value="{{ postal_int.pc }}">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="cc" class="form-label required">{{ __('Country') }}</label>
-                                        <select class="form-select" id="cc" name="cc" required="required">
+                                        <label for="cc" class="form-label{% if not postal_loc.cc %} required{% endif %}">{{ __('Country') }}</label>
+                                        <select class="form-select" id="cc" name="cc"{% if not postal_loc.cc %} required="required"{% endif %}>
                                             {% for country in countries %}
                                                 <option value="{{ country.alpha2|lower }}" {% if postal_int.cc|lower == country.alpha2|lower %}selected{% endif %}>{{ country.name }}</option>
                                             {% endfor %}
@@ -132,7 +132,7 @@
                                     <!-- Email -->
                                     <div class="mb-3">
                                         <label for="email" class="form-label required">{{ __('Email') }}</label>
-                                        <input type="email" class="form-control" id="email" name="email"  required="required" autocapitalize="none" value="{{ contact.email }}">
+                                        <input type="text" class="form-control" id="email" name="email"  required="required" autocapitalize="none" value="{{ contact.email }}">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email" {% if contact.disclose_email == '1' %}checked{% endif %}>
                                           <span class="form-check-label" for="discloseEmail">{{ __('Disclose in WHOIS') }}</span>

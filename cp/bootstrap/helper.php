@@ -542,3 +542,38 @@ function validateLocField($input, $minLength = 5, $maxLength = 255) {
            mb_strlen($input) <= $maxLength &&
            preg_match($locRegex, $input);
 }
+
+function validateUniversalEmail($email) {
+    // Normalize the email to NFC form to ensure consistency
+    $email = \Normalizer::normalize($email, \Normalizer::FORM_C);
+
+    // Remove any control characters
+    $email = preg_replace('/[\p{C}]/u', '', $email);
+
+    // Split email into local and domain parts
+    $parts = explode('@', $email, 2);
+    if (count($parts) !== 2) {
+        return false; // Invalid email format
+    }
+
+    list($localPart, $domainPart) = $parts;
+
+    // Convert the domain part to Punycode if it contains non-ASCII characters
+    if (preg_match('/[^\x00-\x7F]/', $domainPart)) {
+        $punycodeDomain = idn_to_ascii($domainPart, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if ($punycodeDomain === false) {
+            return false; // Invalid domain part, failed conversion
+        }
+    } else {
+        $punycodeDomain = $domainPart;
+    }
+
+    // Reconstruct the email with the Punycode domain part (if converted)
+    $emailToValidate = $localPart . '@' . $punycodeDomain;
+
+    // Updated regex for both ASCII and IDN email validation
+    $emailPattern = '/^[\p{L}\p{N}\p{M}._%+-]+@([a-zA-Z0-9-]+|\bxn--[a-zA-Z0-9-]+)(\.([a-zA-Z0-9-]+|\bxn--[a-zA-Z0-9-]+))+$/u';
+
+    // Validate using regex
+    return preg_match($emailPattern, $emailToValidate);
+}

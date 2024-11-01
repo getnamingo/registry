@@ -37,7 +37,7 @@
                                     <!-- Internationalized Name -->
                                     <div class="mb-3">
                                         <label for="intName" class="form-label required">{{ __('Name') }}</label>
-                                        <input type="text" class="form-control" id="intName" name="intName" required="required">
+                                        <input type="text" class="form-control" id="intName" name="intName">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseNameInt" name="disclose_name_int">
                                           <span class="form-check-label" for="discloseNameInt">{{ __('Disclose in WHOIS') }}</span>
@@ -47,7 +47,7 @@
                                     {% if registrars and not registrar %}
                                         <div class="form-group mb-3">
                                             <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
-                                            <select id="registrarDropdown" name="registrar" class="form-control">
+                                            <select id="registrarDropdown" name="registrar" class="form-control" required="required">
                                                 {% for registrar in registrars %}
                                                     <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                                                 {% endfor %}
@@ -68,7 +68,7 @@
                                     <!-- Internationalized Address: Street Details -->
                                     <div class="mb-3">
                                         <label for="street1" class="form-label required">{{ __('Street') }} 1</label>
-                                        <input type="text" class="form-control" id="street1" name="street1" required="required">
+                                        <input type="text" class="form-control" id="street1" name="street1">
                                     </div>
                                     <div class="mb-3">
                                         <label for="street2" class="form-label">{{ __('Street') }} 2</label>
@@ -82,7 +82,7 @@
                                     <!-- Internationalized Address: City, SP, PC, CC -->
                                     <div class="mb-3">
                                         <label for="city" class="form-label required">{{ __('City') }}</label>
-                                        <input type="text" class="form-control" id="city" name="city"  required="required">
+                                        <input type="text" class="form-control" id="city" name="city">
                                     </div>
                                     <div class="mb-3">
                                         <label for="sp" class="form-label">{{ __('State/Province') }}</label>
@@ -94,7 +94,7 @@
                                     </div>
                                     <div class="mb-3">
                                         <label for="cc" class="form-label required">{{ __('Country') }}</label>
-                                        <select class="form-select" id="cc" name="cc" required="required">
+                                        <select class="form-select" id="cc" name="cc">
                                             {% for country in countries %}
                                                 <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
                                             {% endfor %}
@@ -140,7 +140,7 @@
                                     <!-- Email -->
                                     <div class="mb-3">
                                         <label for="email" class="form-label required">{{ __('Email') }}</label>
-                                        <input type="email" class="form-control" id="email" name="email"  required="required" autocapitalize="none">
+                                        <input type="text" class="form-control" id="email" name="email"  required="required" autocapitalize="none">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email">
                                           <span class="form-check-label" for="discloseEmail">{{ __('Disclose in WHOIS') }}</span>

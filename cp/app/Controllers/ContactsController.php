@@ -227,11 +227,11 @@ class ContactsController extends Controller
                 $fax = $normalizedFax['success'];
             }
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!validateUniversalEmail($email)) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email address failed check');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
-
+            
             if (!$authInfo_pw) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email contact authinfo missing');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
@@ -959,7 +959,7 @@ class ContactsController extends Controller
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!validateUniversalEmail($email)) {
                 $this->container->get('flash')->addMessage('error', 'Unable to update contact: Email address failed check');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
