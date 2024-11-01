@@ -40,12 +40,14 @@ Coroutine::create(function () use ($pool, $log, $c) {
         $sth->execute();
         $timestamp = time();
 
+        $tlds = [];
+
         while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
             $tldRE = preg_quote($tld, '/');
             $cleanedTld = ltrim(strtolower($tld), '.');
             $zone = new Zone($cleanedTld.'.');
             $zone->setDefaultTtl(3600);
-            
+
             $soa = new ResourceRecord;
             $soa->setName('@');
             $soa->setClass(Classes::INTERNET);
@@ -67,10 +69,10 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 $nsRecord->setRdata(Factory::Ns($ns . '.'));
                 $zone->addResourceRecord($nsRecord);
             }
-            
+
             // Fetch domains for this TLD
             $sthDomains = $pdo->prepare('SELECT DISTINCT domain.id, domain.name FROM domain WHERE tldid = :id AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = \'pendingRestore\') ORDER BY domain.name');
-            
+
             $domainIds = [];
             $sthDomains->execute([':id' => $id]);
             while ($row = $sthDomains->fetch(PDO::FETCH_ASSOC)) {
@@ -86,7 +88,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
                     $statuses[$row['domain_id']] = $row['id'];
                 }
             }
-            
+
             $sthDomains->execute([':id' => $id]);
 
             while (list($did, $dname) = $sthDomains->fetch(PDO::FETCH_NUM)) {
@@ -157,65 +159,66 @@ Coroutine::create(function () use ($pool, $log, $c) {
 
             file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
 
-            if ($c['dns_server'] == 'opendnssec') {
+            $tlds[] = $cleanedTld;
+        }
+
+        foreach ($tlds as $cleanedTld) {
+            if ($c['dns_server'] == 'bind') {
+                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to reload BIND. ' . $return_var);
+                }
+
+                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                }
+            } elseif ($c['dns_server'] == 'nsd') {
+                exec("nsd-control reload", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to reload NSD. ' . $return_var);
+                }
+            } elseif ($c['dns_server'] == 'knot') {
+                exec("knotc reload", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to reload Knot DNS. ' . $return_var);
+                }
+
+                exec("knotc zone-notify {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                }
+            } elseif ($c['dns_server'] == 'opendnssec') {
                 chown("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
                 chgrp("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
-            }
 
+                exec("ods-signer sign {$cleanedTld}");
+                sleep(1);
+                copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
+
+                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to reload BIND. ' . $return_var);
+                }
+
+                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                }
+            } else {
+                // Default
+                exec("rndc reload {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to reload BIND. ' . $return_var);
+                }
+
+                exec("rndc notify {$cleanedTld}.", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error('Failed to notify secondary servers. ' . $return_var);
+                }
+            }
         }
 
-        if ($c['dns_server'] == 'bind') {
-            exec("rndc reload {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to reload BIND. ' . $return_var);
-            }
-
-            exec("rndc notify {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to notify secondary servers. ' . $return_var);
-            }
-        } elseif ($c['dns_server'] == 'nsd') {
-            exec("nsd-control reload", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to reload NSD. ' . $return_var);
-            }
-        } elseif ($c['dns_server'] == 'knot') {
-            exec("knotc reload", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to reload Knot DNS. ' . $return_var);
-            }
-
-            exec("knotc zone-notify {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to notify secondary servers. ' . $return_var);
-            }
-        } elseif ($c['dns_server'] == 'opendnssec') {
-            exec("ods-signer sign {$cleanedTld}");
-            sleep(1);
-            copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
-
-            exec("rndc reload {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to reload BIND. ' . $return_var);
-            }
-
-            exec("rndc notify {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to notify secondary servers. ' . $return_var);
-            }
-        } else {
-            // Default
-            exec("rndc reload {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to reload BIND. ' . $return_var);
-            }
-
-            exec("rndc notify {$cleanedTld}.", $output, $return_var);
-            if ($return_var != 0) {
-                $log->error('Failed to notify secondary servers. ' . $return_var);
-            }
-        }
-    
         $log->info('job finished successfully.');
     } catch (PDOException $e) {
         $log->error('Database error: ' . $e->getMessage());
