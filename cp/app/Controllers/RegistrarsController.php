@@ -67,8 +67,8 @@ class RegistrarsController extends Controller
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
-                'whoisServer' => v::domain(),
-                'rdapServer' => v::domain(),
+                'whoisServer' => v::domain(false),
+                'rdapServer' => v::domain(false),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
@@ -84,6 +84,11 @@ class RegistrarsController extends Controller
                 'eppPassword' => v::stringType()->notEmpty(),
                 'panelPassword' => v::stringType()->notEmpty(),
             ];
+
+            // Convert specified fields to Punycode if necessary
+            $data['whoisServer'] = isset($data['whoisServer']) ? toPunycode($data['whoisServer']) : null;
+            $data['rdapServer'] = isset($data['rdapServer']) ? toPunycode($data['rdapServer']) : null;
+            $data['url'] = isset($data['url']) ? toPunycode($data['url']) : null;
 
             $errors = [];
             foreach ($validators as $field => $validator) {
@@ -128,6 +133,8 @@ class RegistrarsController extends Controller
                 if (empty($data['vatNumber'])) {
                     $data['vatNumber'] = null;
                 }
+                
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
 
                 $db->insert(
                     'registrar',
@@ -139,8 +146,8 @@ class RegistrarsController extends Controller
                         'prefix' => $randomPrefix,
                         'email' => $data['email'],
                         'url' => $data['url'],
-                        'whois_server' => $data['whoisServer'],
-                        'rdap_server' => $data['rdapServer'],
+                        'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
+                        'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                         'abuse_email' => $data['abuseEmail'],
                         'abuse_phone' => $data['abusePhone'],
                         'accountBalance' => $data['accountBalance'],
@@ -565,8 +572,8 @@ class RegistrarsController extends Controller
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
-                'whoisServer' => v::domain(),
-                'rdapServer' => v::domain(),
+                'whoisServer' => v::domain(false),
+                'rdapServer' => v::domain(false),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
@@ -574,6 +581,11 @@ class RegistrarsController extends Controller
                 'creditThreshold' => v::numericVal(),
                 'ipAddress' => v::optional($ipAddressValidator)
             ];
+
+            // Convert specified fields to Punycode if necessary
+            $data['whoisServer'] = isset($data['whoisServer']) ? toPunycode($data['whoisServer']) : null;
+            $data['rdapServer'] = isset($data['rdapServer']) ? toPunycode($data['rdapServer']) : null;
+            $data['url'] = isset($data['url']) ? toPunycode($data['url']) : null;
 
             $errors = [];
             foreach ($validators as $field => $validator) {
@@ -596,14 +608,14 @@ class RegistrarsController extends Controller
                 $errorText = rtrim($errorText, '; ');
                 
                 $this->container->get('flash')->addMessage('error', $errorText);
-                return $response->withHeader('Location', '/registrars')->withStatus(302);
+                return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
             
             if (!empty($_SESSION['registrars_user_email'])) {
                 $regEmail = $_SESSION['registrars_user_email'][0];
             } else {
                 $this->container->get('flash')->addMessage('error', 'No email specified for update');
-                return $response->withHeader('Location', '/registrars')->withStatus(302);
+                return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
 
             $db->beginTransaction();
@@ -616,14 +628,16 @@ class RegistrarsController extends Controller
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
                 }
-                
+
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
+
                 $updateData = [
                     'name' => $data['name'],
                     'iana_id' => $data['ianaId'],
                     'email' => $data['email'],
                     'url' => $data['url'],
-                    'whois_server' => $data['whoisServer'],
-                    'rdap_server' => $data['rdapServer'],
+                    'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
+                    'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                     'abuse_email' => $data['abuseEmail'],
                     'abuse_phone' => $data['abusePhone'],
                     'creditLimit' => $data['creditLimit'],
@@ -807,13 +821,18 @@ class RegistrarsController extends Controller
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
-                'whoisServer' => v::domain(),
-                'rdapServer' => v::domain(),
+                'whoisServer' => v::domain(false),
+                'rdapServer' => v::domain(false),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
                 'ipAddress' => v::optional($ipAddressValidator)
             ];
+            
+            // Convert specified fields to Punycode if necessary
+            $data['whoisServer'] = isset($data['whoisServer']) ? toPunycode($data['whoisServer']) : null;
+            $data['rdapServer'] = isset($data['rdapServer']) ? toPunycode($data['rdapServer']) : null;
+            $data['url'] = isset($data['url']) ? toPunycode($data['url']) : null;
 
             $errors = [];
             foreach ($validators as $field => $validator) {
@@ -857,13 +876,15 @@ class RegistrarsController extends Controller
                     $data['ianaId'] = null;
                 }
                 
+                $data['url'] = isset($data['url']) ? (preg_match('#^https?://#', toUnicode($data['url'])) ? toUnicode($data['url']) : 'https://' . toUnicode($data['url'])) : null;
+                
                 $updateData = [
                     'name' => $data['name'],
                     'iana_id' => $data['ianaId'],
                     'email' => $data['email'],
                     'url' => $data['url'],
-                    'whois_server' => $data['whoisServer'],
-                    'rdap_server' => $data['rdapServer'],
+                    'whois_server' => isset($data['whoisServer']) ? toUnicode($data['whoisServer']) : null,
+                    'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                     'abuse_email' => $data['abuseEmail'],
                     'abuse_phone' => $data['abusePhone'],
                     'currency' => $currency,

@@ -187,19 +187,14 @@ function validate_identifier($identifier) {
 
     $length = strlen($identifier);
 
-    if ($length < 3) {
-        return 'The contact ID seems too short. It should be at least 3 characters long. Please try again.';
+    if ($length < 3 || $length > 16) {
+        return 'Identifier must be between 3 and 16 characters long. Please try again.';
     }
 
-    if ($length > 16) {
-        return 'The contact ID seems too long. It should be no more than 16 characters. Please try again.';
-    }
+    // Updated pattern: allows letters and digits at start and end, hyphens in the middle only
+    $pattern = '/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/';
 
-    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
-    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
-    $pattern3 = '/^[a-zA-Z0-9]{16}$/';
-
-    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier) && !preg_match($pattern3, $identifier)) {
+    if (!preg_match($pattern, $identifier)) {
         return 'Your contact ID must contain letters (A-Z, a-z), digits (0-9), and optionally a hyphen (-). Please adjust and try again.';
     }
 }
@@ -530,4 +525,65 @@ function generateAuthInfo(): string {
     }
 
     return $retVal;
+}
+
+function validateLocField($input, $minLength = 5, $maxLength = 255) {
+    // Normalize input to NFC form
+    $input = normalizer_normalize($input, Normalizer::FORM_C);
+
+    // Remove control characters to prevent hidden injections
+    $input = preg_replace('/[\p{C}]/u', '', $input);
+
+    // Define a general regex pattern to match Unicode letters, numbers, punctuation, and spaces
+    $locRegex = '/^[\p{L}\p{N}\p{P}\p{Zs}\-\/&.,]+$/u';
+
+    // Check length constraints and regex pattern
+    return mb_strlen($input) >= $minLength &&
+           mb_strlen($input) <= $maxLength &&
+           preg_match($locRegex, $input);
+}
+
+function validateUniversalEmail($email) {
+    // Normalize the email to NFC form to ensure consistency
+    $email = \Normalizer::normalize($email, \Normalizer::FORM_C);
+
+    // Remove any control characters
+    $email = preg_replace('/[\p{C}]/u', '', $email);
+
+    // Split email into local and domain parts
+    $parts = explode('@', $email, 2);
+    if (count($parts) !== 2) {
+        return false; // Invalid email format
+    }
+
+    list($localPart, $domainPart) = $parts;
+
+    // Convert the domain part to Punycode if it contains non-ASCII characters
+    if (preg_match('/[^\x00-\x7F]/', $domainPart)) {
+        $punycodeDomain = idn_to_ascii($domainPart, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if ($punycodeDomain === false) {
+            return false; // Invalid domain part, failed conversion
+        }
+    } else {
+        $punycodeDomain = $domainPart;
+    }
+
+    // Reconstruct the email with the Punycode domain part (if converted)
+    $emailToValidate = $localPart . '@' . $punycodeDomain;
+
+    // Updated regex for both ASCII and IDN email validation
+    $emailPattern = '/^[\p{L}\p{N}\p{M}._%+-]+@([a-zA-Z0-9-]+|\bxn--[a-zA-Z0-9-]+)(\.([a-zA-Z0-9-]+|\bxn--[a-zA-Z0-9-]+))+$/u';
+
+    // Validate using regex
+    return preg_match($emailPattern, $emailToValidate);
+}
+
+function toPunycode($value) {
+    // Convert to Punycode if it contains non-ASCII characters
+    return preg_match('/[^\x00-\x7F]/', $value) ? idn_to_ascii($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46) : $value;
+}
+
+function toUnicode($value) {
+    // Convert from Punycode to UTF-8 if it's a valid IDN format
+    return (strpos($value, 'xn--') === 0) ? idn_to_utf8($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46) : $value;
 }

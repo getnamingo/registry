@@ -240,7 +240,7 @@ EOF
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
-    git clone --branch v1.0.5 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.6 --single-branch https://github.com/getnamingo/registry /opt/registry
     mkdir -p /var/log/namingo
     chown -R www-data:www-data /var/log/namingo
     
@@ -295,6 +295,10 @@ EOF
             Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; form-action 'self'; worker-src 'none'; frame-src 'none';"
             Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
             Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
+            # CORS Headers
+            Access-Control-Allow-Origin *
+            Access-Control-Allow-Methods "GET, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type"
         }
     }
 

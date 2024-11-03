@@ -155,65 +155,59 @@ class ContactsController extends Controller
                 }
 
             }
-            
-            if ($postalInfoLocName) {
-                if (!$postalInfoLocName) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Missing loc contact name');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
-                }
 
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocName)) {
+            if ($postalInfoLocName) {
+                if (!validateLocField($postalInfoLocName, 3)) {
                     $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact name');
                     return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoLocOrg) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocOrg)) {
+                    if (!validateLocField($postalInfoLocOrg, 3)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact org');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet1) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet1)) {
+                    if (!validateLocField($postalInfoLocStreet1, 3)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet2) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet2)) {
+                    if (!validateLocField($postalInfoLocStreet2, 3)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 2');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet3) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet3)) {
+                    if (!validateLocField($postalInfoLocStreet3, 3)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 3');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
-                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoLocCity)) {
+                if (!validateLocField($postalInfoLocCity, 3)) {
                     $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact city');
                     return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
 
                 if ($postalInfoLocSp) {
-                    if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoLocSp)) {
+                    if (!validateLocField($postalInfoLocSp, 2)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact state/province');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocPc) {
-                    if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoLocPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoLocPc)) {
+                    if (!validateLocField($postalInfoLocPc, 3)) {
                         $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact postal code');
                         return $response->withHeader('Location', '/contact/create')->withStatus(302);
                     }
                 }
-
             }
             
             $normalizedVoice = normalizePhoneNumber($voice, strtoupper($postalInfoIntCc));
@@ -233,11 +227,11 @@ class ContactsController extends Controller
                 $fax = $normalizedFax['success'];
             }
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!validateUniversalEmail($email)) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email address failed check');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
-
+            
             if (!$authInfo_pw) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email contact authinfo missing');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
@@ -273,6 +267,12 @@ class ContactsController extends Controller
                 }
             }
             
+            // Check if either postalInfoIntName or postalInfoLocName exists
+            if (!$postalInfoIntName && !$postalInfoLocName) {
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: At least one of the postal info types (INT or LOC) is required.');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+            }
+            
             try {
                 $db->beginTransaction();
                 $currentDateTime = new \DateTime();
@@ -298,25 +298,27 @@ class ContactsController extends Controller
                 );
                 $contact_id = $db->getLastInsertId();
                 
-                $db->insert(
-                    'contact_postalInfo',
-                    [
-                        'contact_id' => $contact_id,
-                        'type' => 'int',
-                        'name' => $postalInfoIntName ?? null,
-                        'org' => $postalInfoIntOrg ?? null,
-                        'street1' => $postalInfoIntStreet1 ?? null,
-                        'street2' => $postalInfoIntStreet2 ?? null,
-                        'street3' => $postalInfoIntStreet3 ?? null,
-                        'city' => $postalInfoIntCity ?? null,
-                        'sp' => $postalInfoIntSp ?? null,
-                        'pc' => $postalInfoIntPc ?? null,
-                        'cc' => $postalInfoIntCc ?? null,
-                        'disclose_name_int' => $disclose_name_int,
-                        'disclose_org_int' => $disclose_org_int,
-                        'disclose_addr_int' => $disclose_addr_int
-                    ]
-                );
+                if ($postalInfoIntName) {
+                    $db->insert(
+                        'contact_postalInfo',
+                        [
+                            'contact_id' => $contact_id,
+                            'type' => 'int',
+                            'name' => $postalInfoIntName ?? null,
+                            'org' => $postalInfoIntOrg ?? null,
+                            'street1' => $postalInfoIntStreet1 ?? null,
+                            'street2' => $postalInfoIntStreet2 ?? null,
+                            'street3' => $postalInfoIntStreet3 ?? null,
+                            'city' => $postalInfoIntCity ?? null,
+                            'sp' => $postalInfoIntSp ?? null,
+                            'pc' => $postalInfoIntPc ?? null,
+                            'cc' => $postalInfoIntCc ?? null,
+                            'disclose_name_int' => $disclose_name_int,
+                            'disclose_org_int' => $disclose_org_int,
+                            'disclose_addr_int' => $disclose_addr_int
+                        ]
+                    );
+                }
 
                 if ($postalInfoLocName) {
                     $db->insert(
@@ -822,7 +824,7 @@ class ContactsController extends Controller
             $authInfo_pw = $data['authInfo'] ?? null;
 
             if (!$identifier) {
-                $this->container->get('flash')->addMessage('error', 'Please provide a contact ID');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Please provide a contact ID');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
 
@@ -835,58 +837,58 @@ class ContactsController extends Controller
             
             if ($postalInfoIntName) {
                 if (!$postalInfoIntName) {
-                    $this->container->get('flash')->addMessage('error', 'Missing contact name');
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Missing contact name');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
 
                 if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid contact name');
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact name');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
 
                 if ($postalInfoIntOrg) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact org');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact org');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet1) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact street');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact street');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet2) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact street');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact street');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntStreet3) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact street');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact street');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid contact city');
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact city');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
 
                 if ($postalInfoIntSp) {
                     if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoIntSp)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact state/province');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact state/province');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoIntPc) {
                     if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoIntPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoIntPc)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid contact postal code');
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact postal code');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
@@ -894,92 +896,86 @@ class ContactsController extends Controller
             }
             
             if ($postalInfoLocName) {
-                if (!$postalInfoLocName) {
-                    $this->container->get('flash')->addMessage('error', 'Missing loc contact name');
-                    return $response->withHeader('Location', '/contacts')->withStatus(302);
-                }
-
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocName)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid loc contact name');
+                if (!validateLocField($postalInfoLocName, 3)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact name');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
 
                 if ($postalInfoLocOrg) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocOrg)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact org');
+                    if (!validateLocField($postalInfoLocOrg, 3)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact org');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet1) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet1)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact street');
+                    if (!validateLocField($postalInfoLocStreet1, 3)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact street');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet2) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet2)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact street');
+                    if (!validateLocField($postalInfoLocStreet2, 3)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact street 2');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocStreet3) {
-                    if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoLocStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoLocStreet3)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact street');
+                    if (!validateLocField($postalInfoLocStreet3, 3)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact street 3');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
-                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoLocCity)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid loc contact city');
+                if (!validateLocField($postalInfoLocCity, 3)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact city');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
 
                 if ($postalInfoLocSp) {
-                    if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoLocSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoLocSp)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact state/province');
+                    if (!validateLocField($postalInfoLocSp, 2)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact state/province');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
 
                 if ($postalInfoLocPc) {
-                    if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoLocPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoLocPc)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid loc contact postal code');
+                    if (!validateLocField($postalInfoLocPc, 3)) {
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid loc contact postal code');
                         return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                     }
                 }
-
             }
-
+            
             if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
-                $this->container->get('flash')->addMessage('error', 'Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Voice must be (\+[0-9]{1,3}\.[0-9]{1,14})');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
             if ($fax && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $fax) || strlen($fax) > 17)) {
-                $this->container->get('flash')->addMessage('error', 'Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Fax must be (\+[0-9]{1,3}\.[0-9]{1,14})');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $this->container->get('flash')->addMessage('error', 'Email address failed check');
+            if (!validateUniversalEmail($email)) {
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Email address failed check');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
             if (!$authInfo_pw) {
-                $this->container->get('flash')->addMessage('error', 'Email contact authinfo');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Email contact authinfo');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
             if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                $this->container->get('flash')->addMessage('error', 'Password needs to be at least 6 and up to 16 characters long');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password needs to be at least 6 and up to 16 characters long');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
             if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                $this->container->get('flash')->addMessage('error', 'Password should have both upper and lower case characters');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password should have both upper and lower case characters');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
@@ -998,9 +994,15 @@ class ContactsController extends Controller
                 $nin_type = (isset($data['isBusiness']) && $data['isBusiness'] === 'on') ? 'business' : 'personal';
 
                 if (!preg_match('/\d/', $nin)) {
-                    $this->container->get('flash')->addMessage('error', 'NIN should contain one or more numbers');
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: NIN should contain one or more numbers');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
+            }
+            
+            // Check if either postalInfoIntName or postalInfoLocName exists
+            if (!$postalInfoIntName && !$postalInfoLocName) {
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: At least one of the postal info types (INT or LOC) is required.');
+                return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
             
             try {
@@ -1031,28 +1033,30 @@ class ContactsController extends Controller
                     'SELECT id FROM contact WHERE identifier = ?',
                     [$identifier]
                 );
-                
-                $db->update(
-                    'contact_postalInfo',
-                    [
-                        'type' => 'int',
-                        'name' => $postalInfoIntName ?? null,
-                        'org' => $postalInfoIntOrg ?? null,
-                        'street1' => $postalInfoIntStreet1 ?? null,
-                        'street2' => $postalInfoIntStreet2 ?? null,
-                        'street3' => $postalInfoIntStreet3 ?? null,
-                        'city' => $postalInfoIntCity ?? null,
-                        'sp' => $postalInfoIntSp ?? null,
-                        'pc' => $postalInfoIntPc ?? null,
-                        'cc' => $postalInfoIntCc ?? null,
-                        'disclose_name_int' => $disclose_name_int,
-                        'disclose_org_int' => $disclose_org_int,
-                        'disclose_addr_int' => $disclose_addr_int
-                    ],
-                    [
-                        'contact_id' => $contact_id
-                    ]
-                );
+
+                if ($postalInfoIntName) {
+                    $db->update(
+                        'contact_postalInfo',
+                        [
+                            'name' => $postalInfoIntName ?? null,
+                            'org' => $postalInfoIntOrg ?? null,
+                            'street1' => $postalInfoIntStreet1 ?? null,
+                            'street2' => $postalInfoIntStreet2 ?? null,
+                            'street3' => $postalInfoIntStreet3 ?? null,
+                            'city' => $postalInfoIntCity ?? null,
+                            'sp' => $postalInfoIntSp ?? null,
+                            'pc' => $postalInfoIntPc ?? null,
+                            'cc' => $postalInfoIntCc ?? null,
+                            'disclose_name_int' => $disclose_name_int,
+                            'disclose_org_int' => $disclose_org_int,
+                            'disclose_addr_int' => $disclose_addr_int
+                        ],
+                        [
+                            'contact_id' => $contact_id,
+                            'type' => 'int',
+                        ]
+                    );
+                }
 
                 if ($postalInfoLocName) {
                     $does_it_exist = $db->selectValue("SELECT id FROM contact_postalInfo WHERE contact_id = ? AND type = 'loc'", [$contact_id]);
@@ -1061,7 +1065,6 @@ class ContactsController extends Controller
                         $db->update(
                             'contact_postalInfo',
                             [
-                                'type' => 'loc',
                                 'name' => $postalInfoLocName ?? null,
                                 'org' => $postalInfoLocOrg ?? null,
                                 'street1' => $postalInfoLocStreet1 ?? null,
@@ -1077,6 +1080,7 @@ class ContactsController extends Controller
                             ],
                             [
                                 'contact_id' => $contact_id,
+                                'type' => 'loc',
                             ]
                         );
                     } else {

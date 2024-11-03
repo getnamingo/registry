@@ -52,7 +52,7 @@ function mapContactToVCard($contactDetails, $role, $c) {
 
     return [
         'objectClassName' => 'entity',
-        'handle' => ['C' . $contactDetails['id'] . '-' . $c['roid']],
+        'handle' => 'C' . $contactDetails['id'] . '-' . $c['roid'],
         'roles' => [$role],
         'remarks' => [
             [
@@ -84,18 +84,17 @@ function mapContactToVCard($contactDetails, $role, $c) {
                 ['version', new stdClass(), 'text', '4.0'],
                 ["fn", new stdClass(), 'text', $disclose_name ? $contactDetails['name'] : "REDACTED FOR PRIVACY"],
                 ["org", new stdClass(), 'text', $disclose_org ? $contactDetails['org'] : "REDACTED FOR PRIVACY"],
-                ["adr", [
-                    "", // Post office box
+                ["adr", ["CC" => strtoupper($contactDetails['cc'])], 'text', [ // specify "CC" parameter for country code
                     $disclose_addr ? $contactDetails['street1'] : "REDACTED FOR PRIVACY", // Extended address
                     $disclose_addr ? $contactDetails['street2'] : "REDACTED FOR PRIVACY", // Street address
                     $disclose_addr ? $contactDetails['street3'] : "REDACTED FOR PRIVACY", // Additional street address
                     $disclose_addr ? $contactDetails['city'] : "REDACTED FOR PRIVACY", // Locality
                     $disclose_addr ? $contactDetails['sp'] : "REDACTED FOR PRIVACY", // Region
                     $disclose_addr ? $contactDetails['pc'] : "REDACTED FOR PRIVACY", // Postal code
-                    $disclose_addr ? strtoupper($contactDetails['cc']) : "REDACTED FOR PRIVACY"  // Country name
+                    ""  // Add empty last element as required for ADR structure
                 ]],
-                ["tel", new stdClass(), 'uri', $disclose_voice ? "tel:" . $contactDetails['voice'] : "REDACTED FOR PRIVACY", ["type" => "voice"]],
-                ["tel", new stdClass(), 'uri', $disclose_fax ? "tel:" . $contactDetails['fax'] : "REDACTED FOR PRIVACY", ["type" => "fax"]],
+                ["tel", ["type" => "voice"], 'uri', $disclose_voice ? "tel:" . $contactDetails['voice'] : "REDACTED FOR PRIVACY"],
+                ["tel", ["type" => "fax"], 'uri', $disclose_fax ? "tel:" . $contactDetails['fax'] : "REDACTED FOR PRIVACY"],
                 ["email", new stdClass(), 'text', $disclose_email ? $contactDetails['email'] : "REDACTED FOR PRIVACY"],
             ]
         ],

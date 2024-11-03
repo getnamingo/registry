@@ -169,19 +169,15 @@ function validate_identifier($identifier) {
 
     $length = strlen($identifier);
 
-    if ($length < 3) {
-        return 'Identifier type minLength value=3, maxLength value=16';
+    if ($length < 3 || $length > 16) {
+        return 'Identifier must be between 3 and 16 characters long';
     }
 
-    if ($length > 16) {
-        return 'Identifier type minLength value=3, maxLength value=16';
-    }
+    // Updated pattern: allows letters and digits at start and end, hyphens in the middle only
+    $pattern = '/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/';
 
-    $pattern1 = '/^[A-Z]+\-[0-9]+$/';
-    $pattern2 = '/^[A-Za-z][A-Z0-9a-z]*$/';
-
-    if (!preg_match($pattern1, $identifier) && !preg_match($pattern2, $identifier)) {
-        return 'The ID of the contact must contain letters (A-Z) (ASCII), hyphen (-), and digits (0-9).';
+    if (!preg_match($pattern, $identifier)) {
+        return 'The ID must start and end with a letter or digit and can contain hyphens (-) in the middle.';
     }
 }
 
@@ -670,4 +666,20 @@ function expandIPv6($ip) {
     }
 
     return implode(':', $expanded);
+}
+
+function validateLocField($input, $minLength = 5, $maxLength = 255) {
+    // Normalize input to NFC form
+    $input = normalizer_normalize($input, Normalizer::FORM_C);
+
+    // Remove control characters to prevent hidden injections
+    $input = preg_replace('/[\p{C}]/u', '', $input);
+
+    // Define a general regex pattern to match Unicode letters, numbers, punctuation, and spaces
+    $locRegex = '/^[\p{L}\p{N}\p{P}\p{Zs}\-\/&.,]+$/u';
+
+    // Check length constraints and regex pattern
+    return mb_strlen($input) >= $minLength &&
+           mb_strlen($input) <= $maxLength &&
+           preg_match($locRegex, $input);
 }
