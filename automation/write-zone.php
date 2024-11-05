@@ -192,7 +192,10 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 chown("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
                 chgrp("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
 
-                exec("ods-signer sign {$cleanedTld} 2>&1");
+                exec("ods-signer sign {$cleanedTld} 2>&1", $output, $return_var);
+                if ($return_var != 0) {
+                    $log->error("Failed to sign zone with OpenDNSSEC for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
+                }
                 sleep(1);
                 copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
 
