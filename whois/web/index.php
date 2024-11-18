@@ -225,6 +225,26 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const domainInput = document.getElementById('domainInput');
+            const errorMessage = document.getElementById('errorMessage');
+
+            function validateInput() {
+                const domain = domainInput.value.trim();
+                const resultContainer = document.getElementById('result');
+                const bottomContainer = document.getElementById('bottom');
+
+                if (!domain) {
+                    resultContainer.innerHTML = '<span style="color: #d9534f;">Please enter a valid domain name.</span>';
+                    bottomContainer.style.display = 'block'; // Ensure the container is visible
+                    domainInput.focus(); // Focus back on the input field
+                    return false;
+                }
+
+                resultContainer.innerText = ''; // Clear previous messages
+                bottomContainer.style.display = 'none'; // Hide the container
+                return true;
+            }
+
             document.getElementById('domainInput').addEventListener('keypress', function(event) {
                 // Check if the key pressed is 'Enter'
                 if (event.key === 'Enter') {
@@ -237,7 +257,9 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
             });
 
             document.getElementById('whoisButton').addEventListener('click', function() {
-                var domain = document.getElementById('domainInput').value;
+                if (!validateInput()) return;
+                var domain = document.getElementById('domainInput').value.trim();
+
                 // Get the CAPTCHA input element
                 var captchaInput = document.getElementById('captchaInput');
 
@@ -272,7 +294,9 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
             });
 
             document.getElementById('rdapButton').addEventListener('click', function() {
-                var domain = document.getElementById('domainInput').value;
+                if (!validateInput()) return;
+                var domain = document.getElementById('domainInput').value.trim();
+
                 // Get the CAPTCHA input element
                 var captchaInput = document.getElementById('captchaInput');
 
