@@ -1624,8 +1624,7 @@ class DomainsController extends Controller
         if ($data['nameserver']) {
             $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?',
                     [ $data['nameserver'] ]);
-            $domain_id = $db->selectValue('SELECT domain_id FROM domain_host_map WHERE host_id = ?',
-                    [ $host_id ]);
+            $domain_id = $data['domain_id'];
             $domainName = $db->selectValue('SELECT name FROM domain WHERE id = ?',
                     [ $domain_id ]);
             $db->delete(
