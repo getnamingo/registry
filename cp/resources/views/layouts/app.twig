@@ -133,7 +133,7 @@
                     </a>
                   </div>
                 </li>{% endif %}
-                <li {{ is_current_url('listHosts') or is_current_url('createHost') or 'host' in currentUri ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
+                <li {{ is_current_url('listHosts') or is_current_url('createHost') or 'host/' in currentUri ? 'class="nav-item dropdown active"' : 'class="nav-item dropdown"' }}>
                   <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                     <span class="nav-link-icon d-md-none d-lg-inline-block"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 9m-6 0a6 6 0 1 0 12 0a6 6 0 1 0 -12 0"></path><path d="M12 3c1.333 .333 2 2.333 2 6s-.667 5.667 -2 6"></path><path d="M12 3c-1.333 .333 -2 2.333 -2 6s.667 5.667 2 6"></path><path d="M6 9h12"></path><path d="M3 19h7"></path><path d="M14 19h7"></path><path d="M12 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M12 15v2"></path></svg>
                     </span>
