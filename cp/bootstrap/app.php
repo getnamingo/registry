@@ -99,12 +99,12 @@ $container->set('view', function ($container) {
                 $uiLang = strtolower($parts[1]);
             }
         } else {
-            $desiredLanguage = 'en_US';
-            $uiLang = 'us';
+            $desiredLanguage = envi('LANG');
+            $uiLang = envi('UI_LANG');
         }
     } else {
-        $desiredLanguage = 'en_US';
-        $uiLang = 'us';
+        $desiredLanguage = envi('LANG');
+        $uiLang = envi('UI_LANG');
     }
     $lang_full = Language::getName($desiredLanguage, 'en');
     $lang = trim(strstr($lang_full, ' (', true));

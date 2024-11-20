@@ -5,6 +5,9 @@ APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
 MINIMUM_DATA=false
 
+LANG=en_US
+UI_LANG=us
+
 DB_DRIVER=mysql
 DB_HOST=localhost
 DB_DATABASE=registry
