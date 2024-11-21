@@ -284,3 +284,26 @@ function processUrlAbuseData($fileContent) {
 function checkUrlAbuse($domain, Map $urlAbuseData) {
     return $urlAbuseData->get($domain, false);
 }
+
+function generateSerial($soa_type = null) {
+    // Default to Type 1 if $soa_type is not set, null, or invalid
+    $soa_type = $soa_type ?? 1;
+
+    switch ($soa_type) {
+        case 2: // Date-based, updates every 15 minutes
+            $hour = (int) date('H');
+            $segment = (int)(date('i') / 15); // 0 through 3
+            $offset = $hour * 4 + $segment;   // Converts hour + quarter into a unique number
+            return date('Ymd') . str_pad($offset, 2, '0', STR_PAD_LEFT);
+
+        case 3: // Cloudflare-like serial
+            $referenceTimestamp = strtotime("2020-11-01 00:00:00"); // Reference point
+            $timeDifference = time() - $referenceTimestamp; // Difference in seconds
+            $serial = $timeDifference + 2350000000; // Offset to ensure longer serials
+            return $serial;
+
+        case 1: // Fixed-length, second-based serial (default)
+        default:
+            return time();
+    }
+}

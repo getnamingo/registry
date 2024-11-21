@@ -38,7 +38,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
         $pdo = $pool->get();
         $sth = $pdo->prepare('SELECT id, tld FROM domain_tld');
         $sth->execute();
-        $timestamp = time();
+        $serial = generateSerial($c['dns_serial'] ?? 1);
 
         $tlds = [];
 
@@ -54,7 +54,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
             $soa->setRdata(Factory::Soa(
                 $c['ns']['ns1'] . '.',
                 $c['dns_soa'] . '.',
-                $timestamp, 
+                $serial, 
                 900, 
                 1800, 
                 3600000, 
