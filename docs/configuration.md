@@ -194,6 +194,17 @@ Once you have successfully configured all automation scripts, you are ready to i
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
 ```
 
+#### 1.4.8. Customizing the Control Panel Logo and Documentation Pages
+
+**1.4.8.1. Customizing the Logo**:
+Upload your custom logo as `logo.svg` to `/var/www/cp/public/static/`. If `logo.svg` is not present, the default `logo.default.svg` will be used automatically.
+
+**1.4.8.2. Customizing the Documentation Page**:
+To customize the documentation, copy `docs.twig` to `docs.custom.twig` using the command `cp /var/www/cp/resources/views/admin/support/docs.twig /var/www/cp/resources/views/admin/support/docs.custom.twig`. Edit `docs.custom.twig` as needed. The system will use `docs.custom.twig` if it exists; otherwise, it defaults to `docs.twig`.
+
+**1.4.8.3. Customizing the Media Kit Page**:
+To customize the media kit page, copy `mediakit.twig` to `mediakit.custom.twig` using `cp /var/www/cp/resources/views/admin/support/mediakit.twig /var/www/cp/resources/views/admin/support/mediakit.custom.twig`. Edit `mediakit.custom.twig` to apply your changes. The system will prioritize `mediakit.custom.twig` over the default file.
+
 ## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.
@@ -670,6 +681,7 @@ return [
         // ... more name servers as needed ...
     ],
     'dns_soa' => 'hostmaster.example.com', // SOA email address
+    'dns_serial' => 1, // change to 2 for YYYYMMDDXX format, and 3 for Cloudflare-like serial
     'zone_mode' => 'default', // How the BIND zone is generated, 'nice' is also available
 
     // URS Configuration
@@ -718,6 +730,9 @@ APP_URL=https://cp.example.com
 APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
 MINIMUM_DATA=false
+
+LANG=en_US
+UI_LANG=us
 
 DB_DRIVER=mysql # Type of the database (e.g., 'mysql', 'pgsql')
 DB_HOST=localhost # Database server host
@@ -820,6 +835,7 @@ return [
     'db_username' => 'your_username', // Database username
     'db_password' => 'your_password', // Database password
     'roid' => 'XX', // Registry Object ID
+    'minimum_data' => false, // Set to true to enable minimum data set support
     'registry_url' => 'https://example.com/rdap-terms', // URL of registry website
     'rdap_url' => 'https://rdap.example.com', // URL of RDAP server
     'rately' => false, // Enable rate limit
