@@ -12,7 +12,7 @@
       "source": {
         "type": "mysqldump",
         "options": {
-          "databases": "registry",
+          "databases": "registry registryAudit registryTransaction",
           "user": "your_username",
           "password": "your_password"
         }
