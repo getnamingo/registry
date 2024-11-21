@@ -31,8 +31,8 @@
 
                 <h3>Logos</h3>
                 <p>{{ logos_intro|default('Provide guidelines on how to use your registry logos correctly.') }}</p>
-                <!-- Placeholder for logos. You can use a loop in Twig to iterate through and display multiple logos. -->
-                <img src="{{ logo_image_path|default('/static/logo.svg') }}" alt="Registry Logo" class="img-fluid mb-3" style="max-width:50%;">
+
+                <img src="{{ logoPath }}" alt="Registry Logo" class="img-fluid mb-3" style="max-width:50%;">
                 
                 <h3>Branding Guidelines</h3>
                 <p>{{ branding_guidelines|default('Detail any color schemes, typography, or design patterns related to your TLD registry brand here.') }}</p>
@@ -42,8 +42,9 @@
 
                 <!-- ... Add more sections as needed ... -->
 
-                <footer>
-                    <p class="text-muted">Replace or remove this footer as necessary. Add any relevant information or links here.</p>
+                <footer class="mt-4 text-muted">
+                    <p>To customize this documentation page:</p>
+                    <p>Copy <code>mediakit.twig</code> from <code>/var/www/cp/resources/views/admin/support</code> to <code>mediakit.custom.twig</code> and edit the file as required.</p>
                 </footer>
                 </div>
               </div>

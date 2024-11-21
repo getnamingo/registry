@@ -328,11 +328,19 @@ class SupportController extends Controller
 
     public function docs(Request $request, Response $response)
     {
-        return view($response,'admin/support/docs.twig');
+        $basePath = '/var/www/cp/resources/views/';
+        $template = file_exists($basePath . 'admin/support/docs.custom.twig') 
+                    ? 'admin/support/docs.custom.twig' 
+                    : 'admin/support/docs.twig';
+        return view($response, $template);
     }
 
     public function mediakit(Request $request, Response $response)
     {
-        return view($response,'admin/support/mediakit.twig');
+        $basePath = '/var/www/cp/resources/views/';
+        $template = file_exists($basePath . 'admin/support/mediakit.custom.twig') 
+                    ? 'admin/support/mediakit.custom.twig' 
+                    : 'admin/support/mediakit.twig';
+        return view($response, $template);
     }
 }

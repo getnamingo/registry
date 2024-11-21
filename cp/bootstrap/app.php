@@ -121,6 +121,17 @@ $container->set('view', function ($container) {
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
+
+    $staticDir = '/var/www/cp/public/static';
+    if (file_exists($staticDir . '/logo.svg')) {
+        $logoPath = '/static/logo.svg';
+    } elseif (file_exists($staticDir . '/logo.png')) {
+        $logoPath = '/static/logo.png';
+    } else {
+        $logoPath = '/static/logo.default.svg';
+    }
+    $view->getEnvironment()->addGlobal('logoPath', $logoPath);
+
     if (isset($_SESSION['_screen_mode'])) {
         $view->getEnvironment()->addGlobal('screen_mode', $_SESSION['_screen_mode']);
     } else {
