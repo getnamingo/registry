@@ -205,6 +205,14 @@ To customize the documentation, copy `docs.twig` to `docs.custom.twig` using the
 **1.4.8.3. Customizing the Media Kit Page**:
 To customize the media kit page, copy `mediakit.twig` to `mediakit.custom.twig` using `cp /var/www/cp/resources/views/admin/support/mediakit.twig /var/www/cp/resources/views/admin/support/mediakit.custom.twig`. Edit `mediakit.custom.twig` to apply your changes. The system will prioritize `mediakit.custom.twig` over the default file.
 
+#### 1.4.9. Changing the Default Control Panel Language
+
+To change the default language of the control panel, you must edit the `/var/www/cp/.env` file and replace the language values (`LANG`/`UI_LANG`) with your desired settings.
+
+For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `jp_JP`, and `fr_FR`. For the `UI_LANG` variable, use `us`, `ua`, `jp`, or `fr`.
+
+To apply your changes, save the file, refresh the control panel, and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php` The new language settings will take effect immediately.
+
 ## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.
