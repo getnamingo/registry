@@ -723,7 +723,29 @@ return [
     'lordn_pass' => 'your_password', // Password for LORDN
     
     // Minimum Data Set
-    'minimum_data' => false, // Set to true to enable minimum data set support
+    'minimum_data' => false,
+
+    // Domain lifecycle settings
+    'autoRenewEnabled' => false,
+
+    // Lifecycle periods (in days)
+    'gracePeriodDays' => 30,
+    'autoRenewPeriodDays' => 45,
+    'addPeriodDays' => 5,
+    'renewPeriodDays' => 5,
+    'transferPeriodDays' => 5,
+    'redemptionPeriodDays' => 30,
+    'pendingDeletePeriodDays' => 5,
+
+    // Lifecycle phases (enable/disable)
+    'enableAutoRenew' => false,
+    'enableGracePeriod' => true,
+    'enableRedemptionPeriod' => true,
+    'enablePendingDelete' => true,
+
+    // Drop settings
+    'dropStrategy' => 'random', // Options: 'fixed', 'random'
+    'dropTime' => '02:00:00',    // Time of day to perform drops if 'fixed' strategy is used
 ];
 ```
 
