@@ -295,8 +295,8 @@ Add the following DNSSEC policy:
 ```bash
 dnssec-policy "namingo-policy" {
     keys {
-        ksk lifetime P3M algorithm ed25519;
-        zsk lifetime P1M algorithm ed25519;
+        ksk lifetime P1Y algorithm ed25519;
+        zsk lifetime P2M algorithm ed25519;
     };
     max-zone-ttl 86400;
     dnskey-ttl 3600;
@@ -334,6 +334,7 @@ After generating the keys, place them in ```/var/lib/bind```. Run ```dnssec-dsfr
 Use rndc to tell BIND to load and use the new keys:
 
 ```bash
+chown -R bind:bind /var/lib/bind
 systemctl restart bind9
 rndc loadkeys test.
 ```
