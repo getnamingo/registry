@@ -691,7 +691,17 @@ class SystemController extends Controller
                     $this->container->get('flash')->addMessage('error', $errorText);
                     return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 }
-             
+
+                if ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] === 'on') {
+                    $dnssec_both = 1;
+                } elseif ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] !== 'on') {
+                    $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
+                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+                } elseif ($data['dnssec_enable'] !== 'on' && $data['bind9_enable'] === 'on') {
+                    $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
+                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+                }
+
                 try {
                     $db->beginTransaction();
                     
@@ -772,7 +782,19 @@ class SystemController extends Controller
                             'tldid' => $tld_id
                         ]
                     );
-                    
+
+                    if (isset($dnssec_both) && $dnssec_both === 1) {
+                        $db->update(
+                            'domain_tld',
+                            [
+                                'secure' => 1
+                            ],
+                            [
+                                'id' => $tld_id
+                            ]
+                        );
+                    }
+
                     // Loop through category indices from 1 to 10
                     for ($i = 1; $i <= 10; $i++) {
                         $categoryNameKey = 'categoryName' . $i;
@@ -863,7 +885,7 @@ class SystemController extends Controller
                     unset($_SESSION['u_tld_extension']);
 
                     $this->container->get('flash')->addMessage('success', 'TLD ' . $tld_extension . ' has been updated successfully');
-                    return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 } catch (Exception $e) {
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
@@ -913,7 +935,7 @@ class SystemController extends Controller
                     '/^[가-힣]+$/u' => 'Korean',
                 ];
 
-                $idnRegex = $tld['idn_table']; // Assume this is the regex from the database
+                $idnRegex = $tld['idn_table'];
                 $scriptName = '';
 
                 // Determine the script name based on the regex
@@ -934,6 +956,51 @@ class SystemController extends Controller
                 $_SESSION['u_tld_id'] = [$tld['id']];
                 $_SESSION['u_tld_extension'] = [$tld['tld']];
 
+                $secureTld = $tld['secure'];
+                if ($secureTld === 1) {
+                    // Remove the leading dot
+                    $tld_extension_cleaned = ltrim($tld['tld'], '.');
+
+                    // Path to the JSON file
+                    $jsonFilePath = "/tmp/{$tld_extension_cleaned}.json";
+
+                    // Initialize a variable to hold the data for Twig
+                    $dnssecData = null;
+
+                    if (file_exists($jsonFilePath) && is_readable($jsonFilePath)) {
+                        // Read and decode the JSON file
+                        $jsonContent = file_get_contents($jsonFilePath);
+                        $data = json_decode($jsonContent, true);
+
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            // Ensure keys exist and process them
+                            if (isset($data['keys']) && is_array($data['keys'])) {
+                                $dnssecData = [
+                                    'zoneName' => $data['zoneName'] ?? 'N/A',
+                                    'timestamp' => $data['timestamp'] ?? 'N/A',
+                                    'keys' => [],
+                                ];
+
+                                foreach ($data['keys'] as $key) {
+                                    $dnssecData['keys'][] = [
+                                        'keyFile' => $key['keyFile'] ?? 'N/A',
+                                        'dsRecord' => $key['dsRecord'] ?? 'N/A',
+                                        'timestamp' => $key['timestamp'] ?? 'N/A',
+                                    ];
+                                }
+                            } else {
+                                $dnssecData = ['error' => "No keys found in JSON."];
+                            }
+                        } else {
+                            $dnssecData = ['error' => "Failed to decode JSON: " . json_last_error_msg()];
+                        }
+                    } else {
+                        $dnssecData = ['error' => "File {$jsonFilePath} not found or not readable."];
+                    }
+                } else {
+                    $dnssecData = ['error' => "DNSSEC is not enabled for this TLD."];
+                }
+
                 return view($response,'admin/system/manageTld.twig', [
                     'tld' => $tld,
                     'tld_u' => $tld_u,
@@ -946,6 +1013,8 @@ class SystemController extends Controller
                     'premium_categories' => $premium_categories,
                     'promotions' => $promotions,
                     'launch_phases' => $launch_phases,
+                    'secureTld' => $secureTld,
+                    'dnssecData' => $dnssecData,
                     'currentUri' => $uri
                 ]);
             } else {

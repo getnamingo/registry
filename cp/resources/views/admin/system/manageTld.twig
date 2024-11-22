@@ -48,14 +48,90 @@
                       <div class="datagrid-item">
                         <div class="datagrid-title">DNSSEC</div>
                         <div class="datagrid-content">
-                          <span class="status status-yellow">
-                            {{ __('Manual') }}
-                          </span>
+                          {% if secureTld == 1 %}
+                            <span class="status status-blue">
+                              {{ __('Active') }}
+                            </span>
+                          {% else %}
+                            <span class="status status-yellow">
+                              {{ __('Manual') }}
+                            </span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">Enable DNSSEC</div>
+                        <div class="datagrid-content">
+                          <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="dnssec_enable" {% if secureTld == 1 %} checked disabled {% endif %}>
+                            <span class="form-check-label">{{ __('Enable') }}</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">BIND9 DNSSEC</div>
+                        <div class="datagrid-content">
+                          <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="bind9_enable" {% if secureTld == 1 %} checked disabled {% endif %}>
+                            <span class="form-check-label">{{ __('Enable') }}</span>
+                          </label>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {% if dnssecData is defined and dnssecData.keys is defined %}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">{{ __('DNSSEC Details') }} <span class="card-subtitle">{{ __('Last Updated:') }} {{ dnssecData.timestamp }}</span></h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="table-responsive">
+                      <table class="table table-vcenter card-table">
+                        <thead>
+                          <tr>
+                            <th>{{ __('Key File') }}</th>
+                            <th>{{ __('DS Record') }}</th>
+                            <th>{{ __('Timestamp') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for key in dnssecData.keys %}
+                          <tr>
+                            <td>{{ key.keyFile }}</td>
+                            <td><p class="user-select-all tracking-wide mb-0"><kbd>{{ key.dsRecord }}</kbd></p></td>
+                            <td>{{ key.timestamp }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                {% elseif dnssecData.error is defined %}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                      <h4 class="alert-title">{{ dnssecData.error }}</h4>
+                    </div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                      <h4 class="alert-title">{{ __('No DNSSEC data available.') }}</h4>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
 
                 <div class="card mb-3">
                   <div class="card-header">
