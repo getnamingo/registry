@@ -369,17 +369,37 @@ Install OpenDNSSEC:
 
 ```bash
 apt install opendnssec opendnssec-enforcer-sqlite3 opendnssec-signer softhsm2
+mkdir -p /var/lib/softhsm/tokens
+chown -R opendnssec:opendnssec /var/lib/softhsm/tokens
+softhsm2-util --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234
 ```
 
 Update files in `/etc/opendnssec` to match your registry policy. As minimum, please enable at least Signer Threads in `/etc/opendnssec/conf.xml`, but we recommend to fully review [all the files](https://wiki.opendnssec.org/configuration/confxml/). Then run the following commands:
 
 ```bash
-softhsm2-util --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234
+chown -R opendnssec:opendnssec /etc/opendnssec
 ods-enforcer-db-setup
-rm /etc/opendnssec/prevent-startup
-ods-control start
 ods-enforcer policy import
+rm /etc/opendnssec/prevent-startup
+chown opendnssec:opendnssec /var/lib/bind/test.zone
+chmod 644 /var/lib/bind/test.zone
 ods-enforcer zone add -z test -p default -i /var/lib/bind/test.zone
+ods-control start
+```
+
+Edit again the named.conf.local file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Replace the value for `file` with the following filename:
+
+```bash
+...
+    file "/var/lib/opendnssec/signed/test.zone.signed";
+...
+};
 ```
 
 Use rndc to reload BIND:
