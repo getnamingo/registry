@@ -19,7 +19,7 @@ $scheduler->php('/opt/registry/automation/statistics.php')->at('59 * * * *');
 $scheduler->php('/opt/registry/automation/rdap-urls.php')->at('50 1 * * *');
 $scheduler->php('/var/www/cp/bin/file_cache.php')->at('0 0 * * 1');
 
-$scheduler->php('/opt/registry/automation/change-domain-status.php')->at('*/5 * * * *');
+$scheduler->php('/opt/registry/automation/domain-lifecycle-manager.php')->at('*/5 * * * *');
 $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 * * * *');
 $scheduler->php('/opt/registry/automation/auto-clean-unused-contact-and-host.php')->at('5 0 * * *');
 

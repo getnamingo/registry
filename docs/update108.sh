@@ -125,6 +125,37 @@ if [ -f "$CONFIG_FILE" ]; then
     sed -i "/'dns_serial' => 1, \/\/ change to 2 for YYYYMMDDXX format, and 3 for Cloudflare-like serial/{n;/^$/d}" "$CONFIG_FILE"
 fi
 
+CONFIG_FILE="/opt/registry/automation/config.php"
+if [ -f "$CONFIG_FILE" ]; then
+    # Add 'minimum_data' with an empty line after it
+    sed -i "/'minimum_data'/a\\
+\\
+// Domain lifecycle settings\\
+'autoRenewEnabled' => false,\\
+\\
+// Lifecycle periods (in days)\\
+'gracePeriodDays' => 30,\\
+'autoRenewPeriodDays' => 45,\\
+'addPeriodDays' => 5,\\
+'renewPeriodDays' => 5,\\
+'transferPeriodDays' => 5,\\
+'redemptionPeriodDays' => 30,\\
+'pendingDeletePeriodDays' => 5,\\
+\\
+// Lifecycle phases (enable/disable)\\
+'enableAutoRenew' => false,\\
+'enableGracePeriod' => true,\\
+'enableRedemptionPeriod' => true,\\
+'enablePendingDelete' => true,\\
+\\
+// Drop settings\\
+'dropStrategy' => 'random', // Options: 'fixed', 'random'\\
+'dropTime' => '02:00:00',    // Time of day to perform drops if 'fixed' strategy is used" "$CONFIG_FILE"
+
+    # Remove any extra blank lines added by accident after the block
+    sed -i '/^$/N;/^\n$/D' "$CONFIG_FILE"
+fi
+
 # Start services
 echo "Starting services..."
 systemctl start epp
