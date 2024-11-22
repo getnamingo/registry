@@ -6,6 +6,7 @@ $cronJobConfig = [
     'backup' => false,    // Set to true to enable
     'gtld_mode' => false,    // Set to true to enable
     'spec11' => false,    // Set to true to enable
+    'dnssec' => false,    // Set to true to enable
 ];
 
 require __DIR__ . '/vendor/autoload.php';
@@ -30,6 +31,10 @@ if ($cronJobConfig['accounting']) {
 if ($cronJobConfig['backup']) {
     $scheduler->raw('/opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json')->at('15 * * * *');
     $scheduler->php('/opt/registry/automation/backup-upload.php')->at('30 * * * *');
+}
+
+if ($cronJobConfig['dnssec']) {
+    $scheduler->php('/opt/registry/automation/dnssec-ds-rotator.php')->at('0 0 * * *');
 }
 
 if ($cronJobConfig['spec11']) {

@@ -345,6 +345,8 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
+**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.**
+
 3. Using DNSSEC with OpenDNSSEC:
 
 Edit the named.conf.local file:
