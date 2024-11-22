@@ -34,12 +34,14 @@
                 <div class="card-body">
                 {% for type, names in categories %}
                     <div class="card mb-3">
-                        <div class="card-header">{{ type|capitalize }} Names</div>
+                        <div class="card-header">
+                          <h3 class="card-title">{{ type|capitalize }} Names <span class="card-subtitle"><span class="line-count">0</span> {{ __('lines') }}</span></h3>
+                        </div>
                         <div class="card-body">
                             {% if names is not empty %}
-                                <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line" required>{{ names|join('\n') }}</textarea>
+                                <textarea class="form-control countable" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line">{{ names|join('\n') }}</textarea>
                             {% else %}
-                                <textarea class="form-control" name="domains_{{ type }}" rows="4" placeholder="No {{ type|lower }} names. Enter new names, one per line" required></textarea>
+                                <textarea class="form-control countable" name="domains_{{ type }}" rows="4" placeholder="No {{ type|lower }} names. Enter new names, one per line"></textarea>
                             {% endif %}
                             <small class="form-hint">
                                 <strong>{{ type|capitalize }} Names:</strong> {{ __('These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. ') }}
@@ -63,4 +65,33 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Function to count lines in a textarea
+  function countLines(text) {
+    return text.trim().split(/\r\n|\r|\n/).filter(line => line.trim() !== "").length;
+  }
+
+  // Update the count for all textareas with class "countable"
+  function updateLineCounts() {
+    document.querySelectorAll('.countable').forEach(function (textarea) {
+      const lineCount = countLines(textarea.value);
+
+      // Locate the 'line-count' in the card-header
+      const cardHeader = textarea.closest('.card').querySelector('.card-header .line-count');
+      if (cardHeader) {
+        cardHeader.textContent = lineCount;
+      }
+    });
+  }
+
+  // Attach event listeners to dynamically update the counts
+  document.querySelectorAll('.countable').forEach(function (textarea) {
+    textarea.addEventListener('input', updateLineCounts);
+  });
+
+  // Initial count update
+  updateLineCounts();
+});
+</script>
 {% endblock %}
