@@ -67,12 +67,12 @@
                     </div>{% if minimum_data == 'false' %}
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Registrant') }}</div>
-                      <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
+                      <div class="datagrid-content"><strong><a href="/contact/view/{{ domainRegistrant.identifier }}">{{ domainRegistrant.identifier }}</a></strong></div>
                     </div>
                     {% for contact in domainContacts %}
                       <div class="datagrid-item">
                         <div class="datagrid-title">{{ contact.type }} {{ __('contact') }}</div>
-                        <div class="datagrid-content">{{ contact.identifier }}</div>
+                        <div class="datagrid-content"><strong><a href="/contact/view/{{ contact.identifier }}">{{ contact.identifier }}</a></strong></div>
                       </div>
                     {% endfor %}{% endif %}
                       <div class="datagrid-item">
@@ -107,7 +107,7 @@
                           <div class="datagrid-item">
                             <div class="datagrid-title">{{ __('Nameserver') }} {{ loop.index }}</div>
                             <div class="datagrid-content">
-                              {{ host.name }}
+                              <strong><a href="/host/view/{{ host.name }}">{{ host.name }}</a></strong>
                             </div>
                           </div>
                           {% endfor %}

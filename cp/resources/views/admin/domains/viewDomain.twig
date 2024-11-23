@@ -17,6 +17,25 @@
                   {{ __('Domain Details') }}
                 </h2>
               </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <a href="/domain/renew/{{ domain.name }}" class="btn btn-outline-success d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+                    {{ __('Renew Domain') }}
+                  </a>
+                  <a href="/domain/renew/{{ domain.name }}" class="btn btn-outline-success d-sm-none btn-icon" aria-label="{{ __('Renew Domain') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+                  </a>
+                  <a href="/domain/update/{{ domain.name }}" class="btn btn-outline-info d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                    {{ __('Update Domain') }}
+                  </a>
+                  <a href="/domain/update/{{ domain.name }}" class="btn btn-outline-info d-sm-none btn-icon" aria-label="{{ __('Update Domain') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -66,12 +85,12 @@
                     </div>{% if minimum_data == 'false' %}
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Registrant') }}</div>
-                      <div class="datagrid-content">{{ domainRegistrant.identifier }}</div>
+                      <div class="datagrid-content"><strong><a href="/contact/view/{{ domainRegistrant.identifier }}">{{ domainRegistrant.identifier }}</a></strong></div>
                     </div>
                     {% for contact in domainContacts %}
                       <div class="datagrid-item">
                         <div class="datagrid-title">{{ contact.type }} {{ __('contact') }}</div>
-                        <div class="datagrid-content">{{ contact.identifier }}</div>
+                        <div class="datagrid-content"><strong><a href="/contact/view/{{ contact.identifier }}">{{ contact.identifier }}</a></strong></div>
                       </div>
                     {% endfor %}{% endif %}
                       <div class="datagrid-item">
@@ -106,7 +125,7 @@
                           <div class="datagrid-item">
                             <div class="datagrid-title">{{ __('Nameserver') }} {{ loop.index }}</div>
                             <div class="datagrid-content">
-                              {{ host.name }}
+                              <strong><a href="/host/view/{{ host.name }}">{{ host.name }}</a></strong>
                             </div>
                           </div>
                           {% endfor %}
