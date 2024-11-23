@@ -640,16 +640,16 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         }
     }
 
-    $parts = extractDomainAndTLD($domainName);
-    $label = $parts['domain'];
-    $domain_extension = $parts['tld'];
-
     $invalid_domain = validate_label($domainName, $db);
 
     if ($invalid_domain) {
         sendEppError($conn, $db, 2306, 'Invalid domain:name', $clTRID, $trans);
         return;
     }
+
+    $parts = extractDomainAndTLD($domainName);
+    $label = $parts['domain'];
+    $domain_extension = $parts['tld'];
 
     $valid_tld = false;
     $stmt = $db->prepare("SELECT id, tld FROM domain_tld");

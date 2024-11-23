@@ -157,19 +157,25 @@ class DomainsController extends Controller
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
-            
+
             $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
             $dsAlg = $data['dsAlg'] ?? null;
             $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
             $dsDigest = $data['dsDigest'] ?? null;
-            
+
             $dnskeyFlags = $data['dnskeyFlags'] ?? null;
             $dnskeyProtocol = $data['dnskeyProtocol'] ?? null;
             $dnskeyAlg = $data['dnskeyAlg'] ?? null;
             $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
-            
+
             $authInfo = $data['authInfo'] ?? null;
-            
+            $invalid_domain = validate_label($domainName, $db);
+
+            if ($invalid_domain) {
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain name');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
+            }
+
             try {
                 $parts = extractDomainAndTLD($domainName);
             } catch (\Exception $e) {
@@ -179,12 +185,6 @@ class DomainsController extends Controller
             }
             $label = $parts['domain'];
             $domain_extension = $parts['tld'];
-            $invalid_domain = validate_label($domainName, $db);
-
-            if ($invalid_domain) {
-                $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain name');
-                return $response->withHeader('Location', '/domain/create')->withStatus(302);
-            }
             
             $valid_tld = false;
             $result = $db->select('SELECT id, tld FROM domain_tld');
@@ -759,9 +759,9 @@ class DomainsController extends Controller
                         } else {
                             $currentDateTime = new \DateTime();
                             $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
-                            
+
                             if ($internal_host) {
-                                if (strpos(strtolower($nameserver), strtolower($domainName)) !== false) {
+                                if (str_ends_with(strtolower(trim($nameserver)), strtolower(trim($domainName)))) {
                                     $db->insert(
                                         'host',
                                         [

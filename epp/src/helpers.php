@@ -191,6 +191,9 @@ function validate_label($label, $pdo) {
     if (strlen($label) < 2) {
         return 'Total length of your domain must be greater then 2 characters';
     }
+    if (strpos($label, '.') === false) {
+        return 'Invalid domain name format, must contain at least one dot (.)';
+    }
     if (strpos($label, 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
         return 'Invalid domain name format, cannot begin or end with a hyphen (-)';
     }

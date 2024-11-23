@@ -69,18 +69,18 @@ class ApplicationsController extends Controller
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
-      
+
             $authInfo = $data['authInfo'] ?? null;
-            
-            $parts = extractDomainAndTLD($domainName);
-            $label = $parts['domain'];
-            $domain_extension = $parts['tld'];
             $invalid_domain = validate_label($domainName, $db);
 
             if ($invalid_domain) {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid domain name');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
+
+            $parts = extractDomainAndTLD($domainName);
+            $label = $parts['domain'];
+            $domain_extension = $parts['tld'];
             
             $valid_tld = false;
             $result = $db->select('SELECT id, tld FROM domain_tld');
