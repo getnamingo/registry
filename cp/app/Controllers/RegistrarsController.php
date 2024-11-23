@@ -313,11 +313,11 @@ class RegistrarsController extends Controller
         if ($args) {
             $args = trim(preg_replace('/\s+/', ' ', $args));
 
-            if (!preg_match('/^[a-zA-Z0-9\s]+$/', $args)) {
+            if (!preg_match('/^[a-zA-Z0-9\s.\-]+$/', $args)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid registrar');
                 return $response->withHeader('Location', '/registrars')->withStatus(302);
             }
-            
+
             $registrar = $db->selectRow('SELECT * FROM registrar WHERE name = ?',
             [ $args ]);
 

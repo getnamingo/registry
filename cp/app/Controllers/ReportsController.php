@@ -15,8 +15,42 @@ class ReportsController extends Controller
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
+        
+        $stats = [];
+        $currency = $_SESSION['_currency'] ?? 'USD';
+        $db = $this->container->get('db');
+        $totalDomains = $db->select('SELECT COUNT(name) as total FROM domain');
+        $numT = $totalDomains[0]['total'] ?? 1;
 
-        return view($response,'admin/reports/index.twig');
+        $registrars = $db->select('SELECT id, name FROM registrar');
+        foreach ($registrars as $registrar) {
+            $domainCount = $db->select(
+                'SELECT COUNT(name) as count FROM domain WHERE clid = ?',
+                [$registrar['id']]
+            );
+
+            $earnings = $db->select(
+                'SELECT SUM(amount) as amt FROM statement WHERE registrar_id = ? AND command <> "deposit"',
+                [$registrar['id']]
+            );
+
+            $stats[] = [
+                'id' => $registrar['id'],
+                'registrar' => $registrar['name'],
+                'currency' => $currency,
+                'number' => $domainCount[0]['count'] ?? 0,
+                'share' => number_format(($domainCount[0]['count'] ?? 0) / $numT * 100, 2),
+                'earnings' => $earnings[0]['amt'] ?? 0
+            ];
+        }
+
+        usort($stats, function ($a, $b) {
+            return $b['share'] <=> $a['share'];
+        });
+
+        return view($response,'admin/reports/index.twig', [
+            'stats' => $stats
+        ]);
     }
     
     public function exportDomains(Request $request, Response $response)
