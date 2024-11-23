@@ -707,19 +707,24 @@ class DomainsController extends Controller
                 if (!empty($nameservers)) {
                     foreach ($nameservers as $index => $nameserver) {
 
-                        $internal_host = false;
-                        
-                        $parts_host = extractDomainAndTLD($nameserver);
-                        $host_extension = $parts_host['tld'];
-                        $result = $db->select('SELECT tld FROM domain_tld');
+                        $parts_host = extractHostTLD($nameserver);
+                        $host_extension = $parts_host['tld'] ?? ''; // Extract only the TLD
 
-                        foreach ($result as $row) {
-                            if ('.' . strtoupper($host_extension) === strtoupper($row['tld'])) {
-                                $internal_host = true;
-                                break;
-                            }
+                        // Initialize $internal_host as false
+                        $internal_host = false;
+
+                        // Validate the extracted TLD before querying
+                        if (!empty($host_extension)) {
+                            $tldExists = $db->selectValue(
+                                'SELECT 1 FROM domain_tld WHERE tld = ? LIMIT 1',
+                                ['.' . strtolower($host_extension)]
+                            );
+
+                            // Correctly set $internal_host to true only if $tldExists is not NULL
+                            $internal_host = $tldExists !== null;
                         }
 
+                        // Check if the host name already exists
                         $hostName_already_exist = $db->selectValue(
                             'SELECT id FROM host WHERE name = ? LIMIT 1',
                             [$nameserver]
@@ -756,16 +761,29 @@ class DomainsController extends Controller
                             $host_date = $currentDateTime->format('Y-m-d H:i:s.v');
                             
                             if ($internal_host) {
-                                $db->insert(
-                                    'host',
-                                    [
-                                        'name' => strtolower($nameserver),
-                                        'domain_id' => $domain_id,
-                                        'clid' => $clid,
-                                        'crid' => $clid,
-                                        'crdate' => $host_date
-                                    ]
-                                );
+                                if (strpos(strtolower($nameserver), strtolower($domainName)) !== false) {
+                                    $db->insert(
+                                        'host',
+                                        [
+                                            'name' => strtolower($nameserver),
+                                            'domain_id' => $domain_id,
+                                            'clid' => $clid,
+                                            'crid' => $clid,
+                                            'crdate' => $host_date
+                                        ]
+                                    );
+                                } else {
+                                    $db->insert(
+                                        'host',
+                                        [
+                                            'name' => strtolower($nameserver),
+                                            'domain_id' => null,
+                                            'clid' => $clid,
+                                            'crid' => $clid,
+                                            'crdate' => $host_date
+                                        ]
+                                    );
+                                }
                                 $host_id = $db->getlastInsertId();
                             } else {
                                 $db->insert(

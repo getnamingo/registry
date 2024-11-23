@@ -587,3 +587,19 @@ function toUnicode($value) {
     // Convert from Punycode to UTF-8 if it's a valid IDN format
     return (strpos($value, 'xn--') === 0) ? idn_to_utf8($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46) : $value;
 }
+
+function extractHostTLD(string $hostname): array
+{
+    $parts = explode('.', $hostname);
+
+    if (count($parts) < 2) {
+        // Invalid hostname; return empty values
+        return ['host' => '', 'tld' => ''];
+    }
+
+    // Extract host and TLD
+    $tld = array_pop($parts); // Get the last part as TLD
+    $host = array_pop($parts); // Get the second last part as host
+
+    return ['host' => $host, 'tld' => $tld];
+}
