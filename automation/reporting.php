@@ -1,4 +1,10 @@
 <?php
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\HandlerStack;
+
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
@@ -12,6 +18,16 @@ $options = [
 $logFilePath = '/var/log/namingo/reporting.log';
 $log = setupLogger($logFilePath, 'ICANN_Reporting');
 $log->info('job started.');
+
+// Check if the directory exists
+if (!file_exists($c['reporting_path'])) {
+    if (!mkdir($c['reporting_path'], 0755, true)) {
+        $log->error("Failed to create directory: " . $c['reporting_path']);
+        exit(1);
+    } else {
+        $log->info("Directory created successfully: " . $c['reporting_path']);
+    }
+}
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
@@ -167,27 +183,33 @@ try {
 
         // Write data to CSV
         $tld_save = strtolower(ltrim($tld, '.'));
-        writeCSV("{$c['reporting_path']}/{$tld_save}-activity-" . date('Ym') . "-en.csv", $activityData);
-        writeCSV("{$c['reporting_path']}/{$tld_save}-transactions-" . date('Ym') . "-en.csv", $transactionData);
-        
+        writeCSV("{$c['reporting_path']}/{$tld_save}-activity-" . date('Ym', strtotime('-1 month')) . "-en.csv", $activityData);
+        writeCSV("{$c['reporting_path']}/{$tld_save}-transactions-" . date('Ym', strtotime('-1 month')) . "-en.csv", $transactionData);
+
         // Upload if the $c['reporting_upload'] variable is true
         if ($c['reporting_upload']) {
             // Calculate the period (previous month from now)
             $previousMonth = date('Ym', strtotime('-1 month'));
-        
+
             // Paths to the files you created
-            $activityFile = "{$tld_save}-activity-" . $previousMonth . "-en.csv";
-            $transactionFile = "{$tld_save}-transactions-" . $previousMonth . "-en.csv";
-        
+            $activityFile = "{$c['reporting_path']}/{$tld_save}-activity-" . $previousMonth . "-en.csv";
+            $transactionFile = "{$c['reporting_path']}/{$tld_save}-transactions-" . $previousMonth . "-en.csv";
+
             // URLs for upload
             $activityUploadUrl = 'https://ry-api.icann.org/report/registry-functions-activity/' . $tld_save . '/' . $previousMonth;
             $transactionUploadUrl = 'https://ry-api.icann.org/report/registrar-transactions/' . $tld_save . '/' . $previousMonth;
-        
-            // Perform the upload
-            uploadFile($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password']);
-            uploadFile($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password']);
+
+            // Perform the upload    
+            try {
+                $activityResult = uploadFileWithRetry($activityUploadUrl, $activityFile, $c['reporting_username'], $c['reporting_password']);
+                $log->info("Activity report upload result: " . $activityResult);
+
+                $transactionResult = uploadFileWithRetry($transactionUploadUrl, $transactionFile, $c['reporting_username'], $c['reporting_password']);
+                $log->info("Transaction report upload result: " . $transactionResult);
+            } catch (Exception $e) {
+                $log->error("File upload failed: " . $e->getMessage());
+            }
         }
-        
     }
     $log->info('job finished successfully.');
 } catch (PDOException $e) {
@@ -605,21 +627,47 @@ function getAttemptedAddsAllRegistrars($dbh) {
     return $stmt->fetchColumn();
 }
 
-// Upload function using cURL
-function uploadFile($url, $filePath, $username, $password) {
-    $ch = curl_init();
+// Upload function
+function uploadFileWithRetry($url, $filePath, $username, $password) {
+    // Create a Guzzle client with custom middleware
+    $stack = HandlerStack::create();
     
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_USERPWD, $username . ':' . $password);
-    curl_setopt($ch, CURLOPT_PUT, 1);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_INFILESIZE, filesize($filePath));
-    curl_setopt($ch, CURLOPT_INFILE, fopen($filePath, 'r'));
-    
-    $response = curl_exec($ch);
-    if (curl_errno($ch)) {
-        throw new Exception('Report upload error: ' . curl_error($ch));
+    // Define retry middleware
+    $stack->push(Middleware::retry(
+        function ($retries, $request, $response, $exception) {
+            // Retry on server errors or exceptions
+            if ($retries >= 5) {
+                return false; // Stop after 5 attempts
+            }
+            if ($exception instanceof RequestException) {
+                return true; // Retry on network errors
+            }
+            if ($response && $response->getStatusCode() >= 500) {
+                return true; // Retry on server errors (5xx)
+            }
+            return false; // Otherwise, don't retry
+        },
+        function ($retries) {
+            // Implement exponential backoff
+            return 1000 * pow(2, $retries); // Wait 1s, 2s, 4s, etc.
+        }
+    ));
+
+    // Create Guzzle client
+    $client = new Client([
+        'handler' => $stack,
+        'auth' => [$username, $password], // Basic authentication
+    ]);
+
+    try {
+        // Upload the file
+        $response = $client->put($url, [
+            'body' => fopen($filePath, 'r'),
+        ]);
+
+        // Return success response or status
+        return $response->getStatusCode() === 200 ? 'Upload successful' : 'Upload failed';
+    } catch (RequestException $e) {
+        throw new Exception($e->getMessage());
     }
-    
-    curl_close($ch);
 }
