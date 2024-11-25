@@ -1470,3 +1470,36 @@ msgstr "Керувати реєстратором"
 
 msgid "Manage Custom Pricing"
 msgstr "Керуйте індивідуальними цінами"
+
+msgid "Last 7 Days: Domain Registrations"
+msgstr "Останні 7 днів: Реєстрації доменів"
+
+msgid "Top Registrars by Domains"
+msgstr "Топ реєстраторів за кількістю доменів"
+
+msgid "Support Tickets: Last Week"
+msgstr "Підтримка: Тікети за минулий тиждень"
+
+msgid "Registrar Statistics"
+msgstr "Статистика реєстраторів"
+
+msgid "Export Domains"
+msgstr "Експорт доменів"
+
+msgid "Search reports"
+msgstr "Пошук у звітах"
+
+msgid "Number of Domains"
+msgstr "Кількість зареєстрованих доменів"
+
+msgid "Market Share"
+msgstr "Частка ринку"
+
+msgid "Earnings"
+msgstr "Доходи"
+
+msgid "Open website"
+msgstr "Відкрити вебсайт"
+
+msgid "Close"
+msgstr "Закрити"

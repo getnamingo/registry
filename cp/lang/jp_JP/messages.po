@@ -1470,3 +1470,36 @@ msgstr "レジストラの管理"
 
 msgid "Manage Custom Pricing"
 msgstr "カスタム価格設定の管理"
+
+msgid "Last 7 Days: Domain Registrations"
+msgstr "過去7日間: ドメイン登録"
+
+msgid "Top Registrars by Domains"
+msgstr "ドメイン別トップレジストラ"
+
+msgid "Support Tickets: Last Week"
+msgstr "サポートチケット: 先週"
+
+msgid "Registrar Statistics"
+msgstr "レジストラ統計"
+
+msgid "Export Domains"
+msgstr "ドメインのエクスポート"
+
+msgid "Search reports"
+msgstr "レポートを検索"
+
+msgid "Number of Domains"
+msgstr "登録済みドメイン数"
+
+msgid "Market Share"
+msgstr "マーケットシェア"
+
+msgid "Earnings"
+msgstr "収益"
+
+msgid "Open website"
+msgstr "ウェブサイトを開く"
+
+msgid "Close"
+msgstr "閉じる"

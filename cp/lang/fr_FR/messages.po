@@ -1470,3 +1470,36 @@ msgstr "Gérer le registraire"
 
 msgid "Manage Custom Pricing"
 msgstr "Gérer les prix personnalisés"
+
+msgid "Last 7 Days: Domain Registrations"
+msgstr "7 derniers jours : Enregistrements de domaines"
+
+msgid "Top Registrars by Domains"
+msgstr "Principaux registraires par domaines"
+
+msgid "Support Tickets: Last Week"
+msgstr "Tickets de support : Semaine dernière"
+
+msgid "Registrar Statistics"
+msgstr "Statistiques des registraires"
+
+msgid "Export Domains"
+msgstr "Exporter les domaines"
+
+msgid "Search reports"
+msgstr "Rechercher dans les rapports"
+
+msgid "Number of Domains"
+msgstr "Nombre de domaines enregistrés"
+
+msgid "Market Share"
+msgstr "Part de marché"
+
+msgid "Earnings"
+msgstr "Revenus"
+
+msgid "Open website"
+msgstr "Ouvrir le site web"
+
+msgid "Close"
+msgstr "Fermer"

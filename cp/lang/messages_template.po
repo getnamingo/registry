@@ -1470,3 +1470,36 @@ msgstr ""
 
 msgid "Manage Custom Pricing"
 msgstr ""
+
+msgid "Last 7 Days: Domain Registrations"
+msgstr ""
+
+msgid "Top Registrars by Domains"
+msgstr ""
+
+msgid "Support Tickets: Last Week"
+msgstr ""
+
+msgid "Registrar Statistics"
+msgstr ""
+
+msgid "Export Domains"
+msgstr ""
+
+msgid "Search reports"
+msgstr ""
+
+msgid "Number of Domains"
+msgstr ""
+
+msgid "Market Share"
+msgstr ""
+
+msgid "Earnings"
+msgstr ""
+
+msgid "Open website"
+msgstr ""
+
+msgid "Close"
+msgstr ""
