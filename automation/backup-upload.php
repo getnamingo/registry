@@ -21,13 +21,13 @@ $configPath = __DIR__ . '/backup-upload.json';
 if (!file_exists($configPath)) {
     $log = setupLogger($logFilePath, 'Backup_Upload');
     $log->error("Configuration file not found: $configPath");
-    exit();
+    exit(1);
 }
 
 $config = json_decode(file_get_contents($configPath), true);
 if ($config === null) {
     $log->error("Invalid JSON format in configuration file: $configPath");
-    exit();
+    exit(1);
 }
 
 // Get storage type from config

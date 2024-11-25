@@ -17,6 +17,16 @@ $logFilePath = '/var/log/namingo/escrow.log';
 $log = setupLogger($logFilePath, 'Escrow');
 $log->info('job started.');
 
+// Check if the directory exists
+if (!file_exists($c['escrow_deposit_path'])) {
+    if (!mkdir($c['escrow_deposit_path'], 0755, true)) {
+        $log->error("Failed to create directory: " . $c['escrow_deposit_path']);
+        exit(1);
+    } else {
+        $log->info("Directory created successfully: " . $c['escrow_deposit_path']);
+    }
+}
+
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
@@ -458,6 +468,10 @@ try {
 
         // Get information about the public key from its content
         $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
+        if ($publicKeyInfo === false) {
+            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
+            exit(1);
+        }
         $fingerprint = $publicKeyInfo['fingerprint'];
 
         // Check if the key is already in the keyring
@@ -494,7 +508,18 @@ try {
         $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
 
         // Import your private key (if it's not already in the keyring)
+        if (!file_exists($c['escrow_privateKey'])) {
+            $log->error("Private key file not found: " . $c['escrow_privateKey']);
+            echo "Error: Private key file not found.\n";
+            exit(1);
+        }
+
         $privateKeyData = file_get_contents($c['escrow_privateKey']);
+        if ($privateKeyData === false) {
+            $log->error("Failed to read private key file: " . $c['escrow_privateKey']);
+            echo "Error: Unable to read private key file.\n";
+            exit(1);
+        }
         $importResult = $gpg->import($privateKeyData);
 
         // Set the key to be used for signing
