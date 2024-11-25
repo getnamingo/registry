@@ -16,8 +16,12 @@ class HomeController extends Controller
         $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
-        
-        return view($response, 'index.twig', [
+
+        $basePath = '/var/www/cp/resources/views/';
+        $template = file_exists($basePath . 'index.custom.twig') 
+                    ? 'index.custom.twig' 
+                    : 'index.twig';
+        return view($response, $template, [
             'whois_server' => $whois_server,
             'rdap_server' => $rdap_server,
             'company_name' => $company_name,

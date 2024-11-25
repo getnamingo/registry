@@ -194,7 +194,7 @@ Once you have successfully configured all automation scripts, you are ready to i
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
 ```
 
-#### 1.4.8. Customizing the Control Panel Logo and Documentation Pages
+#### 1.4.8. Customizing the Control Panel Logo and Pages
 
 **1.4.8.1. Customizing the Logo**:
 Upload your custom logo as `logo.svg` to `/var/www/cp/public/static/`. If `logo.svg` is not present, the default `logo.default.svg` will be used automatically.
@@ -204,6 +204,9 @@ To customize the documentation, copy `docs.twig` to `docs.custom.twig` using the
 
 **1.4.8.3. Customizing the Media Kit Page**:
 To customize the media kit page, copy `mediakit.twig` to `mediakit.custom.twig` using `cp /var/www/cp/resources/views/admin/support/mediakit.twig /var/www/cp/resources/views/admin/support/mediakit.custom.twig`. Edit `mediakit.custom.twig` to apply your changes. The system will prioritize `mediakit.custom.twig` over the default file.
+
+**1.4.8.4. Customizing the Landing Page**:
+To customize the landing page, copy `index.twig` to `index.custom.twig` using `cp /var/www/cp/resources/views/index.twig /var/www/cp/resources/views/index.custom.twig`. Edit `index.custom.twig` to apply your changes. The system will prioritize `index.custom.twig` over the default file.
 
 #### 1.4.9. Changing the Default Control Panel Language
 
