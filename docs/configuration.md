@@ -133,9 +133,11 @@ This will initialize and configure the audit trail functionality. This process e
 
 #### 1.4.5. Setup Backup
 
-To ensure the safety and availability of your data in Namingo, it's crucial to set up and verify automated backups. Begin by editing the ```backup.json``` file in the automation directory, where you'll input your database details. Ensure that the details for the database are accurately entered in two specified locations within the ```backup.json``` file.
+To set up backups in Namingo:
 
-Additionally, check that the cronjob for PHPBU is correctly scheduled on your server, as this automates the backup process. You can verify this by reviewing your server's cronjob list. These steps are vital to maintain regular, secure backups of your system, safeguarding against data loss and ensuring business continuity. 
+1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details.
+
+2. Enable the backup functionality in `cron.php` and ensure cronjobs are configured and active on your server. Check the server's cronjob list to verify.
 
 #### 1.4.6. RDE (Registry data escrow) configuration
 

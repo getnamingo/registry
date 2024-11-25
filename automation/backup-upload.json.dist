@@ -1,0 +1,34 @@
+{
+    "storageType": "sftp",
+    "sftp": {
+        "host": "your_sftp_host",
+        "username": "your_username",
+        "password": "your_password",
+        "privateKey": "/path/to/my/private_key",
+        "passphrase": "passphrase",
+        "port": 22,
+        "useAgent": true,
+        "timeout": 30,
+        "maxTries": 10,
+        "fingerprint": "fingerprint-string",
+        "basePath": "/upload"
+    },
+    "dropbox": {
+        "accessToken": "your_dropbox_access_token"
+    },
+    "googleDrive": {
+        "clientId": "your_client_id",
+        "clientSecret": "your_client_secret",
+        "refreshToken": "your_refresh_token",
+        "folderId": "your_folder_id"
+    },
+    "upload": {
+        "retries": 3,
+        "delay": 5
+    },
+    "directory": "/srv/",
+    "patterns": [
+        "^database-{dateHour}.*\\.sql\\.bz2$",
+        "^files-{dateHour}.*\\.sql\\.bz2$"
+    ]
+}

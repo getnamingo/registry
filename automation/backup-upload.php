@@ -1,7 +1,6 @@
 <?php
 
 require __DIR__ . '/vendor/autoload.php';
-
 require_once 'helpers.php';
 
 use League\Flysystem\Filesystem;
@@ -11,31 +10,44 @@ use League\Flysystem\UnixVisibility\PortableVisibilityConverter;
 use Spatie\FlysystemDropbox\DropboxAdapter;
 use Hypweb\Flysystem\GoogleDrive\GoogleDriveAdapter;
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-use League\Flysystem\AdapterInterface;
 
+// Setup logger
 $logFilePath = '/var/log/namingo/backup_upload.log';
 $log = setupLogger($logFilePath, 'Backup_Upload');
 $log->info('job started.');
 
-// Storage type: 'sftp', 'dropbox', or 'google_drive'
-$storageType = 'sftp'; // Set this to your preferred storage
+// Load configuration from JSON
+$configPath = __DIR__ . '/backup-upload.json';
+if (!file_exists($configPath)) {
+    $log = setupLogger($logFilePath, 'Backup_Upload');
+    $log->error("Configuration file not found: $configPath");
+    exit();
+}
+
+$config = json_decode(file_get_contents($configPath), true);
+if ($config === null) {
+    $log->error("Invalid JSON format in configuration file: $configPath");
+    exit();
+}
+
+// Get storage type from config
+$storageType = $config['storageType'];
 
 // Setup the filesystem based on the storage type
 switch ($storageType) {
     case 'sftp':
+        $sftpSettings = $config['sftp'];
         $sftpProvider = new SftpConnectionProvider(
-            'your_sftp_host', // host
-            'your_username',  // username
-            'your_password',  // password
-            '/path/to/my/private_key', // private key
-            'passphrase', // passphrase
-            22, // port
-            true, // use agent
-            30, // timeout
-            10, // max tries
-            'fingerprint-string' // host fingerprint
-            // connectivity checker (optional)
+            $sftpSettings['host'],
+            $sftpSettings['username'],
+            $sftpSettings['password'],
+            $sftpSettings['privateKey'],
+            $sftpSettings['passphrase'],
+            $sftpSettings['port'],
+            $sftpSettings['useAgent'],
+            $sftpSettings['timeout'],
+            $sftpSettings['maxTries'],
+            $sftpSettings['fingerprint']
         );
 
         $visibilityConverter = PortableVisibilityConverter::fromArray([
@@ -49,19 +61,21 @@ switch ($storageType) {
             ],
         ]);
 
-        $adapter = new SftpAdapter($sftpProvider, '/upload', $visibilityConverter);
+        $adapter = new SftpAdapter($sftpProvider, $sftpSettings['basePath'], $visibilityConverter);
         break;
     case 'dropbox':
-        $client = new \Spatie\Dropbox\Client('your_dropbox_access_token');
+        $dropboxSettings = $config['dropbox'];
+        $client = new \Spatie\Dropbox\Client($dropboxSettings['accessToken']);
         $adapter = new DropboxAdapter($client);
         break;
     case 'google_drive':
+        $googleDriveSettings = $config['googleDrive'];
         $client = new \Google\Client();
-        $client->setClientId('your_client_id');
-        $client->setClientSecret('your_client_secret');
-        $client->refreshToken('your_refresh_token');
+        $client->setClientId($googleDriveSettings['clientId']);
+        $client->setClientSecret($googleDriveSettings['clientSecret']);
+        $client->refreshToken($googleDriveSettings['refreshToken']);
         $service = new \Google\Service\Drive($client);
-        $adapter = new GoogleDriveAdapter($service, 'your_folder_id');
+        $adapter = new GoogleDriveAdapter($service, $googleDriveSettings['folderId']);
         break;
     default:
         $log->error("Invalid storage type");
@@ -70,21 +84,34 @@ switch ($storageType) {
 
 $filesystem = new Filesystem($adapter);
 
-// Function to upload a file with try-catch for error handling
-function uploadFile($filesystem, $localPath, $remotePath, $logger) {
-    try {
-        if (file_exists($localPath)) {
-            $stream = fopen($localPath, 'r+');
-            $filesystem->writeStream($remotePath, $stream);
-            if (is_resource($stream)) {
-                fclose($stream);
+// Function to upload a file with retry mechanism
+function uploadFile($filesystem, $localPath, $remotePath, $logger, $retries, $delay) {
+    $attempt = 0;
+    while ($attempt < $retries) {
+        try {
+            $attempt++;
+            if (file_exists($localPath)) {
+                $stream = fopen($localPath, 'r+');
+                $filesystem->writeStream($remotePath, $stream);
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+                $logger->info("Uploaded: $localPath to $remotePath on attempt $attempt");
+                return true; // Upload succeeded, exit function
+            } else {
+                $logger->warning("File not found: $localPath");
+                return false; // File not found, no need to retry
             }
-            $logger->info("Uploaded: $localPath to $remotePath");
-        } else {
-            $logger->warning("File not found: $localPath");
+        } catch (Exception $e) {
+            $logger->error("Error uploading $localPath on attempt $attempt: " . $e->getMessage());
+            if ($attempt < $retries) {
+                $logger->info("Retrying in $delay seconds...");
+                sleep($delay); // Wait before retrying
+            } else {
+                $logger->error("All $retries attempts failed for $localPath");
+                return false; // All attempts failed
+            }
         }
-    } catch (Exception $e) {
-        $logger->error("Error uploading $localPath: " . $e->getMessage());
     }
 }
 
@@ -92,18 +119,29 @@ function uploadFile($filesystem, $localPath, $remotePath, $logger) {
 $currentDateHour = date('Ymd-H'); // Format: YYYYMMDD-HH
 
 // Directory to check
-$directory = '/srv/';
+$directory = $config['directory'];
 
-// Pattern to match files
-$pattern = "/^database-$currentDateHour.*\.sql\.bz2$/";
-$pattern2 = "/^files-$currentDateHour.*\.sql\.bz2$/";
+// Load patterns from config
+$patterns = array_map(function ($pattern) use ($currentDateHour) {
+    return str_replace('{dateHour}', $currentDateHour, $pattern);
+}, $config['patterns']);
 
 // Scan directory for matching files
 $files = scandir($directory);
+$filesFound = false; // Flag to track if any files are found
+
 foreach ($files as $file) {
-    if (preg_match($pattern, $file) || preg_match($pattern2, $file)) {
-        $localPath = $directory . $file;
-        $remoteFileName = basename($file);
-        uploadFile($filesystem, $localPath, $remoteFileName, $log);
+    foreach ($patterns as $pattern) {
+        if (preg_match("/$pattern/", $file)) {
+            $filesFound = true;
+            $localPath = $directory . $file;
+            $remoteFileName = basename($file);
+            uploadFile($filesystem, $localPath, $remoteFileName, $log, $config['upload']['retries'], $config['upload']['delay']);
+        }
     }
+}
+
+// Log if no files were found
+if (!$filesFound) {
+    $log->info("No matching files found in directory: $directory for patterns: " . implode(', ', $patterns));
 }
