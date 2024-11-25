@@ -40,7 +40,7 @@
                             {% if registrars and not registrar %}
                                 <div class="mb-3">
                                     <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
-                                    <select id="registrarDropdown" name="registrar" class="form-control">
+                                    <select id="registrarDropdown" name="registrar" class="form-select">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                                         {% endfor %}
@@ -249,7 +249,7 @@
 									<div class="mb-3">
 										<label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
 										<input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
-										<select class="form-control mb-2" name="dsAlg">
+										<select class="form-select mb-2" name="dsAlg">
 											<option value="" disabled selected>{{ __('Select Algorithm') }}</option>
 											<option value="8">RSA/SHA-256</option>
 											<option value="13">ECDSA Curve P-256 with SHA-256</option>
@@ -257,7 +257,7 @@
 											<option value="15">Ed25519</option>
 											<option value="16">Ed448</option>
 										</select>
-										<select class="form-control mb-2" name="dsDigestType">
+										<select class="form-select mb-2" name="dsDigestType">
 											<option value="" disabled selected>{{ __('Select Digest Type') }}</option>
 											<option value="2">SHA-256</option>
 											<option value="4">SHA-384</option>
@@ -270,7 +270,7 @@
 										<label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
 										<input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
 										<input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
-										<select class="form-control mb-2" name="dnskeyAlg">
+										<select class="form-select mb-2" name="dnskeyAlg">
 											<option value="" disabled selected>{{ __('Select Algorithm') }}</option>
 											<option value="8">RSA/SHA-256</option>
 											<option value="13">ECDSA Curve P-256 with SHA-256</option>

@@ -37,7 +37,7 @@
                             {% if registrars and not registrar %}
                                 <div class="form-group mb-3">
                                     <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}</label>
-                                    <select id="registrarDropdown" name="registrar" class="form-control">
+                                    <select id="registrarDropdown" name="registrar" class="form-select">
                                         {% for registrar in registrars %}
                                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                                         {% endfor %}
