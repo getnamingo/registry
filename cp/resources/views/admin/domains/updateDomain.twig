@@ -79,7 +79,24 @@
                         <div class="col-md-6">
                             {% if minimum_data == 'false' %}<div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">{{ __('Registrant Contact') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a new Contact ID to replace the current one. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
                                         
                                 {% set contactAdmin = '' %}
                                 {% set contactTech = '' %}
@@ -96,11 +113,62 @@
                                 {% endfor %}
                                 
                                 <label for="contactAdmin" class="form-label required">{{ __('Admin Contact') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" id="contactAdmin" value="{{ contactAdmin }}" required>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" id="contactAdmin" value="{{ contactAdmin }}" required>
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a new Contact ID to replace the current one. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
                                 <label for="contactTech" class="form-label required">{{ __('Tech Contact') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech" id="contactTech" value="{{ contactTech }}" required>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Tech Contact') }}" name="contactTech" id="contactTech" value="{{ contactTech }}" required>
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a new Contact ID to replace the current one. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
                                 <label for="contactBilling" class="form-label">{{ __('Billing Contact') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}">
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}">
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a new Contact ID to replace the current one. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
                             </div>{% endif %}
                             
                             <div class="hr-text">
@@ -251,39 +319,44 @@
                             <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
                         </div>
                         <div id="dnssecData" style="display: none;">
-                            <div class="mb-3">
-                                <label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
-                                <select class="form-control mb-2" name="dsAlg">
-                                    <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                    <option value="8">RSA/SHA-256</option>
-                                    <option value="13">ECDSA Curve P-256 with SHA-256</option>
-                                    <option value="14">ECDSA Curve P-384 with SHA-384</option>
-                                    <option value="15">Ed25519</option>
-                                    <option value="16">Ed448</option>
-                                </select>
-                                <select class="form-control mb-2" name="dsDigestType">
-                                    <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
-                                    <option value="2">SHA-256</option>
-                                    <option value="4">SHA-384</option>
-                                </select>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
+                          <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
+                                    <select class="form-control mb-2" name="dsAlg">
+                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+                                        <option value="8">RSA/SHA-256</option>
+                                        <option value="13">ECDSA Curve P-256 with SHA-256</option>
+                                        <option value="14">ECDSA Curve P-384 with SHA-384</option>
+                                        <option value="15">Ed25519</option>
+                                        <option value="16">Ed448</option>
+                                    </select>
+                                    <select class="form-control mb-2" name="dsDigestType">
+                                        <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
+                                        <option value="2">SHA-256</option>
+                                        <option value="4">SHA-384</option>
+                                    </select>
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
+                                </div>
                             </div>
-                                    
-                            <div class="mb-3">
-                                <label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
-                                <input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
-                                <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
-                                <select class="form-control mb-2" name="dnskeyAlg">
-                                    <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                    <option value="8">RSA/SHA-256</option>
-                                    <option value="13">ECDSA Curve P-256 with SHA-256</option>
-                                    <option value="14">ECDSA Curve P-384 with SHA-384</option>
-                                    <option value="15">Ed25519</option>
-                                    <option value="16">Ed448</option>
-                                </select>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
+                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
+                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+                                    <select class="form-control mb-2" name="dnskeyAlg">
+                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+                                        <option value="8">RSA/SHA-256</option>
+                                        <option value="13">ECDSA Curve P-256 with SHA-256</option>
+                                        <option value="14">ECDSA Curve P-384 with SHA-384</option>
+                                        <option value="15">Ed25519</option>
+                                        <option value="16">Ed448</option>
+                                    </select>
+                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
+                                </div>
                             </div>
+                          </div>
                         </div>
 
                   </div>

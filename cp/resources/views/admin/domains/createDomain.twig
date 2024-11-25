@@ -29,13 +29,16 @@
                     <div class="card-body">
                         <form id="domainCreateForm" action="/domain/create" method="post">
                         {{ csrf.field | raw }}
+                        
+                        <div class="row">
+                          <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="domainName" class="form-label required">{{ __('Your Domain Name') }}</label>
                                 <input type="text" class="form-control mb-2" placeholder="example.com" name="domainName" id="domainName" required="required" autocapitalize="none">
                             </div>
                             
                             {% if registrars and not registrar %}
-                                <div class="form-group mb-3">
+                                <div class="mb-3">
                                     <label for="registrarDropdown" class="form-label required">{{ __('Select Registrar') }}</label>
                                     <select id="registrarDropdown" name="registrar" class="form-control">
                                         {% for registrar in registrars %}
@@ -60,11 +63,89 @@
                             {% if minimum_data == 'false' %}<!-- Fields for 4 contacts with roles -->
                             <div class="mb-3">
                                 <label for="contactRegistrant" class="form-label required">{{ __('Contacts') }}</label>
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" required="required">
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Admin Contact') }}" name="contactAdmin">
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Tech Contact') }}" name="contactTech">
-                                <input type="text" class="form-control mb-2" placeholder="{{ __('Billing Contact') }}" name="contactBilling">
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" required="required">
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a Contact ID if you know it. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Admin Contact') }}" name="contactAdmin">
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a Contact ID if you know it. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Tech Contact') }}" name="contactTech">
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a Contact ID if you know it. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <div class="input-group input-group-flat mb-2">
+                                          <input type="text" class="form-control" placeholder="{{ __('Billing Contact') }}" name="contactBilling">
+                                          <span class="input-group-text">
+                                            <a href="{{route('listContacts')}}" class="link-secondary ms-2" title="{{ __('Search Contacts') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                                            </a>
+                                            <a href="{{route('createContact')}}" class="link-secondary ms-2" title="{{ __('Create Contact') }}" data-bs-toggle="tooltip" target="_blank">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                                            </a>
+                                          </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto align-self-center mb-2">
+                                      <span class="form-help" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="<p class='mb-0'>{{ __('Enter a Contact ID if you know it. Use the magnifying glass to search or the plus icon to create a new contact (both open in new tabs). Then return and paste the Contact ID here.') }}</p>" data-bs-html="true">?</span>
+                                    </div>
+                                </div>
+
                             </div>{% endif %}
+                            
+                            <!-- AuthInfo -->
+                            <div class="mb-3">
+                                <label for="authInfo" class="form-label required">{{ __('Auth Info') }}</label>
+                                <input type="text" class="form-control" id="authInfo" name="authInfo" required>
+                            </div>
+
+                          </div>
+                          <div class="col-md-6">
 
                             <!-- Fields for nameservers -->
                             <div id="nameserverFields">
@@ -94,53 +175,7 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- DNSSEC Data with checkbox -->
-                            <div class="mb-3 mt-2 form-check">
-                                <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
-                                <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
-                            </div>
-                            <div id="dnssecData" style="display: none;">
-                                <div class="mb-3">
-                                    <label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
-                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
-                                    <select class="form-control mb-2" name="dsAlg">
-                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                        <option value="8">RSA/SHA-256</option>
-                                        <option value="13">ECDSA Curve P-256 with SHA-256</option>
-                                        <option value="14">ECDSA Curve P-384 with SHA-384</option>
-                                        <option value="15">Ed25519</option>
-                                        <option value="16">Ed448</option>
-                                    </select>
-                                    <select class="form-control mb-2" name="dsDigestType">
-                                        <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
-                                        <option value="2">SHA-256</option>
-                                        <option value="4">SHA-384</option>
-                                    </select>
-                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
-                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
-                                    <input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
-                                    <select class="form-control mb-2" name="dnskeyAlg">
-                                        <option value="" disabled selected>{{ __('Select Algorithm') }}</option>
-                                        <option value="8">RSA/SHA-256</option>
-                                        <option value="13">ECDSA Curve P-256 with SHA-256</option>
-                                        <option value="14">ECDSA Curve P-384 with SHA-384</option>
-                                        <option value="15">Ed25519</option>
-                                        <option value="16">Ed448</option>
-                                    </select>
-                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
-                                </div>
-                            </div>
-                            <!-- AuthInfo -->
-                            <div class="mb-3">
-                                <label for="authInfo" class="form-label required">{{ __('Auth Info') }}</label>
-                                <input type="text" class="form-control" id="authInfo" name="authInfo" required>
-                            </div>
-
+                            
                             <div class="mb-3 mt-3">
                               <div class="form-label">{{ __('Statuses') }}</div>
                               <div>
@@ -194,8 +229,65 @@
                               </div>
                             </div>
                             {% endif %}
+                            
+                            <div class="mb-3">
+                              <label for="token" class="form-label">{{ __('Allocation Token') }}</label>
+                              <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
+                            </div>
+                            
+                          </div>
+                        </div>
 
-                            {% if launch_phases == 'on' %}
+                            <!-- DNSSEC Data with checkbox -->
+                            <div class="mb-3 mt-2 form-check">
+                                <input type="checkbox" class="form-check-input" id="addDnssec" name="addDnssec">
+                                <label class="form-check-label" for="addDnssec">{{ __('Add DNSSEC Data') }}</label>
+                            </div>
+                            <div id="dnssecData" style="display: none;">
+								<div class="row">
+								  <div class="col-md-6">
+									<div class="mb-3">
+										<label for="dsKeyTag" class="form-label">{{ __('DS Record') }}</label>
+										<input type="text" class="form-control mb-2" placeholder="{{ __('Key Tag') }}" name="dsKeyTag" id="dsKeyTag">
+										<select class="form-control mb-2" name="dsAlg">
+											<option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+											<option value="8">RSA/SHA-256</option>
+											<option value="13">ECDSA Curve P-256 with SHA-256</option>
+											<option value="14">ECDSA Curve P-384 with SHA-384</option>
+											<option value="15">Ed25519</option>
+											<option value="16">Ed448</option>
+										</select>
+										<select class="form-control mb-2" name="dsDigestType">
+											<option value="" disabled selected>{{ __('Select Digest Type') }}</option>
+											<option value="2">SHA-256</option>
+											<option value="4">SHA-384</option>
+										</select>
+										<input type="text" class="form-control mb-2" placeholder="{{ __('Digest') }}" name="dsDigest">
+									</div>
+								  </div>
+								  <div class="col-md-6">
+									<div class="mb-3">
+										<label for="dnskeyFlags" class="form-label">{{ __('DNSKEY Record') }}</label>
+										<input type="number" class="form-control mb-2" placeholder="{{ __('Flags') }}" name="dnskeyFlags" id="dnskeyFlags">
+										<input type="number" class="form-control mb-2" placeholder="{{ __('Protocol') }}" name="dnskeyProtocol" value="3" readonly> <!-- Protocol is typically set to 3 -->
+										<select class="form-control mb-2" name="dnskeyAlg">
+											<option value="" disabled selected>{{ __('Select Algorithm') }}</option>
+											<option value="8">RSA/SHA-256</option>
+											<option value="13">ECDSA Curve P-256 with SHA-256</option>
+											<option value="14">ECDSA Curve P-384 with SHA-384</option>
+											<option value="15">Ed25519</option>
+											<option value="16">Ed448</option>
+										</select>
+										<input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
+									</div>
+								  </div>
+								</div>
+								{% if launch_phases == 'on' %}<hr />{% endif %}
+                            </div>
+
+                        {% if launch_phases == 'on' %}
+                        <div class="row">
+                          <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="phaseType" class="form-label">{{ __('Phase Type') }}</label>
                                 <select class="form-select" id="phaseType" name="phaseType">
@@ -218,6 +310,8 @@
                               <label class="form-label">{{ __('Signed Mark Information') }}</label>
                               <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="{{ __('Paste SMD contents') }}…"></textarea>
                             </div>
+                          </div>
+                          <div class="col-md-6">
 
                             <div class="mb-3">
                                 <label for="noticeid" class="form-label">{{ __('Notice ID') }}</label>
@@ -233,12 +327,9 @@
                                 <label for="accepted" class="form-label">{{ __('Accepted Date') }}</label>
                                 <input type="datetime-local" class="form-control" name="accepted">
                             </div>
-                            {% endif %}
-
-                           <div class="mb-3">
-                             <label for="token" class="form-label">{{ __('Allocation Token') }}</label>
-                             <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
-                           </div>
+                          </div>
+                        </div>
+                        {% endif %}
 
                     </div>
                 <div class="card-footer">
