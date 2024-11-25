@@ -209,13 +209,19 @@ class ContactsController extends Controller
                     }
                 }
             }
-            
+
             $normalizedVoice = normalizePhoneNumber($voice, strtoupper($postalInfoIntCc));
             if (isset($normalizedVoice['error'])) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $normalizedVoice['error']);
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
             $voice = $normalizedVoice['success'];
+
+            // Validate length of $voice
+            if (strlen($voice) > 17) {
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Phone number exceeds 17 characters');
+                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+            }
 
             if (!empty($fax)) {
                 $normalizedFax = normalizePhoneNumber($fax, strtoupper($postalInfoIntCc));
