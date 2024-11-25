@@ -7,8 +7,8 @@
       <div class="container container-tight py-4">
         <div class="text-center mb-4">
           <a href="." class="navbar-brand navbar-brand-autodark"><img src="{{ logoPath }}" height="36" alt=""></a>
-          {% include 'partials/flash.twig' %}
         </div>
+        {% include 'partials/flash.twig' %}
         <form class="card card-md" action="{{route('login')}}" id="login" method="post" autocomplete="off" novalidate>
         {{ csrf.field | raw }}
           <div class="card-body">
