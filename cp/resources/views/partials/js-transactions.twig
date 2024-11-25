@@ -7,33 +7,72 @@
     var table;
     currency = "{{ currency }} ";
     document.addEventListener("DOMContentLoaded", function(){
+    
+    var searchTerm = ""; // global variable to hold the search term
+
+    function updateSearchTerm(term) {
+        searchTerm = term;
+        table.replaceData();
+    }
 
     table = new Tabulator("#transactionTable", {
-        ajaxURL:"/api/records/statement?join=registrar", // Set the URL for your JSON data
-        ajaxConfig:"GET",
-        pagination:"local",
-        paginationSize:10,
-        ajaxResponse:function(url, params, response){
-            return response.records;
+        pagination: true,
+        paginationMode: "remote",
+        paginationSize: 10,
+        ajaxURL: "/api/records/statement",
+        ajaxParams: {
+            join: "registrar"
+        },
+        ajaxURLGenerator: function(url, config, params) {
+            var queryParts = ["join=registrar"];
+
+            // Handle search term
+            if (searchTerm) {
+                queryParts.push("filter1=command,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter2=domain_name,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter3=fromS,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter4=toS,cs," + encodeURIComponent(searchTerm));
+            }
+
+            queryParts.push("order=date,desc");
+
+            // Include pagination parameters
+            if (params.page) {
+                queryParts.push("page=" + params.page + "," + params.size);
+            }
+
+            return url + "?" + queryParts.join("&");
+        },
+        ajaxResponse: function(url, params, response) {
+            if (response && Array.isArray(response.records) && typeof response.results === 'number') {
+                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                return {
+                    last_page: lastPage, // Calculated total number of pages
+                    data: response.records, // Data for the current page
+                };
+            } else {
+                console.error('Unexpected response format', response);
+                return { last_page: 1, data: [] };
+            }
+        },
+        dataReceiveParams: {
+            "last_page": "results", // Mapping 'results' to 'last_page'
         },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
-        initialSort:[
-            {column:"date", dir:"desc"},
-        ],
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Registrar') }}", field:"registrar_id.name", headerSort:true, responsive:0},
-            {title:"{{ __('Date') }}", field:"date", headerSort:true, responsive:2},
-            {title:"{{ __('Command') }}", field:"command", headerSort:true, responsive:2},
-            {title:"{{ __('Domain') }}", field:"domain_name", headerSort:false, download:false, responsive:0},
-            {title:"{{ __('Length') }}", field:"length_in_months", headerSort:true, responsive:2},
-            {title:"{{ __('From') }}", field:"fromS", headerSort:true, responsive:2},
-            {title:"{{ __('To') }}", field:"toS", headerSort:true, responsive:2},
-            {title:"{{ __('Amount') }}", field:"amount", headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
+            {title:"{{ __('Registrar') }}", field:"registrar_id.name", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Command') }}", field:"command", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Domain') }}", field:"domain_name", resizable:false, headerSort:false, download:false, responsive:0},
+            {title:"{{ __('Length') }}", field:"length_in_months", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('From') }}", field:"fromS", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('To') }}", field:"toS", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
                 decimal:".",
                 thousand:" ",
                 symbol:currency,
@@ -43,25 +82,7 @@
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {
-        var term = searchInput.value.toLowerCase();
-
-        if (term) { // Only apply the filter when there's a term to search for
-            table.setFilter(function (data) {
-                // Check if any of the fields contain the search term
-                return (
-                    String(data.registrar_id.name).toLowerCase().includes(term) ||
-                    String(data.date).toLowerCase().includes(term) ||
-                    String(data.command).toLowerCase().includes(term) ||
-                    String(data.domain_name).toLowerCase().includes(term) ||
-                    String(data.length_in_months).toString().toLowerCase().includes(term) ||
-                    String(data.from).toLowerCase().includes(term) ||
-                    String(data.to).toLowerCase().includes(term) ||
-                    String(data.amount).toString().toLowerCase().includes(term)
-                );
-            });
-        } else {
-            table.clearFilter(); // Clear the filter when the search box is emptied
-        }
+        updateSearchTerm(searchInput.value);
     });
     });
    

@@ -29,30 +29,68 @@
 
     document.addEventListener("DOMContentLoaded", function(){
     fetchAndCacheRegistrars();
+    
+    var searchTerm = ""; // global variable to hold the search term
+
+    function updateSearchTerm(term) {
+        searchTerm = term;
+        table.replaceData();
+    }
 
     table = new Tabulator("#logTable", {
-        ajaxURL:"/log-api/records/transaction_identifier", // Set the URL for your JSON data
-        ajaxConfig:"GET",
-        pagination:"local",
-        paginationSize:10,
-        ajaxResponse:function(url, params, response){
-            return response.records;
+        pagination: true,
+        paginationMode: "remote",
+        paginationSize: 10,
+        ajaxURL: "/log-api/records/transaction_identifier",
+        ajaxURLGenerator: function(url, config, params) {
+            var queryParts = [];
+
+            // Handle search term
+            if (searchTerm) {
+                queryParts.push("filter1=cldate,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter2=cmd,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter3=obj_id,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter4=obj_type,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter5=code,cs," + encodeURIComponent(searchTerm));
+            }
+
+            queryParts.push("order=cldate,desc");
+
+            // Include pagination parameters
+            if (params.page) {
+                queryParts.push("page=" + params.page + "," + params.size);
+            }
+
+            return url + "?" + queryParts.join("&");
+        },
+        ajaxResponse: function(url, params, response) {
+            if (response && Array.isArray(response.records) && typeof response.results === 'number') {
+                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                return {
+                    last_page: lastPage, // Calculated total number of pages
+                    data: response.records, // Data for the current page
+                };
+            } else {
+                console.error('Unexpected response format', response);
+                return { last_page: 1, data: [] };
+            }
+        },
+        dataReceiveParams: {
+            "last_page": "results", // Mapping 'results' to 'last_page'
         },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
-        initialSort:[
-            {column:"cldate", dir:"desc"}, // sorting by the "cldate" field in descending order
-        ],
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Date') }}", field:"cldate", headerSort:true, responsive:0},
+            {title:"{{ __('Date') }}", field:"cldate", resizable:false, headerSort:false, responsive:0},
             {
                 title: "{{ __('Registrar') }}", 
-                field: "registrar_id", 
-                headerSort: true, 
+                field: "registrar_id",
+                resizable:false,
+                headerSort: false, 
                 responsive: 2,
                 formatter: function(cell, formatterParams, onRendered) {
                     const registrarId = cell.getValue();
@@ -60,37 +98,18 @@
                     return name; // Return the name directly, as it is synchronously obtained from cache
                 }
             },
-            {title:"{{ __('Command') }}", field:"cmd", headerSort:true, responsive:0},
-            {title:"{{ __('Object Type') }}", field:"obj_type", headerSort:true, responsive:0},
-            {title:"{{ __('Object') }}", field:"obj_id", headerSort:true, responsive:2},
-            {title:"{{ __('Result') }}", field:"code", headerSort:true, responsive:2},
-            {title:"{{ __('Message') }}", field:"msg", headerSort:true, responsive:2, download:false},
-            {title:"{{ __('clTRID') }}", field:"clTRID", headerSort:true, responsive:2, download:false},
-            {title:"{{ __('Milliseconds') }}", field:"svmicrosecond", headerSort:false, download:false, responsive:2},
+            {title:"{{ __('Command') }}", field:"cmd", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Object Type') }}", field:"obj_type", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Object') }}", field:"obj_id", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Result') }}", field:"code", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Message') }}", field:"msg", resizable:false, headerSort:false, responsive:2, download:false},
+            {title:"{{ __('clTRID') }}", field:"clTRID", resizable:false, headerSort:false, responsive:2, download:false},
+            {title:"{{ __('Milliseconds') }}", field:"svmicrosecond", resizable:false, headerSort:false, download:false, responsive:2},
         ]
     });
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function () {
-        var term = searchInput.value.toLowerCase();
-
-        if (term) { // Only apply the filter when there's a term to search for
-            table.setFilter(function (data) {
-                // Check if any of the fields contain the search term
-                return (
-                    String(data.cldate).toLowerCase().includes(term) ||
-                    String(data.registrar_id).toLowerCase().includes(term) ||
-                    String(data.cmd).toLowerCase().includes(term) ||
-                    String(data.obj_type).toLowerCase().includes(term) ||
-                    String(data.obj_id).toLowerCase().includes(term) ||
-                    String(data.code).toLowerCase().includes(term) ||
-                    String(data.msg).toLowerCase().includes(term) ||
-                    String(data.clTRID).toLowerCase().includes(term) ||
-                    String(data.svmicrosecond).toLowerCase().includes(term)
-                );
-            });
-        } else {
-            table.clearFilter(); // Clear the filter when the search box is emptied
-        }
+        updateSearchTerm(searchInput.value);
     });
     });
    

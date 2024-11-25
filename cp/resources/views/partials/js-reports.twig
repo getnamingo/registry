@@ -25,13 +25,13 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Date') }}", field:"date", headerSort:true, responsive:0},
-            {title:"{{ __('Total Domains') }}", field:"total_domains", headerSort:true, responsive:0},
-            {title:"{{ __('Created Domains') }}", field:"created_domains", headerSort:true, responsive:2},
-            {title:"{{ __('Renewed Domains') }}", field:"renewed_domains", headerSort:true, responsive:2},
-            {title:"{{ __('Transferred Domains') }}", field:"transfered_domains", headerSort:true, responsive:2},
-            {title:"{{ __('Deleted Domains') }}", field:"deleted_domains", headerSort:true, responsive:2},
-            {title:"{{ __('Restored Domains') }}", field:"restored_domains", headerSort:true, responsive:2, download:false}
+            {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Total Domains') }}", field:"total_domains", resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Created Domains') }}", field:"created_domains", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Renewed Domains') }}", field:"renewed_domains", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Transferred Domains') }}", field:"transfered_domains", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Deleted Domains') }}", field:"deleted_domains", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Restored Domains') }}", field:"restored_domains", resizable:false, headerSort:true, responsive:2, download:false}
         ]
     });
     var searchInput = document.getElementById("search-input");

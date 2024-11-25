@@ -95,11 +95,11 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Identifier') }}", field:"identifier", width:250, headerSort:false, formatter: contactLinkFormatter, responsive:0},
-            {title:"{{ __('Email') }}", field:"email", width:300, minWidth:200, headerSort:false, responsive:2},
-            {title:"{{ __('Phone') }}", field:"voice", width:300, minWidth:200, headerSort:false, responsive:2},
-            {title:"{{ __('Status') }}", field:"contact_status", width:200, minWidth:100, formatter: statusFormatter, headerSort:false, download:false, responsive:2},
-            {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
+            {title:"{{ __('Identifier') }}", field:"identifier", width:250, resizable:false, headerSort:false, formatter: contactLinkFormatter, responsive:0},
+            {title:"{{ __('Email') }}", field:"email", width:300, minWidth:200, resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Phone') }}", field:"voice", width:300, minWidth:200, resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Status') }}", field:"contact_status", width:200, minWidth:100, formatter: statusFormatter, resizable:false, headerSort:false, download:false, responsive:2},
+            {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort:false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
                 if (e.target.closest('.delete-btn')) {
                     e.preventDefault(); // Prevent the default link behavior
                     Swal.fire({

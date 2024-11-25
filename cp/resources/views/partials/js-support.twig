@@ -91,11 +91,11 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Subject') }}", field:"subject", width:350, minWidth:100, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
-            {title:"{{ __('Category') }}", field:"category_id.name", width:250, minWidth:80, formatter: catFormatter, headerSort:true, responsive:0},
-            {title:"{{ __('Status') }}", field:"status", headerSort:true, width:250, minWidth:100, formatter: statusFormatter, responsive:2},
-            {title:"{{ __('Priority') }}", field:"priority", headerSort:true, width:250, minWidth:100, formatter: priorityFormatter, responsive:2},
-            {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
+            {title:"{{ __('Subject') }}", field:"subject", width:350, minWidth:100, resizable:false, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
+            {title:"{{ __('Category') }}", field:"category_id.name", width:250, minWidth:80, formatter: catFormatter, resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Status') }}", field:"status", resizable:false, headerSort:true, width:250, minWidth:100, formatter: statusFormatter, responsive:2},
+            {title:"{{ __('Priority') }}", field:"priority", resizable:false, headerSort:true, width:250, minWidth:100, formatter: priorityFormatter, responsive:2},
+            {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ]
     });
     var searchInput = document.getElementById("search-input");

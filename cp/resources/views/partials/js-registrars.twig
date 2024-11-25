@@ -42,10 +42,10 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Name') }}", field:"name", width:200, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
-            {title:"IANA ID", field:"iana_id", width:300, headerSort:true, responsive:2},
-            {title:"{{ __('Email') }}", field:"email", width:300, headerSort:true, responsive:2},
-            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
+            {title:"{{ __('Name') }}", field:"name", width:200, resizable:false, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
+            {title:"IANA ID", field:"iana_id", width:300, resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
                 decimal:".",
                 thousand:" ",
                 symbol:currency,
