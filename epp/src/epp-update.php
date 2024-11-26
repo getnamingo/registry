@@ -1600,7 +1600,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
         foreach ($hostAttr_list as $node) {
-            $hostNames = $xml->xpath('domain:hostName[1]', $node);
+            $hostNames = $node->xpath('domain:hostName[1]');
             $hostName = isset($hostNames[0]) ? (string)$hostNames[0] : null;
     
             if ($hostName) {
@@ -1646,7 +1646,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
 
                     // Iterate over the hostAddr_list
-                    $hostAddr_list = $xml->xpath('domain:hostAddr', $node);
+                    $hostAddr_list = $node->xpath('domain:hostAddr');
                     foreach ($hostAddr_list as $node) {
                         $hostAddr = (string)$node;
                         $addr_type = isset($node['ip']) ? (string)$node['ip'] : 'v4';

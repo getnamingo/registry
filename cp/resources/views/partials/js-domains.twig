@@ -83,7 +83,7 @@
                 queryParts.push("filter3=exdate,cs," + encodeURIComponent(searchTerm));
             }
 
-            queryParts.push("order=name");
+            queryParts.push("order=crdate,desc");
 
             // Include pagination parameters
             if (params.page) {
