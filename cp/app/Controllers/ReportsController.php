@@ -39,7 +39,9 @@ class ReportsController extends Controller
                 'registrar' => $registrar['name'],
                 'currency' => $currency,
                 'number' => $domainCount[0]['count'] ?? 0,
-                'share' => number_format(($domainCount[0]['count'] ?? 0) / $numT * 100, 2),
+                'share' => $numT > 0 
+                    ? number_format(($domainCount[0]['count'] ?? 0) / $numT * 100, 2) 
+                    : '0.00',
                 'earnings' => $earnings[0]['amt'] ?? 0
             ];
         }

@@ -44,6 +44,7 @@
               </div>
             </form>
           </div>
+          {% if isWebaEnabled %}
           <div class="hr-text">or</div>
           <div class="card-body">
             <div class="row">
@@ -53,6 +54,7 @@
                 </button></div>
             </div>
           </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -60,10 +62,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+{% if isWebaEnabled %}
     const loginButton = document.getElementById('loginWebAuthnButton');
+{% endif %}
     const emailInput = document.querySelector('input[name="email"]');
     const passwordInput = document.querySelector('input[name="password"]');
-
+{% if isWebaEnabled %}
     loginButton.addEventListener('click', async function() {
         try {
             if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
@@ -146,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
     });
-    
+
     /**
      * convert RFC 1342-like base64 strings to array buffer
      * @param {mixed} obj
@@ -191,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return window.btoa(binary);
     }
-
+{% endif %}
     const togglePasswordBtn = document.querySelector('.input-group-text a');
 
     togglePasswordBtn.addEventListener('click', function() {

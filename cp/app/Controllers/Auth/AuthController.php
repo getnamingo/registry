@@ -32,9 +32,10 @@ class AuthController extends Controller
      * @throws \DI\NotFoundException
      */
     public function createLogin(Request $request, Response $response){
-        return view($response,'auth/login.twig');
+        $isWebAuthnEnabled = envi('WEB_AUTHN_ENABLED') === 'true';
+        return view($response, 'auth/login.twig', ['isWebaEnabled' => $isWebaEnabled]);
     }
-    
+
     /**
      * Show 2FA verification form.
      *
