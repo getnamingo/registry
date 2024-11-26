@@ -61,11 +61,11 @@
                             {{ status }}
                           </span>
                         </div>
-                      </div>                
+                      </div>
                       <div class="datagrid-item">
                         <div class="datagrid-title">{{ __('Role') }}</div>
                         <div class="datagrid-content">
-                          <span class="status status-{% if role == 'Admin' %}primary{% else %}green{% endif %}">
+                          <span class="status status-{% if role == 'Administrator' %}purple{% elseif role == 'Registrar' %}indigo{% elseif role == 'Registrar Assistant' %}azure{% endif %}">
                             {{ role }}
                           </span>
                         </div>

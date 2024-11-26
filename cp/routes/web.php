@@ -99,7 +99,8 @@ $app->group('', function ($route) {
     $route->get('/leave_impersonation', RegistrarsController::class . ':leave_impersonation')->setName('leave_impersonation');
 
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
-    
+    $route->map(['GET', 'POST'], '/user/create', UsersController::class . ':createUser')->setName('createUser');
+
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
     $route->get('/poll', LogsController::class .':poll')->setName('poll');
     $route->get('/log', LogsController::class .':log')->setName('log');

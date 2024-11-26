@@ -43,9 +43,14 @@ class ProfileController extends Controller
         } else {
             $status = "Unknown";
         }
+
         $roles = $_SESSION['auth_roles'];
         if ($roles == 0) {
-            $role = "Admin";
+            $role = "Administrator";
+        } else if ($roles == 4) {
+            $role = "Registrar";
+        } else if ($roles == 6) {
+            $role = "Registrar Assistant";
         } else {
             $role = "Unknown";
         }
