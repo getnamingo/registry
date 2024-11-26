@@ -886,7 +886,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
 
-    $ns = $xml->xpath('//domain:ns')[0];
+    $ns = $xml->xpath('//domain:ns')[0] ?? null;
     $hostObj_list = null;
     $hostAttr_list = null;
 
@@ -1144,9 +1144,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
                 } else {
                     // External host
-                    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
-
-                    } else {
+                    if (!validateHostName($hostName)) {
                         sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                         return;
                     }
@@ -1456,7 +1454,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             ':price' => $price
         ]);
 
-        if ($hostObj_list !== null && is_array($hostObj_list)) {
+        if (!empty($hostObj_list) && is_array($hostObj_list)) {
             foreach ($hostObj_list as $node) {
                 $hostObj = strtoupper((string)$node);
 
@@ -1513,52 +1511,64 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             }
         }
 
-        if ($hostAttr_list !== null && is_array($hostAttr_list)) {
-            foreach ($hostAttr_list as $element) {
-                foreach ($element->children() as $node) {
-                    $hostName = strtoupper($node->xpath('//domain:hostName')[0]);
-                    $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
-                    $stmt->execute([$hostName]);
-                    $hostName_already_exist = $stmt->fetchColumn();
-                
-                    if ($hostName_already_exist) {
-                        $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
+        if (!empty($hostAttr_list) && is_array($hostAttr_list)) {
+            foreach ($hostAttr_list as $node) {
+                // Extract the hostName
+                $hostName = strtoupper((string)$node->xpath('./domain:hostName')[0] ?? '');
+                if (empty($hostName)) {
+                    continue; // Skip if no hostName found
+                }
+
+                // Check if the host already exists
+                $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
+                $stmt->execute([$hostName]);
+                $hostName_already_exist = $stmt->fetchColumn();
+
+                if ($hostName_already_exist) {
+                    // Check if the host is already mapped to this domain
+                    $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
+                    $stmt->execute([$domain_id, $hostName_already_exist]);
+                    $domain_host_map_id = $stmt->fetchColumn();
+
+                    if (!$domain_host_map_id) {
+                        // Map the host to the domain
+                        $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES (?, ?)");
                         $stmt->execute([$domain_id, $hostName_already_exist]);
-                        $domain_host_map_id = $stmt->fetchColumn();
-
-                        if (!$domain_host_map_id) {
-                            $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?,?)");
-                            $stmt->execute([$domain_id, $hostName_already_exist]);
-                        } else {
-                            $stmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
-                            $stmt->execute([$clid, "Domain : $domainName ;   hostName : $hostName - se dubleaza"]);
-                        }
                     } else {
-                        $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                        $host_id = $db->lastInsertId();
+                        // Log duplicate mapping error
+                        $stmt = $db->prepare("INSERT INTO error_log (registrar_id, log, date) VALUES (?, ?, CURRENT_TIMESTAMP(3))");
+                        $stmt->execute([$clid, "Domain: $domainName ; hostName: $hostName - duplicate mapping"]);
+                    }
+                } else {
+                    // Insert a new host
+                    $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                    $stmt->execute([$hostName, $domain_id, $clid, $clid]);
+                    $host_id = $db->lastInsertId();
 
-                        $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?,?)");
-                        $stmt->execute([$domain_id, $host_id]);
+                    // Map the new host to the domain
+                    $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id, host_id) VALUES (?, ?)");
+                    $stmt->execute([$domain_id, $host_id]);
 
-                        foreach ($node->xpath('//domain:hostAddr') as $nodeAddr) {
-                            $hostAddr = (string)$nodeAddr;
-                            $addr_type = $nodeAddr->attributes()->ip ?? 'v4';
+                    // Process and insert host addresses
+                    foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
+                        $hostAddr = (string)$nodeAddr;
+                        $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
 
-                            if ($addr_type == 'v6') {
-                                $hostAddr = normalize_v6_address($hostAddr);
-                            } else {
-                                $hostAddr = normalize_v4_address($hostAddr);
-                            }
-
-                            $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
-                            $stmt->execute([$host_id, $hostAddr, $addr_type]);
+                        // Normalize the address
+                        if ($addr_type === 'v6') {
+                            $hostAddr = normalize_v6_address($hostAddr);
+                        } else {
+                            $hostAddr = normalize_v4_address($hostAddr);
                         }
+
+                        // Insert the address into host_addr table
+                        $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
+                        $stmt->execute([$host_id, $hostAddr, $addr_type]);
                     }
                 }
             }
         }
-        
+
         $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
         $contact_billing_list = $xml->xpath("//domain:contact[@type='billing']");
         $contact_tech_list = $xml->xpath("//domain:contact[@type='tech']");

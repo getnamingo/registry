@@ -340,10 +340,13 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select('SELECT * FROM registrar_ote WHERE registrar_id = ? ORDER by command',
                 [ $registrar['id'] ]);
-                $registrarUsers = $db->selectRow('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
-                [ $registrar['id'] ]);
-                $userEmail = $db->selectRow('SELECT email FROM users WHERE id = ?',
-                [ $registrarUsers['user_id'] ]);
+                $userEmail = $db->selectRow(
+                    'SELECT u.email 
+                     FROM registrar_users ru
+                     JOIN users u ON ru.user_id = u.id
+                     WHERE ru.registrar_id = ? AND u.roles_mask = ?',
+                    [$registrar['id'], 4]
+                );
                 $registrarWhitelist = $db->select('SELECT addr FROM registrar_whitelist WHERE registrar_id = ?',
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
@@ -400,10 +403,13 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select('SELECT * FROM registrar_ote WHERE registrar_id = ? ORDER by command',
                 [ $registrar['id'] ]);
-                $registrarUsers = $db->selectRow('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
-                [ $registrar['id'] ]);
-                $userEmail = $db->selectRow('SELECT email FROM users WHERE id = ?',
-                [ $registrarUsers['user_id'] ]);
+                $userEmail = $db->selectRow(
+                    'SELECT u.email 
+                     FROM registrar_users ru
+                     JOIN users u ON ru.user_id = u.id
+                     WHERE ru.registrar_id = ? AND u.roles_mask = ?',
+                    [$registrar['id'], 4]
+                );
                 $registrarWhitelist = $db->select('SELECT addr FROM registrar_whitelist WHERE registrar_id = ?',
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
@@ -471,10 +477,13 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
-                $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ?",
-                [ $registrar['id'] ]);
-                $user = $db->selectRow("SELECT email FROM users WHERE id = ?",
-                [ $user_id ]);
+                $user = $db->selectRow(
+                    'SELECT u.email 
+                     FROM registrar_users ru
+                     JOIN users u ON ru.user_id = u.id
+                     WHERE ru.registrar_id = ? AND u.roles_mask = ?',
+                    [$registrar['id'], 4]
+                );
                 $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty
@@ -1030,10 +1039,13 @@ class RegistrarsController extends Controller
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select("SELECT * FROM registrar_ote WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
-                $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ?",
-                [ $registrar['id'] ]);
-                $user = $db->selectRow("SELECT email FROM users WHERE id = ?",
-                [ $user_id ]);
+                $user = $db->selectRow(
+                    'SELECT u.email 
+                     FROM registrar_users ru
+                     JOIN users u ON ru.user_id = u.id
+                     WHERE ru.registrar_id = ? AND u.roles_mask = ?',
+                    [$registrar['id'], 4]
+                );            
                 $whitelist = $db->select("SELECT * FROM registrar_whitelist WHERE registrar_id = ?",
                 [ $registrar['id'] ]);
                 // Check if RegistrarOTE is not empty

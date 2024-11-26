@@ -686,3 +686,28 @@ function validateLocField($input, $minLength = 5, $maxLength = 255) {
            mb_strlen($input) <= $maxLength &&
            preg_match($locRegex, $input);
 }
+
+/**
+ * Validates a hostname or domain name.
+ *
+ * @param string $hostName
+ * @return bool
+ */
+function validateHostName(string $hostName): bool
+{
+    // Ensure length is under 254 characters
+    if (strlen($hostName) >= 254) {
+        return false;
+    }
+
+    // Use filter_var to validate domain/hostnames
+    if (!filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+        return false;
+    }
+
+    // Optional: regex for stricter validation (if needed)
+    return preg_match(
+        '/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/',
+        $hostName
+    );
+}
