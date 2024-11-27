@@ -98,6 +98,12 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
 
+    // Validation for host name
+    if (!validateHostName($hostName)) {
+        sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
+        return;
+    }
+
     $query = "SELECT id, clid FROM host WHERE name = :name LIMIT 1";
     $stmt = $db->prepare($query);
     $stmt->execute([':name' => $hostName]);

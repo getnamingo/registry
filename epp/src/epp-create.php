@@ -392,7 +392,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $hostName = $xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
-    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+    if (validateHostName($hostName)) {
         $host_id_already_exist = $db->query("SELECT id FROM host WHERE name = '$hostName' LIMIT 1")->fetchColumn();
         if ($host_id_already_exist) {
             sendEppError($conn, $db, 2302, 'host:name already exists', $clTRID, $trans);

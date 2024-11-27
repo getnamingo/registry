@@ -828,9 +828,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (isset($hostChg)) {
         $chg_name = $xml->xpath('//host:name[1]')[0];
 
-        $pattern = '/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i';
-
-        if (preg_match($pattern, $chg_name) && strlen($chg_name) < 254) {
+        if (validateHostName($chg_name)) {
             $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
             $stmt->execute([$chg_name]);
             $chg_name_id = $stmt->fetchColumn();
@@ -926,19 +924,19 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $addr = normalize_v4_address($addr);
             }
 
-        try {
-            $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
-            $stmt->execute([$hostId, $addr, $addr_type]);
-        } catch (PDOException $e) {
-            if ($database_type === 'mysql' && $e->errorInfo[1] == 1062) {
-                // Duplicate entry error for MySQL. Silently ignore.
-            } elseif ($database_type === 'pgsql' && $e->errorInfo[1] == 23505) {
-                // Duplicate entry error for PostgreSQL. Silently ignore.
-            } else {
-                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                return;
+            try {
+                $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
+                $stmt->execute([$hostId, $addr, $addr_type]);
+            } catch (PDOException $e) {
+                if ($database_type === 'mysql' && $e->errorInfo[1] == 1062) {
+                    // Duplicate entry error for MySQL. Silently ignore.
+                } elseif ($database_type === 'pgsql' && $e->errorInfo[1] == 23505) {
+                    // Duplicate entry error for PostgreSQL. Silently ignore.
+                } else {
+                    sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                    return;
+                }
             }
-        }
 
         }
 
@@ -1195,7 +1193,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
 
             // Additional checks related to domain TLDs and existing records
-            if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostObj) && strlen($hostObj) < 254) {
+            if (validateHostName($hostObj)) {
                 $stmt = $db->prepare("SELECT tld FROM domain_tld");
                 $stmt->execute();
                 $tlds = $stmt->fetchAll(PDO::FETCH_COLUMN);

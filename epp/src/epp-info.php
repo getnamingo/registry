@@ -103,13 +103,13 @@ function processHostInfo($conn, $db, $xml, $trans) {
         sendEppError($conn, $db, 2003, 'Specify your host name', $clTRID, $trans);
         return;
     }
-
+    
     // Validation for host name
-    if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) > 254) {
+    if (!validateHostName($hostName)) {
         sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
         return;
     }
-    
+
     try {
         $stmt = $db->prepare("SELECT * FROM host WHERE name = :name");
         $stmt->execute(['name' => $hostName]);
