@@ -185,10 +185,10 @@ class HomeController extends Controller
             ]);
         }
     }
-    
+
     public function mode(Request $request, Response $response)
     {
-        if ($_SESSION['_screen_mode'] == 'dark') {
+        if (isset($_SESSION['_screen_mode']) && $_SESSION['_screen_mode'] == 'dark') {
             $_SESSION['_screen_mode'] = 'light';
         } else {
             $_SESSION['_screen_mode'] = 'dark';

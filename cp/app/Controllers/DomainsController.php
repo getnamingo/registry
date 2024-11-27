@@ -2046,14 +2046,16 @@ class DomainsController extends Controller
                     [ $domain_id ]
                 );
 
-                foreach ($results as $row) {
-                    $status = $row['status'];
-                    if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-                        $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
-                        return $response->withHeader('Location', '/domains')->withStatus(302);
+                if (is_array($results) && !empty($results)) {
+                    foreach ($results as $row) {
+                        $status = $row['status'];
+                        if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+                            $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
+                            return $response->withHeader('Location', '/domains')->withStatus(302);
+                        }
                     }
                 }
-                
+
                 $grace_period = 30;
                 
                 $db->delete(
@@ -2111,31 +2113,33 @@ class DomainsController extends Controller
                                     'SELECT id FROM host WHERE domain_id = ?',
                                     [$domain_id]
                                 );
-                                
-                                foreach ($hostIds as $host) {
-                                    $host_id = $host['id'];
 
-                                    // Delete operations
-                                    $db->delete(
-                                        'host_addr',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
-                                    $db->delete(
-                                        'host_status',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
-                                    $db->delete(
-                                        'domain_host_map',
-                                        [
-                                            'host_id' => $host_id
-                                        ]
-                                    );
+                                if (is_array($hostIds) && !empty($hostIds)) {
+                                    foreach ($hostIds as $host) {
+                                        $host_id = $host['id'];
+
+                                        // Delete operations
+                                        $db->delete(
+                                            'host_addr',
+                                            [
+                                                'host_id' => $host_id
+                                            ]
+                                        );
+                                        $db->delete(
+                                            'host_status',
+                                            [
+                                                'host_id' => $host_id
+                                            ]
+                                        );
+                                        $db->delete(
+                                            'domain_host_map',
+                                            [
+                                                'host_id' => $host_id
+                                            ]
+                                        );
+                                    }
                                 }
-                                
+
                                 // Delete domain related records
                                 $db->delete(
                                     'domain_contact_map',

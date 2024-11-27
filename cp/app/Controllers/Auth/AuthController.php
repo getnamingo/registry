@@ -32,8 +32,8 @@ class AuthController extends Controller
      * @throws \DI\NotFoundException
      */
     public function createLogin(Request $request, Response $response){
-        $isWebAuthnEnabled = envi('WEB_AUTHN_ENABLED') === 'true';
-        return view($response, 'auth/login.twig', ['isWebaEnabled' => $isWebaEnabled]);
+        $isWebAuthnEnabled = (envi('WEB_AUTHN_ENABLED') === 'true') ? true : false;
+        return view($response, 'auth/login.twig', ['isWebaEnabled' => $isWebAuthnEnabled]);
     }
 
     /**

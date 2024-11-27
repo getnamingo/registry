@@ -3,14 +3,12 @@
 namespace App\Lib;
 
 use Monolog\ErrorHandler;
-use Monolog\Handler\StreamHandler;
-
+use Monolog\Handler\RotatingFileHandler;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
+
 /**
  * Logger
- *
- * @author    Hezekiah O. <support@hezecom.com>
  */
 class Logger extends \Monolog\Logger
 {
@@ -26,14 +24,20 @@ class Logger extends \Monolog\Logger
     {
         parent::__construct($key);
 
+        // Set log path and maximum number of files to retain
+        $LOG_PATH = '/var/log/namingo';
+        $maxFiles = 30; // Number of days to keep logs
+
         if (empty($config)) {
-            $LOG_PATH = '/var/log/namingo';
             $config = [
-                'logFile' => "{$LOG_PATH}/{$key}.log",
-                'logLevel' => \Monolog\Logger::DEBUG
+                'logFile' => "{$LOG_PATH}/cp.log", // Base log name
+                'logLevel' => \Monolog\Logger::DEBUG,
+                'maxFiles' => $maxFiles,
             ];
         }
-        $this->pushHandler(new StreamHandler($config['logFile'], $config['logLevel']));
+
+        // Use RotatingFileHandler for automatic rotation
+        $this->pushHandler(new RotatingFileHandler($config['logFile'], $config['maxFiles'], $config['logLevel']));
     }
 
     /**
@@ -51,31 +55,27 @@ class Logger extends \Monolog\Logger
     }
 
     /**
-     * Output error bate on environment
+     * Output error based on environment
      */
     public static function systemLogs($enable = true)
     {
-
-        $LOG_PATH = '/var/log/namingo';
-        $appEnv = envi('APP_ENV') ?? 'local';
-
-        if($enable) {
-            // output pretty html error
+        if ($enable) {
+            // Output pretty HTML error
             self::htmlError();
-        }else {
-            // Error Log to file
-            self::$loggers['error'] = new Logger('errors');
-            self::$loggers['error']->pushHandler(new StreamHandler("{$LOG_PATH}/cp.log"));
-            ErrorHandler::register(self::$loggers['error']);
+        } else {
+            // Register system errors to rotating log file
+            $logger = new Logger('errors'); // Key 'errors' remains for compatibility
+            ErrorHandler::register($logger);
         }
     }
 
     /**
-     * Display pretty html formatted errors during development
+     * Display pretty HTML formatted errors during development
      */
-    public static function htmlError(){
-        $run = new Run;
-        $run->pushHandler(new PrettyPageHandler);
+    public static function htmlError()
+    {
+        $run = new Run();
+        $run->pushHandler(new PrettyPageHandler());
         $run->register();
     }
 }

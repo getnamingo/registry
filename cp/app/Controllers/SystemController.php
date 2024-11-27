@@ -692,14 +692,16 @@ class SystemController extends Controller
                     return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 }
 
-                if ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] === 'on') {
-                    $dnssec_both = 1;
-                } elseif ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] !== 'on') {
-                    $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
-                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
-                } elseif ($data['dnssec_enable'] !== 'on' && $data['bind9_enable'] === 'on') {
-                    $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
-                    return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+                if (isset($data['dnssec_enable'], $data['bind9_enable'])) {
+                    if ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] === 'on') {
+                        $dnssec_both = 1;
+                    } elseif ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] !== 'on') {
+                        $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
+                        return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+                    } elseif ($data['dnssec_enable'] !== 'on' && $data['bind9_enable'] === 'on') {
+                        $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
+                        return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+                    }
                 }
 
                 try {
