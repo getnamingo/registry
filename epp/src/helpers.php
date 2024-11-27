@@ -695,19 +695,25 @@ function validateLocField($input, $minLength = 5, $maxLength = 255) {
  */
 function validateHostName(string $hostName): bool
 {
+    // Convert IDN (Unicode) to ASCII (Punycode)
+    $asciiHostName = idn_to_ascii($hostName, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+    if ($asciiHostName === false) {
+        return false; // Invalid IDN format
+    }
+
     // Ensure length is under 254 characters
-    if (strlen($hostName) >= 254) {
+    if (strlen($asciiHostName) >= 254) {
         return false;
     }
 
-    // Use filter_var to validate domain/hostnames
-    if (!filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+    // Validate using filter_var for Punycode
+    if (!filter_var($asciiHostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
         return false;
     }
 
-    // Optional: regex for stricter validation (if needed)
+    // Optional: regex for stricter validation (on Punycode format)
     return preg_match(
         '/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/',
-        $hostName
+        $asciiHostName
     );
 }

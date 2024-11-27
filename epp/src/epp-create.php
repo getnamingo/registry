@@ -936,25 +936,20 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             foreach ($hostObj_list as $node) {
                 $hostObj = strtoupper((string)$node);
 
-                if (preg_match("/[^A-Z0-9\.\-]/", $hostObj) || preg_match("/^-|^\.|-\.|\.-|\.\.|-$|\.$/", $hostObj)) {
+                if (!validateHostName($hostObj)) {
                     sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                     return;
                 }
 
-                if (preg_match("/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/", $hostObj) && strlen($hostObj) < 254) {
-                    // A host object MUST be known to the server before the host object can be associated with a domain object.
-                    $stmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
-                    $stmt->bindParam(':hostObj', $hostObj);
-                    $stmt->execute();
+                // A host object MUST be known to the server before the host object can be associated with a domain object.
+                $stmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
+                $stmt->bindParam(':hostObj', $hostObj);
+                $stmt->execute();
                 
-                    $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
+                $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
 
-                    if (!$host_id_already_exist) {
-                        sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
-                        return;
-                    }
-                } else {
-                    sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
+                if (!$host_id_already_exist) {
+                    sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
                     return;
                 }
             }
@@ -964,7 +959,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             foreach ($hostAttr_list as $node) {
                 $hostName = strtoupper((string)$node->xpath('//domain:hostName')[0]);
 
-                if (preg_match("/[^A-Z0-9\.\-]/", $hostName) || preg_match("/^-|^\.-|-\.$|^\.$/", $hostName)) {
+                if (!validateHostName($hostName)) {
                     sendEppError($conn, $db, 2005, 'Invalid domain:hostName', $clTRID, $trans);
                     return;
                 }
@@ -1043,8 +1038,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         }
                     }
                 } else {
-                    // Check if the hostname matches the pattern and is less than 254 characters
-                    if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+                    // Validate the hostname using the function
+                    if (validateHostName($hostName)) {
                         $domain_exist = false;
                         $clid_domain = 0;
 
