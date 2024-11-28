@@ -38,7 +38,12 @@ class DomainsController extends Controller
                     }
                 }
 
-                $domainName = preg_replace('/[^\p{L}0-9-.]/u', '', $domainName);
+                $invalid_domain = validate_label($domainName, $this->container->get('db'));
+                if ($invalid_domain) {
+                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: ' . $invalid_domain);
+                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                }
+
                 try {
                     $parts = extractDomainAndTLD($domainName);
                 } catch (\Exception $e) {
@@ -52,9 +57,7 @@ class DomainsController extends Controller
 
                 // Convert the DB result into a boolean '0' or '1'
                 $availability = $availability ? '0' : '1';
-                
-                $invalid_label = validate_label($domainName, $this->container->get('db'));
-                
+
                 if (isset($claims)) {
                     $claim_key = $this->container->get('db')->selectValue('SELECT claim_key FROM tmch_claims WHERE domain_label = ? LIMIT 1',[$parts['domain']]);
                     
@@ -66,47 +69,41 @@ class DomainsController extends Controller
                 } else {
                     $claim = 2;
                 }
-                
-                // Check if the domain is Invalid
-                if ($invalid_label) {
-                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: ' . $invalid_label);
-                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                } else {
-                    // If the domain is not taken, check if it's reserved
-                    if ($availability === '1') {
-                        $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
 
-                        if ($domain_already_reserved) {
-                            if ($token !== null && $token !== '') {
-                                $allocation_token = $this->container->get('db')->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                // If the domain is not taken, check if it's reserved
+                if ($availability === '1') {
+                    $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
+
+                    if ($domain_already_reserved) {
+                        if ($token !== null && $token !== '') {
+                            $allocation_token = $this->container->get('db')->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
                                 
-                                if ($allocation_token) {
-                                    $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Allocation token valid');
-                                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                                } else {
-                                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
-                                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                                }
+                            if ($allocation_token) {
+                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Allocation token valid');
+                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
                             } else {
-                                $this->container->get('flash')->addMessage('info', 'Domain ' . $domainName . ' is not available, as it is ' . $domain_already_reserved['type'] . '!');
+                                $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
                                 return $response->withHeader('Location', '/domain/check')->withStatus(302);
                             }
                         } else {
-                            if ($claim == 1) {
-                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim exists.<br />Claim key is: ' . $claim_key);
-                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                            } elseif ($claim == 2) {
-                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!');
-                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                            } elseif ($claim == 0) {
-                                $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim does not exist');
-                                return $response->withHeader('Location', '/domain/check')->withStatus(302);
-                            }
+                            $this->container->get('flash')->addMessage('info', 'Domain ' . $domainName . ' is not available, as it is ' . $domain_already_reserved['type'] . '!');
+                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
                         }
                     } else {
-                        $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: In use');
-                        return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                        if ($claim == 1) {
+                            $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim exists.<br />Claim key is: ' . $claim_key);
+                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                        } elseif ($claim == 2) {
+                            $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!');
+                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                        } elseif ($claim == 0) {
+                            $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Claim does not exist');
+                            return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                        }
                     }
+                } else {
+                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: In use');
+                    return $response->withHeader('Location', '/domain/check')->withStatus(302);
                 }
             }
         }
