@@ -122,6 +122,8 @@ If your current version is not immediately before the latest, you must run the u
 
 ### [Initial Operation Guide](docs/iog.md)
 
+### [Namingo EPP Server](docs/epp.md)
+
 ### [FAQ](docs/faq.md)
 
 ### [Architecture of Namingo](docs/architecture.md)
