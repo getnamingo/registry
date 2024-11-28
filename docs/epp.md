@@ -994,7 +994,8 @@ Response:
       </result>
       <resData>
         <funds:infData 
-          xmlns:funds="https://namingo.org/epp/funds-1.0" xsi:schemaLocation="https://namingo.org/epp/funds-1.0 funds-1.0.xsd">
+         xmlns:funds="https://namingo.org/epp/funds-1.0"
+         xsi:schemaLocation="https://namingo.org/epp/funds-1.0 funds-1.0.xsd">
           <funds:balance>100000.00</funds:balance>
           <funds:currency>USD</funds:currency>
           <funds:availableCredit>100000.00</funds:availableCredit>
