@@ -151,7 +151,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
             } elseif ($c['dns_server'] == 'nsd') {
                 $basePath = '/etc/nsd';
             } elseif ($c['dns_server'] == 'knot') {
-                $basePath = '/etc/knot';
+                $basePath = '/etc/knot/zones';
             } else {
                 // Default path
                 $basePath = '/var/lib/bind';

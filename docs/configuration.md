@@ -224,15 +224,13 @@ This section outlines recommended components to enhance the functionality and re
 
 ### 2.1. Setup Hidden Master DNS with BIND
 
-Although Namingo is equipped with BIND by default for this purpose, you can opt for NSD, or Knot DNS if you are more comfortable with those systems.
-
-#### Install BIND9 and its utilities with
+#### Install BIND9 and its utilities:
 
 ```bash
 apt install bind9 bind9-utils bind9-doc
 ```
 
-#### Generate a TSIG key
+#### Generate a TSIG key:
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
@@ -252,7 +250,7 @@ key "test.key" {
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
 
-#### Configure the Named Configuration File (Please Choose One)
+#### Configure the Named Configuration File (Please Choose One):
 
 1. Without DNSSEC:
 
@@ -350,7 +348,7 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.**
+**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
 
 3. Using DNSSEC with OpenDNSSEC:
 
@@ -422,20 +420,20 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-#### Check BIND9 Configuration
+#### Check BIND9 Configuration:
 
 ```bash
 named-checkconf
 named-checkzone test /var/lib/bind/test.zone
 ```
 
-#### Restart BIND9 Service
+#### Restart BIND9 Service:
 
 ```bash
 systemctl restart bind9
 ```
 
-#### Verify Zone Loading
+#### Verify Zone Loading:
 
 Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 
@@ -443,7 +441,112 @@ Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 grep named /var/log/syslog
 ```
 
-### 2.2. Regular DNS Server Setup
+### 2.2. Setup Hidden Master DNS with Knot DNS and DNSSEC
+
+#### Install Knot DNS and its utilities:
+
+```bash
+apt install knot knot-dnsutils
+```
+
+#### Generate a TSIG key:
+
+Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
+
+```bash
+cd /etc/knot
+knotc conf-gen-key test.key hmac-sha256
+```
+
+The output will be in the format that can be directly included in your configuration files. It looks something like this:
+
+```bash
+key:
+  - id: "test.key"
+    algorithm: hmac-sha256
+    secret: "base64-encoded-secret=="
+```
+
+Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
+
+#### Configure DNSSEC Policy:
+
+Add the DNSSEC policy to `/etc/knot/knot.conf`:
+
+```bash
+nano /etc/knot/knot.conf
+```
+
+Add the following DNSSEC policy:
+
+```bash
+policy:
+  - id: "namingo-policy"
+    description: "Default DNSSEC policy for TLD"
+    algorithm: ed25519
+    ksk-lifetime: 1y
+    zsk-lifetime: 2m
+    max-zone-ttl: 86400
+    rrsig-lifetime: 14d
+    rrsig-refresh: 7d
+    dnskey-ttl: 3600
+```
+
+#### Add your zone:
+
+Add the zone to `/etc/knot/knot.conf`:
+
+```bash
+zone:
+  - domain: "test."
+    file: "/etc/knot/zones/test.zone"
+    dnssec-policy: "namingo-policy"
+    key-directory: "/etc/knot/keys"
+    storage: "/etc/knot/zones"
+    notify: <slave-server-IP>
+    acl:
+      - id: "test.key"
+        address: <slave-server-IP>
+        key: "test.key"
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Generate the necessary DNSSEC keys for your zone using keymgr:
+
+```bash
+keymgr policy:generate test.
+```
+
+This will create the required keys in `/etc/knot/keys`. Ensure the directory permissions are secure:
+
+```bash
+chown -R knot:knot /etc/knot/keys
+chmod -R 700 /etc/knot/keys
+```
+
+Reload Knot DNS and enable DNSSEC signing for the zone:
+
+```bash
+knotc reload
+knotc signzone test.
+```
+
+Generate the DS record for the parent zone using `keymgr`:
+
+```bash
+keymgr ds test.
+```
+
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
+**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be KnotDNS.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
+
+### 2.3. Regular DNS Server Setup
 
 Before editing the configuration files, you need to copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
 
@@ -522,80 +625,116 @@ named-checkconf
 grep 'transfer of "test."' /var/log/syslog
 ```
 
-### 2.3. Setup Monitoring
+### 2.4. Setup Monitoring
 
 For effective monitoring of your registry system, we highly recommend utilizing Prometheus.
 
 ```bash
-wget https://github.com/prometheus/prometheus/releases/download/v2.48.1/prometheus-2.48.1.linux-amd64.tar.gz
-tar xvfz prometheus-2.48.1.linux-amd64.tar.gz
-cp prometheus-2.48.1.linux-amd64/prometheus /usr/local/bin/
-cp prometheus-2.48.1.linux-amd64/promtool /usr/local/bin/
-useradd --no-create-home --shell /bin/false prometheus
-mkdir /etc/prometheus
-mkdir /var/lib/prometheus
-cp -r prometheus-2.48.1.linux-amd64/consoles /etc/prometheus
-cp -r prometheus-2.48.1.linux-amd64/console_libraries /etc/prometheus
-chown -R prometheus:prometheus /etc/prometheus
-chown -R prometheus:prometheus /var/lib/prometheus
+apt update
+apt install prometheus prometheus-node-exporter prometheus-mysqld-exporter
 ```
 
-Place the following in the ```/etc/prometheus/prometheus.yml``` and customize as needed:
+Edit the Prometheus configuration file: ```/etc/prometheus/prometheus.yml```, customize and replace the contents with:
 
-```
-# Global settings and defaults.
+```bash
 global:
-  scrape_interval: 15s  # By default, scrape targets every 15 seconds.
-  evaluation_interval: 15s  # Evaluate rules every 15 seconds.
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
-# Alertmanager configuration (commented out by default).
-# alerting:
-#   alertmanagers:
-#   - static_configs:
-#     - targets:
-#       - localhost:9093
-
-# Load and evaluate rules in this file.
-# rule_files:
-#   - "first_rules.yml"
-#   - "second_rules.yml"
-
-# Scrape configuration for running Prometheus on the same machine.
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'prometheus'
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
     static_configs:
       - targets: ['localhost:9090']
 
-  # Example job for scraping an HTTP service.
-  - job_name: 'http_service'
+  - job_name: 'node'
     static_configs:
-      - targets: ['<your_http_service>:80']
+      - targets: ['localhost:9100']
 
-  # Example job for scraping an HTTPS service.
-  - job_name: 'https_service'
+  - job_name: 'mariadb'
+    metrics_path: /metrics
     static_configs:
-      - targets: ['<your_https_service>:443']
+      - targets: ['localhost:9104']
 
-  # Example job for scraping a DNS server.
-  - job_name: 'dns_monitoring'
+  - job_name: 'epp_server'
     static_configs:
-      - targets: ['<your_dns_server>:53']
+      - targets: ['epp.example.org:700']  # EPP Server
 
-# Add additional jobs as needed for your services.
+  - job_name: 'whois_server'
+    static_configs:
+      - targets: ['whois.example.org:43']  # WHOIS Server
+
+  - job_name: 'das_server'
+    static_configs:
+      - targets: ['das.example.org:1043']  # DAS Server
+
+  - job_name: 'rdap_server'
+    static_configs:
+      - targets:
+          - 'das.example.org:80'
+          - 'das.example.org:443'
+          - 'das.example.org:7500'
+
+  - job_name: 'control_panel'
+    static_configs:
+      - targets:
+          - 'cp.example.org:80'
+          - 'cp.example.org:443'
 ```
 
-Run the monitoring tool using:
+Set ownership for the configuration file:
 
 ```bash
-prometheus --config.file=/etc/prometheus/prometheus.yml
+chown prometheus:prometheus /etc/prometheus/prometheus.yml
 ```
 
-The tool will be available at ```http://<your_server_ip>:9090```
+Update the Node Exporter service file:
 
-### 2.4. Recommended Help Desk Solution
+```bash
+nano /lib/systemd/system/prometheus-node-exporter.service
+```
+
+Edit the MySQL Exporter configuration:
+
+```bash
+nano /etc/default/prometheus-mysqld-exporter
+```
+
+Update the `DATA_SOURCE_NAME`:
+
+```bash
+DATA_SOURCE_NAME='exporter:password@(localhost:3306)/'
+```
+
+Create the MySQL user:
+
+```sql
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'password';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Enable and start all services:
+
+```bash
+systemctl enable prometheus
+systemctl start prometheus
+
+systemctl enable prometheus-node-exporter
+systemctl start prometheus-node-exporter
+
+systemctl enable prometheus-mysqld-exporter
+systemctl start prometheus-mysqld-exporter
+```
+
+Open Prometheus in your browser:
+
+```bash
+http://<your_server_ip>:9090
+```
+
+Check **Status > Targets** to ensure all targets are up.
+
+### 2.5. Recommended Help Desk Solution
 
 If you're in need of an effective help desk solution to complement your experience with Namingo, we recommend considering [FreeScout](https://freescout.net/), an AGPL-3.0 licensed, free and open-source software. FreeScout is known for its user-friendly interface and robust features, making it an excellent choice for managing customer queries and support tickets.
 
@@ -605,7 +744,7 @@ If you're in need of an effective help desk solution to complement your experien
 - The recommendation to use FreeScout is entirely optional and for the convenience of Namingo users. Namingo functions independently of FreeScout and does not require FreeScout for its operation.
 - Ensure to comply with the AGPL-3.0 license terms if you choose to use FreeScout alongside Namingo.
 
-### 2.5. Adminer Security settings
+### 2.6. Adminer Security settings
 
 To enhance the security of your Adminer installation, we recommend the following settings for Caddy, Apache2, and Nginx:
 
@@ -657,7 +796,7 @@ location /dbtool.php {
 }
 ```
 
-### 2.6. Scaling Your Database with ProxySQL
+### 2.7. Scaling Your Database with ProxySQL
 
 To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
 
