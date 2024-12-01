@@ -6,14 +6,14 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 // Configuration
-$keyDir = $c['dns_software'] === 'bind' ? '/var/lib/bind' : '/etc/knot/keys';  // Directory containing key files
+$keyDir = $c['dns_server'] === 'bind' ? '/var/lib/bind' : '/etc/knot/keys';  // Directory containing key files
 $localPhpScript = '/path/to/local-registry-update.php';  // Local PHP script for DS record submission
 $adminEmail = 'admin@example.com';  // Email to be included for IANA submission logs
-$dnssecTool = $c['dns_software'] === 'bind' ? '/usr/bin/dnssec-dsfromkey' : '/usr/bin/keymgr';  // Tool path
+$dnssecTool = $c['dns_server'] === 'bind' ? '/usr/bin/dnssec-dsfromkey' : '/usr/bin/keymgr';  // Tool path
 $logFilePath = '/var/log/namingo/dnssec-ds-rotator.log';
 
 $log = setupLogger($logFilePath, 'DNSSEC_DS_Rotator');
-$log->info("Starting DS record handling for " . strtoupper($c['dns_software']) . ".");
+$log->info("Starting DS record handling for " . strtoupper($c['dns_server']) . ".");
 
 try {
     // Connect to the database
@@ -32,7 +32,7 @@ try {
         // Process the zone name
         $log->info("Processing zone: $zoneName");
 
-        if ($c['dns_software'] === 'bind') {
+        if ($c['dns_server'] === 'bind') {
             // Locate all keys for the zone (BIND)
             $keyFiles = glob("$keyDir/K$zoneName.+*.key");
             if (empty($keyFiles)) {
@@ -73,7 +73,7 @@ try {
 
                 $log->info("DS Record Generated for KSK file $kskFile: $dsRecord");
             }
-        } elseif ($c['dns_software'] === 'knot') {
+        } elseif ($c['dns_server'] === 'knot') {
             // **Knot DNS: Use keymgr to manage keys and DS records**
             $keys = [];
             exec("$dnssecTool ds $zoneName", $output, $returnCode);
@@ -123,6 +123,18 @@ try {
             foreach ($keys as $key) {
                 $log->info($key['dsRecord']);
             }
+            // Uncomment this block to submit to parent using the local PHP script
+            /*
+            $log->info("Submitting DS record to parent zone using local PHP script...");
+            $response = shell_exec("php $localPhpScript $zoneName '" . json_encode($keys) . "'");
+            if (str_contains($response, 'success')) {
+                $log->info("DS record successfully submitted to parent zone for $zoneName.");
+            } else {
+                $log->error("Failed to submit DS record to parent zone for $zoneName.");
+                $log->error("Response from PHP script: $response");
+                continue;
+            }
+            */
         } else {
             $log->error("Unsupported zone type for $zoneName.");
             continue;
