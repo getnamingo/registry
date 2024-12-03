@@ -106,8 +106,14 @@ $container->set('view', function ($container) {
         $desiredLanguage = envi('LANG');
         $uiLang = envi('UI_LANG');
     }
-    $lang_full = Language::getName($desiredLanguage, 'en');
-    $lang = trim(strstr($lang_full, ' (', true));
+    $lang_full = Language::getName($desiredLanguage, $uiLang);
+    if ($uiLang === 'jp') {
+        $lang = '日本語';
+    } elseif ($uiLang === 'ua') {
+        $lang = 'Українська';
+    } else {
+        $lang = ucfirst(trim(strstr($lang_full, ' (', true)));
+    }
 
     $languageFile = '../lang/' . $desiredLanguage . '/messages.po';
     if (!file_exists($languageFile)) {
