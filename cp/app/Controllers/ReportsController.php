@@ -73,16 +73,18 @@ class ReportsController extends Controller
         
         // Write the headers to the CSV file
         fputcsv($csvFile, $headers);
-        
+
         // Write the domain data to the CSV file
-        foreach ($domains as $domain) {
-            fputcsv($csvFile, [
-                $domain['name'], 
-                $domain['crdate'], 
-                $domain['exdate']
-            ]);
+        if (!empty($domains) && is_iterable($domains)) {
+            foreach ($domains as $domain) {
+                fputcsv($csvFile, [
+                    $domain['name'], 
+                    $domain['crdate'], 
+                    $domain['exdate']
+                ]);
+            }
         }
-        
+
         // Rewind the file pointer to the beginning of the file
         fseek($csvFile, 0);
         
