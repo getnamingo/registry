@@ -716,7 +716,7 @@ msgid "Deposit Payment Unsuccessful"
 msgstr "Échec du paiement du dépôt"
 
 msgid "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
-msgstr "Nous avons remarqué que le processus de paiement de votre dépôt n'a pas été achevé. Il semble que le paiement ait été annulé ou qu'il ait échoué au cours de la transaction. S'il s'agit d'une erreur ou si vous avez des questions, n'hésitez pas à nous contacter. Nous sommes là pour vous aider à faire en sorte que votre transaction se déroule sans problème et en toute sécurité."
+msgstr "Nous avons remarqué que votre processus de paiement de dépôt n'est pas terminé. Il semble que le paiement ait été annulé ou a échoué lors de la transaction. Si c'était une erreur, ou si vous avez des questions, n'hésitez pas à nous contacter. Nous sommes là pour vous aider à vous assurer que votre transaction est facile et sécurisée."
 
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
 msgstr "Prêt à réessayer ? Lorsque vous êtes prêt à procéder à votre dépôt, retournez simplement à la"
@@ -1349,49 +1349,49 @@ msgid "Choose the currency for all transactions. This impacts billing and financ
 msgstr "Choisissez la devise pour toutes les transactions. Cela a un impact sur la facturation et les rapports financiers. Informer les parties prenantes des changements."
 
 msgid "Contact Validation"
-msgstr "Validation de Contact"
+msgstr "Validation du contact"
 
 msgid "Validate by Phone"
-msgstr "Valider par Téléphone"
+msgstr "Valider par téléphone"
 
 msgid "Validated by Phone"
-msgstr "Validé par Téléphone"
+msgstr "Validé par téléphone"
 
 msgid "Phone Validation"
-msgstr "Validation Téléphonique"
+msgstr "Validation du numéro de téléphone"
 
 msgid "Validated by Email"
-msgstr "Validé par Email"
+msgstr "Validé par e-mail"
 
 msgid "Validate by Email"
-msgstr "Valider par Email"
+msgstr "Valider par email"
 
 msgid "Email Validation"
-msgstr "Validation d'Email"
+msgstr "Validation email"
 
 msgid "Validate by Postal Mail"
-msgstr "Valider par Courrier Postal"
+msgstr "Valider par courrier postal"
 
 msgid "Validated by Postal Mail"
-msgstr "Validé par Courrier Postal"
+msgstr "Validé par courrier postal"
 
 msgid "Postal Mail Validation"
-msgstr "Validation par Courrier"
+msgstr "Validation du courrier postal"
 
 msgid "Pending Validation"
-msgstr "Validation en Attente"
+msgstr "En attente de validation"
 
 msgid "Back to Contact Update"
-msgstr "Retour à la Mise à Jour des Contacts"
+msgstr "Retour à la mise à jour du contact"
 
 msgid "Validate Contact"
-msgstr "Valider le Contact"
+msgstr "Valider le contact"
 
 msgid "Settings"
 msgstr "Paramètres"
 
 msgid "Manage Settings"
-msgstr "Gérer les Paramètres"
+msgstr "Gérer les paramètres"
 
 msgid "Not signed"
 msgstr "Non signé"
@@ -1400,61 +1400,61 @@ msgid "Signed"
 msgstr "Signé"
 
 msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "Ces noms de domaine sont soumis à des réglementations spéciales ou à des exigences d'enregistrement. Ils pourraient être disponibles à l'enregistrement mais sous certaines conditions, telles que la preuve d'éligibilité ou des documents supplémentaires."
+msgstr "Ces noms de domaine sont soumis à des réglementations spéciales ou à des exigences d’enregistrement. Ils peuvent être disponibles pour l’inscription mais dans des conditions particulières, telles que la preuve d’éligibilité ou la documentation supplémentaire."
 
 msgid "Enter each"
-msgstr "Entrez chaque"
+msgstr "Entrer chaque"
 
 msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "nom sur une nouvelle ligne, sans l'extension. Par exemple, utilisez \"exemple\" au lieu de \"exemple.com\"."
+msgstr "sur une nouvelle ligne, sans extension. Par exemple, utilisez \"exemple\" à la place de \"exemple.com\"."
 
 msgid "View Ticket"
-msgstr "Voir le Ticket"
+msgstr "Voir du tiket"
 
 msgid "Open"
 msgstr "Ouvrir"
 
 msgid "In Progress"
-msgstr "En Cours"
+msgstr "En cours"
 
 msgid "Resolved"
-msgstr "Résolu"
+msgstr "Résolue"
 
 msgid "Low"
-msgstr "Faible"
+msgstr "Bas"
 
 msgid "Medium"
 msgstr "Moyen"
 
 msgid "High"
-msgstr "Élevé"
+msgstr "Élevée"
 
 msgid "Critical"
 msgstr "Critique"
 
 msgid "Close Ticket"
-msgstr "Fermer le Ticket"
+msgstr "Fermer le ticket"
 
 msgid "Escalate Ticket"
-msgstr "Escalader le Ticket"
+msgstr "Agrandir le ticket"
 
 msgid "Reopen Ticket"
-msgstr "Rouvrir le Ticket"
+msgstr "Rouvrir le ticket"
 
 msgid "Enter old password"
-msgstr "Entrez l'ancien mot de passe"
+msgstr "Saisissez l'ancien mot de passe"
 
 msgid "Enter new password"
-msgstr "Entrez le nouveau mot de passe"
+msgstr "Entrez un nouveau mot de passe"
 
 msgid "Recent Domains"
-msgstr "Domaines Récents"
+msgstr "Domaines récents"
 
 msgid "Recent Support Tickets"
-msgstr "Tickets de Support Récents"
+msgstr "Tickets d'assistance récents"
 
 msgid "Company Number"
-msgstr "Numéro d'entreprise"
+msgstr "Numéro de la société"
 
 msgid "Official registration number provided by the relevant authority."
 msgstr "Numéro d'enregistrement officiel fourni par l'autorité compétente."
@@ -1463,7 +1463,7 @@ msgid "VAT Number"
 msgstr "Numéro de TVA"
 
 msgid "VAT number for tax purposes, if registered for VAT."
-msgstr "Numéro de TVA à des fins fiscales, si vous êtes enregistré à la TVA."
+msgstr "Numéro de TVA aux fins fiscales, s'il est enregistré à la TVA."
 
 msgid "Manage Registrar"
 msgstr "Gérer le registraire"
@@ -1472,25 +1472,25 @@ msgid "Manage Custom Pricing"
 msgstr "Gérer les prix personnalisés"
 
 msgid "Last 7 Days: Domain Registrations"
-msgstr "7 derniers jours : Enregistrements de domaines"
+msgstr "Les 7 derniers jours : Enregistrement de domaine"
 
 msgid "Top Registrars by Domains"
-msgstr "Principaux registraires par domaines"
+msgstr "Meilleurs registraires par domaines"
 
 msgid "Support Tickets: Last Week"
-msgstr "Tickets de support : Semaine dernière"
+msgstr "Tickets d'assistance : la semaine dernière"
 
 msgid "Registrar Statistics"
-msgstr "Statistiques des registraires"
+msgstr "Registraire des statistiques"
 
 msgid "Export Domains"
 msgstr "Exporter les domaines"
 
 msgid "Search reports"
-msgstr "Rechercher dans les rapports"
+msgstr "Recherche de rapports"
 
 msgid "Number of Domains"
-msgstr "Nombre de domaines enregistrés"
+msgstr "Nombre de domaines"
 
 msgid "Market Share"
 msgstr "Part de marché"
@@ -1503,3 +1503,4 @@ msgstr "Ouvrir le site web"
 
 msgid "Close"
 msgstr "Fermer"
+

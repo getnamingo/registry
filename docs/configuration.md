@@ -214,7 +214,7 @@ To customize the landing page, copy `index.twig` to `index.custom.twig` using `c
 
 To change the default language of the control panel, you must edit the `/var/www/cp/.env` file and replace the language values (`LANG`/`UI_LANG`) with your desired settings.
 
-For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `es_ES`, `jp_JP`, and `fr_FR`. For the `UI_LANG` variable, use `us`, `ua`, `es`, `jp`, or `fr`.
+For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `es_ES`, `pt_PT`, `jp_JP`, and `fr_FR`. For the `UI_LANG` variable, use `us`, `ua`, `es`, `pt`, `jp`, or `fr`.
 
 To apply your changes, save the file, refresh the control panel, and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php` The new language settings will take effect immediately.
 

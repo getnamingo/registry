@@ -715,7 +715,7 @@ msgstr "Необов'язково"
 msgid "Deposit Payment Unsuccessful"
 msgstr "Помилка платежу за депозит"
 
-msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
+msgid "We've noticed that your deposit payment process was not completed. It appears that the payment was either cancelled or failed during the transaction. If this was an error, or if you have any questions, please don't hesitate to contact us. We're here to help ensure your transaction is smooth and secure."
 msgstr "Ми помітили, що ваш процес оплати за депозит не завершений. Схоже, що платіж було скасовано або скасовано під час транзакції. Якщо це була помилка, або у вас виникли будь-які питання, не соромтеся звертатися до нас. Ми тут, щоб допомогти забезпечити легку і безпечну транзакцію."
 
 msgid "Ready to try again? When you're set to proceed with your deposit, simply return to the"
@@ -1346,46 +1346,46 @@ msgid "Registry Currency"
 msgstr "Валюта реєстру"
 
 msgid "Choose the currency for all transactions. This impacts billing and financial reports. Inform stakeholders of changes."
-msgstr "Виберіть валюту для всіх операцій. Це впливає на рахунки та фінансові звіти. Інформувати зацікавлених сторін про зміни."
+msgstr "Оберіть валюту для всіх транзакцій. Це впливає на виставлення рахунків і фінансові звіти. Інформувати зацікавлених сторін про зміни."
 
 msgid "Contact Validation"
 msgstr "Перевірка контакту"
 
 msgid "Validate by Phone"
-msgstr "Перевірка телефоном"
+msgstr "Перевірити по телефону"
 
 msgid "Validated by Phone"
 msgstr "Перевірено телефоном"
 
 msgid "Phone Validation"
-msgstr "Телефонна перевірка"
+msgstr "Перевірка телефону"
 
 msgid "Validated by Email"
-msgstr "Перевірено електронною поштою"
+msgstr "Перевірено е-поштою"
 
 msgid "Validate by Email"
-msgstr "Перевірка електронною поштою"
+msgstr "Перевірити по email"
 
 msgid "Email Validation"
-msgstr "Перевірка електронної пошти"
+msgstr "Перевірка е-пошти"
 
 msgid "Validate by Postal Mail"
-msgstr "Перевірка поштою"
+msgstr "Підтвердити поштою"
 
 msgid "Validated by Postal Mail"
 msgstr "Перевірено поштою"
 
 msgid "Postal Mail Validation"
-msgstr "Перевірка поштовою скринькою"
+msgstr "Перевірка пошти"
 
 msgid "Pending Validation"
 msgstr "Очікує на перевірку"
 
 msgid "Back to Contact Update"
-msgstr "Повернутися до оновлення контактів"
+msgstr "Повернутися до оновлення контакту"
 
 msgid "Validate Contact"
-msgstr "Підтвердити контакт"
+msgstr "Перевірити контакт"
 
 msgid "Settings"
 msgstr "Налаштування"
@@ -1400,22 +1400,22 @@ msgid "Signed"
 msgstr "Підписано"
 
 msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "Ці доменні імена підлягають спеціальним правилам або вимогам реєстрації. Вони можуть бути доступні для реєстрації, але за певних умов, наприклад, надання доказів відповідності або додаткової документації."
+msgstr "Ці доменні імена підлягають спеціальним правилам або реєстраційним вимогам. Вони можуть бути доступні для реєстрації, але у конкретних умовах, таких як підтвердження прийнятності або додаткової документації."
 
 msgid "Enter each"
 msgstr "Введіть кожен"
 
 msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "введіть ім'я на новому рядку без розширення. Наприклад, використовуйте \"приклад\" замість \"example.com\"."
+msgstr "у новому рядку, без розширення. Наприклад, використовуйте \"example\" замість \"example\" на сторінці \"example.com\"."
 
 msgid "View Ticket"
-msgstr "Переглянути квиток"
+msgstr "Переглянути тікет"
 
 msgid "Open"
-msgstr "Відкрити"
+msgstr "Відкриті"
 
 msgid "In Progress"
-msgstr "В процесі"
+msgstr "В обробці"
 
 msgid "Resolved"
 msgstr "Вирішено"
@@ -1433,13 +1433,13 @@ msgid "Critical"
 msgstr "Критичний"
 
 msgid "Close Ticket"
-msgstr "Закрити квиток"
+msgstr "Закрити тікет"
 
 msgid "Escalate Ticket"
-msgstr "Ескалація квитка"
+msgstr "Екскалатувати тікет"
 
 msgid "Reopen Ticket"
-msgstr "Відновити квиток"
+msgstr "Повторно відкрити тікет"
 
 msgid "Enter old password"
 msgstr "Введіть старий пароль"
@@ -1457,49 +1457,50 @@ msgid "Company Number"
 msgstr "Номер компанії"
 
 msgid "Official registration number provided by the relevant authority."
-msgstr "Офіційний реєстраційний номер, наданий відповідним органом."
+msgstr "Офіційний номер реєстрації надано відповідним органом авторизації."
 
 msgid "VAT Number"
-msgstr "Номер ПДВ"
+msgstr "Номер платника ПДВ"
 
 msgid "VAT number for tax purposes, if registered for VAT."
-msgstr "Номер ПДВ для цілей оподаткування, якщо зареєстрований платником ПДВ."
+msgstr "Номер платника ПДВ в податкових цілях, при реєстрації ПДВ."
 
 msgid "Manage Registrar"
-msgstr "Керувати реєстратором"
+msgstr "Керувати реєстраром"
 
 msgid "Manage Custom Pricing"
-msgstr "Керуйте індивідуальними цінами"
+msgstr "Керування кастомізацією цін"
 
 msgid "Last 7 Days: Domain Registrations"
-msgstr "Останні 7 днів: Реєстрації доменів"
+msgstr "Останні 7 днів: Реєстрація доменів"
 
 msgid "Top Registrars by Domains"
-msgstr "Топ реєстраторів за кількістю доменів"
+msgstr "Топ реєстраторів за доменами"
 
 msgid "Support Tickets: Last Week"
-msgstr "Підтримка: Тікети за минулий тиждень"
+msgstr "Квитки підтримки: минулого тижня"
 
 msgid "Registrar Statistics"
 msgstr "Статистика реєстраторів"
 
 msgid "Export Domains"
-msgstr "Експорт доменів"
+msgstr "Експортувати домени"
 
 msgid "Search reports"
-msgstr "Пошук у звітах"
+msgstr "Пошук звітів"
 
 msgid "Number of Domains"
-msgstr "Кількість зареєстрованих доменів"
+msgstr "Кількість доменів"
 
 msgid "Market Share"
 msgstr "Частка ринку"
 
 msgid "Earnings"
-msgstr "Доходи"
+msgstr "Заробіток"
 
 msgid "Open website"
-msgstr "Відкрити вебсайт"
+msgstr "Відкрити сайт"
 
 msgid "Close"
 msgstr "Закрити"
+
