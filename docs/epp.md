@@ -6,7 +6,9 @@ This section includes examples of commonly used EPP commands for domains, hosts,
 
 ### 1. Session
 
-#### 1.1. Login Request
+#### 1.1. Login
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -36,12 +38,33 @@ This section includes examples of commonly used EPP commands for domains, hosts,
         </svcExtension>
       </svcs>
     </login>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 1.2. Logout Request
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+#### 1.2. Logout
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -50,8 +73,27 @@ This section includes examples of commonly used EPP commands for domains, hosts,
   xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
   <command>
     <logout/>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1500">
+      <msg>Command completed successfully; ending session</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -75,7 +117,7 @@ This section includes examples of commonly used EPP commands for domains, hosts,
      xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
   <command>
     <poll op="req"/>
-    <clTRID>ABC-12345-XYZ</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -89,7 +131,7 @@ This section includes examples of commonly used EPP commands for domains, hosts,
      xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
   <command>
     <poll op="ack" msgID="123456"/>
-    <clTRID>ABC-67890-XYZ</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -112,14 +154,14 @@ This section includes examples of commonly used EPP commands for domains, hosts,
         <contact:id>abc-56789</contact:id>
       </contact:check>
     </check>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 2.2. Contact Create Request
+#### 2.2. Contact Create
 
-Standard request:
+**Standard request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -151,8 +193,35 @@ Standard request:
       </contact:authInfo>
     </contact:create>
     </create>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Standard Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <contact:creData
+        xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd">              
+        <contact:id>MRG67507ad83de49</contact:id>
+        <contact:crDate>2024-12-04T15:52:56.264Z</contact:crDate>
+      </contact:creData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -195,7 +264,7 @@ Request with Identica extension:
         <identica:nin type="business">1234567890</identica:nin>
       </identica:create>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -214,12 +283,12 @@ Request with Identica extension:
         <contact:id>abc-56789</contact:id>
       </contact:info>
     </info>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 2.4. Contact Update Request
+#### 2.4. Contact Update
 
 Standard request:
 
@@ -253,7 +322,7 @@ Standard request:
         </contact:chg>
       </contact:update>
     </update>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -297,7 +366,7 @@ Request with Identica extension:
         <identica:nin type="personal">1234567890</identica:nin>
       </identica:update>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -316,7 +385,7 @@ Request with Identica extension:
         <contact:id>abc-12398</contact:id>
       </contact:delete>
     </delete>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -338,12 +407,14 @@ Request with Identica extension:
         <host:name>ns1.example.test</host:name>
       </host:check>
     </check>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 3.2. Host Create Request
+#### 3.2. Host Create
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -358,8 +429,35 @@ Request with Identica extension:
         <host:addr ip="v4">192.0.2.1</host:addr>
       </host:create>
     </create>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <host:creData
+        xmlns:host="urn:ietf:params:xml:ns:host-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd">
+        <host:name>ns1.example.test</host:name>
+        <host:crDate>2024-12-04T16:03:26.818Z</host:crDate>
+      </host:creData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328206-58daa6da62</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -377,7 +475,7 @@ Request with Identica extension:
         <host:name>ns1.example.test</host:name>
       </host:info>
     </info>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -402,7 +500,7 @@ Request with Identica extension:
         </host:rem>
       </host:update>
     </update>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -421,16 +519,16 @@ Request with Identica extension:
         <host:name>ns2.example.test</host:name>
       </host:delete>
     </delete>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
 ### 4. Domain
 
-#### 4.1. Domain Check Request
+#### 4.1. Domain Check
 
-Standard request:
+**Standard request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -446,12 +544,43 @@ Standard request:
         <domain:name>example.example</domain:name>
       </domain:check>
     </check>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-Check for claims:
+**Standard response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:chkData
+        xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+        <domain:cd>
+          <domain:name avail="1">example.test</domain:name>
+        </domain:cd>
+        <domain:cd>
+          <domain:name avail="0">example.example</domain:name>
+        </domain:cd>
+      </domain:chkData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733327112-3911de7da6</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Check for claims:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -473,14 +602,14 @@ Check for claims:
         <launch:phase>claims</launch:phase>
       </launch:check>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 4.2. Domain Create Request
+#### 4.2. Domain Create
 
-Standard request:
+**Standard request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -506,8 +635,36 @@ Standard request:
         </domain:authInfo>
       </domain:create>
     </create>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Standard response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:creData
+        xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:crDate>2024-12-04T16:06:44.813Z</domain:crDate>
+        <domain:exDate>2025-12-04T16:06:44.813Z</domain:exDate>
+      </domain:creData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328404-9a15122064</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -555,7 +712,7 @@ Request with DNSSEC:
         </secDNS:add>
       </secDNS:create>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -596,7 +753,7 @@ Request with claims:
         </launch:notice>
       </launch:create>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -635,14 +792,14 @@ Request for sunrise:
         </smd:encodedSignedMark>
       </launch:create>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 4.3. Domain Info Request
+#### 4.3. Domain Info
 
-Standard request:
+**Standard request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -659,8 +816,56 @@ Standard request:
         </domain:authInfo>
       </domain:info>
     </info>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Standard response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:infData
+        xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:roid>D3</domain:roid>
+        <domain:registrant>abc-56789</domain:registrant>
+        <domain:contact type="admin">abc-12345</domain:contact>          
+        <domain:contact type="billing">abc-12345</domain:contact>        
+        <domain:contact type="tech">abc-12345</domain:contact>           
+        <domain:ns>
+          <domain:hostObj>ns1.example.example</domain:hostObj>                 
+          <domain:hostObj>ns2.example.example</domain:hostObj>
+        </domain:ns>
+        <domain:clID>leonet</domain:clID>
+        <domain:crID>leonet</domain:crID>
+        <domain:crDate>2024-12-04T16:06:44.813Z</domain:crDate>
+        <domain:exDate>2025-12-04T16:06:44.813Z</domain:exDate>
+        <domain:authInfo>
+          <domain:pw>authInfoPw</domain:pw>
+        </domain:authInfo>
+      </domain:infData>
+    </resData>
+    <extension>
+      <rgp:infData xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd">
+        <rgp:rgpStatus s="addPeriod">
+        </rgp:rgpStatus>
+      </rgp:infData>
+    </extension>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328536-2f53159160</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -733,12 +938,14 @@ Response with Identica in database:
        </secdns:update>
      </extension>
    </update>
-   <clTRID>namingo-1234567890-abcdef1234</clTRID>
+   <clTRID>client-20241128-12345</clTRID>
  </command>
 </epp>
 ```
 
-#### 4.5. Domain Renew Request
+#### 4.5. Domain Renew
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -750,12 +957,39 @@ Response with Identica in database:
       <domain:renew
        xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
         <domain:name>myexample.test</domain:name>
-        <domain:curExpDate>2024-10-01</domain:curExpDate>
+        <domain:curExpDate>2025-12-04</domain:curExpDate>
         <domain:period unit="y">1</domain:period>
       </domain:renew>
     </renew>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:renData
+        xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+        xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:exDate>2026-12-04T16:06:44.813Z</domain:exDate>
+      </domain:renData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -779,7 +1013,7 @@ Request:
         </domain:authInfo>
       </domain:transfer>
     </transfer>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -799,7 +1033,7 @@ Query:
         <domain:name>myexample.test</domain:name>
       </domain:transfer>
     </transfer>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -819,7 +1053,7 @@ Approve:
         <domain:name>myexample.test</domain:name>
       </domain:transfer>
     </transfer>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -839,7 +1073,7 @@ Cancel:
         <domain:name>myexample.test</domain:name>
       </domain:transfer>
     </transfer>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
@@ -859,12 +1093,14 @@ Reject:
         <domain:name>myexample.test</domain:name>
       </domain:transfer>
     </transfer>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 4.7. Domain Delete Request
+#### 4.7. Domain Delete
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -878,14 +1114,33 @@ Reject:
         <domain:name>myexample.test</domain:name>
       </domain:delete>
     </delete>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-#### 4.8. Domain Restore Request
+**Response:**
 
-Request:
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1001">
+      <msg>Command completed successfully; action pending</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328984-1bfc0e2455</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+#### 4.8. Domain Restore
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -903,12 +1158,12 @@ Request:
         <rgp:restore op="request"/>
       </rgp:update>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-Report:
+**Report Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -954,16 +1209,16 @@ Report:
         </rgp:restore>
       </rgp:update>
     </extension>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
 ### 5. Extensions
 
-#### 5.1. Funds Info Request
+#### 5.1. Funds Info
 
-Request:
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -976,12 +1231,12 @@ Request:
         xmlns:funds="https://namingo.org/epp/funds-1.0">
       </funds:info>
     </info>
-    <clTRID>namingo-1234567890-abcdef1234</clTRID>
+    <clTRID>client-20241128-12345</clTRID>
   </command>
 </epp>
 ```
 
-Response:
+**Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
