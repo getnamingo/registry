@@ -366,6 +366,9 @@ class RegistrarsController extends Controller
                     $secondHalf = [];
                 }
 
+                // Check if the user is not an admin
+                $role = $_SESSION['auth_roles'] ?? null;
+
                 return view($response,'admin/registrars/viewRegistrar.twig', [
                     'registrar' => $registrar,
                     'registrarContact' => $registrarContact,
@@ -373,7 +376,8 @@ class RegistrarsController extends Controller
                     'secondHalf' => $secondHalf,
                     'userEmail' => $userEmail,
                     'registrarWhitelist' => $registrarWhitelist,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'isAdmin' => $role === 0
                 ]);
             } else {
                 // Contact does not exist, redirect to the registrars view
@@ -429,6 +433,9 @@ class RegistrarsController extends Controller
                     $secondHalf = [];
                 }
 
+                // Check if the user is not an admin
+                $role = $_SESSION['auth_roles'] ?? null;
+
                 return view($response,'admin/registrars/viewRegistrar.twig', [
                     'registrar' => $registrar,
                     'registrarContact' => $registrarContact,
@@ -436,7 +443,8 @@ class RegistrarsController extends Controller
                     'secondHalf' => $secondHalf,
                     'userEmail' => $userEmail,
                     'registrarWhitelist' => $registrarWhitelist,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'isAdmin' => $role === 0
                 ]);
             } else {
                 // Contact does not exist, redirect to the dashboard view
