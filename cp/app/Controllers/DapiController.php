@@ -109,6 +109,14 @@ class DapiController extends Controller
                 }
             }
         }
+        
+        // Check admin status and apply registrar filter if needed
+        $registrarCondition = '';
+        if ($_SESSION['auth_roles'] !== 0) { // not admin
+            $registrarId = $_SESSION['auth_registrar_id'];
+            $registrarCondition = "d.clid = :registrarId";
+            $bindParams["registrarId"] = $registrarId;
+        }
 
         // Base SQL
         $sqlBase = "
@@ -117,9 +125,27 @@ class DapiController extends Controller
             LEFT JOIN domain_status ds ON d.id = ds.domain_id
         ";
 
-        $sqlWhere = '';
+        // Combine registrar condition and search filters
         if (!empty($whereClauses)) {
-            $sqlWhere = "WHERE " . implode(" OR ", $whereClauses);
+            // We have search conditions
+            $filtersCombined = "(" . implode(" OR ", $whereClauses) . ")";
+            if ($registrarCondition) {
+                // If registrarCondition exists and we have filters
+                // we do registrarCondition AND (filters OR...)
+                $sqlWhere = "WHERE $registrarCondition AND $filtersCombined";
+            } else {
+                // No registrar restriction, just the filters
+                $sqlWhere = "WHERE $filtersCombined";
+            }
+        } else {
+            // No search filters
+            if ($registrarCondition) {
+                // Only registrar condition
+                $sqlWhere = "WHERE $registrarCondition";
+            } else {
+                // No filters, no registrar condition
+                $sqlWhere = '';
+            }
         }
 
         // Count total results
@@ -289,6 +315,14 @@ class DapiController extends Controller
                 }
             }
         }
+        
+        // Check admin status and apply registrar filter if needed
+        $registrarCondition = '';
+        if ($_SESSION['auth_roles'] !== 0) { // not admin
+            $registrarId = $_SESSION['auth_registrar_id'];
+            $registrarCondition = "d.clid = :registrarId";
+            $bindParams["registrarId"] = $registrarId;
+        }
 
         // Base SQL
         $sqlBase = "
@@ -297,9 +331,27 @@ class DapiController extends Controller
             LEFT JOIN application_status ds ON d.id = ds.domain_id
         ";
 
-        $sqlWhere = '';
+        // Combine registrar condition and search filters
         if (!empty($whereClauses)) {
-            $sqlWhere = "WHERE " . implode(" OR ", $whereClauses);
+            // We have search conditions
+            $filtersCombined = "(" . implode(" OR ", $whereClauses) . ")";
+            if ($registrarCondition) {
+                // If registrarCondition exists and we have filters
+                // we do registrarCondition AND (filters OR...)
+                $sqlWhere = "WHERE $registrarCondition AND $filtersCombined";
+            } else {
+                // No registrar restriction, just the filters
+                $sqlWhere = "WHERE $filtersCombined";
+            }
+        } else {
+            // No search filters
+            if ($registrarCondition) {
+                // Only registrar condition
+                $sqlWhere = "WHERE $registrarCondition";
+            } else {
+                // No filters, no registrar condition
+                $sqlWhere = '';
+            }
         }
 
         // Count total results
@@ -453,6 +505,14 @@ class DapiController extends Controller
                 }
             }
         }
+        
+        // Check admin status and apply registrar filter if needed
+        $registrarCondition = '';
+        if ($_SESSION['auth_roles'] !== 0) { // not admin
+            $registrarId = $_SESSION['auth_registrar_id'];
+            $registrarCondition = "ph.registrar_id = :registrarId";
+            $bindParams["registrarId"] = $registrarId;
+        }
 
         // Base SQL
         $sqlBase = "
@@ -460,11 +520,27 @@ class DapiController extends Controller
             LEFT JOIN registrar r ON ph.registrar_id = r.id
         ";
 
-        // If you want all filters combined with OR, keep " OR ".
-        // If you want AND logic for multiple filters, change to "AND".
-        $sqlWhere = '';
+        // Combine registrar condition and search filters
         if (!empty($whereClauses)) {
-            $sqlWhere = "WHERE " . implode(" OR ", $whereClauses);
+            // We have search conditions
+            $filtersCombined = "(" . implode(" OR ", $whereClauses) . ")";
+            if ($registrarCondition) {
+                // If registrarCondition exists and we have filters
+                // we do registrarCondition AND (filters OR...)
+                $sqlWhere = "WHERE $registrarCondition AND $filtersCombined";
+            } else {
+                // No registrar restriction, just the filters
+                $sqlWhere = "WHERE $filtersCombined";
+            }
+        } else {
+            // No search filters
+            if ($registrarCondition) {
+                // Only registrar condition
+                $sqlWhere = "WHERE $registrarCondition";
+            } else {
+                // No filters, no registrar condition
+                $sqlWhere = '';
+            }
         }
 
         // Count total results
@@ -596,16 +672,41 @@ class DapiController extends Controller
             }
         }
 
+        // Check admin status and apply registrar filter if needed
+        $registrarCondition = '';
+        if ($_SESSION['auth_roles'] !== 0) { // not admin
+            $registrarId = $_SESSION['auth_registrar_id'];
+            $registrarCondition = "st.registrar_id = :registrarId";
+            $bindParams["registrarId"] = $registrarId;
+        }
+
         // Base SQL
         $sqlBase = "
             FROM statement st
             LEFT JOIN registrar r ON st.registrar_id = r.id
         ";
 
-        // Combine filters with OR (common approach)
-        $sqlWhere = '';
+        // Combine registrar condition and search filters
         if (!empty($whereClauses)) {
-            $sqlWhere = "WHERE " . implode(" OR ", $whereClauses);
+            // We have search conditions
+            $filtersCombined = "(" . implode(" OR ", $whereClauses) . ")";
+            if ($registrarCondition) {
+                // If registrarCondition exists and we have filters
+                // we do registrarCondition AND (filters OR...)
+                $sqlWhere = "WHERE $registrarCondition AND $filtersCombined";
+            } else {
+                // No registrar restriction, just the filters
+                $sqlWhere = "WHERE $filtersCombined";
+            }
+        } else {
+            // No search filters
+            if ($registrarCondition) {
+                // Only registrar condition
+                $sqlWhere = "WHERE $registrarCondition";
+            } else {
+                // No filters, no registrar condition
+                $sqlWhere = '';
+            }
         }
 
         // Count total results
@@ -650,6 +751,5 @@ class DapiController extends Controller
         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
         return $response;
     }
-
 
 }
