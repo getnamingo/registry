@@ -4,7 +4,8 @@
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
-    var table; 
+    var table;
+
     document.addEventListener("DOMContentLoaded", function(){
     function registrarLinkFormatter(cell){
         var value = cell.getValue();
@@ -26,14 +27,60 @@
     }
     
     currency = "{{ currency }} ";
+    
+    var searchTerm = ""; // global variable to hold the search term
+
+    function updateSearchTerm(term) {
+        searchTerm = term;
+        table.replaceData();
+    }
 
     table = new Tabulator("#registrarTable", {
-        ajaxURL:"/api/records/registrar", // Set the URL for your JSON data
-        ajaxConfig:"GET",
-        pagination:"local",
-        paginationSize:10,
-        ajaxResponse:function(url, params, response){
-            return response.records;
+        pagination: true,
+        paginationMode: "remote",
+        paginationSize: 10,
+        sortMode: "remote",
+        ajaxURL:"/api/records/registrar",
+        ajaxURLGenerator: function(url, config, params) {
+            var queryParts = [];
+
+            // Handle search term
+            if (searchTerm) {
+                queryParts.push("filter1=name,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter2=iana_id,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter3=email,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter4=accountBalance,cs," + encodeURIComponent(searchTerm));
+            }
+
+            // Handle sorting from Tabulator
+            if (params.sort && params.sort.length > 0) {
+                var sorter = params.sort[0]; // single-column sorting
+                var sortField = encodeURIComponent(sorter.field);
+                var sortDir = (sorter.dir === "asc" ? "asc" : "desc");
+                queryParts.push("order=" + sortField + "," + sortDir);
+            } else {
+                // fallback default order if no sorters
+                queryParts.push("order=name,asc");
+            }
+
+            // Include pagination parameters
+            if (params.page) {
+                queryParts.push("page=" + params.page + "," + params.size);
+            }
+
+            return url + "?" + queryParts.join("&");
+        },
+        ajaxResponse: function(url, params, response) {
+            if (response && Array.isArray(response.records) && typeof response.results === 'number') {
+                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                return {
+                    last_page: lastPage, // Calculated total number of pages
+                    data: response.records, // Data for the current page
+                };
+            } else {
+                console.error('Unexpected response format', response);
+                return { last_page: 1, data: [] };
+            }
         },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
@@ -45,7 +92,7 @@
             {title:"{{ __('Name') }}", field:"name", width:200, resizable:false, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
             {title:"IANA ID", field:"iana_id", width:300, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
-            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:false, download:false, responsive:2, formatter:"money", formatterParams:{
+            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:true, responsive:2, formatter:"money", formatterParams:{
                 decimal:".",
                 thousand:" ",
                 symbol:currency,
@@ -55,21 +102,13 @@
         ]
     });
     var searchInput = document.getElementById("search-input");
-    searchInput.addEventListener("input", function () {
-        var term = searchInput.value.toLowerCase();
+    let searchTimeout;
 
-        if (term) { // Only apply filter when there's a term to search for
-            table.setFilter(function (data) {
-                return (
-                    String(data.name).toLowerCase().includes(term) ||
-                    String(data.iana_id).toLowerCase().includes(term) ||
-                    String(data.email).toLowerCase().includes(term) ||
-                    String(data.accountBalance).toString().toLowerCase().includes(term)
-                );
-            });
-        } else {
-            table.clearFilter(); // Clear the filter when the search box is emptied
-        }
+    searchInput.addEventListener("input", function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        updateSearchTerm(searchInput.value);
+      }, 300); // 300ms delay
     });
     });
    

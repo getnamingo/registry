@@ -52,14 +52,59 @@
             return '<span class="status status-red">Trouble</span>';
         }
     }
+    
+    var searchTerm = ""; // global variable to hold the search term
+
+    function updateSearchTerm(term) {
+        searchTerm = term;
+        table.replaceData();
+    }
 
     table = new Tabulator("#userTable", {
-        ajaxURL:"/api/records/users", // Set the URL for your JSON data
-        ajaxConfig:"GET",
-        pagination:"local",
-        paginationSize:10,
-        ajaxResponse:function(url, params, response){
-            return response.records;
+        pagination: true,
+        paginationMode: "remote",
+        paginationSize: 10,
+        sortMode: "remote",
+        ajaxURL: "/api/records/users",
+        ajaxURLGenerator: function(url, config, params) {
+            var queryParts = [];
+
+            // Handle search term
+            if (searchTerm) {
+                queryParts.push("filter1=username,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter2=email,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter3=roles_mask,cs," + encodeURIComponent(searchTerm));
+            }
+
+            // Handle sorting from Tabulator
+            if (params.sort && params.sort.length > 0) {
+                var sorter = params.sort[0]; // single-column sorting
+                var sortField = encodeURIComponent(sorter.field);
+                var sortDir = (sorter.dir === "asc" ? "asc" : "desc");
+                queryParts.push("order=" + sortField + "," + sortDir);
+            } else {
+                // fallback default order if no sorters
+                queryParts.push("order=id,desc");
+            }
+
+            // Include pagination parameters
+            if (params.page) {
+                queryParts.push("page=" + params.page + "," + params.size);
+            }
+
+            return url + "?" + queryParts.join("&");
+        },
+        ajaxResponse: function(url, params, response) {
+            if (response && Array.isArray(response.records) && typeof response.results === 'number') {
+                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                return {
+                    last_page: lastPage, // Calculated total number of pages
+                    data: response.records, // Data for the current page
+                };
+            } else {
+                console.error('Unexpected response format', response);
+                return { last_page: 1, data: [] };
+            }
         },
         layout:"fitDataFill",
         responsiveLayout: "collapse",
@@ -76,22 +121,13 @@
         ]
     });
     var searchInput = document.getElementById("search-input");
-    searchInput.addEventListener("input", function () {
-        var term = searchInput.value.toLowerCase();
+    let searchTimeout;
 
-        if (term) { // Only apply filter when there's a term to search for
-            table.setFilter(function (data) {
-                return (
-                    String(data.username).toLowerCase().includes(term) ||
-                    String(data.email).toLowerCase().includes(term) ||
-                    String(data.roles_mask).toString().toLowerCase().includes(term) ||
-                    String(data.verified).toLowerCase().includes(term) ||
-                    String(data.status).toLowerCase().includes(term)
-                );
-            });
-        } else {
-            table.clearFilter(); // Clear the filter when the search box is emptied
-        }
+    searchInput.addEventListener("input", function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        updateSearchTerm(searchInput.value);
+      }, 300); // 300ms delay
     });
     });
 

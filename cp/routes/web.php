@@ -150,6 +150,7 @@ $app->group('', function ($route) {
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');
 
     $route->get('/dapi/domains', [DapiController::class, 'listDomains']);
+    $route->get('/dapi/applications', [DapiController::class, 'listApplications']);
 })->add(new AuthMiddleware($container));
 
 $app->any('/api[/{params:.*}]', function (
