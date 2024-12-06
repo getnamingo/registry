@@ -86,7 +86,21 @@ class FinancialsController extends Controller
         $billing_country = $iso3166->alpha2($billing['cc']);
         $billing_country = $billing_country['name'];
 
-        return view($response,'admin/financials/viewInvoice.twig', [
+        $locale = $_SESSION['_lang'] ?? 'en_US'; // Fallback to 'en_US' if no locale is set
+        $currency = $_SESSION['_currency'] ?? 'USD'; // Fallback to 'USD' if no currency is set
+
+        // Initialize the number formatter for the locale
+        $numberFormatter = new \NumberFormatter($locale, \NumberFormatter::DECIMAL);
+        $currencyFormatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
+
+        // Format values explicitly with the session currency
+        $formattedVatRate = $numberFormatter->format($taxRate * 100) . "%";
+        $formattedVatAmount = $currencyFormatter->formatCurrency($taxValue, $currency);
+        $formattedNetPrice = $currencyFormatter->formatCurrency($netPrice, $currency);
+        $formattedTotalAmount = $currencyFormatter->formatCurrency($totalAmount, $currency);
+
+        // Pass formatted values to Twig
+        return view($response, 'admin/financials/viewInvoice.twig', [
             'invoice_details' => $invoice_details,
             'billing' => $billing,
             'billing_company' => $billing_company,
@@ -99,11 +113,11 @@ class FinancialsController extends Controller
             'vat_number' => $vat_number,
             'phone' => $phone,
             'email' => $email,
-            'vatRate' => ($taxRate * 100) . "%",
-            'vatAmount' => sprintf("%.2f", $taxValue),
+            'vatRate' => $formattedVatRate,
+            'vatAmount' => $formattedVatAmount,
             'validVAT' => $validVAT,
-            'netPrice' => sprintf("%.2f", $netPrice),
-            'total' => sprintf("%.2f", $totalAmount),
+            'netPrice' => $formattedNetPrice,
+            'total' => $formattedTotalAmount,
             'currentUri' => $uri,
             'billing_country' => $billing_country,
         ]);
