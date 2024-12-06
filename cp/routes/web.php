@@ -14,6 +14,7 @@ use App\Controllers\ReportsController;
 use App\Controllers\ProfileController;
 use App\Controllers\SystemController;
 use App\Controllers\SupportController;
+use App\Controllers\DapiController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
 use Slim\Exception\HttpNotFoundException;
@@ -147,6 +148,8 @@ $app->group('', function ($route) {
     $route->get('/lang', HomeController::class .':lang')->setName('lang');
     $route->get('/logout', AuthController::class . ':logout')->setName('logout');
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');
+
+    $route->get('/dapi/domains', [DapiController::class, 'listDomains']);
 })->add(new AuthMiddleware($container));
 
 $app->any('/api[/{params:.*}]', function (
