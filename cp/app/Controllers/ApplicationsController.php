@@ -674,6 +674,13 @@ class ApplicationsController extends Controller
                     WHERE dcm.domain_id = ?';
                 $domainContacts = $db->select($domainContactsQuery, [$domain['id']]);
 
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['name_o'] = $domain['name'];
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $domain['name_o'] = $domain['name'];
+                }
+
                 return view($response,'admin/domains/viewApplication.twig', [
                     'domain' => $domain,
                     'domainStatus' => $domainStatus,
