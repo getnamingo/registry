@@ -744,7 +744,116 @@ If you're in need of an effective help desk solution to complement your experien
 - The recommendation to use FreeScout is entirely optional and for the convenience of Namingo users. Namingo functions independently of FreeScout and does not require FreeScout for its operation.
 - Ensure to comply with the AGPL-3.0 license terms if you choose to use FreeScout alongside Namingo.
 
-### 2.6. Adminer Security settings
+### 2.6. Scaling Your Database with ProxySQL
+
+To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
+
+## 3. Security Hardening
+
+### 3.1. Create the namingo user
+
+```bash
+adduser namingo
+usermod -aG sudo namingo
+```
+
+### 3.2. Set Up Services
+
+```bash
+su namingo
+sudo nano /etc/systemd/system/{whois.service,epp.service,rdap.service}
+```
+
+Modify:
+
+```bash
+[Service]
+User=namingo
+Group=namingo
+```
+
+Reload and restart:
+
+```bash
+sudo chown -R namingo:namingo /opt/registry /etc/caddy
+sudo systemctl daemon-reload
+sudo systemctl restart whois epp rdap
+```
+
+### 3.3. SSH Hardening
+
+1. Disable Root Login:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Set:
+
+```bash
+PermitRootLogin no
+```
+
+2. Change SSH Port:
+
+```bash
+Port 2222
+```
+
+3. Use Key-Based Authentication:
+
+- Generate a key pair:
+
+```bash
+ssh-keygen -t rsa -b 4096
+```
+
+- Add your public key to the `namingo` user:
+
+```bash
+su - namingo
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+echo "your-public-key" > ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+4. Firewall Setup:
+
+```bash
+sudo ufw allow 2222/tcp       # New SSH Port
+sudo ufw enable
+```
+
+5. Restart SSH:
+
+```bash
+sudo systemctl restart ssh
+```
+
+### 3.4. Other Server Hardening
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo systemctl list-units --type=service --state=running
+sudo systemctl disable <service> # Disable unnecessary ones
+sudo apt install fail2ban
+sudo systemctl enable fail2ban --now
+sudo apt install unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+- Configure Swap (if necessary):
+
+```bash
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 3.5. Adminer Security settings
 
 To enhance the security of your Adminer installation, we recommend the following settings for Caddy, Apache2, and Nginx:
 
@@ -796,11 +905,7 @@ location /dbtool.php {
 }
 ```
 
-### 2.7. Scaling Your Database with ProxySQL
-
-To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
-
-## 3. In-Depth Configuration File Overview
+## 4. In-Depth Configuration File Overview
 
 In this section, we provide a detailed overview of each configuration file used in the Namingo domain registry platform. Understanding these files is essential for customizing and optimizing your system according to your specific needs. We will walk you through the purpose of each file, key settings, and recommended configurations to ensure smooth operation and integration with other components of your setup.
 
