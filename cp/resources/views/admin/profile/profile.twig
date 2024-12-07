@@ -177,11 +177,25 @@
                     </div>
                   </div>
                   {% else %}
+                  {% if isWebaEnabled %}
                   <div class="card-body">
                     <h3 class="card-title">{{ __('WebAuthn Authentication') }}</h3>
                     <p>{{ __('Secure your account with WebAuthn. Click the button below to register your device for passwordless sign-in.') }}</p>
                     <button type="button" class="btn btn-primary" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
                   </div>
+                  {% else %}
+                  <div class="card-body">
+                    <h3 class="card-title">{{ __('WebAuthn Authentication') }}<span class="badge bg-red text-red-fg ms-2">{{ __('Disabled') }}</span></h3>
+                    <p>{{ __('WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, follow these steps:') }}</p>
+                    <ol>
+                      <li>{{ __('Edit the environment configuration file located at:') }} <code>/var/www/cp/.env</code></li>
+                      <li>{{ __('Find or add the following line:') }}</li>
+                      <pre><code>WEB_AUTHN_ENABLED=true</code></pre>
+                      <li>{{ __('Save the changes and reload the server (Caddy) using the following command:') }}</li>
+                      <pre><code>sudo systemctl reload caddy</code></pre>
+                    </ol>
+                  </div>
+                  {% endif %}
                   {% endif %}
                 </div>
                 <div class="card tab-pane" id="tabs-log">

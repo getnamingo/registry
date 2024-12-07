@@ -68,12 +68,14 @@ class ProfileController extends Controller
             'SELECT * FROM users_webauthn WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
             [$userId]
         );
+        $isWebAuthnEnabled = (envi('WEB_AUTHN_ENABLED') === 'true') ? true : false;
+
         if ($is_2fa_activated) {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
         } else if ($is_weba_activated) {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
         } else {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'isWebaEnabled' => $isWebAuthnEnabled]);
         }
 
     }

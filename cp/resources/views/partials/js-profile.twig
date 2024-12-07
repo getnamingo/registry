@@ -5,7 +5,7 @@
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
-    
+{% if isWebaEnabled %}
     const connectButton = document.getElementById('connectWebAuthnButton');
 
     connectButton.addEventListener('click', async function() {
@@ -124,7 +124,7 @@
         }
         return window.btoa(binary);
     }
-
+{% endif %}
     table = new Tabulator("#auditTable", {
         ajaxURL:"/api/records/users_audit", // Set the URL for your JSON data
         ajaxConfig:"GET",
