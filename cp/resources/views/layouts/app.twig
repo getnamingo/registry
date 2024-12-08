@@ -8,9 +8,15 @@
     <!-- CSS files -->
 {% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or is_current_url('ticketview') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') or route_is('profile') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
     <style>
-      @import url('https://rsms.me/inter/inter.css');
+      @import url('/assets/fonts/inter/inter.css');
       :root {
-          --tblr-font-sans-serif: Inter, -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+          --tblr-font-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+      }
+      @supports (font-variation-settings: normal) {
+          :root {
+              --tblr-font-sans-serif: "InterVariable", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+              font-optical-sizing: auto;
+          }
       }
     </style>
   </head>
