@@ -108,6 +108,8 @@ $app->group('', function ($route) {
 
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     $route->get('/export', ReportsController::class .':exportDomains')->setName('exportDomains');
+    $route->get('/server', ReportsController::class .':serverHealth')->setName('serverHealth');
+    $route->post('/clear-cache', ReportsController::class .':clearCache')->setName('clearCache');
 
     $route->get('/invoices', FinancialsController::class .':invoices')->setName('invoices');
     $route->get('/invoice/{invoice}', FinancialsController::class . ':viewInvoice')->setName('viewInvoice');

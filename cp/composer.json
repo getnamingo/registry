@@ -45,7 +45,8 @@
         "giggsey/libphonenumber-for-php-lite": "^8.13",
         "egulias/email-validator": "^4.0",
         "utopia-php/messaging": "^0.12.0",
-        "brick/postcode": "^0.3.3"
+        "brick/postcode": "^0.3.3",
+        "utopia-php/system": "^0.9.0"
     },
     "autoload": {
         "psr-4": {

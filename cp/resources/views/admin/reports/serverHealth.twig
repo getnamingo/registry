@@ -1,0 +1,169 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Server Health') }}{% endblock %}
+
+{% block content %}
+<link href="/assets/css/sweetalert2.min.css" rel="stylesheet">
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Server Health') }}
+                </h2>
+              </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <button onclick="clearSystemCache()" class="btn btn-primary d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19 20h-10.5l-4.21 -4.3a1 1 0 0 1 0 -1.41l10 -10a1 1 0 0 1 1.41 0l5 5a1 1 0 0 1 0 1.41l-9.2 9.3" /><path d="M18 13.3l-6.3 -6.3" /></svg>
+                    {{ __('Clear Cache') }}
+                  </button>
+                  <button onclick="clearSystemCache()" class="btn btn-primary d-sm-none btn-icon" aria-label="{{ __('Clear Cache') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19 20h-10.5l-4.21 -4.3a1 1 0 0 1 0 -1.41l10 -10a1 1 0 0 1 1.41 0l5 5a1 1 0 0 1 0 1.41l-9.2 9.3" /><path d="M18 13.3l-6.3 -6.3" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+                <div class="row">
+                    <!-- CPU and Memory Card -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('CPU and Memory') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div>
+                                        <h4 class="m-0">{{ __('CPU Cores') }}</h4>
+                                        <div class="text-muted">{{ serverHealth.getCPUCores }}</div>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span class="badge bg-primary text-primary-fg">{{ serverHealth.getCPUUsage }}%</span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-xl">
+                                    <div class="progress-bar bg-primary" style="width: {{ serverHealth.getCPUUsage }}%;" role="progressbar" aria-valuenow="{{ serverHealth.getCPUUsage }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ serverHealth.getCPUUsage }}%
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <h4 class="m-0">{{ __('Memory') }}</h4>
+                                        <div class="text-muted">{{ serverHealth.getMemoryFree }} {{ __('MB free of') }} {{ serverHealth.getMemoryTotal }} MB</div>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span class="badge bg-green text-green-fg">{{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%</span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-xl">
+                                    <div class="progress-bar bg-success" style="width: {{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%;" role="progressbar" aria-valuenow="{{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disk and Network Card -->
+                    <div class="col-md-6 mt-md-0 mt-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('Disk and Network') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div>
+                                        <h4 class="m-0">{{ __('Disk Usage') }}</h4>
+                                        <div class="text-muted">{{ serverHealth.getDiskFree }} {{ __('GB free of') }} {{ serverHealth.getDiskTotal }} GB</div>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span class="badge bg-warning text-warning-fg">{{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%</span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-xl">
+                                    <div class="progress-bar bg-warning" style="width: {{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%;" role="progressbar" aria-valuenow="{{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('Backup Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre>{{ backupLog }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+<script>
+var csrfTokenName = "{{ csrfTokenName }}";
+var csrfTokenValue = "{{ csrfTokenValue }}";
+
+function clearSystemCache() {
+    fetch('/clear-cache', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            [csrfTokenName]: csrfTokenValue, // Include CSRF token in headers
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: data.message,
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload(); // Reload the page after user acknowledges
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message,
+                confirmButtonText: 'OK'
+            });
+        }
+    })
+    .catch(err => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error clearing cache: ' + err.message,
+            confirmButtonText: 'OK'
+        });
+    });
+}
+</script>
+{% endblock %}
