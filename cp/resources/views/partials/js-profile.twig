@@ -143,11 +143,48 @@
         placeholder: "{{ __('No log data for user.') }}",
         columns: [
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title: "{{ __('Event') }}", field: "user_event", minWidth:30, width:120, resizable:false, headerSort:false, responsive:0},
-            {title: "{{ __('User Agent') }}", field: "user_agent", minWidth:30, width:500, resizable:false, headerSort:false, responsive:2},
-            {title: "{{ __('IP') }}", field: "user_ip", minWidth:30, width:150, resizable:false, headerSort:false, responsive:0},
-            {title: "{{ __('Location') }}", field: "user_location", minWidth:30, width:100, resizable:false, headerSort:false, responsive:0},
-            {title: "{{ __('Timestamp') }}", field: "event_time", minWidth:30, width:250, resizable:false, headerSort:false, responsive:0},
+            {
+                title: "{{ __('Event') }}", 
+                field: "user_event", 
+                minWidth: 30, 
+                width: 120, 
+                resizable: false, 
+                headerSort: false, 
+                responsive: 0,
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return `<span title="${value}">${value}</span>`;
+                },
+            },
+            {
+                title: "{{ __('User Agent') }}", 
+                field: "user_agent", 
+                minWidth: 30, 
+                width: 300, 
+                resizable: false, 
+                headerSort: false, 
+                responsive: 2,
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return `<span title="${value}">${value}</span>`;
+                },
+            },
+            {title: "{{ __('IP') }}", field: "user_ip", minWidth:30, width:120, resizable:false, headerSort:false, responsive:2},
+            {
+                title: "{{ __('Location') }}",
+                field: "user_location",
+                minWidth: 30,
+                width: 100,
+                resizable: false,
+                headerSort: false,
+                responsive: 0,
+                formatter: function(cell) {
+                    const countryCode = cell.getValue(); // Get the location code, e.g., "UA"
+                    return `<span class="flag flag-country-${countryCode.toLowerCase()}" title="${countryCode}"></span>`;
+                },
+            },
+            {title: "{{ __('Timestamp') }}", field: "event_time", minWidth:30, width:250, resizable:false, headerSort:false, responsive:2},
+            {title: "{{ __('User Log') }}", field: "user_data", minWidth:30, width:300, resizable:false, headerSort:false, responsive:0},
         ]
     });
     });

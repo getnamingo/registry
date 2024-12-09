@@ -191,7 +191,23 @@ class SystemController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/registry')->withStatus(302);
             }
-            
+
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            $db->insert(
+                'users_audit',
+                [
+                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_event' => 'settings.update',
+                    'user_resource' => 'control.panel',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'user_ip' => get_client_ip(),
+                    'user_location' => get_client_location(),
+                    'event_time' => $currentDate,
+                    'user_data' => null
+                ]
+            );
+
             $this->container->get('flash')->addMessage('success', 'Registry details have been updated successfully');
             return $response->withHeader('Location', '/registry')->withStatus(302);
             
@@ -559,7 +575,23 @@ class SystemController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
             }
-            
+
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            $db->insert(
+                'users_audit',
+                [
+                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_event' => 'tld.created',
+                    'user_resource' => 'control.panel',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'user_ip' => get_client_ip(),
+                    'user_location' => get_client_location(),
+                    'event_time' => $currentDate,
+                    'user_data' => null
+                ]
+            );
+
             $this->container->get('flash')->addMessage('success', 'TLD ' . $data['extension'] . ' has been created successfully');
             return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
         }
@@ -885,6 +917,22 @@ class SystemController extends Controller
 
                     unset($_SESSION['u_tld_id']);
                     unset($_SESSION['u_tld_extension']);
+                    
+                    $currentDateTime = new \DateTime();
+                    $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+                    $db->insert(
+                        'users_audit',
+                        [
+                            'user_id' => $_SESSION['auth_user_id'],
+                            'user_event' => 'tld.updated',
+                            'user_resource' => 'control.panel',
+                            'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                            'user_ip' => get_client_ip(),
+                            'user_location' => get_client_location(),
+                            'event_time' => $currentDate,
+                            'user_data' => null
+                        ]
+                    );
 
                     $this->container->get('flash')->addMessage('success', 'TLD ' . $tld_extension . ' has been updated successfully');
                     return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
@@ -1091,7 +1139,23 @@ class SystemController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/registry/reserved')->withStatus(302);
             }
-            
+
+            $currentDateTime = new \DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            $db->insert(
+                'users_audit',
+                [
+                    'user_id' => $_SESSION['auth_user_id'],
+                    'user_event' => 'reserved.updated',
+                    'user_resource' => 'control.panel',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                    'user_ip' => get_client_ip(),
+                    'user_location' => get_client_location(),
+                    'event_time' => $currentDate,
+                    'user_data' => null
+                ]
+            );
+
             $this->container->get('flash')->addMessage('success', 'Reserved names have been updated successfully');
             return $response->withHeader('Location', '/registry/reserved')->withStatus(302);
             
