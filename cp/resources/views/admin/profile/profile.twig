@@ -186,14 +186,7 @@
                   {% else %}
                   <div class="card-body">
                     <h3 class="card-title">{{ __('WebAuthn Authentication') }}<span class="badge bg-red text-red-fg ms-2">{{ __('Disabled') }}</span></h3>
-                    <p>{{ __('WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, follow these steps:') }}</p>
-                    <ol>
-                      <li>{{ __('Edit the environment configuration file located at:') }} <code>/var/www/cp/.env</code></li>
-                      <li>{{ __('Find or add the following line:') }}</li>
-                      <pre><code>WEB_AUTHN_ENABLED=true</code></pre>
-                      <li>{{ __('Save the changes and reload the server (Caddy) using the following command:') }}</li>
-                      <pre><code>sudo systemctl reload caddy</code></pre>
-                    </ol>
+                    <p>{{ __('WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator.') }}</p>
                   </div>
                   {% endif %}
                   {% endif %}

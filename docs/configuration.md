@@ -218,6 +218,24 @@ For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `es_ES`, `pt
 
 To apply your changes, save the file, refresh the control panel, and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php` The new language settings will take effect immediately.
 
+#### 1.4.10. WebAuthn Authentication
+
+To enable WebAuthn authentication in the Control Panel, follow these steps:
+
+1. Edit the environment configuration file located at: `/var/www/cp/.env`
+
+2. Find or add the following line:
+
+```bash
+WEB_AUTHN_ENABLED=true
+```
+
+3. Save the changes and reload the server (Caddy) using the following command:
+
+```bash
+sudo systemctl reload caddy
+```
+
 ## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.
