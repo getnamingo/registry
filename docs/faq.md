@@ -1,4 +1,4 @@
-# FAQ
+# Namingo FAQ
 
 Welcome to the FAQ for Namingo. This document is intended as a resource for registries to share with their registrars, providing answers to common questions and guidance on managing registrar accounts.
 
@@ -22,12 +22,15 @@ Welcome to the FAQ for Namingo. This document is intended as a resource for regi
 
 Namingo's EPP service supports the following extensions:
 
-- `urn:ietf:params:xml:ns:rgp-1.0`
 - `urn:ietf:params:xml:ns:secDNS-1.1`
+- `urn:ietf:params:xml:ns:rgp-1.0`
 - `urn:ietf:params:xml:ns:launch-1.0`
+- `urn:ietf:params:xml:ns:idn-1.0`
 - `urn:ietf:params:xml:ns:epp:fee-1.0`
 - `urn:ietf:params:xml:ns:mark-1.0`
 - `urn:ietf:params:xml:ns:allocationToken-1.0`
+- `https://namingo.org/epp/funds-1.0`
+- `https://namingo.org/epp/identica-1.0`
 
 ## WHOIS and RDAP
 

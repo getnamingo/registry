@@ -1,42 +1,135 @@
-# Architecture of Namingo
+# Namingo Registry Architecture Guide
 
-This document outlines the architecture of Namingo. The system is designed to efficiently manage domain registries and provide a seamless experience for registrars. It consists of several key components:
+## Introduction
 
-## Automation Scripts
+Namingo is a modern domain registry platform designed to streamline the registration, management, and discovery of domain names. Its architecture emphasizes scalability, resilience, compliance with industry standards, and a seamless user experience for both end-users and partner registrars. By leveraging efficient event-driven servers, an intuitive Control Panel, and robust backend automation, Namingo provides a high-performance environment aligned with domain industry protocols.
 
-- The system incorporates various automation scripts that perform numerous background tasks essential for the registry's operations.
-- These scripts are managed and scheduled by a `cron.php` file, ensuring they run at specified times for optimal efficiency.
+## Architectural Principles
 
-## Control Panel
+**1. Modularity:** Each component (e.g., EPP, WHOIS, RDAP, DAS) is logically separated, allowing for independent scaling, maintenance, and updates without affecting the core services.
 
-- At the heart of our system is the Control Panel, a web-based application designed to control the entire registry system.
-- It offers a user-friendly interface for administrative tasks and provides access for registrars.
-- The Control Panel is central to coordinating the activities of the various servers in the system.
+**2. Performance & Scalability:** Swoole-based servers and asynchronous event loops support high concurrency and low-latency responses, ensuring rapid query handling even under heavy loads.
 
-## Servers
+**3. Standards Compliance:** Adherence to industry standards (EPP, RDAP, WHOIS) ensures interoperability and trust, enabling seamless integration with registrars and other ecosystem partners.
 
-The system includes several specialized servers, each serving a unique role in the management of domain registries:
+**4. Security & Compliance:** Built-in security measures, authentication mechanisms, and data encryption align with ICANN and local regulatory requirements for managing sensitive registration data.
 
-### DAS Server (Domain Availability Service)
+**5. Automation & Observability:** Automated tasks and monitoring ensure system health, enabling proactive maintenance and capacity planning.
 
-- This server is responsible for handling queries related to the availability of domain names.
-- It utilizes Swoole TCP server for efficient, scalable, and concurrent connections.
+## High-Level Architecture Overview
 
-### EPP Server (Extensible Provisioning Protocol)
+```text
+      Registrar                                            Registrar
+           |                                                   |
+           v                                                   v
+   +-------+----------+                               +--------+-------+
+   |  Control Panel   |                               |       EPP      |
+   |  (Web Frontend)  |                               |     Server     |
+   +---------+--------+                               +--------+-------+
+             |                                                   |
+             v                                                   v
+             +------------------------+--------------------------+
+                                    (DB)
+                                     |
+                         +-------+-------+-------+
+                         |       |       |       |       
+                         v       v       v       v       
+                       WHOIS    RDAP    DAS  Automation
+                       Srv      Srv     Srv  
+                        \       |       /
+                         \      |      /
+                          \     |     /
+                           \    |    /
+                            (Clients)
+```
 
-- The EPP Server facilitates domain registration, renewal, transfer, and other related operations.
-- Built on Swoole, it ensures high-performance and real-time processing of domain transactions.
+## Core Components
 
-### RDAP Server (Registration Data Access Protocol)
+### Control Panel (Administration & Registrar Portal)
 
-- This server provides access to registration data, complying with current industry standards for domain registration data retrieval.
-- Leveraging the Swoole server, it offers fast and reliable access to registry data.
+**Purpose:**  
+- Centralized management console for administrators and partner registrars.
 
-### WHOIS Server
+**Key Capabilities:**  
+- Manage domain lifecycles (registration, renewal, transfer, deletion).
+- Configure domain pricing, promotions, and policy enforcement.
+- Access dashboards for system health, logs, and usage metrics.
 
-- The WHOIS server offers a traditional protocol for querying information related to domain registration.
-- Powered by Swoole's robust server capabilities, it ensures quick and accurate responses to WHOIS queries.
+**Security:**  
+- TLS/HTTPS, role-based access controls.
 
----
+### Automation & Scheduling (cron.php)
 
-This architecture is designed to provide a comprehensive, efficient, and user-friendly system for managing domain registries. Each component plays a crucial role in the overall functionality and performance of Namingo.
+**Purpose:**  
+- Automate operational tasks without manual intervention.
+
+**Key Capabilities:**  
+- Automated backups, zone file generation, and maintenance tasks.
+- Dynamic updates to pricing, promotional campaigns, and reserved domain lists.
+
+**Implementation:**  
+- PHP CLI scripts triggered by cron job `cron.php`.
+
+### Specialized Servers (DAS, EPP, RDAP, WHOIS)
+
+**Purpose:**  
+- Each server adheres to specific domain-related standards and services.
+
+**Common Traits:**  
+- Swoole-based asynchronous servers for high concurrency and low latency.
+- Load balancing for horizontal scaling.
+
+**DAS (Domain Availability Service):**  
+- Real-time domain availability checks.
+
+**EPP (Extensible Provisioning Protocol) Server:**  
+- Standardized domain provisioning protocol.
+- Handles registrations, renewals, transfers, with full auditing and logging.
+
+**RDAP (Registration Data Access Protocol) Server:**  
+- Provides JSON-based registration data.
+- Compliant with ICANN standards and supports privacy redactions.
+
+**WHOIS Server:**  
+- Traditional text-based domain query interface.
+- Rate-limited and access-controlled to prevent abuse.
+
+### Data Storage & Persistence
+
+**Purpose:**  
+- Ensures data integrity, availability, and performance.
+
+**Components:**  
+- Relational Database (MariaDB) for structured registry data.
+- Read replicas and partitioning for scaling read-heavy operations.
+
+### Security & Compliance
+
+**Purpose:**  
+- Protect sensitive registration data and ensure regulatory adherence.
+
+**Key Measures:**  
+- TLS/SSL encryption for external communication.
+- Strict authentication and role-based access control.
+- Auditing and logging for compliance with ICANN, GDPR, and local laws.
+
+### Observability & Maintenance
+
+**Purpose:**  
+- Proactive monitoring, diagnostics, and rapid issue resolution.
+
+**Practices:**  
+- Metrics collection (Prometheus, Grafana).
+- Real-time alerts for latency, resource usage, and error rates.
+
+### Scalability & High Availability Strategies
+
+- **Horizontal Scaling:** Add more server instances behind a load balancer for DAS, EPP, WHOIS, and RDAP.
+
+- **Geo-Redundancy:** Distribute instances across multiple regions for disaster recovery.
+
+- **Failover Mechanisms:** Automated failover to standby databases and backup DNS providers to maintain service continuity during outages.
+
+## Conclusion
+
+The Namingo architecture is designed to balance robustness, performance, and compliance. By segregating concerns into distinct services (DAS, EPP, RDAP, WHOIS), centralizing management through the Control Panel, and relying on automation and observability, Namingo can scale to meet evolving demands and regulatory landscapes in the domain registration ecosystem. This architecture ensures that both end-users and registrars receive a reliable, secure, and future-proof registry experience.

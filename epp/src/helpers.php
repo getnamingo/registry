@@ -78,7 +78,9 @@ function sendGreeting($conn) {
             'urn:ietf:params:xml:ns:rgp-1.0',
             'urn:ietf:params:xml:ns:launch-1.0',
             'urn:ietf:params:xml:ns:idn-1.0',
-            'urn:ietf:params:xml:ns:epp:fee-1.0'
+            'urn:ietf:params:xml:ns:epp:fee-1.0',
+            'urn:ietf:params:xml:ns:mark-1.0',
+            'urn:ietf:params:xml:ns:allocationToken-1.0'
         ],
         'dcp' => [ // Data Collection Policy (optional)
             'access' => ['all'],
