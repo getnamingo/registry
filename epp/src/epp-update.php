@@ -1530,7 +1530,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     }
                 } else {
                     $stmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(:registrar_id, :log, CURRENT_TIMESTAMP(3))");
-                    $log = "Domain : $domainName ;   hostObj : $hostObj - se dubleaza";
+                    $log = "Domain : $domainName ; hostObj : $hostObj - is duplicated";
                     $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
                     $stmt->bindParam(':log', $log, PDO::PARAM_STR);
                     $stmt->execute();
@@ -1625,7 +1625,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             return;
                         }
                     } else {
-                        $logMessage = "Domain : $domainName ;   hostName : $hostName - se dubleaza";
+                        $logMessage = "Domain : $domainName ; hostName : $hostName - is duplicated";
                         $sth = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
                         if (!$sth->execute([$clid, $logMessage])) {
                             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);

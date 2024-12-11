@@ -1467,7 +1467,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
                     } else {
                         $errorLogStmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP(3))");
-                        $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ;   hostObj : $hostObj - se dubleaza"]);
+                        $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ; hostObj : $hostObj - is duplicated"]);
                     }
                 } else {
                     $internal_host = false;
