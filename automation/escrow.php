@@ -59,7 +59,7 @@ try {
     }
 
     foreach ($tlds as $tld) {
-        $tldname = strtoupper(ltrim($tld['tld'], '.'));
+        $tldname = ltrim($tld['tld'], '.');
         $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
         
         // Skip subdomains
@@ -438,7 +438,7 @@ try {
         $deposit = $xml->outputMemory();
 
         // Define the base name without the extension
-        $baseFileName = "{$tldname}_".date('Y-m-d')."_full_S1_R{$finalDepositId}";
+        $baseFileName = "{$tldname}_".date('Ymd')."_full_S1_R{$finalDepositId}";
 
         // XML, tar, and gzip filenames
         $xmlFileName = $baseFileName . ".xml";
@@ -606,7 +606,7 @@ try {
         $reps = $reportXML->outputMemory();
 
         // Save the report file
-        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_".date('Y-m-d')."_full_R{$finalDepositId}.rep";
+        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_".date('Ymd')."_full_R{$finalDepositId}.rep";
         file_put_contents($reportFilePath, $reps, LOCK_EX);
         
         $dayOfWeekToRunBRDA = $c['escrow_BRDAday'];
@@ -826,7 +826,7 @@ try {
             $deposit = $xml->outputMemory();
 
             // Define the base name without the extension
-            $baseFileNameBrda = "{$tldname}_".date('Y-m-d')."_brda_S1_R{$finalDepositId}";
+            $baseFileNameBrda = "{$tldname}_".date('Ymd')."_brda_S1_R{$finalDepositId}";
 
             // XML, tar, and gzip filenames
             $xmlFileName = $baseFileNameBrda . ".xml";
