@@ -617,13 +617,13 @@ CREATE TABLE urs_actions (
 );
 
 CREATE TYPE file_format_enum AS ENUM ('XML', 'CSV');
-CREATE TYPE deposit_type_enum AS ENUM ('Full', 'Incremental', 'Differential');
+CREATE TYPE deposit_type_enum AS ENUM ('Full', 'Incremental', 'Differential', 'BRDA');
 CREATE TYPE status_enum AS ENUM ('Deposited', 'Retrieved', 'Failed');
 CREATE TYPE verification_status_enum AS ENUM ('Verified', 'Failed', 'Pending');
 
 CREATE TABLE rde_escrow_deposits (
     "id" SERIAL PRIMARY KEY,
-    "deposit_id" VARCHAR(255) UNIQUE,  -- Unique deposit identifier
+    "deposit_id" VARCHAR(255),
     "deposit_date" DATE NOT NULL,
     "revision" INTEGER NOT NULL DEFAULT 1,
     "file_name" VARCHAR(255) NOT NULL,

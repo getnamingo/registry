@@ -698,7 +698,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`urs_actions` (
 
 CREATE TABLE IF NOT EXISTS `registry`.`rde_escrow_deposits` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `deposit_id` VARCHAR(255) UNIQUE,  -- Unique deposit identifier
+    `deposit_id` VARCHAR(255) DEFAULT NULL,
     `deposit_date` DATE NOT NULL,
     `revision` INT UNSIGNED NOT NULL DEFAULT 1,
     `file_name` VARCHAR(255) NOT NULL,
@@ -706,12 +706,13 @@ CREATE TABLE IF NOT EXISTS `registry`.`rde_escrow_deposits` (
     `file_size` BIGINT UNSIGNED,
     `checksum` VARCHAR(64),
     `encryption_method` VARCHAR(255),  -- Details about how the file is encrypted
-    `deposit_type` ENUM('Full', 'Incremental', 'Differential') NOT NULL,
+    `deposit_type` ENUM('Full', 'Incremental', 'Differential', 'BRDA') NOT NULL,
     `status` ENUM('Deposited', 'Retrieved', 'Failed') NOT NULL DEFAULT 'Deposited',
     `receiver` VARCHAR(255),  -- Escrow agent or receiver of the deposit
-    `notes` TEXT,
+    `notes` TEXT DEFAULT NULL,
     `verification_status` ENUM('Verified', 'Failed', 'Pending') DEFAULT 'Pending',  -- Status after the escrow agent verifies the deposit
-    `verification_notes` TEXT  -- Notes or remarks from the verification process
+    `verification_notes` TEXT DEFAULT NULL,  -- Notes or remarks from the verification process
+    UNIQUE KEY `deposit_id_deposit_type` (`deposit_id`,`deposit_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Escrow Deposits';
 
 CREATE TABLE IF NOT EXISTS `registry`.`icann_reports` (
