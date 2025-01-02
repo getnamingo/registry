@@ -211,7 +211,10 @@ msgstr ""
 msgid "Two-Factor Authentication"
 msgstr ""
 
-msgid "Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify."
+msgid "Download Google Authenticator app"
+msgstr ""
+
+msgid "Scan the QR code with your authentication app"
 msgstr ""
 
 msgid "Manual Entry Secret"

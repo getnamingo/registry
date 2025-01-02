@@ -211,8 +211,11 @@ msgstr "Оновити"
 msgid "Two-Factor Authentication"
 msgstr "Двофакторна аутентифікація"
 
-msgid "Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify."
-msgstr "Налаштуйте 2FA для додаткового захисту. Відскануйте QR-код за допомогою програми автентифікації та введіть наведений нижче код для перевірки."
+msgid "Download Google Authenticator app"
+msgstr "Завантажте додаток Google Authenticator"
+
+msgid "Scan the QR code with your authentication app"
+msgstr "Відскануйте QR-код за допомогою вашого додатку автентифікації"
 
 msgid "Manual Entry Secret"
 msgstr "Секрет Введення вручну"

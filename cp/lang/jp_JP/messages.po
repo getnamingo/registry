@@ -211,8 +211,11 @@ msgstr "更新"
 msgid "Two-Factor Authentication"
 msgstr "二要素認証"
 
-msgid "Set up 2FA for additional security. Scan the QR code with your authentication app and enter the provided code below to verify."
-msgstr "追加のセキュリティを設定するには、2FAを設定してください。QRコードを認証アプリでスキャンし、以下に提供されたコードを入力して確認してください。"
+msgid "Download Google Authenticator app"
+msgstr "Google Authenticator アプリをダウンロードしてください"
+
+msgid "Scan the QR code with your authentication app"
+msgstr "認証アプリで QR コードをスキャンしてください"
 
 msgid "Manual Entry Secret"
 msgstr "手動でエントリーシークレットを入力"
