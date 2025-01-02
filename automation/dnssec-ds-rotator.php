@@ -64,10 +64,11 @@ try {
                 }
 
                 $dsRecord = implode("\n", $output);
+                $lastModified = filemtime($kskFile);
                 $keyData = [
                     'keyFile' => $kskFile,
                     'dsRecord' => $dsRecord,
-                    'timestamp' => date('Y-m-d H:i:s'),
+                    'timestamp' => $lastModified ? date('Y-m-d H:i:s', $lastModified) : 'unknown',
                 ];
                 $keys[] = $keyData;
 
