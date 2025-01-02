@@ -573,11 +573,30 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
         } catch (PDOException $e) {
             // Handle database exceptions
             $log->error('Database error: ' . $e->getMessage());
-            sendEppError($conn, $pdo, 2500, 'Error connecting to the EPP database');
-            $conn->close();
+
+            // Here we only retry if it's a *connection* failure.
+            // Common MySQL connection error codes: 2002 (Can't connect), 2006 (Gone away), 2013 (Lost connection).
+            if (in_array($e->getCode(), [2002, 2006, 2013])) {
+                try {
+                    // Attempt a reconnect
+                    $pdo = $pool->get();
+                    $log->info('Reconnected successfully to the DB');
+                    sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
+                    return;
+                } catch (Throwable $e2) {
+                    // If reconnect also fails, log and close
+                    $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
+                    sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
+                    $conn->close();
+                }
+            } else {
+                // Non-connection errors (e.g. syntax error, constraint violation) => no reconnect attempt
+                sendEppError($conn, $pdo, 2500, 'DB error: ' . $e->getMessage());
+                $conn->close();
+            }
         } catch (Throwable $e) {
             // Catch any other exceptions or errors
-            $log->error('Error: ' . $e->getMessage());
+            $log->error('General Error: ' . $e->getMessage());
             sendEppError($conn, $pdo, 2500, 'General error');
             $conn->close();
         } finally {
