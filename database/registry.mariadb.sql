@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_tld` (
     `launch_phase_id` INT DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `tld` (`tld`),
-    FOREIGN KEY (`launch_phase_id`) REFERENCES `launch_phase`(`id`)
+    FOREIGN KEY (`launch_phase_id`) REFERENCES `launch_phases`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain tld';
 
 CREATE TABLE IF NOT EXISTS `registry`.`settings` (
@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar_whitelist` (
     `addr` varchar(45) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniquekey` (`registrar_id`,`addr`),
+    KEY `idx_addr` (`addr`),
     CONSTRAINT `registrar_whitelist_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registrar whitelist';
 
@@ -767,6 +768,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`premium_domain_pricing` (
     PRIMARY KEY (`id`),
     KEY `tld_id` (`tld_id`),
     KEY `category_id` (`category_id`),
+    KEY `idx_domainname_tldid` (`domain_name`,`tld_id`),
     CONSTRAINT `premium_domain_pricing_ibfk_1` FOREIGN KEY (`tld_id`) REFERENCES `domain_tld` (`id`),
     CONSTRAINT `premium_domain_pricing_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `premium_domain_categories` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Premium Domains';
@@ -918,8 +920,8 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('address2',    '48000'),
 ('cc',    'Ukraine'),
 ('vat_number',    '12345678'),
-('verifyEmail',	NULL),
-('verifyPhone',	NULL),
+('verifyEmail',    NULL),
+('verifyPhone',    NULL),
 ('verifyPostal', NULL),
 ('phone',    '+123456789'),
 ('handle',    'RXX'),

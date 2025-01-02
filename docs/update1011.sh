@@ -123,9 +123,38 @@ mysql -h "$db_host" -u "$db_user" -p"$db_pass" "$db_name" -e "$sql_query"
 
 # Check for errors
 if [ $? -eq 0 ]; then
-    echo "Database upgrade completed successfully."
+    echo "Database upgrade 1 completed successfully."
 else
-    echo "Database upgrade failed."
+    echo "Database upgrade 1 failed."
+    exit 1
+fi
+
+sql_query="
+-- 1) Fix the domain_tld foreign key reference to launch_phases
+ALTER TABLE \`domain_tld\`
+    DROP FOREIGN KEY \`domain_tld_ibfk_1\`,
+    ADD CONSTRAINT \`domain_tld_ibfk_1\`
+        FOREIGN KEY (\`launch_phase_id\`)
+        REFERENCES \`launch_phases\`(\`id\`)
+        ON DELETE RESTRICT;
+
+-- 2) Add the composite index on (domain_name, tld_id) in premium_domain_pricing
+ALTER TABLE \`premium_domain_pricing\`
+    ADD KEY \`idx_domainname_tldid\` (\`domain_name\`, \`tld_id\`);
+
+-- 3) Add a single-column index idx_addr on registrar_whitelist
+ALTER TABLE \`registrar_whitelist\`
+    ADD KEY \`idx_addr\` (\`addr\`);
+"
+
+# Execute the SQL Query
+mysql -h "$db_host" -u "$db_user" -p"$db_pass" "$db_name" -e "$sql_query"
+
+# Check for errors
+if [ $? -eq 0 ]; then
+    echo "Database upgrade 2 completed successfully."
+else
+    echo "Database upgrade 2 failed."
     exit 1
 fi
 
