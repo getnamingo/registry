@@ -9,6 +9,18 @@
     <meta name="theme-color" content="#A62A6C">
     <title>Namingo Registry</title>
     {% include 'partials/css.twig' %}
+    <style>
+      @import url('/assets/fonts/inter/inter.css');
+      :root {
+          --tblr-font-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+      }
+      @supports (font-variation-settings: normal) {
+          :root {
+              --tblr-font-sans-serif: "InterVariable", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+              font-optical-sizing: auto;
+          }
+      }
+    </style>
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
     <header>
