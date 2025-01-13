@@ -3,37 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="Namingo Registry control panel.">
+    <meta name="description" content="Namingo Registry Panel - a powerful solution for managing domains, registrars, and registry operations seamlessly.">
     <meta name="author" content="Namingo Team">
+    <meta name="keywords" content="Namingo, Registry Panel, Domain Management, Registrar Tools, Namingo Software, ICANN, Domain Registrar">
+    <meta name="theme-color" content="#A62A6C">
     <title>Namingo Registry</title>
     {% include 'partials/css.twig' %}
-    <style>
-    .navbar-toggler, .navbar-toggler-icon {
-        color: #d1d1d1 !important;
-        text-decoration: none;
-    }
-    .nav-link {
-        color: #d1d1d1 !important;
-        text-decoration: none;
-        transition: 0.3s;
-    }
-    .nav-link:hover {
-        color: #ffffff !important;
-    }
-    ul.custom-bullet {
-        list-style-type: none;
-        padding-left: 0;
-    }
-    ul.custom-bullet li::before {
-        content: "•";
-        margin-right: 10px;
-        color: #333;
-    }
-    </style>
 </head>
-<body class="d-flex flex-column h-100">
+<body class="d-flex flex-column min-vh-100 bg-light">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <nav class="navbar navbar-expand-lg h-100 navbar-light bg-light border-bottom shadow-sm">
             <div class="container">
                 <a class="navbar-brand" href="."><img src="{{ logoPath }}" width="100" /></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,23 +58,70 @@
             </div>
         </nav>
     </header>
-    <main>
-        <div class="p-5 rounded-3 bg-light text-center">
-            <div class="container-fluid">
-                <h1 class="display-4 fw-bold">Welcome to Your Registry Panel</h1>
-                <p class="display-6 lead"><em>Access and manage your domain-related services here.</em></p>
-                <p class="lead">To get started:</p>
-                <ul class="custom-bullet">
-                <li>{% if auth.isLogin %}<a href="{{route('home')}}"><strong>Open panel</strong></a>{% else %}<a href="{{route('login')}}"><strong>Log in</strong></a>{% endif %} to access your registrar dashboard and manage domains.</li>
-                <li>Access our <a href="https://{{ whois_server }}" target="_blank"><strong>WHOIS</strong></a> and <a href="{{ rdap_server }}" target="_blank"><strong>RDAP</strong></a> services for domain information lookup.</li>
-                <li>Contact our <a href="mailto:{{ email }}"><strong>Support Team</strong></a> for assistance, guidance, FAQs, and further support needs.</li>
-                <li>Interested in partnering with us? <a href="#"><strong>Apply</strong></a> to become an official registrar.</li>
-                </ul>
-                <p>To customize this page, copy <code>index.twig</code> from <code>/var/www/cp/resources/views</code> to <code>index.custom.twig</code> and edit the file as required.</p>
+    <main class="flex-grow-1">
+        <div class="container-fluid p-5 rounded-3 bg-light text-center">
+            <div class="text-center my-5">
+                <h1 class="fw-bold">Namingo Registry Panel</h1>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 g-4 mt-6">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Open Panel</h5>
+                            <p class="card-text">
+                                {% if auth.isLogin %}
+                                Access your registrar dashboard and manage domains.
+                                {% else %}
+                                Log in to access your registrar dashboard and manage domains.
+                                {% endif %}
+                            </p>
+                            {% if auth.isLogin %}
+                            <a href="{{route('home')}}" class="btn btn-primary">Dashboard</a>
+                            {% else %}
+                            <a href="{{route('login')}}" class="btn btn-primary">Log in</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">WHOIS & RDAP</h5>
+                            <p class="card-text">Access domain information with our WHOIS and RDAP services.</p>
+                            <a href="https://{{ whois_server }}" target="_blank" class="btn btn-secondary me-2">WHOIS</a>
+                            <a href="{{ rdap_server }}" target="_blank" class="btn btn-secondary">RDAP</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Support Team</h5>
+                            <p class="card-text">Get assistance, guidance, FAQs, and support for your needs.</p>
+                            <a href="mailto:{{ email }}" class="btn btn-success">Contact Support</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Become a Registrar</h5>
+                            <p class="card-text">Interested in partnering with us? Apply to become an official registrar.</p>
+                            <a href="#" class="btn btn-warning">Apply Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-secondary text-start mt-4" role="alert">
+                To customize this page, copy <code>index.twig</code> from 
+                <code>/var/www/cp/resources/views</code> to 
+                <code>index.custom.twig</code> and edit the file as required.
             </div>
         </div>
     </main>
-    <footer class="footer bg-dark mt-auto py-3">
+    <footer class="footer bg-light border-top shadow-sm py-3">
         <div class="container">
             <span class="text-muted">&copy; {{ 'now' | date('Y') }} <strong>{{ company_name }}</strong>. All rights reserved.</span>
         </div>
