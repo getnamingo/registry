@@ -111,11 +111,9 @@ class SupportController extends Controller
             return $response->withHeader('Location', '/support')->withStatus(302);
         }
         
-        $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-        $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
         $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticketNumber]);
             
-        if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+        if ($ticket_owner != $_SESSION['auth_user_id'] && $_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/support')->withStatus(302);
         }
 
@@ -172,11 +170,9 @@ class SupportController extends Controller
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
             }
 
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-            $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
             $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticket_id]);
             
-            if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+            if ($ticket_owner != $_SESSION['auth_user_id'] && $_SESSION["auth_roles"] != 0) {
                 $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
                 return $response->withHeader('Location', '/support')->withStatus(302);
             }
@@ -256,11 +252,9 @@ class SupportController extends Controller
             }
             $action = $data['action'] ?? null;
             
-            $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-            $clid = $_SESSION["auth_roles"] != 0 ? $result['registrar_id'] : $_SESSION['auth_user_id'];
             $ticket_owner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticket_id]);
             
-            if ($ticket_owner != $clid && $_SESSION["auth_roles"] != 0) {
+            if ($ticket_owner != $_SESSION['auth_user_id'] && $_SESSION["auth_roles"] != 0) {
                 $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
                 return $response->withHeader('Location', '/support')->withStatus(302);
             }
