@@ -312,6 +312,8 @@
     {% include 'partials/js-profile.twig' %}
 {% elseif route_is('server') %}
     {% include 'partials/js-server.twig' %}
+{% elseif route_is('deposit') %}
+    {% include 'partials/js-server.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}

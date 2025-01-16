@@ -3,6 +3,7 @@
 {% block title %}{{ __('Registrar Deposit') }}{% endblock %}
 
 {% block content %}
+<link href="/assets/css/sweetalert2.min.css" rel="stylesheet">
       <div class="page-wrapper">
         <!-- Page header -->
         <div class="page-header d-print-none">
@@ -38,15 +39,53 @@
                         <label for="amount" class="form-label">{{ __('Amount') }}</label>
                         <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="{{ __('Enter deposit amount') }}" required>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('Payment Method') }}</label>
+                        <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column">
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="stripe" class="form-selectgroup-input" required>
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-stripe payment-xs me-2"></span>
+                                        {{ __('Stripe') }}
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="adyen" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-adyen payment-xs me-2"></span>
+                                        {{ __('Adyen') }}
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="crypto" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-crypto payment-xs me-2"></span>
+                                        {{ __('Crypto') }}
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="d-grid gap-2 d-md-block">
-                      <button type="submit" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.453 8.056c0 -.623 .518 -.979 1.442 -.979c1.69 0 3.41 .343 4.605 .923l.5 -4c-.948 -.449 -2.82 -1 -5.5 -1c-1.895 0 -3.373 .087 -4.5 1c-1.172 .956 -2 2.33 -2 4c0 3.03 1.958 4.906 5 6c1.961 .69 3 .743 3 1.5c0 .735 -.851 1.5 -2 1.5c-1.423 0 -3.963 -.609 -5.5 -1.5l-.5 4c1.321 .734 3.474 1.5 6 1.5c2 0 3.957 -.468 5.084 -1.36c1.263 -.979 1.916 -2.268 1.916 -4.14c0 -3.096 -1.915 -4.547 -5 -5.637c-1.646 -.605 -2.544 -1.07 -2.544 -1.807z" /></svg> {{ __('Deposit with Stripe') }}</button>
-
-                      <button type="button" id="adyenPayment" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-letter-a" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 20v-12a4 4 0 0 1 4 -4h2a4 4 0 0 1 4 4v12" /><path d="M7 13l10 0" /></svg> {{ __('Deposit with Adyen') }}</button>
-
-                      <button type="button" id="cryptoPayment" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 6h8a3 3 0 0 1 0 6a3 3 0 0 1 0 6h-8" /><path d="M8 6l0 12" /><path d="M8 12l6 0" /><path d="M9 3l0 3" /><path d="M13 3l0 3" /><path d="M9 18l0 3" /><path d="M13 18l0 3" /></svg></svg> {{ __('Deposit with Crypto') }}</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Deposit') }}</button>
                     </div>
                   </div>
                 </div>
@@ -60,67 +99,129 @@
       </div>
 <script src="https://js.stripe.com/v3/"></script>
 <script type="text/javascript">
-    var stripe = Stripe('{{ stripe_key }}');
+document.getElementById('depositForm').addEventListener('submit', function (e) {
+    e.preventDefault();
 
-    document.getElementById('depositForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+    const formData = new FormData(this);
+    const paymentMethod = formData.get('paymentMethod');
+    const amount = document.getElementById('amount').value.trim();
 
-        var formData = new FormData(this);
-        fetch('/create-payment', {
-            method: 'POST',
-            body: formData
-        })
-        .then(function (response) {
-            return response.json();
-        })
-        .then(function (session) {
-            return stripe.redirectToCheckout({ sessionId: session.id });
-        })
-        .catch(function (error) {
-            console.error('Error:', error);
+    // Validate the amount
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ __("Invalid Amount") }}',
+            text: '{{ __("Please enter a valid deposit amount.") }}'
+        });
+        return;
+    }
+
+    // Route the request based on the payment method
+    if (paymentMethod === 'stripe') {
+        handleStripePayment(formData);
+    } else if (paymentMethod === 'adyen') {
+        handleAdyenPayment(formData);
+    } else if (paymentMethod === 'crypto') {
+        handleCryptoPayment(formData);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Error") }}',
+            text: '{{ __("No payment method selected.") }}'
+        });
+    }
+});
+
+// Function to handle Stripe payment
+function handleStripePayment(formData) {
+    const stripe = Stripe('{{ stripe_key }}'); // Initialize Stripe with the correct key
+
+    fetch('/create-payment', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(session => {
+        if (session.error) {
+            console.error('Stripe Error:', session.error);
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Payment Error") }}',
+                text: session.error
+            });
+        } else {
+            console.log('Stripe session created:', session);
+            stripe.redirectToCheckout({ sessionId: session.id });
+        }
+    })
+    .catch(error => {
+        console.error('Error in Stripe payment:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Unexpected Error") }}',
+            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
         });
     });
-    
-    document.getElementById('adyenPayment').addEventListener('click', function(e) {
-        e.preventDefault();
+}
 
-        var form = document.getElementById('depositForm');
-        var formData = new FormData(form);
-
-        fetch('/create-adyen-payment', {
-            method: 'POST',
-            body: formData
-        })
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
+// Function to handle Adyen payment
+function handleAdyenPayment(formData) {
+    fetch('/create-adyen-payment', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Adyen Error:', data.error);
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Payment Error") }}',
+                text: data.error
+            });
+        } else {
+            console.log('Adyen payment success:', data);
             window.location.href = data.url;
-        })
-        .catch(function(error) {
-            console.error('Error:', error);
+        }
+    })
+    .catch(error => {
+        console.error('Error in Adyen payment:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Unexpected Error") }}',
+            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
         });
     });
-    
-    document.getElementById('cryptoPayment').addEventListener('click', function(e) {
-        e.preventDefault();
+}
 
-        var form = document.getElementById('depositForm');
-        var formData = new FormData(form);
-
-        fetch('/create-crypto-payment', {
-            method: 'POST',
-            body: formData
-        })
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
+// Function to handle Crypto payment
+function handleCryptoPayment(formData) {
+    fetch('/create-crypto-payment', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Crypto Error:', data.error);
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Payment Error") }}',
+                text: data.error
+            });
+        } else {
+            console.log('Crypto payment success:', data);
             window.location.href = data.invoice_url;
-        })
-        .catch(function(error) {
-            console.error('Error:', error);
+        }
+    })
+    .catch(error => {
+        console.error('Error in Crypto payment:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Unexpected Error") }}',
+            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
         });
     });
+}
 </script>
 {% endblock %}
