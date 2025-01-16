@@ -1,5 +1,13 @@
 FROM phpswoole/swoole:php8.3-alpine
 
+RUN apk add gmp
+RUN apk add gmp-dev
+
+RUN docker-php-ext-install gmp
+RUN docker-php-ext-install mysqli
+
+RUN apk del gmp-dev
+
 WORKDIR /opt/registry/automation
 
 COPY . .
