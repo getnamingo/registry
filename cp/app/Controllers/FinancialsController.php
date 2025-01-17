@@ -310,9 +310,9 @@ class FinancialsController extends Controller
         
         $client = new Client();
         $apiKey = envi('NOW_API_KEY');
-        
+
         try {
-            $response = $client->request('POST', 'https://api.nowpayments.io/v1/invoice', [
+            $apiResponse = $client->request('POST', 'https://api.nowpayments.io/v1/invoice', [
                 'headers' => [
                     'x-api-key' => $apiKey,
                     'Content-Type' => 'application/json',
@@ -320,14 +320,17 @@ class FinancialsController extends Controller
                 'json' => $data,
             ]);
 
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody()->getContents();
-            
-            $response->getBody()->write(json_encode($body));
+            $body = $apiResponse->getBody()->getContents();
+            $response->getBody()->write($body);
             return $response->withHeader('Content-Type', 'application/json');
         } catch (GuzzleException $e) {
-            $this->container->get('flash')->addMessage('error', 'We encountered an issue while processing your payment. Details: ' . $e->getMessage());
-            return $response->withHeader('Location', '/deposit')->withStatus(302);
+            $errorResponse = [
+                'error' => 'We encountered an issue while processing your payment.',
+                'details' => $e->getMessage(),
+            ];
+
+            $response->getBody()->write(json_encode($errorResponse));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
     }
     
