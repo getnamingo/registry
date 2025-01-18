@@ -290,10 +290,10 @@
               fill: {
                   opacity: 1,
               },
-              series: [{
-                  name: "Domain Registrations",
-                  data: counts
-              }],
+              series: counts.some(count => count > 0) ? [{
+                name: "Domain Registrations",
+                data: counts
+              }] : [],
               tooltip: {
                   theme: 'dark'
               },
@@ -327,7 +327,16 @@
                       }
                   },
               },
-              labels: dates,
+              noData: {
+                text: "No data available",
+                align: 'center',
+                verticalAlign: 'middle',
+                style: {
+                  color: '#888',
+                  fontSize: '14px',
+                  fontFamily: 'inherit'
+                }
+              },
               colors: [tabler.getColor("primary")],
               legend: {
                   show: false,
@@ -349,13 +358,23 @@
               fill: {
                   opacity: 1,
               },
-              series: series,
+              series: series.some(val => val > 0) ? series : [],
               labels: labels,
               tooltip: {
                   theme: 'dark'
               },
               grid: {
                   strokeDashArray: 4,
+              },
+              noData: {
+                text: "No data to display",
+                align: 'center',
+                verticalAlign: 'middle',
+                style: {
+                  color: '#888',
+                  fontSize: '14px',
+                  fontFamily: 'inherit'
+                }
               },
               colors: [tabler.getColor("primary"), tabler.getColor("primary", 0.8), tabler.getColor("primary", 0.6), tabler.getColor("gray-300")],
               legend: {
@@ -402,13 +421,10 @@
               fill: {
                   opacity: 1,
               },
-              series: [{
-                  name: "Answered",
-                  data: answeredData
-              },{
-                  name: "Pending",
-                  data: unansweredData
-              }],
+              series: (answeredData.some(val => val > 0) || unansweredData.some(val => val > 0)) ? [
+                { name: "Answered", data: answeredData },
+                { name: "Pending", data: unansweredData }
+              ] : [],
               tooltip: {
                   theme: 'dark'
               },
@@ -441,6 +457,16 @@
                         return value;
                       }
                   },
+              },
+              noData: {
+                text: "No support ticket data available",
+                align: 'center',
+                verticalAlign: 'middle',
+                style: {
+                  color: '#888',
+                  fontSize: '14px',
+                  fontFamily: 'inherit'
+                }
               },
               colors: [tabler.getColor("primary"), tabler.getColor("red")],
               legend: {
