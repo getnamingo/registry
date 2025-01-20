@@ -1,0 +1,64 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Nicky Payment Status') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Nicky Payment Status') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+            {% if status is defined and paymentId is defined %}
+            <div class="card">
+              <div class="card-body">
+                <h4>{{ __('Payment Status:') }} {{ status }}</h4>
+                    {% if status == 'None' or status == 'PaymentValidationRequired' or status == 'PaymentPending' %}
+                    <p class="text-primary">
+                        Your payment is currently <strong>in progress</strong>. Please <a href="#" onclick="window.location.reload(); return false;"><u>check back</u></a> later for updates.
+                    </p>
+                    {% elseif status == 'Canceled' %}
+                    <p class="text-danger">
+                        Your payment has been <strong>cancelled</strong>. Please initiate a new payment if you wish to proceed.
+                    </p>
+                    {% else %}
+                    <p class="text-success">
+                        Your payment has been <strong>successfully processed</strong> and completed.
+                    </p>
+                    {% endif %}
+              </div>
+            </div>
+            {% else %}
+            <div class="card">
+              <div class="card-body">
+                <h4>{{ __('Payment Details Not Found') }}</h4>
+                <p class="text-secondary">{{ __('It appears the payment details could not be found in your session. This may happen if the session has expired or if you accessed this page directly without completing the payment process.') }}</p>
+                <p class="text-secondary">{{ __('To proceed, please restart the payment process. If you have already completed a payment and believe this is an error, check your email for the payment confirmation details or contact our support team for assistance.') }}</p>
+                <p class="text-secondary">{{ __('We recommend initiating a new payment to ensure your transaction is properly credited.') }}</p>
+                <p class="text-secondary"><a href="/deposit" class="btn btn-primary">{{ __('Restart Payment') }}</a></p>
+              </div>
+            </div>
+            {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

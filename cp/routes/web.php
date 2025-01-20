@@ -117,9 +117,11 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/create-payment', FinancialsController::class .':createStripePayment')->setName('createStripePayment');
     $route->map(['GET', 'POST'], '/create-adyen-payment', FinancialsController::class .':createAdyenPayment')->setName('createAdyenPayment');
     $route->map(['GET', 'POST'], '/create-crypto-payment', FinancialsController::class .':createCryptoPayment')->setName('createCryptoPayment');
+    $route->map(['GET', 'POST'], '/create-nicky-payment', FinancialsController::class .':createNickyPayment')->setName('createNickyPayment');
     $route->map(['GET', 'POST'], '/payment-success', FinancialsController::class .':successStripe')->setName('successStripe');
     $route->map(['GET', 'POST'], '/payment-success-adyen', FinancialsController::class .':successAdyen')->setName('successAdyen');
     $route->map(['GET', 'POST'], '/payment-success-crypto', FinancialsController::class .':successCrypto')->setName('successCrypto');
+    $route->map(['GET', 'POST'], '/payment-success-nicky', FinancialsController::class .':successNicky')->setName('successNicky');
     $route->map(['GET', 'POST'], '/payment-cancel', FinancialsController::class .':cancel')->setName('cancel');
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');

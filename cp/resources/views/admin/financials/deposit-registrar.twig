@@ -4,6 +4,46 @@
 
 {% block content %}
 <link href="/assets/css/sweetalert2.min.css" rel="stylesheet">
+<style>
+    .payment-provider-custom {
+        display: inline-block;
+        background-image: url('/assets/nicky.svg');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    /* Fullscreen overlay */
+    #loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8); /* Whiteout effect */
+        z-index: 9999; /* Ensure it appears above all content */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Spinner container for alignment */
+    .spinner-container {
+        text-align: center;
+    }
+
+    /* Spinner size adjustment */
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+<div id="loading-overlay" style="display: none;">
+    <div class="spinner-container">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-secondary mt-3">Processing your payment, please wait...</p>
+    </div>
+</div>
       <div class="page-wrapper">
         <!-- Page header -->
         <div class="page-header d-print-none">
@@ -68,6 +108,18 @@
                                 </div>
                             </label>
                             <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="nicky" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-custom payment-xs me-2"></span>
+                                        {{ __('Crypto') }}: Nicky
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="form-selectgroup-item flex-fill">
                                 <input type="radio" name="paymentMethod" value="crypto" class="form-selectgroup-input">
                                 <div class="form-selectgroup-label d-flex align-items-center p-3">
                                     <div class="me-3">
@@ -75,7 +127,7 @@
                                     </div>
                                     <div>
                                         <span class="payment payment-provider-bitcoin-dark payment-xs me-2"></span>
-                                        {{ __('Crypto') }}
+                                        {{ __('Crypto') }}: NOW
                                     </div>
                                 </div>
                             </label>
@@ -123,6 +175,8 @@ document.getElementById('depositForm').addEventListener('submit', function (e) {
         handleAdyenPayment(formData);
     } else if (paymentMethod === 'crypto') {
         handleCryptoPayment(formData);
+    } else if (paymentMethod === 'nicky') {
+        handleNickyPayment(formData);
     } else {
         Swal.fire({
             icon: 'error',
@@ -220,6 +274,56 @@ function handleCryptoPayment(formData) {
             icon: 'error',
             title: '{{ __("Unexpected Error") }}',
             text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
+        });
+    });
+}
+
+// Function to handle Nicky payment
+function handleNickyPayment(formData) {
+    // Show the loading overlay
+    const overlay = document.getElementById('loading-overlay');
+    overlay.style.display = 'flex';
+
+    fetch('/create-nicky-payment', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Hide the loading overlay
+        overlay.style.display = 'none';
+
+        if (data.error) {
+            console.error('Nicky Error:', data.error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment Error',
+                text: data.error
+            });
+        } else if (data.invoice_url) {
+            console.log('Nicky payment success:', data);
+            window.location.href = data.invoice_url;
+        } else {
+            console.error('Unexpected API response:', data);
+            Swal.fire({
+                icon: 'error',
+                title: 'Unexpected Response',
+                text: 'The payment gateway did not return a valid payment URL.'
+            });
+        }
+    })
+    .catch(error => {
+        // Hide the loading overlay
+        overlay.style.display = 'none';
+
+        console.error('Error in Nicky payment:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Unexpected Error',
+            text: 'An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.'
         });
     });
 }

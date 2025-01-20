@@ -333,6 +333,82 @@ class FinancialsController extends Controller
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
     }
+
+    public function createNickyPayment(Request $request, Response $response)
+    {
+        $postData = $request->getParsedBody();
+        $amount = $postData['amount']; // Make sure to validate and sanitize this amount
+
+        // Registrar ID and unique identifier
+        $registrarId = $_SESSION['auth_registrar_id'];
+
+        // Generate a 10-character alphanumeric random string for the invoice reference
+        $invoiceReference = strtoupper(bin2hex(random_bytes(5))); // 10 characters, all caps
+
+        // Map currency to Nicky's blockchainAssetId
+        $blockchainAssetId = match ($_SESSION['_currency']) {
+            'USD' => 'USD.USD',
+            'EUR' => 'EUR.EUR',
+            default => throw new Exception('Unsupported currency: ' . $_SESSION['_currency']),
+        };
+
+        // Prepare the payload for the API
+        $data = [
+            'blockchainAssetId' => $blockchainAssetId,
+            'amountExpectedNative' => $amount,
+            'billDetails' => [
+                'invoiceReference' => $invoiceReference,
+                'description' => 'Deposit for registrar ' . $registrarId,
+            ],
+            'requester' => [
+                'email' => $_SESSION['auth_email'],
+                'name' => $_SESSION['auth_username'],
+            ],
+            'sendNotification' => true,
+            'successUrl' => envi('APP_URL') . '/payment-success-nicky',
+            'cancelUrl' => envi('APP_URL') . '/payment-cancel',
+        ];
+
+        $url = 'https://api-public.pay.nicky.me/api/public/PaymentRequestPublicApi/create';
+        $apiKey = envi('NICKY_API_KEY');
+
+        $client = new Client();
+
+        try {
+            $apiResponse = $client->request('POST', $url, [
+                'headers' => [
+                    'x-api-key' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $data,
+            ]);
+
+            $body = json_decode($apiResponse->getBody()->getContents(), true);
+
+            if (isset($body['bill']['shortId'])) {
+                $paymentUrl = "https://pay.nicky.me/home?paymentId=" . $body['bill']['shortId'];
+
+                // Store the shortId in the session or database for future reference
+                $_SESSION['nicky_shortId'] = $body['bill']['shortId'];
+
+                // Return the payment URL as JSON
+                $response->getBody()->write(json_encode(['invoice_url' => $paymentUrl]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            } else {
+                throw new Exception('API response does not contain a payment URL.');
+            }
+        } catch (GuzzleException $e) {
+            unset($_SESSION['nicky_shortId']);
+
+            $errorResponse = [
+                'error' => 'We encountered an issue while processing your payment.',
+                'details' => $e->getMessage(),
+            ];
+
+            $response->getBody()->write(json_encode($errorResponse));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
     
     public function successStripe(Request $request, Response $response)
     {
@@ -562,6 +638,117 @@ class FinancialsController extends Controller
         }
         
         return view($response,'admin/financials/success-crypto.twig');
+    }
+
+    public function successNicky(Request $request, Response $response)
+    {
+        $client = new Client();
+        $sessionShortId = $_SESSION['nicky_shortId'] ?? null;
+
+        if (!$sessionShortId) {
+            $this->container->get('flash')->addMessage('info', 'No payment reference found in session.');
+            return view($response, 'admin/financials/success-nicky.twig');
+        }
+
+        $url = 'https://api-public.pay.nicky.me/api/public/PaymentRequestPublicApi/get-by-short-id?shortId=' . urlencode($sessionShortId);
+        $apiKey = envi('NICKY_API_KEY');
+
+        try {
+            $apiResponse = $client->request('GET', $url, [
+                'headers' => [
+                    'x-api-key' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+            ]);
+
+            $statusCode = $apiResponse->getStatusCode();
+            $responseBody = json_decode($apiResponse->getBody()->getContents(), true);
+
+            if ($statusCode === 200 && isset($responseBody['status'])) {
+                $status = $responseBody['status'];
+                $amount = $responseBody['amountNative'] ?? 0;
+                $paymentId = $responseBody['id'] ?? null;
+                $description = $responseBody['bill']['description'] ?? 'No description';
+
+                if ($status === "None" || $status === "PaymentValidationRequired" || $status === "PaymentPending") {
+                    return view($response, 'admin/financials/success-nicky.twig', [
+                        'status' => $status,
+                        'paymentId' => $paymentId
+                    ]);
+                } elseif ($status === "Finished") {
+                    // Record the successful transaction in the database
+                    $db = $this->container->get('db');
+                    $registrarId = $_SESSION['auth_registrar_id'];
+
+                    $currentDateTime = new \DateTime();
+                    $date = $currentDateTime->format('Y-m-d H:i:s.v');
+
+                    $db->beginTransaction();
+                    try {
+                        $db->insert(
+                            'statement',
+                            [
+                                'registrar_id' => $registrarId,
+                                'date' => $date,
+                                'command' => 'create',
+                                'domain_name' => 'deposit',
+                                'length_in_months' => 0,
+                                'fromS' => $date,
+                                'toS' => $date,
+                                'amount' => $amount,
+                            ]
+                        );
+
+                        $db->insert(
+                            'payment_history',
+                            [
+                                'registrar_id' => $registrarId,
+                                'date' => $date,
+                                'description' => 'Registrar balance deposit via Nicky ('.$paymentId.')',
+                                'amount' => $amount,
+                            ]
+                        );
+
+                        $db->exec(
+                            'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
+                            [
+                                $amount,
+                                $registrarId,
+                            ]
+                        );
+
+                        $db->commit();
+                    } catch (\Exception $e) {
+                        $db->rollBack();
+                        $this->container->get('flash')->addMessage('error', 'Transaction recording failed: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/payment-success-nicky')->withStatus(302);
+                    }
+
+                    unset($_SESSION['nicky_shortId']);
+
+                    // Redirect to success page with details
+                    return view($response, 'admin/financials/success-nicky.twig', [
+                        'status' => $status,
+                        'paymentId' => $paymentId,
+                    ]);
+                } else {
+                    unset($_SESSION['nicky_shortId']);
+                    
+                    // Handle unexpected statuses
+                    return view($response, 'admin/financials/success-nicky.twig', [
+                        'status' => $status,
+                        'paymentId' => $paymentId,
+                    ]);
+                }
+            } else {
+                unset($_SESSION['nicky_shortId']);
+                $this->container->get('flash')->addMessage('error', 'Failed to retrieve payment information.');
+                return $response->withHeader('Location', '/payment-success-nicky')->withStatus(302);
+            }
+        } catch (GuzzleException $e) {
+            $this->container->get('flash')->addMessage('error', 'Request failed: ' . $e->getMessage());
+            return $response->withHeader('Location', '/payment-success-nicky')->withStatus(302);
+        }
     }
     
     public function webhookAdyen(Request $request, Response $response)

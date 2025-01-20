@@ -1086,6 +1086,8 @@ ADYEN_HMAC_KEY='adyen-hmac-key'
 
 NOW_API_KEY='now-api-key'
 
+NICKY_API_KEY='nicky-api-key'
+
 TEST_TLDS=.test,.com.test
 ```
 
