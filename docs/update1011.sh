@@ -158,6 +158,18 @@ else
     exit 1
 fi
 
+# Path to the .env file
+ENV_FILE="/var/www/cp/.env"
+
+# Check if the line already exists
+if ! grep -q "NICKY_API_KEY=" "$ENV_FILE"; then
+  # Insert the new line after NOW_API_KEY
+  sed -i "/^NOW_API_KEY=/a NICKY_API_KEY='nicky-api-key'" "$ENV_FILE"
+  echo "NICKY_API_KEY added to the .env file."
+else
+  echo "NICKY_API_KEY already exists in the .env file."
+fi
+
 # Start services
 echo "Starting services..."
 systemctl start epp
