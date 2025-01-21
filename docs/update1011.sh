@@ -107,9 +107,14 @@ composer_update "/opt/registry/whois/port43"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
+db_name="registry"
+
+# Initialize failure flag
+upgrade_failed=0
+
 # SQL Query
 sql_query="
-ALTER TABLE \`registry.rde_escrow_deposits\`
+ALTER TABLE \`rde_escrow_deposits\`
     MODIFY COLUMN \`deposit_id\` VARCHAR(255) DEFAULT NULL,
     DROP INDEX \`deposit_id\`,
     ADD UNIQUE KEY \`deposit_id_deposit_type\` (\`deposit_id\`, \`deposit_type\`),
@@ -122,16 +127,16 @@ ALTER TABLE \`registry.rde_escrow_deposits\`
 mysql -h "$db_host" -u "$db_user" -p"$db_pass" "$db_name" -e "$sql_query"
 
 # Check for errors
-if [ $? -eq 0 ]; then
-    echo "Database upgrade 1 completed successfully."
-else
+if [ $? -ne 0 ]; then
     echo "Database upgrade 1 failed."
-    exit 1
+    upgrade_failed=1
+else
+    echo "Database upgrade 1 completed successfully."
 fi
 
 sql_query="
 -- 1) Fix the domain_tld foreign key reference to launch_phases
-ALTER TABLE \`registry.domain_tld\`
+ALTER TABLE \`domain_tld\`
     DROP FOREIGN KEY \`domain_tld_ibfk_1\`,
     ADD CONSTRAINT \`domain_tld_ibfk_1\`
         FOREIGN KEY (\`launch_phase_id\`)
@@ -139,11 +144,11 @@ ALTER TABLE \`registry.domain_tld\`
         ON DELETE RESTRICT;
 
 -- 2) Add the composite index on (domain_name, tld_id) in premium_domain_pricing
-ALTER TABLE \`registry.premium_domain_pricing\`
+ALTER TABLE \`premium_domain_pricing\`
     ADD KEY \`idx_domainname_tldid\` (\`domain_name\`, \`tld_id\`);
 
 -- 3) Add a single-column index idx_addr on registrar_whitelist
-ALTER TABLE \`registry.registrar_whitelist\`
+ALTER TABLE \`registrar_whitelist\`
     ADD KEY \`idx_addr\` (\`addr\`);
 "
 
@@ -151,11 +156,11 @@ ALTER TABLE \`registry.registrar_whitelist\`
 mysql -h "$db_host" -u "$db_user" -p"$db_pass" "$db_name" -e "$sql_query"
 
 # Check for errors
-if [ $? -eq 0 ]; then
-    echo "Database upgrade 2 completed successfully."
-else
+if [ $? -ne 0 ]; then
     echo "Database upgrade 2 failed."
-    exit 1
+    upgrade_failed=1
+else
+    echo "Database upgrade 2 completed successfully."
 fi
 
 # Path to the .env file
@@ -184,6 +189,13 @@ if [[ $? -eq 0 ]]; then
     rm -rf /opt/registry1011
 else
     echo "There was an issue starting the services. /opt/registry1011 will not be deleted."
+fi
+
+# Final check for any failures
+if [ $upgrade_failed -ne 0 ]; then
+    echo "One or more database upgrades failed. Please check and apply the changes manually."
+else
+    echo "All database upgrades completed successfully."
 fi
 
 echo "Upgrade to v1.0.11 completed successfully."
