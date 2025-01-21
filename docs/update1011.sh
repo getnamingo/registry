@@ -109,7 +109,7 @@ composer_update "/opt/registry/epp"
 
 # SQL Query
 sql_query="
-ALTER TABLE \`rde_escrow_deposits\`
+ALTER TABLE \`registry.rde_escrow_deposits\`
     MODIFY COLUMN \`deposit_id\` VARCHAR(255) DEFAULT NULL,
     DROP INDEX \`deposit_id\`,
     ADD UNIQUE KEY \`deposit_id_deposit_type\` (\`deposit_id\`, \`deposit_type\`),
@@ -131,7 +131,7 @@ fi
 
 sql_query="
 -- 1) Fix the domain_tld foreign key reference to launch_phases
-ALTER TABLE \`domain_tld\`
+ALTER TABLE \`registry.domain_tld\`
     DROP FOREIGN KEY \`domain_tld_ibfk_1\`,
     ADD CONSTRAINT \`domain_tld_ibfk_1\`
         FOREIGN KEY (\`launch_phase_id\`)
@@ -139,11 +139,11 @@ ALTER TABLE \`domain_tld\`
         ON DELETE RESTRICT;
 
 -- 2) Add the composite index on (domain_name, tld_id) in premium_domain_pricing
-ALTER TABLE \`premium_domain_pricing\`
+ALTER TABLE \`registry.premium_domain_pricing\`
     ADD KEY \`idx_domainname_tldid\` (\`domain_name\`, \`tld_id\`);
 
 -- 3) Add a single-column index idx_addr on registrar_whitelist
-ALTER TABLE \`registrar_whitelist\`
+ALTER TABLE \`registry.registrar_whitelist\`
     ADD KEY \`idx_addr\` (\`addr\`);
 "
 
