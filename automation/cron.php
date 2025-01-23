@@ -1,13 +1,46 @@
 <?php
 
-// Configuration
-$cronJobConfig = [
+// ========================== Instructions ==========================
+// To customize the cron job settings without modifying this script,
+// create a file at the following path:
+// 
+// /opt/registry/automation/cron_config.php
+//
+// The file should return an array with your configuration values.
+// Example content for cron_config.php:
+//
+// <?php
+// return [
+//     'accounting' => false,  // Enable or disable accounting
+//     'backup' => false,      // Enable or disable backup
+//     'backup_upload' => false, // Enable or disable backup upload
+//     'gtld_mode' => false,   // Enable or disable gTLD mode
+//     'spec11' => false,      // Enable or disable Spec 11 checks
+//     'dnssec' => false,     // Enable or disable DNSSEC
+// ];
+//
+// Any keys omitted in cron_config.php will fall back to the defaults
+// defined in this script.
+// ==================================================================
+
+// Default Configuration
+$defaultConfig = [
     'accounting' => false,    // Set to true to enable
     'backup' => false,    // Set to true to enable
+    'backup_upload' => false, // Set to true to enable
     'gtld_mode' => false,    // Set to true to enable
     'spec11' => false,    // Set to true to enable
     'dnssec' => false,    // Set to true to enable
 ];
+
+// Load External Config if Exists
+$configFilePath = '/opt/registry/automation/cron_config.php';
+if (file_exists($configFilePath)) {
+    $externalConfig = require $configFilePath;
+    $cronJobConfig = array_merge($defaultConfig, $externalConfig);
+} else {
+    $cronJobConfig = $defaultConfig;
+}
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -24,12 +57,16 @@ $scheduler->php('/opt/registry/automation/domain-lifecycle-manager.php')->at('*/
 $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 * * * *');
 $scheduler->php('/opt/registry/automation/auto-clean-unused-contact-and-host.php')->at('5 0 * * *');
 
+// Conditional Cron Jobs
 if ($cronJobConfig['accounting']) {
     $scheduler->php('/opt/registry/automation/send-invoice.php')->at('1 0 1 * *');
 }
 
 if ($cronJobConfig['backup']) {
     $scheduler->raw('/opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json')->at('15 * * * *');
+}
+
+if ($cronJobConfig['backup_upload']) {
     $scheduler->php('/opt/registry/automation/backup-upload.php')->at('30 * * * *');
 }
 
@@ -50,4 +87,5 @@ if ($cronJobConfig['gtld_mode']) {
     $scheduler->php('/opt/registry/automation/reporting.php')->at('1 0 1 * *');
 }
 
+// Run Scheduled Tasks
 $scheduler->run();

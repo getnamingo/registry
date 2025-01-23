@@ -137,7 +137,7 @@ To set up backups in Namingo:
 
 1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details.
 
-2. Enable the backup functionality in `cron.php` and ensure cronjobs are configured and active on your server. Check the server's cronjob list to verify.
+2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.7. Running the Automation System** to activate the automation system on your server.
 
 #### 1.4.6. RDE (Registry data escrow) configuration
 
@@ -190,7 +190,23 @@ gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
 
 #### 1.4.7. Running the Automation System
 
-Once you have successfully configured all automation scripts, you are ready to initiate the automation system. Please review ```/opt/registry/automation/cron.php``` and enable all services if you are running a gTLD. Then proceed by adding the following cron job to the system crontab using ```crontab -e```:
+1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
+
+2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements. Note: If you are managing a gTLD, all services must be enabled for proper operation.
+
+```php
+<?php
+return [
+    'accounting' => false,  // Enable or disable accounting
+    'backup' => false,      // Enable or disable backup
+    'backup_upload' => false, // Enable or disable backup upload
+    'gtld_mode' => false,   // Enable or disable gTLD mode
+    'spec11' => false,      // Enable or disable Spec 11 checks
+    'dnssec' => false,     // Enable or disable DNSSEC
+];
+```
+
+3. Add the following cron job to the system crontab using ```crontab -e```:
 
 ```bash
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
