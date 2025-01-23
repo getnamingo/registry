@@ -252,6 +252,36 @@ WEB_AUTHN_ENABLED=true
 sudo systemctl reload caddy
 ```
 
+#### 1.4.11. Zone generator custom records
+
+Each TLD can have its own custom records file, located in `/opt/registry/automation/`. For example, for the TLD `example`, create the file `/opt/registry/automation/example.php`.
+
+The content of a custom records file should be:
+
+```php
+<?php
+return [
+    // A record
+    [
+        'name' => '@',          // The name of the record (e.g., @ for the root domain or a subdomain)
+        'type' => 'A',          // Record type (A, AAAA, TXT, etc.)
+        'parameters' => ['192.0.2.1'], // Parameters required for the record type
+    ],
+    // AAAA record
+    [
+        'name' => 'www',
+        'type' => 'AAAA',
+        'parameters' => ['2001:db8::1'],
+    ],
+    // TXT record
+    [
+        'name' => '@',
+        'type' => 'TXT',
+        'parameters' => ['"v=spf1 include:example.com ~all"'],
+    ],
+];
+```
+
 ## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.

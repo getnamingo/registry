@@ -70,6 +70,26 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 $zone->addResourceRecord($nsRecord);
             }
 
+            // Include custom records if the file exists
+            $customRecordsFile = "/opt/registry/automation/{$cleanedTld}.php";
+
+            if (file_exists($customRecordsFile)) {
+                $log->info("Loading custom records for {$cleanedTld} from {$customRecordsFile}.");
+                $customRecords = require $customRecordsFile;
+
+                foreach ($customRecords as $record) {
+                    try {
+                        $customRecord = new ResourceRecord;
+                        $customRecord->setName($record['name']);
+                        $customRecord->setClass(Classes::INTERNET);
+                        $customRecord->setRdata(Factory::{$record['type']}(...$record['parameters']));
+                        $zone->addResourceRecord($customRecord);
+                    } catch (Throwable $e) {
+                        $log->error("Failed to add custom record for {$cleanedTld}: " . $e->getMessage());
+                    }
+                }
+            }
+
             // Fetch domains for this TLD
             $sthDomains = $pdo->prepare('SELECT DISTINCT domain.id, domain.name FROM domain WHERE tldid = :id AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = \'pendingRestore\') ORDER BY domain.name');
 
