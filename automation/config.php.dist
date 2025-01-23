@@ -102,4 +102,7 @@ return [
     // Drop settings
     'dropStrategy' => 'random', // Options: 'fixed', 'random'
     'dropTime' => '02:00:00',    // Time of day to perform drops if 'fixed' strategy is used
+
+    // IANA Email for Submission Logs
+    'iana_email' => 'admin@example.com', // Email address to be used for IANA submission
 ];

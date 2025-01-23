@@ -7,8 +7,7 @@ require_once 'helpers.php';
 
 // Configuration
 $keyDir = $c['dns_server'] === 'bind' ? '/var/lib/bind' : '/etc/knot/keys';  // Directory containing key files
-$localPhpScript = '/path/to/local-registry-update.php';  // Local PHP script for DS record submission
-$adminEmail = 'admin@example.com';  // Email to be included for IANA submission logs
+$adminEmail = isset($c['iana_email']) && !empty($c['iana_email']) ? $c['iana_email'] : 'admin@example.com';  // Email for IANA submission logs
 $dnssecTool = $c['dns_server'] === 'bind' ? '/usr/bin/dnssec-dsfromkey' : '/usr/bin/keymgr';  // Tool path
 $logFilePath = '/var/log/namingo/dnssec-ds-rotator.log';
 
@@ -124,18 +123,33 @@ try {
             foreach ($keys as $key) {
                 $log->info($key['dsRecord']);
             }
-            // Uncomment this block to submit to parent using the local PHP script
-            /*
-            $log->info("Submitting DS record to parent zone using local PHP script...");
-            $response = shell_exec("php $localPhpScript $zoneName '" . json_encode($keys) . "'");
+
+            // You must create the script at the specified path: /opt/registry/automation/ds-update.php.
+            // This script is responsible for submitting the DS record for your zone to the top-level domain registrar.
+            // The implementation of this script will depend on the registrar's API or the registry's EPP system.
+
+            // If you are using EPP for your registry communication, you can refer to our Tembo project for a sample EPP client.
+            // Tembo provides a flexible and customizable way to interact with EPP-based registries, which can simplify your implementation.
+            // Ensure your script handles all necessary authentication, logging, and error handling when interacting with the registrar.
+            $dsUpdateScript = '/opt/registry/automation/ds-update.php';
+
+            if (!file_exists($dsUpdateScript)) {
+                $log->error("The DS record submission script ($dsUpdateScript) does not exist. Please create it to enable submission to the parent registry.");
+                continue;
+            }
+
+            $log->info("Submitting DS record to the parent zone using the local PHP script...");
+
+            $response = shell_exec("php /opt/registry/automation/ds-update.php $zoneName '" . json_encode($keys) . "'");
+
+            // Check the response for success
             if (str_contains($response, 'success')) {
-                $log->info("DS record successfully submitted to parent zone for $zoneName.");
+                $log->info("DS record successfully submitted to the parent zone for $zoneName.");
             } else {
-                $log->error("Failed to submit DS record to parent zone for $zoneName.");
+                $log->error("Failed to submit DS record to the parent zone for $zoneName.");
                 $log->error("Response from PHP script: $response");
                 continue;
             }
-            */
         } else {
             $log->error("Unsupported zone type for $zoneName.");
             continue;
