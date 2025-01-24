@@ -191,8 +191,10 @@
                   </div>
                   {% endif %}
                   <div class="col-12 col-md-6 mt-5">
-                  <h3 class="card-title">{{ __('Recent Domains') }}</h3>
                     <div class="card">
+                      <div class="card-header">
+                        <h3 class="card-title">{{ __('Recent Domains') }}</h3>
+                      </div>
                       <div class="table-responsive">
                         <table class="table table-vcenter card-table table-striped">
                           <thead>
@@ -204,13 +206,13 @@
                           <tbody>
                           {% if latest_domains|length > 0 %}
                             {% for domain in latest_domains %}
-                                <tr>
-                                    <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
-                                    <td class="text-secondary">{{ domain.crdate }}</td>
-                                </tr>
+                              <tr>
+                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
+                                <td class="text-secondary">{{ domain.crdate }}</td>
+                              </tr>
                             {% endfor %}
                           {% else %}
-                                <tr><td colspan="2">{{ __('No Data') }}</td></tr>
+                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
                           {% endif %}
                           </tbody>
                         </table>
@@ -218,8 +220,10 @@
                     </div>
                   </div>
                   <div class="col-12 col-md-6 mt-5">
-                  <h3 class="card-title">{{ __('Recent Support Tickets') }}</h3>
                     <div class="card">
+                      <div class="card-header">
+                        <h3 class="card-title">{{ __('Recent Support Tickets') }}</h3>
+                      </div>
                       <div class="table-responsive">
                         <table class="table table-vcenter card-table table-striped">
                           <thead>
@@ -232,14 +236,14 @@
                           <tbody>
                           {% if tickets|length > 0 %}
                             {% for ticket in tickets %}
-                                <tr>
-                                    <td><a href="/ticket/{{ ticket.id }}">{{ ticket.subject|length > 30 ? (ticket.subject|slice(0, 30) ~ '…') : ticket.subject }}</a></td>
-                                    <td class="text-secondary">{{ ticket.status }}</td>
-                                    <td class="text-secondary">{{ ticket.priority }}</td>
-                                </tr>
+                              <tr>
+                                <td><a href="/ticket/{{ ticket.id }}">{{ ticket.subject|length > 30 ? (ticket.subject|slice(0, 30) ~ '…') : ticket.subject }}</a></td>
+                                <td class="text-secondary">{{ ticket.status }}</td>
+                                <td class="text-secondary">{{ ticket.priority }}</td>
+                              </tr>
                             {% endfor %}
                           {% else %}
-                                <tr><td colspan="3">{{ __('No Data') }}</td></tr>
+                            <tr><td colspan="3">{{ __('No Data') }}</td></tr>
                           {% endif %}
                           </tbody>
                         </table>
