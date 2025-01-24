@@ -279,6 +279,12 @@ return [
         'type' => 'TXT',
         'parameters' => ['"v=spf1 include:example.com ~all"'],
     ],
+    // MX record
+    [
+        'name' => '@',
+        'type' => 'MX',
+        'parameters' => [10, 'mail.example.com.'], // Priority and mail server
+    ],
 ];
 ```
 
