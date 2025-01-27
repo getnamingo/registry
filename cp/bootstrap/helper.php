@@ -293,7 +293,8 @@ function extractDomainAndTLD($urlString) {
     // Check if fileContent is not null
     if (null === $fileContent) {
         // Handle the error gracefully
-        throw new \Exception("The TLDs cache file is missing or unreadable");
+        $_SESSION['slimFlash']['error'][] = 'The TLDs cache file is missing or unreadable';
+        return null;
     }
 
     // Load a list of test TLDs used in your QA environment
