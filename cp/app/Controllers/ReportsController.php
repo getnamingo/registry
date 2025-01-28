@@ -107,9 +107,40 @@ class ReportsController extends Controller
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
         $csrfTokenName = $this->container->get('csrf')->getTokenName();
         $csrfTokenValue = $this->container->get('csrf')->getTokenValue();
+        
+        // Helper function to check service status
+        $checkServiceStatus = function ($serviceName) {
+            $output = @shell_exec("service $serviceName status");
+            return ($output && strpos($output, 'active (running)') !== false) ? 'Running' : 'Stopped';
+        };
+
+        // Helper function to read the last 50 lines of a log file and convert to string
+        $getLogLines = function ($logPrefix) {
+            $currentDate = date('Y-m-d');
+            $logFile = "/var/log/namingo/{$logPrefix}-$currentDate.log";
+
+            if (file_exists($logFile)) {
+                $output = @shell_exec("tail -n 50 " . escapeshellarg($logFile));
+                return $output ? $output : "Log file is empty.";
+            }
+
+            return "Log file not found: $logFile";
+        };
+
+        // Check statuses
+        $eppStatus = $checkServiceStatus('epp');
+        $whoisStatus = $checkServiceStatus('whois');
+        $rdapStatus = $checkServiceStatus('rdap');
+        $dasStatus = $checkServiceStatus('das');
+
+        // Get log lines as strings
+        $eppLogs = $getLogLines('epp');
+        $whoisLogs = $getLogLines('whois');
+        $rdapLogs = $getLogLines('rdap');
+        $dasLogs = $getLogLines('das');
 
         $system = new System();
 
@@ -167,6 +198,14 @@ class ReportsController extends Controller
             'csrfTokenName' => $csrfTokenName,
             'csrfTokenValue' => $csrfTokenValue,
             'backupLog' => nl2br(htmlspecialchars($backupSummary)),
+            'eppStatus' => $eppStatus,
+            'whoisStatus' => $whoisStatus,
+            'rdapStatus' => $rdapStatus,
+            'dasStatus' => $dasStatus,
+            'eppLogs' => $eppLogs,
+            'whoisLogs' => $whoisLogs,
+            'rdapLogs' => $rdapLogs,
+            'dasLogs' => $dasLogs,
         ]);
     }
 

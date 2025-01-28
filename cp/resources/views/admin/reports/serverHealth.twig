@@ -36,13 +36,12 @@
         <!-- Page body -->
         <div class="page-body">
           <div class="container-xl">
-            <div class="col-12">
-                <div class="row">
-                    <!-- CPU and Memory Card -->
-                    <div class="col-md-6">
+                <div class="row row-cards">
+                    <!-- CPU Card -->
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">{{ __('CPU and Memory') }}</h3>
+                                <h3 class="card-title">{{ __('CPU Usage') }}</h3>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
@@ -59,10 +58,18 @@
                                         {{ serverHealth.getCPUUsage }}%
                                     </div>
                                 </div>
-
-                                <hr>
-
-                                <div class="d-flex align-items-center">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Memory Card -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('Memory Usage') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('Memory') }}</h4>
                                         <div class="text-muted">{{ serverHealth.getMemoryFree }} {{ __('MB free of') }} {{ serverHealth.getMemoryTotal }} MB</div>
@@ -80,16 +87,16 @@
                         </div>
                     </div>
 
-                    <!-- Disk and Network Card -->
-                    <div class="col-md-6 mt-md-0 mt-2">
+                    <!-- Disk Card -->
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">{{ __('Disk and Network') }}</h3>
+                                <h3 class="card-title">{{ __('Disk Usage') }}</h3>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
-                                        <h4 class="m-0">{{ __('Disk Usage') }}</h4>
+                                        <h4 class="m-0">{{ __('Disk') }}</h4>
                                         <div class="text-muted">{{ serverHealth.getDiskFree }} {{ __('GB free of') }} {{ serverHealth.getDiskTotal }} GB</div>
                                     </div>
                                     <div class="ms-auto">
@@ -104,21 +111,124 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- EPP Card -->
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="subheader me-2">{{ __('EPP Server') }}:</div>
+                                    <span class="status {{ eppStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ eppStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RDAP Card -->
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="subheader me-2">{{ __('RDAP Server') }}:</div>
+                                    <span class="status {{ rdapStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ rdapStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- WHOIS Card -->
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="subheader me-2">{{ __('WHOIS Server') }}:</div>
+                                    <span class="status {{ whoisStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ whoisStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DAS Card -->
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="subheader me-2">{{ __('DAS Server') }}:</div>
+                                    <span class="status {{ dasStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ dasStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="row mt-2">
                     <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <p>
+                                    {{ __('If you encounter an issue with a specific service, log in via SSH and run the appropriate command to reload it:') }} <code>service epp restart</code>, <code>service whois restart</code>, <code>service rdap restart</code>, <code>service das restart</code>
+                                </p>
+                                <p class="text-muted">
+                                    {{ __('If you need assistance, please contact support.') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('EPP Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap;">{{ eppLogs|raw }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('WHOIS Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap;">{{ whoisLogs|raw }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('RDAP Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap;">{{ rdapLogs|raw }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">{{ __('Backup Log') }}</h3>
                             </div>
                             <div class="card-body">
-                                <pre>{{ backupLog|raw }}</pre>
+                                <pre style="white-space: pre-wrap;">{{ backupLog|raw }}</pre>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
           </div>
         </div>
         {% include 'partials/footer.twig' %}
