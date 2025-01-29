@@ -1051,6 +1051,15 @@ class SystemController extends Controller
                     $dnssecData = ['error' => "DNSSEC is not enabled for this TLD."];
                 }
 
+                if (!empty($launch_phases) && is_array($launch_phases)) {
+                    $launch_phases = array_map(function ($phase) {
+                        if (!in_array($phase['phase_type'], ['custom', 'open'])) {
+                            $phase['phase_name'] = '';
+                        }
+                        return $phase;
+                    }, $launch_phases);
+                }
+
                 return view($response,'admin/system/manageTld.twig', [
                     'tld' => $tld,
                     'tld_u' => $tld_u,
@@ -1344,36 +1353,53 @@ class SystemController extends Controller
 
             $sData['tldid'] = filter_var($tld_id, FILTER_SANITIZE_NUMBER_INT);
             $sData['extension'] = substr(trim($tld_extension), 0, 10);
-            $sData['phaseName'] = substr(trim($data['phaseName']), 0, 255);
+            $sData['phaseName'] = !empty(trim($data['phaseName'])) 
+                ? substr(trim($data['phaseName']), 0, 255) 
+                : substr($sData['tldid'] . '-' . str_replace('.', '', $sData['extension']) . '-' . strtotime($data['phaseStart']), 0, 30);
             $sData['phaseCategory'] = substr(trim($data['phaseCategory']), 0, 255);
             $sData['phaseType'] = substr(trim($data['phaseType']), 0, 255);
             $sData['phaseDescription'] = substr(trim($data['phaseDescription']), 0, 1000);
             $sData['phaseStart'] = str_replace('T', ' ', $data['phaseStart']) . ':00';
-            $sData['phaseEnd'] = str_replace('T', ' ', $data['phaseEnd']) . ':00';
+            if (!empty($data['phaseEnd'])) {
+                $sData['phaseEnd'] = str_replace('T', ' ', $data['phaseEnd']) . ':00';
+            } elseif (!in_array($sData['phaseType'], ['open', 'custom'])) {
+                $this->container->get('flash')->addMessage('error', "Error: phaseEnd is required for phaseType '{$sData['phaseType']}'");
+                return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+            }
 
             try {           
                 $currentDateTime = new \DateTime();
                 $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
                 $db->beginTransaction();
-                
-                // Check if phaseType is 'Custom' and phaseName is empty
-                if ($sData['phaseType'] === 'Custom' && (empty($sData['phaseName']) || is_null($sData['phaseName']))) {
+
+                // Check if phaseType is 'custom' and phaseName is empty
+                if ($sData['phaseType'] === 'custom' && (empty($sData['phaseName']) || is_null($sData['phaseName']))) {
                     // Handle the error scenario
                     $this->container->get('flash')->addMessage('error', 'Phase name is required when the type is Custom.');
                     return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
                 }
-                
-                // Check for existing phase_type (excluding 'Custom' with different phase_name) or date overlap (excluding 'Custom' and 'Open' types)
+
+                // Check for existing phase_type (excluding 'custom' with different phase_name) or date overlap (excluding 'custom' and 'open' types)
                 $query = "SELECT 
-                             (SELECT COUNT(*) FROM launch_phases 
-                              WHERE tld_id = ? AND phase_type = ? AND (phase_type <> 'Custom' OR (phase_type = 'Custom' AND phase_name = ?))) as phaseTypeExists,
-                             (SELECT COUNT(*) FROM launch_phases 
-                              WHERE tld_id = ? AND 
-                              phase_type NOT IN ('Custom', 'Open') AND 
-                              ((start_date <= ? AND end_date >= ?) OR
-                               (start_date <= ? AND end_date >= ?) OR
-                               (start_date >= ? AND end_date <= ?))) as dateOverlapExists";
+                             (SELECT COUNT(*) 
+                              FROM launch_phases 
+                              WHERE tld_id = ? 
+                                AND phase_type = ? 
+                                AND (phase_type <> 'custom' OR (phase_type = 'custom' AND phase_name = ?))
+                             ) AS phaseTypeExists, 
+                             
+                            (SELECT COUNT(*) 
+                             FROM launch_phases 
+                             WHERE tld_id = ?  
+                               AND phase_type NOT IN ('custom', 'open') 
+                               AND (
+                                     (start_date <= ? AND (end_date IS NULL OR end_date >= ?)) 
+                                  OR (start_date <= ? AND (end_date IS NULL OR end_date >= ?)) 
+                                  OR (start_date >= ? AND (end_date IS NULL OR end_date <= ?))
+                               )
+                               AND (end_date IS NULL OR end_date >= NOW()) -- Ensures ongoing phases count
+                            ) AS dateOverlapExists";
 
                 $result = $db->selectRow(
                     $query,
@@ -1419,7 +1445,7 @@ class SystemController extends Controller
                 unset($_SESSION['u_tld_extension']);
                 
                 $this->container->get('flash')->addMessage('success', 'Launch phase updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
-                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+                return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
