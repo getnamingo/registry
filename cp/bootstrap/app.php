@@ -88,7 +88,7 @@ $container->set('view', function ($container) {
     ]);
 
     // Known set of languages
-    $allowedLanguages = ['en_US', 'uk_UA', 'jp_JP', 'fr_FR', 'pt_PT', 'es_ES']; // Add more as needed
+    $allowedLanguages = ['en_US', 'uk_UA', 'jp_JP', 'fr_FR', 'pt_PT', 'es_ES', 'ar_SA'];
 
     if (isset($_SESSION['_lang']) && in_array($_SESSION['_lang'], $allowedLanguages)) {
         // Use regex to validate the format: two letters, underscore, two letters
@@ -111,6 +111,8 @@ $container->set('view', function ($container) {
         $lang = '日本語';
     } elseif ($uiLang === 'ua') {
         $lang = 'Українська';
+    } elseif ($uiLang === 'ar') {
+        $lang = 'العربية';
     } else {
         $lang = ucfirst(trim(strstr($lang_full, ' (', true)));
     }
@@ -126,6 +128,7 @@ $container->set('view', function ($container) {
 
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
+    $view->getEnvironment()->addGlobal('_lang', substr($desiredLanguage, 0, 2));
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
 
     $staticDir = '/var/www/cp/public/static';

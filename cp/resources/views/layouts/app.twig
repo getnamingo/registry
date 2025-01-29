@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang == 'ar' or _lang == 'ar_SA' ? 'rtl' : 'ltr' }}">
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
@@ -7,18 +7,6 @@
     <title>{% block title %}{% endblock %} | Namingo</title>
     <!-- CSS files -->
 {% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or route_is('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or is_current_url('ticketview') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') or route_is('profile') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
-    <style>
-      @import url('/assets/fonts/inter/inter.css');
-      :root {
-          --tblr-font-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-      }
-      @supports (font-variation-settings: normal) {
-          :root {
-              --tblr-font-sans-serif: "InterVariable", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-              font-optical-sizing: auto;
-          }
-      }
-    </style>
   </head>
   <body{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
     <div class="page">
@@ -45,6 +33,7 @@
                       <a href="/lang?es_ES" class="dropdown-item"><span class="flag flag-country-es"></span>&nbsp;Español</a>
                       <a href="/lang?pt_PT" class="dropdown-item"><span class="flag flag-country-pt"></span>&nbsp;Português</a>
                       <a href="/lang?jp_JP" class="dropdown-item"><span class="flag flag-country-jp"></span>&nbsp;日本語</a>
+                      <a href="/lang?ar_SA" class="dropdown-item"><span class="flag flag-country-sa"></span>&nbsp;العربية</a>
                     </div>
                 </div>
               </div>
