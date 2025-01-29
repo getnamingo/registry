@@ -409,6 +409,9 @@ class SystemController extends Controller
                 case 'korean':
                     $idntable = '/^[가-힣0-9]+$/u';
                     break;
+                case 'arabic':
+                    $idntable = '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u';
+                    break;
                 default:
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     break;
@@ -983,6 +986,7 @@ class SystemController extends Controller
                     '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ]+$/u' => 'Cyrillic',
                     '/^[ぁ-んァ-ン一-龯々]+$/u' => 'Japanese',
                     '/^[가-힣]+$/u' => 'Korean',
+                    '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'Arabic',
                 ];
 
                 $idnRegex = $tld['idn_table'];
