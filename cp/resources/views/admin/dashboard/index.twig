@@ -238,8 +238,8 @@
                             {% for ticket in tickets %}
                               <tr>
                                 <td><a href="/ticket/{{ ticket.id }}">{{ ticket.subject|length > 30 ? (ticket.subject|slice(0, 30) ~ '…') : ticket.subject }}</a></td>
-                                <td class="text-secondary">{{ ticket.status }}</td>
-                                <td class="text-secondary">{{ ticket.priority }}</td>
+                                <td class="text-secondary">{{ __(ticket.status) }}</td>
+                                <td class="text-secondary">{{ __(ticket.priority) }}</td>
                               </tr>
                             {% endfor %}
                           {% else %}
