@@ -1,7 +1,18 @@
 <?php
 /**
- * Helper functions
- * @author    Hezekiah O. <support@hezecom.com>
+ * This file contains utility functions for Namingo Registry Control Panel.
+ *
+ * Written and maintained by:
+ * - Taras Kondratyuk (2023-2025)
+ *
+ * This file also incorporates functions:
+ * - Hezekiah O. <support@hezecom.com>
+ *
+ * @package    Namingo Panel
+ * @author     Taras Kondratyuk
+ * @copyright  2023-2025 Namingo
+ * @license    MIT License
+ * @version    1.0
  */
 
 use Pinga\Auth\Auth;
@@ -17,6 +28,7 @@ use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\PhoneNumberFormat;
 use libphonenumber\NumberParseException;
+use ZxcvbnPhp\Zxcvbn;
 
 /**
  * @return mixed|string|string[]
@@ -606,4 +618,27 @@ function extractHostTLD(string $hostname): array
     $host = array_pop($parts); // Get the second last part as host
 
     return ['host' => $host, 'tld' => $tld];
+}
+
+function checkPasswordComplexity($password) {
+    $zxcvbn = new Zxcvbn();
+
+    // Use configured or default password strength requirement
+    $requiredScore = getenv('PASSWORD_STRENGTH') ?: 3; // Default to score 3 if ENV is not set
+
+    $score = $zxcvbn->passwordStrength($password)['score'];
+
+    if ($score < $requiredScore) { // Score ranges from 0 (weak) to 4 (strong)
+        throw new Exception('Password too weak. Use a stronger password.');
+    }
+}
+
+function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
+    // Use configured or default password expiration days
+    $passwordExpiryDays = getenv('PASSWORD_EXPIRATION_DAYS') ?: 90; // Default to 90 days
+
+    if (time() - $lastPasswordUpdateTimestamp > $passwordExpiryDays * 86400) {
+        return 'Your password is expired. Please change it.';
+    }
+    return null;
 }
