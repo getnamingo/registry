@@ -5,7 +5,7 @@
  * Written and maintained by:
  * - Taras Kondratyuk (2023-2025)
  *
- * This file also incorporates functions:
+ * This file also incorporates functions by:
  * - Hezekiah O. <support@hezecom.com>
  *
  * @package    Namingo Panel
@@ -624,7 +624,7 @@ function checkPasswordComplexity($password) {
     $zxcvbn = new Zxcvbn();
 
     // Use configured or default password strength requirement
-    $requiredScore = getenv('PASSWORD_STRENGTH') ?: 3; // Default to score 3 if ENV is not set
+    $requiredScore = envi('PASSWORD_STRENGTH') ?: 3; // Default to score 3 if ENV is not set
 
     $score = $zxcvbn->passwordStrength($password)['score'];
 
@@ -635,7 +635,7 @@ function checkPasswordComplexity($password) {
 
 function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
     // Use configured or default password expiration days
-    $passwordExpiryDays = getenv('PASSWORD_EXPIRATION_DAYS') ?: 90; // Default to 90 days
+    $passwordExpiryDays = envi('PASSWORD_EXPIRATION_DAYS') ?: 90; // Default to 90 days
 
     if (time() - $lastPasswordUpdateTimestamp > $passwordExpiryDays * 86400) {
         return 'Your password is expired. Please change it.';
