@@ -570,6 +570,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
             $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
+            
+            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+            $stmt->execute([$domain_id, 'pendingTransfer']);
+            $existingStatus = $stmt->fetchColumn();
+
+            if ($existingStatus === 'pendingTransfer') {
+                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+            }
+
+            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+            $insertStmt->execute([$domain_id, 'ok']);
 
             $new_authinfo = generateAuthInfo();
             $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
@@ -695,6 +707,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
             $stmt->execute(['domain_id' => $domain_id]);
             
+            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+            $stmt->execute([$domain_id, 'pendingTransfer']);
+            $existingStatus = $stmt->fetchColumn();
+
+            if ($existingStatus === 'pendingTransfer') {
+                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+            }
+
+            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+            $insertStmt->execute([$domain_id, 'ok']);
+            
             if ($stmt->errorCode() !== '00000') {
                 sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
                 return;
@@ -815,6 +839,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         if ($trstatus === 'pending') {
             $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
             $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
+
+            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+            $stmt->execute([$domain_id, 'pendingTransfer']);
+            $existingStatus = $stmt->fetchColumn();
+
+            if ($existingStatus === 'pendingTransfer') {
+                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+            }
+
+            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+            $insertStmt->execute([$domain_id, 'ok']);
 
             if (!$success || $stmtUpdate->errorCode() !== '00000') {
                 sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
@@ -1003,7 +1039,19 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $waiting_period = 5; 
                 $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH) WHERE id = :domain_id");
                 $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
-                
+
+                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                $stmt->execute([$domain_id, 'ok']);
+                $existingStatus = $stmt->fetchColumn();
+
+                if ($existingStatus === 'ok') {
+                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                    $deleteStmt->execute([$domain_id, 'ok']);
+                }
+
+                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                $insertStmt->execute([$domain_id, 'pendingTransfer']);
+
                 if ($stmt->errorCode() !== '00000') {
                     sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
                     return;
@@ -1071,6 +1119,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     ':waiting_period' => $waiting_period,
                     ':domain_id' => $domain_id
                 ]);
+
+                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                $stmt->execute([$domain_id, 'ok']);
+                $existingStatus = $stmt->fetchColumn();
+
+                if ($existingStatus === 'ok') {
+                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                    $deleteStmt->execute([$domain_id, 'ok']);
+                }
+
+                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                $insertStmt->execute([$domain_id, 'pendingTransfer']);
 
                 if ($stmt->errorCode() !== '00000') {
                     sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);

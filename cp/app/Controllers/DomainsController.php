@@ -2503,6 +2503,29 @@ class DomainsController extends Controller
                             ['pending', $clid, $registrar_id_domain, $waiting_period, $date_add, $domain_id]
                         );
 
+                        $existingStatus = $db->selectValue(
+                            'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',
+                            [$domain_id, 'ok']
+                        );
+
+                        if ($existingStatus === 'ok') {
+                            $db->delete(
+                                'domain_status',
+                                [
+                                    'domain_id' => $domain_id,
+                                    'status' => 'ok'
+                                ]
+                            );
+                        }
+
+                        $db->insert(
+                            'domain_status',
+                            [
+                                'domain_id' => $domain_id,
+                                'status' => 'pendingTransfer'
+                            ]
+                        );
+
                         $result = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = ? LIMIT 1',
                         [ $domainName ]);
                         
@@ -2553,6 +2576,29 @@ class DomainsController extends Controller
                         $db->exec(
                             'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY), transfer_exdate = NULL WHERE id = ?',
                             ['pending', $clid, $registrar_id_domain, $waiting_period, $domain_id]
+                        );
+
+                        $existingStatus = $db->selectValue(
+                            'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',
+                            [$domain_id, 'ok']
+                        );
+
+                        if ($existingStatus === 'ok') {
+                            $db->delete(
+                                'domain_status',
+                                [
+                                    'domain_id' => $domain_id,
+                                    'status' => 'ok'
+                                ]
+                            );
+                        }
+
+                        $db->insert(
+                            'domain_status',
+                            [
+                                'domain_id' => $domain_id,
+                                'status' => 'pendingTransfer'
+                            ]
                         );
 
                         $result = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = ? LIMIT 1',
@@ -2826,7 +2872,30 @@ class DomainsController extends Controller
                         'UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?',
                         [$new_authinfo, $domain_id]
                     );
-                    
+
+                    $existingStatus = $db->selectValue(
+                        'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',
+                        [$domain_id, 'pendingTransfer']
+                    );
+
+                    if ($existingStatus === 'pendingTransfer') {
+                        $db->delete(
+                            'domain_status',
+                            [
+                                'domain_id' => $domain_id,
+                                'status' => 'pendingTransfer'
+                            ]
+                        );
+                    }
+
+                    $db->insert(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id,
+                            'status' => 'ok'
+                        ]
+                    );
+
                     foreach ($contactMap as $contact) {
                         $db->update('domain_contact_map', [
                             'contact_id' => $newContactIds[$contact['contact_id']],
@@ -2960,6 +3029,29 @@ class DomainsController extends Controller
                 ]
                 );
                 
+                $existingStatus = $db->selectValue(
+                    'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',
+                    [$domain_id, 'pendingTransfer']
+                );
+
+                if ($existingStatus === 'pendingTransfer') {
+                    $db->delete(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id,
+                            'status' => 'pendingTransfer'
+                        ]
+                    );
+                }
+
+                $db->insert(
+                    'domain_status',
+                    [
+                        'domain_id' => $domain_id,
+                        'status' => 'ok'
+                    ]
+                );
+                
                 $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been rejected successfully');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             } else {
@@ -3024,7 +3116,30 @@ class DomainsController extends Controller
                     'name' => $domainName
                 ]
                 );
-                
+
+                $existingStatus = $db->selectValue(
+                    'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',
+                    [$domain_id, 'pendingTransfer']
+                );
+
+                if ($existingStatus === 'pendingTransfer') {
+                    $db->delete(
+                        'domain_status',
+                        [
+                            'domain_id' => $domain_id,
+                            'status' => 'pendingTransfer'
+                        ]
+                    );
+                }
+
+                $db->insert(
+                    'domain_status',
+                    [
+                        'domain_id' => $domain_id,
+                        'status' => 'ok'
+                    ]
+                );
+
                 $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been cancelled successfully');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             } else {

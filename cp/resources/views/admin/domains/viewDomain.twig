@@ -47,20 +47,21 @@
                 <div class="card-header">
                     <h3 class="card-title">
                         {{ __('Domain') }} {{ domain.name }}&nbsp;
-                        {% if domainStatus.status or domain.rgpstatus %}
-                            {% if domainStatus is iterable %}
-                                {% for status in domainStatus %}
-                                    <span class="status status-green" title="Status">{{ status.status }}</span>&nbsp;
-                                {% endfor %}
-                            {% else %}
-                                {% if domainStatus.status %}
-                                    <span class="status status-green" title="Status">{{ domainStatus.status }}</span>&nbsp;
-                                {% endif %}
-                            {% endif %}
-                            {% if domain.rgpstatus %}
-                                <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
-                            {% endif %}
-                        {% else %}
+
+                        {% if domainStatus is defined and domainStatus | length > 0 %}
+                            {# Iterate over the domainStatus array #}
+                            {% for statusItem in domainStatus %}
+                                <span class="status status-green" title="Status">{{ statusItem.status }}</span>&nbsp;
+                            {% endfor %}
+                        {% endif %}
+
+                        {# Display RGP status if present #}
+                        {% if domain.rgpstatus %}
+                            <span class="status status-info" title="Status">{{ domain.rgpstatus }}</span>
+                        {% endif %}
+
+                        {# Fallback to 'ok' if no status or rgpstatus exists #}
+                        {% if (domainStatus is not defined or domainStatus | length == 0) and domain.rgpstatus is not defined %}
                             <span class="status status-info" title="Status">ok</span>
                         {% endif %}
                     </h3>
