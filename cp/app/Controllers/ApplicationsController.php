@@ -364,9 +364,7 @@ class ApplicationsController extends Controller
                     'reid' => null,
                     'redate' => null,
                     'acid' => null,
-                    'acdate' => null,
-                    'rgpstatus' => null,
-                    'addPeriod' => null,
+                    'acdate' => null,            
                     'authtype' => 'pw',
                     'authinfo' => $authInfo,
                     'phase_name' => $phaseName,
@@ -1087,7 +1085,17 @@ class ApplicationsController extends Controller
                 
                 try {
                     $db->beginTransaction();
-          
+
+                    $db->update(
+                        'application_status',
+                        [
+                            'status' => 'allocated'
+                        ],
+                        [
+                            'domain_id' => $domain['id']
+                        ]
+                    );
+
                     $currentDateTime = new \DateTime();
                     $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 

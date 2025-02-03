@@ -11,23 +11,29 @@
     function domainLinkFormatter(cell){
         var displayName = cell.getValue();
         var punycodeName = cell.getRow().getData().name_o;
-        return `<a href="/domain/view/${punycodeName}" style="font-weight:bold;">${displayName}</a>`;
+        return `<a href="/application/view/${punycodeName}" style="font-weight:bold;">${displayName}</a>`;
     }
 
     function actionsFormatter(cell, formatterParams, onRendered) {
         var rowData = cell.getRow().getData();
         var actionButtons = '';
-        
+
         var isRejected = rowData.application_status.some(statusObj => statusObj.status && statusObj.status.includes('rejected'));
         var isInvalid = rowData.application_status.some(statusObj => statusObj.status && statusObj.status.includes('invalid'));
+        var isValidated = rowData.application_status.some(statusObj => statusObj.status && statusObj.status.includes('validated'));
+        var isAllocated = rowData.application_status.some(statusObj => statusObj.status && statusObj.status.includes('allocated'));
 
-        if (!isRejected && !isInvalid) {
+        if (!isRejected && !isInvalid && !isValidated && !isAllocated) {
             actionButtons += `<a class="btn btn-outline-green btn-icon" href="application/approve/${cell.getRow().getData().name_o}" title="Approve Application"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg></a> `;
             actionButtons += `<a class="btn btn-outline-warning btn-icon" href="application/reject/${cell.getRow().getData().name_o}" title="Reject Application"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg></a> `;
             actionButtons += `<a class="btn btn-outline-info btn-icon" href="application/update/${cell.getRow().getData().name_o}" title="Update Application"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a> `;
             actionButtons += `<a class="btn btn-outline-danger btn-icon delete-btn" id="delete-btn" href="javascript:void(0);" data-delete-url="application/delete/${cell.getRow().getData().name_o}" title="Delete Application"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7h16"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path><path d="M10 12l4 4m0 -4l-4 4"></path></svg></a>`;
+        } else if ((isValidated || isAllocated) && !isRejected && !isInvalid) {
+            actionButtons += `<strong class="text-success"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg> Validated</strong>`;
+        } else if ((isRejected || isInvalid) && !isValidated && !isAllocated) {
+            actionButtons += `<strong class="text-danger"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M5.7 5.7l12.6 12.6" /></svg> Invalid</strong>`;
         } else {
-            actionButtons += `<strong class="text-success"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg> Completed</strong>`;
+            actionButtons += `<strong class="text-info"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg> Completed</strong>`;
         }
 
         return actionButtons;
@@ -45,22 +51,37 @@
         // Check if statusArray is empty or not
         return createBadge(statusArray, 'info');
     }
-    
+
     function statusFormatter(cell) {
         var statusArray = cell.getValue();
         var rowData = cell.getRow().getData(); // Get the entire row data
 
-        // Function to create a badge
-        function createBadge(text, badgeClass) {
-            return `<span class="badge bg-${badgeClass}-lt">${text}</span>`;
+        // Function to create status text with appropriate class
+        function createStatusText(text, statusClass) {
+            return `<span class="status status-${statusClass}">${text}</span>`;
         }
 
         // Check if statusArray is empty or not
         if (statusArray && Array.isArray(statusArray) && statusArray.length > 0) {
-            return statusArray.map(item => createBadge(item.status, 'lime')).join(' ');
+            return statusArray.map(item => {
+                let status = item.status.toLowerCase();
+
+                if (status.includes('invalid') || status.includes('rejected')) {
+                    return createStatusText(item.status, 'red');
+                } else if (status.includes('validated') || status.includes('allocated')) {
+                    return createStatusText(item.status, 'green');
+                } else if (status.includes('pendingvalidation')) {
+                    return createStatusText(item.status, 'orange');  // Color for pending validation
+                } else {
+                    return createStatusText(item.status, 'gray');    // Default/unknown status
+                }
+            }).join(' ');
+        } else {
+            // Handle case when statusArray is empty or undefined
+            return `<span class="status status-gray">Unknown</span>`;
         }
     }
-    
+
     var searchTerm = ""; // global variable to hold the search term
 
     function updateSearchTerm(term) {
@@ -123,8 +144,8 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Name') }}", field:"name", width:250, resizable:false, headerSort:true, formatter: domainLinkFormatter, responsive:0},
-            {title:"{{ __('Applicant') }}", width:150, field:"registrant_identifier", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Name') }}", field:"name", width:200, resizable:false, headerSort:true, formatter: domainLinkFormatter, responsive:0},
+            {title:"{{ __('Applicant') }}", width:200, field:"registrant_identifier", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Creation Date') }}", width:250, minWidth:150, field:"crdate", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Phase') }}", width:150, minWidth:100, field:"phase_type", formatter: phaseFormatter, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Status') }}", width:200, field:"application_status", formatter: statusFormatter, resizable:false, headerSort:true, download:false, responsive:2},
