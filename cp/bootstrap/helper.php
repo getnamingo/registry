@@ -211,26 +211,41 @@ function validate_identifier($identifier) {
     }
 }
 
+function isDomainValid(string $domain): bool {
+    // Split the domain into its labels (subdomains, SLD, etc.)
+    $labels = explode('.', $domain);
+    foreach ($labels as $label) {
+        if (strlen($label) > 63) { // or mb_strlen() if you need multibyte support
+            return false;
+        }
+    }
+    return true;
+}
+
 function validate_label($label, $db) {
     if (!$label) {
         return 'You must enter a domain name';
     }
-    if (strlen($label) > 63) {
-        return 'Total lenght of your domain must be less then 63 characters';
+    if (!isDomainValid($label)) {
+        return 'Domain label is too long (exceeds 63 characters)';
     }
-    if (strlen($label) < 2) {
-        return 'Total lenght of your domain must be greater then 2 characters';
+    $parts = extractDomainAndTLD($label);
+    $tld = "." . $parts['tld'];
+    if (strlen($parts['domain']) > 63) {
+        return 'Total length of your domain must be less then 63 characters';
+    }
+    if (strlen($parts['domain']) < 2) {
+        return 'Total length of your domain must be greater then 2 characters';
     }
     if (strpos($label, '.') === false) {
         return 'Invalid domain name format, must contain at least one dot (.)';
     }
-    if (strpos($label, 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $label)) {
-        return 'Invalid domain name format, cannot begin or end with a hyphen (-)';
+    if (!preg_match('/^[a-zA-Z0-9].*[a-zA-Z0-9]$/', $parts['domain'])) {
+        return 'Domain name must start and end with an alphanumeric character';
     }
-    
-    // Extract TLD from the domain and prepend a dot
-    $parts = extractDomainAndTLD($label);
-    $tld = "." . $parts['tld'];
+    if (strpos($parts['domain'], 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $parts['domain'])) {
+        return 'Domain name cannot contain consecutive dashes (--) unless it is a punycode domain';
+    }
 
     // Check if the TLD exists in the domain_tld table
     $tldExists = $db->select('SELECT COUNT(*) FROM domain_tld WHERE tld = ?', [$tld]);
