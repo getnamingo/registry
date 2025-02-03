@@ -1,14 +1,15 @@
 {
     "require": {
-        "badcow/dns": "^4.2",
-        "phpseclib/phpseclib": "^3.0",
-        "phpbu/phpbu": "^6.0",
-        "setbased/php-audit": "^1.9",
-        "monolog/monolog": "^3.7",
+        "badcow/dns": "^4.3",
+        "phpseclib/phpseclib": "^3.0.43",
+        "phpbu/phpbu": "^6.0.29",
+        "setbased/php-audit": "^1.10.0",
+        "monolog/monolog": "^3.8.1",
         "league/flysystem": "^3.28",
         "league/flysystem-sftp-v3": "^3.28",
         "peppeocchi/php-cron-scheduler": "^4.0",
         "predis/predis": "^2.2",
-        "guzzlehttp/guzzle": "^7.9"
+        "guzzlehttp/guzzle": "^7.9",
+        "league/flysystem-ftp": "^3.29"
     }
 }

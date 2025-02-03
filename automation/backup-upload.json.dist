@@ -1,5 +1,15 @@
 {
     "storageType": "sftp",
+    "ftp": {
+        "host": "your_sftp_host",
+        "username": "your_username",
+        "password": "your_password",
+        "port": 21,
+        "basePath": "/",
+        "passive": true,
+        "ssl": false,
+        "timeout": 30
+    },
     "sftp": {
         "host": "your_sftp_host",
         "username": "your_username",

@@ -4,6 +4,8 @@ require __DIR__ . '/vendor/autoload.php';
 require_once 'helpers.php';
 
 use League\Flysystem\Filesystem;
+use League\Flysystem\Ftp\FtpAdapter;
+use League\Flysystem\Ftp\FtpConnectionOptions;
 use League\Flysystem\PhpseclibV3\SftpConnectionProvider;
 use League\Flysystem\PhpseclibV3\SftpAdapter;
 use League\Flysystem\UnixVisibility\PortableVisibilityConverter;
@@ -62,6 +64,22 @@ switch ($storageType) {
         ]);
 
         $adapter = new SftpAdapter($sftpProvider, $sftpSettings['basePath'], $visibilityConverter);
+        break;
+    case 'ftp':
+        $ftpSettings = $config['ftp'];
+
+        $connectionOptions = FtpConnectionOptions::fromArray([
+            'host' => $ftpSettings['host'],
+            'username' => $ftpSettings['username'],
+            'password' => $ftpSettings['password'],
+            'port' => $ftpSettings['port'] ?? 21,
+            'root' => $ftpSettings['basePath'] ?? '/',
+            'passive' => $ftpSettings['passive'] ?? true,
+            'ssl' => $ftpSettings['ssl'] ?? false,
+            'timeout' => $ftpSettings['timeout'] ?? 30,
+        ]);
+
+        $adapter = new FtpAdapter($connectionOptions);
         break;
     case 'dropbox':
         $dropboxSettings = $config['dropbox'];
