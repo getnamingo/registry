@@ -1,0 +1,83 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Registrar Transfer') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Registrar Transfer') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h3 class="card-title">{{ __('Current') }} {{ __('Registrar') }} {{ registrar.name }}</h3>
+                    <div class="card-actions">
+                      <form action="/registrar/process" method="post">
+                      {{ csrf.field | raw }}
+                      <a href="/registrar/update/{{ registrar.clid }}" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
+                        {{ __('Back') }}
+                      </a>
+                      <button type="submit" class="btn btn-danger">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8" /><path d="M14 19l2 2l4 -4" /><path d="M9 8h4" /><path d="M9 12h2" /></svg>
+                        {{ __('Transfer Registrar') }}
+                      </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">                        
+                      {% if registrars %}
+                      <div class="mb-3">
+                        <label for="registrarDropdown" class="form-label required">{{ __('Gaining Registrar') }}</label>
+                        <select id="registrarDropdown" name="registrar" class="form-select">
+                          {% for registrar in registrars %}
+                          <option value="{{ registrar.id }}">{{ registrar.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      {% endif %}
+                      <div class="alert alert-danger shadow-sm border-danger" role="alert">
+                          <h2 class="alert-heading fw-bold text-danger">
+                            ⚠️ {{ __('Final Confirmation Required') }}
+                          </h2>
+                          <p class="fs-5">
+                            {{ __('This action will') }} <strong class="text-warning">{{ __('initiate the transfer') }}</strong> {{ __('of all 
+                            registrar-related objects to another accredited registrar.') }}
+                          </p>
+                          <p class="fs-5 text-danger">
+                            <strong>{{ __('The current registrar will be permanently closed') }}</strong> {{ __('after the transfer is complete.') }}
+                          </p>
+                          <hr class="my-3 border-danger">
+                          <p class="fs-6 text-muted">
+                            {{ __('Please') }} <strong class="text-danger">{{ __('proceed with extreme caution') }}</strong> {{ __('as this action is') }} 
+                            <u>{{ __('irreversible') }}</u>.
+                          </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

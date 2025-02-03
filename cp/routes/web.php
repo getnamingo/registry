@@ -96,6 +96,8 @@ $app->group('', function ($route) {
     $route->get('/registrar', RegistrarsController::class .':registrar')->setName('registrar');
     $route->map(['GET', 'POST'], '/registrar/edit', RegistrarsController::class .':editRegistrar')->setName('editRegistrar');
     $route->get('/registrar/check', RegistrarsController::class . ':oteCheck')->setName('oteCheck');
+    $route->map(['GET', 'POST'], '/registrar/transfer', RegistrarsController::class . ':transferRegistrar')->setName('transferRegistrar');
+    $route->map(['GET', 'POST'], '/registrar/process', RegistrarsController::class . ':transferRegistrarProcess')->setName('transferRegistrarProcess');
     $route->get('/registrar/impersonate/{registrar}', RegistrarsController::class . ':impersonateRegistrar')->setName('impersonateRegistrar');
     $route->get('/leave_impersonation', RegistrarsController::class . ':leave_impersonation')->setName('leave_impersonation');
 

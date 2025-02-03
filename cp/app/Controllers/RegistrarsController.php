@@ -1265,6 +1265,131 @@ class RegistrarsController extends Controller
         }
     }
 
+    public function transferRegistrar(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        // Retrieve POST data
+        $data = $request->getParsedBody();
+        $db = $this->container->get('db');
+
+        if (!empty($_SESSION['registrars_to_update'])) {
+            $registrar = $db->selectRow('SELECT id, name, clid FROM registrar WHERE clid = ?',
+            [ $_SESSION['registrars_to_update'][0] ]);
+            $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        } else {
+            $this->container->get('flash')->addMessage('error', 'No registrar specified for update');
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+
+        return view($response,'admin/registrars/transferRegistrar.twig', [
+            'registrars' => $registrars,
+            'registrar' => $registrar,
+        ]);
+    }
+
+    public function transferRegistrarProcess(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+
+            if (isset($data['registrar'], $_SESSION['registrars_to_update'])) {
+                $registrar = $db->selectRow('SELECT id, name, clid FROM registrar WHERE clid = ?',
+                [ $_SESSION['registrars_to_update'][0] ]);
+                if ((int) $data['registrar'] === (int) $registrar['id']) {
+                    $this->container->get('flash')->addMessage('error', 'You cannot transfer registrar objects to the current registrar; please select a different registrar to proceed');
+                    return $response->withHeader('Location', '/registrars')->withStatus(302);
+                }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'An unexpected error occurred during the registrar transfer process. Please restart the process to ensure proper completion');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+            $db->beginTransaction();
+
+            try {
+                $db->update(
+                    'application',
+                    [
+                        'clid' => $data['registrar']
+                    ],
+                    [
+                        'clid' => $registrar['id']
+                    ]
+                );
+
+                $db->update(
+                    'contact',
+                    [
+                        'clid' => $data['registrar']
+                    ],
+                    [
+                        'clid' => $registrar['id']
+                    ]
+                );
+
+                $db->update(
+                    'domain',
+                    [
+                        'clid' => $data['registrar']
+                    ],
+                    [
+                        'clid' => $registrar['id']
+                    ]
+                );
+
+                $db->update(
+                    'host',
+                    [
+                        'clid' => $data['registrar']
+                    ],
+                    [
+                        'clid' => $registrar['id']
+                    ]
+                );
+
+                $db->delete(
+                    'registrar_users',
+                    [
+                        'registrar_id' => $registrar['id']
+                    ]
+                );
+
+                $db->update(
+                    'registrar',
+                    [
+                        'pw' => generateAuthInfo()
+                    ],
+                    [
+                        'id' => $registrar['id']
+                    ]
+                );
+
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+            unset($_SESSION['registrars_to_update']);
+            $this->container->get('flash')->addMessage('success', 'Registrar ' . $data['name'] . ' has been disabled, and all associated objects have been successfully transferred away');
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        } else {
+            // Redirect to the registrars view
+            unset($_SESSION['registrars_to_update']);
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+    }
+
     public function impersonateRegistrar(Request $request, Response $response, $args)
     {
         if ($_SESSION["auth_roles"] != 0) {
