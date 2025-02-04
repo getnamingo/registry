@@ -94,24 +94,66 @@
 
                     <!-- Role -->
                     <div class="row">
-                      <div class="col-md-12">
+                      <div class="col-md-6">
                         <div class="mb-3">
-                          <label class="form-label">{{ __('Role') }}</label>
+                          <label class="form-label">{{ __('Type') }}</label>
                           <div class="form-control-plaintext">
                             {% if user.roles_mask == 0 %}
-                              {{ __('Admin') }}
-                            {% elseif user.roles_mask == 4 %}
-                              {{ __('Registrar') }}
-                              {% if user_asso is defined and user_asso is not null %}
-                                - {{ __('Associated with Registrar') }} {{ registrar_name }}
-                              {% endif %}
+                                {{ __('Admin') }}
                             {% else %}
-                              {{ __('Unknown Role') }}
+                                {# Display Assigned Roles #}
+                                {% set assigned_roles = [] %}
+                                {% if roles_new['4'] %} 
+                                    {% set assigned_roles = assigned_roles | merge([__('Registrar')]) %}
+                                {% endif %}
+                                {% if roles_new['8'] %} 
+                                    {% set assigned_roles = assigned_roles | merge([__('Accountant')]) %}
+                                {% endif %}
+                                {% if roles_new['16'] %} 
+                                    {% set assigned_roles = assigned_roles | merge([__('Support')]) %}
+                                {% endif %}
+                                {% if roles_new['32'] %} 
+                                    {% set assigned_roles = assigned_roles | merge([__('Auditor')]) %}
+                                {% endif %}
+                                {% if roles_new['64'] %} 
+                                    {% set assigned_roles = assigned_roles | merge([__('Sales')]) %}
+                                {% endif %}
+
+                                {{ assigned_roles | join(', ') }}
+
+                                {# Show association if the user is a Registrar and associated with another registrar #}
+                                {% if roles_new['4'] and user_asso is defined and user_asso is not null %}
+                                    - {{ __('Associated with Registrar') }} {{ registrar_name }}
+                                {% endif %}
                             {% endif %}
                           </div>
                         </div>
                       </div>
+
+                      {% if user.roles_mask != 0 %}
+                        {% if user.roles_mask == 4 %}
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label class="form-label">{{ __('Roles') }}</label>
+                            <span class="badge bg-blue-lt">{{ __('Registrar Administrator') }}</span>
+                          </div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label class="form-label">{{ __('Manage Roles') }}</label>
+                            <select class="form-select" id="select-roles" name="roles_mask[]" multiple>
+                              <option value="8"  {{ roles_new['8']  ? 'selected' : '' }}>{{ __('Accountant') }}</option>
+                              <option value="16" {{ roles_new['16'] ? 'selected' : '' }}>{{ __('Support') }}</option>
+                              <option value="32" {{ roles_new['32'] ? 'selected' : '' }}>{{ __('Auditor') }}</option>
+                              <option value="64" {{ roles_new['64'] ? 'selected' : '' }}>{{ __('Sales') }}</option>
+                            </select>
+                          </div>
+                        </div>
+                        {% endif %}
+                      {% endif %}
                     </div>
+
                   </div>
                       
                   <div class="card-footer text-end">
@@ -126,4 +168,51 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    var el;
+    window.TomSelect && (new TomSelect(el = document.getElementById('select-roles'), {
+        copyClassesToDropdown: false,
+        dropdownParent: 'body',
+        controlInput: '<input>',
+        render:{
+            item: function(data,escape) {
+                if( data.customProperties ){
+                    return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
+                }
+                return '<div>' + escape(data.text) + '</div>';
+            },
+            option: function(data,escape){
+                if( data.customProperties ){
+                    return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
+                }
+                return '<div>' + escape(data.text) + '</div>';
+            },
+        },
+    }));
+});
+
+document.querySelector('form').addEventListener('submit', function (e) {
+  const select = document.getElementById('select-roles');
+  let rolesMask = 0;
+
+  // Loop through selected options and combine their values using bitwise OR
+  for (const option of select.selectedOptions) {
+    rolesMask |= parseInt(option.value);
+  }
+
+  // Create a hidden input to send the combined roles_mask to the server
+  const hiddenInput = document.createElement('input');
+  hiddenInput.type = 'hidden';
+  hiddenInput.name = 'roles_mask';
+  hiddenInput.value = rolesMask;
+
+  // Append the hidden input to the form
+  this.appendChild(hiddenInput);
+
+  // Optional: Disable the select to avoid sending duplicate data
+  select.disabled = true;
+});
+</script>
+<script src="/assets/libs/tom-select/dist/js/tom-select.base.min.js" defer></script>
 {% endblock %}

@@ -7,7 +7,7 @@
     var table;
    
     document.addEventListener("DOMContentLoaded", function(){
-    function userLinkFormatter(cell){
+    function emailLinkFormatter(cell){
         var value = cell.getValue();
         return `<span style="font-weight:bold;">${value}</a>`;
     }
@@ -28,14 +28,33 @@
 
     function roleLabelFormatter(cell) {
         var value = cell.getValue();
+
+        // Define role mappings with labels and styles
+        var roles = [
+            { bit: 0, label: 'Administrator', class: 'status status-purple' },
+            { bit: 4, label: 'Registrar', class: 'status status-indigo' },
+            { bit: 8, label: 'Accountant', class: 'status status-green' },
+            { bit: 16, label: 'Support', class: 'status status-azure' },
+            { bit: 32, label: 'Auditor', class: 'status status-orange' },
+            { bit: 64, label: 'Sales', class: 'status status-teal' }
+        ];
+
+        // Special case for Administrator (no roles assigned)
         if (value === 0) {
             return '<span class="status status-purple">Administrator</span>';
-        } else if (value === 4) {
-            return '<span class="status status-indigo">Registrar</span>';
-        } else if (value === 6) {
-            return '<span class="status status-azure">Registrar Assistant</span>';
         }
-        return value; // If the value is neither 0 nor 4, return it as is
+
+        // Check assigned roles using bitmask
+        var assignedRoles = roles
+            .filter(function (role) {
+                return role.bit !== 0 && (value & role.bit);
+            })
+            .map(function (role) {
+                return '<span class="' + role.class + '">' + role.label + '</span>';
+            });
+
+        // Join assigned roles with separators
+        return assignedRoles.length > 0 ? assignedRoles.join(', ') : '<span class="status status-secondary">Unknown Role</span>';
     }
     
     function verifiedFormatter(cell) {
@@ -144,10 +163,10 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Name') }}", field:"username", width:200, resizable:false, headerSort:true, formatter: userLinkFormatter, responsive:0},
-            {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
-            {title:"{{ __('Roles') }}", field:"roles_mask", width:200, resizable:false, headerSort:true, formatter: roleLabelFormatter, responsive:2},
-            {title:"{{ __('Verified') }}", field:"verified", width:200, resizable:false, headerSort:true, formatter: verifiedFormatter, responsive:2},
+            {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, formatter: emailLinkFormatter, responsive:0},
+            {title:"{{ __('User Name') }}", field:"username", width:200, resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Roles') }}", field:"roles_mask", width:300, resizable:false, headerSort:true, formatter: roleLabelFormatter, responsive:2},
+            {title:"{{ __('Verified') }}", field:"verified", width:150, resizable:false, headerSort:true, formatter: verifiedFormatter, responsive:2},
             {title:"{{ __('Status') }}", field:"status", width:200, resizable:false, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
         ]

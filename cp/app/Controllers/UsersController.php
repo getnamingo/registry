@@ -104,7 +104,7 @@ class UsersController extends Controller
                                 'password' => $password_hashed,
                                 'username' => $username,
                                 'verified' => $verified,
-                                'roles_mask' => 6,
+                                'roles_mask' => 4,
                                 'status' => $status,
                                 'registered' => \time()
                             ]
@@ -205,12 +205,21 @@ class UsersController extends Controller
 
                 $_SESSION['user_to_update'] = [$args];
 
+                $roles_new = [
+                    '4'  => ($user['roles_mask'] & 4)  ? true : false, // Registrar
+                    '8'  => ($user['roles_mask'] & 8)  ? true : false, // Accountant
+                    '16' => ($user['roles_mask'] & 16) ? true : false, // Support
+                    '32' => ($user['roles_mask'] & 32) ? true : false, // Auditor
+                    '64' => ($user['roles_mask'] & 64) ? true : false, // Sales
+                ];
+
                 return view($response,'admin/users/updateUser.twig', [
                     'user' => $user,
                     'currentUri' => $uri,
                     'registrars' => $registrars,
                     'user_asso' => $user_asso,
-                    'registrar_name' => $registrar_name
+                    'registrar_name' => $registrar_name,
+                    'roles_new' => $roles_new
                 ]);
             } else {
                 // User does not exist, redirect to the users view
@@ -240,6 +249,10 @@ class UsersController extends Controller
             $password_confirmation = $data['password_confirmation'] ?? null;
             $status = $data['status'] ?? null;
             $verified = $data['verified'] ?? null;
+            $roles_mask = $data['roles_mask'] ?? 0;
+
+            $allowedRoles = [0, 2, 4, 8, 16, 32, 64];
+            $allowedRolesMask = array_sum($allowedRoles); // 124 (sum of allowed roles)
 
             // Define validation rules
             $validators = [
@@ -248,6 +261,14 @@ class UsersController extends Controller
                 'status' => v::in(['0', '1', '2', '3', '4', '5'])->setName('Status'),
                 'verified' => v::in(['0', '1'])->setName('Verified'), // Ensure verified is checked as 0 or 1
             ];
+
+            // Add custom validation for roles_mask
+            $validators['roles_mask'] = v::oneOf(
+                v::intVal()->callback(function ($value) use ($allowedRolesMask) {
+                    return ($value & ~$allowedRolesMask) === 0; // Ensure only allowed roles are included
+                }),
+                v::nullType() // Allow null as a valid value
+            )->setName('Roles Mask');
 
             // Add password validation only if provided
             if (!empty($password)) {
@@ -289,6 +310,11 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
+            if (in_array($roles_mask, [0, '0'], true)) {
+                $this->container->get('flash')->addMessage('error', 'No roles assigned. Please assign at least one role');
+                return $response->withHeader('Location', '/user/update/' . $old_username)->withStatus(302);
+            }
+
             $db->beginTransaction();
 
             try {
@@ -301,6 +327,7 @@ class UsersController extends Controller
                     'username'   => $username,
                     'verified'   => $verified,
                     'status' => $status,
+                    'roles_mask' => $roles_mask,
                 ];
 
                 if (!empty($password)) {
