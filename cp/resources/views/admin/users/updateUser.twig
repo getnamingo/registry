@@ -1,0 +1,126 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Update User') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Update User') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <form method="post" action="/user/update" id="update-user-form">
+              {{ csrf.field | raw }}
+                <div class="card">
+                  <div class="card-body">
+                    <div class="row">
+                      <!-- Email -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label required">{{ __('Email') }}</label>
+                          <input type="email" class="form-control" name="email" value="{{ user.email }}" placeholder="{{ __('Enter email') }}" required>
+                        </div>
+                      </div>
+                          
+                      <!-- Username -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label required">{{ __('Username') }}</label>
+                          <input type="text" class="form-control" name="username" value="{{ user.username }}" placeholder="{{ __('Enter username') }}" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <!-- Password -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">{{ __('Password') }}</label>
+                          <input type="password" class="form-control" name="password" placeholder="{{ __('Enter password') }}">
+                        </div>
+                      </div>
+                          
+                      <!-- Confirm Password -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">{{ __('Confirm Password') }}</label>
+                          <input type="password" class="form-control" name="password_confirmation" placeholder="{{ __('Confirm password') }}">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <!-- Status -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label required">{{ __('Status') }}</label>
+                          <select class="form-select" name="status" required>
+                            <option value="0" {{ user.status == 0 ? 'selected' : '' }}>{{ __('Active') }}</option>
+                            <option value="1" {{ user.status == 1 ? 'selected' : '' }}>{{ __('Inactive') }}</option>
+                          </select>
+                        </div>
+                      </div>
+                          
+                      <!-- Verified -->
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label required">{{ __('Verified') }}</label>
+                          <select class="form-select" name="verified" required>
+                            <option value="1" {{ user.verified == 1 ? 'selected' : '' }}>{{ __('Yes') }}</option>
+                            <option value="0" {{ user.verified == 0 ? 'selected' : '' }}>{{ __('No') }}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="row">
+                      <div class="col-md-12">
+                        <div class="mb-3">
+                          <label class="form-label">{{ __('Role') }}</label>
+                          <div class="form-control-plaintext">
+                            {% if user.roles_mask == 0 %}
+                              {{ __('Admin') }}
+                            {% elseif user.roles_mask == 4 %}
+                              {{ __('Registrar') }}
+                              {% if user_asso is defined and user_asso is not null %}
+                                - {{ __('Associated with Registrar') }} {{ registrar_name }}
+                              {% endif %}
+                            {% else %}
+                              {{ __('Unknown Role') }}
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                      
+                  <div class="card-footer text-end">
+                    <div class="d-flex">
+                      <button type="submit" class="btn btn-primary">{{ __('Update User') }}</button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

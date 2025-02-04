@@ -103,6 +103,8 @@ $app->group('', function ($route) {
 
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     $route->map(['GET', 'POST'], '/user/create', UsersController::class . ':createUser')->setName('createUser');
+    $route->get('/user/update/{user}', UsersController::class . ':updateUser')->setName('updateUser');
+    $route->post('/user/update', UsersController::class . ':updateUserProcess')->setName('updateUserProcess');
 
     $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
     $route->get('/poll', LogsController::class .':poll')->setName('poll');
