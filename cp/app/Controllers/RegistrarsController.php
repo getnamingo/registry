@@ -1409,10 +1409,19 @@ class RegistrarsController extends Controller
         if ($args) {
             $args = trim($args);
 
-            $registrar_id = $db->selectValue('SELECT id FROM registrar WHERE clid = ?',
-            [ $args ]);
-            $user_id = $db->selectValue('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
-            [ $registrar_id ]);
+            $user_id = $db->selectValue('
+                SELECT ru.user_id
+                FROM registrar r
+                JOIN registrar_users ru ON ru.registrar_id = r.id
+                JOIN users u ON u.id = ru.user_id
+                WHERE r.clid = ? AND u.roles_mask = 4
+                ORDER BY ru.user_id ASC
+            ', [ $args ]);
+
+            if (!$user_id) {
+                $this->container->get('flash')->addMessage('error', 'No user with the Registrar role is associated with this registrar');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
 
             Auth::impersonateUser($user_id);
         } else {
