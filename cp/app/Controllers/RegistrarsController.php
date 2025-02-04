@@ -1313,6 +1313,9 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrars')->withStatus(302);
             }
 
+            $user_id = $db->selectValue('SELECT user_id FROM registrar_users WHERE registrar_id = ?',
+            [ $registrar['id'] ]);
+
             $db->beginTransaction();
 
             try {
@@ -1356,12 +1359,17 @@ class RegistrarsController extends Controller
                     ]
                 );
 
-                $db->delete(
-                    'registrar_users',
-                    [
-                        'registrar_id' => $registrar['id']
-                    ]
-                );
+                if (!empty($user_id)) {
+                    $db->update(
+                        'users',
+                        [
+                            'status' => 1
+                        ],
+                        [
+                            'id' => $user_id
+                        ]
+                    );
+                }
 
                 $db->update(
                     'registrar',
