@@ -20,7 +20,7 @@ msgid "Expiry Date"
 msgstr "Термін дії"
 
 msgid "Status"
-msgstr "Стан"
+msgstr "Статус"
 
 msgid "Actions"
 msgstr "Дії"
@@ -320,7 +320,7 @@ msgid "Ticket"
 msgstr "Тікет"
 
 msgid "Unknown Status"
-msgstr "Невідомий стан"
+msgstr "Невідомий статус"
 
 msgid "Ticket Details"
 msgstr "Деталі тікету"
@@ -350,7 +350,7 @@ msgid "Create Ticket"
 msgstr "Створити тікет"
 
 msgid "Create Domain"
-msgstr "Створіть домен"
+msgstr "Створити домен"
 
 msgid "Your Domain Name"
 msgstr "Ваше доменне ім'я"
@@ -740,7 +740,7 @@ msgid "Current Balance for"
 msgstr "Поточний баланс для"
 
 msgid "Enter deposit amount"
-msgstr "Введіть сумму депозиту"
+msgstr "Введіть суму депозиту"
 
 msgid "Optional deposit description"
 msgstr "Необов'язковий опис депозиту"
@@ -827,7 +827,7 @@ msgid "Website"
 msgstr "Сайт"
 
 msgid "Abuse Phone"
-msgstr "Телефон для порушення"
+msgstr "Телефон для скарг"
 
 msgid "Abuse Email"
 msgstr "Електронна пошта для скарг"
@@ -1157,7 +1157,7 @@ msgid "Create New Phase"
 msgstr "Створити нову фазу"
 
 msgid "Single application only."
-msgstr "Тільки одна заявка."
+msgstr "Лише одна заявка."
 
 msgid "Multiple applications allowed."
 msgstr "Дозволено кілька заяви."
