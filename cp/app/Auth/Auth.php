@@ -144,6 +144,23 @@ class Auth
 
             $auth->login($email, $password, $rememberDuration);
 
+            if ($auth->isArchived()) {
+                self::$auth->logOut();
+                redirect()->route('login')->with('error','User has been archived, please contact registry support');
+            }
+            if ($auth->isBanned()) {
+                self::$auth->logOut();
+                redirect()->route('login')->with('error','User has been banned, please contact registry support');
+            }
+            if ($auth->isPendingReview()) {
+                self::$auth->logOut();
+                redirect()->route('login')->with('error','User is pending review, please contact registry support');
+            }
+            if ($auth->isSuspended()) {
+                self::$auth->logOut();
+                redirect()->route('login')->with('error','User has been suspended, please contact registry support');
+            }
+
             // check if a valid code is provided
             global $container;
             $db = $container->get('db');

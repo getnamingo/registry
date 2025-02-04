@@ -51,12 +51,37 @@
     }
 
     function statusBadgeFormatter(cell) {
-        var value = cell.getValue();
-        if (value === 0) {
-            return '<span class="status status-green">ok</span>';
-        } else {
-            return '<span class="status status-red">Trouble</span>';
+        const value = cell.getValue();
+        let badgeClass = 'secondary';
+        let statusText = 'Unknown';
+
+        switch (value) {
+            case 0: // NORMAL
+                badgeClass = 'success';
+                statusText = 'Normal';
+                break;
+            case 1: // ARCHIVED
+                badgeClass = 'dark';
+                statusText = 'Archived';
+                break;
+            case 2: // BANNED
+                badgeClass = 'danger';
+                statusText = 'Banned';
+                break;
+            case 4: // PENDING_REVIEW
+                badgeClass = 'warning';
+                statusText = 'Pending Review';
+                break;
+            case 5: // SUSPENDED
+                badgeClass = 'info';
+                statusText = 'Suspended';
+                break;
+            default:
+                badgeClass = 'secondary';
+                statusText = 'Unknown';
         }
+
+        return `<span class="status status-${badgeClass}">${statusText}</span>`;
     }
     
     var searchTerm = ""; // global variable to hold the search term
@@ -122,8 +147,8 @@
             {title:"{{ __('Name') }}", field:"username", width:200, resizable:false, headerSort:true, formatter: userLinkFormatter, responsive:0},
             {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Roles') }}", field:"roles_mask", width:200, resizable:false, headerSort:true, formatter: roleLabelFormatter, responsive:2},
-            {title:"{{ __('Verified') }}", field:"verified", width:150, resizable:false, headerSort:true, formatter: verifiedFormatter, responsive:2},
-            {title:"{{ __('Status') }}", field:"status", width:150, resizable:false, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
+            {title:"{{ __('Verified') }}", field:"verified", width:200, resizable:false, headerSort:true, formatter: verifiedFormatter, responsive:2},
+            {title:"{{ __('Status') }}", field:"status", width:200, resizable:false, headerSort:true, formatter: statusBadgeFormatter, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
         ]
     });

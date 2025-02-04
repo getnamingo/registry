@@ -47,7 +47,7 @@ class UsersController extends Controller
                 'username' => v::regex('/^[a-zA-Z0-9_-]+$/')->length(3, 20)->setName('Username'),
                 'password' => v::stringType()->notEmpty()->length(6, 255)->setName('Password'),
                 'password_confirmation' => v::equals($data['password'] ?? '')->setName('Password Confirmation'),
-                'status' => v::in(['active', 'inactive'])->setName('Status'),
+                'status' => v::in(['0', '4'])->setName('Status'),
                 'role' => v::in(['admin', 'registrar'])->setName('Role'),
             ];
 
@@ -105,6 +105,7 @@ class UsersController extends Controller
                                 'username' => $username,
                                 'verified' => $verified,
                                 'roles_mask' => 6,
+                                'status' => $status,
                                 'registered' => \time()
                             ]
                         );
@@ -141,6 +142,7 @@ class UsersController extends Controller
                                 'username' => $username,
                                 'verified' => $verified,
                                 'roles_mask' => 0,
+                                'status' => $status,
                                 'registered' => \time()
                             ]
                         );
@@ -243,7 +245,7 @@ class UsersController extends Controller
             $validators = [
                 'email' => v::email()->notEmpty()->setName('Email'),
                 'username' => v::regex('/^[a-zA-Z0-9_-]+$/')->length(3, 20)->setName('Username'),
-                'status' => v::in(['0', '1'])->setName('Status'),
+                'status' => v::in(['0', '1', '2', '3', '4', '5'])->setName('Status'),
                 'verified' => v::in(['0', '1'])->setName('Verified'), // Ensure verified is checked as 0 or 1
             ];
 

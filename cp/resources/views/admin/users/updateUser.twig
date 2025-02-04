@@ -72,11 +72,14 @@
                           <label class="form-label required">{{ __('Status') }}</label>
                           <select class="form-select" name="status" required>
                             <option value="0" {{ user.status == 0 ? 'selected' : '' }}>{{ __('Active') }}</option>
-                            <option value="1" {{ user.status == 1 ? 'selected' : '' }}>{{ __('Inactive') }}</option>
+                            <option value="1" {{ user.status == 1 ? 'selected' : '' }}>{{ __('Archived') }}</option>
+                            <option value="2" {{ user.status == 2 ? 'selected' : '' }}>{{ __('Banned') }}</option>
+                            <option value="4" {{ user.status == 4 ? 'selected' : '' }}>{{ __('Pending Review') }}</option>
+                            <option value="5" {{ user.status == 5 ? 'selected' : '' }}>{{ __('Suspended') }}</option>
                           </select>
                         </div>
                       </div>
-                          
+
                       <!-- Verified -->
                       <div class="col-md-6">
                         <div class="mb-3">
