@@ -121,8 +121,8 @@
 
                                 {{ assigned_roles | join(', ') }}
 
-                                {# Show association if the user is a Registrar and associated with another registrar #}
-                                {% if roles_new['4'] and user_asso is defined and user_asso is not null %}
+                                {# Show association if the user is associated with another registrar #}
+                                {% if user_asso is defined and user_asso is not null %}
                                     - {{ __('Associated with Registrar') }} {{ registrar_name }}
                                 {% endif %}
                             {% endif %}
