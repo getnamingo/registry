@@ -95,19 +95,34 @@
                             <input type="number" step="0.01" class="form-control" id="accountBalance" name="accountBalance" value="0" required>
                             <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
-                          <div class="mb-3">
-                            <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" value="0" required>
-                            <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
+                          <div class="row">
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
+                                <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" value="0" required>
+                                <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
+                                <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required>
+                                <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
                         <!-- Second Column -->
                         <div class="col-md-4">
                           <div class="mb-3">
-                            <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required>
-                            <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
+                            <label for="registryCurrency" class="form-label required">{{ __('Currency') }}</label>
+                            <select class="form-select" id="registryCurrency" name="currency" required="required">
+                                {% for currencyCode, currencyName in uniqueCurrencies %}
+                                    <option value="{{ currencyCode }}" {% if currency == currencyCode %}selected{% endif %}>{{ currencyName }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">{{ __('Choose the currency for all registrar transactions.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="thresholdType" class="form-label required">{{ __('Threshold Type') }}</label>

@@ -95,19 +95,34 @@
                             <div class="form-control-plaintext">{{ currency }} {{ registrar.accountBalance }}</div>
                             <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
-                          <div class="mb-3">
-                            <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" required value="{{ registrar.creditLimit }}">
-                            <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
+                          <div class="row">
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="creditLimit" class="form-label required">{{ __('Credit Limit') }}</label>
+                                <input type="number" step="0.01" class="form-control" id="creditLimit" name="creditLimit" required value="{{ registrar.creditLimit }}">
+                                <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
+                                <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required value="{{ registrar.creditThreshold }}">
+                                <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
                         <!-- Second Column -->
                         <div class="col-md-4">
                           <div class="mb-3">
-                            <label for="creditThreshold" class="form-label required">{{ __('Credit Threshold') }}</label>
-                            <input type="number" step="0.01" class="form-control" id="creditThreshold" name="creditThreshold" required value="{{ registrar.creditThreshold }}">
-                            <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
+                            <label for="registryCurrency" class="form-label required">{{ __('Currency') }}</label>
+                            <select class="form-select" id="registryCurrency" name="currency" required="required">
+                                {% for currencyCode, currencyName in uniqueCurrencies %}
+                                    <option value="{{ currencyCode }}" {% if registrar.currency == currencyCode %}selected{% endif %}>{{ currencyName }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">{{ __('Choose the currency for all registrar transactions.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="thresholdType" class="form-label">{{ __('Threshold Type') }}</label>
@@ -120,7 +135,7 @@
                         <div class="col-md-4">
                           <div class="mb-3">
                             <label for="companyNumber" class="form-label">{{ __('Company Number') }}</label>
-                            <div class="form-control-plaintext">{{ registrar.companyNumber }}</div>
+                            <div class="form-control-plaintext">{{ registrar.companyNumber|default('N/A') }}</div>
                             <small class="text-muted">{{ __('Official registration number provided by the relevant authority.') }}</small>
                           </div>
                           <div class="mb-3">

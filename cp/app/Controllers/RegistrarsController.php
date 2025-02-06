@@ -62,6 +62,7 @@ class RegistrarsController extends Controller
 
             $validators = [
                 'name' => v::stringType()->notEmpty()->length(1, 255),
+                'currency' => v::stringType()->notEmpty()->length(1, 5),
                 'ianaId' => v::optional(v::positive()->length(1, 5)),
                 'email' => v::email(),
                 'owner' => v::optional(v::keySet(...$contactValidator)),
@@ -124,7 +125,6 @@ class RegistrarsController extends Controller
                 for ($i = 0; $i < 2; $i++) {
                     $randomPrefix .= $characters[rand(0, strlen($characters) - 1)];
                 }
-                $currency = $_SESSION['_currency'] ?? 'USD';
                 $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
                 
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
@@ -156,7 +156,7 @@ class RegistrarsController extends Controller
                         'thresholdType' => $data['thresholdType'],
                         'companyNumber' => $data['companyNumber'],
                         'vatNumber' => $data['vatNumber'],
-                        'currency' => $currency,
+                        'currency' => $data['currency'],
                         'crdate' => $crdate,
                         'lastupdate' => $crdate
                     ]
@@ -298,9 +298,20 @@ class RegistrarsController extends Controller
         $iso3166 = new ISO3166();
         $countries = $iso3166->all();
         
+        $uniqueCurrencies = [];
+        foreach ($countries as $country) {
+            // Assuming each country has a 'currency' field with an array of currencies
+            foreach ($country['currency'] as $currencyCode) {
+                if (!array_key_exists($currencyCode, $uniqueCurrencies)) {
+                    $uniqueCurrencies[$currencyCode] = $currencyCode; // Or any other currency detail you have
+                }
+            }
+        }
+        
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/registrars/create.twig', [
             'countries' => $countries,
+            'uniqueCurrencies' => $uniqueCurrencies,
         ]);
     }
     
@@ -513,6 +524,16 @@ class RegistrarsController extends Controller
 
                 $_SESSION['registrars_to_update'] = [$registrar['clid']];
                 $_SESSION['registrars_user_email'] = [$user['email']];
+                
+                $uniqueCurrencies = [];
+                foreach ($countries as $country) {
+                    // Assuming each country has a 'currency' field with an array of currencies
+                    foreach ($country['currency'] as $currencyCode) {
+                        if (!array_key_exists($currencyCode, $uniqueCurrencies)) {
+                            $uniqueCurrencies[$currencyCode] = $currencyCode; // Or any other currency detail you have
+                        }
+                    }
+                }
 
                 return view($response,'admin/registrars/updateRegistrar.twig', [
                     'registrar' => $registrar,
@@ -522,7 +543,8 @@ class RegistrarsController extends Controller
                     'user' => $user,
                     'whitelist' => $whitelist,
                     'currentUri' => $uri,
-                    'countries' => $countries
+                    'countries' => $countries,
+                    'uniqueCurrencies' => $uniqueCurrencies,
                 ]);
             } else {
                 // Registrar does not exist, redirect to the registrars view
@@ -584,6 +606,7 @@ class RegistrarsController extends Controller
             
             $validators = [
                 'name' => v::stringType()->notEmpty()->length(1, 255),
+                'currency' => v::stringType()->notEmpty()->length(1, 5),
                 'ianaId' => v::optional(v::positive()->length(1, 5)),
                 'email' => v::email(),
                 'owner' => v::optional(v::keySet(...$contactValidator)),
@@ -640,7 +663,6 @@ class RegistrarsController extends Controller
             try {
                 $currentDateTime = new \DateTime();
                 $update = $currentDateTime->format('Y-m-d H:i:s.v');
-                $currency = $_SESSION['_currency'] ?? 'USD';
                 
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
@@ -659,7 +681,7 @@ class RegistrarsController extends Controller
                     'abuse_phone' => $data['abusePhone'],
                     'creditLimit' => $data['creditLimit'],
                     'creditThreshold' => $data['creditThreshold'],
-                    'currency' => $currency,
+                    'currency' => $data['currency'],
                     'lastupdate' => $update
                 ];
                 
