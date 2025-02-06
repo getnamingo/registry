@@ -154,30 +154,61 @@ $container->set('view', function ($container) {
     if (isset($_SESSION['auth_roles'])) {
         $view->getEnvironment()->addGlobal('roles', $_SESSION['auth_roles']);
     }
+    $view->getEnvironment()->addFunction(new TwigFunction('has_any_role', function (int $userRoles, array $requiredRoles): bool {
+        foreach ($requiredRoles as $role) {
+            if (($userRoles & $role) !== 0) {
+                return true;
+            }
+        }
+        return false;
+    }));
 
+    // Fetch registrar currency and registry default currency
     $db = $container->get('db');
-    $user_data = 'SELECT ru.registrar_id
-              FROM registrar_users ru
-              JOIN registrar r ON ru.registrar_id = r.id
-              WHERE ru.user_id = ?';
-    $currency_data = "SELECT value FROM settings WHERE name = 'currency'";
+    $user_data = "SELECT 
+                      ru.registrar_id, 
+                      r.currency AS registrar_currency, 
+                      (SELECT value FROM settings WHERE name = 'currency') AS registry_currency
+                  FROM registrar_users ru
+                  LEFT JOIN registrar r ON ru.registrar_id = r.id
+                  WHERE ru.user_id = ? 
+                  LIMIT 1"; // Ensure we get only one row for optimization
 
     if (isset($_SESSION['auth_user_id'])) {
         $result = $db->select($user_data, [$_SESSION['auth_user_id']]);
-        $db_currency = $db->select($currency_data);
 
-        $_SESSION['_currency'] = $db_currency[0]['value'];
-        $_SESSION['auth_registrar_id'] = null;  // Default registrar_id
+        $_SESSION['auth_registrar_id'] = null; // Default to null
+        $_SESSION['_currency'] = null; // Ensure it's explicitly handled
+        $_SESSION['registry_currency'] = null;
 
-        if ($result !== null && count($result) > 0) {
-            if (isset($result[0]['registrar_id'])) {
-                $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
-            }
+        if (!empty($result)) {
+            $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
+            $_SESSION['registry_currency'] = $result[0]['registry_currency']; // Registry currency (if available)
+        }
+
+        // Ensure registry currency is always set
+        if (empty($_SESSION['registry_currency'])) {
+            // Only fetch settings currency separately if needed
+            $default_currency = $db->select("SELECT value FROM settings WHERE name = 'currency'");
+            $_SESSION['registry_currency'] = $default_currency[0]['value'] ?? 'USD';
+        }
+
+        // Apply currency logic
+        if (!empty($_SESSION['auth_roles']) && $_SESSION['auth_roles'] != 0) {
+            // Use registrar's currency if set, else fallback to registry currency
+            $_SESSION['_currency'] = $result[0]['registrar_currency'] ?? $_SESSION['registry_currency'];
+        } else {
+            // If auth_roles == 0 (admin), force registry currency
+            $_SESSION['_currency'] = $_SESSION['registry_currency'];
         }
     }
 
-    $currency = isset($_SESSION['_currency']) ? $_SESSION['_currency'] : 'USD';
+    // Ensure currency is set (last fallback to 'USD')
+    $currency = $_SESSION['_currency'] ?? 'USD';
+
+    // Make it accessible in templates
     $view->getEnvironment()->addGlobal('currency', $currency);
+    $view->getEnvironment()->addGlobal('registry_currency', $_SESSION['registry_currency']);
 
     // Check if the user is impersonated from the admin, otherwise default to false
     $isAdminImpersonation = isset($_SESSION['impersonator']) ? $_SESSION['impersonator'] : false;

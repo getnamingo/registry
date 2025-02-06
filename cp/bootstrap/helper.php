@@ -657,3 +657,20 @@ function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
     }
     return null;
 }
+
+function hasRequiredRole(int $userRoles, int $requiredRole): bool {
+    return ($userRoles & $requiredRole) !== 0;
+}
+
+function lacksRoles(int $userRoles, int ...$excludedRoles): bool {
+    foreach ($excludedRoles as $role) {
+        if (($userRoles & $role) !== 0) {
+            return false; // User has at least one of the excluded roles
+        }
+    }
+    return true; // User lacks all specified roles
+}
+
+function hasOnlyRole(int $userRoles, int $specificRole): bool {
+    return $userRoles === $specificRole;
+}
