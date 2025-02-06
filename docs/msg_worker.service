@@ -1,0 +1,19 @@
+[Unit]
+Description=Message Worker Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Restart=on-failure
+ExecStart=/usr/bin/php /opt/registry/automation/msg_worker.php
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -INT $MAINPID
+WorkingDirectory=/opt/registry/automation
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=msg_worker
+
+[Install]
+WantedBy=multi-user.target

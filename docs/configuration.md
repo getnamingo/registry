@@ -113,11 +113,9 @@ For establishing your own mail server, both [Mox](https://github.com/mjl-/mox) a
 To run the Message Broker, execute the following commands:
 
 ```bash
-/usr/bin/php /opt/registry/automation/msg_producer.php &
-/usr/bin/php /opt/registry/automation/msg_worker.php &
+systemctl start msg_producer
+systemctl start msg_worker
 ```
-
-This will start the system and place it in the background, allowing it to run independently of your current terminal session.
 
 #### 1.4.4. Setting Up an Audit Trail Database for Namingo
 

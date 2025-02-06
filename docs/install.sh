@@ -455,7 +455,14 @@ EOF
     cp /opt/registry/docs/das.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable das.service
-   
+
+    echo "Installing Message Broker."
+    cp /opt/registry/docs/msg_producer.service /etc/systemd/system/
+    cp /opt/registry/docs/msg_worker.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable msg_producer
+    systemctl enable msg_worker
+
     echo "Configuring control panel admin."
     sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
     sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
