@@ -10,6 +10,7 @@
         "peppeocchi/php-cron-scheduler": "^4.0",
         "predis/predis": "^2.2",
         "guzzlehttp/guzzle": "^7.9",
-        "league/flysystem-ftp": "^3.29"
+        "league/flysystem-ftp": "^3.29",
+        "phpmailer/phpmailer": "^6.9"
     }
 }

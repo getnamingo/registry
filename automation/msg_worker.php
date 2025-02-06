@@ -26,7 +26,7 @@ use Utopia\Messaging\Adapters\SMS\Clickatell;
 // Autoload Composer dependencies
 require __DIR__ . '/vendor/autoload.php';
 
-// Load configuration and helper functions (assumed to be provided)
+// Load configuration and helper functions
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
@@ -62,7 +62,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
         try {
             // brPop blocks until a message is available.
             // It returns an array: [queueKey, messageData]
-            $result = $redis->brPop(['message_queue', $retryQueueKey], 0);
+            $result = $redis->brPop(['message_queue', $retryQueueKey], 1);
         } catch (Exception $e) {
             $logger->error("Redis error", ['error' => $e->getMessage()]);
             // Wait before trying to reconnect
@@ -111,7 +111,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                             }
                             $mail->send();
                         } catch (PHPMailerException $e) {
-                            throw new Exception("PHPMailer error: " . $e->getMessage());
+                            $logger->error("PHPMailer error: ", ['error' => $e->getMessage()]);
                         }
                     } elseif ($c['mailer'] === 'sendgrid') {
                         $message = new Email(
@@ -132,7 +132,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                         $messaging = new Mailgun($c['mailer_api_key'], $c['mailer_domain']);
                         $messaging->send($message);
                     } else {
-                        throw new Exception("Invalid mailer specified");
+                        $logger->error("Invalid mailer specified");
                     }
                     break;
 
@@ -173,7 +173,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                         $messaging = new Clickatell($c['mailer_sms_account']);
                         $messaging->send($message);
                     } else {
-                        throw new Exception("Invalid SMS provider specified");
+                        $logger->error("Invalid SMS provider specified");
                     }
                     break;
 
