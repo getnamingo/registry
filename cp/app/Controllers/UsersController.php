@@ -305,12 +305,36 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
+            // Check if username already exists (excluding the current user)
+            if ($username) {
+                $existingUsername = $db->selectValue('SELECT COUNT(*) FROM users WHERE username = ? AND username != ?', [$username, $old_username]);
+                if ($existingUsername > 0) {
+                    $errors[] = 'Username already exists';
+                }
+            }
+
+            // Check if email already exists (excluding the current user)
+            if ($email) {
+                $existingEmail = $db->selectValue('SELECT COUNT(*) FROM users WHERE email = ? AND username != ?', [$email, $old_username]);
+                if ($existingEmail > 0) {
+                    $errors[] = 'Email already exists';
+                }
+            }
+
+            // Handle errors
+            if (!empty($errors)) {
+                foreach ($errors as $error) {
+                    $this->container->get('flash')->addMessage('error', $error);
+                }
+                return $response->withHeader('Location', '/user/update/' . $old_username)->withStatus(302);
+            }
+
             if (empty($email)) {
                 $this->container->get('flash')->addMessage('error', 'No email specified for update');
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
-            if (in_array($roles_mask, [0, '0'], true)) {
+            if (!$roles_mask) {
                 $this->container->get('flash')->addMessage('error', 'No roles assigned. Please assign at least one role');
                 return $response->withHeader('Location', '/user/update/' . $old_username)->withStatus(302);
             }
