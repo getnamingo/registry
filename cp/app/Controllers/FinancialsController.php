@@ -146,7 +146,6 @@ class FinancialsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             $registrar_id = $data['registrar'];
-            $registrars = $db->select("SELECT id, clid, name FROM registrar");
             $amount = $data['amount'];
             $description = empty($data['description']) ? "funds added to account balance" : $data['description'];
             
@@ -207,11 +206,9 @@ class FinancialsController extends Controller
             
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
-        $currency = $_SESSION['_currency'];
-    
+
         return view($response,'admin/financials/deposit.twig', [
-            'registrars' => $registrars,
-            'currency' => $currency
+            'registrars' => $registrars
         ]);
     }
     

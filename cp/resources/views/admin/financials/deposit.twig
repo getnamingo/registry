@@ -41,7 +41,7 @@
 
                     <div class="deposit-info">
                         <h5>{{ __('Current Balance for') }} <span id="registrarName"></span></h5>
-                        <p class="fs-4">{{ currency }} <span id="currentFunds">0.00</span></p>
+                        <p class="fs-4"><span id="currentFunds">0.00</span></p>
                     </div>
 
                     <div class="mb-3">
@@ -62,33 +62,37 @@
                   </div>
                 </div>
                 </form>
-                
-                <script>
-                    const registrarSelect = document.getElementById('registrarSelect');
-                    registrarSelect.addEventListener('change', function() {
-                        const selectedRegistrarId = registrarSelect.value;
-
-                        // Real API call to get registrars
-                        fetch(`/api/records/registrar`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const registrarData = data.records.find(registrar => registrar.id == selectedRegistrarId);
-                            const accountBalance = registrarData ? registrarData.accountBalance : '0.00';
-
-                            document.getElementById('registrarName').textContent = registrarData ? registrarData.name : 'N/A';
-                            document.getElementById('currentFunds').textContent = parseFloat(accountBalance).toFixed(2);
-                            document.querySelector('.deposit-info').style.display = 'block';
-                        })
-                        .catch(error => {
-                            console.error('There was an error with the request:', error);
-                        });
-                    });
-                </script>
-                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script>
+const registrarSelect = document.getElementById('registrarSelect');
+registrarSelect.addEventListener('change', function() {
+    const selectedRegistrarId = registrarSelect.value;
+
+    // API call to get registrar details
+    fetch(`/api/records/registrar`)
+    .then(response => response.json())
+    .then(data => {
+        const registrarData = data.records.find(registrar => registrar.id == selectedRegistrarId);
+        
+        if (registrarData) {
+            document.getElementById('registrarName').textContent = registrarData.name;
+            document.getElementById('currentFunds').textContent = `${registrarData.currency} ${parseFloat(registrarData.accountBalance).toFixed(2)}`;
+        } else {
+            document.getElementById('registrarName').textContent = 'N/A';
+            document.getElementById('currentFunds').textContent = '0.00';
+        }
+
+        document.querySelector('.deposit-info').style.display = 'block';
+    })
+    .catch(error => {
+        console.error('There was an error with the request:', error);
+    });
+});
+</script>
 {% endblock %}
