@@ -25,9 +25,7 @@
         }
         return "";
     }
-    
-    currency = "{{ currency }} ";
-    
+
     var searchTerm = ""; // global variable to hold the search term
 
     function updateSearchTerm(term) {
@@ -92,11 +90,13 @@
             {title:"{{ __('Name') }}", field:"name", width:200, resizable:false, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
             {title:"IANA ID", field:"iana_id", width:300, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
-            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:true, responsive:2, formatter:"money", formatterParams:{
-                decimal:".",
-                thousand:" ",
-                symbol:currency,
-                negativeSign:true,
+            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:true, responsive:2, formatter:"money", formatterParams:function(cell){
+                return {
+                    decimal: ".",
+                    thousand: " ",
+                    symbol: (cell.getRow().getData().currency || "$") + " ", // Ensures space after currency symbol
+                    negativeSign: true
+                };
             }},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, responsive:0, headerSort: false, download:false, hozAlign: "center", cellClick:function(e, cell){ e.stopPropagation(); }},
         ]

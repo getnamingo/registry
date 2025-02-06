@@ -92,12 +92,12 @@
                         <div class="col-md-4">
                           <div class="mb-3">
                             <label for="accountBalance" class="form-label">{{ __('Account Balance') }}</label>
-                            <div class="form-control-plaintext">{{ currency }} {{ registrar.accountBalance }}</div>
+                            <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.accountBalance }}</div>
                             <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
                           <div class="mb-3">
                             <label for="creditLimit" class="form-label">{{ __('Credit Limit') }}</label>
-                            <div class="form-control-plaintext">{{ currency }} {{ registrar.creditLimit }}</div>
+                            <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.creditLimit }}</div>
                             <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
                           </div>
                         </div>
@@ -106,7 +106,7 @@
                         <div class="col-md-4">
                           <div class="mb-3">
                             <label for="creditThreshold" class="form-label">{{ __('Credit Threshold') }}</label>
-                            <div class="form-control-plaintext">{{ currency }} {{ registrar.creditThreshold }}</div>
+                            <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.creditThreshold }}</div>
                             <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
                           </div>
                           <div class="mb-3">
@@ -120,7 +120,7 @@
                         <div class="col-md-4">
                           <div class="mb-3">
                             <label for="companyNumber" class="form-label">{{ __('Company Number') }}</label>
-                            <div class="form-control-plaintext">{{ registrar.companyNumber }}</div>
+                            <div class="form-control-plaintext">{{ registrar.companyNumber|default('N/A') }}</div>
                             <small class="text-muted">{{ __('Official registration number provided by the relevant authority.') }}</small>
                           </div>
                           <div class="mb-3">
