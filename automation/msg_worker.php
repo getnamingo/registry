@@ -94,6 +94,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                     if ($c['mailer'] === 'phpmailer') {
                         $mail = new PHPMailer(true);
                         try {
+                            $mail->SMTPDebug = 0;
                             $mail->isSMTP();
                             $mail->Host       = $c['mailer_smtp_host'];
                             $mail->SMTPAuth   = true;
@@ -101,6 +102,7 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                             $mail->Password   = $c['mailer_smtp_password'];
                             $mail->SMTPSecure = 'tls';
                             $mail->Port       = $c['mailer_smtp_port'];
+
                             $mail->setFrom($c['mailer_from']);
                             $mail->addAddress($data['toEmail']);
                             $mail->Subject  = $data['subject'];
@@ -109,7 +111,14 @@ Swoole\Coroutine\run(function() use ($c, $logger, $maxRetries, $retryQueueKey) {
                                 $mail->isHTML(true);
                                 $mail->AltBody = strip_tags($data['body']);
                             }
-                            $mail->send();
+
+                            Swoole\Coroutine::create(function() use ($mail) {
+                                try {
+                                    $mail->send();
+                                } catch (Exception $e) {
+                                    echo "Mail Error: " . $e->getMessage();
+                                }
+                            });
                         } catch (PHPMailerException $e) {
                             $logger->error("PHPMailer error: ", ['error' => $e->getMessage()]);
                         }
