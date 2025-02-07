@@ -1,4 +1,4 @@
-# Namingo Registry EPP Server  
+# Namingo Registry EPP Server
 
 The **Namingo EPP Server** provides a robust and standards-compliant interface for managing domain registrations, hosts, and contacts via the **Extensible Provisioning Protocol (EPP)**. This section offers practical examples of commonly used EPP commands, showcasing request and response structures for seamless integration with the Namingo Registry.
 
@@ -124,8 +124,6 @@ Each command section below includes real-world XML request and response samples 
 </epp>
 ```
 
-**Response:**
-
 #### 1.4. Poll
 
 **Request:**
@@ -232,7 +230,9 @@ Each command section below includes real-world XML request and response samples 
 
 ### 2. Contact
 
-#### 2.1. Contact Check Request
+#### 2.1. Contact Check
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -250,6 +250,34 @@ Each command section below includes real-world XML request and response samples 
     </check>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <contact:chkData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0
+      contact-1.0.xsd">
+        <contact:cd>
+          <contact:id avail="1">abc-56789</contact:id>
+        </contact:cd>
+      </contact:chkData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -319,7 +347,7 @@ Each command section below includes real-world XML request and response samples 
 </epp>
 ```
 
-Request with Identica extension:
+**Request with Identica extension:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -363,7 +391,9 @@ Request with Identica extension:
 </epp>
 ```
 
-#### 2.3. Contact Info Request
+#### 2.3. Contact Info
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -382,9 +412,59 @@ Request with Identica extension:
 </epp>
 ```
 
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <contact:infData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0
+      contact-1.0.xsd">
+        <contact:id>abc-56789</contact:id>
+        <contact:roid>C1</contact:roid>
+        <contact:status s="ok"/>
+        <contact:postalInfo type="int">
+          <contact:name>John A. Doe</contact:name>
+          <contact:org>EXAMPLE CORP</contact:org>
+          <contact:addr>
+            <contact:street>123 Main Street, Business District</contact:street>
+            <contact:city>Metropolis</contact:city>
+            <contact:sp>CA</contact:sp>
+            <contact:pc>90210</contact:pc>
+            <contact:cc>US</contact:cc>
+          </contact:addr>
+        </contact:postalInfo>
+        <contact:voice>+1.5551234567</contact:voice>
+        <contact:fax></contact:fax>
+        <contact:email>john.doe@example.com</contact:email>
+        <contact:clID>leonet</contact:clID>
+        <contact:crID>leonet</contact:crID>
+        <contact:crDate>2024-12-03T10:39:22.453Z</contact:crDate>
+        <contact:upID>leonet</contact:upID>
+        <contact:upDate>2024-12-06T11:55:56.934Z</contact:upDate>
+        <contact:authInfo>
+          <contact:pw>EeF8eT77c7YpD2w0</contact:pw>
+        </contact:authInfo>
+      </contact:infData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
 #### 2.4. Contact Update
 
-Standard request:
+**Standard request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -421,7 +501,7 @@ Standard request:
 </epp>
 ```
 
-Request with Identica extension:
+**Request with Identica extension:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -465,7 +545,28 @@ Request with Identica extension:
 </epp>
 ```
 
-#### 2.5. Contact Delete Request
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+#### 2.5. Contact Delete
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -484,9 +585,30 @@ Request with Identica extension:
 </epp>
 ```
 
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
 ### 3. Host
 
-#### 3.1. Host Check Request
+#### 3.1. Host Check
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -503,6 +625,34 @@ Request with Identica extension:
     </check>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <host:chkData xmlns:host="urn:ietf:params:xml:ns:host-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0
+      host-1.0.xsd">
+        <host:cd>
+          <host:name avail="1">ns1.example.test</host:name>
+        </host:cd>
+      </host:chkData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -555,7 +705,9 @@ Request with Identica extension:
 </epp>
 ```
 
-#### 3.3. Host Info Request
+#### 3.3. Host Info
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -574,7 +726,41 @@ Request with Identica extension:
 </epp>
 ```
 
-#### 3.4. Host Update Request
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <host:infData xmlns:host="urn:ietf:params:xml:ns:host-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0
+      host-1.0.xsd">
+        <host:name>ns1.example.test</host:name>
+        <host:roid>H6</host:roid>
+        <host:status s="ok"/>
+        <host:status s="linked"/>
+        <host:clID>leonet</host:clID>
+        <host:crID>leonet</host:crID>
+        <host:crDate>2024-12-04T16:05:08.251Z</host:crDate>
+      </host:infData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328206-58daa6da62</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+#### 3.4. Host Update
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -599,7 +785,28 @@ Request with Identica extension:
 </epp>
 ```
 
-#### 3.5. Host Delete Request
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+#### 3.5. Host Delete
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -615,6 +822,25 @@ Request with Identica extension:
     </delete>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -762,7 +988,7 @@ Request with Identica extension:
 </epp>
 ```
 
-Request with DNSSEC:
+**Request with DNSSEC:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -811,7 +1037,7 @@ Request with DNSSEC:
 </epp>
 ```
 
-Request with claims:
+**Request with claims:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -852,7 +1078,7 @@ Request with claims:
 </epp>
 ```
 
-Request for sunrise:
+**Request for sunrise:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -963,7 +1189,7 @@ Request for sunrise:
 </epp>
 ```
 
-Response with Identica in database:
+**Response with Identica in database:**
 
 ```xml
 ...
@@ -977,7 +1203,9 @@ Response with Identica in database:
 ...
 ```
 
-#### 4.4. Domain Update Request
+#### 4.4. Domain Update
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1037,6 +1265,25 @@ Response with Identica in database:
 </epp>
 ```
 
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
 #### 4.5. Domain Renew
 
 **Request:**
@@ -1087,9 +1334,9 @@ Response with Identica in database:
 </epp>
 ```
 
-#### 4.6. Domain Transfer Request
+#### 4.6. Domain Transfer
 
-Request:
+**Request and Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1112,7 +1359,37 @@ Request:
 </epp>
 ```
 
-Query:
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1001">
+      <msg>Command completed successfully; action pending</msg>
+    </result>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0
+      domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:trStatus>pending</domain:trStatus>
+        <domain:reID>leonet</domain:reID>
+        <domain:reDate>2025-02-07T11:01:51.829Z</domain:reDate>
+        <domain:acID>nordregistrar</domain:acID>
+        <domain:acDate>2025-02-12T11:01:51.829Z</domain:acDate>
+        <domain:exDate>2028-12-03T10:39:34.432Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Query Request and Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1132,7 +1409,37 @@ Query:
 </epp>
 ```
 
-Approve:
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0
+      domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:trStatus>pending</domain:trStatus>
+        <domain:reID>leonet</domain:reID>
+        <domain:reDate>2025-02-07T11:01:51.829Z</domain:reDate>
+        <domain:acID>nordregistrar</domain:acID>
+        <domain:acDate>2025-02-12T11:01:51.829Z</domain:acDate>
+        <domain:exDate>2028-12-03T10:39:34.432Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Approve Request and Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1152,7 +1459,37 @@ Approve:
 </epp>
 ```
 
-Cancel:
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0
+      domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:trStatus>clientApproved</domain:trStatus>
+        <domain:reID>leonet</domain:reID>
+        <domain:reDate>2025-02-07T11:01:51.829Z</domain:reDate>
+        <domain:acID>nordregistrar</domain:acID>
+        <domain:acDate>2025-02-12T11:01:51.829Z</domain:acDate>
+        <domain:exDate>2028-12-03T10:39:34.432Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Cancel Request and Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1172,7 +1509,37 @@ Cancel:
 </epp>
 ```
 
-Reject:
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0
+      domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:trStatus>clientCancelled</domain:trStatus>
+        <domain:reID>leonet</domain:reID>
+        <domain:reDate>2025-02-07T11:01:51.829Z</domain:reDate>
+        <domain:acID>nordregistrar</domain:acID>
+        <domain:acDate>2025-02-12T11:01:51.829Z</domain:acDate>
+        <domain:exDate>2028-12-03T10:39:34.432Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Reject Request and Response:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -1189,6 +1556,36 @@ Reject:
     </transfer>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+      xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0
+      domain-1.0.xsd">
+        <domain:name>myexample.test</domain:name>
+        <domain:trStatus>clientRejected</domain:trStatus>
+        <domain:reID>leonet</domain:reID>
+        <domain:reDate>2025-02-07T11:01:51.829Z</domain:reDate>
+        <domain:acID>nordregistrar</domain:acID>
+        <domain:acDate>2025-02-12T11:01:51.829Z</domain:acDate>
+        <domain:exDate>2028-12-03T10:39:34.432Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1733328764-f74b50827f</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
@@ -1305,6 +1702,25 @@ Reject:
     </extension>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1000">
+      <msg>Command completed successfully</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 
