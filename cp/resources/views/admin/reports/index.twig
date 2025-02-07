@@ -105,7 +105,7 @@
                                     </td>
                                     <td class="text-muted">{{ stat.number }}</td>
                                     <td class="text-muted">{{ stat.share }}%</td>
-                                    <td>{{ stat.earnings | number_format(2, '.', ',') }} {{ currency }}</td>
+                                    <td>{{ stat.earnings | number_format(2, '.', ',') }} {{ stat.currency }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

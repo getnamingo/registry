@@ -18,12 +18,11 @@ class ReportsController extends Controller
         }
         
         $stats = [];
-        $currency = $_SESSION['_currency'] ?? 'USD';
         $db = $this->container->get('db');
         $totalDomains = $db->select('SELECT COUNT(name) as total FROM domain');
         $numT = $totalDomains[0]['total'] ?? 1;
 
-        $registrars = $db->select('SELECT id, name FROM registrar');
+        $registrars = $db->select('SELECT id, name, currency FROM registrar');
         foreach ($registrars as $registrar) {
             $domainCount = $db->select(
                 'SELECT COUNT(name) as count FROM domain WHERE clid = ?',
@@ -38,7 +37,7 @@ class ReportsController extends Controller
             $stats[] = [
                 'id' => $registrar['id'],
                 'registrar' => $registrar['name'],
-                'currency' => $currency,
+                'currency' => $registrar['currency'],
                 'number' => $domainCount[0]['count'] ?? 0,
                 'share' => $numT > 0 
                     ? number_format(($domainCount[0]['count'] ?? 0) / $numT * 100, 2) 
