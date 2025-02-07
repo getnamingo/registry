@@ -300,10 +300,16 @@ function extractDomainAndTLD($urlString) {
         return $result;
     }
 
-    // Use the PHP Domain Parser library for real TLDs
-    $tlds = TopLevelDomains::fromString($fileContent);
-    $domain = Domain::fromIDNA2008($host);
-    $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
+    try {
+        // Use the PHP Domain Parser library for real TLDs
+        $tlds = TopLevelDomains::fromString($fileContent);
+        $domain = Domain::fromIDNA2008($host);
+        $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
+    } catch (\Pdp\Exception $e) { // Catch domain parser exceptions
+        throw new \Exception('Domain parsing error: ' . $e->getMessage());
+    } catch (\Exception $e) { // Catch any other unexpected exceptions
+        throw new \Exception('Unexpected error: ' . $e->getMessage());
+    }
 
     // Handle cases with multi-level TLDs
     $possibleTLDs = [];
