@@ -246,9 +246,12 @@ function validate_label($label, $pdo) {
     }
 
     // Check if the TLD exists in the domain_tld table
-    $tldExists = $pdo->select('SELECT COUNT(*) FROM domain_tld WHERE tld = ?', [$tld]);
+    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
+    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
+    $stmtTLD->execute();
+    $tldExists = $stmtTLD->fetchColumn();
 
-    if ($tldExists[0]["COUNT(*)"] == 0) {
+    if (!$tldExists) {
         return 'Zone is not supported';
     }
 
@@ -257,7 +260,10 @@ function validate_label($label, $pdo) {
         $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
 
         // Fetch the IDN regex for the given TLD (only if it's an IDN)
-        $idnRegex = $pdo->selectRow('SELECT idn_table FROM domain_tld WHERE tld = ?', [$tld]);
+        $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
+        $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
+        $stmtRegex->execute();
+        $idnRegex = $stmtRegex->fetchColumn();
 
         if (!$idnRegex) {
             return 'Failed to fetch domain IDN table';
