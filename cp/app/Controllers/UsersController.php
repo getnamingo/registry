@@ -249,7 +249,7 @@ class UsersController extends Controller
             $password_confirmation = $data['password_confirmation'] ?? null;
             $status = $data['status'] ?? null;
             $verified = $data['verified'] ?? null;
-            $roles_mask = $data['roles_mask'] ?? 0;
+            $roles_mask = isset($data['roles_mask']) ? (int)$data['roles_mask'] : null;
 
             $allowedRoles = [0, 2, 4, 8, 16, 32, 64];
             $allowedRolesMask = array_sum($allowedRoles); // 124 (sum of allowed roles)
@@ -306,7 +306,7 @@ class UsersController extends Controller
             }
 
             // Check if username already exists (excluding the current user)
-            if ($username) {
+            if ($username && $username !== $old_username) {
                 $existingUsername = $db->selectValue('SELECT COUNT(*) FROM users WHERE username = ? AND username != ?', [$username, $old_username]);
                 if ($existingUsername > 0) {
                     $errors[] = 'Username already exists';
@@ -315,9 +315,30 @@ class UsersController extends Controller
 
             // Check if email already exists (excluding the current user)
             if ($email) {
-                $existingEmail = $db->selectValue('SELECT COUNT(*) FROM users WHERE email = ? AND username != ?', [$email, $old_username]);
+                $existingEmail = $db->selectValue(
+                    'SELECT COUNT(*) FROM users WHERE email = ? AND username != ?', 
+                    [$email, $old_username]
+                );
                 if ($existingEmail > 0) {
                     $errors[] = 'Email already exists';
+                }
+            }
+
+            // Fetch current roles_mask from the database
+            $currentRolesMask = $db->selectValue(
+                'SELECT roles_mask FROM users WHERE username = ?',
+                [$old_username]
+            );
+
+            if ($currentRolesMask !== null) {
+                // Prevent lowering privileges by setting roles_mask to 0 unless it was already 0
+                if ($roles_mask == 0 && $currentRolesMask != 0) {
+                    $errors[] = 'You cannot elevate role to admin unless the user was already admin';
+                }
+
+                // Prevent elevating privileges to 4 unless the user was already 4
+                if ($roles_mask == 4 && $currentRolesMask != 4) {
+                    $errors[] = 'You cannot elevate role to registrar unless the user was already registrar';
                 }
             }
 
@@ -334,7 +355,7 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
-            if (!$roles_mask) {
+            if ($roles_mask === null) {
                 $this->container->get('flash')->addMessage('error', 'No roles assigned. Please assign at least one role');
                 return $response->withHeader('Location', '/user/update/' . $old_username)->withStatus(302);
             }
