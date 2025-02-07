@@ -157,7 +157,7 @@ Additionally, we extend our gratitude to:
 - **ChatGPT** for invaluable assistance with code and text writing.
 - [Slim Framework 4 Starter App](https://github.com/hezecom/slim-starter) which served as the foundation for our control panel.
 - [Tabler](https://tabler.io/), whose elegant and intuitive interface design has greatly influenced the user experience of Namingo.
-- [leemunroe/responsive-html-email-template](https://github.com/leemunroe/responsive-html-email-template), for providing a great email template for our mailing system.
+- [ActiveCampaign/postmark-templates](https://github.com/ActiveCampaign/postmark-templates) and [leemunroe/responsive-html-email-template](https://github.com/leemunroe/responsive-html-email-template), for providing great email templates.
 
 ## Licensing
 
