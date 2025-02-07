@@ -1,8 +1,22 @@
-# Namingo Registry EPP Server
+# Namingo Registry EPP Server  
 
-This section includes examples of commonly used EPP commands for domains, hosts, contacts, and session management. Explore key operations like create, update, delete, transfer, and poll, with practical XML samples for each.
+The **Namingo EPP Server** provides a robust and standards-compliant interface for managing domain registrations, hosts, and contacts via the **Extensible Provisioning Protocol (EPP)**. This section offers practical examples of commonly used EPP commands, showcasing request and response structures for seamless integration with the Namingo Registry.
 
-## Commands 
+## Overview  
+
+EPP is an XML-based protocol designed for secure communication between registrars and registries. The Namingo EPP Server adheres to **RFC 5730-5734** and relevant extensions to support modern domain management operations, including:  
+
+- **Session Management**: Login, logout, and keep-alive commands  
+- **Domain Management**: Create, update, renew, transfer, delete, and check domain availability  
+- **Host (Nameserver) Management**: Create, update, delete, and query hosts  
+- **Contact Management**: Create, update, delete, and retrieve contact information  
+- **Poll Mechanism**: Retrieve registry notifications (e.g., transfer approvals, policy updates)  
+
+Each command section below includes real-world XML request and response samples to facilitate easy integration.
+
+---
+
+## Commands  
 
 ### 1. Session
 
@@ -97,7 +111,9 @@ This section includes examples of commonly used EPP commands for domains, hosts,
 </epp>
 ```
 
-#### 1.3. Hello Request
+#### 1.3. Hello
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -108,7 +124,11 @@ This section includes examples of commonly used EPP commands for domains, hosts,
 </epp>
 ```
 
-#### 1.4. Poll Request
+**Response:**
+
+#### 1.4. Poll
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -122,7 +142,62 @@ This section includes examples of commonly used EPP commands for domains, hosts,
 </epp>
 ```
 
+**Response without message:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1300">
+      <msg>Command completed successfully; no messages</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
+**Response with message:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1301">
+      <msg>Command completed successfully; ack to dequeue</msg>
+    </result>
+    <msgQ count="3" id="3">
+      <qDate>2025-02-03T11:17:38.014Z</qDate>
+      <msg lang="en-US">Transfer requested.</msg>
+    </msgQ>
+    <resData>
+      <domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+        <domain:name>test8.test</domain:name>
+        <domain:trStatus>pending</domain:trStatus>
+        <domain:reID>nordregistrar</domain:reID>
+        <domain:reDate>2025-02-03T11:17:38.013Z</domain:reDate>
+        <domain:acID>leonet</domain:acID>
+        <domain:acDate>2025-02-08T11:17:38.013Z</domain:acDate>
+        <domain:exDate>2027-12-06T11:19:20.343Z</domain:exDate>
+      </domain:trnData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
+</epp>
+```
+
 #### 1.5. Poll Acknowledge
+
+**Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -133,6 +208,25 @@ This section includes examples of commonly used EPP commands for domains, hosts,
     <poll op="ack" msgID="123456"/>
     <clTRID>client-20241128-12345</clTRID>
   </command>
+</epp>
+```
+
+**Response:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+  <response>
+    <result code="1300">
+      <msg>Command completed successfully; no messages</msg>
+    </result>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
 

@@ -3,7 +3,8 @@
 function processPoll($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
-    $op = (string) $node['op'];
+    $op = (string) $node->attributes()->op;
+    $response = [];
 
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
@@ -11,8 +12,10 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
     $clid = $stmt->fetch(PDO::FETCH_ASSOC);
     $clid = $clid['id'];
 
+    $next_msg_id = null;
+
     if ($op === 'ack') {
-        $id = (string)$node['msgID'];
+        $id = (string) $node->attributes()->msgID;
         $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id AND id = :id LIMIT 1");
         $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
         $ack_id = $stmt->fetchColumn();
@@ -20,75 +23,49 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
         if (!$ack_id) {
             $response['resultCode'] = 2303; // Object does not exist
         } else {
+            // Delete acknowledged message
             $stmt = $db->prepare("DELETE FROM poll WHERE registrar_id = :registrar_id AND id = :id");
             $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
-            $response['resultCode'] = 1300;
+
+            // Find the next available poll message
+            $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
+            $stmt->execute([':registrar_id' => $clid]);
+            $next_msg_id = $stmt->fetchColumn();
+
+            if ($next_msg_id) {
+                // Messages remain, return 1000 with next message ID
+                $stmt = $db->prepare("SELECT COUNT(*) FROM poll WHERE registrar_id = :registrar_id");
+                $stmt->execute([':registrar_id' => $clid]);
+                $remaining = $stmt->fetchColumn();
+
+                $response['resultCode'] = 1000; // Command completed successfully
+            } else {
+                // No more messages remaining
+                $response['resultCode'] = 1300; // No messages remaining
+            }
         }
-        
-        $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id DESC LIMIT 1");
-        $stmt->execute([':registrar_id' => $clid]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $id = $result['id'] ?? null;
-        
-        if (isset($id) && is_numeric($id) && $id >= 1) {
-            $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id DESC LIMIT 1");
-            $stmt->execute([':registrar_id' => $clid]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $id = $result['id'] ?? null;
-            $response['resultCode'] = $id ? 1301 : 1300;
-        } else {
-            $stmt = $db->prepare("SELECT COUNT(id) AS counter FROM poll WHERE registrar_id = :registrar_id");
-            $stmt->execute([':registrar_id' => $clid]);
-            $counter = $stmt->fetchColumn();
-            $response['count'] = $counter;
-            $response['id'] = $id;
-            $response['command'] = 'poll';
-            $response['clTRID'] = $clTRID;
-            $response['svTRID'] = generateSvTRID();
-
-            $epp = new EPP\EppWriter();
-            $xml = $epp->epp_writer($response);
-            updateTransaction($db, 'poll', null, null, $response['resultCode'], 'Command completed successfully', $response['svTRID'], $xml, $trans);
-            sendEppResponse($conn, $xml);
-            return;
-        }    
     } else {
-        $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id DESC LIMIT 1");
+        // $op === 'req'
+        $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
         $stmt->execute([':registrar_id' => $clid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $id = $result['id'] ?? null;
         $response['resultCode'] = $id ? 1301 : 1300;
     }
-    
-    if ((int) $response['resultCode'] === 1300) {
-        $svTRID = generateSvTRID();
-        $response = [
-            'command' => 'poll',
-            'clTRID' => $clTRID,
-            'svTRID' => $svTRID,
-            'resultCode' => $response['resultCode'],
-            'msg' => 'Command completed successfully; no messages',
-        ];
-        
-        $epp = new EPP\EppWriter();
-        $xml = $epp->epp_writer($response);
-        updateTransaction($db, 'poll', null, null, $response['resultCode'], 'Command completed successfully', $svTRID, $xml, $trans);
-        sendEppResponse($conn, $xml);
-        return;
-    }
 
     $stmt = $db->prepare("SELECT COUNT(id) AS counter FROM poll WHERE registrar_id = :registrar_id");
     $stmt->execute([':registrar_id' => $clid]);
     $counter = $stmt->fetchColumn();
 
-    $response = [];
     $response['command'] = 'poll';
     $response['count'] = $counter;
-    $response['id'] = $id;
+    if ($next_msg_id) {
+        $response['id'] = $next_msg_id;
+    } else {
+        $response['id'] = $id;
+    }
     $response['msg'] = $result['msg'] ?? null;
-    $response['resultCode'] = 1301;
     $response['poll_msg_type'] = $result['msg_type'] ?? null;
     $response['lang'] = 'en-US';
     $qdate = str_replace(' ', 'T', $result['qdate'] ?? '') . 'Z';
