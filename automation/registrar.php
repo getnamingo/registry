@@ -43,17 +43,8 @@ if ($row) {
     $registryName = 'Example Registry LLC';
 }
 
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
-$stmt->execute(['name' => 'currency']);
-$row = $stmt->fetch();
-if ($row) {
-    $currency = $row['value'];
-} else {
-    $currency = 'USD';
-}
-
 // Define the query
-$sql = "SELECT id, clid, name, accountBalance, creditThreshold, creditLimit, email FROM registrar";
+$sql = "SELECT id, clid, name, accountBalance, creditThreshold, creditLimit, email, currency FROM registrar";
 
 try {
     $stmt = $pdo->query($sql);
@@ -61,13 +52,13 @@ try {
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         if ($row['accountBalance'] < $row['creditThreshold']) {
             // Case 1: accountBalance is less than creditThreshold
-            sendEmail($row, 'low_balance', $log, $supportEmail, $supportPhoneNumber, $registryName, $currency);
+            sendEmail($row, 'low_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
         } elseif ($row['accountBalance'] == 0) {
             // Case 2: accountBalance is 0
-            sendEmail($row, 'zero_balance', $log, $supportEmail, $supportPhoneNumber, $registryName, $currency);
+            sendEmail($row, 'zero_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
         } elseif (($row['accountBalance'] + $row['creditLimit']) < 0) {
             // Case 3: accountBalance + creditLimit is less than 0
-            sendEmail($row, 'over_limit', $log, $supportEmail, $supportPhoneNumber, $registryName, $currency);
+            sendEmail($row, 'over_limit', $log, $supportEmail, $supportPhoneNumber, $registryName);
         }
     }
     
@@ -79,13 +70,13 @@ try {
 }
 
 // Function to send email
-function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $registryName, $currency) {
+function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $registryName) {
     $message = "Dear ".$data['name'].",\n\n";
     
     switch ($case) {
         case 'low_balance':
             $subject = "Low balance alert for registrar: " . $data['clid'];
-            $message .= "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is $currency {$data['accountBalance']}, which is below the minimum credit threshold of $currency {$data['creditThreshold']}.\n\n";
+            $message .= "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is below the minimum credit threshold of {$data['currency']} {$data['creditThreshold']}.\n\n";
             break;
         case 'zero_balance':
             $subject = "Zero balance alert for registrar: " . $data['clid'];
