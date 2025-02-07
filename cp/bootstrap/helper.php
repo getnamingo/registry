@@ -331,6 +331,11 @@ function extractDomainAndTLD($urlString) {
     $parts = parse_url($urlString);
     $host = $parts['host'] ?? $urlString;
 
+    if (!preg_match('/\./', $urlString)) {
+        $_SESSION['slimFlash']['error'][] = 'Invalid domain format';
+        return ['error' => 'Invalid domain format'];
+    }
+
     // Function to handle TLD extraction
     $extractSLDandTLD = function($host, $tlds) {
         foreach ($tlds as $tld) {
