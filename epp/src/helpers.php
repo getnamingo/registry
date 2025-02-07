@@ -183,10 +183,15 @@ function validate_identifier($identifier) {
 }
 
 function isDomainValid(string $domain): bool {
+    // Ensure the domain only contains valid characters (letters, numbers, hyphens, and dots)
+    if (!preg_match('/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/', $domain)) {
+        return false;
+    }
+
     // Split the domain into its labels (subdomains, SLD, etc.)
     $labels = explode('.', $domain);
     foreach ($labels as $label) {
-        if (strlen($label) > 63) { // or mb_strlen() if you need multibyte support
+        if (strlen($label) > 63 || empty($label)) { // Labels cannot be empty or exceed 63 chars
             return false;
         }
     }
@@ -197,56 +202,74 @@ function validate_label($label, $pdo) {
     if (!$label) {
         return 'You must enter a domain name';
     }
+
+    // Ensure input contains only valid domain characters
+    if (!preg_match('/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/', $label)) {
+        return 'Invalid domain name format: only letters, numbers, dots, and hyphens allowed';
+    }
+
     if (!isDomainValid($label)) {
         return 'Domain label is too long (exceeds 63 characters)';
     }
+
+    // Ensure domain starts and ends with an alphanumeric character
+    $parts = explode('.', $label);
+    foreach ($parts as $part) {
+        if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $part)) {
+            return 'Each domain label must start and end with an alphanumeric character';
+        }
+    }
+
+    // Extract domain and TLD
     $parts = extractDomainAndTLD($label);
+    if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
+        return 'Invalid domain structure, unable to parse domain name';
+    }
+
     $tld = "." . $parts['tld'];
+
     if (strlen($parts['domain']) > 63) {
-        return 'Total length of your domain must be less then 63 characters';
+        return 'Total length of your domain must be less than 63 characters';
     }
+
     if (strlen($parts['domain']) < 2) {
-        return 'Total length of your domain must be greater then 2 characters';
+        return 'Total length of your domain must be greater than 2 characters';
     }
+
     if (strpos($label, '.') === false) {
         return 'Invalid domain name format, must contain at least one dot (.)';
     }
-    if (!preg_match('/^[a-zA-Z0-9].*[a-zA-Z0-9]$/', $parts['domain'])) {
-        return 'Domain name must start and end with an alphanumeric character';
-    }
+
+    // Ensure no invalid use of hyphens (double dashes, leading/trailing dashes)
     if (strpos($parts['domain'], 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $parts['domain'])) {
         return 'Domain name cannot contain consecutive dashes (--) unless it is a punycode domain';
     }
 
     // Check if the TLD exists in the domain_tld table
-    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
-    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
-    $stmtTLD->execute();
-    $tldExists = $stmtTLD->fetchColumn();
+    $tldExists = $pdo->select('SELECT COUNT(*) FROM domain_tld WHERE tld = ?', [$tld]);
 
-    if (!$tldExists) {
+    if ($tldExists[0]["COUNT(*)"] == 0) {
         return 'Zone is not supported';
     }
 
-    // Fetch the IDN regex for the given TLD
-    $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
-    $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
-    $stmtRegex->execute();
-    $idnRegex = $stmtRegex->fetchColumn();
-
-    if (!$idnRegex) {
-        return 'Failed to fetch domain IDN table';
-    }
-
+    // If domain is an IDN (Punycode), convert it to Unicode
     if (strpos($parts['domain'], 'xn--') === 0) {
         $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+
+        // Fetch the IDN regex for the given TLD (only if it's an IDN)
+        $idnRegex = $pdo->selectRow('SELECT idn_table FROM domain_tld WHERE tld = ?', [$tld]);
+
+        if (!$idnRegex) {
+            return 'Failed to fetch domain IDN table';
+        }
+
+        // Check for invalid characters using fetched regex
+        if (!preg_match($idnRegex['idn_table'], $label)) {
+            return 'Invalid domain name format, please review registry policy about accepted labels';
+        }
     }
 
-    // Check for invalid characters using fetched regex
-    if (!preg_match($idnRegex, $label)) {
-        $server->send($fd, "Domain name invalid format");
-        return 'Invalid domain name format, please review registry policy about accepted labels';
-    }
+    return null; // No errors
 }
 
 function extractDomainAndTLD($urlString) {
