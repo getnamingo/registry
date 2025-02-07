@@ -135,12 +135,16 @@ class ReportsController extends Controller
         $whoisStatus = $checkServiceStatus('whois');
         $rdapStatus = $checkServiceStatus('rdap');
         $dasStatus = $checkServiceStatus('das');
+        $msgbStatus = $checkServiceStatus('msg_producer');
+        $msgwStatus = $checkServiceStatus('msg_worker');
 
         // Get log lines as strings
         $eppLogs = $getLogLines('epp');
         $whoisLogs = $getLogLines('whois');
         $rdapLogs = $getLogLines('rdap');
         $dasLogs = $getLogLines('das');
+        $msgbLogs = $getLogLines('msg_producer');
+        $msgwLogs = $getLogLines('msg_worker');
 
         $system = new System();
 
@@ -206,6 +210,10 @@ class ReportsController extends Controller
             'whoisLogs' => $whoisLogs,
             'rdapLogs' => $rdapLogs,
             'dasLogs' => $dasLogs,
+            'msgbStatus' => $msgbStatus,
+            'msgwStatus' => $msgwStatus,
+            'msgbLogs' => $msgbLogs,
+            'msgwLogs' => $msgwLogs,
         ]);
     }
 

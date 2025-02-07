@@ -113,74 +113,97 @@
                     </div>
                     
                     <!-- EPP Card -->
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-body">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-wrap">
                                     <div class="subheader me-2">{{ __('EPP Server') }}:</div>
                                     <span class="status {{ eppStatus == 'Running' ? 'status-green' : 'status-red' }}">
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ eppStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service epp restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- RDAP Card -->
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-body">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-wrap">
                                     <div class="subheader me-2">{{ __('RDAP Server') }}:</div>
                                     <span class="status {{ rdapStatus == 'Running' ? 'status-green' : 'status-red' }}">
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ rdapStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service rdap restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- WHOIS Card -->
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-body">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-wrap">
                                     <div class="subheader me-2">{{ __('WHOIS Server') }}:</div>
                                     <span class="status {{ whoisStatus == 'Running' ? 'status-green' : 'status-red' }}">
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ whoisStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service whois restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- DAS Card -->
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-body">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-wrap">
                                     <div class="subheader me-2">{{ __('DAS Server') }}:</div>
                                     <span class="status {{ dasStatus == 'Running' ? 'status-green' : 'status-red' }}">
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ dasStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service das restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-12">
+                    
+                    <!-- Msg_Producer Card -->
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-body">
-                                <p>
-                                    {{ __('If you encounter an issue with a specific service, log in via SSH and run the appropriate command to reload it:') }} <code>service epp restart</code>, <code>service whois restart</code>, <code>service rdap restart</code>, <code>service das restart</code>
-                                </p>
-                                <p class="text-muted">
-                                    {{ __('If you need assistance, please contact support.') }}
-                                </p>
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <div class="subheader me-2">{{ __('Message Producer') }}:</div>
+                                    <span class="status {{ msgbStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ msgbStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service msg_producer restart</code></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Msg_Worker Card -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <div class="subheader me-2">{{ __('Message Worker') }}:</div>
+                                    <span class="status {{ msgwStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ msgwStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service msg_worker restart</code></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -225,6 +248,28 @@
                             </div>
                             <div class="card-body">
                                 <pre style="white-space: pre-wrap;">{{ backupLog|raw }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('Msg_Producer Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap;">{{ msgbLogs|raw }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ __('Msg_Broker Log') }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap;">{{ msgwLogs|raw }}</pre>
                             </div>
                         </div>
                     </div>
