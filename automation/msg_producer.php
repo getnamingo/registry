@@ -12,7 +12,6 @@ declare(strict_types=1);
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\Coroutine\Redis;
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -39,7 +38,7 @@ class RedisPool {
     public function initialize(int $size = 10): void {
         for ($i = 0; $i < $size; $i++) {
             // Create a coroutine for each connection.
-            Swoole\Coroutine::create(function () {
+            Swoole\Coroutine\run(function () {
                 $redis = new Redis();
                 if (!$redis->connect($this->host, $this->port)) {
                     throw new Exception("Failed to connect to Redis at {$this->host}:{$this->port}");
