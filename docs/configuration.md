@@ -286,6 +286,44 @@ return [
 ];
 ```
 
+#### 1.4.12. Password Policy Documentation
+
+**Default Password Strength**
+- The default password strength requirement is **3**.
+- Password strength is measured on a scale from **0 (weak) to 4 (strong)**.
+- To modify the required strength, update the `.env` file.
+
+**Example:**
+```sh
+PASSWORD_STRENGTH=4
+```
+
+This will require stronger passwords.
+
+**Password Expiration**
+- By default, passwords expire after **90** days.
+- Users will be required to reset their password after this period.
+- To change the expiration period, modify the `.env` file.
+
+**Example:**
+```sh
+PASSWORD_EXPIRATION_DAYS=180
+```
+
+This will extend the password expiration to **180** days.
+
+**How to Apply Changes**
+- Edit the `.env` file located at `/var/www/cp/.env`
+- Save the file and restart Caddy if necessary.
+
+#### 1.4.13. Extra Scheduled Notification Scripts
+
+In `/opt/registry/tests/`, you will find three important notification scripts:
+
+- `recent-domains.php`: Notifies about all domains registered in the last **week**.
+- `expiring-domains.php`: Sends notifications for domains expiring in **30, 7, and 1 days.**
+- `balance-notify.php`: Alerts registrars with **low or zero balance.**
+
 ## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.
