@@ -18,8 +18,6 @@
         `;
     }
     
-    currency = "{{ currency }} ";
-
     table = new Tabulator("#invoicesTable", {
         ajaxURL:"/api/records/invoices?join=registrar", // Set the URL for your JSON data
         ajaxConfig:"GET",
@@ -40,12 +38,14 @@
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Number') }}", field:"invoice_number", width:200, resizable:false, headerSort:true, formatter: invoiceLinkFormatter, responsive:0},
             {title:"{{ __('Registrar') }}", field:"registrar_id.name", width:300, resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Date') }}", field:"issue_date", width:300, resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Amount') }}", field:"total_amount", width:200, resizable:false, headerSort:true, responsive:0, formatter:"money", formatterParams:{
-                decimal:".",
-                thousand:" ",
-                symbol:currency,
-                negativeSign:true,
+            {title:"{{ __('Date') }}", field:"issue_date", width:300, resizable:false, headerSort:true, responsive:0},            
+            {title:"{{ __('Amount') }}", field:"total_amount", width:200, resizable:false, headerSort:true, responsive:0, formatter:"money", formatterParams:function(cell){
+                return {
+                    decimal: ".",
+                    thousand: " ",
+                    symbol: (cell.getRow().getData().registrar_id.currency || "$") + " ", // Ensures space after currency symbol
+                    negativeSign: true
+                };
             }},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ]

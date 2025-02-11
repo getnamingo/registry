@@ -53,6 +53,9 @@ class FinancialsController extends Controller
         $billing_company = $db->selectValue('SELECT companyNumber FROM registrar WHERE id = ?',
         [ $invoice_details['registrar_id'] ]
         );
+        $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?',
+        [ $invoice_details['registrar_id'] ]
+        );
         $billing_vat = $db->selectValue('SELECT vatNumber FROM registrar WHERE id = ?',
         [ $invoice_details['registrar_id'] ]
         );
@@ -87,7 +90,6 @@ class FinancialsController extends Controller
         $billing_country = $billing_country['name'];
 
         $locale = $_SESSION['_lang'] ?? 'en_US'; // Fallback to 'en_US' if no locale is set
-        $currency = $_SESSION['_currency'] ?? 'USD'; // Fallback to 'USD' if no currency is set
 
         // Initialize the number formatter for the locale
         $numberFormatter = new \NumberFormatter($locale, \NumberFormatter::DECIMAL);
