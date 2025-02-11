@@ -288,7 +288,7 @@ EOF
     rdap.$REGISTRY_DOMAIN {
         $BIND_LINE
         reverse_proxy localhost:7500
-        encode brotli zstd gzip
+        encode zstd gzip
         file_server
         tls $YOUR_EMAIL
         header -Server
@@ -311,7 +311,7 @@ EOF
     whois.$REGISTRY_DOMAIN {
         $BIND_LINE
         root * /var/www/whois
-        encode brotli zstd gzip
+        encode zstd gzip
         php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         file_server
         tls $YOUR_EMAIL
@@ -332,7 +332,7 @@ EOF
         $BIND_LINE
         root * /var/www/cp/public
         php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
-        encode brotli zstd gzip
+        encode zstd gzip
         file_server
         tls $YOUR_EMAIL
         header -Server
