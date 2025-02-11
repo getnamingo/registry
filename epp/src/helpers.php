@@ -203,7 +203,7 @@ function validate_label($domain, $pdo) {
         }
 
         if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $label)) {
-            return 'Each domain label must start and end with an alphanumeric character';
+            return 'Each domain label must start and end with a letter or number and contain only letters, numbers, or hyphens';
         }
 
         // Check if it's a Punycode label (IDN)
