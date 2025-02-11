@@ -37,13 +37,13 @@ class RedisPool {
      */
     public function initialize(int $size = 10): void {
         for ($i = 0; $i < $size; $i++) {
-            // Create a coroutine for each connection.
-            Swoole\Coroutine\run(function () {
+            go(function () {
                 $redis = new Redis();
                 if (!$redis->connect($this->host, $this->port)) {
                     throw new Exception("Failed to connect to Redis at {$this->host}:{$this->port}");
                 }
                 $this->pool->push($redis);
+                echo "Added Redis connection to pool\n"; // Debugging log
             });
         }
     }
@@ -52,7 +52,7 @@ class RedisPool {
      * Get a Redis connection from the pool.
      * Optionally, you can add a timeout to avoid indefinite blocking.
      */
-    public function get(float $timeout = 1.0): Redis {
+    public function get(float $timeout = 2.0): Redis {
         $conn = $this->pool->pop($timeout);
         if (!$conn) {
             throw new Exception("No available Redis connection in pool");
@@ -63,13 +63,13 @@ class RedisPool {
     /**
      * Return a Redis connection back to the pool.
      */
-    public function put(Redis $redis): void {
-        $this->pool->push($redis);
+    public function put(?Redis $redis): void {
+        if ($redis && $redis->isConnected()) {
+            $this->pool->push($redis);
+        }
     }
-}
 
-// Global RedisPool instance
-$redisPool = new RedisPool('127.0.0.1', 6379, 10);
+}
 
 // Create the Swoole HTTP server
 $server = new Server("127.0.0.1", 8250);
@@ -80,24 +80,28 @@ $server->set([
     'log_file'   => '/var/log/namingo/msg_producer.log',
     'log_level'  => SWOOLE_LOG_INFO,
     'worker_num' => swoole_cpu_num() * 2,
-    'pid_file'   => '/var/run/msg_producer.pid'
+    'pid_file'   => '/var/run/msg_producer.pid',
+    'enable_coroutine' => true
 ]);
 
 /**
  * Instead of initializing the Redis pool in the "start" event (which runs in the master process),
  * we initialize it in the "workerStart" event so that it runs in a coroutine-enabled worker process.
  */
-$server->on("workerStart", function () use ($redisPool, $logger) {
+$server->on("workerStart", function ($server, $workerId) use (&$logger) {
     try {
-        $redisPool->initialize(10);
-        $logger->info("Redis pool initialized in worker process");
+        $server->redisPool = new RedisPool('127.0.0.1', 6379, 10); // Store in server object
+        $server->redisPool->initialize(10);
+        $logger->info("Redis pool initialized in worker process {$workerId}");
     } catch (Exception $e) {
-        $logger->error("Failed to initialize Redis pool: " . $e->getMessage());
+        $logger->error("Worker {$workerId}: Failed to initialize Redis pool - " . $e->getMessage());
     }
 });
 
 // Handle incoming requests
-$server->on("request", function (Request $request, Response $response) use ($redisPool, $logger) {
+$server->on("request", function (Request $request, Response $response) use ($server, $logger) {
+    $redisPool = $server->redisPool ?? null;
+
     if (!$redisPool) {
         $logger->error("Redis pool not initialized");
         $response->status(500);

@@ -1,0 +1,93 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Notify Registrars') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Notify Registrars') }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{{ __('Send Registrar Notification') }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/registrars/notify">
+                        {{ csrf.field | raw }}
+                            <!-- Select Registrars -->
+                            <div class="mb-3">
+                                <label class="form-label"><strong>{{ __('Select Registrars') }}</strong></label>
+                                <div class="card p-2">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="selectAll">{{ __('Select All') }}</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAll">{{ __('Deselect All') }}</button>
+                                    </div>
+                                    <div class="row">
+                                        {% for registrar in registrars %}
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input registrar-checkbox" type="checkbox" name="registrars[]" value="{{ registrar.id }}" id="registrar{{ registrar.id }}">
+                                                    <label class="form-check-label" for="registrar{{ registrar.id }}">
+                                                        <strong>{{ registrar.name }}</strong> ({{ registrar.clid }})  
+                                                        <br><small class="text-muted">{{ registrar.email }}</small>
+                                                        <br><small class="text-muted">{{ __('Last Login:') }} {{ registrar.last_login is not null ? registrar.last_login : 'Not available' }}</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Subject Field -->
+                            <div class="mb-3">
+                                <label class="form-label">{{ __('Subject') }}</label>
+                                <input type="text" name="subject" class="form-control" placeholder="{{ __('Enter subject') }}" required>
+                            </div>
+
+                            <!-- Message Field -->
+                            <div class="mb-3">
+                                <label class="form-label">{{ __('Message') }}</label>
+                                <textarea name="message" class="form-control" rows="4" placeholder="{{ __('Type your message...') }}" required></textarea>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">{{ __('Send Notification') }}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+<script>
+    document.getElementById("selectAll").addEventListener("click", function() {
+        document.querySelectorAll(".registrar-checkbox").forEach(el => el.checked = true);
+    });
+
+    document.getElementById("deselectAll").addEventListener("click", function() {
+        document.querySelectorAll(".registrar-checkbox").forEach(el => el.checked = false);
+    });
+</script>
+{% endblock %}

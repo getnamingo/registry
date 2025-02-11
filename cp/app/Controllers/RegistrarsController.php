@@ -1467,4 +1467,129 @@ class RegistrarsController extends Controller
         Auth::leaveImpersonation();
     }
 
+    public function notifyRegistrars(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+
+            // Ensure registrars array exists and is not empty
+            if (!isset($data['registrars']) || empty($data['registrars'])) {
+                $this->container->get('flash')->addMessage('error', 'No registrars selected');
+                return $response->withHeader('Location', '/registrars/notify')->withStatus(302);
+            }
+
+            $registrars = $data['registrars']; // Array of registrar IDs
+            $subject = isset($data['subject']) && is_string($data['subject']) ? trim($data['subject']) : 'No subject';
+            $message = isset($data['message']) && is_string($data['message']) ? trim($data['message']) : 'No message';
+
+            // Enforce length limits
+            $subjectMaxLength = 255;
+            $messageMaxLength = 5000;
+
+            if (strlen($subject) > $subjectMaxLength) {
+                $subject = substr($subject, 0, $subjectMaxLength);
+            }
+
+            if (strlen($message) > $messageMaxLength) {
+                $message = substr($message, 0, $messageMaxLength);
+            }
+
+            // Escape HTML to prevent XSS if displaying in HTML later
+            $subject = htmlspecialchars($subject, ENT_QUOTES, 'UTF-8');
+            $message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+
+            $url = 'http://127.0.0.1:8250';
+            
+            // Retrieve registrar names from database
+            $registrarNames = [];
+            $registrarEmails = [];
+            $placeholders = implode(',', array_fill(0, count($registrars), '?'));
+            $rows = $db->select(
+                "SELECT id, name, email FROM registrar WHERE id IN ($placeholders)",
+                $registrars
+            );
+
+            foreach ($rows as $row) {
+                $registrarNames[$row['id']] = $row['name'];
+                $registrarEmails[$row['id']] = $row['email'];
+            }
+
+            $notifiedRegistrars = [];
+
+            foreach ($registrars as $registrarId) {
+                $data = [
+                    'type' => 'sendmail',
+                    'toEmail' => $registrarEmails[$registrarId] ?? null,
+                    'subject' => $subject,
+                    'body' => $message
+                ];
+
+                $jsonData = json_encode($data);
+                
+                $options = [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST  => 'POST',
+                    CURLOPT_POSTFIELDS     => $jsonData,
+                    CURLOPT_HTTPHEADER     => [
+                        'Content-Type: application/json',
+                        'Content-Length: ' . strlen($jsonData)
+                    ],
+                ];
+
+                $curl = curl_init($url);
+                curl_setopt_array($curl, $options);
+                $curlResponse = curl_exec($curl);
+
+                if ($curlResponse === false) {
+                    $this->container->get('flash')->addMessage('error', 'cURL Error: ' . curl_error($curl));
+                    curl_close($curl);
+                    return $response->withHeader('Location', '/registrars/notify')->withStatus(302);
+                } else {
+                    $notifiedRegistrars[] = $registrarNames[$registrarId] ?? "Registrar ID: $registrarId";
+                }
+
+                curl_close($curl);
+            }
+
+            // Create success message with registrar names
+            $successMessage = "Notification sent to: " . implode(', ', $notifiedRegistrars);
+            $this->container->get('flash')->addMessage('success', $successMessage);
+
+            return $response->withHeader('Location', '/registrars/notify')->withStatus(302);
+        } else {
+            // Prepare the view
+            $db = $this->container->get('db');
+            $uri = $request->getUri()->getPath();
+
+            // Get all registrars
+            $registrars = $db->select("SELECT id, clid, name, email, abuse_email FROM registrar");
+
+            // Fetch last login for each registrar
+            foreach ($registrars as &$registrar) {
+                // Get the latest user_id associated with the registrar
+                $user_id = $db->selectValue("SELECT user_id FROM registrar_users WHERE registrar_id = ? ORDER BY user_id DESC LIMIT 1", [$registrar['id']]);
+
+                // Fetch last login time if user_id exists
+                if ($user_id) {
+                    $last_login = $db->selectValue("SELECT last_login FROM users WHERE id = ?", [$user_id]);
+                    $registrar['last_login'] = ($last_login && is_numeric($last_login)) ? date('Y-m-d H:i:s', $last_login) : null;
+                } else {
+                    $registrar['last_login'] = null;
+                }
+            }
+
+            // Default view for GET requests or if POST data is not set
+            return view($response,'admin/registrars/notifyRegistrars.twig', [
+                'registrars' => $registrars,
+                'currentUri' => $uri,
+            ]);
+        }
+    }
+
 }

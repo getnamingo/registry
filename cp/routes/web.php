@@ -100,6 +100,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registrar/process', RegistrarsController::class . ':transferRegistrarProcess')->setName('transferRegistrarProcess');
     $route->get('/registrar/impersonate/{registrar}', RegistrarsController::class . ':impersonateRegistrar')->setName('impersonateRegistrar');
     $route->get('/leave_impersonation', RegistrarsController::class . ':leave_impersonation')->setName('leave_impersonation');
+    $route->map(['GET', 'POST'], '/registrars/notify', RegistrarsController::class .':notifyRegistrars')->setName('notifyRegistrars');
 
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     $route->map(['GET', 'POST'], '/user/create', UsersController::class . ':createUser')->setName('createUser');
