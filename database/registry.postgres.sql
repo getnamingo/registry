@@ -538,7 +538,8 @@ CREATE TABLE IF NOT EXISTS users (
     "tfa_secret" VARCHAR(32),
     "tfa_enabled" BOOLEAN DEFAULT false,
     "auth_method" VARCHAR(255) DEFAULT 'password',
-    "backup_codes" TEXT
+    "backup_codes" TEXT,
+    "password_last_updated" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users_audit (

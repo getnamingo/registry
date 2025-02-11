@@ -605,6 +605,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`users` (
     `tfa_enabled` TINYINT DEFAULT 0,
     `auth_method` ENUM('password', '2fa', 'webauthn') DEFAULT 'password',
     `backup_codes` TEXT,
+    `password_last_updated` timestamp NULL DEFAULT current_timestamp(),
     PRIMARY KEY (`id`),
     UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Panel Users';

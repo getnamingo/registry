@@ -90,7 +90,7 @@ class PasswordController extends Controller
         if (!checkPasswordComplexity($data['password2'])) {
             redirect()->route('update.password',[],['selector'=>urlencode($data['selector']),'token'=>urlencode($data['token'])])->with('error','Password too weak. Use a stronger password.');
         }
-        $_SESSION['password_last_changed'][$userId] = time();
+        $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
         Auth::resetPasswordUpdate($data['selector'], $data['token'], $data['password']);
     }
 
@@ -113,7 +113,7 @@ class PasswordController extends Controller
             redirect()->route('profile')->with('error','Password too weak. Use a stronger password.');
         }
         $userId = $container->get('auth')->user()['id'];
-        $_SESSION['password_last_changed'][$userId] = time();
+        $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
         Auth::changeCurrentPassword($data['old_password'], $data['new_password']);
     }
 }

@@ -160,7 +160,7 @@ class UsersController extends Controller
                         return $response->withHeader('Location', '/user/create')->withStatus(302);
                     }
 
-                    $_SESSION['password_last_changed'][$userId] = time();
+                    $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
                     $this->container->get('flash')->addMessage('success', 'User ' . $email . ' has been created successfully');
                     return $response->withHeader('Location', '/users')->withStatus(302);
                 }
@@ -409,7 +409,7 @@ class UsersController extends Controller
 
             $userId = $db->selectValue('SELECT id from users WHERE username = ?', [ $username ]);
             unset($_SESSION['user_to_update']);
-            $_SESSION['password_last_changed'][$userId] = time();
+            $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
             $this->container->get('flash')->addMessage('success', 'User ' . $username . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/user/update/'.$username)->withStatus(302);
         }

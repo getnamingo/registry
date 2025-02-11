@@ -703,9 +703,17 @@ function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
     // Use configured or default password expiration days
     $passwordExpiryDays = envi('PASSWORD_EXPIRATION_DAYS') ?: 90; // Default to 90 days
 
-    if (time() - $lastPasswordUpdateTimestamp > $passwordExpiryDays * 86400) {
+    if (!$lastPasswordUpdateTimestamp) {
         return 'Your password is expired. Please change it.';
     }
+
+    // Convert the timestamp string to a Unix timestamp
+    $lastUpdatedUnix = strtotime($lastPasswordUpdateTimestamp);
+
+    if (time() - $lastUpdatedUnix > $passwordExpiryDays * 86400) {
+        return 'Your password is expired. Please change it.';
+    }
+
     return null;
 }
 
