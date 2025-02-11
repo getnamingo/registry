@@ -318,11 +318,13 @@ This will extend the password expiration to **180** days.
 
 #### 1.4.13. Extra Scheduled Notification Scripts
 
-In `/opt/registry/tests/`, you will find three important notification scripts:
+In `/opt/registry/tests/`, you will find three notification scripts:
 
 - `recent-domains.php`: Notifies about all domains registered in the last **week**.
 - `expiring-domains.php`: Sends notifications for domains expiring in **30, 7, and 1 days.**
 - `balance-notify.php`: Alerts registrars with **low or zero balance.**
+
+Some registries may wish to use these scripts and run them automatically. Each script includes comments at the beginning that explain the recommended cron job schedule.
 
 ## 2. Recommended Components and Integrations
 
