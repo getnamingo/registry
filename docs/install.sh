@@ -31,6 +31,12 @@ if [[ -e /etc/os-release ]]; then
     VER=$VERSION_ID
 fi
 
+# Ensure the script is run as root
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: This installer must be run as root or with sudo." >&2
+    exit 1
+fi
+
 # Minimum requirements
 MIN_RAM_MB=2048
 MIN_DISK_GB=10
@@ -384,8 +390,8 @@ EOF
     echo 'Composer installed'
 
     cd /var/www/cp
-    composer install
-    
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
+
     # Importing the database
     echo "Importing database."
     $DB_COMMAND -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
@@ -396,14 +402,14 @@ EOF
     cd /opt/registry/whois/web
     cp -r * /var/www/whois
     cd /var/www/whois
-    composer require gregwar/captcha
+    COMPOSER_ALLOW_SUPERUSER=1 composer require gregwar/captcha --no-interaction --quiet
     mv /var/www/whois/config.php.dist /var/www/whois/config.php
     sed -i "s|'whois_url' => '.*'|'whois_url' => 'whois.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
     sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
 
     echo "Installing WHOIS Server."
     cd /opt/registry/whois/port43
-    composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
@@ -415,7 +421,7 @@ EOF
 
     echo "Installing RDAP Server."
     cd /opt/registry/rdap
-    composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
@@ -427,7 +433,7 @@ EOF
 
     echo "Installing EPP Server."
     cd /opt/registry/epp
-    composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
@@ -439,14 +445,14 @@ EOF
 
     echo "Installing Automation Scripts."
     cd /opt/registry/automation
-    composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
 
     echo "Installing DAS Server."
     cd /opt/registry/das
-    composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
     sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php

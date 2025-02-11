@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Ensure the script is run as root
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: This update script must be run as root or with sudo." >&2
+    exit 1
+fi
+
 # Prompt the user for confirmation
 echo "This will update Namingo Registry from v1.0.12 to v1.0.13."
 echo "Make sure you have a backup of the database, /var/www/cp, and /opt/registry."
@@ -93,7 +99,8 @@ composer_update() {
     dir=$1
     if [[ -d "$dir" ]]; then
         echo "Updating composer in $dir..."
-        cd "$dir" && composer update
+        cd "$dir" || exit
+        COMPOSER_ALLOW_SUPERUSER=1 composer update --no-interaction --quiet
     else
         echo "Directory $dir does not exist. Skipping composer update..."
     fi
