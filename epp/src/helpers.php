@@ -182,67 +182,67 @@ function validate_identifier($identifier) {
     }
 }
 
-function isDomainValid(string $domain): bool {
-    // Ensure the domain only contains valid characters (letters, numbers, hyphens, and dots)
-    if (!preg_match('/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/', $domain)) {
-        return false;
-    }
-
-    // Split the domain into its labels (subdomains, SLD, etc.)
-    $labels = explode('.', $domain);
-    foreach ($labels as $label) {
-        if (strlen($label) > 63 || empty($label)) { // Labels cannot be empty or exceed 63 chars
-            return false;
-        }
-    }
-    return true;
-}
-
-function validate_label($label, $pdo) {
-    if (!$label) {
+function validate_label($domain, $pdo) {
+    if (!$domain) {
         return 'You must enter a domain name';
     }
 
-    // Ensure input contains only valid domain characters
-    if (!preg_match('/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/', $label)) {
-        return 'Invalid domain name format: only letters, numbers, dots, and hyphens allowed';
+    // Ensure domain has at least one dot (.) separating labels
+    if (strpos($domain, '.') === false) {
+        return 'Invalid domain name format: must contain at least one dot (.)';
     }
 
-    if (!isDomainValid($label)) {
-        return 'Domain label is too long (exceeds 63 characters)';
-    }
+    // Split domain into labels (subdomains, SLD, TLD)
+    $labels = explode('.', $domain);
+    foreach ($labels as $label) {
+        $len = strlen($label);
+        
+        // Labels cannot be empty, shorter than 2, or longer than 63 characters
+        if ($len < 2 || $len > 63) {
+            return 'Each domain label must be between 2 and 63 characters';
+        }
 
-    // Ensure domain starts and ends with an alphanumeric character
-    $parts = explode('.', $label);
-    foreach ($parts as $part) {
-        if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $part)) {
+        if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $label)) {
             return 'Each domain label must start and end with an alphanumeric character';
+        }
+
+        // Check if it's a Punycode label (IDN)
+        if (strpos($label, 'xn--') === 0) {
+            // Ensure valid Punycode structure
+            if (!preg_match('/^xn--[a-zA-Z0-9-]+$/', $label)) {
+                return 'Invalid Punycode format';
+            }
+
+            // Convert Punycode to UTF-8
+            $decoded = idn_to_utf8($label, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+            if ($decoded === false || $decoded === '') {
+                return 'Invalid Punycode conversion';
+            }
+
+            // Ensure decoded label follows normal domain rules
+            if (!preg_match('/^[\p{L}0-9][\p{L}0-9-]*[\p{L}0-9]$/u', $decoded)) {
+                return 'IDN must start and end with a letter or number';
+            }
+        } else {
+            // Prevent consecutive or invalid hyphen usage
+            if (preg_match('/--|\.\./', $label)) {
+                return 'Domain labels cannot contain consecutive dashes (--) or dots (..)';
+            }
         }
     }
 
     // Extract domain and TLD
-    $parts = extractDomainAndTLD($label);
+    $parts = extractDomainAndTLD($domain);
     if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
         return 'Invalid domain structure, unable to parse domain name';
     }
 
     $tld = "." . $parts['tld'];
 
-    if (strlen($parts['domain']) > 63) {
-        return 'Total length of your domain must be less than 63 characters';
-    }
-
-    if (strlen($parts['domain']) < 2) {
-        return 'Total length of your domain must be greater than 2 characters';
-    }
-
-    if (strpos($label, '.') === false) {
-        return 'Invalid domain name format, must contain at least one dot (.)';
-    }
-
-    // Ensure no invalid use of hyphens (double dashes, leading/trailing dashes)
-    if (strpos($parts['domain'], 'xn--') === false && preg_match("/(^-|^\.|-\.|\.-|--|\.\.|-$|\.$)/", $parts['domain'])) {
-        return 'Domain name cannot contain consecutive dashes (--) unless it is a punycode domain';
+    // Validate domain length
+    $domainLength = strlen($parts['domain']);
+    if ($domainLength < 2 || $domainLength > 63) {
+        return 'Domain length must be between 2 and 63 characters';
     }
 
     // Check if the TLD exists in the domain_tld table
@@ -255,11 +255,11 @@ function validate_label($label, $pdo) {
         return 'Zone is not supported';
     }
 
-    // If domain is an IDN (Punycode), convert it to Unicode
+    // IDN-specific validation (only if the domain contains Punycode)
     if (strpos($parts['domain'], 'xn--') === 0) {
         $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
 
-        // Fetch the IDN regex for the given TLD (only if it's an IDN)
+        // Fetch the IDN regex for the given TLD
         $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
         $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
         $stmtRegex->execute();
@@ -269,8 +269,8 @@ function validate_label($label, $pdo) {
             return 'Failed to fetch domain IDN table';
         }
 
-        // Check for invalid characters using fetched regex
-        if (!preg_match($idnRegex['idn_table'], $label)) {
+        // Check against IDN regex
+        if (!preg_match($idnRegex, $label)) {
             return 'Invalid domain name format, please review registry policy about accepted labels';
         }
     }

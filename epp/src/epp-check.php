@@ -255,62 +255,59 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         $names = [];
         foreach ($domains as $domain) {
             $domainName = (string) $domain;
-
-            // Check if the domain is already taken
-            $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName");
-            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
-            $stmt->execute();
-            $taken = $stmt->fetchColumn();
-            $availability = $taken ? '0' : '1';
-
-            // Initialize a new domain entry with the domain name
             $domainEntry = [$domainName];
-            
-            if ($availability === '0') {
-                // Domain is taken
-                $domainEntry[] = 0; // Set status to unavailable
-                $domainEntry[] = 'In use';
-            } else {
-                // Check if the domain is reserved
-                $parts = extractDomainAndTLD($domainName);
-                $label = $parts['domain'];
 
-                $stmt = $db->prepare("SELECT type FROM reserved_domain_names WHERE name = :domainName LIMIT 1");
-                $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
-                $stmt->execute();
-                $reserved = $stmt->fetchColumn();
+            $invalid_label = validate_label($domainName, $db);
+            if ($invalid_label) {
+                $domainEntry[] = 0; // Unavailable
+                $domainEntry[] = ucfirst($invalid_label);
+                $names[] = $domainEntry;
+                continue;
+            }
 
-                if ($reserved) {
+            $parts = extractDomainAndTLD($domainName);
+            $label = $parts['domain'];
+
+            $stmt = $db->prepare("
+                SELECT 'taken' AS type FROM domain WHERE name = :domainName
+                UNION ALL
+                SELECT type FROM reserved_domain_names WHERE name = :label
+                LIMIT 1
+            ");
+            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
+            $stmt->bindParam(':label', $label, PDO::PARAM_STR);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                if ($result['type'] === 'taken') {
+                    // Domain is registered
+                    $domainEntry[] = 0; // Unavailable
+                    $domainEntry[] = 'In use';
+                } else {
+                    // Domain is reserved
                     if ($allocation_token !== null) {
                         $allocationTokenValue = (string)$allocation_token;
-                        
-                        $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName AND token = :token LIMIT 1");
-                        $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
+                        $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :label AND token = :token LIMIT 1");
+                        $stmt->bindParam(':label', $label, PDO::PARAM_STR);
                         $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
                         $stmt->execute();
                         $token = $stmt->fetchColumn();
-                        
+
                         if ($token) {
-                            $domainEntry[] = 1;
+                            $domainEntry[] = 1; // Available with a valid allocation token
                         } else {
                             $domainEntry[] = 0;
                             $domainEntry[] = 'Allocation Token mismatch';
                         }
                     } else {
-                        $domainEntry[] = 0; // Set status to unavailable
-                        $domainEntry[] = ucfirst($reserved); // Capitalize the first letter
-                    }
-                } else {
-                    $invalid_label = validate_label($domainName, $db);
-
-                    // Check if the domain is Invalid
-                    if ($invalid_label) {
-                        $domainEntry[] = 0;  // Set status to unavailable
-                        $domainEntry[] = ucfirst($invalid_label); // Capitalize the first letter
-                    } else {
-                        $domainEntry[] = 1; // Domain is available
+                        $domainEntry[] = 0; // Unavailable
+                        $domainEntry[] = ucfirst($result['type']); // Reserved reason
                     }
                 }
+            } else {
+                // Domain is available
+                $domainEntry[] = 1;
             }
 
             // Append this domain entry to names
@@ -433,7 +430,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             'clTRID' => $clTRID,
             'svTRID' => $svTRID,
         ];
-        if ($fees) {
+        if (!empty($fees)) {
             $response['fees'] = $fees;
         }
     }
