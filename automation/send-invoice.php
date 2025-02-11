@@ -1,5 +1,7 @@
 <?php
 
+require_once 'vendor/autoload.php';
+
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
@@ -14,6 +16,33 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+}
+
+$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
+$stmt->execute(['name' => 'email']);
+$row = $stmt->fetch();
+if ($row) {
+    $supportEmail = $row['value'];
+} else {
+    $supportEmail = 'default-support@example.com';
+}
+
+$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
+$stmt->execute(['name' => 'phone']);
+$row = $stmt->fetch();
+if ($row) {
+    $supportPhoneNumber = $row['value'];
+} else {
+    $supportPhoneNumber = '+1.23456789';
+}
+
+$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
+$stmt->execute(['name' => 'company_name']);
+$row = $stmt->fetch();
+if ($row) {
+    $registryName = $row['value'];
+} else {
+    $registryName = 'Example Registry LLC';
 }
 
 $previous = date("Y-m", strtotime("first day of previous month"));
@@ -96,11 +125,12 @@ try {
                     "- Due Date: " . $dueDate . "\n" .
                     "- Total Amount: " . $totalAmount . "\n\n" .
                     "The invoice is available in your account for review and payment. Please ensure that the payment is made by the due date to avoid any late fees or service interruptions.\n\n" .
-                    "Should you have any questions or require further assistance, please do not hesitate to contact us at [Your Contact Information].\n\n" .
+                    "Should you have any questions or require further assistance, please do not hesitate to contact us at {$supportEmail}.\n\n" .
                     "Thank you for your prompt attention to this matter.\n\n" .
                     "Warm regards,\n\n" .
-                    "[Your Company Name]\n" .
-                    "[Your Contact Details]";
+                    "{$registryName}\n" .
+                    "{$supportEmail}\n" .
+                    "{$supportPhoneNumber}";
 
             // Prepare the data array for the cURL request
             $data = [

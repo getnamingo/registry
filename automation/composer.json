@@ -11,6 +11,7 @@
         "predis/predis": "^2.2",
         "guzzlehttp/guzzle": "^7.9",
         "league/flysystem-ftp": "^3.29",
-        "phpmailer/phpmailer": "^6.9"
+        "phpmailer/phpmailer": "^6.9",
+        "league/plates": "^3.6"
     }
 }
