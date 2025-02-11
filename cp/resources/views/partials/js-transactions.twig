@@ -5,7 +5,6 @@
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
-    currency = "{{ currency }} ";
     document.addEventListener("DOMContentLoaded", function(){
     
     var searchTerm = ""; // global variable to hold the search term
@@ -80,11 +79,13 @@
             {title:"{{ __('Length') }}", field:"length_in_months", resizable:false, download:false, headerSort:true, responsive:2},
             {title:"{{ __('From') }}", field:"fromS", resizable:false, headerSort:true, download:false, responsive:2},
             {title:"{{ __('To') }}", field:"toS", resizable:false, headerSort:true, download:false, responsive:2},
-            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:true, responsive:0, formatter:"money", formatterParams:{
-                decimal:".",
-                thousand:" ",
-                symbol:currency,
-                negativeSign:true,
+            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:true, responsive:0, formatter:"money",  formatterParams:function(cell){
+                return {
+                    decimal: ".",
+                    thousand: " ",
+                    symbol: (cell.getRow().getData().currency || "$") + " ", // Ensures space after currency symbol
+                    negativeSign: true
+                };
             }},
         ]
     });

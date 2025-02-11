@@ -6,8 +6,6 @@
 <script>
     var table;
     document.addEventListener("DOMContentLoaded", function(){
-    
-    currency = "{{ currency }} ";
 
     var searchTerm = ""; // global variable to hold the search term
 
@@ -73,11 +71,13 @@
             {title:"{{ __('Registrar') }}", field:"registrar_name", resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Description') }}", field:"description", resizable:false, headerSort:true, responsive:2, formatter:cell => (cell.getElement().setAttribute("title", cell.getValue() || ""), cell.getValue()?.length > 80 ? cell.getValue().substring(0, 80) + "..." : cell.getValue())},
-            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:true, width:200, minWidth:100, responsive:0, formatter:"money", formatterParams:{
-                decimal:".",
-                thousand:" ",
-                symbol:currency,
-                negativeSign:true,
+            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:true, width:200, minWidth:100, responsive:0, formatter:"money", formatterParams:function(cell){
+                return {
+                    decimal: ".",
+                    thousand: " ",
+                    symbol: (cell.getRow().getData().currency || "$") + " ", // Ensures space after currency symbol
+                    negativeSign: true
+                };
             }},
         ]
     });

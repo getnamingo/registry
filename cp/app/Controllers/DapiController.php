@@ -431,7 +431,8 @@ class DapiController extends Controller
             'registrar_id' => 'ph.registrar_id',
             'description' => 'ph.description',
             'amount' => 'ph.amount',
-            'registrar_name' => 'r.name'
+            'registrar_name' => 'r.name',
+            'currency' => 'r.currency'
         ];
 
         // --- SORTING ---
@@ -554,7 +555,8 @@ class DapiController extends Controller
             ph.date,
             ph.description,
             ph.amount,
-            r.name AS registrar_name
+            r.name AS registrar_name,
+            r.currency
         ";
 
         $dataSql = "
@@ -597,7 +599,8 @@ class DapiController extends Controller
             'fromS' => 'st.fromS',
             'toS' => 'st.toS',
             'amount' => 'st.amount',
-            'registrar_name' => 'r.name'
+            'registrar_name' => 'r.name',
+            'currency' => 'r.currency'
         ];
 
         // --- SORTING ---
@@ -724,7 +727,8 @@ class DapiController extends Controller
             st.fromS,
             st.toS,
             st.amount,
-            r.name AS registrar_name
+            r.name AS registrar_name,
+            r.currency
         ";
 
         $dataSql = "
