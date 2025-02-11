@@ -93,6 +93,13 @@ class AuthController extends Controller
         unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
 
         if ($login===true) {
+            // Check if password renewal is needed
+            $passwordLastChanged = $_SESSION['password_last_changed'][$_SESSION['auth_user_id']] ?? 0;
+            if (checkPasswordRenewal($passwordLastChanged)) {
+                Auth::logout();
+                redirect()->route('forgot.password')->with('error','Your password is expired. Please change it');
+            }
+
             $db = $container->get('db');
             $currentDateTime = new \DateTime();
             $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp

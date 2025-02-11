@@ -115,6 +115,11 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrar/create')->withStatus(302);
             }
 
+            if (!checkPasswordComplexity($data['panelPassword'])) {
+                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                return $response->withHeader('Location', '/registrar/create')->withStatus(302);
+            }
+
             $db->beginTransaction();
 
             try {
@@ -650,7 +655,12 @@ class RegistrarsController extends Controller
                 $this->container->get('flash')->addMessage('error', $errorText);
                 return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
-            
+
+            if (!checkPasswordComplexity($data['panelPassword'])) {
+                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+            }
+
             if (!empty($_SESSION['registrars_user_email'])) {
                 $regEmail = $_SESSION['registrars_user_email'][0];
             } else {

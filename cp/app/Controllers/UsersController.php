@@ -83,6 +83,11 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/create')->withStatus(302);
             }
 
+            if (!checkPasswordComplexity($password)) {
+                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                return $response->withHeader('Location', '/user/create')->withStatus(302);
+            }
+
             $registrars = $db->select("SELECT id, clid, name FROM registrar");
             if ($_SESSION["auth_roles"] != 0) {
                 $registrar = true;
@@ -146,6 +151,7 @@ class UsersController extends Controller
                                 'registered' => \time()
                             ]
                         );
+                        $userId = $db->getlastInsertId();
 
                         $db->commit();
                     } catch (Exception $e) {
@@ -154,6 +160,7 @@ class UsersController extends Controller
                         return $response->withHeader('Location', '/user/create')->withStatus(302);
                     }
 
+                    $_SESSION['password_last_changed'][$userId] = time();
                     $this->container->get('flash')->addMessage('success', 'User ' . $email . ' has been created successfully');
                     return $response->withHeader('Location', '/users')->withStatus(302);
                 }
@@ -305,6 +312,11 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
+            if (!checkPasswordComplexity($password)) {
+                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
+            }
+
             // Check if username already exists (excluding the current user)
             if ($username && $username !== $old_username) {
                 $existingUsername = $db->selectValue('SELECT COUNT(*) FROM users WHERE username = ? AND username != ?', [$username, $old_username]);
@@ -395,7 +407,9 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
+            $userId = $db->selectValue('SELECT id from users WHERE username = ?', [ $username ]);
             unset($_SESSION['user_to_update']);
+            $_SESSION['password_last_changed'][$userId] = time();
             $this->container->get('flash')->addMessage('success', 'User ' . $username . ' has been updated successfully on ' . $update);
             return $response->withHeader('Location', '/user/update/'.$username)->withStatus(302);
         }

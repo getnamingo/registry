@@ -693,8 +693,10 @@ function checkPasswordComplexity($password) {
     $score = $zxcvbn->passwordStrength($password)['score'];
 
     if ($score < $requiredScore) { // Score ranges from 0 (weak) to 4 (strong)
-        throw new Exception('Password too weak. Use a stronger password.');
+        return false;
     }
+    
+    return true;
 }
 
 function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
