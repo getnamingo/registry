@@ -7,6 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
+use App\Auth\Auth;
 
 class ProfileController extends Controller
 {
@@ -233,6 +234,36 @@ class ProfileController extends Controller
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
+    }
+
+    public function logoutEverywhereElse(Request $request, Response $response)
+    {
+        global $container;
+        $db = $container->get('db');
+        
+        $currentDateTime = new \DateTime();
+        $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+        $db->insert(
+            'users_audit',
+            [
+                'user_id' => $_SESSION['auth_user_id'],
+                'user_event' => 'user.logout.everywhere',
+                'user_resource' => 'control.panel',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+                'user_ip' => get_client_ip(),
+                'user_location' => get_client_location(),
+                'event_time' => $currentDate,
+                'user_data' => json_encode([
+                    'remaining_session_id' => session_id(),
+                    'logged_out_sessions' => 'All other sessions terminated',
+                    'previous_ip' => $_SESSION['previous_ip'] ?? null,
+                    'previous_user_agent' => $_SESSION['previous_user_agent'] ?? null,
+                    'timestamp' => $currentDate,
+                ])
+            ]
+        );
+
+        Auth::logoutEverywhereElse();
     }
 
 }

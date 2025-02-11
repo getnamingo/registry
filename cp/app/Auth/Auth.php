@@ -13,6 +13,7 @@ use Pinga\Auth\ResetDisabledException;
 use Pinga\Auth\TokenExpiredException;
 use Pinga\Auth\TooManyRequestsException;
 use Pinga\Auth\UserAlreadyExistsException;
+use Pinga\Auth\UnknownIdException;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
 
@@ -350,7 +351,7 @@ class Auth
             $auth->admin()->logInAsUserById($userId);
             redirect()->route('home')->with('success','Registrar impersonation started');
         }
-        catch (UnknownIdException  $e) {
+        catch (UnknownIdException $e) {
             redirect()->route('registrars')->with('error','Unknown ID');
         }
         catch (EmailNotVerifiedException $e) {
@@ -370,6 +371,21 @@ class Auth
         }
         else {
             return false;
+        }
+    }
+
+    /**
+     * Log out user from all other sessions except the current one
+     * @throws \Pinga\Auth\AuthError
+     */
+    public static function logoutEverywhereElse() {
+        $auth = self::$auth;
+        try {
+            $auth->logOutEverywhereElse();
+            redirect()->route('profile')->with('success', 'Logged out from all other devices');
+        }
+        catch (NotLoggedInException $e) {
+            redirect()->route('login')->with('error', 'You are not logged in');
         }
     }
 

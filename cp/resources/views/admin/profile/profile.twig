@@ -39,6 +39,9 @@
                           <a href="#tabs-webauthn" class="nav-link" data-bs-toggle="tab">WebAuthn</a>
                         </li>
                         <li class="nav-item">
+                          <a href="#tabs-security" class="nav-link" data-bs-toggle="tab">{{ __('Security') }}</a>
+                        </li>
+                        <li class="nav-item">
                           <a href="#tabs-log" class="nav-link" data-bs-toggle="tab">{{ __('Log') }}</a>
                         </li>
                       </ul>
@@ -202,6 +205,16 @@
                             <p>{{ __('WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator.') }}</p>
                           {% endif %}
                           {% endif %}
+                        </div>
+                        <div class="tab-pane" id="tabs-security">
+                          <h3 class="card-title">{{ __('Security') }}</h3>
+                          <p>{{ __('If you’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices.') }}</p>
+                          <form action="{{route('profile.logout.everywhere')}}" name="logoutEverywhere" method="post">
+                          {{ csrf.field | raw }}
+                          <button type="submit" class="btn btn-danger">
+                            {{ __('Log Out from All Devices') }}
+                          </button>
+                          </form>
                         </div>
                         <div class="tab-pane" id="tabs-log">
                           <h3 class="card-title">{{ __('User Audit Log') }}</h3>

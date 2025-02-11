@@ -149,6 +149,7 @@ $app->group('', function ($route) {
 
     $route->get('/profile', ProfileController::class .':profile')->setName('profile');
     $route->post('/profile/2fa', ProfileController::class .':activate2fa')->setName('activate2fa');
+    $route->post('/profile/logout-everywhere', ProfileController::class . ':logoutEverywhereElse')->setName('profile.logout.everywhere');
     $route->get('/webauthn/register/challenge', ProfileController::class . ':getRegistrationChallenge')->setName('webauthn.register.challenge');
     $route->post('/webauthn/register/verify', ProfileController::class . ':verifyRegistration')->setName('webauthn.register.verify');
 
