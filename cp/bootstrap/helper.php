@@ -281,8 +281,13 @@ function validate_label($domain, $db) {
         return 'Zone is not supported';
     }
 
+    // Prevent mixed IDN & ASCII domains
+    if ((strpos($parts['domain'], 'xn--') === 0) !== (strpos($parts['tld'], 'xn--') === 0)) {
+        return 'Invalid domain name: IDN (xn--) domains must have both an IDN domain and TLD.';
+    }
+
     // IDN-specific validation (only if the domain contains Punycode)
-    if (strpos($parts['domain'], 'xn--') === 0) {
+    if (strpos($parts['domain'], 'xn--') === 0 && strpos($parts['tld'], 'xn--') === 0) {
         $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
 
         // Fetch the IDN regex for the given TLD
