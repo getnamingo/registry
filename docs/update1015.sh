@@ -60,6 +60,8 @@ systemctl stop das
 systemctl stop msg_producer
 systemctl stop msg_worker
 
+systemctl daemon-reload
+
 # Clear cache
 echo "Clearing cache..."
 php /var/www/cp/bin/clear_cache.php
@@ -162,8 +164,8 @@ systemctl start caddy
 systemctl start msg_producer
 systemctl start msg_worker
 
-systemctl enable redis
-systemctl start redis
+systemctl enable redis-server
+systemctl start redis-server
 
 # Check if services started successfully
 if [[ $? -eq 0 ]]; then

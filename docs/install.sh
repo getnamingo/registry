@@ -470,8 +470,9 @@ EOF
     systemctl enable msg_worker
 
     echo "Enabling Redis."
-    systemctl enable redis
-    systemctl start redis
+    systemctl daemon-reload
+    systemctl enable redis-server
+    systemctl start redis-server
 
     echo "Configuring control panel admin."
     sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
