@@ -89,7 +89,9 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 ### Update
 
-If your current version is not immediately before the latest, you must run the update scripts sequentially for each version, e.g., from 1.0.3 to 1.0.4, then from 1.0.4 to 1.0.5, and so on, until you reach the latest version.
+You must run update scripts in order, without skipping versions. For example, if you're on 1.0.13 and the latest is 1.0.15, first update to 1.0.14, then to 1.0.15.
+
+- v1.0.14 to v1.0.15 - backup registry, download and run the [update1015.sh](docs/update1015.sh) script.
 
 - v1.0.13 to v1.0.14 - backup registry, download and run the [update1014.sh](docs/update1014.sh) script.
 

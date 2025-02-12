@@ -113,7 +113,7 @@
                     </div>
                     
                     <!-- EPP Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -122,14 +122,14 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ eppStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service epp restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service epp restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- RDAP Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -138,14 +138,14 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ rdapStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service rdap restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service rdap restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- WHOIS Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -154,14 +154,14 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ whoisStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service whois restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service whois restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- DAS Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -170,14 +170,14 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ dasStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service das restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service das restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Msg_Producer Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -186,14 +186,14 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ msgbStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service msg_producer restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service msg_producer restart</code></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Msg_Worker Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center flex-wrap">
@@ -202,7 +202,23 @@
                                         <span class="status-dot status-dot-animated"></span>
                                         {{ msgwStatus == 'Running' ? __('Running') : __('Stopped') }}
                                     </span>
-                                    <div class="w-100 mt-2 text-secondary">{{ __('Issue detected? Restart with:') }} <code>service msg_worker restart</code></div>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service msg_worker restart</code></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Redis Card -->
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <div class="subheader me-2">{{ __('Redis') }}:</div>
+                                    <span class="status {{ redisStatus == 'Running' ? 'status-green' : 'status-red' }}">
+                                        <span class="status-dot status-dot-animated"></span>
+                                        {{ redisStatus == 'Running' ? __('Running') : __('Stopped') }}
+                                    </span>
+                                    <div class="w-100 mt-2 text-secondary">{{ __('Problem? Restart:') }} <code>service redis restart</code></div>
                                 </div>
                             </div>
                         </div>

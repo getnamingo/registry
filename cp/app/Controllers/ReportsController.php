@@ -128,7 +128,7 @@ class ReportsController extends Controller
 
             return "Log file not found: $logFile";
         };
-
+        
         // Check statuses
         $eppStatus = $checkServiceStatus('epp');
         $whoisStatus = $checkServiceStatus('whois');
@@ -136,6 +136,7 @@ class ReportsController extends Controller
         $dasStatus = $checkServiceStatus('das');
         $msgbStatus = $checkServiceStatus('msg_producer');
         $msgwStatus = $checkServiceStatus('msg_worker');
+        $redisStatus = $checkServiceStatus('redis');
 
         // Get log lines as strings
         $eppLogs = $getLogLines('epp');
@@ -213,6 +214,7 @@ class ReportsController extends Controller
             'msgwStatus' => $msgwStatus,
             'msgbLogs' => $msgbLogs,
             'msgwLogs' => $msgwLogs,
+            'redisStatus' => $redisStatus
         ]);
     }
 
