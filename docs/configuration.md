@@ -42,24 +42,87 @@ Once configured, you can launch the EPP server in the same way as the others:
 systemctl start epp
 ```
 
-### 1.3. Additional Control Panel Setup
+### 1.3. Optional Control Panel Configuration
 
-#### 1.3.1. Install Optional Dependencies
+Features You May Want to Enable or Customize:
 
-To enhance the functionality of your control panel, install optional dependencies by executing the following command:
+#### 1.3.1. Customizing the Logo and Pages
+
+**1.3.1.1. Customizing the Logo**:
+Upload your custom logo as `logo.svg` to `/var/www/cp/public/static/`. If `logo.svg` is not present, the default `logo.default.svg` will be used automatically.
+
+**1.3.1.2. Customizing the Documentation Page**:
+To customize the documentation, copy `docs.twig` to `docs.custom.twig` using the command `cp /var/www/cp/resources/views/admin/support/docs.twig /var/www/cp/resources/views/admin/support/docs.custom.twig`. Edit `docs.custom.twig` as needed. The system will use `docs.custom.twig` if it exists; otherwise, it defaults to `docs.twig`.
+
+**1.3.1.3. Customizing the Media Kit Page**:
+To customize the media kit page, copy `mediakit.twig` to `mediakit.custom.twig` using `cp /var/www/cp/resources/views/admin/support/mediakit.twig /var/www/cp/resources/views/admin/support/mediakit.custom.twig`. Edit `mediakit.custom.twig` to apply your changes. The system will prioritize `mediakit.custom.twig` over the default file.
+
+**1.3.1.4. Customizing the Landing Page**:
+To customize the landing page, copy `index.twig` to `index.custom.twig` using `cp /var/www/cp/resources/views/index.twig /var/www/cp/resources/views/index.custom.twig`. Edit `index.custom.twig` to apply your changes. The system will prioritize `index.custom.twig` over the default file.
+
+#### 1.3.2. Changing the Default Language
+
+To change the default language of the control panel, you must edit the `/var/www/cp/.env` file and replace the language values (`LANG`/`UI_LANG`) with your desired settings.
+
+For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `es_ES`, `pt_PT`, `jp_JP`, `ar_SA`, and `fr_FR`. For the `UI_LANG` variable, use `us`, `ua`, `es`, `pt`, `jp`, `ar`, or `fr`.
+
+To apply your changes, save the file, refresh the control panel, and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php` The new language settings will take effect immediately.
+
+#### 1.3.3. WebAuthn Authentication
+
+To enable WebAuthn authentication in the Control Panel, follow these steps:
+
+1. Edit the environment configuration file located at: `/var/www/cp/.env`
+
+2. Find or add the following line:
 
 ```bash
-cd /var/www/cp
-composer require phpmailer/phpmailer
+WEB_AUTHN_ENABLED=true
 ```
 
-#### 1.3.2. Setting Up Redis Session Storage
+3. Save the changes and reload the server (Caddy) using the following command:
+
+```bash
+sudo systemctl reload caddy
+```
+
+#### 1.3.4. Password Policy Documentation
+
+**Default Password Strength**
+- The default password strength requirement is **3**.
+- Password strength is measured on a scale from **0 (weak) to 4 (strong)**.
+- To modify the required strength, update the `.env` file.
+
+**Example:**
+```sh
+PASSWORD_STRENGTH=4
+```
+
+This will require stronger passwords.
+
+**Password Expiration**
+- By default, passwords expire after **90** days.
+- Users will be required to reset their password after this period.
+- To change the expiration period, modify the `.env` file.
+
+**Example:**
+```sh
+PASSWORD_EXPIRATION_DAYS=180
+```
+
+This will extend the password expiration to **180** days.
+
+**How to Apply Changes**
+- Edit the `.env` file located at `/var/www/cp/.env`
+- Save the file and restart Caddy if necessary.
+
+#### 1.3.5. Setting Up Redis Session Storage
 
 To utilize Redis for session storage, you need to install the necessary packages and configure your environment accordingly. Follow these steps to set up Redis session storage:
 
 ```bash
 cd /var/www/cp
-composer require predis/predis pinga/session-redis
+composer require pinga/session-redis
 ```
 
 After installation, log out of your application if you are currently logged in. This ensures that the session starts afresh with the new configuration.
@@ -67,12 +130,6 @@ After installation, log out of your application if you are currently logged in. 
 Clear your browser cookies related to the application. This step is crucial as it removes any existing session cookies that were set using the previous session storage mechanism.
 
 Upon your next login, Redis will be used for storing session data. The new sessions will be created and managed through Redis, providing a more scalable and efficient session management system.
-
-**Note**: Ensure that your Redis server is properly configured and running before proceeding with these steps. If in doubt, check with:
-
-```bash
-systemctl status redis-server
-```
 
 ### 1.4. Setting Up the Automation System
 
@@ -88,23 +145,7 @@ cd /opt/registry/automation
 
 Open `config.php` and adjust all necessary settings to suit your system's requirements. Make sure to review and fine-tune each option for optimal performance.
 
-#### 1.4.2. Install Optional Dependencies
-
-Execute one of the following commands to install the optional dependencies:
-
-```bash
-composer require utopia-php/messaging
-```
-
-or
-
-```bash
-composer require phpmailer/phpmailer
-```
-
-This command will install one of the packages which are essential for the message broker script to function correctly.
-
-#### 1.4.3. Configuring the Message Broker
+#### 1.4.2. Configuring the Message Broker
 
 You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
 
@@ -117,7 +158,7 @@ systemctl start msg_producer
 systemctl start msg_worker
 ```
 
-#### 1.4.4. Setting Up an Audit Trail Database for Namingo
+#### 1.4.3. Setting Up an Audit Trail Database for Namingo
 
 To create an audit trail database for Namingo, start by editing the configuration file located at `/opt/registry/automation/audit.json` with the correct database details. This includes specifying the database connection parameters such as host, username, and password. Once your configuration is set up, run the command:
 
@@ -129,17 +170,17 @@ This will initialize and configure the audit trail functionality. This process e
 
 **Currently, the audit trail setup for Namingo is supported only with MySQL or MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgAudit](https://minervadb.com/index.php/pgaudit-open-source-postgresql-audit-logging/), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
 
-#### 1.4.5. Setup Backup
+#### 1.4.4. Setup Backup
 
 To set up backups in Namingo:
 
 1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details.
 
-2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.7. Running the Automation System** to activate the automation system on your server.
+2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.6. Running the Automation System** to activate the automation system on your server.
 
-#### 1.4.6. RDE (Registry data escrow) configuration
+#### 1.4.5. RDE (Registry data escrow) configuration
 
-**1.4.6.1. Generate the Key Pair**: Create a configuration file, say key-config, with the following content:
+**1.4.5.1. Generate the Key Pair**: Create a configuration file, say key-config, with the following content:
 
 ```yaml
 %echo Generating a default key
@@ -166,7 +207,7 @@ gpg2 --batch --generate-key key-config
 
 Your GPG key pair will now be generated.
 
-**1.4.6.2. Exporting Your Keys**:
+**1.4.5.2. Exporting Your Keys**:
 
 Public key:
 
@@ -182,11 +223,11 @@ Private key:
 gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
 ```
 
-**1.4.6.3. Secure Your Private Key**: Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
+**1.4.5.3. Secure Your Private Key**: Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
 
-**1.4.6.4. Use in RDE deposit generation**: Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
+**1.4.5.4. Use in RDE deposit generation**: Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
 
-#### 1.4.7. Running the Automation System
+#### 1.4.6. Running the Automation System
 
 1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
 
@@ -210,47 +251,7 @@ return [
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
 ```
 
-#### 1.4.8. Customizing the Control Panel Logo and Pages
-
-**1.4.8.1. Customizing the Logo**:
-Upload your custom logo as `logo.svg` to `/var/www/cp/public/static/`. If `logo.svg` is not present, the default `logo.default.svg` will be used automatically.
-
-**1.4.8.2. Customizing the Documentation Page**:
-To customize the documentation, copy `docs.twig` to `docs.custom.twig` using the command `cp /var/www/cp/resources/views/admin/support/docs.twig /var/www/cp/resources/views/admin/support/docs.custom.twig`. Edit `docs.custom.twig` as needed. The system will use `docs.custom.twig` if it exists; otherwise, it defaults to `docs.twig`.
-
-**1.4.8.3. Customizing the Media Kit Page**:
-To customize the media kit page, copy `mediakit.twig` to `mediakit.custom.twig` using `cp /var/www/cp/resources/views/admin/support/mediakit.twig /var/www/cp/resources/views/admin/support/mediakit.custom.twig`. Edit `mediakit.custom.twig` to apply your changes. The system will prioritize `mediakit.custom.twig` over the default file.
-
-**1.4.8.4. Customizing the Landing Page**:
-To customize the landing page, copy `index.twig` to `index.custom.twig` using `cp /var/www/cp/resources/views/index.twig /var/www/cp/resources/views/index.custom.twig`. Edit `index.custom.twig` to apply your changes. The system will prioritize `index.custom.twig` over the default file.
-
-#### 1.4.9. Changing the Default Control Panel Language
-
-To change the default language of the control panel, you must edit the `/var/www/cp/.env` file and replace the language values (`LANG`/`UI_LANG`) with your desired settings.
-
-For the `LANG` variable, the supported values are `en_US`, `uk_UA`, `es_ES`, `pt_PT`, `jp_JP`, `ar_SA`, and `fr_FR`. For the `UI_LANG` variable, use `us`, `ua`, `es`, `pt`, `jp`, `ar`, or `fr`.
-
-To apply your changes, save the file, refresh the control panel, and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php` The new language settings will take effect immediately.
-
-#### 1.4.10. WebAuthn Authentication
-
-To enable WebAuthn authentication in the Control Panel, follow these steps:
-
-1. Edit the environment configuration file located at: `/var/www/cp/.env`
-
-2. Find or add the following line:
-
-```bash
-WEB_AUTHN_ENABLED=true
-```
-
-3. Save the changes and reload the server (Caddy) using the following command:
-
-```bash
-sudo systemctl reload caddy
-```
-
-#### 1.4.11. Zone generator custom records
+#### 1.4.7. Zone generator custom records
 
 Each TLD can have its own custom records file, located in `/opt/registry/automation/`. For example, for the TLD `example`, create the file `/opt/registry/automation/example.php`.
 
@@ -286,37 +287,7 @@ return [
 ];
 ```
 
-#### 1.4.12. Password Policy Documentation
-
-**Default Password Strength**
-- The default password strength requirement is **3**.
-- Password strength is measured on a scale from **0 (weak) to 4 (strong)**.
-- To modify the required strength, update the `.env` file.
-
-**Example:**
-```sh
-PASSWORD_STRENGTH=4
-```
-
-This will require stronger passwords.
-
-**Password Expiration**
-- By default, passwords expire after **90** days.
-- Users will be required to reset their password after this period.
-- To change the expiration period, modify the `.env` file.
-
-**Example:**
-```sh
-PASSWORD_EXPIRATION_DAYS=180
-```
-
-This will extend the password expiration to **180** days.
-
-**How to Apply Changes**
-- Edit the `.env` file located at `/var/www/cp/.env`
-- Save the file and restart Caddy if necessary.
-
-#### 1.4.13. Extra Scheduled Notification Scripts
+#### 1.4.8. Extra Scheduled Notification Scripts
 
 In `/opt/registry/tests/`, you will find three notification scripts:
 

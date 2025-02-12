@@ -162,6 +162,9 @@ systemctl start caddy
 systemctl start msg_producer
 systemctl start msg_worker
 
+systemctl enable redis
+systemctl start redis
+
 # Check if services started successfully
 if [[ $? -eq 0 ]]; then
     echo "Services started successfully. Deleting /opt/registry1015..."
