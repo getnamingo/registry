@@ -921,12 +921,20 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
+            $currency = $_SESSION['_currency'] ?? 'USD';
+            if (!empty($_SESSION['auth_registrar_id'])) {
+                $currency = $db->selectValue(
+                    'SELECT currency FROM registrar WHERE id = ?',
+                    [$_SESSION['auth_registrar_id']]
+                ) ?? 'USD'; // Default to USD if no result
+            }
         } else {
             $registrar = null;
+            $currency = $_SESSION['_currency'] ?? 'USD';
         }
+        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
 
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
-        $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
 
         $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
         $formatter->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currency);
@@ -947,6 +955,7 @@ class DomainsController extends Controller
             'registrar' => $registrar,
             'launch_phases' => $launch_phases,
             'currency' => $currency,
+            'registry_currency' => $registry_currency,
         ]);
     }
     
@@ -1899,10 +1908,19 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
+            $currency = $_SESSION['_currency'] ?? 'USD';
+            if (!empty($_SESSION['auth_registrar_id'])) {
+                $currency = $db->selectValue(
+                    'SELECT currency FROM registrar WHERE id = ?',
+                    [$_SESSION['auth_registrar_id']]
+                ) ?? 'USD'; // Default to USD if no result
+            }
         } else {
             $registrar = null;
+            $currency = $_SESSION['_currency'] ?? 'USD';
         }
-        
+        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
+
         $uri = $request->getUri()->getPath();
 
         if ($args) {
@@ -1943,7 +1961,6 @@ class DomainsController extends Controller
                 $maxYears = 10 - $yearsUntilExpiration;
                 
                 $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
-                $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
 
                 $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
                 $formatter->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currency);
@@ -1970,7 +1987,8 @@ class DomainsController extends Controller
                     'currentUri' => $uri,
                     'currencySymbol' => $symbol,
                     'currencyPosition' => $position,
-                    'currency' => $currency
+                    'currency' => $currency,
+                    'registry_currency' => $registry_currency
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -2661,12 +2679,20 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
+            $currency = $_SESSION['_currency'] ?? 'USD';
+            if (!empty($_SESSION['auth_registrar_id'])) {
+                $currency = $db->selectValue(
+                    'SELECT currency FROM registrar WHERE id = ?',
+                    [$_SESSION['auth_registrar_id']]
+                ) ?? 'USD'; // Default to USD if no result
+            }
         } else {
             $registrar = null;
+            $currency = $_SESSION['_currency'] ?? 'USD';
         }
-            
+        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
+
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
-        $currency = $_SESSION['_currency'] ?? 'USD'; // Default to USD if not set
 
         $formatter = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
         $formatter->setTextAttribute(\NumberFormatter::CURRENCY_CODE, $currency);
@@ -2683,7 +2709,8 @@ class DomainsController extends Controller
             'registrar' => $registrar,
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
-            'currency' => $currency
+            'currency' => $currency,
+            'registry_currency' => $registry_currency
         ]);
     }
     

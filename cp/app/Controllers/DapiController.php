@@ -756,4 +756,26 @@ class DapiController extends Controller
         return $response;
     }
 
+    public function domainPrice(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $db = $this->container->get('db');
+
+        $domain_name = $params['domain_name'] ?? '';
+        $date_add = (int) ($params['date_add'] ?? 12);
+        $command = $params['command'] ?? 'create';
+        $currency = $params['currency'] ?? 'USD';
+        $registrar_id = !empty($params['registrar_id']) ? $params['registrar_id'] : ($_SESSION['auth_registrar_id'] ?? null);
+
+        $parts = extractDomainAndTLD($domain_name);
+        $domain_extension = $parts['tld'];
+
+        $tld_id = $db->selectValue('SELECT id FROM domain_tld WHERE tld = ?', [ '.'.$domain_extension ]);
+
+        $result = getDomainPrice($db, $domain_name, $tld_id, $date_add, $command, $registrar_id, $currency);
+
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
 }

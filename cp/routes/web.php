@@ -163,6 +163,7 @@ $app->group('', function ($route) {
     $route->get('/dapi/applications', [DapiController::class, 'listApplications']);
     $route->get('/dapi/payments', [DapiController::class, 'listPayments']);
     $route->get('/dapi/statements', [DapiController::class, 'listStatements']);
+    $route->get('/dapi/domain/price', [DapiController::class, 'domainPrice']);
 })->add(new AuthMiddleware($container));
 
 $app->any('/api[/{params:.*}]', function (
