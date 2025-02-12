@@ -866,14 +866,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $clid = $stmt->fetch(PDO::FETCH_ASSOC);
     $clid = $clid['id'];
 
-    $stmt = $db->prepare("SELECT accountBalance, creditLimit FROM registrar WHERE id = :registrar_id LIMIT 1");
+    $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrar_id LIMIT 1");
     $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
     $stmt->execute();
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $registrar_balance = $result['accountBalance'];
     $creditLimit = $result['creditLimit'];
+    $currency = $result['currency'];
     
-    $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
+    $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
     $price = $returnValue['price'];
 
     if (!$price) {

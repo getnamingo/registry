@@ -373,18 +373,9 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                         // Calculate or retrieve fee for this command
                         $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName, $clid);
                         $price = $returnValue['price'];
-                        
-                        $sth = $db->prepare("
-                            SELECT price 
-                            FROM domain_restore_price 
-                            WHERE tldid = ? 
-                            AND (registrar_id = ? OR registrar_id IS NULL)
-                            ORDER BY registrar_id DESC
-                            LIMIT 1
-                        ");
-                        $sth->execute([$tld_id, $clid]);
-                        $restore_price = $sth->fetchColumn();
-                        
+
+                        $restore_price = getDomainRestorePrice($db, $tld_id, $clid, $currency);
+
                         if ($commandName == 'restore') {
                             $feeResponses[] = [
                                 'command' => $commandName,

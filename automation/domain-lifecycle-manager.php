@@ -128,18 +128,22 @@ class DomainLifecycleManager {
     }
 
     private function handleAutoRenewal($domain_id, $name, $tldid, $exdate, $clid) {
-        // Get registrar balance and credit limit
+        // Get registrar balance, credit limit, and currency
         $sthRegistrar = $this->dbh->prepare("
-            SELECT accountBalance, creditLimit 
+            SELECT accountBalance, creditLimit, currency 
             FROM registrar 
             WHERE id = ? 
             LIMIT 1
         ");
         $sthRegistrar->execute([$clid]);
-        list($registrar_balance, $creditLimit) = $sthRegistrar->fetch(PDO::FETCH_NUM);
+        $registrar = $sthRegistrar->fetch(PDO::FETCH_ASSOC);
+        
+        $registrar_balance = $registrar['accountBalance'];
+        $creditLimit = $registrar['creditLimit'];
+        $currency = $registrar['currency'];
 
         // Get domain price
-        $returnValue = getDomainPrice($this->dbh, $name, $tldid, 12, 'renew', $clid);
+        $returnValue = getDomainPrice($this->dbh, $name, $tldid, 12, 'renew', $clid, $currency);
         $price = $returnValue['price'];
 
         if (($registrar_balance + $creditLimit) > $price) {

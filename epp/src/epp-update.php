@@ -1844,32 +1844,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $temp_id = $sth->fetchColumn();
 
             if ($temp_id == 1) {
-                $sth = $db->prepare("SELECT accountBalance,creditLimit FROM registrar WHERE id = ?");
+                $sth = $db->prepare("SELECT accountBalance,creditLimit,currency FROM registrar WHERE id = ?");
                 $sth->execute([$clid]);
-                list($registrar_balance, $creditLimit) = $sth->fetch();
+                list($registrar_balance, $creditLimit, $currency) = $sth->fetch();
 
-                $sth = $db->prepare("
-                    SELECT m12 
-                    FROM domain_price 
-                    WHERE tldid = ? 
-                    AND command = 'renew' 
-                    AND (registrar_id = ? OR registrar_id IS NULL)
-                    ORDER BY registrar_id DESC
-                    LIMIT 1
-                ");
-                $sth->execute([$row['tldid'], $clid]);
-                $renew_price = $sth->fetchColumn();
+                $returnValue = getDomainPrice($db, $domainName, $row['tldid'], 12, 'renew', $clid, $currency);
+                $renew_price = $returnValue['price'];
 
-                $sth = $db->prepare("
-                    SELECT price 
-                    FROM domain_restore_price 
-                    WHERE tldid = ? 
-                    AND (registrar_id = ? OR registrar_id IS NULL)
-                    ORDER BY registrar_id DESC
-                    LIMIT 1
-                ");
-                $sth->execute([$row['tldid'], $clid]);
-                $restore_price = $sth->fetchColumn();
+                $restore_price = getDomainRestorePrice($db, $row['tldid'], $clid, $currency);
 
                 if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
                     sendEppError($conn, $db, 2104, 'There is no money on the account for restore and renew', $clTRID, $trans);

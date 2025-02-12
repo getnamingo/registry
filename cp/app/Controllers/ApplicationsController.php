@@ -216,12 +216,13 @@ class ApplicationsController extends Controller
        
             $date_add = 0;
 
-            $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
+            $currency = $result['currency'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -1073,14 +1074,15 @@ class ApplicationsController extends Controller
                     $clid = $registrar_id_domain;
                 }
                 
-                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
+                $currency = $result['currency'];
                 
                 $date_add = 12;
                 
-                $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
+                $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
                 $price = $returnValue['price'];
                 
                 try {

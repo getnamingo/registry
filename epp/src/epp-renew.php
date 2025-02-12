@@ -106,14 +106,15 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         // Check registrar account balance
-        $stmt = $db->prepare("SELECT accountBalance, creditLimit FROM registrar WHERE id = :registrarId LIMIT 1");
+        $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrarId LIMIT 1");
         $stmt->bindParam(':registrarId', $clid['id'], PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $registrar_balance = $row['accountBalance'];
         $creditLimit = $row['creditLimit'];
-        
-        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid);
+        $currency = $row['currency'];
+
+        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid['id'], $currency);
         $price = $returnValue['price'];
 
         if (($registrar_balance + $creditLimit) < $price) {

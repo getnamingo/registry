@@ -357,12 +357,13 @@ class DomainsController extends Controller
                 $clid = $registrar_id;
             }
             
-            $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
+            $currency = $result['currency'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid);
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -1768,12 +1769,13 @@ class DomainsController extends Controller
             $date_add = 0;
             $date_add = ($renewalYears * 12);
             
-            $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
+            $currency = $result['currency'];
             
-            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew', $clid);
+            $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew', $clid, $currency);
             $price = $returnValue['price'];
 
             if (!$price) {
@@ -2088,7 +2090,8 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($addPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create', $clid);
+                            $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create', $clid, $currency);
                             $price = $returnValue['price'];
             
                             if (!$price) {
@@ -2215,7 +2218,8 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($autoRenewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew', $clid);
+                            $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
                             
                             if (!$price) {
@@ -2242,7 +2246,8 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($renewPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew', $clid);
+                            $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
 
                             if (!$price) {
@@ -2269,7 +2274,8 @@ class DomainsController extends Controller
                             ]
                         );
                         if ($transferPeriod_id) {
-                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew', $clid);
+                            $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
+                            $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
                             
                             if (!$price) {
@@ -2477,11 +2483,12 @@ class DomainsController extends Controller
                 $date_add = $transferYears * 12;
 
                 if ($date_add > 0) {
-                    $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+                    $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
                     $registrar_balance = $result['accountBalance'];
                     $creditLimit = $result['creditLimit'];
+                    $currency = $result['currency'];
                     
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
                     $price = $returnValue['price'];
 
                     if (!$price) {
@@ -2750,9 +2757,10 @@ class DomainsController extends Controller
                 $date_add = 0;
                 $price = 0;
                 
-                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$reid]);
+                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$reid]);
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
+                $currency = $result['currency'];
                 
                 if ($transfer_exdate) {
                     $date_add = $db->selectValue(
@@ -2762,7 +2770,7 @@ class DomainsController extends Controller
                         ]
                     );
                     
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
                     $price = $returnValue['price'];
                     
                     if (($registrar_balance + $creditLimit) < $price) {
@@ -3289,32 +3297,17 @@ class DomainsController extends Controller
                 $domain = $db->selectRow('SELECT tldid, exdate FROM domain WHERE name = ? LIMIT 1',
                 [ $domainName ]);
                 $tldid = $domain['tldid'];
-                
-                $result = $db->selectRow('SELECT accountBalance, creditLimit FROM registrar WHERE id = ?', [$clid]);
+
+                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
+                $currency = $result['currency'];
 
-                $renew_price = $db->selectValue(
-                    "SELECT m12 
-                    FROM domain_price 
-                    WHERE tldid = ? 
-                    AND command = ? 
-                    AND (registrar_id = ? OR registrar_id IS NULL)
-                    ORDER BY registrar_id DESC
-                    LIMIT 1",
-                    [$tldid, 'renew', $clid]
-                );
+                $returnValue = getDomainPrice($db, $domainName, $tldid, 12, 'renew', $clid, $currency);
+                $renew_price = $returnValue['price'];
 
-                $restore_price = $db->selectValue(
-                    "SELECT price 
-                    FROM domain_restore_price 
-                    WHERE tldid = ? 
-                    AND (registrar_id = ? OR registrar_id IS NULL)
-                    ORDER BY registrar_id DESC
-                    LIMIT 1",
-                    [$tldid, $clid]
-                );
+                $restore_price = getDomainRestorePrice($db, $tldid, $clid, $currency);
 
                 if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
                     $this->container->get('flash')->addMessage('error', 'There is no money on the account for restore and renew');

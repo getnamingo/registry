@@ -32,7 +32,15 @@ try {
         $price = 0;
         $domain_id = $id;
 
-        [$registrar_balance, $creditLimit] = $dbh->query("SELECT accountBalance,creditLimit FROM registrar WHERE id = '$reid' LIMIT 1")->fetch(PDO::FETCH_NUM);
+        $stmt = $dbh->prepare("
+            SELECT accountBalance, creditLimit, currency 
+            FROM registrar 
+            WHERE id = ? 
+            LIMIT 1
+        ");
+        $stmt->execute([$reid]);
+
+        [$registrar_balance, $creditLimit, $currency] = $stmt->fetch(PDO::FETCH_NUM);
 
         if ($transfer_exdate) {
             [$date_add] = $dbh->query("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = '$name' LIMIT 1")->fetch(PDO::FETCH_NUM);
@@ -52,7 +60,7 @@ try {
                 }
             }
             
-            $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer', $reid);
+            $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer', $reid, $currency);
             $price = $returnValue['price'];
 
             if (($registrar_balance + $creditLimit) < $price) {

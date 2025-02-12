@@ -12,6 +12,7 @@
         "guzzlehttp/guzzle": "^7.9",
         "league/flysystem-ftp": "^3.29",
         "phpmailer/phpmailer": "^6.9",
-        "league/plates": "^3.6"
+        "league/plates": "^3.6",
+        "moneyphp/money": "^4.6"
     }
 }

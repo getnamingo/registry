@@ -470,7 +470,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                 $stmt->execute([$domainName]);
                 $date_add = $stmt->fetchColumn();
 
-                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
+                $stmt = $db->prepare("SELECT currency FROM registrar WHERE id = :registrar_id LIMIT 1");
+                $stmt->execute([':registrar_id' => $clid]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $currency = $result["currency"];
+
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
                 $price = $returnValue['price'];
                 
                 if (($registrar_balance + $creditLimit) < $price) {
@@ -1022,13 +1027,14 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
                     return;
                 }
 
-                $stmt = $db->prepare("SELECT accountBalance, creditLimit FROM registrar WHERE id = :registrar_id LIMIT 1");
+                $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrar_id LIMIT 1");
                 $stmt->execute([':registrar_id' => $clid]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $registrar_balance = $result["accountBalance"];
                 $creditLimit = $result["creditLimit"];
+                $currency = $result["currency"];
                 
-                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid);
+                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
                 $price = $returnValue['price'];
 
                 if (($registrar_balance + $creditLimit) < $price) {

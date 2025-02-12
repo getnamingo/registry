@@ -64,6 +64,8 @@ systemctl stop msg_worker
 echo "Clearing cache..."
 php /var/www/cp/bin/clear_cache.php
 
+apt install -y php8.3-apcu php8.3-bcmath
+
 # Clone the new version of the repository
 echo "Cloning v1.0.15 from the repository..."
 git clone --branch v1.0.15 --single-branch https://github.com/getnamingo/registry /opt/registry1015

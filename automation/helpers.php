@@ -9,6 +9,11 @@ use Monolog\Formatter\LineFormatter;
 use Ds\Map;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Http\Client;
+use Money\Money;
+use Money\Currency;
+use Money\Converter;
+use Money\Currencies\ISOCurrencies;
+use Money\Exchange\FixedExchange;
 
 /**
  * Sets up and returns a Logger instance.
@@ -132,76 +137,191 @@ function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, 
     }
 }
 
-function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null) {
-    // Check if the domain is a premium domain
-    $stmt = $pdo->prepare("
-        SELECT c.category_price 
-        FROM premium_domain_pricing p
-        JOIN premium_domain_categories c ON p.category_id = c.category_id
-        WHERE p.domain_name = ? AND p.tld_id = ?
-    ");
-    $stmt->execute([$domain_name, $tld_id]);
-    if ($stmt->rowCount() > 0) {
-        return ['type' => 'premium', 'price' => $stmt->fetch()['category_price']];
+function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'USD') {
+    $cacheKey = "domain_price_{$domain_name}_{$tld_id}_{$date_add}_{$command}_{$registrar_id}_{$currency}";
+
+    // Try fetching from cache
+    if (function_exists('apcu_fetch')) {
+        $cached = apcu_fetch($cacheKey);
+        if ($cached !== false) {
+            return $cached;
+        }
     }
 
-    // Check if there is a promotion for the domain
+    $exchangeRates = getExchangeRates();
+    $baseCurrency = $exchangeRates['base_currency'] ?? 'USD';
+    $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
+
+    // Check for premium pricing
+    $premiumPrice = apcu_fetch("premium_price_{$domain_name}_{$tld_id}") ?: fetchSingleValue(
+        $pdo,
+        'SELECT c.category_price 
+         FROM premium_domain_pricing p
+         JOIN premium_domain_categories c ON p.category_id = c.category_id
+         WHERE p.domain_name = ? AND p.tld_id = ?',
+        [$domain_name, $tld_id]
+    );
+
+    if (!is_null($premiumPrice) && $premiumPrice !== false) {
+        $money = convertMoney(new Money((int) ($premiumPrice * 100), new Currency($baseCurrency)), $exchangeRate, $currency);
+        $result = ['type' => 'premium', 'price' => formatMoney($money)];
+
+        apcu_store($cacheKey, $result, 1800);
+        return $result;
+    }
+
+    // Check for active promotions
     $currentDate = date('Y-m-d');
-    $stmt = $pdo->prepare("
-        SELECT discount_percentage, discount_amount 
-        FROM promotion_pricing 
-        WHERE tld_id = ? 
-        AND promo_type = 'full' 
-        AND status = 'active' 
-        AND start_date <= ? 
-        AND end_date >= ?
-    ");
-    $stmt->execute([$tld_id, $currentDate, $currentDate]);
-    if ($stmt->rowCount() > 0) {
-        $promo = $stmt->fetch();
-        $discount = null;
-        
-        // Determine discount based on percentage or amount
-        if (!empty($promo['discount_percentage'])) {
-            $discount = $promo['discount_percentage']; // Percentage discount
-        } elseif (!empty($promo['discount_amount'])) {
-            $discount = $promo['discount_amount']; // Fixed amount discount
-        }
-    } else {
-        $discount = null;
+    $promo = apcu_fetch("promo_{$tld_id}") ?: fetchSingleRow(
+        $pdo,
+        "SELECT discount_percentage, discount_amount 
+         FROM promotion_pricing 
+         WHERE tld_id = ? 
+         AND promo_type = 'full' 
+         AND status = 'active' 
+         AND start_date <= ? 
+         AND end_date >= ?",
+        [$tld_id, $currentDate, $currentDate]
+    );
+
+    if ($promo) {
+        apcu_store("promo_{$tld_id}", $promo, 3600);
     }
 
-    // Get regular price for the specified period
-    $priceColumn = "m" . $date_add;
-    $sql = "
-        SELECT $priceColumn 
-        FROM domain_price 
-        WHERE tldid = ? 
-        AND command = ? 
-        AND (registrar_id = ? OR registrar_id IS NULL)
-        ORDER BY registrar_id DESC
-        LIMIT 1
-    ";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$tld_id, $command, $registrar_id]);
-    
-    if ($stmt->rowCount() > 0) {
-        $regularPrice = $stmt->fetch()[$priceColumn];
+    // Get regular price from DB
+    $priceColumn = "m" . (int) $date_add;
+    $regularPrice = apcu_fetch("regular_price_{$tld_id}_{$command}_{$registrar_id}") ?: fetchSingleValue(
+        $pdo,
+        "SELECT $priceColumn 
+         FROM domain_price 
+         WHERE tldid = ? AND command = ? 
+         AND (registrar_id = ? OR registrar_id IS NULL) 
+         ORDER BY registrar_id DESC LIMIT 1",
+        [$tld_id, $command, $registrar_id]
+    );
 
-        if ($discount !== null) {
-            if (isset($promo['discount_percentage'])) {
-                $discountAmount = $regularPrice * ($promo['discount_percentage'] / 100);
+    if (!is_null($regularPrice) && $regularPrice !== false) {
+        apcu_store("regular_price_{$tld_id}_{$command}_{$registrar_id}", $regularPrice, 1800);
+
+        $finalPrice = $regularPrice * 100; // Convert DB float to cents
+        if ($promo) {
+            if (!empty($promo['discount_percentage'])) {
+                $discountAmount = (int) ($finalPrice * ($promo['discount_percentage'] / 100));
             } else {
-                $discountAmount = $discount;
+                $discountAmount = (int) ($promo['discount_amount'] * 100);
             }
-            $price = $regularPrice - $discountAmount;
-            return ['type' => 'promotion', 'price' => $price];
+            $finalPrice = max(0, $finalPrice - $discountAmount);
+            $type = 'promotion';
+        } else {
+            $type = 'regular';
         }
-        
-        return ['type' => 'regular', 'price' => $regularPrice];
+
+        $money = convertMoney(new Money($finalPrice, new Currency($baseCurrency)), $exchangeRate, $currency);
+        $result = ['type' => $type, 'price' => formatMoney($money)];
+
+        apcu_store($cacheKey, $result, 1800);
+        return $result;
     }
 
-    return ['type' => 'not_found', 'price' => 0];
+    return ['type' => 'not_found', 'price' => formatMoney(new Money(0, new Currency($currency)))];
+}
+
+/**
+ * Load exchange rates from JSON file with APCu caching.
+ */
+function getExchangeRates() {
+    $cacheKey = 'exchange_rates';
+
+    if (function_exists('apcu_fetch')) {
+        $cached = apcu_fetch($cacheKey);
+        if ($cached !== false) {
+            return $cached;
+        }
+    }
+
+    $filePath = "/var/www/cp/resources/exchange_rates.json";
+    $defaultRates = [
+        'base_currency' => 'USD',
+        'rates' => [
+            'USD' => 1.0  // Ensure USD always exists
+        ],
+        'last_updated' => date('c') // ISO 8601 timestamp
+    ];
+
+    if (!file_exists($filePath) || !is_readable($filePath)) {
+        if (function_exists('apcu_store')) {
+            apcu_store($cacheKey, $defaultRates, 3600);
+        }
+        return $defaultRates;
+    }
+
+    $json = file_get_contents($filePath);
+    $data = json_decode($json, true);
+
+    if (!isset($data['base_currency'], $data['rates']) || !is_array($data['rates'])) {
+        if (function_exists('apcu_store')) {
+            apcu_store($cacheKey, $defaultRates, 3600);
+        }
+        return $defaultRates;
+    }
+
+    // Ensure base currency exists
+    if (!isset($data['rates'][$data['base_currency']])) {
+        $data['rates'][$data['base_currency']] = 1.0;
+    }
+
+    // Ensure every currency defaults to 1.0 if missing
+    foreach ($data['rates'] as $currency => $rate) {
+        if (!is_numeric($rate)) {
+            $data['rates'][$currency] = 1.0;
+        }
+    }
+
+    if (function_exists('apcu_store')) {
+        apcu_store($cacheKey, $data, 3600);
+    }
+
+    return $data;
+}
+
+/**
+ * Convert MoneyPHP object to the target currency.
+ */
+function convertMoney(Money $amount, float $exchangeRate, string $currency) {
+    $currencies = new ISOCurrencies();
+    $exchange = new FixedExchange([
+        $amount->getCurrency()->getCode() => [
+            $currency => (string) $exchangeRate  // Convert float to string
+        ]
+    ]);
+    $converter = new Converter($currencies, $exchange);
+
+    return $converter->convert($amount, new Currency($currency));
+}
+
+/**
+ * Format Money object back to a string (e.g., "10.00").
+ */
+function formatMoney(Money $money) {
+    return number_format($money->getAmount() / 100, 2, '.', '');
+}
+
+/**
+ * Fetch a single value from the database using PDO.
+ */
+function fetchSingleValue($pdo, string $query, array $params) {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    return $stmt->fetchColumn();
+}
+
+/**
+ * Fetch a single row from the database using PDO.
+ */
+function fetchSingleRow($pdo, string $query, array $params) {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 function generateAuthInfo(): string {

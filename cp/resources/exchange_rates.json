@@ -1,0 +1,8 @@
+{
+    "base_currency": "USD",
+    "rates": {
+        "EUR": 0.91,
+        "GBP": 0.78
+    },
+    "last_updated": "2025-02-12T12:00:00Z"
+}

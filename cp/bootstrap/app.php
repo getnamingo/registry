@@ -208,7 +208,6 @@ $container->set('view', function ($container) {
 
     // Make it accessible in templates
     $view->getEnvironment()->addGlobal('currency', $currency);
-    $view->getEnvironment()->addGlobal('registry_currency', $_SESSION['registry_currency']);
 
     // Check if the user is impersonated from the admin, otherwise default to false
     $isAdminImpersonation = isset($_SESSION['impersonator']) ? $_SESSION['impersonator'] : false;

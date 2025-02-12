@@ -225,12 +225,13 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $renewPeriod = $result['renewPeriod'];
     $renewedDate = $result['renewedDate'];
     $transferPeriod = $result['transferPeriod'];
-    
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
+
+    $stmt = $db->prepare("SELECT id, currency FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
+    $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
+    $clid = $result2['id'];
+    $currency = $result2['currency'];
 
     if ($clid != $registrar_id_domain) {
         sendEppError($conn, $db, 2201, 'Domain belongs to another registrar', $clTRID, $trans);
@@ -307,7 +308,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $addPeriod_id = $stmt->fetchColumn();
 
                 if ($addPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create', $clid);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create', $clid, $currency);
                     $price = $returnValue['price'];
             
                     if (!isset($price)) {
@@ -365,7 +366,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $autoRenewPeriod_id = $stmt->fetchColumn();
 
                 if ($autoRenewPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew', $clid);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew', $clid, $currency);
                     $price = $returnValue['price'];
 
                     if (!isset($price)) {
@@ -388,7 +389,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $renewPeriod_id = $stmt->fetchColumn();
 
                 if ($renewPeriod_id) {
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew', $clid);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew', $clid, $currency);
                     $price = $returnValue['price'];
 
                     if (!isset($price)) {
@@ -413,7 +414,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 if ($transferPeriod_id) {
                     // Return money if a transfer was also a renew
                     if ($transferPeriod > 0) {
-                        $returnValue = getDomainPrice($db, $domainName, $tldid, $transferPeriod, 'renew', $clid);
+                        $returnValue = getDomainPrice($db, $domainName, $tldid, $transferPeriod, 'renew', $clid, $currency);
                         $price = $returnValue['price'];
 
                         if (!isset($price)) {

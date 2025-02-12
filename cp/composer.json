@@ -47,7 +47,8 @@
         "utopia-php/messaging": "^0.12.0",
         "brick/postcode": "^0.3.3",
         "utopia-php/system": "^0.9.0",
-        "bjeavons/zxcvbn-php": "^1.4"
+        "bjeavons/zxcvbn-php": "^1.4",
+        "moneyphp/money": "^4.6"
     },
     "autoload": {
         "psr-4": {
