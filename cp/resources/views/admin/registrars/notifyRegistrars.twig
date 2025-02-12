@@ -30,7 +30,7 @@
                         <h3 class="card-title">{{ __('Send Registrar Notification') }}</h3>
                     </div>
                     <div class="card-body">
-                        <form method="post" action="/registrars/notify">
+                    <form method="post" action="/registrars/notify">
                         {{ csrf.field | raw }}
                             <!-- Select Registrars -->
                             <div class="mb-3">
@@ -68,13 +68,15 @@
                                 <label class="form-label">{{ __('Message') }}</label>
                                 <textarea name="message" class="form-control" rows="4" placeholder="{{ __('Type your message...') }}" required></textarea>
                             </div>
-
-                            <!-- Submit Button -->
-                            <div class="text-end">
-                                <button type="submit" class="btn btn-primary">{{ __('Send Notification') }}</button>
-                            </div>
-                        </form>
                     </div>
+                    <div class="card-footer">
+                      <div class="row align-items-center">
+                        <div class="col-auto">
+                          <button type="submit" class="btn btn-primary">{{ __('Send Notification') }}</button>
+                        </div>
+                      </div>
+                    </div>
+                    </form>
                 </div>
             </div>
           </div>
