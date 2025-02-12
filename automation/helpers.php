@@ -138,14 +138,15 @@ function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, 
 }
 
 function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'USD') {
+    $redis = new Redis();
+    $redis->connect('127.0.0.1', 6379);
+
     $cacheKey = "domain_price_{$domain_name}_{$tld_id}_{$date_add}_{$command}_{$registrar_id}_{$currency}";
 
     // Try fetching from cache
-    if (function_exists('apcu_fetch')) {
-        $cached = apcu_fetch($cacheKey);
-        if ($cached !== false) {
-            return $cached;
-        }
+    $cached = $redis->get($cacheKey);
+    if ($cached !== false) {
+        return json_decode($cached, true); // Redis stores as string, so decode
     }
 
     $exchangeRates = getExchangeRates();
@@ -153,7 +154,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
 
     // Check for premium pricing
-    $premiumPrice = apcu_fetch("premium_price_{$domain_name}_{$tld_id}") ?: fetchSingleValue(
+    $premiumPrice = $redis->get("premium_price_{$domain_name}_{$tld_id}") ?: fetchSingleValue(
         $pdo,
         'SELECT c.category_price 
          FROM premium_domain_pricing p
@@ -166,13 +167,13 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
         $money = convertMoney(new Money((int) ($premiumPrice * 100), new Currency($baseCurrency)), $exchangeRate, $currency);
         $result = ['type' => 'premium', 'price' => formatMoney($money)];
 
-        apcu_store($cacheKey, $result, 1800);
+        $redis->setex($cacheKey, 1800, json_encode($result));
         return $result;
     }
 
     // Check for active promotions
     $currentDate = date('Y-m-d');
-    $promo = apcu_fetch("promo_{$tld_id}") ?: fetchSingleRow(
+    $promo = json_decode($redis->get("promo_{$tld_id}"), true) ?: fetchSingleRow(
         $pdo,
         "SELECT discount_percentage, discount_amount 
          FROM promotion_pricing 
@@ -185,12 +186,12 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     );
 
     if ($promo) {
-        apcu_store("promo_{$tld_id}", $promo, 3600);
+        $redis->setex("promo_{$tld_id}", 3600, json_encode($promo));
     }
 
     // Get regular price from DB
     $priceColumn = "m" . (int) $date_add;
-    $regularPrice = apcu_fetch("regular_price_{$tld_id}_{$command}_{$registrar_id}") ?: fetchSingleValue(
+    $regularPrice = json_decode($redis->get("regular_price_{$tld_id}_{$command}_{$registrar_id}"), true) ?: fetchSingleValue(
         $pdo,
         "SELECT $priceColumn 
          FROM domain_price 
@@ -201,7 +202,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     );
 
     if (!is_null($regularPrice) && $regularPrice !== false) {
-        apcu_store("regular_price_{$tld_id}_{$command}_{$registrar_id}", $regularPrice, 1800);
+        $redis->setex("regular_price_{$tld_id}_{$command}_{$registrar_id}", 1800, json_encode($regularPrice));
 
         $finalPrice = $regularPrice * 100; // Convert DB float to cents
         if ($promo) {
@@ -219,7 +220,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
         $money = convertMoney(new Money($finalPrice, new Currency($baseCurrency)), $exchangeRate, $currency);
         $result = ['type' => $type, 'price' => formatMoney($money)];
 
-        apcu_store($cacheKey, $result, 1800);
+        $redis->setex($cacheKey, 1800, json_encode($result));
         return $result;
     }
 
@@ -230,13 +231,14 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
  * Load exchange rates from JSON file with APCu caching.
  */
 function getExchangeRates() {
+    $redis = new Redis();
+    $redis->connect('127.0.0.1', 6379);
+
     $cacheKey = 'exchange_rates';
 
-    if (function_exists('apcu_fetch')) {
-        $cached = apcu_fetch($cacheKey);
-        if ($cached !== false) {
-            return $cached;
-        }
+    $cached = $redis->get($cacheKey);
+    if ($cached !== false) {
+        return json_decode($cached, true);
     }
 
     $filePath = "/var/www/cp/resources/exchange_rates.json";
@@ -249,9 +251,7 @@ function getExchangeRates() {
     ];
 
     if (!file_exists($filePath) || !is_readable($filePath)) {
-        if (function_exists('apcu_store')) {
-            apcu_store($cacheKey, $defaultRates, 3600);
-        }
+        $redis->setex($cacheKey, 3600, json_encode($defaultRates)); // Cache for 1 hour
         return $defaultRates;
     }
 
@@ -259,9 +259,7 @@ function getExchangeRates() {
     $data = json_decode($json, true);
 
     if (!isset($data['base_currency'], $data['rates']) || !is_array($data['rates'])) {
-        if (function_exists('apcu_store')) {
-            apcu_store($cacheKey, $defaultRates, 3600);
-        }
+        $redis->setex($cacheKey, 3600, json_encode($defaultRates)); // Cache for 1 hour
         return $defaultRates;
     }
 
@@ -277,9 +275,7 @@ function getExchangeRates() {
         }
     }
 
-    if (function_exists('apcu_store')) {
-        apcu_store($cacheKey, $data, 3600);
-    }
+    $redis->setex($cacheKey, 3600, json_encode($data)); // Cache for 1 hour
 
     return $data;
 }

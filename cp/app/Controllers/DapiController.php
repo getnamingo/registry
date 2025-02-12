@@ -768,9 +768,12 @@ class DapiController extends Controller
         $registrar_id = !empty($params['registrar_id']) ? $params['registrar_id'] : ($_SESSION['auth_registrar_id'] ?? null);
 
         $parts = extractDomainAndTLD($domain_name);
-        $domain_extension = $parts['tld'];
+        $domain_extension = $parts['tld'] ?? null;
 
-        $tld_id = $db->selectValue('SELECT id FROM domain_tld WHERE tld = ?', [ '.'.$domain_extension ]);
+        $tld_id = null;
+        if ($domain_extension !== null) {
+            $tld_id = $db->selectValue('SELECT id FROM domain_tld WHERE tld = ?', ['.' . $domain_extension]);
+        }
 
         $result = getDomainPrice($db, $domain_name, $tld_id, $date_add, $command, $registrar_id, $currency);
 
