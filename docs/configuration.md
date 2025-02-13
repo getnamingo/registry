@@ -706,19 +706,18 @@ grep 'transfer of "test."' /var/log/syslog
 
 ### 2.4. Setup Monitoring
 
-For effective monitoring of your registry system, we highly recommend utilizing Prometheus.
+#### 2.4.1. Option 1: Prometheus
 
 ```bash
 apt update
-apt install prometheus prometheus-node-exporter prometheus-mysqld-exporter
+apt install prometheus prometheus-node-exporter prometheus-mysqld-exporter prometheus-blackbox-exporter prometheus-redis-exporter
 ```
 
-Edit the Prometheus configuration file: ```/etc/prometheus/prometheus.yml```, customize and replace the contents with:
+Edit the Prometheus configuration file: `/etc/prometheus/prometheus.yml` and replace the `rule_files:` and `scrape_configs:` sections with with the following, while editing the hostnames with your own:
 
 ```bash
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+rule_files:
+  - "/etc/prometheus/alert.rules"
 
 scrape_configs:
   - job_name: 'prometheus'
@@ -735,29 +734,68 @@ scrape_configs:
       - targets: ['localhost:9104']
 
   - job_name: 'epp_server'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
     static_configs:
-      - targets: ['epp.example.org:700']  # EPP Server
+      - targets: ['epp.namingo.org:700']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115  # Blackbox Exporter
 
   - job_name: 'whois_server'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
     static_configs:
-      - targets: ['whois.example.org:43']  # WHOIS Server
+      - targets: ['whois.namingo.org:43']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115  # Blackbox Exporter
 
   - job_name: 'das_server'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
     static_configs:
-      - targets: ['das.example.org:1043']  # DAS Server
+      - targets: ['das.namingo.org:1043']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115  # Blackbox Exporter
 
   - job_name: 'rdap_server'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
     static_configs:
-      - targets:
-          - 'das.example.org:80'
-          - 'das.example.org:443'
-          - 'das.example.org:7500'
+      - targets: ['localhost:7500']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115  # Blackbox Exporter
 
   - job_name: 'control_panel'
     static_configs:
-      - targets:
-          - 'cp.example.org:80'
-          - 'cp.example.org:443'
+      - targets: ['localhost:2019']
+	  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:9121']
 ```
 
 Set ownership for the configuration file:
@@ -766,43 +804,187 @@ Set ownership for the configuration file:
 chown prometheus:prometheus /etc/prometheus/prometheus.yml
 ```
 
-Update the Node Exporter service file:
+Review the Node Exporter service file:
 
 ```bash
 nano /lib/systemd/system/prometheus-node-exporter.service
 ```
 
-Edit the MySQL Exporter configuration:
+Edit the MySQL Exporter configuration, modify the `ExecStart` line to explicitly use the MariaDB config file:
 
 ```bash
-nano /etc/default/prometheus-mysqld-exporter
+nano /lib/systemd/system/prometheus-mysqld-exporter.service
 ```
 
-Update the `DATA_SOURCE_NAME`:
-
-```bash
-DATA_SOURCE_NAME='exporter:password@(localhost:3306)/'
+```ini
+ExecStart=/usr/bin/prometheus-mysqld-exporter --config.my-cnf=/etc/mysql/exporter.cnf --web.listen-address=:9104
+Restart=always
 ```
 
 Create the MySQL user:
 
 ```sql
-CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'password';
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'yourpassword';
 GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
 FLUSH PRIVILEGES;
+```
+
+Create a MariaDB config file:
+
+```bash
+nano /etc/mysql/exporter.cnf
+```
+
+Add the following content (replace `yourpassword` with your real password):
+
+```bash
+[client]
+user=exporter
+password=yourpassword
+host=localhost
+```
+
+To prevent other users from reading the credentials:
+
+```bash
+chmod 600 /etc/mysql/exporter.cnf
+chown prometheus:prometheus /etc/mysql/exporter.cnf
+```
+
+Add the following on top of the `/etc/caddy/Caddyfile` file, before any other blocks:
+
+```bash
+{
+    servers {
+        metrics
+    }
+}
+```
+
+Create alerts for all services:
+
+```bash
+nano /etc/prometheus/alert.rules
+```
+
+Paste the following:
+
+```bash
+groups:
+  - name: all_services
+    rules:
+
+      # Alert if Prometheus itself is down
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus instance on port 9090 is unreachable for 1 minute."
+
+      # Alert if Node Exporter (System Metrics) is down
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node Exporter is down"
+          description: "The system monitoring agent on port 9100 is unreachable for 1 minute."
+
+      # Alert if MariaDB Exporter is down
+      - alert: MariaDBDown
+        expr: up{job="mariadb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MariaDB is down"
+          description: "The MariaDB exporter on port 9104 is unreachable for 1 minute."
+
+      # Alert if EPP Server is down
+      - alert: EPPServerDown
+        expr: probe_success{job="epp_server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EPP Server is down"
+          description: "The EPP server on port 700 is unreachable for 1 minute."
+
+      # Alert if WHOIS Server is down
+      - alert: WhoisServerDown
+        expr: probe_success{job="whois_server"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WHOIS Server is down"
+          description: "The WHOIS server on port 43 is unreachable for 1 minute."
+
+      # Alert if DAS Server is down
+      - alert: DASSserverDown
+        expr: probe_success{job="das_server"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DAS Server is down"
+          description: "The DAS server on port 1043 is unreachable for 1 minute."
+
+      # Alert if RDAP Server is down
+      - alert: RDAPServerDown
+        expr: probe_success{job="rdap_server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RDAP Server is down"
+          description: "The RDAP server on port 7500 is unreachable for 1 minute."
+
+      # Alert if Control Panel is down
+      - alert: ControlPanelDown
+        expr: up{job="control_panel"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Control Panel is down"
+          description: "The Caddy control panel monitoring endpoint is unreachable for 1 minute."
+
+      # Alert if Redis Exporter is down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis exporter on port 9121 is unreachable for 1 minute."
 ```
 
 Enable and start all services:
 
 ```bash
-systemctl enable prometheus
-systemctl start prometheus
+systemctl restart caddy
+systemctl daemon-reload
 
 systemctl enable prometheus-node-exporter
 systemctl start prometheus-node-exporter
 
 systemctl enable prometheus-mysqld-exporter
 systemctl start prometheus-mysqld-exporter
+
+systemctl enable prometheus-blackbox-exporter
+systemctl start prometheus-blackbox-exporter
+
+systemctl enable prometheus-redis-exporter
+systemctl start prometheus-redis-exporter
+
+systemctl enable prometheus
+systemctl start prometheus
 ```
 
 Open Prometheus in your browser:
@@ -813,15 +995,70 @@ http://<your_server_ip>:9090
 
 Check **Status > Targets** to ensure all targets are up.
 
-### 2.5. Recommended Help Desk Solution
+**Optional: Install Grafana**
 
-If you're in need of an effective help desk solution to complement your experience with Namingo, we recommend considering [FreeScout](https://freescout.net/), an AGPL-3.0 licensed, free and open-source software. FreeScout is known for its user-friendly interface and robust features, making it an excellent choice for managing customer queries and support tickets.
+```bash
+apt-get install -y adduser libfontconfig1 musl
+wget https://dl.grafana.com/oss/release/grafana_11.5.1_amd64.deb
+dpkg -i grafana_11.5.1_amd64.deb
+systemctl daemon-reload
+systemctl enable grafana-server
+systemctl start grafana-server
+```
 
-#### Please Note:
+***Add Prometheus as a Data Source***
 
-- FreeScout is an independent software and is not a part of Namingo. It is licensed under the AGPL-3.0, which is different from Namingo's MIT license.
-- The recommendation to use FreeScout is entirely optional and for the convenience of Namingo users. Namingo functions independently of FreeScout and does not require FreeScout for its operation.
-- Ensure to comply with the AGPL-3.0 license terms if you choose to use FreeScout alongside Namingo.
+1. Click Configuration (gear icon) → Data Sources → Add Data Source.
+
+2. Select Prometheus.
+
+3. Set URL to: `http://localhost:9090`
+
+4. Click Save & Test. It should return "Data source is working".
+
+***Import Ready-Made Dashboards***
+
+1. Go to Grafana UI → Dashboards → Import.
+
+2. Paste the Dashboard ID from Grafana.com, for example:
+
+- Prometheus Node Exporter Full: 1860
+- Redis Exporter: 763
+- MySQL/MariaDB: 7362
+- Blackbox Exporter (TCP Probes for EPP, WHOIS, DAS, RDAP): 7587 or 13659
+- Prometheus Self-Monitoring: 3662
+- Caddy Web Server Monitoring: 13460
+
+3. Click Load, select Prometheus as the data source, and click Import.
+
+***Set Up Alerts in Grafana***
+
+If you want notifications via email, Slack, Telegram, or other tools, you can configure Alerting in Grafana.
+
+1. Go to "Alerting" → "Contact Points" → "Add Contact Point".
+
+2. Choose a notification method (Slack, email, etc.).
+
+3. Create alert rules (e.g., "Alert if Redis is down for 1 minute").
+
+#### 2.4.2. Option 2: Netdata
+
+```bash
+wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && ./install.sh
+```
+
+Open: http://your-server-ip:19999
+
+### 2.5. Recommended Help Desk Solutions
+
+To enhance your customer support experience with Namingo, consider using one of these open-source help desk solutions:
+
+| Solution | License | Key Features |
+|----------|---------|--------------|
+| [FreeScout](https://freescout.net/) | AGPL-3.0 | Lightweight, email-based help desk with ticketing and multi-channel support. |
+| [Chatwoot](https://github.com/chatwoot/chatwoot) | MIT | Omnichannel support platform for email, WhatsApp, social media, and live chat. |
+
+**Note:** These solutions are independent of Namingo. FreeScout is licensed under AGPL-3.0, while Chatwoot uses MIT. If using FreeScout, ensure compliance with AGPL-3.0 licensing.
 
 ### 2.6. Scaling Your Database with ProxySQL
 
