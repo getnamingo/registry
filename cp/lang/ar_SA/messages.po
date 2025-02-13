@@ -1504,3 +1504,152 @@ msgstr "فتح الموقع"
 msgid "Close"
 msgstr "اغلق"
 
+msgid "Delete Domain"
+msgstr "حذف النطاق"
+
+msgid "Approve Application"
+msgstr "الموافقة على الطلب"
+
+msgid "Reject Application"
+msgstr "رفض الطلب"
+
+msgid "Delete Application"
+msgstr "حذف الطلب"
+
+msgid "Validated"
+msgstr "تم التحقق"
+
+msgid "Invalid"
+msgstr "غير صالح"
+
+msgid "Delete Contact"
+msgstr "حذف جهة الاتصال"
+
+msgid "Delete Host"
+msgstr "حذف المضيف"
+
+msgid "Impersonate"
+msgstr "تسجيل الدخول كمستخدم آخر"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "اختر العملة لجميع معاملات المسجل."
+
+msgid "Notify Registrars"
+msgstr "إخطار المسجلين"
+
+msgid "Send Registrar Notification"
+msgstr "إرسال إشعار إلى المسجل"
+
+msgid "Select Registrars"
+msgstr "حدد المسجلين"
+
+msgid "Select All"
+msgstr "تحديد الكل"
+
+msgid "Deselect All"
+msgstr "إلغاء تحديد الكل"
+
+msgid "Last Login:"
+msgstr "آخر تسجيل دخول:"
+
+msgid "Not Available"
+msgstr "غير متوفر"
+
+msgid "Enter Subject"
+msgstr "أدخل الموضوع"
+
+msgid "Type your message..."
+msgstr "اكتب رسالتك..."
+
+msgid "Create User"
+msgstr "إنشاء مستخدم"
+
+msgid "Create New User"
+msgstr "إنشاء مستخدم جديد"
+
+msgid "Username"
+msgstr "اسم المستخدم"
+
+msgid "Password"
+msgstr "كلمة المرور"
+
+msgid "Confirm Password"
+msgstr "تأكيد كلمة المرور"
+
+msgid "Active"
+msgstr "نشط"
+
+msgid "Pending Review"
+msgstr "قيد المراجعة"
+
+msgid "Yes"
+msgstr "نعم"
+
+msgid "No"
+msgstr "لا"
+
+msgid "Type"
+msgstr "النوع"
+
+msgid "Admin"
+msgstr "المسؤول"
+
+msgid "Registrar Association"
+msgstr "ربط المستخدم مع المسجل"
+
+msgid "Manage User"
+msgstr "إدارة المستخدم"
+
+msgid "Update User"
+msgstr "تحديث المستخدم"
+
+msgid "Send Notification"
+msgstr "إرسال إشعار"
+
+msgid "Server Health"
+msgstr "حالة النظام"
+
+msgid "Clear Cache"
+msgstr "مسح ذاكرة التخزين المؤقت"
+
+msgid "CPU Usage"
+msgstr "استخدام المعالج"
+
+msgid "CPU Cores"
+msgstr "أنوية المعالج"
+
+msgid "Memory Usage"
+msgstr "استخدام الذاكرة العشوائية"
+
+msgid "Memory"
+msgstr "ذاكرة الوصول العشوائي"
+
+msgid "free of"
+msgstr "متاح من"
+
+msgid "Disk Usage"
+msgstr "استخدام القرص الصلب"
+
+msgid "Disk"
+msgstr "القرص الصلب"
+
+msgid "EPP Server"
+msgstr "خادم EPP"
+
+msgid "Running"
+msgstr "قيد التشغيل"
+
+msgid "Stopped"
+msgstr "متوقف"
+
+msgid "Problem? Restart:"
+msgstr "مشكلة؟ إعادة التشغيل:"
+
+msgid "DAS Server"
+msgstr "خادم DAS"
+
+msgid "Message Producer"
+msgstr "منتج الرسائل"
+
+msgid "Message Worker"
+msgstr "عامل إرسال الرسائل"

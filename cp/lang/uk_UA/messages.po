@@ -1507,3 +1507,152 @@ msgstr "Відкрити сайт"
 msgid "Close"
 msgstr "Закрити"
 
+msgid "Delete Domain"
+msgstr "Видалити домен"
+
+msgid "Approve Application"
+msgstr "Схвалити заявку"
+
+msgid "Reject Application"
+msgstr "Відхилити заявку"
+
+msgid "Delete Application"
+msgstr "Видалити заявку"
+
+msgid "Validated"
+msgstr "Перевірено"
+
+msgid "Invalid"
+msgstr "Недійсний"
+
+msgid "Delete Contact"
+msgstr "Видалити контакт"
+
+msgid "Delete Host"
+msgstr "Видалити хост"
+
+msgid "Impersonate"
+msgstr "Увійти від імені користувача"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "Оберіть валюту для всіх транзакцій реєстратора."
+
+msgid "Notify Registrars"
+msgstr "Повідомити реєстраторів"
+
+msgid "Send Registrar Notification"
+msgstr "Надіслати повідомлення реєстратору"
+
+msgid "Select Registrars"
+msgstr "Вибрати реєстраторів"
+
+msgid "Select All"
+msgstr "Вибрати все"
+
+msgid "Deselect All"
+msgstr "Скасувати вибір"
+
+msgid "Last Login:"
+msgstr "Останній вхід:"
+
+msgid "Not Available"
+msgstr "Недоступно"
+
+msgid "Enter Subject"
+msgstr "Введіть тему"
+
+msgid "Type your message..."
+msgstr "Введіть ваше повідомлення..."
+
+msgid "Create User"
+msgstr "Створити користувача"
+
+msgid "Create New User"
+msgstr "Створити нового користувача"
+
+msgid "Username"
+msgstr "Ім'я користувача"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Confirm Password"
+msgstr "Підтвердити пароль"
+
+msgid "Active"
+msgstr "Активний"
+
+msgid "Pending Review"
+msgstr "Очікує перевірки"
+
+msgid "Yes"
+msgstr "Так"
+
+msgid "No"
+msgstr "Ні"
+
+msgid "Type"
+msgstr "Тип"
+
+msgid "Admin"
+msgstr "Адміністратор"
+
+msgid "Registrar Association"
+msgstr "Призначення реєстратора користувачеві"
+
+msgid "Manage User"
+msgstr "Керування користувачем"
+
+msgid "Update User"
+msgstr "Оновити користувача"
+
+msgid "Send Notification"
+msgstr "Надіслати сповіщення"
+
+msgid "Server Health"
+msgstr "Стан системи"
+
+msgid "Clear Cache"
+msgstr "Очистити кеш"
+
+msgid "CPU Usage"
+msgstr "Використання процесора"
+
+msgid "CPU Cores"
+msgstr "Ядра процесора"
+
+msgid "Memory Usage"
+msgstr "Використання оперативної пам’яті"
+
+msgid "Memory"
+msgstr "Оперативна пам’ять"
+
+msgid "free of"
+msgstr "вільно з"
+
+msgid "Disk Usage"
+msgstr "Використання диска"
+
+msgid "Disk"
+msgstr "Жорсткий диск"
+
+msgid "EPP Server"
+msgstr "Сервер EPP"
+
+msgid "Running"
+msgstr "Працює"
+
+msgid "Stopped"
+msgstr "Зупинено"
+
+msgid "Problem? Restart:"
+msgstr "Проблема? Перезапустити:"
+
+msgid "DAS Server"
+msgstr "Сервер DAS"
+
+msgid "Message Producer"
+msgstr "Продюсер повідомлень"
+
+msgid "Message Worker"
+msgstr "Обробник повідомлень"

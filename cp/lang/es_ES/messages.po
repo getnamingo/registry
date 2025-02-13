@@ -1506,3 +1506,153 @@ msgstr "Abrir sitio web"
 
 msgid "Close"
 msgstr "Cerrar"
+
+msgid "Delete Domain"
+msgstr "Eliminar Dominio"
+
+msgid "Approve Application"
+msgstr "Aprobar Solicitud"
+
+msgid "Reject Application"
+msgstr "Rechazar Solicitud"
+
+msgid "Delete Application"
+msgstr "Eliminar Solicitud"
+
+msgid "Validated"
+msgstr "Validado"
+
+msgid "Invalid"
+msgstr "Inválido"
+
+msgid "Delete Contact"
+msgstr "Eliminar Contacto"
+
+msgid "Delete Host"
+msgstr "Eliminar Host"
+
+msgid "Impersonate"
+msgstr "Iniciar sesión como otro usuario"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "Elige la moneda para todas las transacciones del registrador."
+
+msgid "Notify Registrars"
+msgstr "Notificar a los Registradores"
+
+msgid "Send Registrar Notification"
+msgstr "Enviar Notificación al Registrador"
+
+msgid "Select Registrars"
+msgstr "Seleccionar Registradores"
+
+msgid "Select All"
+msgstr "Seleccionar Todo"
+
+msgid "Deselect All"
+msgstr "Deseleccionar Todo"
+
+msgid "Last Login:"
+msgstr "Último Inicio de Sesión:"
+
+msgid "Not Available"
+msgstr "No Disponible"
+
+msgid "Enter Subject"
+msgstr "Ingrese Asunto"
+
+msgid "Type your message..."
+msgstr "Escriba su mensaje..."
+
+msgid "Create User"
+msgstr "Crear Usuario"
+
+msgid "Create New User"
+msgstr "Crear Nuevo Usuario"
+
+msgid "Username"
+msgstr "Nombre de Usuario"
+
+msgid "Password"
+msgstr "Contraseña"
+
+msgid "Confirm Password"
+msgstr "Confirmar Contraseña"
+
+msgid "Active"
+msgstr "Activo"
+
+msgid "Pending Review"
+msgstr "Pendiente de Revisión"
+
+msgid "Yes"
+msgstr "Sí"
+
+msgid "No"
+msgstr "No"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Admin"
+msgstr "Administrador"
+
+msgid "Registrar Association"
+msgstr "Asociar usuario con registrador"
+
+msgid "Manage User"
+msgstr "Gestionar Usuario"
+
+msgid "Update User"
+msgstr "Actualizar Usuario"
+
+msgid "Send Notification"
+msgstr "Enviar Notificación"
+
+msgid "Server Health"
+msgstr "Salud del Sistema"
+
+msgid "Clear Cache"
+msgstr "Borrar Caché"
+
+msgid "CPU Usage"
+msgstr "Uso de la CPU"
+
+msgid "CPU Cores"
+msgstr "Núcleos de la CPU"
+
+msgid "Memory Usage"
+msgstr "Uso de la Memoria RAM"
+
+msgid "Memory"
+msgstr "Memoria RAM"
+
+msgid "free of"
+msgstr "libre de"
+
+msgid "Disk Usage"
+msgstr "Uso del Disco"
+
+msgid "Disk"
+msgstr "Disco Duro"
+
+msgid "EPP Server"
+msgstr "Servidor EPP"
+
+msgid "Running"
+msgstr "En Ejecución"
+
+msgid "Stopped"
+msgstr "Detenido"
+
+msgid "Problem? Restart:"
+msgstr "¿Problema? Reiniciar:"
+
+msgid "DAS Server"
+msgstr "Servidor DAS"
+
+msgid "Message Producer"
+msgstr "Productor de Mensajes"
+
+msgid "Message Worker"
+msgstr "Trabajador de Mensajes"

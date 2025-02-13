@@ -1506,3 +1506,153 @@ msgstr ""
 
 msgid "Close"
 msgstr ""
+
+msgid "Delete Domain"
+msgstr ""
+
+msgid "Approve Application"
+msgstr ""
+
+msgid "Reject Application"
+msgstr ""
+
+msgid "Delete Application"
+msgstr ""
+
+msgid "Validated"
+msgstr ""
+
+msgid "Invalid"
+msgstr ""
+
+msgid "Delete Contact"
+msgstr ""
+
+msgid "Delete Host"
+msgstr ""
+
+msgid "Impersonate"
+msgstr ""
+
+msgid "Choose the currency for all registrar transactions."
+msgstr ""
+
+msgid "Notify Registrars"
+msgstr ""
+
+msgid "Send Registrar Notification"
+msgstr ""
+
+msgid "Select Registrars"
+msgstr ""
+
+msgid "Select All"
+msgstr ""
+
+msgid "Deselect All"
+msgstr ""
+
+msgid "Last Login:"
+msgstr ""
+
+msgid "Not Available"
+msgstr ""
+
+msgid "Enter Subject"
+msgstr ""
+
+msgid "Type your message..."
+msgstr ""
+
+msgid "Create User"
+msgstr ""
+
+msgid "Create New User"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Confirm Password"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Pending Review"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Admin"
+msgstr ""
+
+msgid "Registrar Association"
+msgstr ""
+
+msgid "Manage User"
+msgstr ""
+
+msgid "Update User"
+msgstr ""
+
+msgid "Send Notification"
+msgstr ""
+
+msgid "Server Health"
+msgstr ""
+
+msgid "Clear Cache"
+msgstr ""
+
+msgid "CPU Usage"
+msgstr ""
+
+msgid "CPU Cores"
+msgstr ""
+
+msgid "Memory Usage"
+msgstr ""
+
+msgid "Memory"
+msgstr ""
+
+msgid "free of"
+msgstr ""
+
+msgid "Disk Usage"
+msgstr ""
+
+msgid "Disk"
+msgstr ""
+
+msgid "EPP Server"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Stopped"
+msgstr ""
+
+msgid "Problem? Restart:"
+msgstr ""
+
+msgid "DAS Server"
+msgstr ""
+
+msgid "Message Producer"
+msgstr ""
+
+msgid "Message Worker"
+msgstr ""

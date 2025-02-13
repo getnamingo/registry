@@ -1507,3 +1507,152 @@ msgstr "Ouvrir le site web"
 msgid "Close"
 msgstr "Fermer"
 
+msgid "Delete Domain"
+msgstr "Supprimer le domaine"
+
+msgid "Approve Application"
+msgstr "Approuver la demande"
+
+msgid "Reject Application"
+msgstr "Rejeter la demande"
+
+msgid "Delete Application"
+msgstr "Supprimer la demande"
+
+msgid "Validated"
+msgstr "Validé"
+
+msgid "Invalid"
+msgstr "Invalide"
+
+msgid "Delete Contact"
+msgstr "Supprimer le contact"
+
+msgid "Delete Host"
+msgstr "Supprimer l'hôte"
+
+msgid "Impersonate"
+msgstr "Se connecter en tant qu'un autre utilisateur"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "Choisissez la devise pour toutes les transactions du registraire."
+
+msgid "Notify Registrars"
+msgstr "Notifier les registraires"
+
+msgid "Send Registrar Notification"
+msgstr "Envoyer une notification au registraire"
+
+msgid "Select Registrars"
+msgstr "Sélectionner les registraires"
+
+msgid "Select All"
+msgstr "Tout sélectionner"
+
+msgid "Deselect All"
+msgstr "Tout désélectionner"
+
+msgid "Last Login:"
+msgstr "Dernière connexion :"
+
+msgid "Not Available"
+msgstr "Non disponible"
+
+msgid "Enter Subject"
+msgstr "Saisir le sujet"
+
+msgid "Type your message..."
+msgstr "Tapez votre message..."
+
+msgid "Create User"
+msgstr "Créer un utilisateur"
+
+msgid "Create New User"
+msgstr "Créer un nouvel utilisateur"
+
+msgid "Username"
+msgstr "Nom d'utilisateur"
+
+msgid "Password"
+msgstr "Mot de passe"
+
+msgid "Confirm Password"
+msgstr "Confirmer le mot de passe"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Pending Review"
+msgstr "En attente de révision"
+
+msgid "Yes"
+msgstr "Oui"
+
+msgid "No"
+msgstr "Non"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Admin"
+msgstr "Administrateur"
+
+msgid "Registrar Association"
+msgstr "Associer l'utilisateur au registraire"
+
+msgid "Manage User"
+msgstr "Gérer l'utilisateur"
+
+msgid "Update User"
+msgstr "Mettre à jour l'utilisateur"
+
+msgid "Send Notification"
+msgstr "Envoyer une notification"
+
+msgid "Server Health"
+msgstr "État du système"
+
+msgid "Clear Cache"
+msgstr "Vider le cache"
+
+msgid "CPU Usage"
+msgstr "Utilisation du processeur"
+
+msgid "CPU Cores"
+msgstr "Cœurs du processeur"
+
+msgid "Memory Usage"
+msgstr "Utilisation de la mémoire RAM"
+
+msgid "Memory"
+msgstr "Mémoire RAM"
+
+msgid "free of"
+msgstr "libre sur"
+
+msgid "Disk Usage"
+msgstr "Utilisation du disque"
+
+msgid "Disk"
+msgstr "Disque dur"
+
+msgid "EPP Server"
+msgstr "Serveur EPP"
+
+msgid "Running"
+msgstr "En cours d'exécution"
+
+msgid "Stopped"
+msgstr "Arrêté"
+
+msgid "Problem? Restart:"
+msgstr "Problème ? Redémarrer :"
+
+msgid "DAS Server"
+msgstr "Serveur DAS"
+
+msgid "Message Producer"
+msgstr "Producteur de messages"
+
+msgid "Message Worker"
+msgstr "Travailleur des messages"

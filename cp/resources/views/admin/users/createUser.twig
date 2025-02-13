@@ -52,7 +52,7 @@
                       <div class="col-md-6">
                         <div class="mb-3">
                           <label class="form-label required">{{ __('Password') }}</label>
-                          <input type="password" class="form-control" name="password" placeholder="{{ __('Enter password') }}" required>
+                          <input type="password" class="form-control" name="password" placeholder="{{ __('Password') }}" required>
                         </div>
                       </div>
                           
@@ -60,7 +60,7 @@
                       <div class="col-md-6">
                         <div class="mb-3">
                           <label class="form-label required">{{ __('Confirm Password') }}</label>
-                          <input type="password" class="form-control" name="password_confirmation" placeholder="{{ __('Confirm password') }}" required>
+                          <input type="password" class="form-control" name="password_confirmation" placeholder="{{ __('Confirm Password') }}" required>
                         </div>
                       </div>
                     </div>
@@ -93,10 +93,10 @@
                     <div class="row">
                       <div class="col-md-6">
                         <div class="mb-3">
-                          <label class="form-label">Type</label>
+                          <label class="form-label">{{ __('Type') }}</label>
                           <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="role-toggle" name="role" value="admin">
-                            <label class="form-check-label" for="role-toggle" id="role-label">Registrar</label>
+                            <label class="form-check-label" for="role-toggle" id="role-label">{{ __('Registrar') }}</label>
                           </div>
                           <!-- Hidden input to ensure "registrar" is sent when the toggle is off -->
                           <input type="hidden" name="role" id="hidden-role" value="registrar">
@@ -107,9 +107,9 @@
                     <!-- Registrar-specific fields -->
                     <div id="registrar-fields" style="display: none;">
                       <div class="mb-3">
-                        <label class="form-label">Registrar Association</label>
+                        <label class="form-label">{{ __('Registrar Association') }}</label>
                         <select class="form-select" name="registrar_id">
-                          <option value="" disabled selected>Select registrar</option>
+                          <option value="" disabled selected>{{ __('Select registrar') }}</option>
                           {% for registrar in registrars %}
                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                           {% endfor %}

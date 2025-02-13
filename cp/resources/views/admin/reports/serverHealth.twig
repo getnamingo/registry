@@ -72,7 +72,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('Memory') }}</h4>
-                                        <div class="text-muted">{{ serverHealth.getMemoryFree }} {{ __('MB free of') }} {{ serverHealth.getMemoryTotal }} MB</div>
+                                        <div class="text-muted">{{ serverHealth.getMemoryFree }} MB {{ __('free of') }} {{ serverHealth.getMemoryTotal }} MB</div>
                                     </div>
                                     <div class="ms-auto">
                                         <span class="badge bg-green text-green-fg">{{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%</span>
@@ -97,7 +97,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('Disk') }}</h4>
-                                        <div class="text-muted">{{ serverHealth.getDiskFree }} {{ __('GB free of') }} {{ serverHealth.getDiskTotal }} GB</div>
+                                        <div class="text-muted">{{ serverHealth.getDiskFree }} GB {{ __('free of') }} {{ serverHealth.getDiskTotal }} GB</div>
                                     </div>
                                     <div class="ms-auto">
                                         <span class="badge bg-warning text-warning-fg">{{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%</span>

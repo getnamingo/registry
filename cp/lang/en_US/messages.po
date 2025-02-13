@@ -1506,3 +1506,153 @@ msgstr "Open website"
 
 msgid "Close"
 msgstr "Close"
+
+msgid "Delete Domain"
+msgstr "Delete Domain"
+
+msgid "Approve Application"
+msgstr "Approve Application"
+
+msgid "Reject Application"
+msgstr "Reject Application"
+
+msgid "Delete Application"
+msgstr "Delete Application"
+
+msgid "Validated"
+msgstr "Validated"
+
+msgid "Invalid"
+msgstr "Invalid"
+
+msgid "Delete Contact"
+msgstr "Delete Contact"
+
+msgid "Delete Host"
+msgstr "Delete Host"
+
+msgid "Impersonate"
+msgstr "Impersonate"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "Choose the currency for all registrar transactions."
+
+msgid "Notify Registrars"
+msgstr "Notify Registrars"
+
+msgid "Send Registrar Notification"
+msgstr "Send Registrar Notification"
+
+msgid "Select Registrars"
+msgstr "Select Registrars"
+
+msgid "Select All"
+msgstr "Select All"
+
+msgid "Deselect All"
+msgstr "Deselect All"
+
+msgid "Last Login:"
+msgstr "Last Login:"
+
+msgid "Not Available"
+msgstr "Not Available"
+
+msgid "Enter Subject"
+msgstr "Enter Subject"
+
+msgid "Type your message..."
+msgstr "Type your message..."
+
+msgid "Create User"
+msgstr "Create User"
+
+msgid "Create New User"
+msgstr "Create New User"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Confirm Password"
+msgstr "Confirm Password"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Pending Review"
+msgstr "Pending Review"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "No"
+msgstr "No"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Registrar Association"
+msgstr "Registrar Association"
+
+msgid "Manage User"
+msgstr "Manage User"
+
+msgid "Update User"
+msgstr "Update User"
+
+msgid "Send Notification"
+msgstr "Send Notification"
+
+msgid "Server Health"
+msgstr "Server Health"
+
+msgid "Clear Cache"
+msgstr "Clear Cache"
+
+msgid "CPU Usage"
+msgstr "CPU Usage"
+
+msgid "CPU Cores"
+msgstr "CPU Cores"
+
+msgid "Memory Usage"
+msgstr "Memory Usage"
+
+msgid "Memory"
+msgstr "Memory"
+
+msgid "free of"
+msgstr "free of"
+
+msgid "Disk Usage"
+msgstr "Disk Usage"
+
+msgid "Disk"
+msgstr "Disk"
+
+msgid "EPP Server"
+msgstr "EPP Server"
+
+msgid "Running"
+msgstr "Running"
+
+msgid "Stopped"
+msgstr "Stopped"
+
+msgid "Problem? Restart:"
+msgstr "Problem? Restart:"
+
+msgid "DAS Server"
+msgstr "DAS Server"
+
+msgid "Message Producer"
+msgstr "Message Producer"
+
+msgid "Message Worker"
+msgstr "Message Worker"

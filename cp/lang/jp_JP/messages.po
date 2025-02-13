@@ -1506,3 +1506,153 @@ msgstr "ウェブサイトを開く"
 
 msgid "Close"
 msgstr "閉じる"
+
+msgid "Delete Domain"
+msgstr "ドメインを削除"
+
+msgid "Approve Application"
+msgstr "申請を承認"
+
+msgid "Reject Application"
+msgstr "申請を却下"
+
+msgid "Delete Application"
+msgstr "申請を削除"
+
+msgid "Validated"
+msgstr "検証済み"
+
+msgid "Invalid"
+msgstr "無効"
+
+msgid "Delete Contact"
+msgstr "連絡先を削除"
+
+msgid "Delete Host"
+msgstr "ホストを削除"
+
+msgid "Impersonate"
+msgstr "別のユーザーとしてログイン"
+
+msgid "Choose the currency for all registrar transactions."
+msgstr "すべてのレジストラ取引の通貨を選択してください。"
+
+msgid "Notify Registrars"
+msgstr "レジストラに通知"
+
+msgid "Send Registrar Notification"
+msgstr "レジストラ通知を送信"
+
+msgid "Select Registrars"
+msgstr "レジストラを選択"
+
+msgid "Select All"
+msgstr "すべて選択"
+
+msgid "Deselect All"
+msgstr "すべての選択を解除"
+
+msgid "Last Login:"
+msgstr "最終ログイン："
+
+msgid "Not Available"
+msgstr "利用不可"
+
+msgid "Enter Subject"
+msgstr "件名を入力"
+
+msgid "Type your message..."
+msgstr "メッセージを入力してください..."
+
+msgid "Create User"
+msgstr "ユーザーを作成"
+
+msgid "Create New User"
+msgstr "新規ユーザーを作成"
+
+msgid "Username"
+msgstr "ユーザー名"
+
+msgid "Password"
+msgstr "パスワード"
+
+msgid "Confirm Password"
+msgstr "パスワードを確認"
+
+msgid "Active"
+msgstr "アクティブ"
+
+msgid "Pending Review"
+msgstr "レビュー待ち"
+
+msgid "Yes"
+msgstr "はい"
+
+msgid "No"
+msgstr "いいえ"
+
+msgid "Type"
+msgstr "種類"
+
+msgid "Admin"
+msgstr "管理者"
+
+msgid "Registrar Association"
+msgstr "ユーザーをレジストラに関連付ける"
+
+msgid "Manage User"
+msgstr "ユーザー管理"
+
+msgid "Update User"
+msgstr "ユーザーを更新"
+
+msgid "Send Notification"
+msgstr "通知を送信"
+
+msgid "Server Health"
+msgstr "システムの状態"
+
+msgid "Clear Cache"
+msgstr "キャッシュをクリア"
+
+msgid "CPU Usage"
+msgstr "CPU使用率"
+
+msgid "CPU Cores"
+msgstr "CPUコア数"
+
+msgid "Memory Usage"
+msgstr "メモリ使用率"
+
+msgid "Memory"
+msgstr "メモリ（RAM）"
+
+msgid "free of"
+msgstr "空き / 合計"
+
+msgid "Disk Usage"
+msgstr "ディスク使用率"
+
+msgid "Disk"
+msgstr "ハードディスク"
+
+msgid "EPP Server"
+msgstr "EPPサーバー"
+
+msgid "Running"
+msgstr "稼働中"
+
+msgid "Stopped"
+msgstr "停止中"
+
+msgid "Problem? Restart:"
+msgstr "問題がありますか？ 再起動:"
+
+msgid "DAS Server"
+msgstr "DASサーバー"
+
+msgid "Message Producer"
+msgstr "メッセージプロデューサー"
+
+msgid "Message Worker"
+msgstr "メッセージワーカー"
