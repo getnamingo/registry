@@ -987,11 +987,7 @@ systemctl enable prometheus
 systemctl start prometheus
 ```
 
-Open Prometheus in your browser:
-
-```bash
-http://<your_server_ip>:9090
-```
+Open Prometheus in your browser: http://your-server-ip:9090
 
 Check **Status > Targets** to ensure all targets are up.
 
@@ -1005,6 +1001,8 @@ systemctl daemon-reload
 systemctl enable grafana-server
 systemctl start grafana-server
 ```
+
+Open Grafana in your browser: http://your-server-ip:3000
 
 ***Add Prometheus as a Data Source***
 
@@ -1047,7 +1045,7 @@ If you want notifications via email, Slack, Telegram, or other tools, you can co
 wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && ./install.sh
 ```
 
-Open: http://your-server-ip:19999
+Open Netdata in your browser: http://your-server-ip:19999
 
 ### 2.5. Recommended Help Desk Solutions
 
