@@ -9,7 +9,6 @@ function processContactInfo($conn, $db, $xml, $trans) {
         return;
     }
 
-    // Validation for contact ID
     $invalid_identifier = validate_identifier($contactID);
     if ($invalid_identifier) {
         sendEppError($conn, $db, 2005, 'Invalid contact ID', $clTRID, $trans);
@@ -17,50 +16,67 @@ function processContactInfo($conn, $db, $xml, $trans) {
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM contact WHERE identifier = :id");
+        // Optimized single query
+        $stmt = $db->prepare("
+            SELECT c.id, c.identifier, c.voice, c.fax, c.email, c.clid, c.crid, c.crdate, c.upid, c.lastupdate,
+                c.disclose_voice, c.disclose_fax, c.disclose_email,
+                p.type AS postal_type, p.name, p.org, p.street1, p.street2, p.street3, p.city, p.sp, p.pc, p.cc,
+                p.disclose_name_int, p.disclose_name_loc, p.disclose_org_int, p.disclose_org_loc, 
+                p.disclose_addr_int, p.disclose_addr_loc,
+                a.authtype, a.authinfo
+            FROM contact c
+            LEFT JOIN contact_postalInfo p ON c.id = p.contact_id
+            LEFT JOIN contact_authInfo a ON c.id = a.contact_id
+            WHERE c.identifier = :id
+        ");
         $stmt->execute(['id' => $contactID]);
-
-        $contact = $stmt->fetch(PDO::FETCH_ASSOC);
+        $contact = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (!$contact) {
             sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
             return;
         }
-        
-        // Fetch authInfo
-        $stmt = $db->prepare("SELECT * FROM contact_authInfo WHERE contact_id = :id");
-        $stmt->execute(['id' => $contact['id']]);
-        $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Fetch status
-        $stmt = $db->prepare("SELECT * FROM contact_status WHERE contact_id = :id");
-        $stmt->execute(['id' => $contact['id']]);
-        $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $statusArray = [];
-        foreach($statuses as $status) {
-            $statusArray[] = [$status['status']];
-        }
 
-        // Fetch postal_info
-        $stmt = $db->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :id");
-        $stmt->execute(['id' => $contact['id']]);
-        $postals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Extract the first row for contact data
+        $contactRow = $contact[0];
 
+        // Extract Postal Info
         $postalArray = [];
-        foreach ($postals as $postal) {
-            $postalType = $postal['type']; // 'int' or 'loc'
+        foreach ($contact as $row) {
+            $postalType = $row['postal_type']; // 'int' or 'loc'
+            if ($postalType) {
                 $postalArray[$postalType] = [
-                'name' => $postal['name'],
-                'org' => $postal['org'],
-                'street' => [$postal['street1'], $postal['street2'], $postal['street3']],
-                'city' => $postal['city'],
-                'sp' => $postal['sp'],
-                'pc' => $postal['pc'],
-                'cc' => $postal['cc']
-            ];
+                    'name' => $row['name'],
+                    'org' => $row['org'],
+                    'street' => array_filter([$row['street1'], $row['street2'], $row['street3']]),
+                    'city' => $row['city'],
+                    'sp' => $row['sp'],
+                    'pc' => $row['pc'],
+                    'cc' => $row['cc']
+                ];
+            }
         }
-        
+
+        // Fetch statuses separately (since multiple statuses exist)
+        $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :id");
+        $stmt->execute(['id' => $contactRow['id']]);
+        $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $statusArray = array_map(fn($status) => [$status], $statuses);
+
+        // Handle Disclose Fields (Only Show When Set to `1`)
+        $disclose_fields = [
+            'voice' => $contactRow['disclose_voice'],
+            'fax' => $contactRow['disclose_fax'],
+            'email' => $contactRow['disclose_email'],
+            'name_int' => $contactRow['disclose_name_int'],
+            'name_loc' => $contactRow['disclose_name_loc'],
+            'org_int' => $contactRow['disclose_org_int'],
+            'org_loc' => $contactRow['disclose_org_loc'],
+            'addr_int' => $contactRow['disclose_addr_int'],
+            'addr_loc' => $contactRow['disclose_addr_loc']
+        ];
+        $disclose_required = array_filter($disclose_fields, fn($value) => $value === '1');
+
         $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_contact',
@@ -68,27 +84,34 @@ function processContactInfo($conn, $db, $xml, $trans) {
             'svTRID' => $svTRID,
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
-            'id' => $contact['identifier'],
-            'roid' => 'C' . $contact['id'],
+            'id' => $contactRow['identifier'],
+            'roid' => 'C' . $contactRow['id'],
             'status' => $statusArray,
             'postal' => $postalArray,
-            'voice' => $contact['voice'],
-            'fax' => $contact['fax'],
-            'email' => $contact['email'],
-            'clID' => getRegistrarClid($db, $contact['clid']),
-            'crID' => getRegistrarClid($db, $contact['crid']),
-            'crDate' => $contact['crdate'],
-            'upID' => getRegistrarClid($db, $contact['upid']),
-            'upDate' => $contact['lastupdate'],
+            'voice' => $contactRow['voice'],
+            'fax' => $contactRow['fax'],
+            'email' => $contactRow['email'],
+            'clID' => getRegistrarClid($db, $contactRow['clid']),
+            'crID' => getRegistrarClid($db, $contactRow['crid']),
+            'crDate' => $contactRow['crdate'],
+            'upID' => getRegistrarClid($db, $contactRow['upid']),
+            'upDate' => $contactRow['lastupdate'],
             'authInfo' => 'valid',
-            'authInfo_type' => $authInfo['authtype'],
-            'authInfo_val' => $authInfo['authinfo']
+            'authInfo_type' => $contactRow['authtype'],
+            'authInfo_val' => $contactRow['authinfo']
         ];
 
-    $epp = new EPP\EppWriter();
-    $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'info', 'contact', 'C_'.$contact['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-    sendEppResponse($conn, $xml);
+        if (!empty($disclose_required)) {
+            $response['disclose'] = [
+                'flag' => '1', // Show when disclosure is enabled
+                'fields' => array_keys($disclose_required)
+            ];
+        }
+
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'info', 'contact', 'C_'.$contactRow['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);

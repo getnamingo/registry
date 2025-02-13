@@ -569,7 +569,7 @@ class EppWriter {
                     $trDateFormatted = $trDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('contact:trDate', $trDateFormatted);
                 }
-                
+
                 // Handling 'contact:authInfo'
                 if ($resp['authInfo'] === 'valid') {
                     $writer->startElement('contact:authInfo');
@@ -579,6 +579,18 @@ class EppWriter {
                         $writer->writeElement('contact:ext', $resp['authInfo_val']);
                     }
                     $writer->endElement();  // End of 'contact:authInfo'
+                }
+
+                if (isset($resp['disclose'])) {
+                    $writer->startElement('contact:disclose');
+                    $writer->writeAttribute('flag', $resp['disclose']['flag']); // 1 = disclose, 0 = restrict
+
+                    foreach ($resp['disclose']['fields'] as $field) {
+                        $writer->startElement('contact:' . $field);
+                        $writer->endElement();
+                    }
+
+                    $writer->endElement(); // End of contact:disclose
                 }
 
                 $writer->endElement();  // End of 'contact:infData'
