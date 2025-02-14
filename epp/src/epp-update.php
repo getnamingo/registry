@@ -187,7 +187,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
             }
 
-            if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
+            if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:city', $clTRID, $trans);
                 return;
             }

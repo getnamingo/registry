@@ -135,7 +135,7 @@ class ContactsController extends Controller
                     }
                 }
 
-                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
+                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
                     $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact city');
                     return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
@@ -880,7 +880,7 @@ class ContactsController extends Controller
                     }
                 }
 
-                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\s]{3,}$/i', $postalInfoIntCity)) {
+                if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
                     $this->container->get('flash')->addMessage('error', 'Unable to update contact: Invalid contact city');
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
