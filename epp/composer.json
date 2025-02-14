@@ -7,6 +7,8 @@
         "league/flysystem": "^3.28",
         "selective/xmldsig": "^3.1",
         "namingo/rately": "^0.1.0",
-        "moneyphp/money": "^4.6"
+        "moneyphp/money": "^4.6",
+        "phpmailer/phpmailer": "^6.9",
+        "filips123/monolog-phpmailer": "^2.0"
     }
 }

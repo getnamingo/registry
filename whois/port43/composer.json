@@ -1,6 +1,8 @@
 {
     "require": {
         "monolog/monolog": "^3.7",
-        "namingo/rately": "^0.1.0"
+        "namingo/rately": "^0.1.0",
+        "phpmailer/phpmailer": "^6.9",
+        "filips123/monolog-phpmailer": "^2.0"
     }
 }
