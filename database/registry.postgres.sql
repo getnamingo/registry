@@ -79,10 +79,14 @@ CREATE TABLE allocation_tokens (
 );
 
 CREATE TABLE error_log (
-    "id" SERIAL PRIMARY KEY,
-    "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
-    "log" TEXT NOT NULL,
-    "date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+    "id" SERIAL PRIMARY KEY, 
+    "channel" VARCHAR(255), 
+    "level" INT,
+    "level_name" VARCHAR(10),
+    "message" TEXT,
+    "context" JSONB,
+    "extra" JSONB,
+    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE reserved_domain_names (
@@ -846,8 +850,8 @@ INSERT INTO settings (name, value) VALUES
 ('address2', '48000'),
 ('cc', 'Ukraine'),
 ('vat_number', '12345678'),
-('verifyEmail',	NULL),
-('verifyPhone',	NULL),
+('verifyEmail',    NULL),
+('verifyPhone',    NULL),
 ('verifyPostal', NULL),
 ('phone', '+123456789'),
 ('handle', 'RXX'),

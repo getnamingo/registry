@@ -748,9 +748,17 @@ class DomainsController extends Controller
                                 $db->insert(
                                     'error_log',
                                     [
-                                        'registrar_id' => $clid,
-                                        'log' => "Domain : $domainName ; hostName : $nameserver - is duplicated",
-                                        'date' => $logdate
+                                        'channel' => 'control_panel',
+                                        'level' => 3,
+                                        'level_name' => 'warning',
+                                        'message' => "Domain: $domainName; hostName: $nameserver - is duplicated",
+                                        'context' => json_encode([
+                                            'registrar_id' => $clid, 
+                                            'domain' => $domainName, 
+                                            'host' => $nameserver
+                                        ]),
+                                        'extra' => json_encode([]),
+                                        'created_at' => $logdate
                                     ]
                                 );
                             }

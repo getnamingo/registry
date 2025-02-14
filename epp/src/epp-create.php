@@ -1467,8 +1467,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $insertDomainHostMapStmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
                         $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
                     } else {
-                        $errorLogStmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(:registrar_id,:log,CURRENT_TIMESTAMP(3))");
-                        $errorLogStmt->execute([':registrar_id' => $clid, ':log' => "Domain : $domainName ; hostObj : $hostObj - is duplicated"]);
+                        $errorLogStmt = $db->prepare("INSERT INTO error_log 
+                            (channel, level, level_name, message, context, extra, created_at) 
+                            VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
+                        $errorLogStmt->execute([
+                            ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
+                            ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
+                        ]);
                     }
                 } else {
                     $internal_host = false;
@@ -1532,8 +1537,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $stmt->execute([$domain_id, $hostName_already_exist]);
                     } else {
                         // Log duplicate mapping error
-                        $stmt = $db->prepare("INSERT INTO error_log (registrar_id, log, date) VALUES (?, ?, CURRENT_TIMESTAMP(3))");
-                        $stmt->execute([$clid, "Domain: $domainName ; hostName: $hostName - duplicate mapping"]);
+                        $stmt = $db->prepare("INSERT INTO error_log 
+                            (channel, level, level_name, message, context, extra, created_at) 
+                            VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                        $stmt->execute([
+                            "Domain: $domainName; hostName: $hostName - duplicate mapping",
+                            json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])
+                        ]);
                     }
                 } else {
                     // Insert a new host

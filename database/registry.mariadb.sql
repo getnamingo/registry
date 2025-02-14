@@ -81,12 +81,14 @@ CREATE TABLE IF NOT EXISTS `registry`.`allocation_tokens` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='allocation tokens';
 
 CREATE TABLE IF NOT EXISTS `registry`.`error_log` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `registrar_id` INT(10) unsigned NOT NULL,
-    `log` TEXT NOT NULL,
-    `date` TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    CONSTRAINT `error_log_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`)
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+    `channel` VARCHAR(255), 
+    `level` INT(3),
+    `level_name` VARCHAR(10),
+    `message` TEXT,
+    `context` JSON,
+    `extra` JSON,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registry error log';
 
 CREATE TABLE IF NOT EXISTS `registry`.`reserved_domain_names` (

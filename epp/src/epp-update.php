@@ -1529,11 +1529,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         return;
                     }
                 } else {
-                    $stmt = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(:registrar_id, :log, CURRENT_TIMESTAMP(3))");
-                    $log = "Domain : $domainName ; hostObj : $hostObj - is duplicated";
-                    $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
-                    $stmt->bindParam(':log', $log, PDO::PARAM_STR);
-                    $stmt->execute();
+                    $logMessage = "Domain: $domainName; hostObj: $hostObj - is duplicated";
+                    $contextData = json_encode([
+                        'registrar_id' => $clid,
+                        'domain' => $domainName,
+                        'host' => $hostObj
+                    ]);
+                    $stmt = $db->prepare("INSERT INTO error_log 
+                        (channel, level, level_name, message, context, extra, created_at) 
+                        VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                    $stmt->execute([$logMessage, $contextData]);
                 }
             } else {
                 $host_from_this_registry = 0;
@@ -1625,9 +1630,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             return;
                         }
                     } else {
-                        $logMessage = "Domain : $domainName ; hostName : $hostName - is duplicated";
-                        $sth = $db->prepare("INSERT INTO error_log (registrar_id,log,date) VALUES(?, ?, CURRENT_TIMESTAMP(3))");
-                        if (!$sth->execute([$clid, $logMessage])) {
+                        $logMessage = "Domain: $domainName; hostName: $hostName - is duplicated";
+                        $contextData = json_encode([
+                            'registrar_id' => $clid,
+                            'domain' => $domainName,
+                            'host' => $hostName
+                        ]);
+                        $sth = $db->prepare("INSERT INTO error_log 
+                            (channel, level, level_name, message, context, extra, created_at) 
+                            VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                        if (!$sth->execute([$logMessage, $contextData])) {
                             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                             return;
                         }

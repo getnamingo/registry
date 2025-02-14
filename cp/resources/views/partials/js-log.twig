@@ -8,7 +8,7 @@
 
     document.addEventListener("DOMContentLoaded", function(){
     table = new Tabulator("#logsTable", {
-        ajaxURL:"/api/records/error_log?join=registrar", // Set the URL for your JSON data
+        ajaxURL:"/api/records/error_log", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
         paginationSize:10,
@@ -20,14 +20,15 @@
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         initialSort:[
-            {column:"date", dir:"desc"}, // sorting by the "cldate" field in descending order
+            {column:"created_at", dir:"desc"}, // sorting by the "created_at" field in descending order
         ],
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Registrar') }}", field:"registrar_id.name", minWidth:200, resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Date') }}", field:"date", resizable:false, minWidth:300, headerSort:true, responsive:0},
-            {title:"{{ __('Log') }}", field:"log", resizable:false, minWidth:600, headerSort:true, responsive:2},
+            {title:"{{ __('Channel') }}", field:"channel", minWidth:200, resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Level') }}", field:"level_name", resizable:false, minWidth:200, headerSort:true, responsive:0},
+            {title:"{{ __('Log') }}", field:"message", resizable:false, minWidth:550, headerSort:true, responsive:2},
+            {title:"{{ __('Date') }}", field:"created_at", resizable:false, minWidth:250, headerSort:true, responsive:2},
         ]
     });
     var searchInput = document.getElementById("search-input");
@@ -38,9 +39,10 @@
             table.setFilter(function (data) {
                 // Check if any of the fields contain the search term
                 return (
-                    String(data.registrar_id.name).toLowerCase().includes(term) ||
-                    String(data.date).toLowerCase().includes(term) ||
-                    String(data.log).toLowerCase().includes(term)
+                    String(data.channel).toLowerCase().includes(term) ||
+                    String(data.level_name).toLowerCase().includes(term) ||
+                    String(data.message).toLowerCase().includes(term) ||
+                    String(data.created_at).toLowerCase().includes(term) 
                 );
             });
         } else {
