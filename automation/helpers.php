@@ -54,15 +54,6 @@ function setupLogger($logFilePath, $channelName = 'app') {
     $fileHandler->setFormatter($fileFormatter);
     $log->pushHandler($fileHandler);
 
-    // Archive logs older than 14 days
-    archiveOldLogs($logFilePath);
-
-    // Pushover Handler (For CRITICAL, ALERT, EMERGENCY)
-    if (!empty($config['pushover_key'])) {
-        $pushoverHandler = new PushoverHandler($config['pushover_key'], Logger::ALERT);
-        $log->pushHandler($pushoverHandler);
-    }
-
     // Email Handler (For CRITICAL, ALERT, EMERGENCY)
     if (!empty($config['mailer_smtp_host'])) {
         // Create a PHPMailer instance

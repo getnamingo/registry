@@ -69,16 +69,6 @@ class Logger extends \Monolog\Logger
         $fileHandler->setFormatter($fileFormatter);
         $this->pushHandler($fileHandler);
 
-        // Pushover Alerts (For CRITICAL, ALERT, EMERGENCY)
-        if (!empty($_ENV['PUSHOVER_KEY'])) {
-            try {
-                $pushoverHandler = new PushoverHandler($_ENV['PUSHOVER_KEY'], \Monolog\Logger::ALERT);
-                $this->pushHandler($pushoverHandler);
-            } catch (\Exception $e) {
-                error_log("PushoverHandler failed: " . $e->getMessage());
-            }
-        }
-
         // Email Alerts (For CRITICAL, ALERT, EMERGENCY)
         if (!empty($_ENV['MAIL_HOST'])) {
             try {

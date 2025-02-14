@@ -46,15 +46,6 @@ function setupLogger($logFilePath, $channelName = 'app') {
     $fileHandler->setFormatter($fileFormatter);
     $log->pushHandler($fileHandler);
 
-    // Archive logs older than 14 days
-    archiveOldLogs($logFilePath);
-
-    // Pushover Handler (For CRITICAL, ALERT, EMERGENCY)
-    if (!empty($config['pushover_key'])) {
-        $pushoverHandler = new PushoverHandler($config['pushover_key'], Logger::ALERT);
-        $log->pushHandler($pushoverHandler);
-    }
-
     // Email Handler (For CRITICAL, ALERT, EMERGENCY)
     if (!empty($config['mailer_smtp_host'])) {
         // Create a PHPMailer instance
@@ -83,45 +74,6 @@ function setupLogger($logFilePath, $channelName = 'app') {
     }
 
     return $log;
-}
-
-function archiveOldLogs($logFilePath) {
-    $logDir = dirname($logFilePath);
-    $backupDir = '/opt/backup';
-    $lockFile = $backupDir . '/log_archive.lock';
-
-    // Prevent multiple processes from running archive at the same time
-    if (file_exists($lockFile)) {
-        return; // Another process is already archiving
-    }
-    touch($lockFile); // Create lock file
-
-    if (!is_dir($backupDir)) {
-        mkdir($backupDir, 0755, true);
-    }
-
-    $logFiles = glob($logDir . '/*.log'); // Get all log files
-    $thresholdDate = strtotime('-14 days'); // Logs older than 14 days
-
-    foreach ($logFiles as $file) {
-        if (filemtime($file) < $thresholdDate) {
-            $filename = basename($file);
-            $monthYear = date('F-Y', filemtime($file));
-            $zipPath = $backupDir . "/logs-{$monthYear}.zip";
-
-            // Open or create ZIP archive
-            $zip = new ZipArchive();
-            if ($zip->open($zipPath, ZipArchive::CREATE) === true) {
-                if (!$zip->locateName($filename)) { // Prevent duplicate addition
-                    $zip->addFile($file, $filename);
-                    unlink($file); // Delete original log after archiving
-                }
-                $zip->close();
-            }
-        }
-    }
-
-    unlink($lockFile); // Remove lock when done
 }
 
 function parseQuery($data) {

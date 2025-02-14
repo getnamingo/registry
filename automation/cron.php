@@ -57,6 +57,8 @@ $scheduler->php('/opt/registry/automation/domain-lifecycle-manager.php')->at('*/
 $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 * * * *');
 $scheduler->php('/opt/registry/automation/auto-clean-unused-contact-and-host.php')->at('5 0 * * *');
 
+$scheduler->php('/opt/registry/automation/archive-logs.php')->at('0 1 1 * *');
+
 // Conditional Cron Jobs
 if ($cronJobConfig['accounting']) {
     $scheduler->php('/opt/registry/automation/send-invoice.php')->at('1 0 1 * *');
