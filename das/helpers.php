@@ -88,6 +88,13 @@ function setupLogger($logFilePath, $channelName = 'app') {
 function archiveOldLogs($logFilePath) {
     $logDir = dirname($logFilePath);
     $backupDir = '/opt/backup';
+    $lockFile = $backupDir . '/log_archive.lock';
+
+    // Prevent multiple processes from running archive at the same time
+    if (file_exists($lockFile)) {
+        return; // Another process is already archiving
+    }
+    touch($lockFile); // Create lock file
 
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0755, true);
@@ -105,12 +112,16 @@ function archiveOldLogs($logFilePath) {
             // Open or create ZIP archive
             $zip = new ZipArchive();
             if ($zip->open($zipPath, ZipArchive::CREATE) === true) {
-                $zip->addFile($file, $filename);
+                if (!$zip->locateName($filename)) { // Prevent duplicate addition
+                    $zip->addFile($file, $filename);
+                    unlink($file); // Delete original log after archiving
+                }
                 $zip->close();
-                unlink($file); // Delete original log after archiving
             }
         }
     }
+
+    unlink($lockFile); // Remove lock when done
 }
 
 function isIpWhitelisted($ip, $pdo) {

@@ -49,7 +49,8 @@
         "utopia-php/system": "^0.9.0",
         "bjeavons/zxcvbn-php": "^1.4",
         "moneyphp/money": "^4.6",
-        "phpmailer/phpmailer": "^6.9"
+        "phpmailer/phpmailer": "^6.9",
+        "filips123/monolog-phpmailer": "^2.0"
     },
     "autoload": {
         "psr-4": {
