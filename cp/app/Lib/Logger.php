@@ -6,6 +6,7 @@ use Monolog\ErrorHandler;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
+use Monolog\Formatter\HtmlFormatter;
 use Monolog\Handler\FilterHandler;
 use Monolog\Handler\WhatFailureGroupHandler;
 use MonologPHPMailer\PHPMailerHandler;
@@ -68,9 +69,6 @@ class Logger extends \Monolog\Logger
         $fileHandler->setFormatter($fileFormatter);
         $this->pushHandler($fileHandler);
 
-        // Archive Old Logs (Move older than 14 days to ZIP)
-        $this->archiveOldLogs($config['logFile']);
-
         // Pushover Alerts (For CRITICAL, ALERT, EMERGENCY)
         if (!empty($_ENV['PUSHOVER_KEY'])) {
             try {
@@ -90,14 +88,14 @@ class Logger extends \Monolog\Logger
                 $mail->SMTPAuth   = true;
                 $mail->Username   = $_ENV['MAIL_USERNAME'];
                 $mail->Password   = $_ENV['MAIL_PASSWORD'];
-                $mail->SMTPSecure = $_ENV['MAIL_ENCRYPTION'];
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port       = $_ENV['MAIL_PORT'];
                 $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
-                $mail->addAddress($_ENV['MAIL_FROM_ADDRESS']); // Send to admin email
+                $mail->addAddress($_ENV['MAIL_TO_ADDRESS']); // Send to admin email
 
                 // Attach PHPMailer to Monolog
                 $mailerHandler = new PHPMailerHandler($mail);
-                $mailerHandler->setFormatter(new LineFormatter());
+                $mailerHandler->setFormatter(new HtmlFormatter());
 
                 // Filter Emails to ALERT, CRITICAL, EMERGENCY Only
                 $filteredMailHandler = new FilterHandler($mailerHandler, \Monolog\Logger::ALERT, \Monolog\Logger::EMERGENCY);
@@ -145,49 +143,6 @@ class Logger extends \Monolog\Logger
         $run = new Run();
         $run->pushHandler(new PrettyPageHandler());
         $run->register();
-    }
-
-    /**
-     * Archive Old Logs (Older than 14 Days)
-     */
-    private function archiveOldLogs($logFilePath)
-    {
-        $logDir = dirname($logFilePath);
-        $backupDir = '/opt/backup';
-        $lockFile = $backupDir . '/log_archive.lock';
-
-        // Prevent multiple processes from running archive at the same time
-        if (file_exists($lockFile)) {
-            return; // Another process is already archiving
-        }
-        touch($lockFile); // Create lock file
-
-        if (!is_dir($backupDir)) {
-            mkdir($backupDir, 0755, true);
-        }
-
-        $logFiles = glob($logDir . '/*.log'); // Get all log files
-        $thresholdDate = strtotime('-14 days'); // Logs older than 14 days
-
-        foreach ($logFiles as $file) {
-            if (filemtime($file) < $thresholdDate) {
-                $filename = basename($file);
-                $monthYear = date('F-Y', filemtime($file));
-                $zipPath = $backupDir . "/logs-{$monthYear}.zip";
-
-                // Open or create ZIP archive
-                $zip = new ZipArchive();
-                if ($zip->open($zipPath, ZipArchive::CREATE) === true) {
-                    if (!$zip->locateName($filename)) { // Prevent duplicate addition
-                        $zip->addFile($file, $filename);
-                        unlink($file); // Delete original log after archiving
-                    }
-                    $zip->close();
-                }
-            }
-        }
-
-        unlink($lockFile); // Remove lock when done
     }
 
 }

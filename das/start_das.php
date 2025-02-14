@@ -59,7 +59,17 @@ $server->on('connect', function ($server, $fd) use ($log) {
 // Register a callback to handle incoming requests
 $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool, $log, $rateLimiter) {
     // Get a PDO connection from the pool
-    $pdo = $pool->get();
+    try {
+        $pdo = $pool->get();
+        if (!$pdo) {
+            throw new PDOException("Failed to retrieve a connection from Swoole PDOPool.");
+        }
+    } catch (PDOException $e) {
+        $log->alert("Swoole PDO Pool failed: " . $e->getMessage());
+        $server->send($fd, "Database failure. Please try again later");
+        $server->close($fd);
+        return;
+    }
     $domain = trim($data);
     
     $clientInfo = $server->getClientInfo($fd);

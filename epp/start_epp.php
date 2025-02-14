@@ -95,11 +95,14 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
 
     $log->info('new client from ' . $clientIP . ' connected');
     sendGreeting($conn);
-  
+
     while (true) {
         try {
             // Get a PDO connection from the pool
             $pdo = $pool->get();
+            if (!$pdo) {
+                throw new PDOException("Failed to retrieve a connection from Swoole PDOPool.");
+            }
             $data = $conn->recv();
             $connId = spl_object_id($conn);
 
@@ -572,7 +575,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             }
         } catch (PDOException $e) {
             // Handle database exceptions
-            $log->error('Database error: ' . $e->getMessage());
+            $log->alert('Database error: ' . $e->getMessage());
 
             // Here we only retry if it's a *connection* failure.
             // Common MySQL connection error codes: 2002 (Can't connect), 2006 (Gone away), 2013 (Lost connection).

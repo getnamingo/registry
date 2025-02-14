@@ -52,7 +52,17 @@ $log->info('server started.');
 // Handle incoming HTTP requests
 $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateLimiter) {
     // Get a PDO connection from the pool
-    $pdo = $pool->get();
+    try {
+        $pdo = $pool->get();
+        if (!$pdo) {
+            throw new PDOException("Failed to retrieve a connection from Swoole PDOPool.");
+        }
+    } catch (PDOException $e) {
+        $log->alert("Swoole PDO Pool failed: " . $e->getMessage());
+        $response->header('Content-Type', 'application/json');
+        $response->status(500);
+        $response->end(json_encode(['error' => 'Database failure. Please try again later.']));
+    }
 
     $remoteAddr = $request->server['remote_addr'];
     if (!isIpWhitelisted($remoteAddr, $pdo)) {
