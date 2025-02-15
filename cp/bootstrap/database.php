@@ -11,7 +11,7 @@ $defaultDriver = config('default') ?? 'mysql';
 
 $supportedDrivers = [
     'mysql' => "{$config['mysql']['driver']}:dbname={$config['mysql']['database']};host={$config['mysql']['host']};charset={$config['mysql']['charset']}",
-    'sqlite' => "{$config['sqlite']['driver']}:{$config['sqlite']['driver']}",
+    'sqlite' => "{$config['sqlite']['driver']}:{$config['sqlite']['database']}",
     'pgsql' => "{$config['pgsql']['driver']}:dbname={$config['pgsql']['database']};host={$config['pgsql']['host']}"
 ];
 
@@ -23,7 +23,11 @@ try {
     $driver = $supportedDrivers[$defaultDriver] ?? $supportedDrivers['mysql'];
 
     // Create PDO connection
-    $pdo = new \PDO($driver, $config[$defaultDriver]['username'], $config[$defaultDriver]['password']);
+    if (str_starts_with($driver, "sqlite")) {
+        $pdo = new \PDO($driver);
+    } else {
+        $pdo = new \PDO($driver, $config[$defaultDriver]['username'], $config[$defaultDriver]['password']);
+    }
     $db = PdoDatabase::fromPdo($pdo);
 
 } catch (PDOException $e) {

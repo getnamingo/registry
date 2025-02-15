@@ -29,10 +29,15 @@ try {
     // Create PDO instance
     if ($dbDriver == 'mysql') {
         $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8";
+        $pdo = new PDO($dsn, $dbUser, $dbPass);
     } elseif ($dbDriver == 'pgsql') {
         $dsn = "pgsql:host=$dbHost;dbname=$dbName";
+        $pdo = new PDO($dsn, $dbUser, $dbPass);
+    } elseif ($dbDriver == 'sqlite') {
+        $dsn = "sqlite:/var/www/cp/registry.db";
+        $pdo = new PDO($dsn);
     }
-    $pdo = new PDO($dsn, $dbUser, $dbPass);
+
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // SQL query

@@ -34,7 +34,7 @@ return [
         ],
         'sqlite' => [
             'driver' => 'sqlite',
-            'database' => $_ENV['DB_DATABASE'] ?? __DIR__.'/database.sqlite',
+            'database' => $_ENV['DB_DATABASE'] ?? __DIR__.'/registry.db',
             'prefix' => '',
         ],
         'pgsql' => [
