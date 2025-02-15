@@ -58,6 +58,7 @@ $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 
 $scheduler->php('/opt/registry/automation/auto-clean-unused-contact-and-host.php')->at('5 0 * * *');
 
 $scheduler->php('/opt/registry/automation/archive-logs.php')->at('0 1 1 * *');
+$scheduler->php('/opt/registry/automation/exchange-rates.php')->at('0 1 * * *');
 
 // Conditional Cron Jobs
 if ($cronJobConfig['accounting']) {

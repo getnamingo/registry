@@ -1,4 +1,5 @@
 <?php
+
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\PasswordController;
 use App\Controllers\HomeController;
@@ -176,16 +177,24 @@ $app->any('/api[/{params:.*}]', function (
         $db_username = $db['mysql']['username'];
         $db_password = $db['mysql']['password'];
         $db_database = $db['mysql']['database'];
+        $db_address = 'localhost';
     } elseif (config('default') == 'pgsql') {
         $db_username = $db['pgsql']['username'];
         $db_password = $db['pgsql']['password'];
         $db_database = $db['pgsql']['database'];
+        $db_address = 'localhost';
+    } elseif (config('default') == 'sqlite') {
+        $db_username = null;
+        $db_password = null;
+        $db_database = null;
+        $db_address = '/var/www/cp/registry.db';
     }
     $config = new Config([
         'driver' => config('default'),
         'username' => $db_username,
         'password' => $db_password,
         'database' => $db_database,
+        'address' => $db_address,
         'basePath' => '/api',
         'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
@@ -308,15 +317,22 @@ $app->any('/log-api[/{params:.*}]', function (
     if (config('default') == 'mysql') {
         $db_username = $db['mysql']['username'];
         $db_password = $db['mysql']['password'];
+        $db_address = 'localhost';
     } elseif (config('default') == 'pgsql') {
         $db_username = $db['pgsql']['username'];
         $db_password = $db['pgsql']['password'];
+        $db_address = 'localhost';
+    } elseif (config('default') == 'sqlite') {
+        $db_username = null;
+        $db_password = null;
+        $db_address = '/var/www/cp/registry.db';
     }
     $config = new Config([
         'driver' => config('default'),
         'username' => $db_username,
         'password' => $db_password,
         'database' => 'registryTransaction',
+        'address' => $db_address,
         'basePath' => '/log-api',
         'middlewares' => 'customization,dbAuth,multiTenancy',
         'customization.beforeHandler' => function ($operation, $tableName, $request, $environment) {
