@@ -229,15 +229,19 @@ function validate_label($domain, $db) {
 
     // Split domain into labels (subdomains, SLD, TLD)
     $labels = explode('.', $domain);
-    foreach ($labels as $label) {
-        $len = strlen($label);
-        
-        // Labels cannot be empty, shorter than 2, or longer than 63 characters
-        if ($len < 2 || $len > 63) {
-            return 'Each domain label must be between 2 and 63 characters';
-        }
 
-        if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $label)) {
+    if (count($labels) > 1) { // Ensure there is at least an SLD and TLD
+        $firstLabel = $labels[0];
+        $len = strlen($firstLabel);
+
+        // Label cannot be empty, shorter than 2, or longer than 63 characters
+        if ($len < 2 || $len > 63) {
+            return 'The domain label must be between 2 and 63 characters';
+        }
+    }
+
+    foreach ($labels as $label) {
+        if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/', $label)) {
             return 'Each domain label must start and end with a letter or number and contain only letters, numbers, or hyphens';
         }
 
