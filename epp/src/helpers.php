@@ -23,6 +23,9 @@ use Money\Currency;
 use Money\Converter;
 use Money\Currencies\ISOCurrencies;
 use Money\Exchange\FixedExchange;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\Guid\Guid;
+use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 
 /**
  * Sets up and returns a Logger instance.
@@ -857,6 +860,20 @@ function convertMoney(Money $amount, float $exchangeRate, string $currency) {
  */
 function formatMoney(Money $money) {
     return number_format($money->getAmount() / 100, 2, '.', '');
+}
+
+function createUuidFromId($id) {
+    // Define a namespace UUID; this should be a UUID that is unique to your application
+    $namespace = '123e4567-e89b-12d3-a456-426614174000';
+
+    // Generate a UUIDv5 based on the namespace and a name (in this case, the $id)
+    try {
+        $uuid5 = Uuid::uuid5($namespace, (string)$id);
+        return $uuid5->toString();
+    } catch (UnsatisfiedDependencyException $e) {
+        // Handle exception
+        return null;
+    }
 }
 
 /**

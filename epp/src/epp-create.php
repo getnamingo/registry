@@ -633,6 +633,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             // If all validations pass, continue
         } elseif ($launch_phase === 'landrush') {
             // Continue
+        } elseif ($launch_phase === 'custom') {
+            // Continue
         } else {
             // Mixed or unsupported form
             sendEppError($conn, $db, 2101, 'unsupported launch phase or mixed form', $clTRID, $trans);
@@ -669,11 +671,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
 
-    if ($launch_extension_enabled && isset($launch_create)) {
-        $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
-        $stmt->execute();
-        $launch_phases = $stmt->fetchColumn();
-
+    $launch_phases = $db->query("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1")->fetchColumn();
+    if ($launch_phases) {
         $currentDateTime = new \DateTime();
         $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
@@ -689,7 +688,29 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $phase_details = $stmt->fetchColumn();
 
         // Check if the phase requires application submission
-        if ($phase_details && $phase_details === 'Application') {
+        if (empty($launch_phase) && $launch_phase !== 'custom' && $phase_details === 'Application') {
+            sendEppError($conn, $db, 2304, 'Domain registration is not allowed for this TLD. You must submit a new application instead.', $clTRID, $trans);
+            return;
+        }
+    }
+
+    if ($launch_extension_enabled && isset($launch_create)) {
+        $currentDateTime = new \DateTime();
+        $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+        $stmt = $db->prepare("
+            SELECT phase_category 
+            FROM launch_phases 
+            WHERE tld_id = ? 
+            AND start_date <= ? 
+            AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+            LIMIT 1
+        ");
+        $stmt->execute([$tld_id, $currentDate, $currentDate]);
+        $phase_details = $stmt->fetchColumn();
+
+        // Check if the phase requires application submission
+        if (empty($launch_phase) && $launch_phase !== 'custom' && $phase_details === 'Application') {
             sendEppError($conn, $db, 2304, 'Domain registration is not allowed for this TLD. You must submit a new application instead.', $clTRID, $trans);
             return;
         }
@@ -1252,382 +1273,629 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
         return;
     }
-    
-    try {
-        $db->beginTransaction();
-        
-        $response = [];
-        if (isset($fee_create)) {
-            $response['fee_fee'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->fee;
+
+    if (isset($phase_details) && $phase_details === 'Application') {
+        try {
+            $db->beginTransaction();
             
-            if ($response['fee_fee'] >= $price) {
-                $response['fee_currency'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
-                $response['fee_price'] = $price;
-                $response['fee_balance'] = $registrar_balance;
-                $response['fee_creditLimit'] = $creditLimit;
-                $response['fee_include'] = true;
-            } else {
-                $response['fee_include'] = false;
-                $db->rollBack();
-                sendEppError($conn, $db, 2004, "Provided fee is less than the server domain fee", $clTRID, $trans);
-                return;
-            }
-        }
-        
-        $domainSql = "INSERT INTO domain (
-            name, tldid, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod,
-            phase_name, tm_phase, tm_smd_id, tm_notice_id, tm_notice_accepted, tm_notice_expires
-        ) VALUES (
-            :name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2,
-            :phase_name, :tm_phase, :tm_smd_id, :tm_notice_id, :tm_notice_accepted, :tm_notice_expires
-        )";
+            $currentDateTime = new \DateTime();
+            $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+            
+            $response = [];
+            $domainSql = "INSERT INTO application (
+                name, tldid, registrant, crdate, clid, crid, authtype, authinfo, tm_phase, phase_type
+            ) VALUES (
+                :name, :tldid, :registrant, :crdate, :clid, :crid, :authtype, :authinfo, :tm_phase, :phase_type
+            )";
 
-        $domainStmt = $db->prepare($domainSql);
-        $domainStmt->execute([
-            ':name' => $domainName,
-            ':tld_id' => $tld_id,
-            ':registrant_id' => $registrant_id,
-            ':date_add' => $date_add,
-            ':date_add2' => $date_add,
-            ':registrar_id' => $clid,
-            ':phase_name' => $launch_phase_name ?? null,
-            ':tm_phase' => $launch_phase ?? 'none',
-            ':tm_smd_id' => $smd_encodedSignedMark ?? null,
-            ':tm_notice_id' => $noticeid ?? null,
-            ':tm_notice_accepted' => $accepted ?? null,
-            ':tm_notice_expires' => $notafter ?? null
-        ]);
+            $domainStmt = $db->prepare($domainSql);
+            $domainStmt->execute([
+                ':name' => $domainName,
+                ':tldid' => $tld_id,
+                ':registrant' => $registrant_id,
+                ':crdate' => $crdate,
+                ':clid' => $clid,
+                ':crid' => $clid,
+                ':authtype' => 'pw',
+                ':authinfo' => $authInfo_pw ?? null,
+                ':tm_phase' => $launch_phase_name ?? null,
+                ':phase_type' => $launch_phase ?? null,
+            ]);
+            $domain_id = $db->lastInsertId();
+            $uuid = createUuidFromId($domain_id);
 
-        $domain_id = $db->lastInsertId();
+            // Update application_id in the application table
+            $updateStmt = $db->prepare("UPDATE application SET application_id = :uuid WHERE id = :domain_id");
+            $updateStmt->execute([
+                ':uuid' => $uuid,
+                ':domain_id' => $domain_id
+            ]);
 
-        $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
-        $authInfoStmt->execute([
-            ':domain_id' => $domain_id,
-            ':authInfo_pw' => $authInfo_pw
-        ]);
-        
-        $secDNSDataSet = $xml->xpath('//secDNS:dsData');
+            // Insert into application_status table
+            $insertStmt = $db->prepare("INSERT INTO application_status (domain_id, status) VALUES (:domain_id, :status)");
+            $insertStmt->execute([
+                ':domain_id' => $domain_id,
+                ':status' => 'pendingValidation'
+            ]);
 
-        if ($secDNSDataSet) {
-            foreach ($secDNSDataSet as $secDNSData) {
-                // Extract dsData elements
-                $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
-                $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
-                $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
-                $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
-                $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
+            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
+            $updateRegistrarStmt->execute([
+                ':price' => $price,
+                ':registrar_id' => $clid
+            ]);
 
-                // Data sanity checks
-                // Validate keyTag
-                if (!isset($keyTag) || !is_int($keyTag)) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
-                    return;
-                }
-                if ($keyTag < 0 || $keyTag > 65535) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
-                    return;
-                }
+            $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
+            $paymentHistoryStmt->execute([
+                ':registrar_id' => $clid,
+                ':description' => "create application $domainName for period $date_add MONTH",
+                ':amount' => "-$price"
+            ]);
 
-                // Validate alg
-                $validAlgorithms = [8, 13, 14, 15, 16];
-                if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
-                    return;
-                }
+            $selectDomainDatesStmt = $db->prepare("SELECT crdate,exdate FROM application WHERE name = :name LIMIT 1");
+            $selectDomainDatesStmt->execute([':name' => $domainName]);
+            [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
 
-                // Validate digestType and digest
-                if (!isset($digestType) || !is_int($digestType)) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
-                    return;
-                }
-                $validDigests = [
-                2 => 64,  // SHA-256
-                4 => 96   // SHA-384
-                ];
-                if (!isset($validDigests[$digestType])) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
-                    return;
-                }
-                if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
-                    return;
-                }
+            $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
+            $statementStmt->execute([
+                ':registrar_id' => $clid,
+                ':cmd' => 'create',
+                ':name' => $domainName,
+                ':date_add' => $date_add,
+                ':from' => $from,
+                ':to' => $from,
+                ':price' => $price
+            ]);
 
-                // Extract keyData elements if available
-                $flags = null;
-                $protocol = null;
-                $algKeyData = null;
-                $pubKey = null;
+            if (!empty($hostObj_list) && is_array($hostObj_list)) {
+                foreach ($hostObj_list as $node) {
+                    $hostObj = strtoupper((string)$node);
 
-                if ($secDNSData->xpath('secDNS:keyData')) {
-                    $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
-                    $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
-                    $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
-                    $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+                    $hostExistStmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
+                    $hostExistStmt->execute([':hostObj' => $hostObj]);
+                    $hostObj_already_exist = $hostExistStmt->fetchColumn();
 
-                    // Data sanity checks for keyData
-                    // Validate flags
-                    $validFlags = [256, 257];
-                    if (isset($flags) && !in_array($flags, $validFlags)) {
-                        $db->rollBack();
-                        sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
-                        return;
-                    }
+                    if ($hostObj_already_exist) {
+                        $domainHostMapStmt = $db->prepare("SELECT domain_id FROM application_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
+                        $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                        $domain_host_map_id = $domainHostMapStmt->fetchColumn();
 
-                    // Validate protocol
-                    if (isset($protocol) && $protocol != 3) {
-                        $db->rollBack();
-                        sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
-                        return;
-                    }
-
-                    // Validate algKeyData
-                    if (isset($algKeyData)) {
-                        $db->rollBack();
-                        sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
-                        return;
-                    }
-
-                    // Validate pubKey
-                    if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
-                        $db->rollBack();
-                        sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
-                        return;
-                    }
-                }
-
-                $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
-
-                $stmt->execute([
-                    ':domain_id' => $domain_id,
-                    ':maxsiglife' => $maxSigLife,
-                    ':interface' => 'dsData',
-                    ':keytag' => $keyTag,
-                    ':alg' => $alg,
-                    ':digesttype' => $digestType,
-                    ':digest' => $digest,
-                    ':flags' => $flags ?? null,
-                    ':protocol' => $protocol ?? null,
-                    ':keydata_alg' => $algKeyData ?? null,
-                    ':pubkey' => $pubKey ?? null
-                ]);
-            }
-        }
-
-        $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-        $updateRegistrarStmt->execute([
-            ':price' => $price,
-            ':registrar_id' => $clid
-        ]);
-
-        $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
-        $paymentHistoryStmt->execute([
-            ':registrar_id' => $clid,
-            ':description' => "create domain $domainName for period $date_add MONTH",
-            ':amount' => "-$price"
-        ]);
-
-        $selectDomainDatesStmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = :name LIMIT 1");
-        $selectDomainDatesStmt->execute([':name' => $domainName]);
-        [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
-
-        $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
-        $statementStmt->execute([
-            ':registrar_id' => $clid,
-            ':cmd' => 'create',
-            ':name' => $domainName,
-            ':date_add' => $date_add,
-            ':from' => $from,
-            ':to' => $to,
-            ':price' => $price
-        ]);
-
-        if (!empty($hostObj_list) && is_array($hostObj_list)) {
-            foreach ($hostObj_list as $node) {
-                $hostObj = strtoupper((string)$node);
-
-                $hostExistStmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
-                $hostExistStmt->execute([':hostObj' => $hostObj]);
-                $hostObj_already_exist = $hostExistStmt->fetchColumn();
-
-                if ($hostObj_already_exist) {
-                    $domainHostMapStmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
-                    $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
-                    $domain_host_map_id = $domainHostMapStmt->fetchColumn();
-
-                    if (!$domain_host_map_id) {
-                        $insertDomainHostMapStmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
-                        $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                        if (!$domain_host_map_id) {
+                            $insertDomainHostMapStmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
+                            $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                        } else {
+                            $errorLogStmt = $db->prepare("INSERT INTO error_log 
+                                (channel, level, level_name, message, context, extra, created_at) 
+                                VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
+                            $errorLogStmt->execute([
+                                ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
+                                ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
+                            ]);
+                        }
                     } else {
-                        $errorLogStmt = $db->prepare("INSERT INTO error_log 
-                            (channel, level, level_name, message, context, extra, created_at) 
-                            VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
-                        $errorLogStmt->execute([
-                            ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
-                            ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
-                        ]);
-                    }
-                } else {
-                    $internal_host = false;
-                    $stmt = $db->prepare("SELECT tld FROM domain_tld");
-                    $stmt->execute();
+                        $internal_host = false;
+                        $stmt = $db->prepare("SELECT tld FROM domain_tld");
+                        $stmt->execute();
 
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $tld = strtoupper($row['tld']);
-                        $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
-                        if (preg_match("/$tld$/i", $hostObj)) {
-                            $internal_host = true;
-                            break;
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $tld = strtoupper($row['tld']);
+                            $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
+                            if (preg_match("/$tld$/i", $hostObj)) {
+                                $internal_host = true;
+                                break;
+                            }
+                        }
+                        $stmt->closeCursor();
+
+                        if ($internal_host) {
+                            if (preg_match("/\.$domainName$/i", $hostObj)) {
+                                $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                                $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+                                $host_id = $db->lastInsertId();
+
+                                $stmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(?, ?)");
+                                $stmt->execute([$domain_id, $host_id]);
+                            }
+                        } else {
+                            $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
+                            $stmt->execute([$hostObj, $clid, $clid]);
+                            $host_id = $db->lastInsertId();
+
+                            $stmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(?, ?)");
+                            $stmt->execute([$domain_id, $host_id]);
+                        }
+
+                    }
+                }
+            }
+
+            if (!empty($hostAttr_list) && is_array($hostAttr_list)) {
+                foreach ($hostAttr_list as $node) {
+                    // Extract the hostName
+                    $hostName = strtoupper((string)$node->xpath('./domain:hostName')[0] ?? '');
+                    if (empty($hostName)) {
+                        continue; // Skip if no hostName found
+                    }
+
+                    // Check if the host already exists
+                    $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
+                    $stmt->execute([$hostName]);
+                    $hostName_already_exist = $stmt->fetchColumn();
+
+                    if ($hostName_already_exist) {
+                        // Check if the host is already mapped to this domain
+                        $stmt = $db->prepare("SELECT domain_id FROM application_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
+                        $stmt->execute([$domain_id, $hostName_already_exist]);
+                        $domain_host_map_id = $stmt->fetchColumn();
+
+                        if (!$domain_host_map_id) {
+                            // Map the host to the domain
+                            $stmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES (?, ?)");
+                            $stmt->execute([$domain_id, $hostName_already_exist]);
+                        } else {
+                            // Log duplicate mapping error
+                            $stmt = $db->prepare("INSERT INTO error_log 
+                                (channel, level, level_name, message, context, extra, created_at) 
+                                VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                            $stmt->execute([
+                                "Domain: $domainName; hostName: $hostName - duplicate mapping",
+                                json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])
+                            ]);
+                        }
+                    } else {
+                        // Insert a new host
+                        $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                        $stmt->execute([$hostName, $domain_id, $clid, $clid]);
+                        $host_id = $db->lastInsertId();
+
+                        // Map the new host to the domain
+                        $stmt = $db->prepare("INSERT INTO application_host_map (domain_id, host_id) VALUES (?, ?)");
+                        $stmt->execute([$domain_id, $host_id]);
+
+                        // Process and insert host addresses
+                        foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
+                            $hostAddr = (string)$nodeAddr;
+                            $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
+
+                            // Normalize the address
+                            if ($addr_type === 'v6') {
+                                $hostAddr = normalize_v6_address($hostAddr);
+                            } else {
+                                $hostAddr = normalize_v4_address($hostAddr);
+                            }
+
+                            // Insert the address into host_addr table
+                            $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
+                            $stmt->execute([$host_id, $hostAddr, $addr_type]);
                         }
                     }
-                    $stmt->closeCursor();
+                }
+            }
 
-                    if ($internal_host) {
-                        if (preg_match("/\.$domainName$/i", $hostObj)) {
-                            $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                            $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+            $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
+            $contact_billing_list = $xml->xpath("//domain:contact[@type='billing']");
+            $contact_tech_list = $xml->xpath("//domain:contact[@type='tech']");
+
+            $contactTypes = [
+                'admin' => $contact_admin_list,
+                'billing' => $contact_billing_list,
+                'tech' => $contact_tech_list
+            ];
+
+            foreach ($contactTypes as $type => $contact_list) {
+                foreach ($contact_list as $element) {
+                    $contact = (string)$element;
+                    $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
+                    $stmt->execute([$contact]);
+                    $contact_id = $stmt->fetchColumn();
+
+                    $stmt = $db->prepare("INSERT INTO application_contact_map (domain_id,contact_id,type) VALUES(?,?,?)");
+                    $stmt->execute([$domain_id, $contact_id, $type]);
+                }
+            }
+
+            $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$domainName]);
+            [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
+
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollBack();
+
+            sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
+        }
+        $svTRID = generateSvTRID();
+        $response['command'] = 'create_domain';
+        $response['resultCode'] = 1000;
+        $response['lang'] = 'en-US';
+        $response['message'] = 'Command completed successfully';
+        $response['name'] = $domainName;
+        $response['crDate'] = $crdate;
+        $response['exDate'] = null;
+        $response['clTRID'] = $clTRID;
+        $response['svTRID'] = $svTRID;
+        
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        sendEppResponse($conn, $xml);
+    } else {
+
+        try {
+            $db->beginTransaction();
+            
+            $response = [];
+            if (isset($fee_create)) {
+                $response['fee_fee'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->fee;
+                
+                if ($response['fee_fee'] >= $price) {
+                    $response['fee_currency'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
+                    $response['fee_price'] = $price;
+                    $response['fee_balance'] = $registrar_balance;
+                    $response['fee_creditLimit'] = $creditLimit;
+                    $response['fee_include'] = true;
+                } else {
+                    $response['fee_include'] = false;
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2004, "Provided fee is less than the server domain fee", $clTRID, $trans);
+                    return;
+                }
+            }
+            
+            $domainSql = "INSERT INTO domain (
+                name, tldid, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod,
+                phase_name, tm_phase, tm_smd_id, tm_notice_id, tm_notice_accepted, tm_notice_expires
+            ) VALUES (
+                :name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2,
+                :phase_name, :tm_phase, :tm_smd_id, :tm_notice_id, :tm_notice_accepted, :tm_notice_expires
+            )";
+
+            $domainStmt = $db->prepare($domainSql);
+            $domainStmt->execute([
+                ':name' => $domainName,
+                ':tld_id' => $tld_id,
+                ':registrant_id' => $registrant_id,
+                ':date_add' => $date_add,
+                ':date_add2' => $date_add,
+                ':registrar_id' => $clid,
+                ':phase_name' => $launch_phase_name ?? null,
+                ':tm_phase' => $launch_phase ?? 'none',
+                ':tm_smd_id' => $smd_encodedSignedMark ?? null,
+                ':tm_notice_id' => $noticeid ?? null,
+                ':tm_notice_accepted' => $accepted ?? null,
+                ':tm_notice_expires' => $notafter ?? null
+            ]);
+
+            $domain_id = $db->lastInsertId();
+
+            $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
+            $authInfoStmt->execute([
+                ':domain_id' => $domain_id,
+                ':authInfo_pw' => $authInfo_pw
+            ]);
+            
+            $secDNSDataSet = $xml->xpath('//secDNS:dsData');
+
+            if ($secDNSDataSet) {
+                foreach ($secDNSDataSet as $secDNSData) {
+                    // Extract dsData elements
+                    $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
+                    $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
+                    $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
+                    $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                    $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
+
+                    // Data sanity checks
+                    // Validate keyTag
+                    if (!isset($keyTag) || !is_int($keyTag)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2005, 'Incomplete keyTag provided', $clTRID, $trans);
+                        return;
+                    }
+                    if ($keyTag < 0 || $keyTag > 65535) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
+                        return;
+                    }
+
+                    // Validate alg
+                    $validAlgorithms = [8, 13, 14, 15, 16];
+                    if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                        return;
+                    }
+
+                    // Validate digestType and digest
+                    if (!isset($digestType) || !is_int($digestType)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
+                        return;
+                    }
+                    $validDigests = [
+                    2 => 64,  // SHA-256
+                    4 => 96   // SHA-384
+                    ];
+                    if (!isset($validDigests[$digestType])) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                        return;
+                    }
+                    if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                        return;
+                    }
+
+                    // Extract keyData elements if available
+                    $flags = null;
+                    $protocol = null;
+                    $algKeyData = null;
+                    $pubKey = null;
+
+                    if ($secDNSData->xpath('secDNS:keyData')) {
+                        $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
+                        $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
+                        $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
+                        $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+
+                        // Data sanity checks for keyData
+                        // Validate flags
+                        $validFlags = [256, 257];
+                        if (isset($flags) && !in_array($flags, $validFlags)) {
+                            $db->rollBack();
+                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate protocol
+                        if (isset($protocol) && $protocol != 3) {
+                            $db->rollBack();
+                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate algKeyData
+                        if (isset($algKeyData)) {
+                            $db->rollBack();
+                            sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
+                            return;
+                        }
+
+                        // Validate pubKey
+                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                            $db->rollBack();
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                            return;
+                        }
+                    }
+
+                    $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
+
+                    $stmt->execute([
+                        ':domain_id' => $domain_id,
+                        ':maxsiglife' => $maxSigLife,
+                        ':interface' => 'dsData',
+                        ':keytag' => $keyTag,
+                        ':alg' => $alg,
+                        ':digesttype' => $digestType,
+                        ':digest' => $digest,
+                        ':flags' => $flags ?? null,
+                        ':protocol' => $protocol ?? null,
+                        ':keydata_alg' => $algKeyData ?? null,
+                        ':pubkey' => $pubKey ?? null
+                    ]);
+                }
+            }
+
+            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
+            $updateRegistrarStmt->execute([
+                ':price' => $price,
+                ':registrar_id' => $clid
+            ]);
+
+            $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
+            $paymentHistoryStmt->execute([
+                ':registrar_id' => $clid,
+                ':description' => "create domain $domainName for period $date_add MONTH",
+                ':amount' => "-$price"
+            ]);
+
+            $selectDomainDatesStmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = :name LIMIT 1");
+            $selectDomainDatesStmt->execute([':name' => $domainName]);
+            [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
+
+            $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
+            $statementStmt->execute([
+                ':registrar_id' => $clid,
+                ':cmd' => 'create',
+                ':name' => $domainName,
+                ':date_add' => $date_add,
+                ':from' => $from,
+                ':to' => $to,
+                ':price' => $price
+            ]);
+
+            if (!empty($hostObj_list) && is_array($hostObj_list)) {
+                foreach ($hostObj_list as $node) {
+                    $hostObj = strtoupper((string)$node);
+
+                    $hostExistStmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
+                    $hostExistStmt->execute([':hostObj' => $hostObj]);
+                    $hostObj_already_exist = $hostExistStmt->fetchColumn();
+
+                    if ($hostObj_already_exist) {
+                        $domainHostMapStmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
+                        $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                        $domain_host_map_id = $domainHostMapStmt->fetchColumn();
+
+                        if (!$domain_host_map_id) {
+                            $insertDomainHostMapStmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
+                            $insertDomainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
+                        } else {
+                            $errorLogStmt = $db->prepare("INSERT INTO error_log 
+                                (channel, level, level_name, message, context, extra, created_at) 
+                                VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
+                            $errorLogStmt->execute([
+                                ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
+                                ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
+                            ]);
+                        }
+                    } else {
+                        $internal_host = false;
+                        $stmt = $db->prepare("SELECT tld FROM domain_tld");
+                        $stmt->execute();
+
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $tld = strtoupper($row['tld']);
+                            $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
+                            if (preg_match("/$tld$/i", $hostObj)) {
+                                $internal_host = true;
+                                break;
+                            }
+                        }
+                        $stmt->closeCursor();
+
+                        if ($internal_host) {
+                            if (preg_match("/\.$domainName$/i", $hostObj)) {
+                                $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                                $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
+                                $host_id = $db->lastInsertId();
+
+                                $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
+                                $stmt->execute([$domain_id, $host_id]);
+                            }
+                        } else {
+                            $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
+                            $stmt->execute([$hostObj, $clid, $clid]);
                             $host_id = $db->lastInsertId();
 
                             $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
                             $stmt->execute([$domain_id, $host_id]);
                         }
+
+                    }
+                }
+            }
+
+            if (!empty($hostAttr_list) && is_array($hostAttr_list)) {
+                foreach ($hostAttr_list as $node) {
+                    // Extract the hostName
+                    $hostName = strtoupper((string)$node->xpath('./domain:hostName')[0] ?? '');
+                    if (empty($hostName)) {
+                        continue; // Skip if no hostName found
+                    }
+
+                    // Check if the host already exists
+                    $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
+                    $stmt->execute([$hostName]);
+                    $hostName_already_exist = $stmt->fetchColumn();
+
+                    if ($hostName_already_exist) {
+                        // Check if the host is already mapped to this domain
+                        $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
+                        $stmt->execute([$domain_id, $hostName_already_exist]);
+                        $domain_host_map_id = $stmt->fetchColumn();
+
+                        if (!$domain_host_map_id) {
+                            // Map the host to the domain
+                            $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES (?, ?)");
+                            $stmt->execute([$domain_id, $hostName_already_exist]);
+                        } else {
+                            // Log duplicate mapping error
+                            $stmt = $db->prepare("INSERT INTO error_log 
+                                (channel, level, level_name, message, context, extra, created_at) 
+                                VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                            $stmt->execute([
+                                "Domain: $domainName; hostName: $hostName - duplicate mapping",
+                                json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])
+                            ]);
+                        }
                     } else {
-                        $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        $stmt->execute([$hostObj, $clid, $clid]);
+                        // Insert a new host
+                        $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                        $stmt->execute([$hostName, $domain_id, $clid, $clid]);
                         $host_id = $db->lastInsertId();
 
-                        $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
+                        // Map the new host to the domain
+                        $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id, host_id) VALUES (?, ?)");
                         $stmt->execute([$domain_id, $host_id]);
-                    }
 
-                }
-            }
-        }
+                        // Process and insert host addresses
+                        foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
+                            $hostAddr = (string)$nodeAddr;
+                            $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
 
-        if (!empty($hostAttr_list) && is_array($hostAttr_list)) {
-            foreach ($hostAttr_list as $node) {
-                // Extract the hostName
-                $hostName = strtoupper((string)$node->xpath('./domain:hostName')[0] ?? '');
-                if (empty($hostName)) {
-                    continue; // Skip if no hostName found
-                }
+                            // Normalize the address
+                            if ($addr_type === 'v6') {
+                                $hostAddr = normalize_v6_address($hostAddr);
+                            } else {
+                                $hostAddr = normalize_v4_address($hostAddr);
+                            }
 
-                // Check if the host already exists
-                $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
-                $stmt->execute([$hostName]);
-                $hostName_already_exist = $stmt->fetchColumn();
-
-                if ($hostName_already_exist) {
-                    // Check if the host is already mapped to this domain
-                    $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
-                    $stmt->execute([$domain_id, $hostName_already_exist]);
-                    $domain_host_map_id = $stmt->fetchColumn();
-
-                    if (!$domain_host_map_id) {
-                        // Map the host to the domain
-                        $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES (?, ?)");
-                        $stmt->execute([$domain_id, $hostName_already_exist]);
-                    } else {
-                        // Log duplicate mapping error
-                        $stmt = $db->prepare("INSERT INTO error_log 
-                            (channel, level, level_name, message, context, extra, created_at) 
-                            VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
-                        $stmt->execute([
-                            "Domain: $domainName; hostName: $hostName - duplicate mapping",
-                            json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])
-                        ]);
-                    }
-                } else {
-                    // Insert a new host
-                    $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                    $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                    $host_id = $db->lastInsertId();
-
-                    // Map the new host to the domain
-                    $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id, host_id) VALUES (?, ?)");
-                    $stmt->execute([$domain_id, $host_id]);
-
-                    // Process and insert host addresses
-                    foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
-                        $hostAddr = (string)$nodeAddr;
-                        $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
-
-                        // Normalize the address
-                        if ($addr_type === 'v6') {
-                            $hostAddr = normalize_v6_address($hostAddr);
-                        } else {
-                            $hostAddr = normalize_v4_address($hostAddr);
+                            // Insert the address into host_addr table
+                            $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
+                            $stmt->execute([$host_id, $hostAddr, $addr_type]);
                         }
-
-                        // Insert the address into host_addr table
-                        $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
-                        $stmt->execute([$host_id, $hostAddr, $addr_type]);
                     }
                 }
             }
-        }
 
-        $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
-        $contact_billing_list = $xml->xpath("//domain:contact[@type='billing']");
-        $contact_tech_list = $xml->xpath("//domain:contact[@type='tech']");
+            $contact_admin_list = $xml->xpath("//domain:contact[@type='admin']");
+            $contact_billing_list = $xml->xpath("//domain:contact[@type='billing']");
+            $contact_tech_list = $xml->xpath("//domain:contact[@type='tech']");
 
-        $contactTypes = [
-            'admin' => $contact_admin_list,
-            'billing' => $contact_billing_list,
-            'tech' => $contact_tech_list
-        ];
+            $contactTypes = [
+                'admin' => $contact_admin_list,
+                'billing' => $contact_billing_list,
+                'tech' => $contact_tech_list
+            ];
 
-        foreach ($contactTypes as $type => $contact_list) {
-            foreach ($contact_list as $element) {
-                $contact = (string)$element;
-                $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
-                $stmt->execute([$contact]);
-                $contact_id = $stmt->fetchColumn();
+            foreach ($contactTypes as $type => $contact_list) {
+                foreach ($contact_list as $element) {
+                    $contact = (string)$element;
+                    $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
+                    $stmt->execute([$contact]);
+                    $contact_id = $stmt->fetchColumn();
 
-                $stmt = $db->prepare("INSERT INTO domain_contact_map (domain_id,contact_id,type) VALUES(?,?,?)");
-                $stmt->execute([$domain_id, $contact_id, $type]);
+                    $stmt = $db->prepare("INSERT INTO domain_contact_map (domain_id,contact_id,type) VALUES(?,?,?)");
+                    $stmt->execute([$domain_id, $contact_id, $type]);
+                }
             }
-        }
 
-        $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
-        $stmt->execute([$domainName]);
-        [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
+            $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$domainName]);
+            [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
 
-        $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-        $stmt->execute();
-        $curdate_id = $stmt->fetchColumn();
-
-        if (!$curdate_id) {
-            $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
+            $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
             $stmt->execute();
+            $curdate_id = $stmt->fetchColumn();
+
+            if (!$curdate_id) {
+                $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
+                $stmt->execute();
+            }
+            $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()");
+
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollBack();
+
+            sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
         }
-        $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()");
-
-        $db->commit();
-    } catch (Exception $e) {
-        $db->rollBack();
-
-        sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
-    }
-    $svTRID = generateSvTRID();
-    $response['command'] = 'create_domain';
-    $response['resultCode'] = 1000;
-    $response['lang'] = 'en-US';
-    $response['message'] = 'Command completed successfully';
-    $response['name'] = $domainName;
-    $response['crDate'] = $crdate;
-    $response['exDate'] = $exdate;
-    $response['clTRID'] = $clTRID;
-    $response['svTRID'] = $svTRID;
-    
-    $epp = new EPP\EppWriter();
-    $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-    sendEppResponse($conn, $xml);    
+        $svTRID = generateSvTRID();
+        $response['command'] = 'create_domain';
+        $response['resultCode'] = 1000;
+        $response['lang'] = 'en-US';
+        $response['message'] = 'Command completed successfully';
+        $response['name'] = $domainName;
+        $response['crDate'] = $crdate;
+        $response['exDate'] = $exdate;
+        $response['clTRID'] = $clTRID;
+        $response['svTRID'] = $svTRID;
+        
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        sendEppResponse($conn, $xml);
+    }    
 }
