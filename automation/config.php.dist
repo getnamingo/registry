@@ -105,4 +105,12 @@ return [
 
     // IANA Email for Submission Logs
     'iana_email' => 'admin@example.com', // Email address to be used for IANA submission
+
+    // Registry Admin Email
+    'admin_email' => 'admin@example.com', // Receives system notifications
+
+    // Exchange Rate Configuration
+    'exchange_rate_api_key' => "", // Your exchangerate.host API key
+    'exchange_rate_base_currency' => "USD",
+    'exchange_rate_currencies' => ["EUR", "GBP", "JPY", "CAD", "AUD"], // Configurable list
 ];

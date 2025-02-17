@@ -17,6 +17,7 @@
 //     'gtld_mode' => false,   // Enable or disable gTLD mode
 //     'spec11' => false,      // Enable or disable Spec 11 checks
 //     'dnssec' => false,     // Enable or disable DNSSEC
+//     'exchange_rates' => false,     // Enable or disable exchange rate download
 // ];
 //
 // Any keys omitted in cron_config.php will fall back to the defaults
@@ -31,6 +32,7 @@ $defaultConfig = [
     'gtld_mode' => false,    // Set to true to enable
     'spec11' => false,    // Set to true to enable
     'dnssec' => false,    // Set to true to enable
+    'exchange_rates' => false,    // Set to true to enable
 ];
 
 // Load External Config if Exists
@@ -58,7 +60,6 @@ $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 
 $scheduler->php('/opt/registry/automation/auto-clean-unused-contact-and-host.php')->at('5 0 * * *');
 
 $scheduler->php('/opt/registry/automation/archive-logs.php')->at('0 1 1 * *');
-$scheduler->php('/opt/registry/automation/exchange-rates.php')->at('0 1 * * *');
 
 // Conditional Cron Jobs
 if ($cronJobConfig['accounting']) {
@@ -88,6 +89,10 @@ if ($cronJobConfig['gtld_mode']) {
     $scheduler->php('/opt/registry/automation/urs.php')->at('45 * * * *');
     $scheduler->php('/opt/registry/automation/escrow.php')->at('5 0 * * *');
     $scheduler->php('/opt/registry/automation/reporting.php')->at('1 0 1 * *');
+}
+
+if ($cronJobConfig['exchange_rates']) {
+    $scheduler->php('/opt/registry/automation/exchange-rates.php')->at('0 1 * * *');
 }
 
 // Run Scheduled Tasks

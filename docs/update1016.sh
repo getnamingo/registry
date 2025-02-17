@@ -156,6 +156,19 @@ else
     echo "New error_log table created successfully."
 fi
 
+CONFIG_FILE="/opt/registry/automation/config.php"
+
+# Define the content to insert
+INSERT_CONTENT="\n    // Registry Admin Email\n    'admin_email' => 'admin@example.com', // Receives system notifications\n\n    // Exchange Rate Configuration\n    'exchange_rate_api_key' => "", // Your exchangerate.host API key\n    'exchange_rate_base_currency' => "USD",\n    'exchange_rate_currencies' => [\"EUR\", \"GBP\", \"JPY\", \"CAD\", \"AUD\"], // Configurable list\n"
+
+# Check if 'admin_email' exists and insert only if it does not exist
+if ! grep -q "'admin_email' => 'admin@example.com'" "$CONFIG_FILE"; then
+    sed -i "/'iana_email' =>.*,/a\\$INSERT_CONTENT" "$CONFIG_FILE"
+    echo "Configuration updated successfully."
+else
+    echo "'admin_email' already exists. No changes made."
+fi
+
 # Start services
 echo "Starting services..."
 systemctl start epp
@@ -175,3 +188,4 @@ else
 fi
 
 echo "Upgrade to v1.0.16 completed successfully."
+echo "Make sure you review and edit /opt/registry/automation/config.php"

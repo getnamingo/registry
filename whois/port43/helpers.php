@@ -59,7 +59,7 @@ function setupLogger($logFilePath, $channelName = 'app') {
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = $config['mailer_smtp_port'];
             $mail->setFrom($config['mailer_from'], 'Registry System');
-            $mail->addAddress($config['iana_email']);
+            $mail->addAddress($config['admin_email']);
 
             // Attach PHPMailer to Monolog
             $mailerHandler = new PHPMailerHandler($mail);

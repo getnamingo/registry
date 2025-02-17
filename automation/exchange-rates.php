@@ -1,15 +1,13 @@
 <?php
 
-// Configuration
-$apiKey = ""; // Your API key
-$baseCurrency = "USD";
-$currencies = ["EUR", "GBP", "JPY", "CAD", "AUD"]; // Configurable list
-$outputFile = "/var/www/cp/resources/exchange_rates.json";
-$lockFile = "/tmp/update_exchange_rates.lock";
-
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
+$apiKey = $c['exchange_rate_api_key'];
+$baseCurrency = $c['exchange_rate_base_currency'];
+$currencies = $c['exchange_rate_currencies'];
+$outputFile = "/var/www/cp/resources/exchange_rates.json";
+$lockFile = "/tmp/update_exchange_rates.lock";
 $logFilePath = '/var/log/namingo/exchange-rates.log';
 $log = setupLogger($logFilePath, 'EXCHANGE_RATES');
 $log->info('job started.');

@@ -176,7 +176,7 @@ To set up backups in Namingo:
 
 1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details.
 
-2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.6. Running the Automation System** to activate the automation system on your server.
+2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.9. Running the Automation System** to activate the automation system on your server.
 
 #### 1.4.5. RDE (Registry data escrow) configuration
 
@@ -227,29 +227,27 @@ gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
 
 **1.4.5.4. Use in RDE deposit generation**: Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
 
-#### 1.4.6. Running the Automation System
+#### 1.4.6. Setting Up Exchange Rate Download
 
-1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
+To enable exchange rate updates, follow these steps:
 
-2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements. Note: If you are managing a gTLD, all services must be enabled for proper operation.
+1. Edit `config.php`, modify the following settings and save the file.
 
 ```php
-<?php
 return [
-    'accounting' => false,  // Enable or disable accounting
-    'backup' => false,      // Enable or disable backup
-    'backup_upload' => false, // Enable or disable backup upload
-    'gtld_mode' => false,   // Enable or disable gTLD mode
-    'spec11' => false,      // Enable or disable Spec 11 checks
-    'dnssec' => false,     // Enable or disable DNSSEC
+    // Exchange Rate Configuration
+    'exchange_rate_api_key' => "", // Your exchangerate.host API key
+    'exchange_rate_base_currency' => "USD", // Base currency
+    'exchange_rate_currencies' => ["EUR", "GBP", "JPY", "CAD", "AUD"], // Target currencies
 ];
+
 ```
 
-3. Add the following cron job to the system crontab using ```crontab -e```:
+2. Enable Exchange Rate Generation
 
-```bash
-* * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
-```
+Ensure your `cron.php` or `cron_config.php` executes the exchange rate update script by setting `exchange_rates` to `true`.
+
+If this is not enabled, you will need to manually edit `/var/www/cp/resources/exchange_rates.json` to provide exchange rates.
 
 #### 1.4.7. Zone generator custom records
 
@@ -296,6 +294,134 @@ In `/opt/registry/tests/`, you will find three notification scripts:
 - `balance-notify.php`: Alerts registrars with **low or zero balance.**
 
 Some registries may wish to use these scripts and run them automatically. Each script includes comments at the beginning that explain the recommended cron job schedule.
+
+#### 1.4.9. Running the Automation System
+
+1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
+
+2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements. Note: If you are managing a gTLD, all services must be enabled for proper operation.
+
+```php
+<?php
+return [
+    'accounting' => false,  // Enable or disable accounting
+    'backup' => false,      // Enable or disable backup
+    'backup_upload' => false, // Enable or disable backup upload
+    'gtld_mode' => false,   // Enable or disable gTLD mode
+    'spec11' => false,      // Enable or disable Spec 11 checks
+    'dnssec' => false,     // Enable or disable DNSSEC
+    'exchange_rates' => false,     // Enable or disable exchange rate download
+];
+```
+
+3. Add the following cron job to the system crontab using ```crontab -e```:
+
+```bash
+* * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
+```
+
+### 1.5. SFTP Server Setup for ICANN
+
+1. Install OpenSSH Server
+
+```bash
+apt update && apt install openssh-server
+```
+
+2. Configure SSH for SFTP
+
+Edit SSH config:
+
+```bash
+nano /etc/ssh/sshd_config
+```
+
+Add at the end:
+
+```bash
+Subsystem sftp internal-sftp
+
+Match Address 192.0.47.240,192.0.32.241,2620:0:2830:241::c613,2620:0:2d0:241::c6a5
+    PasswordAuthentication no
+    PermitRootLogin no
+
+Match User sftpuser
+    ChrootDirectory /home/sftpuser
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+    X11Forwarding no
+```
+
+Restart SSH:
+
+```bash
+systemctl restart ssh
+```
+
+3. Create SFTP User
+
+```bash
+groupadd sftp_users
+useradd -m -G sftp_users -s /usr/sbin/nologin sftpuser
+```
+
+4. Set Directory Permissions
+
+```bash
+chown root:root /home/sftpuser
+chmod 755 /home/sftpuser
+mkdir -p /home/sftpuser/files
+chown sftpuser:sftp_users /home/sftpuser/files
+chmod 700 /home/sftpuser/files
+```
+
+5. Whitelist ICANN IPs in UFW
+
+```bash
+ufw allow OpenSSH
+ufw allow from 192.0.47.240 to any port 22
+ufw allow from 192.0.32.241 to any port 22
+ufw allow from 2620:0:2830:241::c613 to any port 22
+ufw allow from 2620:0:2d0:241::c6a5 to any port 22
+ufw enable
+```
+
+6. Generate and Add SSH Key for ICANN
+
+```bash
+ssh-keygen -t rsa -b 2048 -f icann_sftp_key -C "icann_sftp"
+```
+
+```bash
+mkdir /home/sftpuser/.ssh
+chmod 700 /home/sftpuser/.ssh
+nano /home/sftpuser/.ssh/authorized_keys
+```
+
+Paste `icann_sftp_key.pub`, then set permissions:
+
+```bash
+sudo chmod 600 /home/sftpuser/.ssh/authorized_keys
+sudo chown -R sftpuser:sftp_users /home/sftpuser/.ssh
+```
+
+7. Update DNS for `sftp.namingo.org`
+
+Create an A record pointing `sftp.namingo.org` → `<your-server-ip>`.
+
+8. Send ICANN the Following
+
+- SFTP Host: `sftp://sftp.namingo.org`
+- Port: `22`
+- Username: `sftpuser`
+- Public Key: `icann_sftp_key.pub`
+- File Path: `/files`
+
+9. Test SFTP Access
+
+```bash
+sftp -i icann_sftp_key sftpuser@sftp.namingo.org
+```
 
 ## 2. Recommended Components and Integrations
 
@@ -519,6 +645,44 @@ Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 ```bash
 grep named /var/log/syslog
 ```
+
+#### Setup DNSSEC KSK Rollover:
+
+Create `/etc/systemd/system/dnssec-rollover.timer`:
+
+```bash
+[Unit]
+Description=Run DNSSEC rollover script every 12 hours
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Then create `/etc/systemd/system/dnssec-rollover.service`:
+
+```bash
+[Unit]
+Description=DNSSEC Rollover Script
+
+[Service]
+ExecStart=/opt/registry/automation/dnssec-rollover.sh
+User=root
+StandardOutput=append:/var/log/namingo/dnssec-rollover.log
+StandardError=append:/var/log/namingo/dnssec-rollover.log
+```
+
+Enable and start the timer:
+
+```bash
+systemctl daemon-reload
+systemctl enable --now dnssec-rollover.timer
+```
+
+This ensures **automatic execution every 12 hours** and logs output.
 
 ### 2.2. Setup Hidden Master DNS with Knot DNS and DNSSEC
 
@@ -792,7 +956,7 @@ scrape_configs:
   - job_name: 'control_panel'
     static_configs:
       - targets: ['localhost:2019']
-	  
+      
   - job_name: 'redis'
     static_configs:
       - targets: ['localhost:9121']
@@ -1332,6 +1496,17 @@ return [
     // Drop settings
     'dropStrategy' => 'random', // Options: 'fixed', 'random'
     'dropTime' => '02:00:00',    // Time of day to perform drops if 'fixed' strategy is used
+    
+    // IANA Email for Submission Logs
+    'iana_email' => 'admin@example.com', // Email address to be used for IANA submission
+
+    // Registry Admin Email
+    'admin_email' => 'admin@example.com', // Receives system notifications
+
+    // Exchange Rate Configuration
+    'exchange_rate_api_key' => "", // Your exchangerate.host API key
+    'exchange_rate_base_currency' => "USD",
+    'exchange_rate_currencies' => ["EUR", "GBP", "JPY", "CAD", "AUD"], // Configurable list
 ];
 ```
 
