@@ -11,11 +11,14 @@
         ajaxURL:"/api/records/error_log", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
-        paginationSize:10,
+        paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
@@ -25,8 +28,8 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Channel') }}", field:"channel", minWidth:200, resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Level') }}", field:"level_name", resizable:false, minWidth:200, headerSort:true, responsive:0},
+            {title:"{{ __('Channel') }}", field:"channel", minWidth:180, resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Level') }}", field:"level_name", resizable:false, minWidth:150, headerSort:true, responsive:0},
             {title:"{{ __('Log') }}", field:"message", resizable:false, minWidth:550, headerSort:true, responsive:2},
             {title:"{{ __('Date') }}", field:"created_at", resizable:false, minWidth:250, headerSort:true, responsive:2},
         ]
@@ -52,22 +55,21 @@
     });
    
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "log.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "log.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My Logs"});
+        table.download("xlsx", "log.xlsx", {sheetName:"My Logs"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "log.pdf", {
             orientation:"portrait",
-            title:"My Logs",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My Logs"
         });
     }
 </script>

@@ -77,11 +77,14 @@
         ajaxURL:"/api/records/support_tickets?join=ticket_categories", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
-        paginationSize:10,
+        paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
@@ -91,8 +94,8 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Subject') }}", field:"subject", width:350, minWidth:100, resizable:false, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
-            {title:"{{ __('Category') }}", field:"category_id.name", width:250, minWidth:80, formatter: catFormatter, resizable:false, headerSort:true, responsive:0},
+            {title:"{{ __('Subject') }}", field:"subject", minWidth:220, resizable:false, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
+            {title:"{{ __('Category') }}", field:"category_id.name", minWidth:80, formatter: catFormatter, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Status') }}", field:"status", resizable:false, headerSort:true, width:250, minWidth:100, formatter: statusFormatter, responsive:2},
             {title:"{{ __('Priority') }}", field:"priority", resizable:false, headerSort:true, width:250, minWidth:100, formatter: priorityFormatter, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
@@ -119,22 +122,21 @@
     });
  
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "support.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "support.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My Support Tickets"});
+        table.download("xlsx", "support.xlsx", {sheetName:"My Support Tickets"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "support.pdf", {
             orientation:"portrait",
-            title:"My Support Tickets",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My Support Tickets"
         });
     }
 </script>

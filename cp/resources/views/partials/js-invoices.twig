@@ -22,11 +22,14 @@
         ajaxURL:"/api/records/invoices?join=registrar", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
-        paginationSize:10,
+        paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
@@ -36,10 +39,10 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Number') }}", field:"invoice_number", width:200, resizable:false, headerSort:true, formatter: invoiceLinkFormatter, responsive:0},
-            {title:"{{ __('Registrar') }}", field:"registrar_id.name", width:300, resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Date') }}", field:"issue_date", width:300, resizable:false, headerSort:true, responsive:0},            
-            {title:"{{ __('Amount') }}", field:"total_amount", width:200, resizable:false, headerSort:true, responsive:0, formatter:"money", formatterParams:function(cell){
+            {title:"{{ __('Number') }}", field:"invoice_number", minWidth:200, resizable:false, headerSort:true, formatter: invoiceLinkFormatter, responsive:0},
+            {title:"{{ __('Registrar') }}", field:"registrar_id.name", minWidth:300, resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Date') }}", field:"issue_date", minWidth:300, resizable:false, headerSort:true, responsive:2},            
+            {title:"{{ __('Amount') }}", field:"total_amount", minWidth:200, resizable:false, headerSort:true, responsive:2, formatter:"money", formatterParams:function(cell){
                 return {
                     decimal: ".",
                     thousand: " ",
@@ -71,22 +74,21 @@
     });
    
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "invoices.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "invoices.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My Invoices"});
+        table.download("xlsx", "invoices.xlsx", {sheetName:"My Invoices"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "invoices.pdf", {
             orientation:"portrait",
-            title:"My Invoices",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My Invoices"
         });
     }
 </script>

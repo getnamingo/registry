@@ -59,18 +59,21 @@
         ajaxURL:"/api/records/domain_tld", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
-        paginationSize:10,
+        paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"TLD", field:"tld", width:400, minWidth:50, headerSort:true, resizable:false, formatter: tldLinkFormatter, responsive:0},
+            {title:"TLD", field:"tld", minWidth:50, headerSort:true, resizable:false, formatter: tldLinkFormatter, responsive:0},
             { title: "{{ __('Script') }}", field: "idn_table", width:300, minWidth:80, headerSort:true, resizable:false, formatter: scriptNameFormatter, responsive:2},
             {title:"DNSSEC", field:"secure", width:250, minWidth:80, headerSort:true, resizable:false, formatter: secureFormatter, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, headerSort: false, resizable:false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
@@ -95,22 +98,21 @@
     });
  
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "tlds.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "tlds.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My TLDs"});
+        table.download("xlsx", "tlds.xlsx", {sheetName:"My TLDs"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "tlds.pdf", {
             orientation:"portrait",
-            title:"My TLDs",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My TLDs"
         });
     }
 </script>

@@ -41,6 +41,9 @@
         pagination: true,
         paginationMode: "remote",
         paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxURL: "/log-api/records/transaction_identifier",
         ajaxURLGenerator: function(url, config, params) {
             var queryParts = [];
@@ -78,28 +81,29 @@
         dataReceiveParams: {
             "last_page": "results", // Mapping 'results' to 'last_page'
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Date') }}", field:"cldate", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Date') }}", field:"cldate", minWidth:200, resizable:false, headerSort:false, responsive:0},
             {
                 title: "{{ __('Registrar') }}", 
                 field: "registrar_id",
                 resizable:false,
                 headerSort: false, 
-                responsive: 2,
+                responsive: 0,
+				minWidth:120,
                 formatter: function(cell, formatterParams, onRendered) {
                     const registrarId = cell.getValue();
                     const name = getRegistrarNameById(registrarId);
                     return name; // Return the name directly, as it is synchronously obtained from cache
                 }
             },
-            {title:"{{ __('Command') }}", field:"cmd", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Object Type') }}", field:"obj_type", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Command') }}", field:"cmd", resizable:false, headerSort:false, responsive:2},
+            {title:"{{ __('Object Type') }}", field:"obj_type", resizable:false, headerSort:false, responsive:2},
             {title:"{{ __('Object') }}", field:"obj_id", resizable:false, headerSort:false, responsive:2},
             {title:"{{ __('Result') }}", field:"code", resizable:false, headerSort:false, responsive:2},
             {title:"{{ __('Message') }}", field:"msg", resizable:false, headerSort:false, responsive:2, download:false},
@@ -114,22 +118,21 @@
     });
    
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "logs.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "logs.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My EPP Log"});
+        table.download("xlsx", "logs.xlsx", {sheetName:"My EPP Log"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "logs.pdf", {
             orientation:"portrait",
-            title:"My EPP Log",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My EPP Log"
         });
     }
 </script>

@@ -18,6 +18,11 @@
         pagination: true,
         paginationMode: "remote",
         paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        paginationCounter:"rows",
+        paginationCounterElement:"#page-count",
+        clipboard:true,
+        clipboardPasteAction:"replace",
         sortMode: "remote",
         ajaxURL: "/dapi/payments",
         ajaxURLGenerator: function(url, config, params) {
@@ -54,24 +59,25 @@
                 var lastPage = Math.ceil(response.results / this.options.paginationSize);
                 return {
                     last_page: lastPage, // Calculated total number of pages
+                    last_row: response.results, // Total number of rows
                     data: response.records, // Data for the current page
                 };
             } else {
                 console.error('Unexpected response format', response);
-                return { last_page: 1, data: [] };
+                return { last_page: 1, last_row: 0, data: [] };
             }
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Registrar') }}", field:"registrar_name", resizable:false, headerSort:true, responsive:0},
-            {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Registrar') }}", field:"registrar_name", minWidth:150, resizable:false, headerSort:true, responsive:2},
+            {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Description') }}", field:"description", resizable:false, headerSort:true, responsive:2, formatter:cell => (cell.getElement().setAttribute("title", cell.getValue() || ""), cell.getValue()?.length > 80 ? cell.getValue().substring(0, 80) + "..." : cell.getValue())},
-            {title:"{{ __('Amount') }}", field:"amount", resizable:false, headerSort:true, width:200, minWidth:100, responsive:0, formatter:"money", formatterParams:function(cell){
+            {title:"{{ __('Amount') }}", field:"amount", minWidth:150, resizable:false, headerSort:true, responsive:0, formatter:"money", formatterParams:function(cell){
                 return {
                     decimal: ".",
                     thousand: " ",
@@ -93,22 +99,21 @@
     });
    
     function downloadCSV() {
-        table.download("csv", "data.csv");
+        table.download("csv", "overview.csv");
     }
 
     function downloadJSON() {
-        table.download("json", "data.json");
+        table.download("json", "overview.json");
     }
 
     function downloadXLSX() {
-        table.download("xlsx", "data.xlsx", {sheetName:"My Overview"});
+        table.download("xlsx", "overview.xlsx", {sheetName:"My Overview"});
     }
     
     function downloadPDF() {
-        table.download("pdf", "data.pdf", {
+        table.download("pdf", "overview.pdf", {
             orientation:"portrait",
-            title:"My Overview",
-            jsPDF:{unit:"mm", format:"a4", orientation:"p"}
+            title:"My Overview"
         });
     }
 </script>

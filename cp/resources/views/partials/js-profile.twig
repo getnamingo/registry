@@ -129,11 +129,14 @@
         ajaxURL:"/api/records/users_audit", // Set the URL for your JSON data
         ajaxConfig:"GET",
         pagination:"local",
-        paginationSize:10,
+        paginationSize: 10,
+        paginationSizeSelector:[10, 25, 50, 100],
+        clipboard:true,
+        clipboardPasteAction:"replace",
         ajaxResponse:function(url, params, response){
             return response.records;
         },
-        layout:"fitDataFill",
+        layout:"fitColumns",
         responsiveLayout: "collapse",
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
@@ -146,8 +149,7 @@
             {
                 title: "{{ __('Event') }}", 
                 field: "user_event", 
-                minWidth: 30, 
-                width: 120, 
+                minWidth: 120, 
                 resizable: false, 
                 headerSort: false, 
                 responsive: 0,
@@ -159,8 +161,6 @@
             {
                 title: "{{ __('User Agent') }}", 
                 field: "user_agent", 
-                minWidth: 30, 
-                width: 300, 
                 resizable: false, 
                 headerSort: false, 
                 responsive: 2,
@@ -173,18 +173,18 @@
             {
                 title: "{{ __('Location') }}",
                 field: "user_location",
-                minWidth: 30,
-                width: 100,
                 resizable: false,
                 headerSort: false,
-                responsive: 0,
+                minWidth: 30,
+                width: 100,
+                responsive: 2,
                 formatter: function(cell) {
                     const countryCode = cell.getValue(); // Get the location code, e.g., "UA"
                     return `<span class="flag flag-country-${countryCode.toLowerCase()}" title="${countryCode}"></span>`;
                 },
             },
-            {title: "{{ __('Timestamp') }}", field: "event_time", minWidth:30, width:250, resizable:false, headerSort:false, responsive:2},
-            {title: "{{ __('User Log') }}", field: "user_data", minWidth:30, width:300, resizable:false, headerSort:false, responsive:0},
+            {title: "{{ __('Timestamp') }}", field: "event_time", minWidth:250, resizable:false, headerSort:false, responsive:2},
+            {title: "{{ __('User Log') }}", field: "user_data", minWidth:170, resizable:false, headerSort:false, responsive:0},
         ]
     });
     });
