@@ -687,6 +687,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $stmt->execute([$tld_id, $currentDate, $currentDate]);
         $phase_details = $stmt->fetchColumn();
 
+        $launch_phase = $launch_phase ?? null;
+
         // Check if the phase requires application submission
         if (empty($launch_phase) && $launch_phase !== 'custom' && $phase_details === 'Application') {
             sendEppError($conn, $db, 2304, 'Domain registration is not allowed for this TLD. You must submit a new application instead.', $clTRID, $trans);
