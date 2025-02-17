@@ -74,6 +74,7 @@ $app->group('', function ($route) {
 
     $route->get('/contacts', ContactsController::class .':listContacts')->setName('listContacts');
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':createContact')->setName('createContact');
+    $route->map(['GET', 'POST'], '/contact/create-api', ContactsController::class . ':createContactApi')->setName('createContactApi');
     $route->get('/contact/view/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
     $route->get('/contact/update/{contact}', ContactsController::class . ':updateContact')->setName('updateContact');
     $route->get('/contact/validate/{contact}', ContactsController::class . ':validateContact')->setName('validateContact');

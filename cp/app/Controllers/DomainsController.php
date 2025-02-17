@@ -9,6 +9,7 @@ use Psr\Container\ContainerInterface;
 use Selective\XmlDSig\PublicKeyStore;
 use Selective\XmlDSig\CryptoVerifier;
 use Selective\XmlDSig\XmlSignatureVerifier;
+use League\ISO3166\ISO3166;
 
 class DomainsController extends Controller
 {
@@ -954,12 +955,16 @@ class DomainsController extends Controller
         
         $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
 
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
+
         // Default view for GET requests or if POST data is not set
         return view($response,'admin/domains/createDomain.twig', [
             'registrars' => $registrars,
             'currencySymbol' => $symbol,
             'currencyPosition' => $position,
             'registrar' => $registrar,
+            'countries' => $countries,
             'launch_phases' => $launch_phases,
             'currency' => $currency,
             'registry_currency' => $registry_currency,
@@ -1124,6 +1129,9 @@ class DomainsController extends Controller
                     $domain['punycode'] = $domain['name'];
                 }
                 $_SESSION['domains_to_update'] = [$domain['punycode']];
+                
+                $iso3166 = new ISO3166();
+                $countries = $iso3166->all();
 
                 return view($response,'admin/domains/updateDomain.twig', [
                     'domain' => $domain,
@@ -1135,6 +1143,7 @@ class DomainsController extends Controller
                     'domainContacts' => $domainContacts,
                     'registrar' => $registrars,
                     'currentUri' => $uri,
+                    'countries' => $countries,
                     'csrfTokenName' => $csrfTokenName,
                     'csrfTokenValue' => $csrfTokenValue
                ]);

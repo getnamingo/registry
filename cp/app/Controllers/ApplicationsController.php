@@ -8,6 +8,7 @@ use Psr\Container\ContainerInterface;
 use Selective\XmlDSig\PublicKeyStore;
 use Selective\XmlDSig\CryptoVerifier;
 use Selective\XmlDSig\XmlSignatureVerifier;
+use League\ISO3166\ISO3166;
 
 class ApplicationsController extends Controller
 {
@@ -616,11 +617,15 @@ class ApplicationsController extends Controller
             $registrar = null;
         }
 
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
+
         // Default view for GET requests or if POST data is not set
         $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
         if ($launch_phases == 'on') {
             return view($response,'admin/domains/createApplication.twig', [
                 'registrars' => $registrars,
+                'countries' => $countries,
                 'registrar' => $registrar,
             ]);
         } else {
