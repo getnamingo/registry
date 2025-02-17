@@ -1061,7 +1061,17 @@ class ApplicationsController extends Controller
                 $registrant_id = $domain['registrant'];
                 $authinfo = $domain['authinfo'];
                 $registrar_id_domain = $domain['clid'];
-                
+
+                $domain_already_exist = $db->selectValue(
+                    'SELECT id FROM domain WHERE name = ? LIMIT 1',
+                    [$domainName]
+                );
+
+                if ($domain_already_exist) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Domain name already active');
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                }
+
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
                 $domain_extension = '.' . strtoupper($parts['tld']);
