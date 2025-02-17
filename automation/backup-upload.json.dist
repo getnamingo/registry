@@ -1,7 +1,7 @@
 {
     "storageType": "sftp",
     "ftp": {
-        "host": "your_sftp_host",
+        "host": "your_ftp_host",
         "username": "your_username",
         "password": "your_password",
         "port": 21,

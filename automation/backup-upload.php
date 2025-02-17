@@ -133,29 +133,35 @@ function uploadFile($filesystem, $localPath, $remotePath, $logger, $retries, $de
     }
 }
 
-// Current date and hour in the specified format
-$currentDateHour = date('Ymd-H'); // Format: YYYYMMDD-HH
-
 // Directory to check
-$directory = $config['directory'];
+$directory = "/srv/";
 
-// Load patterns from config
-$patterns = array_map(function ($pattern) use ($currentDateHour) {
-    return str_replace('{dateHour}', $currentDateHour, $pattern);
-}, $config['patterns']);
+// Define backup types (prefixes)
+$backupTypes = ['database', 'registry', 'panel'];
 
-// Scan directory for matching files
+// Scan directory and filter matching files
+$backupFiles = [];
+
 $files = scandir($directory);
-$filesFound = false; // Flag to track if any files are found
-
 foreach ($files as $file) {
-    foreach ($patterns as $pattern) {
-        if (preg_match("/$pattern/", $file)) {
-            $filesFound = true;
-            $localPath = $directory . $file;
-            $remoteFileName = basename($file);
-            uploadFile($filesystem, $localPath, $remoteFileName, $log, $config['upload']['retries'], $config['upload']['delay']);
+    foreach ($backupTypes as $type) {
+        if (preg_match("/^{$type}-\d{8}-\d{4}\.sql\.bz2$/", $file)) {
+            $backupFiles[$type][$file] = filemtime($directory . $file);
         }
+    }
+}
+
+// Upload the latest file for each type
+foreach ($backupFiles as $type => $files) {
+    if (!empty($files)) {
+        // Get the latest file by modification time
+        arsort($files);
+        $latestFile = array_key_first($files);
+        
+        // Upload file
+        $localPath = $directory . $latestFile;
+        $remoteFileName = basename($latestFile);
+        uploadFile($filesystem, $localPath, $remoteFileName, $log, $config['upload']['retries'], $config['upload']['delay']);
     }
 }
 

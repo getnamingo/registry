@@ -36,7 +36,7 @@
       }
     },
     {
-      "name": "Files",
+      "name": "Registry",
       "source": {
         "type": "tar",
         "options": {
@@ -46,7 +46,34 @@
       },
       "target": {
         "dirname": "/srv",
-        "filename": "files-%Y%m%d-%H%i.sql",
+        "filename": "registry-%Y%m%d-%H%i.sql",
+        "compress": "bzip2"
+      },
+      "checks": [
+        {
+          "type": "sizemin",
+          "value": "10M"
+        }
+      ],
+      "cleanup": {
+        "type": "Capacity",
+        "options": {
+          "size": "750M"
+        }
+      }
+    },
+    {
+      "name": "Panel",
+      "source": {
+        "type": "tar",
+        "options": {
+          "path": "/var/www/cp",
+          "throttle": "5m"
+        }
+      },
+      "target": {
+        "dirname": "/srv",
+        "filename": "panel-%Y%m%d-%H%i.sql",
         "compress": "bzip2"
       },
       "checks": [
