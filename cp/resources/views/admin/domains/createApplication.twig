@@ -252,6 +252,10 @@
                         <form id="addContactForm">
                         {{ csrf.field | raw }}
                             <div class="row">
+                                <div id="addContactError" class="alert alert-important alert-danger alert-dismissible d-none" role="alert">
+                                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                                </div>
+
                                 <!-- First Column: General & Internationalized Info -->
                                 <div class="col-md-6">
                                     <h5 class="card-title mb-3">{{ __('General & Internationalized Info') }}</h5>
@@ -478,8 +482,8 @@
                             </div>
             </div>
             <div class="modal-footer">
-                <a href="#" class="btn btn-link link-secondary btn-3" data-bs-dismiss="modal">{{ __('Cancel') }}</a>
-                <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">{{ __('Create Contact') }}</button></form>
+                <a href="#" class="btn btn-link link-secondary btn-3" data-bs-dismiss="modal" id="cancelButton">{{ __('Cancel') }}</a>
+                <button type="submit" class="btn btn-primary">{{ __('Create Contact') }}</button></form>
             </div>
         </div>
     </div>
@@ -487,6 +491,10 @@
 <link href="/assets/css/tabulator.min.css" rel="stylesheet">
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script>
+document.getElementById("cancelButton").addEventListener("click", function () {
+    location.reload();
+});
+
 let addContactTargetInputId = null;
 
 // Capture the target input when opening "Add Contact" modal
@@ -498,7 +506,7 @@ document.addEventListener("click", function (e) {
 });
 
 document.getElementById("addContactForm").addEventListener("submit", function (e) {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault(); // Prevent full-page reload
 
     let form = this;
     let formData = new FormData(form);
@@ -507,12 +515,28 @@ document.getElementById("addContactForm").addEventListener("submit", function (e
         method: "POST",
         body: formData,
         headers: {
-            "Accept": "application/json" // Ensure JSON response is expected
+            "Accept": "application/json"
         }
     })
-    .then(response => response.json()) // Convert response to JSON
+    .then(response => {
+        return response.json().then(data => {
+            if (!response.ok) {
+                showErrorMessage(data.error || `Server Error (${response.status})`);
+
+                // Keep the modal open when there's an error
+                let modalElement = document.getElementById("addContactModal");
+                let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance._isShown = true;
+                }
+                throw new Error(data.error || `Server Error (${response.status})`);
+            }
+            return data;
+        });
+    })
     .then(data => {
-        // Ensure the response contains an identifier
+        console.log("✅ Contact Added:", data);
+
         if (data.identifier && addContactTargetInputId) {
             let targetInput = document.getElementById(addContactTargetInputId);
             if (targetInput) {
@@ -520,19 +544,60 @@ document.getElementById("addContactForm").addEventListener("submit", function (e
             }
         }
 
-        // Close the modal
+        // ✅ Only close modal if form submission is successful
+        if (data.identifier) {
+            let modalElement = document.getElementById("addContactModal");
+            let modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+
+            // Reset the form and clear errors after success
+            form.reset();
+            addContactTargetInputId = null;
+            document.getElementById("addContactError").classList.add("d-none");
+        }
+    })
+    .catch(error => {
+        console.error("❌ Error adding contact:", error.message);
+        showErrorMessage(error.message);
+
+        // ❌ Prevent modal from closing on error
         let modalElement = document.getElementById("addContactModal");
         let modalInstance = bootstrap.Modal.getInstance(modalElement);
         if (modalInstance) {
-            modalInstance.hide();
+            modalInstance._isShown = true; // Keep modal open
         }
-
-        // Reset the form
-        form.reset();
-        addContactTargetInputId = null;
-    })
-    .catch(error => console.error("❌ Error adding contact:", error));
+    });
 });
+
+// Function to show error messages inside the modal
+function showErrorMessage(message) {
+    let errorContainer = document.getElementById("addContactError");
+    let submitButton = document.querySelector("#addContactModal button[type='submit']");
+
+    if (!errorContainer) {
+        let form = document.getElementById("addContactForm");
+        errorContainer = document.createElement("div");
+        errorContainer.id = "addContactError";
+        errorContainer.className = "alert alert-danger mt-2";
+        form.prepend(errorContainer);
+    }
+
+    errorContainer.innerText = message;
+    errorContainer.classList.remove("d-none"); // Ensure it's visible
+
+    // 🔹 Scroll to top of modal when error occurs
+    let modalBody = document.querySelector("#addContactModal .modal-body");
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
+
+    // 🔹 Disable submit button on error
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+}
 
     let targetInputId = null;
 

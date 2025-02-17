@@ -239,7 +239,7 @@ class ContactsController extends Controller
             }
             
             if (!$authInfo_pw) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email contact authinfo missing');
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact authinfo missing');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
@@ -446,21 +446,24 @@ class ContactsController extends Controller
             $authInfo_pw = $data['authInfoc'] ?? null;
 
             if (!$contactID) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Please provide a contact ID');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Please provide a contact ID"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             // Validation for contact ID
             $invalid_identifier = validate_identifier($contactID);
             if ($invalid_identifier) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $invalid_identifier);
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: " . $invalid_identifier];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
             
             $contact = $db->select('SELECT * FROM contact WHERE identifier = ?', [$contactID]);
             if ($contact) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact ID already exists');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Contact ID already exists"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -473,59 +476,68 @@ class ContactsController extends Controller
 
             if ($postalInfoIntName) {
                 if (!$postalInfoIntName) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Missing contact name');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: Missing contact name"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
                 if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact name');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: Invalid contact name"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
                 if ($postalInfoIntOrg) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact org');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact org"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoIntStreet1) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact street"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoIntStreet2) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street 2');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact street 2"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoIntStreet3) {
                     if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact street 3');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact street 3"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact city');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: Invalid contact city"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
                 if ($postalInfoIntSp) {
                     if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntSp) || !preg_match('/^[A-Z][a-zA-Z\-\.\s]{1,}$/', $postalInfoIntSp)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact state/province');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact state/province"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoIntPc) {
                     if (preg_match('/(^\-)|(\-\-)|(\-$)/', $postalInfoIntPc) || !preg_match('/^[A-Z0-9\-\s]{3,}$/', $postalInfoIntPc)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid contact postal code');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid contact postal code"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
@@ -533,99 +545,114 @@ class ContactsController extends Controller
 
             if ($postalInfoLocName) {
                 if (!validateLocField($postalInfoLocName, 3)) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact name');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: Invalid loc contact name"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
                 if ($postalInfoLocOrg) {
                     if (!validateLocField($postalInfoLocOrg, 3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact org');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact org"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoLocStreet1) {
                     if (!validateLocField($postalInfoLocStreet1, 3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact street"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoLocStreet2) {
                     if (!validateLocField($postalInfoLocStreet2, 3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 2');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact street 2"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoLocStreet3) {
                     if (!validateLocField($postalInfoLocStreet3, 3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact street 3');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact street 3"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if (!validateLocField($postalInfoLocCity, 3)) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact city');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: Invalid loc contact city"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
                 if ($postalInfoLocSp) {
                     if (!validateLocField($postalInfoLocSp, 2)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact state/province');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact state/province"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
 
                 if ($postalInfoLocPc) {
                     if (!validateLocField($postalInfoLocPc, 3)) {
-                        $this->container->get('flash')->addMessage('error', 'Unable to create contact: Invalid loc contact postal code');
-                        return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                        $error = ["error" => "Unable to create contact: Invalid loc contact postal code"];
+                        $response->getBody()->write(json_encode($error));
+                        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                     }
                 }
             }
 
             $normalizedVoice = normalizePhoneNumber($voice, strtoupper($postalInfoIntCc));
             if (isset($normalizedVoice['error'])) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $normalizedVoice['error']);
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: " . $normalizedVoice['error']];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
             $voice = $normalizedVoice['success'];
 
             // Validate length of $voice
             if (strlen($voice) > 17) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Phone number exceeds 17 characters');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Phone number exceeds 17 characters"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             if (!empty($fax)) {
                 $normalizedFax = normalizePhoneNumber($fax, strtoupper($postalInfoIntCc));
                 if (isset($normalizedFax['error'])) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: ' . $normalizedFax['error']);
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: " . $normalizedFax['error']];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
                 // Update the fax number only if normalization was successful.
                 $fax = $normalizedFax['success'];
             }
 
             if (!validateUniversalEmail($email)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email address failed check');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Email address failed check"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
             
             if (!$authInfo_pw) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email contact authinfo missing');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Contact authinfo missing"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 16 characters long');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Password needs to be at least 6 and up to 16 characters long"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password should have both upper and lower case characters');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: Password should have both upper and lower case characters"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
             $disclose_voice = isset($data['disclose_voice']) ? 1 : 0;
@@ -643,15 +670,17 @@ class ContactsController extends Controller
                 $nin_type = (isset($data['isBusiness']) && $data['isBusiness'] === 'on') ? 'business' : 'personal';
 
                 if (!preg_match('/\d/', $nin)) {
-                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: NIN should contain one or more numbers');
-                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                    $error = ["error" => "Unable to create contact: NIN should contain one or more numbers"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
             }
             
             // Check if either postalInfoIntName or postalInfoLocName exists
             if (!$postalInfoIntName && !$postalInfoLocName) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: At least one of the postal info types (INT or LOC) is required.');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => "Unable to create contact: At least one of the postal info types (INT or LOC) is required"];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
             
             try {
@@ -743,8 +772,9 @@ class ContactsController extends Controller
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
-                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                $error = ["error" => 'Database failure: ' . $e->getMessage()];
+                $response->getBody()->write(json_encode($error));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
             }
             
             $crdate = $db->selectValue(
@@ -1339,7 +1369,7 @@ class ContactsController extends Controller
             }
 
             if (!$authInfo_pw) {
-                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Email contact authinfo');
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Contact authinfo');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
