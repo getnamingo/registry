@@ -1064,15 +1064,12 @@ class ApplicationsController extends Controller
                 
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
-                $domain_extension = $parts['tld'];
+                $domain_extension = '.' . strtoupper($parts['tld']);
 
-                $result = $db->select('SELECT id, tld FROM domain_tld');
-                foreach ($result as $row) {
-                    if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-                        $tld_id = $row['id'];
-                        break;
-                    }
-                }
+                $tld_id = $db->selectValue(
+                    "SELECT id FROM domain_tld WHERE UPPER(tld) = ?",
+                    [$domain_extension]
+                );
                 
                 $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
@@ -1081,18 +1078,18 @@ class ApplicationsController extends Controller
                 } else {
                     $clid = $registrar_id_domain;
                 }
-                
+
                 $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
 
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
                 $currency = $result['currency'];
-                
+
                 $date_add = 12;
-                
+
                 $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
                 $price = $returnValue['price'];
-                
+
                 try {
                     $db->beginTransaction();
 

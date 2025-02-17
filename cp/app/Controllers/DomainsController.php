@@ -181,20 +181,14 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             $label = $parts['domain'];
-            $domain_extension = $parts['tld'];
-            
-            $valid_tld = false;
-            $result = $db->select('SELECT id, tld FROM domain_tld');
+            $domain_extension = '.' . strtoupper($parts['tld']);
 
-            foreach ($result as $row) {
-                if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-                    $valid_tld = true;
-                    $tld_id = $row['id'];
-                    break;
-                }
-            }
+            $tld_id = $db->selectValue(
+                "SELECT id FROM domain_tld WHERE UPPER(tld) = ?",
+                [$domain_extension]
+            );
 
-            if (!$valid_tld) {
+            if (!$tld_id) {
                 $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain extension');
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
@@ -216,12 +210,17 @@ class DomainsController extends Controller
                 "SELECT phase_category 
                  FROM launch_phases 
                  WHERE tld_id = ? 
-                 AND phase_type = ?
                  AND start_date <= ? 
                  AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
                  ",
-                [$tld_id, $phaseType, $currentDate, $currentDate]
+                [$tld_id, $currentDate, $currentDate]
             );
+
+            // Check if the phase requires application submission
+            if ($phase_details && $phase_details === 'Application') {
+                $this->container->get('flash')->addMessage('error', 'Domain registration is not allowed for this TLD. You must submit a new application instead.');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
+            }
 
             if ($phase_details !== 'First-Come-First-Serve') {
                 if ($phaseType !== 'none') {
@@ -1765,16 +1764,18 @@ class DomainsController extends Controller
             
             $parts = extractDomainAndTLD($domainName);
             $label = $parts['domain'];
-            $domain_extension = $parts['tld'];
+            $domain_extension = '.' . strtoupper($parts['tld']);
 
-            $result = $db->select('SELECT id, tld FROM domain_tld');
-            foreach ($result as $row) {
-                if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-                    $tld_id = $row['id'];
-                    break;
-                }
+            $tld_id = $db->selectValue(
+                "SELECT id FROM domain_tld WHERE UPPER(tld) = ?",
+                [$domain_extension]
+            );
+
+            if (!$tld_id) {
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid domain extension');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
             }
-            
+
             $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
             if ($_SESSION["auth_roles"] != 0) {
@@ -2051,7 +2052,12 @@ class DomainsController extends Controller
 
                 $parts = extractDomainAndTLD($domainName);
                 $label = $parts['domain'];
-                $domain_extension = $parts['tld'];
+                $domain_extension = '.' . strtoupper($parts['tld']);
+
+                $tld_id = $db->selectValue(
+                    "SELECT id FROM domain_tld WHERE UPPER(tld) = ?",
+                    [$domain_extension]
+                );
 
                 if ($_SESSION["auth_roles"] != 0) {
                     $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
@@ -2062,14 +2068,6 @@ class DomainsController extends Controller
                     $clid = $registrar_id_domain;
                 }
 
-                $result = $db->select('SELECT id, tld FROM domain_tld');
-                foreach ($result as $row) {
-                    if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-                        $tld_id = $row['id'];
-                        break;
-                    }
-                }
-          
                 $results = $db->select(
                     'SELECT status FROM domain_status WHERE domain_id = ?',
                     [ $domain_id ]
