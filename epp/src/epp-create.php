@@ -649,20 +649,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
     $parts = extractDomainAndTLD($domainName);
     $label = $parts['domain'];
-    $domain_extension = $parts['tld'];
+    $domain_extension = '.' . strtoupper($parts['tld']);
 
-    $valid_tld = false;
-    $stmt = $db->prepare("SELECT id, tld FROM domain_tld");
-    $stmt->execute();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if ('.' . strtoupper($domain_extension) === strtoupper($row['tld'])) {
-            $valid_tld = true;
-            $tld_id = $row['id'];
-            break;
-        }
-    }
+    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = ?");
+    $stmt->execute([$domain_extension]);
+    $tld_id = $stmt->fetchColumn();
 
-    if (!$valid_tld) {
+    if (!$tld_id) {
         sendEppError($conn, $db, 2306, 'Invalid domain extension', $clTRID, $trans);
         return;
     }
@@ -683,18 +676,23 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
         $currentDateTime = new \DateTime();
         $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
-        
+
         $stmt = $db->prepare("
             SELECT phase_category 
             FROM launch_phases 
             WHERE tld_id = ? 
-            AND phase_type = ? 
             AND start_date <= ? 
             AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
             LIMIT 1
         ");
-        $stmt->execute([$tld_id, $launch_phase, $currentDate, $currentDate]);
+        $stmt->execute([$tld_id, $currentDate, $currentDate]);
         $phase_details = $stmt->fetchColumn();
+
+        // Check if the phase requires application submission
+        if ($phase_details && $phase_details === 'Application') {
+            sendEppError($conn, $db, 2304, 'Domain registration is not allowed for this TLD. You must submit a new application instead.', $clTRID, $trans);
+            return;
+        }
 
         if ($phase_details !== 'First-Come-First-Serve') {
             if ($launch_phase !== 'none') {
