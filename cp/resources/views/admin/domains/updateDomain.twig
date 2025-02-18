@@ -65,7 +65,7 @@
                       </div>
                       <div class="datagrid-item">
                         <div class="datagrid-title">{{ __('Registrar') }}</div>
-                        <div class="datagrid-content">{{ registrar.name }}</div>
+                        <div class="datagrid-content">{{ registrar_details.name }}</div>
                       </div>
                     </div>
                   </div>
@@ -422,11 +422,11 @@
                                         </label>
                                     </div>
                                     
-                                    {% if registrars and not registrar %}
+                                    {% if registrars_list and not registrar %}
                                         <div class="form-group mb-3">
                                             <label for="registrarDropdown2" class="form-label required">{{ __('Select Registrar') }}</label>
                                             <select id="registrarDropdown2" name="registrar" class="form-select" required="required">
-                                                {% for registrar in registrars %}
+                                                {% for registrar in registrars_list %}
                                                     <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                                                 {% endfor %}
                                             </select>
