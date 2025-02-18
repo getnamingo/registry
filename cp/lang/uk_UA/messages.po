@@ -1656,3 +1656,9 @@ msgstr "Продюсер повідомлень"
 
 msgid "Message Worker"
 msgstr "Обробник повідомлень"
+
+msgid "Choose Contact to Assign"
+msgstr "Виберіть контакт для призначення"
+
+msgid "Assign Contact"
+msgstr "Призначити контакт"

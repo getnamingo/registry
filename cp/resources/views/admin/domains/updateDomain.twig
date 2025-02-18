@@ -84,7 +84,7 @@
                                         <div class="input-group input-group-flat mb-2">
                                           <input type="text" class="form-control" placeholder="{{ __('Registrant Contact') }}" name="contactRegistrant" id="contactRegistrant" value="{{ domainRegistrant.identifier }}" required>
                                           <span class="input-group-text">
-                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactRegistrant" title="{{ __('Search Contacts') }}">
+                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactRegistrant" title="{{ __('Assign Contact') }}">
                                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                                             </a>
                                             <a href="#" class="link-secondary ms-2 open-add-modal" title="{{ __('Create Contact') }}" data-bs-toggle="modal" data-bs-target="#addContactModal" data-input="contactRegistrant">
@@ -118,7 +118,7 @@
                                         <div class="input-group input-group-flat mb-2">
                                           <input type="text" class="form-control" placeholder="{{ __('Admin Contact') }}" name="contactAdmin" id="contactAdmin" value="{{ contactAdmin }}" required>
                                           <span class="input-group-text">
-                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactAdmin" title="{{ __('Search Contacts') }}">
+                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactAdmin" title="{{ __('Assign Contact') }}">
                                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                                             </a>
                                             <a href="#" class="link-secondary ms-2 open-add-modal" title="{{ __('Create Contact') }}" data-bs-toggle="modal" data-bs-target="#addContactModal" data-input="contactAdmin">
@@ -137,7 +137,7 @@
                                         <div class="input-group input-group-flat mb-2">
                                           <input type="text" class="form-control" placeholder="{{ __('Tech Contact') }}" name="contactTech" id="contactTech" value="{{ contactTech }}" required>
                                           <span class="input-group-text">
-                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactTech" title="{{ __('Search Contacts') }}">
+                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactTech" title="{{ __('Assign Contact') }}">
                                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                                             </a>
                                             <a href="#" class="link-secondary ms-2 open-add-modal" title="{{ __('Create Contact') }}" data-bs-toggle="modal" data-bs-target="#addContactModal" data-input="contactTech">
@@ -156,7 +156,7 @@
                                         <div class="input-group input-group-flat mb-2">
                                           <input type="text" class="form-control" placeholder="{{ __('Billing Contact') }}" name="contactBilling" id="contactBilling" value="{{ contactBilling }}">
                                           <span class="input-group-text">
-                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactBilling" title="{{ __('Search Contacts') }}">
+                                            <a href="#" class="link-secondary ms-2 open-modal" data-bs-toggle="modal" data-bs-target="#contactModal" data-input="contactBilling" title="{{ __('Assign Contact') }}">
                                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                                             </a>
                                             <a href="#" class="link-secondary ms-2 open-add-modal" title="{{ __('Create Contact') }}" data-bs-toggle="modal" data-bs-target="#addContactModal" data-input="contactBilling">
@@ -378,7 +378,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">{{ __('Select Contact') }}</h5>
+                <h5 class="modal-title">{{ __('Choose Contact to Assign') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -397,7 +397,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">{{ __('Add New Contact') }}</h5>
+                <h5 class="modal-title">{{ __('Create Contact') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -634,7 +634,7 @@
                             </div>
             </div>
             <div class="modal-footer">
-                <a href="#" class="btn btn-link link-secondary btn-3" data-bs-dismiss="modal" id="cancelButton">{{ __('Cancel') }}</a>
+                <a href="#" class="btn btn-link link-secondary btn-3" data-bs-dismiss="modal" id="cancelButton">{{ __('Close') }}</a>
                 <button type="submit" class="btn btn-primary">{{ __('Create Contact') }}</button></form>
             </div>
         </div>
@@ -884,7 +884,7 @@
 
     function actionsFormatter(cell, formatterParams, onRendered) {
         return `
-            <button class="btn btn-outline-success btn-icon add-to-main" data-identifier="${cell.getRow().getData().identifier}" title="Add to Contact">
+            <button class="btn btn-outline-success btn-icon add-to-main" data-identifier="${cell.getRow().getData().identifier}" title="{{ __('Assign Contact') }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                     <path d="M12 5v14m-7 -7h14"></path>

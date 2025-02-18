@@ -1656,3 +1656,9 @@ msgstr "Message Producer"
 
 msgid "Message Worker"
 msgstr "Message Worker"
+
+msgid "Choose Contact to Assign"
+msgstr "Choose Contact to Assign"
+
+msgid "Assign Contact"
+msgstr "Assign Contact"

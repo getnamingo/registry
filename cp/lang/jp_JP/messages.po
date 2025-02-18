@@ -1656,3 +1656,9 @@ msgstr "メッセージプロデューサー"
 
 msgid "Message Worker"
 msgstr "メッセージワーカー"
+
+msgid "Choose Contact to Assign"
+msgstr "割り当てる連絡先を選択"
+
+msgid "Assign Contact"
+msgstr "連絡先を割り当てる"
