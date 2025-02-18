@@ -1060,7 +1060,7 @@ class DomainsController extends Controller
     public function updateDomain(Request $request, Response $response, $args)
     {
         $db = $this->container->get('db');
-        $registrars = $db->select("SELECT id, clid, name FROM registrar");
+        $registrars_list = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
         } else {
@@ -1141,7 +1141,8 @@ class DomainsController extends Controller
                     'domainSecdns' => $domainSecdns,
                     'domainHosts' => $domainHosts,
                     'domainContacts' => $domainContacts,
-                    'registrar' => $registrars,
+                    'registrar' => $registrar,
+                    'registrars' => $registrars_list,
                     'currentUri' => $uri,
                     'countries' => $countries,
                     'csrfTokenName' => $csrfTokenName,
