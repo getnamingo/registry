@@ -302,6 +302,10 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     if ($path && $path === '/clear-cache') {
         return $handler->handle($request);
     }
+    if ($path && $path === '/token-well') {
+        $csrf->generateToken();
+        return $handler->handle($request);
+    }
 
     // If not skipped, apply the CSRF Guard
     return $csrf->process($request, $handler);

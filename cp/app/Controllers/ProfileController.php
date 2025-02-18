@@ -266,4 +266,30 @@ class ProfileController extends Controller
         Auth::logoutEverywhereElse();
     }
 
+    public function tokenWell(Request $request, Response $response)
+    {
+        global $container;
+        $csrf = $container->get('csrf');
+
+        // Get CSRF token name and value
+        $csrfTokenName = $csrf->getTokenName();
+        $csrfTokenValue = $csrf->getTokenValue();
+
+        // Check if tokens exist
+        if (!$csrfTokenName || !$csrfTokenValue) {
+            $errorResponse = json_encode(['error' => 'CSRF tokens not found']);
+            $response->getBody()->write($errorResponse);
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        // Create JSON response in the expected format
+        $csrfResponse = json_encode([
+            $csrfTokenName => $csrfTokenValue
+        ]);
+
+        // Write response body and return with JSON header
+        $response->getBody()->write($csrfResponse);
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
+
 }

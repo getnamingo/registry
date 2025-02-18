@@ -491,113 +491,107 @@
 <link href="/assets/css/tabulator.min.css" rel="stylesheet">
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script>
-document.getElementById("cancelButton").addEventListener("click", function () {
-    location.reload();
-});
+    let addContactTargetInputId = null;
 
-let addContactTargetInputId = null;
-
-// Capture the target input when opening "Add Contact" modal
-document.addEventListener("click", function (e) {
-    let openBtn = e.target.closest('.open-add-modal');
-    if (openBtn) {
-        addContactTargetInputId = openBtn.getAttribute('data-input');
-    }
-});
-
-document.getElementById("addContactForm").addEventListener("submit", function (e) {
-    e.preventDefault(); // Prevent full-page reload
-
-    let form = this;
-    let formData = new FormData(form);
-
-    fetch("/contact/create-api", {
-        method: "POST",
-        body: formData,
-        headers: {
-            "Accept": "application/json"
+    // Capture the target input when opening "Add Contact" modal
+    document.addEventListener("click", function (e) {
+        let openBtn = e.target.closest('.open-add-modal');
+        if (openBtn) {
+            addContactTargetInputId = openBtn.getAttribute('data-input');
         }
-    })
-    .then(response => {
-        return response.json().then(data => {
-            if (!response.ok) {
-                showErrorMessage(data.error || `Server Error (${response.status})`);
+    });
 
-                // Keep the modal open when there's an error
+    document.getElementById("addContactForm").addEventListener("submit", function (e) {
+        e.preventDefault(); // Prevent full-page reload
+
+        let form = this;
+        let formData = new FormData(form);
+
+        fetch("/contact/create-api", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "Accept": "application/json"
+            }
+        })
+        .then(response => {
+            return response.json().then(data => {
+                if (!response.ok) {
+                    showErrorMessage(data.error || `Server Error (${response.status})`);
+
+                    // Keep the modal open when there's an error
+                    let modalElement = document.getElementById("addContactModal");
+                    let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance._isShown = true;
+                    }
+                    throw new Error(data.error || `Server Error (${response.status})`);
+                }
+                return data;
+            });
+        })
+        .then(data => {
+            console.log("✅ Contact Added:", data);
+
+            if (data.identifier && addContactTargetInputId) {
+                let targetInput = document.getElementById(addContactTargetInputId);
+                if (targetInput) {
+                    targetInput.value = data.identifier;
+                }
+            }
+
+            // ✅ Only close modal if form submission is successful
+            if (data.identifier) {
                 let modalElement = document.getElementById("addContactModal");
                 let modalInstance = bootstrap.Modal.getInstance(modalElement);
                 if (modalInstance) {
-                    modalInstance._isShown = true;
+                    modalInstance.hide();
                 }
-                throw new Error(data.error || `Server Error (${response.status})`);
-            }
-            return data;
-        });
-    })
-    .then(data => {
-        console.log("✅ Contact Added:", data);
 
-        if (data.identifier && addContactTargetInputId) {
-            let targetInput = document.getElementById(addContactTargetInputId);
-            if (targetInput) {
-                targetInput.value = data.identifier;
+                // Reset the form and clear errors after success
+                form.reset();
+                addContactTargetInputId = null;
+                document.getElementById("addContactError").classList.add("d-none");
             }
-        }
+        })
+        .catch(error => {
+            console.error("❌ Error adding contact:", error.message);
+            showErrorMessage(error.message);
 
-        // ✅ Only close modal if form submission is successful
-        if (data.identifier) {
+            refreshCsrfToken();
+
+            // ❌ Prevent modal from closing on error
             let modalElement = document.getElementById("addContactModal");
             let modalInstance = bootstrap.Modal.getInstance(modalElement);
             if (modalInstance) {
-                modalInstance.hide();
+                modalInstance._isShown = true; // Keep modal open
             }
-
-            // Reset the form and clear errors after success
-            form.reset();
-            addContactTargetInputId = null;
-            document.getElementById("addContactError").classList.add("d-none");
-        }
-    })
-    .catch(error => {
-        console.error("❌ Error adding contact:", error.message);
-        showErrorMessage(error.message);
-
-        // ❌ Prevent modal from closing on error
-        let modalElement = document.getElementById("addContactModal");
-        let modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) {
-            modalInstance._isShown = true; // Keep modal open
-        }
+        });
     });
-});
 
-// Function to show error messages inside the modal
-function showErrorMessage(message) {
-    let errorContainer = document.getElementById("addContactError");
-    let submitButton = document.querySelector("#addContactModal button[type='submit']");
+    // Function to show error messages inside the modal
+    function showErrorMessage(message) {
+        let errorContainer = document.getElementById("addContactError");
+        let submitButton = document.querySelector("#addContactModal button[type='submit']");
 
-    if (!errorContainer) {
-        let form = document.getElementById("addContactForm");
-        errorContainer = document.createElement("div");
-        errorContainer.id = "addContactError";
-        errorContainer.className = "alert alert-danger mt-2";
-        form.prepend(errorContainer);
+        if (!errorContainer) {
+            let form = document.getElementById("addContactForm");
+            errorContainer = document.createElement("div");
+            errorContainer.id = "addContactError";
+            errorContainer.className = "alert alert-danger mt-2";
+            form.prepend(errorContainer);
+        }
+
+        errorContainer.innerText = message;
+        errorContainer.classList.remove("d-none"); // Ensure it's visible
+
+        // 🔹 Scroll to top of modal when error occurs
+        let modalBody = document.querySelector("#addContactModal .modal-body");
+        if (modalBody) {
+            modalBody.scrollTop = 0;
+        }
+
     }
-
-    errorContainer.innerText = message;
-    errorContainer.classList.remove("d-none"); // Ensure it's visible
-
-    // 🔹 Scroll to top of modal when error occurs
-    let modalBody = document.querySelector("#addContactModal .modal-body");
-    if (modalBody) {
-        modalBody.scrollTop = 0;
-    }
-
-    // 🔹 Disable submit button on error
-    if (submitButton) {
-        submitButton.disabled = true;
-    }
-}
 
     let targetInputId = null;
 
@@ -638,10 +632,80 @@ function showErrorMessage(message) {
         targetInputId = null;
     });
 
+    function generateAuthInfoC() {
+        const length = 16;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let retVal = "";
+        let digitCount = 0;
+
+        // Generate initial random string
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            const char = charset.charAt(randomIndex);
+            retVal += char;
+            if (char >= '0' && char <= '9') {
+                digitCount++;
+            }
+        }
+
+        // Ensure there are at least two digits in the string
+        while (digitCount < 2) {
+            // Replace a non-digit character at a random position with a digit
+            const replacePosition = Math.floor(Math.random() * length);
+            if (!(retVal[replacePosition] >= '0' && retVal[replacePosition] <= '9')) {
+                const randomDigit = Math.floor(Math.random() * 10); // Generate a digit from 0 to 9
+                retVal = retVal.substring(0, replacePosition) + randomDigit + retVal.substring(replacePosition + 1);
+                digitCount++;
+            }
+        }
+
+        return retVal;
+    }
+
+    async function refreshCsrfToken() {
+        try {
+            let response = await fetch('/token-well', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                console.error("Failed to fetch CSRF token:", response.status);
+                return;
+            }
+
+            let data = await response.json();
+            let csrfNameField = document.querySelector('#addContactModal input[name="csrf_name"]');
+            let csrfValueField = document.querySelector('#addContactModal input[name="csrf_value"]');
+
+            if (csrfNameField && csrfValueField) {
+                csrfNameField.value = Object.keys(data)[0];  // Set the token name
+                csrfValueField.value = Object.values(data)[0]; // Set the token value
+            }
+        } catch (error) {
+            console.error("Error refreshing CSRF token:", error);
+        }
+    }
+
+    document.getElementById("addContactModal").addEventListener("show.bs.modal", function () {
+        document.getElementById('contactid').value = generateAuthInfoC();
+        document.getElementById('authInfoc').value = generateAuthInfoC();
+    });
+
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
-    
+
+        // Only refresh CSRF token when opening the "Add Contact" modal
+        let addContactModal = document.getElementById("addContactModal");
+        if (addContactModal) {
+            addContactModal.addEventListener("show.bs.modal", refreshCsrfToken);
+        }
+
         const toggleLocCheckbox = document.getElementById('toggleLoc');
         const localizedSection = document.getElementById('localizedInfo');
 
@@ -660,36 +724,6 @@ function showErrorMessage(message) {
         // Generate authInfo for Contact
         const authInfoInput = document.getElementById('authInfoc');
         authInfoInput.value = generateAuthInfoC();
-
-        function generateAuthInfoC() {
-            const length = 16;
-            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            let retVal = "";
-            let digitCount = 0;
-
-            // Generate initial random string
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * charset.length);
-                const char = charset.charAt(randomIndex);
-                retVal += char;
-                if (char >= '0' && char <= '9') {
-                    digitCount++;
-                }
-            }
-
-            // Ensure there are at least two digits in the string
-            while (digitCount < 2) {
-                // Replace a non-digit character at a random position with a digit
-                const replacePosition = Math.floor(Math.random() * length);
-                if (!(retVal[replacePosition] >= '0' && retVal[replacePosition] <= '9')) {
-                    const randomDigit = Math.floor(Math.random() * 10); // Generate a digit from 0 to 9
-                    retVal = retVal.substring(0, replacePosition) + randomDigit + retVal.substring(replacePosition + 1);
-                    digitCount++;
-                }
-            }
-
-            return retVal;
-        }
 
     function contactLinkFormatter(cell){
         var value = cell.getValue();
