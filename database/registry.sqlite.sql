@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS registrar (
     iana_id INTEGER DEFAULT NULL,
     clid VARCHAR(16) NOT NULL,
     pw VARCHAR(256) NOT NULL,
-    prefix CHAR(2) NOT NULL,
+    prefix CHAR(5) NOT NULL,
     email VARCHAR(255) NOT NULL,
     whois_server VARCHAR(255) NOT NULL,
     rdap_server VARCHAR(255) NOT NULL,

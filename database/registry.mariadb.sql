@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `iana_id` int(5) DEFAULT NULL,
     `clid` varchar(16) NOT NULL,
     `pw` varchar(256) NOT NULL,
-    `prefix` char(2) NOT NULL,
+    `prefix` char(5) NOT NULL,
     `email` varchar(255) NOT NULL,
     `whois_server` varchar(255) NOT NULL,
     `rdap_server` varchar(255) NOT NULL,

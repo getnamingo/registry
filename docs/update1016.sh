@@ -156,10 +156,20 @@ else
     echo "New error_log table created successfully."
 fi
 
+# Modify column prefix from CHAR(2) to CHAR(5) in registrar table
+echo "Updating prefix column in registrar table..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "ALTER TABLE registrar MODIFY prefix CHAR(5) NOT NULL;"
+
+if [ $? -ne 0 ]; then
+    echo "Warning: Failed to update prefix column in registrar table."
+else
+    echo "Prefix column updated successfully."
+fi
+
 CONFIG_FILE="/opt/registry/automation/config.php"
 
 # Define the content to insert
-INSERT_CONTENT="\n    // Registry Admin Email\n    'admin_email' => 'admin@example.com', // Receives system notifications\n\n    // Exchange Rate Configuration\n    'exchange_rate_api_key' => "", // Your exchangerate.host API key\n    'exchange_rate_base_currency' => "USD",\n    'exchange_rate_currencies' => [\"EUR\", \"GBP\", \"JPY\", \"CAD\", \"AUD\"], // Configurable list\n"
+INSERT_CONTENT="\n    // Registry Admin Email\n    'admin_email' => 'admin@example.com', // Receives system notifications\n\n    // Exchange Rate Configuration\n    'exchange_rate_api_key' => \"\", // Your exchangerate.host API key\n    'exchange_rate_base_currency' => 'USD',\n    'exchange_rate_currencies' => [\"EUR\", \"GBP\", \"JPY\", \"CAD\", \"AUD\"], // Configurable list\n"
 
 # Check if 'admin_email' exists and insert only if it does not exist
 if ! grep -q "'admin_email' => 'admin@example.com'" "$CONFIG_FILE"; then

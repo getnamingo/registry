@@ -167,15 +167,16 @@ class RegistrarsController extends Controller
                     ]
                 );
                 $registrar_id = $db->getLastInsertId();
-                
+                $prefix = 'R' . str_pad($registrar_id, 4, '0', STR_PAD_LEFT);
+
                 $db->exec(
                     'UPDATE registrar SET prefix = ? WHERE id = ?',
                     [
-                        'R'.$registrar_id,
+                        $prefix,
                         $registrar_id
                     ]
                 );
-                
+
                 $db->insert(
                     'registrar_contact',
                     [
