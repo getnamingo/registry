@@ -657,9 +657,11 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
 
-            if (!checkPasswordComplexity($data['panelPassword'])) {
-                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
-                return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+            if (isset($data['panelPassword']) && $data['panelPassword']) {
+                if (!checkPasswordComplexity($data['panelPassword'])) {
+                    $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                    return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+                }
             }
 
             if (!empty($_SESSION['registrars_user_email'])) {

@@ -312,9 +312,11 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
             }
 
-            if (!checkPasswordComplexity($password)) {
-                $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
-                return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
+            if (!empty($password)) {
+                if (!checkPasswordComplexity($password)) {
+                    $this->container->get('flash')->addMessage('error', 'Password too weak. Use a stronger password');
+                    return $response->withHeader('Location', '/user/update/'.$old_username)->withStatus(302);
+                }
             }
 
             // Check if username already exists (excluding the current user)
