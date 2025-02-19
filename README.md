@@ -87,41 +87,21 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 **Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
 
-### Update
+### Updating
 
-You must run update scripts in order, without skipping versions. For example, if you're on 1.0.13 and the latest is 1.0.15, first update to 1.0.14, then to 1.0.15.
+To update, you **must run the update scripts sequentially** without skipping versions.  
+For example, if you're on **v1.0.13** and the latest is **v1.0.15**, first update to **v1.0.14**, then to **v1.0.15**.
 
-- v1.0.14 to v1.0.15 - backup registry, download and run the [update1015.sh](docs/update1015.sh) script.
+- **v1.0.15 → v1.0.16**  
+  Download and run the [`update1016.sh`](docs/update1016.sh) script.
 
-- v1.0.13 to v1.0.14 - backup registry, download and run the [update1014.sh](docs/update1014.sh) script.
+- **v1.0.14 → v1.0.15**  
+  Download and run the [`update1015.sh`](docs/update1015.sh) script.
 
-- v1.0.12 to v1.0.13 - backup registry, download and run the [update1013.sh](docs/update1013.sh) script.
+- **v1.0.13 → v1.0.14**  
+  Download and run the [`update1014.sh`](docs/update1014.sh) script.
 
-- v1.0.11 to v1.0.12 - backup registry, download and run the [update1012.sh](docs/update1012.sh) script.
-
-- v1.0.10 to v1.0.11 - backup registry, download and run the [update1011.sh](docs/update1011.sh) script.
-
-- v1.0.9 to v1.0.10 - backup registry, download and run the [update1010.sh](docs/update1010.sh) script.
-
-- v1.0.8 to v1.0.9 - backup registry, download and run the [update109.sh](docs/update109.sh) script.
-
-- v1.0.7 to v1.0.8 - backup registry, download and run the [update108.sh](docs/update108.sh) script.
-
-- v1.0.6 to v1.0.7 - backup registry, download and run the [update107.sh](docs/update107.sh) script.
-
-- v1.0.5 to v1.0.6 - backup registry, download and run the [update106.sh](docs/update106.sh) script.
-
-- v1.0.4 to v1.0.5 - backup registry, download and run the [update105.sh](docs/update105.sh) script.
-
-- v1.0.3 to v1.0.4 - backup registry, download and run the [update104.sh](docs/update104.sh) script.
-
-- v1.0.2 to v1.0.3 - backup registry, download and run the [update103.sh](docs/update103.sh) script.
-
-- v1.0.1 to v1.0.2 - backup registry, download and run the [update102.sh](docs/update102.sh) script.
-
-- v1.0.0 to v1.0.1 - backup registry, download and run the [update101.sh](docs/update101.sh) script.
-
-- v1.0.0-RC4 to v1.0.0 - backup registry, refer to [upgrade.md](docs/upgrade.md).
+For **older versions**, please refer to [`update.md`](docs/update.md).
 
 ### [Configuration Guide](docs/configuration.md)
 
