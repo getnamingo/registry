@@ -149,10 +149,11 @@
         },
         ajaxResponse: function(url, params, response) {
             if (response && Array.isArray(response.records) && typeof response.results === 'number') {
-                var lastPage = Math.ceil(response.results / this.options.paginationSize);
+                var pageSize = params.size || this.options.paginationSize;
+                var lastPage = Math.ceil(response.results / pageSize);
                 return {
-                    last_page: lastPage, // Calculated total number of pages
-                    data: response.records, // Data for the current page
+                    last_page: lastPage,
+                    data: response.records,
                 };
             } else {
                 console.error('Unexpected response format', response);
