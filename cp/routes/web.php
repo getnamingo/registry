@@ -141,6 +141,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registry/tokens', SystemController::class .':manageTokens')->setName('manageTokens');
     $route->post('/registry/promotions', SystemController::class . ':managePromo')->setName('managePromo');
     $route->post('/registry/phases', SystemController::class . ':managePhases')->setName('managePhases');
+    $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');

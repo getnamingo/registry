@@ -888,3 +888,197 @@ function lacksRoles(int $userRoles, int ...$excludedRoles): bool {
 function hasOnlyRole(int $userRoles, int $specificRole): bool {
     return $userRoles === $specificRole;
 }
+
+// Returns an array of ranges: each item is ['start' => int, 'end' => int]
+function parseCharacterClass(string $class): array {
+    $ranges = [];
+    $len = mb_strlen($class, 'UTF-8');
+    $i = 0;
+    while ($i < $len) {
+        $currentCode = null;
+        // Look for an escape sequence like \x{0621}
+        if (mb_substr($class, $i, 1, 'UTF-8') === '\\') {
+            if (mb_substr($class, $i, 3, 'UTF-8') === '\\x{') {
+                $closePos = mb_strpos($class, '}', $i);
+                if ($closePos === false) {
+                    throw new \RuntimeException("Unterminated escape sequence in character class.");
+                }
+                $hex = mb_substr($class, $i + 3, $closePos - ($i + 3), 'UTF-8');
+                $currentCode = hexdec($hex);
+                $i = $closePos + 1;
+            } else {
+                // For a simple escaped char (for example, \-)
+                $i++;
+                if ($i < $len) {
+                    $char = mb_substr($class, $i, 1, 'UTF-8');
+                    $currentCode = IntlChar::ord($char);
+                    $i++;
+                } else {
+                    break;
+                }
+            }
+        } else {
+            $char = mb_substr($class, $i, 1, 'UTF-8');
+            $currentCode = IntlChar::ord($char);
+            $i++;
+        }
+        // Check if a dash follows and there is a token after it (forming a range)
+        if ($i < $len && mb_substr($class, $i, 1, 'UTF-8') === '-' && ($i + 1) < $len) {
+            // skip the dash
+            $i++;
+            $nextCode = null;
+            if (mb_substr($class, $i, 1, 'UTF-8') === '\\') {
+                if (mb_substr($class, $i, 3, 'UTF-8') === '\\x{') {
+                    $closePos = mb_strpos($class, '}', $i);
+                    if ($closePos === false) {
+                        throw new \RuntimeException("Unterminated escape sequence in character class.");
+                    }
+                    $hex = mb_substr($class, $i + 3, $closePos - ($i + 3), 'UTF-8');
+                    $nextCode = hexdec($hex);
+                    $i = $closePos + 1;
+                } else {
+                    $i++;
+                    if ($i < $len) {
+                        $char = mb_substr($class, $i, 1, 'UTF-8');
+                        $nextCode = IntlChar::ord($char);
+                        $i++;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                $char = mb_substr($class, $i, 1, 'UTF-8');
+                $nextCode = IntlChar::ord($char);
+                $i++;
+            }
+            $ranges[] = [
+                'start' => min($currentCode, $nextCode),
+                'end'   => max($currentCode, $nextCode)
+            ];
+        } else {
+            // Not a range; add the single codepoint.
+            $ranges[] = ['start' => $currentCode, 'end' => $currentCode];
+        }
+    }
+    return $ranges;
+}
+
+// --- Helper: merge overlapping ranges (optional) ---
+function mergeRanges(array $ranges): array {
+    if (empty($ranges)) {
+        return [];
+    }
+    // sort ranges by start value
+    usort($ranges, fn($a, $b) => $a['start'] <=> $b['start']);
+    $merged = [];
+    $current = $ranges[0];
+    foreach ($ranges as $r) {
+        if ($r['start'] <= $current['end'] + 1) {
+            // Extend the current range if overlapping or adjacent.
+            $current['end'] = max($current['end'], $r['end']);
+        } else {
+            $merged[] = $current;
+            $current = $r;
+        }
+    }
+    $merged[] = $current;
+    return $merged;
+}
+
+// --- Helper: get Unicode name (or fallback) ---
+function getUnicodeName(int $codepoint): string {
+    $name = IntlChar::charName($codepoint);
+    return $name !== '' ? $name : 'UNKNOWN';
+}
+
+// --- Main function: generate IANA IDN table from regex and metadata ---
+function generateIanaIdnTable(string $regex, array $metadata): string {
+    $output = '';
+
+    // Extract modifier flags (e.g. 'i', 'u') from the regex delimiter.
+    if (!preg_match('/^.(.*).([a-zA-Z]*)$/', $regex, $parts)) {
+        throw new \RuntimeException("Regex does not have expected delimiter format.");
+    }
+    $patternBody   = $parts[1];
+    $modifiers     = $parts[2];
+    $caseInsensitive = strpos($modifiers, 'i') !== false;
+
+    // Find all bracketed character classes.
+    if (!preg_match_all('/\[([^]]+)\]/u', $patternBody, $matches)) {
+        throw new \RuntimeException("No character classes found in regex.");
+    }
+    // Combine all character class contents.
+    $combinedClass = implode('', $matches[1]);
+
+    // Parse the combined character class into ranges.
+    $ranges = parseCharacterClass($combinedClass);
+
+    // If the regex is case‐insensitive, then for any range that covers A–Z add the lowercase equivalent.
+    if ($caseInsensitive) {
+        $additional = [];
+        foreach ($ranges as $range) {
+            // Check for Latin uppercase letters: U+0041 ('A') to U+005A ('Z')
+            if ($range['start'] >= 0x41 && $range['end'] <= 0x5A) {
+                $additional[] = [
+                    'start' => $range['start'] + 0x20,
+                    'end'   => $range['end'] + 0x20
+                ];
+            }
+        }
+        $ranges = array_merge($ranges, $additional);
+    }
+    // Optionally merge overlapping ranges.
+    $ranges = mergeRanges($ranges);
+
+    // Build full list of allowed script-specific codepoints.
+    $scriptCodepoints = [];
+    foreach ($ranges as $range) {
+        for ($cp = $range['start']; $cp <= $range['end']; $cp++) {
+            $scriptCodepoints[$cp] = $cp;
+        }
+    }
+    ksort($scriptCodepoints);
+
+    // Define the “common” codepoints (always allowed in all scripts)
+    $commonCodepoints = array_merge([0x002D], range(0x0030, 0x0039));
+    // Remove common codepoints from script-specific set.
+    foreach ($commonCodepoints as $common) {
+        if (isset($scriptCodepoints[$common])) {
+            unset($scriptCodepoints[$common]);
+        }
+    }
+
+    // Force all script-specific codepoints to lowercase and remove duplicates.
+    $lowerScriptCodepoints = [];
+    foreach ($scriptCodepoints as $cp) {
+        // Convert the codepoint to lowercase.
+        // For non-alphabetic characters, tolower() returns the original.
+        $lowerCp = IntlChar::tolower($cp);
+        $lowerScriptCodepoints[$lowerCp] = $lowerCp;
+    }
+    $scriptCodepoints = $lowerScriptCodepoints;
+    ksort($scriptCodepoints);
+
+    // Build header block from metadata.
+    foreach ($metadata as $field => $value) {
+        $output .= "# {$field}: {$value}\n";
+    }
+    $output .= "\n";
+
+    // Output the common codepoints.
+    $output .= "# Common (allowed in all scripts)\n";
+    foreach ($commonCodepoints as $cp) {
+        $hex = sprintf("U+%04X", $cp);
+        $name = getUnicodeName($cp);
+        $output .= "{$hex}  # {$name}\n";
+    }
+    $output .= "\n";
+
+    // Output the script‐specific codepoints.
+    foreach ($scriptCodepoints as $cp) {
+        $hex = sprintf("U+%04X", $cp);
+        $name = getUnicodeName($cp);
+        $output .= "{$hex}  # {$name}\n";
+    }
+    return $output;
+}

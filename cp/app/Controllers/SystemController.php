@@ -983,7 +983,7 @@ class SystemController extends Controller
                 // Mapping of regex patterns to script names
                 $regexToScriptName = [
                     '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i' => 'ASCII',
-                    '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ]+$/u' => 'Cyrillic',
+                    '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u' => 'Cyrillic',
                     '/^[ぁ-んァ-ン一-龯々]+$/u' => 'Japanese',
                     '/^[가-힣]+$/u' => 'Korean',
                     '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'Arabic',
@@ -1456,6 +1456,153 @@ class SystemController extends Controller
                return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
             }
             
+        } else {
+            // Redirect to the tlds view
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
+
+    public function idnexport(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+
+            $idn_table = $db->selectValue('SELECT idn_table FROM domain_tld WHERE tld = ?',
+            [ $args ]);
+
+            $idn_table_map = [
+                '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i' => 'ascii',
+                '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u' => 'cyrillic',
+                '/^[ぁ-んァ-ン一-龯々0-9]+$/u' => 'japanese',
+                '/^[가-힣0-9]+$/u' => 'korean',
+                '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'arabic'
+            ];
+
+            $idn_table_name = 'ascii'; // Default
+
+            foreach ($idn_table_map as $regex => $name) {
+                if ($idn_table === $regex) {
+                    $idn_table_name = $name;
+                    break;
+                }
+            }
+
+            $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
+            $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
+            $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
+            $cc = $db->selectValue("SELECT value FROM settings WHERE name = 'cc'");
+            $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
+            $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
+
+            // Set the regex and metadata based on the script.
+            switch ($idn_table_name) {
+                case 'ascii':
+                    $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'ASCII',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the ASCII script.'
+                    ];
+                    break;
+                case 'cyrillic':
+                    $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'Cyrillic',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the Cyrillic script.'
+                    ];
+                    break;
+                case 'japanese':
+                    $idntable = '/^[ぁ-んァ-ン一-龯々0-9]+$/u';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'Japanese',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the Japanese script.'
+                    ];
+                    break;
+                case 'korean':
+                    $idntable = '/^[가-힣0-9]+$/u';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'Korean',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the Korean script.'
+                    ];
+                    break;
+                case 'arabic':
+                    $idntable = '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'Arabic',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the Arabic script.'
+                    ];
+                    break;
+                default:
+                    $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'ASCII (default)',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the ASCII script (default).'
+                    ];
+                    break;
+            }
+
+            try {
+                $table = generateIanaIdnTable($idntable, $metadata);
+                $response->getBody()->write($table);
+                return $response->withHeader('Content-Type', 'text/plain');
+            } catch (Exception $e) {
+                $this->container->get('flash')->addMessage('error', 'Error generating table: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registry/tld/'.$args)->withStatus(302);
+            }
+
         } else {
             // Redirect to the tlds view
             return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
