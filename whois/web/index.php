@@ -13,14 +13,12 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Domain Lookup</title>
     <style>
-    /* Resetting and base styles */
     * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
     }
 
-    /* Improved font settings using system fonts */
     body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         background-color: #fff;
@@ -50,7 +48,6 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
         margin-bottom: 20px;
     }
 
-    /* Input field styling with improved typography */
     input[type="text"] {
         width: 100%;
         padding: 12px;
@@ -67,21 +64,18 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
         outline: none;
     }
     
-    /* General link styles */
     a {
         color: #007BFF;
         text-decoration: none;
         transition: color 0.3s ease, text-decoration 0.3s ease;
     }
 
-    /* Hover and focus states for links */
     a:hover,
     a:focus {
         color: #0056b3;
         text-decoration: underline;
     }
 
-    /* CAPTCHA container styling */
     .captcha-container {
         display: flex;
         align-items: center;
@@ -111,7 +105,6 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
         outline: none;
     }
 
-    /* Button styling */
     .buttons {
         display: flex;
         gap: 10px;
@@ -134,7 +127,6 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
         transform: scale(1.05);
     }
 
-    /* Result display area */
     pre {
         white-space: pre-wrap;
         white-space: -moz-pre-wrap;
@@ -154,7 +146,6 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
         font-size: 1rem;
     }
 
-    /* Footer styling */
     footer {
         margin-top: 40px;
         font-size: 0.9rem;
@@ -320,9 +311,10 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                     if (data.error) {
                         console.error('Error:', data.error);
                         document.getElementById('result').innerText = 'Error: ' + data.error;
+                        document.getElementById('bottom').style.display = 'block';
                     } else {
                         // Parse and display RDAP data
-                        let output = parseRdapResponse(data);
+                        let output = parseRDAP(data);
                         document.getElementById('result').innerText = output;
                         document.getElementById('bottom').style.display = 'block';
                         if (captchaInput && !captchaInput.disabled) {
@@ -333,113 +325,176 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                 })
                 .catch(error => {
                     console.error('Error:', error); // Log the error to the console
-                    document.getElementById('result').innerText = 'Error: ' + error.message; // Display the error message on the page
+                    document.getElementById('result').innerText = 'Error: ' + error.message;
+                    document.getElementById('bottom').style.display = 'block';
                 });
             });
         });
 
-        function parseRdapResponse(data) {
-            let output = '';
-
-            // Domain Name and Status
-            output += 'Domain Name: ' + (data.ldhName || 'N/A') + '\n';
-            output += 'Status: ' + (data.status ? data.status.join(', ') : 'N/A') + '\n\n';
-
-            // Parsing entities for specific roles like registrar and registrant
-            if (data.entities && data.entities.length > 0) {
-                data.entities.forEach(entity => {
-                    output += parseEntity(entity);
-                });
+        /**
+         * Flattens the "entities" field.
+         * The RDAP JSON sometimes nests arrays of entities.
+         */
+        function flattenEntities(entities) {
+          let flat = [];
+          entities.forEach(item => {
+            if (Array.isArray(item)) {
+              flat = flat.concat(item);
+            } else if (typeof item === "object" && item !== null) {
+              flat.push(item);
+              // If an entity contains a nested entities array (for example, abuse contacts inside registrar)
+              if (item.entities && Array.isArray(item.entities)) {
+                flat = flat.concat(flattenEntities(item.entities));
+              }
             }
-
-            // Nameservers
-            if (data.nameservers && data.nameservers.length > 0) {
-                output += 'Nameservers:\n';
-                data.nameservers.forEach(ns => {
-                    output += ' - ' + ns.ldhName + '\n';
-                });
-                output += '\n';
-            }
-
-            // SecureDNS Details
-            if (data.secureDNS) {
-                output += 'SecureDNS:\n';
-                output += ' - Delegation Signed: ' + (data.secureDNS.delegationSigned ? 'Yes' : 'No') + '\n';
-                output += ' - Zone Signed: ' + (data.secureDNS.zoneSigned ? 'Yes' : 'No') + '\n\n';
-            }
-
-            // Events (like registration, expiration dates)
-            if (data.events && data.events.length > 0) {
-                output += 'Events:\n';
-                data.events.forEach(event => {
-                    output += ' - ' + event.eventAction + ': ' + new Date(event.eventDate).toLocaleString() + '\n';
-                });
-                output += '\n';
-            }
-
-            // Domain Status and Notices
-            if (data.notices && data.notices.length > 0) {
-                output += 'Notices:\n';
-                data.notices.forEach(notice => {
-                    output += ' - ' + (notice.title || 'Notice') + ': ' + notice.description.join(' ') + '\n';
-                });
-            }
-
-            return output;
+          });
+          return flat;
         }
 
-        function parseEntity(entity) {
-            let output = '';
-
-            if (entity.roles) {
-                output += entity.roles.join(', ').toUpperCase() + ' Contact:\n';
-                if (entity.vcardArray && entity.vcardArray.length > 1) {
-                    output += parseVcard(entity.vcardArray[1]);
-                }
-                if (entity.roles.includes('registrar') && entity.publicIds) {
-                    output += '   IANA ID: ' + entity.publicIds.map(id => id.identifier).join(', ') + '\n';
-                }
-                if (entity.roles.includes('abuse') && entity.vcardArray) {
-                    const emailEntry = entity.vcardArray[1].find(entry => entry[0] === 'email');
-                    if (emailEntry) {
-                        output += '   Abuse Email: ' + emailEntry[3] + '\n';
-                    }
-                }
-                output += '\n';
-            }
-
-            if (entity.entities && entity.entities.length > 0) {
-                entity.entities.forEach(subEntity => {
-                    output += parseEntity(subEntity);
-                });
-            }
-
-            return output;
+        /**
+         * Helper to extract a vCard field value by key from a vcardArray.
+         */
+        function getVCardValue(vcardArray, key) {
+          if (!vcardArray || vcardArray.length < 2) return null;
+          const props = vcardArray[1];
+          const field = props.find(item => item[0] === key);
+          return field ? field[3] : null;
         }
 
-        function parseVcard(vcard) {
-            let vcardOutput = '';
-            vcard.forEach(entry => {
-                switch (entry[0]) {
-                    case 'fn':
-                        vcardOutput += '   Name: ' + entry[3] + '\n';
-                        break;
-                    case 'adr':
-                        if (Array.isArray(entry[3]) && entry[3].length > 0) {
-                            const addressParts = entry[3];
-                            vcardOutput += '   Address: ' + addressParts.join(', ') + '\n';
-                        }
-                        break;
-                    case 'email':
-                        vcardOutput += '   Email: ' + entry[3] + '\n';
-                        break;
-                    case 'tel':
-                        vcardOutput += '   Phone: ' + entry[3] + '\n';
-                        break;
-                }
+        /**
+         * Main parser: Takes the RDAP JSON object and returns a WHOIS-style text output.
+         */
+        function parseRDAP(data) {
+          let output = "";
+
+          // Domain basic details
+          output += `Domain Name: ${(data.ldhName || "N/A").toUpperCase()}\n`;
+          output += `Domain ID: ${data.handle || "N/A"}\n\n`;
+
+          // Domain status
+          if (data.status && data.status.length) {
+            output += "Status:\n";
+            data.status.forEach(s => {
+              output += `  - ${s}\n`;
             });
-            return vcardOutput;
+            output += "\n";
+          }
+
+          // Events (e.g., registration, expiration, last update)
+          if (data.events && data.events.length) {
+            output += "Events:\n";
+            data.events.forEach(event => {
+              // Capitalize event action for display
+              const action = event.eventAction.charAt(0).toUpperCase() + event.eventAction.slice(1);
+              output += `  ${action}: ${event.eventDate}\n`;
+            });
+            output += "\n";
+          }
+
+          // Nameservers
+          if (data.nameservers && data.nameservers.length) {
+            output += "Nameservers:\n";
+            data.nameservers.forEach(ns => {
+              output += `  - ${ns.ldhName || "N/A"}\n`;
+            });
+            output += "\n";
+          }
+
+          // Secure DNS info
+          if (data.secureDNS) {
+            output += "Secure DNS:\n";
+            output += `  Zone Signed: ${data.secureDNS.zoneSigned}\n`;
+            output += `  Delegation Signed: ${data.secureDNS.delegationSigned}\n\n`;
+          }
+
+          // Flatten all entities (registrar, registrant, admin, tech, billing, etc.)
+          let allEntities = data.entities ? flattenEntities(data.entities) : [];
+
+          // Registrar
+          const registrar = allEntities.find(ent => ent.roles && ent.roles.includes("registrar"));
+          if (registrar) {
+            const regName = getVCardValue(registrar.vcardArray, "fn") || "N/A";
+            output += `Registrar: ${regName}\n`;
+
+            let ianaId = "";
+            if (registrar.publicIds && Array.isArray(registrar.publicIds)) {
+              const ianaObj = registrar.publicIds.find(pub => pub.type === "IANA Registrar ID");
+              if (ianaObj) {
+                ianaId = ianaObj.identifier;
+              }
+            }
+            output += `IANA ID: ${ianaId}\n\n`;
+
+            // Look for nested abuse contact within the registrar entity
+            if (registrar.entities && Array.isArray(registrar.entities)) {
+              const abuseContact = flattenEntities(registrar.entities).find(ent => ent.roles && ent.roles.includes("abuse"));
+              if (abuseContact) {
+                const abuseName = getVCardValue(abuseContact.vcardArray, "fn") || "N/A";
+                const abuseEmail = getVCardValue(abuseContact.vcardArray, "email") || "N/A";
+                const abuseTel = getVCardValue(abuseContact.vcardArray, "tel") || "N/A";
+                output += "Registrar Abuse Contact:\n";
+                output += `  Name: ${abuseName}\n`;
+                output += `  Email: ${abuseEmail}\n`;
+                output += `  Phone: ${abuseTel}\n`;
+              }
+            }
+            output += "\n";
+          }
+
+          // Process other roles: registrant, admin, tech, billing
+          const rolesToShow = ["registrant", "admin", "tech", "billing"];
+          rolesToShow.forEach(role => {
+            // Filter entities by role
+            const ents = allEntities.filter(ent => ent.roles && ent.roles.includes(role));
+            if (ents.length) {
+              ents.forEach(ent => {
+                const name = getVCardValue(ent.vcardArray, "fn") || "N/A";
+                output += `${role.charAt(0).toUpperCase() + role.slice(1)} Contact: ${name}\n`;
+                output += `  Handle: ${ent.handle || "N/A"}\n`;
+                // Optionally, include organization and address if available
+                const org = getVCardValue(ent.vcardArray, "org");
+                if (org) {
+                  output += `  Organization: ${org}\n`;
+                }
+                // You can add more fields as needed (e.g., email, phone)
+                const email = getVCardValue(ent.vcardArray, "email");
+                if (email) {
+                  output += `  Email: ${email}\n`;
+                }
+                const tel = getVCardValue(ent.vcardArray, "tel");
+                if (tel) {
+                  output += `  Phone: ${tel}\n`;
+                }
+                const address = getVCardValue(ent.vcardArray, "adr");
+                if (address) {
+                  // Since the address is an array, filter out any empty parts and join them
+                  const addrStr = Array.isArray(address) ? address.filter(part => part && part.trim()).join(', ') : address;
+                  output += `  Address: ${addrStr}\n`;
+                }
+                output += "\n";
+              });
+            }
+          });
+
+          // Notices
+          if (data.notices && data.notices.length) {
+            output += "Notices:\n";
+            data.notices.forEach(notice => {
+              if (notice.title) {
+                output += `  ${notice.title}\n`;
+              }
+              if (notice.description && Array.isArray(notice.description)) {
+                notice.description.forEach(desc => {
+                  output += `    ${desc}\n`;
+                });
+              }
+              output += "\n";
+            });
+          }
+
+          return output;
         }
+
     </script>
 </body>
 </html>
