@@ -405,17 +405,19 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $stmt2->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
         $stmt2->execute();
         $statuses = $stmt2->fetchAll(PDO::FETCH_COLUMN, 0);
-        
+
         // Add rgpstatus to statuses if it's not empty
-        //if (!empty($domainDetails['rgpstatus'])) {
-            //$statuses[] = $domainDetails['rgpstatus'];
-        //}
+        if (!empty($domainDetails['rgpstatus'])) {
+            $statuses[] = $domainDetails['rgpstatus'];
+        }
 
         // If statuses array is empty, add 'active' to it
         if (empty($statuses)) {
             $statuses[] = 'active';
         }
-        
+
+        $statuses = mapStatuses($statuses);
+
         // Query: Get DNSSEC details
         $stmt2a = $pdo->prepare("SELECT interface FROM secdns WHERE domain_id = :domain_id");
         $stmt2a->bindParam(':domain_id', $domainDetails['id'], PDO::PARAM_INT);
