@@ -77,8 +77,8 @@ function setupLogger($logFilePath, $channelName = 'app') {
 }
 
 function isIpWhitelisted($ip, $pdo) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM registrar_whitelist WHERE addr = ?");
-    $stmt->execute([$ip]);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM registrar_whitelist WHERE addr = :ip");
+    $stmt->execute(['ip' => $ip]);
     $count = $stmt->fetchColumn();
     return $count > 0;
 }
