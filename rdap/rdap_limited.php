@@ -536,9 +536,9 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                             "vcard",
                             [
                                 ['version', new stdClass(), 'text', '4.0'],
-                                //["fn", new stdClass(), "text", $abuseContactName],
-                                ["tel", ["type" => ["voice"]], "uri", "tel:" . $registrarDetails['abuse_phone']],
-                                ["email", new stdClass(), "text", $registrarDetails['abuse_email']]
+                                ["fn", new stdClass(), "text", ''],
+                                ["tel", ["type" => ["voice"]], "uri", "tel:" . ''],
+                                ["email", new stdClass(), "text", '']
                             ]
                         ],
                     ],
