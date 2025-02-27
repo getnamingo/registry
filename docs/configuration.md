@@ -174,7 +174,7 @@ This will initialize and configure the audit trail functionality. This process e
 
 To set up backups in Namingo:
 
-1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details.
+1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details. If using SFTP and just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
 
 2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.9. Running the Automation System** to activate the automation system on your server.
 
@@ -625,6 +625,77 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
+#### Logging:
+
+Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
+
+```bash
+logging {
+    // General logs (startup, shutdown, errors)
+    channel "misc" {
+        file "/var/log/named/misc.log" versions 10 size 10m;
+        print-time YES;
+        print-severity YES;
+        print-category YES;
+    };
+
+    // Query logs (log every DNS query)
+    channel "query" {
+        file "/var/log/named/query.log" versions 20 size 5m;
+        print-time YES;
+        print-severity NO;
+        print-category NO;
+    };
+
+    // Lame server logs (misconfigured DNS servers)
+    channel "lame" {
+        file "/var/log/named/lamers.log" versions 3 size 5m;
+        print-time YES;
+        print-severity YES;
+        severity info;
+    };
+
+    // Security logs (e.g., unauthorized query attempts)
+    channel "security" {
+        file "/var/log/named/security.log" versions 5 size 10m;
+        print-time YES;
+        print-severity YES;
+        severity dynamic;
+    };
+
+    // DNS updates (useful for dynamic zones)
+    channel "update" {
+        file "/var/log/named/update.log" versions 3 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Resolver logs (useful for debugging recursive queries)
+    channel "resolver" {
+        file "/var/log/named/resolver.log" versions 5 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Zone transfer logs (incoming & outgoing transfers)
+    channel "xfer" {
+        file "/var/log/named/xfer.log" versions 5 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Assign categories to log files
+    category "default" { "misc"; };
+    category "queries" { "query"; };
+    category "lame-servers" { "lame"; };
+    category "security" { "security"; };
+    category "update" { "update"; };
+    category "resolver" { "resolver"; };
+    category "xfer-in" { "xfer"; };
+    category "xfer-out" { "xfer"; };
+};
+```
+
 #### Check BIND9 Configuration:
 
 ```bash
@@ -851,6 +922,77 @@ Ensure BIND has permission to write to the zone file and that the files are owne
 ```bash
 chown bind:bind /var/cache/bind/zones
 chmod 755 /var/cache/bind/zones
+```
+
+#### Logging:
+
+Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
+
+```bash
+logging {
+    // General logs (startup, shutdown, errors)
+    channel "misc" {
+        file "/var/log/named/misc.log" versions 10 size 10m;
+        print-time YES;
+        print-severity YES;
+        print-category YES;
+    };
+
+    // Query logs (log every DNS query)
+    channel "query" {
+        file "/var/log/named/query.log" versions 20 size 5m;
+        print-time YES;
+        print-severity NO;
+        print-category NO;
+    };
+
+    // Lame server logs (misconfigured DNS servers)
+    channel "lame" {
+        file "/var/log/named/lamers.log" versions 3 size 5m;
+        print-time YES;
+        print-severity YES;
+        severity info;
+    };
+
+    // Security logs (e.g., unauthorized query attempts)
+    channel "security" {
+        file "/var/log/named/security.log" versions 5 size 10m;
+        print-time YES;
+        print-severity YES;
+        severity dynamic;
+    };
+
+    // DNS updates (useful for dynamic zones)
+    channel "update" {
+        file "/var/log/named/update.log" versions 3 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Resolver logs (useful for debugging recursive queries)
+    channel "resolver" {
+        file "/var/log/named/resolver.log" versions 5 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Zone transfer logs (incoming & outgoing transfers)
+    channel "xfer" {
+        file "/var/log/named/xfer.log" versions 5 size 5m;
+        print-time YES;
+        print-severity YES;
+    };
+
+    // Assign categories to log files
+    category "default" { "misc"; };
+    category "queries" { "query"; };
+    category "lame-servers" { "lame"; };
+    category "security" { "security"; };
+    category "update" { "update"; };
+    category "resolver" { "resolver"; };
+    category "xfer-in" { "xfer"; };
+    category "xfer-out" { "xfer"; };
+};
 ```
 
 #### Restart BIND9 Service

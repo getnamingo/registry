@@ -43,13 +43,13 @@ switch ($storageType) {
             $sftpSettings['host'],
             $sftpSettings['username'],
             $sftpSettings['password'],
-            $sftpSettings['privateKey'],
-            $sftpSettings['passphrase'],
+            $sftpSettings['privateKey'], // Set to null in config if not using SSH key
+            $sftpSettings['passphrase'], // Set to null in config if not using SSH key
             $sftpSettings['port'],
-            $sftpSettings['useAgent'],
+            $sftpSettings['useAgent'], // Set to false in config if not using SSH key
             $sftpSettings['timeout'],
             $sftpSettings['maxTries'],
-            $sftpSettings['fingerprint']
+            $sftpSettings['fingerprint'] // Set to null in config if not using SSH key
         );
 
         $visibilityConverter = PortableVisibilityConverter::fromArray([
