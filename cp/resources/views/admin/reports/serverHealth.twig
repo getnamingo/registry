@@ -47,16 +47,14 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('CPU Cores') }}</h4>
-                                        <div class="text-muted">{{ serverHealth.getCPUCores }}</div>
+                                        <div class="text-muted">{{ serverHealth.getCPUUsage|round(1) }}% {{ __('load across') }} {{ serverHealth.getCPUCores }} {{ __('cores') }}</div>
                                     </div>
                                     <div class="ms-auto">
-                                        <span class="badge bg-primary text-primary-fg">{{ serverHealth.getCPUUsage }}%</span>
+                                        <span class="badge bg-primary text-primary-fg">{{ serverHealth.getCPUUsage|round(1) }}%</span>
                                     </div>
                                 </div>
                                 <div class="progress progress-xl">
-                                    <div class="progress-bar bg-primary" style="width: {{ serverHealth.getCPUUsage }}%;" role="progressbar" aria-valuenow="{{ serverHealth.getCPUUsage }}" aria-valuemin="0" aria-valuemax="100">
-                                        {{ serverHealth.getCPUUsage }}%
-                                    </div>
+                                    <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" style="width: {{ serverHealth.getCPUUsage }}%;" role="progressbar" aria-valuenow="{{ serverHealth.getCPUUsage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
                         </div>
@@ -72,16 +70,16 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('Memory') }}</h4>
-                                        <div class="text-muted">{{ serverHealth.getMemoryFree }} MB {{ __('free of') }} {{ serverHealth.getMemoryTotal }} MB</div>
+                                        {% set used_memory = serverHealth.getMemoryTotal - serverHealth.getMemoryFree %}
+                                        {% set memory_usage_percentage = (used_memory / serverHealth.getMemoryTotal * 100)|round(1) %}
+                                        <div class="text-muted">{{ used_memory }} MB {{ __('used of') }} {{ serverHealth.getMemoryTotal }} MB</div>
                                     </div>
                                     <div class="ms-auto">
-                                        <span class="badge bg-green text-green-fg">{{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%</span>
+                                        <span class="badge bg-green text-green-fg">{{ memory_usage_percentage }}%</span>
                                     </div>
                                 </div>
                                 <div class="progress progress-xl">
-                                    <div class="progress-bar bg-success" style="width: {{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%;" role="progressbar" aria-valuenow="{{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}" aria-valuemin="0" aria-valuemax="100">
-                                        {{ (serverHealth.getMemoryFree / serverHealth.getMemoryTotal * 100)|round(1) }}%
-                                    </div>
+                                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: {{ memory_usage_percentage }}%;" role="progressbar" aria-valuenow="{{ memory_usage_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
                         </div>
@@ -97,16 +95,16 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div>
                                         <h4 class="m-0">{{ __('Disk') }}</h4>
-                                        <div class="text-muted">{{ serverHealth.getDiskFree }} GB {{ __('free of') }} {{ serverHealth.getDiskTotal }} GB</div>
+                                        {% set used_disk = serverHealth.getDiskTotal - serverHealth.getDiskFree %}
+                                        {% set disk_usage_percentage = (used_disk / serverHealth.getDiskTotal * 100)|round(1) %}
+                                        <div class="text-muted">{{ used_disk }} GB {{ __('used of') }} {{ serverHealth.getDiskTotal }} GB</div>
                                     </div>
                                     <div class="ms-auto">
-                                        <span class="badge bg-warning text-warning-fg">{{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%</span>
+                                        <span class="badge bg-warning text-warning-fg">{{ disk_usage_percentage }}%</span>
                                     </div>
                                 </div>
                                 <div class="progress progress-xl">
-                                    <div class="progress-bar bg-warning" style="width: {{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%;" role="progressbar" aria-valuenow="{{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}" aria-valuemin="0" aria-valuemax="100">
-                                        {{ (serverHealth.getDiskFree / serverHealth.getDiskTotal * 100)|round(1) }}%
-                                    </div>
+                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width: {{ disk_usage_percentage }}%;" role="progressbar" aria-valuenow="{{ disk_usage_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
                         </div>
