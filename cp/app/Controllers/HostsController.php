@@ -44,8 +44,8 @@ class HostsController extends Controller
                         $hostName = $convertedDomain;
                     }
                 }
-                
-                if (preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $hostName) && strlen($hostName) < 254) {
+
+                if (isValidHostname($hostName)) {
                     $host_id_already_exist = $hostModel->getHostByNom($hostName);
                     if ($host_id_already_exist) {
                         $this->container->get('flash')->addMessage('error', 'Error creating host: host name ' . $hostName . ' already exists');
@@ -55,7 +55,7 @@ class HostsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Error creating host: Invalid host name');
                     return $response->withHeader('Location', '/host/create')->withStatus(302);
                 }
-                
+
                 $result = $db->selectRow('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
 
                 if ($_SESSION["auth_roles"] != 0) {
@@ -244,20 +244,6 @@ class HostsController extends Controller
         // Get the current URI
         $uri = $request->getUri()->getPath();
 
-        function isValidHostname($hostname) {
-            $hostname = trim($hostname);
-
-            // Check for IDN and convert to ASCII if necessary
-            if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
-                $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
-            }
-
-            // Regular expression for validating a hostname
-            $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
-
-            return preg_match($pattern, $hostname);
-        }
-
         if ($args && isValidHostname($args)) {
             $host = $db->selectRow('SELECT id, name, clid, crdate FROM host WHERE name = ?',
             [ $args ]);
@@ -318,21 +304,16 @@ class HostsController extends Controller
         // Get the current URI
         $uri = $request->getUri()->getPath();
 
-        function isValidHostname($hostname) {
-            $hostname = trim($hostname);
-
-            // Check for IDN and convert to ASCII if necessary
-            if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
-                $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
-            }
-
-            // Regular expression for validating a hostname
-            $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
-
-            return preg_match($pattern, $hostname);
-        }
-
         if ($args && isValidHostname($args)) {
+            $args = trim($args);
+
+            if (mb_detect_encoding($args, 'ASCII', true) === false) {
+                $args = idn_to_ascii($args, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($args === false) {
+                    // Redirect to the hosts view
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
+            }
             $internal_host = false;
 
             $query = "SELECT tld FROM domain_tld";
@@ -565,20 +546,6 @@ class HostsController extends Controller
             // Get the current URI
             $uri = $request->getUri()->getPath();
         
-            function isValidHostname($hostname) {
-                $hostname = trim($hostname);
-
-                // Check for IDN and convert to ASCII if necessary
-                if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
-                    $hostname = idn_to_ascii($hostname, 0, INTL_IDNA_VARIANT_UTS46);
-                }
-
-                // Regular expression for validating a hostname
-                $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/';
-
-                return preg_match($pattern, $hostname);
-            }
-
             if ($args && isValidHostname($args)) {
                 $host = $db->selectRow('SELECT id, clid FROM host WHERE name = ?',
                 [ $args ]);

@@ -1087,3 +1087,43 @@ function generateIanaIdnTable(string $regex, array $metadata): string {
     }
     return $output;
 }
+
+function isValidHostname($hostname) {
+    $hostname = trim($hostname);
+
+    // Convert IDN (Unicode) to ASCII if necessary
+    if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
+        $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+        if ($hostname === false) {
+            return false; // Invalid IDN conversion
+        }
+    }
+
+    // Ensure there is at least **one dot** (to prevent single-segment hostnames)
+    if (substr_count($hostname, '.') < 1) {
+        return false;
+    }
+
+    // Regular expression for validating a hostname
+    $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.)*([a-zA-Z0-9-]{1,63}|xn--[a-zA-Z0-9-]{2,63})$/';
+
+    // Ensure it matches the hostname pattern
+    if (!preg_match($pattern, $hostname)) {
+        return false;
+    }
+
+    // Ensure no label exceeds 63 characters
+    $labels = explode('.', $hostname);
+    foreach ($labels as $label) {
+        if (strlen($label) > 63) {
+            return false;
+        }
+    }
+
+    // Ensure full hostname is not longer than 255 characters
+    if (strlen($hostname) > 255) {
+        return false;
+    }
+
+    return true;
+}
