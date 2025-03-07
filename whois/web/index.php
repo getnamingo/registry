@@ -276,6 +276,7 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                     if (captchaInput && !captchaInput.disabled) {
                         // Reload captcha after a successful response
                         document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
+                        captchaInput.value = '';
                     }
                 })
                 .catch(error => {
@@ -320,6 +321,7 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                         if (captchaInput && !captchaInput.disabled) {
                             // Reload captcha
                             document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
+                            captchaInput.value = '';
                         }
                     }
                 })

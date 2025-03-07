@@ -247,8 +247,6 @@ EOF
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
     git clone --branch v1.0.16 --single-branch https://github.com/getnamingo/registry /opt/registry
-    mkdir -p /var/log/namingo
-    chown -R www-data:www-data /var/log/namingo
     
     echo "Setting up firewall rules..."
     ufw allow 22/tcp
@@ -356,6 +354,11 @@ EOF
         }
     }
 EOF
+
+    mkdir -p /var/log/namingo
+    chown -R www-data:www-data /var/log/namingo
+    touch /var/log/namingo/caddy.log
+    chown caddy:caddy /var/log/namingo/caddy.log
 
     systemctl enable caddy
     systemctl restart caddy
