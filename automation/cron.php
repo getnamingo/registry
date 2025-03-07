@@ -53,7 +53,7 @@ $scheduler->php('/opt/registry/automation/write-zone.php')->at('*/15 * * * *');
 $scheduler->php('/opt/registry/automation/registrar.php')->at('35 * * * *');
 $scheduler->php('/opt/registry/automation/statistics.php')->at('59 * * * *');
 $scheduler->php('/opt/registry/automation/rdap-urls.php')->at('50 1 * * *');
-$scheduler->php('/var/www/cp/bin/file_cache.php')->at('0 0 * * 1,4');
+$scheduler->php('/var/www/cp/bin/file_cache.php')->at('0 0 * * *');
 
 $scheduler->php('/opt/registry/automation/domain-lifecycle-manager.php')->at('*/5 * * * *');
 $scheduler->php('/opt/registry/automation/auto-approve-transfer.php')->at('*/30 * * * *');

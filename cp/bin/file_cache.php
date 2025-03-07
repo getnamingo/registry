@@ -22,6 +22,7 @@ $config = [
     'cache_duration' => 86400 * 7, // Cache for 7 days
     'max_retries' => 3, // Retry up to 3 times
 ];
+$config['timestamp_file'] = $config['cache_path'] . '/tlds_alpha_by_domain.timestamp';
 
 // Set up Filesystem Cache
 $adapter = new LocalFilesystemAdapter($config['cache_path'], null, LOCK_EX);
@@ -30,9 +31,21 @@ $cache = new Pool(new ScrapbookFlysystem($filesystem));
 
 // Check if the file is already cached
 $cachedFile = $cache->getItem($config['cache_key']);
+$timestampFile = $config['timestamp_file'];
+$cache_refresh_threshold = 86400 * 1; // Refresh if 1 day before expiration
+
 if ($cachedFile->isHit()) {
-    $log->info('ICANN TLD List loaded from cache.');
-    exit(0);
+    // Check the timestamp from the separate file
+    if (file_exists($timestampFile)) {
+        $cacheAge = time() - filemtime($timestampFile);
+        
+        if ($cacheAge < ($config['cache_duration'] - $cache_refresh_threshold)) {
+            $log->info('ICANN TLD List loaded from cache.');
+            exit(0);
+        }
+
+        $log->info('Cache is nearing expiration. Refreshing.');
+    }
 }
 
 // Download and cache the file
@@ -49,6 +62,7 @@ while ($retryCount < $config['max_retries'] && !$success) {
         $cachedFile->set($fileContent);
         $cachedFile->expiresAfter($config['cache_duration']);
         $cache->save($cachedFile);
+        touch($timestampFile);
 
         $log->info('ICANN TLD list downloaded and cached successfully.');
         $success = true;
