@@ -290,6 +290,14 @@ EOF
         file_server
         tls $YOUR_EMAIL
         header -Server
+        log {
+            output file /var/log/namingo/web-rdap.log {
+                roll_size 10MB
+                roll_keep 5
+                roll_keep_days 14
+            }
+            format json
+        }
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -314,6 +322,14 @@ EOF
         file_server
         tls $YOUR_EMAIL
         header -Server
+        log {
+            output file /var/log/namingo/web-whois.log {
+                roll_size 10MB
+                roll_keep 5
+                roll_keep_days 14
+            }
+            format json
+        }
         header * {
             Referrer-Policy "no-referrer"
             Strict-Transport-Security max-age=31536000;
@@ -335,7 +351,12 @@ EOF
         tls $YOUR_EMAIL
         header -Server
         log {
-            output file /var/log/namingo/caddy.log
+            output file /var/log/namingo/web-cp.log {
+                roll_size 10MB
+                roll_keep 5
+                roll_keep_days 14
+            }
+            format json
         }
         # Adminer Configuration
         route /adminer.php* {
@@ -357,8 +378,12 @@ EOF
 
     mkdir -p /var/log/namingo
     chown -R www-data:www-data /var/log/namingo
-    touch /var/log/namingo/caddy.log
-    chown caddy:caddy /var/log/namingo/caddy.log
+    touch /var/log/namingo/web-cp.log
+    chown caddy:caddy /var/log/namingo/web-cp.log
+    touch /var/log/namingo/web-whois.log
+    chown caddy:caddy /var/log/namingo/web-whois.log
+    touch /var/log/namingo/web-rdap.log
+    chown caddy:caddy /var/log/namingo/web-rdap.log
 
     systemctl enable caddy
     systemctl restart caddy

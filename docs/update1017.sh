@@ -116,6 +116,76 @@ composer_update "/opt/registry/whois/port43"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
+# Path to the Caddyfile
+CADDYFILE="/etc/caddy/Caddyfile"
+BACKUP="/etc/caddy/Caddyfile.bak"
+
+# Backup the original file
+cp "$CADDYFILE" "$BACKUP"
+echo "Backup saved to $BACKUP"
+
+# -------------------------------------------------------------
+# 1. In the site block starting with "rdap.", insert the log block
+#    after the line containing "header -Server"
+# -------------------------------------------------------------
+sed -i '/^rdap\./,/^}/ {
+    /header -Server/ a\
+        log {\
+            output file /var/log/namingo/web-rdap.log {\
+                roll_size 10MB\
+                roll_keep 5\
+                roll_keep_days 14\
+            }\
+            format json\
+        }
+}' "$CADDYFILE"
+
+# -------------------------------------------------------------
+# 2. In the site block starting with "whois.", insert the log block
+#    after the line containing "header -Server"
+# -------------------------------------------------------------
+sed -i '/^whois\./,/^}/ {
+    /header -Server/ a\
+        log {\
+            output file /var/log/namingo/web-whois.log {\
+                roll_size 10MB\
+                roll_keep 5\
+                roll_keep_days 14\
+            }\
+            format json\
+        }
+}' "$CADDYFILE"
+
+# -------------------------------------------------------------
+# 3. In the site block starting with "cp.", replace the old log block:
+#
+#         log {
+#             output file /var/log/namingo/caddy.log
+#         }
+#
+#    with the new log block:
+#
+#         log {
+#             output file /var/log/namingo/web-cp.log {
+#                 roll_size 10MB
+#                 roll_keep 5
+#                 roll_keep_days 14
+#             }
+#             format json
+#         }
+# -------------------------------------------------------------
+# This substitution assumes the original block appears exactly as shown.
+sed -i 's/        log {\n            output file \/var\/log\/namingo\/caddy.log\n        }/        log {\n            output file \/var\/log\/namingo\/web-cp.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }/' "$CADDYFILE"
+
+# -------------------------------------------------------------
+# 4. Create the new log files and set ownership to caddy:caddy
+# -------------------------------------------------------------
+for logfile in web-cp.log web-whois.log web-rdap.log; do
+    touch /var/log/namingo/"$logfile"
+    chown caddy:caddy /var/log/namingo/"$logfile"
+    echo "Created and updated ownership for /var/log/namingo/$logfile"
+done
+
 # Start services
 echo "Starting services..."
 systemctl start epp
