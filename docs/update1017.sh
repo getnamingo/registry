@@ -116,7 +116,6 @@ composer_update "/opt/registry/whois/port43"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
-# Path to the Caddyfile
 CADDYFILE="/etc/caddy/Caddyfile"
 BACKUP="/etc/caddy/Caddyfile.bak"
 
@@ -124,67 +123,34 @@ BACKUP="/etc/caddy/Caddyfile.bak"
 cp "$CADDYFILE" "$BACKUP"
 echo "Backup saved to $BACKUP"
 
-# -------------------------------------------------------------
-# 1. In the site block starting with "rdap.", insert the log block
-#    after the line containing "header -Server"
-# -------------------------------------------------------------
-sed -i '/^rdap\./,/^}/ {
-    /header -Server/ a\
-        log {\
-            output file /var/log/namingo/web-rdap.log {\
-                roll_size 10MB\
-                roll_keep 5\
-                roll_keep_days 14\
-            }\
-            format json\
-        }
-}' "$CADDYFILE"
+# --------------------------------------------------------------------
+# 1. For the rdap block: insert the new log block after "header -Server"
+#    and before the following "header * {" line.
+# --------------------------------------------------------------------
+perl -0777 -pi -e 's/(^\s*rdap\.namingo\.org\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-rdap.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
 
-# -------------------------------------------------------------
-# 2. In the site block starting with "whois.", insert the log block
-#    after the line containing "header -Server"
-# -------------------------------------------------------------
-sed -i '/^whois\./,/^}/ {
-    /header -Server/ a\
-        log {\
-            output file /var/log/namingo/web-whois.log {\
-                roll_size 10MB\
-                roll_keep 5\
-                roll_keep_days 14\
-            }\
-            format json\
-        }
-}' "$CADDYFILE"
+# --------------------------------------------------------------------
+# 2. For the whois block: insert the new log block after "header -Server"
+#    and before the following "header * {" line.
+# --------------------------------------------------------------------
+perl -0777 -pi -e 's/(^\s*whois\.namingo\.org\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-whois.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
 
-# -------------------------------------------------------------
-# 3. In the site block starting with "cp.", replace the old log block:
-#
-#         log {
-#             output file /var/log/namingo/caddy.log
-#         }
-#
-#    with the new log block:
-#
-#         log {
-#             output file /var/log/namingo/web-cp.log {
-#                 roll_size 10MB
-#                 roll_keep 5
-#                 roll_keep_days 14
-#             }
-#             format json
-#         }
-# -------------------------------------------------------------
-# This substitution assumes the original block appears exactly as shown.
-sed -i 's/        log {\n            output file \/var\/log\/namingo\/caddy.log\n        }/        log {\n            output file \/var\/log\/namingo\/web-cp.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }/' "$CADDYFILE"
+# --------------------------------------------------------------------
+# 3. For the cp block: replace the log block that outputs to caddy.log
+#    with a new block that outputs to web-cp.log.
+# --------------------------------------------------------------------
+perl -0777 -pi -e 's/(^\s*cp\.namingo\.org\s*\{.*?log\s*\{\s*\n\s*output\s+file\s+\/var\/log\/namingo\/)caddy\.log(\s*\n\s*\})/$1web-cp.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }/sm' "$CADDYFILE"
 
-# -------------------------------------------------------------
-# 4. Create the new log files and set ownership to caddy:caddy
-# -------------------------------------------------------------
+# --------------------------------------------------------------------
+# 4. Create the new log files and set their ownership to caddy:caddy
+# --------------------------------------------------------------------
 for logfile in web-cp.log web-whois.log web-rdap.log; do
     touch /var/log/namingo/"$logfile"
     chown caddy:caddy /var/log/namingo/"$logfile"
     echo "Created and updated ownership for /var/log/namingo/$logfile"
 done
+
+wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 
 # Start services
 echo "Starting services..."
@@ -205,3 +171,35 @@ else
 fi
 
 echo "Upgrade to v1.0.17 completed successfully."
+echo ""
+echo "Please double-check /etc/caddy/Caddyfile to ensure that the following log blocks have been added:"
+echo ""
+echo "For rdap.namingo.org:"
+echo "    log {"
+echo "        output file /var/log/namingo/web-rdap.log {"
+echo "            roll_size 10MB"
+echo "            roll_keep 5"
+echo "            roll_keep_days 14"
+echo "        }"
+echo "        format json"
+echo "    }"
+echo ""
+echo "For whois.namingo.org:"
+echo "    log {"
+echo "        output file /var/log/namingo/web-whois.log {"
+echo "            roll_size 10MB"
+echo "            roll_keep 5"
+echo "            roll_keep_days 14"
+echo "        }"
+echo "        format json"
+echo "    }"
+echo ""
+echo "For cp.namingo.org:"
+echo "    log {"
+echo "        output file /var/log/namingo/web-cp.log {"
+echo "            roll_size 10MB"
+echo "            roll_keep 5"
+echo "            roll_keep_days 14"
+echo "        }"
+echo "        format json"
+echo "    }"
