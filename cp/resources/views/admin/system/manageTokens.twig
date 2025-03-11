@@ -25,14 +25,12 @@
           <div class="container-xl">
             <div class="col-12">
               <div class="alert alert-info" role="alert">
-                <div class="d-flex">
-                  <div>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-                  </div>
-                  <div>
-                    <h4 class="alert-title">{{ __('Note on Allocation Tokens') }}</h4>
-                    <div class="text-secondary">{{ __('For the moment, allocation tokens are managed directly via the database and can only be viewed in the control panel.') }}</div>
-                  </div>
+                <div class="alert-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                </div>
+                <div>
+                  <h4 class="alert-heading">{{ __('Note on Allocation Tokens') }}</h4>
+                  <div class="alert-description">{{ __('For the moment, allocation tokens are managed directly via the database and can only be viewed in the control panel.') }}</div>
                 </div>
               </div>
             {% include 'partials/flash.twig' %}
