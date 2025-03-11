@@ -1012,83 +1012,137 @@ class SystemController extends Controller
 
                 $secureTld = $tld['secure'];
                 if ($secureTld === 1) {
-                    $zone = ltrim($tld['tld'], '.');
-                    $statusOutput = shell_exec("sudo rndc dnssec -status " . escapeshellarg($zone) . " 2>&1");
+                    if (file_exists('/usr/sbin/rndc')) {
+                        $zone = ltrim($tld['tld'], '.');
+                        $statusOutput = shell_exec("sudo rndc dnssec -status " . escapeshellarg($zone) . " 2>&1");
 
-                    if (!$statusOutput) {
-                        $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone."];
-                    } else {
-                        // Extract all KSKs regardless of algorithm
-                        preg_match_all('/key: (\d+) \((\w+)\), KSK/', $statusOutput, $matches, PREG_SET_ORDER);
+                        if (!$statusOutput) {
+                            $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone."];
+                        } else {
+                            // Extract all KSKs regardless of algorithm
+                            preg_match_all('/key: (\d+) \((\w+)\), KSK/', $statusOutput, $matches, PREG_SET_ORDER);
 
-                        $dnssecData = [
-                            'zoneName' => $tld['tld'],
-                            'timestamp' => date('Y-m-d H:i:s'),
-                            'keys' => [],
-                        ];
-
-                        foreach ($matches as $match) {
-                            $keyId = $match[1];
-                            $algorithm = $match[2];
-                            
-                            // Convert algorithm name to corresponding number for dnssec-dsfromkey
-                            $algoMap = [
-                                'RSASHA1' => '005', 'RSASHA1-NSEC3-SHA1' => '007',
-                                'RSASHA256' => '008', 'RSASHA512' => '010',
-                                'ECDSAP256SHA256' => '013', 'ECDSAP384SHA384' => '014',
-                                'ED25519' => '015', 'ED448' => '016'
+                            $dnssecData = [
+                                'zoneName' => $tld['tld'],
+                                'timestamp' => date('Y-m-d H:i:s'),
+                                'keys' => [],
                             ];
-                            $algoNum = $algoMap[$algorithm] ?? '000'; // Default to unknown if missing
 
-                            // Determine if key is active or in rollover state
-                            preg_match("/key: $keyId.*?(?=\\nkey:|\\z)/s", $statusOutput, $keyBlockMatch);
-                            $keyBlock = $keyBlockMatch[0] ?? '';
+                            foreach ($matches as $match) {
+                                $keyId = $match[1];
+                                $algorithm = $match[2];
+                                
+                                // Convert algorithm name to corresponding number for dnssec-dsfromkey
+                                $algoMap = [
+                                    'RSASHA1' => '005', 'RSASHA1-NSEC3-SHA1' => '007',
+                                    'RSASHA256' => '008', 'RSASHA512' => '010',
+                                    'ECDSAP256SHA256' => '013', 'ECDSAP384SHA384' => '014',
+                                    'ED25519' => '015', 'ED448' => '016'
+                                ];
+                                $algoNum = $algoMap[$algorithm] ?? '000'; // Default to unknown if missing
 
-                            // Skip keys explicitly removed from the zone
-                            if (strpos($keyBlock, 'Key has been removed from the zone') !== false) {
-                                continue;
+                                // Determine if key is active or in rollover state
+                                preg_match("/key: $keyId.*?(?=\\nkey:|\\z)/s", $statusOutput, $keyBlockMatch);
+                                $keyBlock = $keyBlockMatch[0] ?? '';
+
+                                // Skip keys explicitly removed from the zone
+                                if (strpos($keyBlock, 'Key has been removed from the zone') !== false) {
+                                    continue;
+                                }
+
+                                // Determine key status accurately
+                                $keyStatus = strpos($keyBlock, 'key signing:    yes') !== false ? 'Active' : 'Pending Rollover';
+
+                                // Extract next rollover date
+                                preg_match('/Next rollover scheduled on ([^\\n]+)/', $keyBlock, $rolloverMatch);
+                                $nextRollover = $rolloverMatch[1] ?? null;
+
+                                // Extract retirement date, if present
+                                preg_match('/Key.*removed.*on ([^\\n]+)/', $keyBlock, $retirementMatch);
+                                $retirementDate = $retirementMatch[1] ?? null;
+                                
+                                // Extract published date
+                                preg_match('/published:\s+yes\s+-\s+since\s+([^\n]+)/', $keyBlock, $publishedMatch);
+                                $publishedDate = isset($publishedMatch[1]) ? trim($publishedMatch[1]) : null;
+
+                                // Extract DS status ("rumoured" or "omnipresent")
+                                preg_match('/- ds:\s+(\w+)/', $keyBlock, $dsMatch);
+                                $dsStatus = $dsMatch[1] ?? null;
+
+                                // Extract DS record for this key
+                                $dsRecord = shell_exec("dnssec-dsfromkey -2 /var/lib/bind/K{$zone}.+{$algoNum}+{$keyId}.key");
+                                $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
+
+                                // Append key details
+                                $dnssecData['keys'][] = [
+                                    'key_id' => $keyId,
+                                    'algorithm' => $algorithm,
+                                    'ds_record' => $dsRecord,
+                                    'status' => $keyStatus,
+                                    'timestamp' => date('Y-m-d H:i:s'),
+                                    'next_rollover' => $nextRollover,
+                                    'retirement_date' => $retirementDate,
+                                    'published_date' => $publishedDate,
+                                    'ds_status' => $dsStatus,
+                                ];
                             }
 
-                            // Determine key status accurately
-                            $keyStatus = strpos($keyBlock, 'key signing:    yes') !== false ? 'Active' : 'Pending Rollover';
-
-                            // Extract next rollover date
-                            preg_match('/Next rollover scheduled on ([^\\n]+)/', $keyBlock, $rolloverMatch);
-                            $nextRollover = $rolloverMatch[1] ?? null;
-
-                            // Extract retirement date, if present
-                            preg_match('/Key.*removed.*on ([^\\n]+)/', $keyBlock, $retirementMatch);
-                            $retirementDate = $retirementMatch[1] ?? null;
-                            
-                            // Extract published date
-                            preg_match('/published:\s+yes\s+-\s+since\s+([^\n]+)/', $keyBlock, $publishedMatch);
-                            $publishedDate = isset($publishedMatch[1]) ? trim($publishedMatch[1]) : null;
-
-                            // Extract DS status ("rumoured" or "omnipresent")
-                            preg_match('/- ds:\s+(\w+)/', $keyBlock, $dsMatch);
-                            $dsStatus = $dsMatch[1] ?? null;
-
-                            // Extract DS record for this key
-                            $dsRecord = shell_exec("dnssec-dsfromkey -2 /var/lib/bind/K{$zone}.+{$algoNum}+{$keyId}.key");
-                            $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
-
-                            // Append key details
-                            $dnssecData['keys'][] = [
-                                'key_id' => $keyId,
-                                'algorithm' => $algorithm,
-                                'ds_record' => $dsRecord,
-                                'status' => $keyStatus,
-                                'timestamp' => date('Y-m-d H:i:s'),
-                                'next_rollover' => $nextRollover,
-                                'retirement_date' => $retirementDate,
-                                'published_date' => $publishedDate,
-                                'ds_status' => $dsStatus,
-                            ];
+                            // If no keys were found, set an error message
+                            if (empty($dnssecData['keys'])) {
+                                $dnssecData = ['error' => "No DNSSEC keys found for $zone."];
+                            }
                         }
+                    } elseif (file_exists('/usr/sbin/knotc')) {
+                        $zone = ltrim($tld['tld'], '.');
+                        $keyDir = '/etc/knot/keys';
 
-                        // If no keys were found, set an error message
-                        if (empty($dnssecData['keys'])) {
-                            $dnssecData = ['error' => "No DNSSEC keys found for $zone."];
+                        // Use knotc to get key statuses
+                        $keyListOutput = shell_exec("sudo knotc zone-key list " . escapeshellarg($zone) . " 2>&1");
+
+                        if (!$keyListOutput) {
+                            $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone (Knot DNS)."];
+                        } else {
+                            preg_match_all('/([0-9]+)\s+KSK\s+(\w+)\s+(\w+)\s+(\w+)\s+([0-9T:-]+)/', $keyListOutput, $matches, PREG_SET_ORDER);
+
+                            $dnssecData = [
+                                'zoneName' => '.' . $zone,
+                                'timestamp' => date('Y-m-d H:i:s'),
+                                'keys' => [],
+                            ];
+
+                            foreach ($matches as $match) {
+                                $keyId = $match[1];
+                                $algorithm = 'ED25519'; // Knot uses policy-defined algorithm
+                                $keyStatus = ($match[2] === 'active') ? 'Active' : 'Pending Rollover';
+                                $publishedDate = $match[5] ?? null;
+
+                                // Extract DS record from keymgr
+                                $dsRecord = shell_exec("keymgr ds " . escapeshellarg($zone) . " 2>/dev/null");
+                                $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
+
+                                // Since Knot DNS doesn't explicitly show rollover in this output, set as null
+                                $nextRollover = null;
+                                $retirementDate = null;
+
+                                // DS Status isn't directly shown; you might manually track submission
+                                $dsStatus = null;
+
+                                $dnssecData['keys'][] = [
+                                    'key_id' => $match[1],
+                                    'algorithm' => 'ED25519',
+                                    'ds_record' => $dsRecord,
+                                    'status' => (strpos($match[0], 'active') !== false ? 'Active' : 'Pending Rollover'),
+                                    'timestamp' => date('Y-m-d H:i:s'),
+                                    'next_rollover' => $nextRollover,
+                                    'retirement_date' => null,
+                                    'published_date' => $publishedDate,
+                                    'ds_status' => null,
+                                ];
+                            }
+
+                            if (empty($dnssecData['keys'])) {
+                                $dnssecData = ['error' => "No DNSSEC keys found for $zone using Knot DNS."];
+                            }
                         }
                     }
                 } else {

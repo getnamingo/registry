@@ -422,19 +422,17 @@ Create an A record pointing `sftp.namingo.org` → `<your-server-ip>`.
 sftp -i icann_sftp_key sftpuser@sftp.namingo.org
 ```
 
-## 2. Recommended Components and Integrations
+## 2. DNS Server Setup
 
-This section outlines recommended components to enhance the functionality and reliability of your Namingo setup. These include essential services like DNS servers, monitoring tools, and other integrations that can help maintain a robust registry environment.
+### 2.1. Hidden Master DNS with BIND
 
-### 2.1. Setup Hidden Master DNS with BIND
-
-#### Install BIND9 and its utilities:
+#### 2.1.1. Install BIND9 and its utilities:
 
 ```bash
 apt install bind9 bind9-utils bind9-doc
 ```
 
-#### Generate a TSIG key:
+#### 2.1.2. Generate a TSIG key:
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
@@ -454,9 +452,9 @@ key "test.key" {
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
 
-#### Configure the Named Configuration File (Please Choose One):
+#### 2.1.3. Named Configuration - Please Choose One:
 
-1. Without DNSSEC:
+#### 2.1.3a. Unsigned zone (No DNSSEC):
 
 Edit the named.conf.local file:
 
@@ -489,7 +487,7 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-2. Using DNSSEC with BIND9:
+#### 2.1.3b. Signed zone (With DNSSEC):
 
 Edit the named.conf.local file:
 
@@ -544,7 +542,50 @@ php /opt/registry/automation/write-zone.php
 
 **NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
 
-3. Using DNSSEC with OpenDNSSEC:
+**Optional: Configure BIND with PKCS#11 support
+
+```bash
+apt install softhsm2 opensc libengine-pkcs11-openssl
+```
+
+Edit `/etc/bind/named.conf.options` and add the following:
+
+```bash
+options {
+    // Existing options...
+    dnssec-policy "hsm-policy";
+};
+
+dnssec-policy "hsm-policy" {
+    keys {
+        ksk key-directory "pkcs11:token=YourTokenLabel" lifetime P1Y algorithm ecdsap256sha256;
+        zsk key-directory "pkcs11:token=YourTokenLabel" lifetime P2M algorithm ecdsap256sha256;
+    };
+    max-zone-ttl 86400;
+    dnskey-ttl 3600;
+    zone-propagation-delay 3600;
+    parent-propagation-delay 7200;
+    parent-ds-ttl 86400;
+};
+```
+
+Replace `YourTokenLabel` with your actual HSM token label.
+
+BIND will automatically generate keys within the device when configured correctly:
+
+```bash
+rndc loadkeys your.tld
+```
+
+You can verify the keys with tools provided by your HSM vendor or via standard PKCS#11 utilities:
+
+```bash
+softhsm2-util --show-slots
+```
+
+#### 2.1.3c. Signed zone (DNSSEC with OpenDNSSEC):
+
+3. Using DNSSEC with :
 
 Edit the named.conf.local file:
 
@@ -614,7 +655,7 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-#### Logging:
+#### 2.1.4. Logging:
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -685,20 +726,20 @@ logging {
 };
 ```
 
-#### Check BIND9 Configuration:
+#### 2.1.5. Check BIND9 Configuration:
 
 ```bash
 named-checkconf
 named-checkzone test /var/lib/bind/test.zone
 ```
 
-#### Restart BIND9 Service:
+#### 2.1.6. Restart BIND9 Service:
 
 ```bash
 systemctl restart bind9
 ```
 
-#### Verify Zone Loading:
+#### 2.1.7. Verify Zone Loading:
 
 Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 
@@ -706,53 +747,15 @@ Check the BIND9 logs to ensure that the .test zone is loaded without errors:
 grep named /var/log/syslog
 ```
 
-#### Setup DNSSEC KSK Rollover:
+### 2.2. Hidden Master DNS with Knot DNS and DNSSEC
 
-Create `/etc/systemd/system/dnssec-rollover.timer`:
-
-```bash
-[Unit]
-Description=Run DNSSEC rollover script every 12 hours
-
-[Timer]
-OnCalendar=*-*-* 00,12:00:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-Then create `/etc/systemd/system/dnssec-rollover.service`:
-
-```bash
-[Unit]
-Description=DNSSEC Rollover Script
-
-[Service]
-ExecStart=/opt/registry/automation/dnssec-rollover.sh
-User=root
-StandardOutput=append:/var/log/namingo/dnssec-rollover.log
-StandardError=append:/var/log/namingo/dnssec-rollover.log
-```
-
-Enable and start the timer:
-
-```bash
-systemctl daemon-reload
-systemctl enable --now dnssec-rollover.timer
-```
-
-This ensures **automatic execution every 12 hours** and logs output.
-
-### 2.2. Setup Hidden Master DNS with Knot DNS and DNSSEC
-
-#### Install Knot DNS and its utilities:
+#### 2.2.1. Install Knot DNS and its utilities:
 
 ```bash
 apt install knot knot-dnsutils
 ```
 
-#### Generate a TSIG key:
+#### 2.2.2. Generate a TSIG key:
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
@@ -772,7 +775,7 @@ key:
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
 
-#### Configure DNSSEC Policy:
+#### 2.2.3. Configure DNSSEC Policy:
 
 Add the DNSSEC policy to `/etc/knot/knot.conf`:
 
@@ -795,7 +798,7 @@ policy:
     dnskey-ttl: 3600
 ```
 
-#### Add your zone:
+#### 2.2.4. Add your zone:
 
 Add the zone to `/etc/knot/knot.conf`:
 
@@ -860,14 +863,14 @@ key "test.key" {
 };
 ```
 
-#### Installation of BIND9
+#### 2.3.1. Installation of BIND9
 
 ```bash
 apt update
 apt install bind9 bind9-utils bind9-doc
 ```
 
-#### Add the TSIG key to the BIND Configuration
+#### 2.3.2. Add the TSIG key to the BIND Configuration
 
 Create a directory to store zone files:
 
@@ -904,7 +907,7 @@ zone "test." {
 
 Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
 
-#### Adjusting Permissions and Ownership
+#### 2.3.3. Adjusting Permissions and Ownership
 
 Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
 
@@ -913,7 +916,7 @@ chown bind:bind /var/cache/bind/zones
 chmod 755 /var/cache/bind/zones
 ```
 
-#### Logging:
+#### 2.3.4. Logging:
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -984,7 +987,7 @@ logging {
 };
 ```
 
-#### Restart BIND9 Service
+#### 2.3.5. Restart BIND9 Service
 
 After making these changes, restart the BIND9 service to apply them:
 
@@ -992,16 +995,20 @@ After making these changes, restart the BIND9 service to apply them:
 systemctl restart bind9
 ```
 
-#### Verify Configuration and Zone Transfer
+#### 2.3.6. Verify Configuration and Zone Transfer
 
 ```bash
 named-checkconf
 grep 'transfer of "test."' /var/log/syslog
 ```
 
-### 2.4. Setup Monitoring
+## 3. Recommended Components and Integrations
 
-#### 2.4.1. Option 1: Prometheus
+This section outlines recommended components to enhance the functionality and reliability of your Namingo setup.
+
+### 3.1. Setup Monitoring
+
+#### 3.1.1. Option 1: Prometheus
 
 ```bash
 apt update
@@ -1334,7 +1341,7 @@ If you want notifications via email, Slack, Telegram, or other tools, you can co
 
 3. Create alert rules (e.g., "Alert if Redis is down for 1 minute").
 
-#### 2.4.2. Option 2: Netdata
+#### 3.1.2. Option 2: Netdata
 
 ```bash
 wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && ./install.sh
@@ -1342,7 +1349,7 @@ wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && 
 
 Open Netdata in your browser: http://your-server-ip:19999
 
-### 2.5. Recommended Help Desk Solutions
+### 3.2. Recommended Help Desk Solutions
 
 To enhance your customer support experience with Namingo, consider using one of these open-source help desk solutions:
 
@@ -1353,20 +1360,20 @@ To enhance your customer support experience with Namingo, consider using one of 
 
 **Note:** These solutions are independent of Namingo. FreeScout is licensed under AGPL-3.0, while Chatwoot uses MIT. If using FreeScout, ensure compliance with AGPL-3.0 licensing.
 
-### 2.6. Scaling Your Database with ProxySQL
+### 3.3. Scaling Your Database with ProxySQL
 
 To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
 
-## 3. Security Hardening
+## 4. Security Hardening
 
-### 3.1. Create the namingo user
+### 4.1. Create the namingo user
 
 ```bash
 adduser namingo
 usermod -aG sudo namingo
 ```
 
-### 3.2. Set Up Services
+### 4.2. Set Up Services
 
 ```bash
 su namingo
@@ -1389,7 +1396,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart whois epp rdap
 ```
 
-### 3.3. SSH Hardening
+### 4.3. SSH Hardening
 
 1. Disable Root Login:
 
@@ -1440,7 +1447,7 @@ sudo ufw enable
 sudo systemctl restart ssh
 ```
 
-### 3.4. Other Server Hardening
+### 4.4. Other Server Hardening
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -1462,7 +1469,7 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-### 3.5. Adminer Security settings
+### 4.5. Adminer Security settings
 
 To enhance the security of your Adminer installation, we recommend the following settings for Caddy, Apache2, and Nginx:
 
@@ -1514,7 +1521,7 @@ location /dbtool.php {
 }
 ```
 
-## 4. In-Depth Configuration File Overview
+## 5. In-Depth Configuration File Overview
 
 In this section, we provide a detailed overview of each configuration file used in the Namingo domain registry platform. Understanding these files is essential for customizing and optimizing your system according to your specific needs. We will walk you through the purpose of each file, key settings, and recommended configurations to ensure smooth operation and integration with other components of your setup.
 
