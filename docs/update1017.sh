@@ -152,6 +152,9 @@ done
 
 wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 
+echo 'www-data ALL=(ALL) NOPASSWD: /usr/sbin/rndc' > /etc/sudoers.d/namingo-rndc
+chmod 440 /etc/sudoers.d/namingo-rndc
+
 # Start services
 echo "Starting services..."
 systemctl start epp

@@ -16,7 +16,6 @@
 //     'backup_upload' => false, // Enable or disable backup upload
 //     'gtld_mode' => false,   // Enable or disable gTLD mode
 //     'spec11' => false,      // Enable or disable Spec 11 checks
-//     'dnssec' => false,     // Enable or disable DNSSEC
 //     'exchange_rates' => false,     // Enable or disable exchange rate download
 // ];
 //
@@ -31,7 +30,6 @@ $defaultConfig = [
     'backup_upload' => false, // Set to true to enable
     'gtld_mode' => false,    // Set to true to enable
     'spec11' => false,    // Set to true to enable
-    'dnssec' => false,    // Set to true to enable
     'exchange_rates' => false,    // Set to true to enable
 ];
 
@@ -72,10 +70,6 @@ if ($cronJobConfig['backup']) {
 
 if ($cronJobConfig['backup_upload']) {
     $scheduler->php('/opt/registry/automation/backup-upload.php')->at('30 * * * *');
-}
-
-if ($cronJobConfig['dnssec']) {
-    $scheduler->php('/opt/registry/automation/dnssec-ds-rotator.php')->at('0 0 * * *');
 }
 
 if ($cronJobConfig['spec11']) {

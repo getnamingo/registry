@@ -105,18 +105,16 @@
                                 <table class="table table-vcenter card-table">
                                     <thead>
                                         <tr>
-                                            <th>{{ __('Key ID') }}</th>
-                                            <th>{{ __('Algorithm') }}</th>
                                             <th>{{ __('DS Record') }}</th>
                                             <th>{{ __('Status') }}</th>
-                                            <th>{{ __('Timestamp') }}</th>
+                                            <th>{{ __('Published') }}</th>
+                                            <th>{{ __('Next Rollover') }}</th>
+                                            <th>{{ __('Parent') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for key in dnssecData.keys %}
                                         <tr>
-                                            <td>{{ key.key_id }}</td>
-                                            <td>{{ key.algorithm }}</td>
                                             <td>
                                                 {% if key.ds_record != 'N/A' %}
                                                     <p class="user-select-all tracking-wide mb-0">
@@ -128,14 +126,30 @@
                                             </td>
                                             <td>
                                                 {% if key.status == 'Active' %}
-                                                    <span class="badge bg-success">{{ __('Active') }}</span>
+                                                    <span class="badge bg-success text-success-fg">{{ __('Active') }}</span>
                                                 {% elseif key.status == 'Pending Rollover' %}
-                                                    <span class="badge bg-warning">{{ __('Pending Rollover') }}</span>
+                                                    <span class="badge bg-warning text-warning-fg">{{ __('Pending Rollover') }}</span>
                                                 {% else %}
-                                                    <span class="badge bg-secondary">{{ __('Unknown') }}</span>
+                                                    <span class="badge bg-secondary text-secondary-fg">{{ __('Unknown') }}</span>
                                                 {% endif %}
                                             </td>
-                                            <td>{{ key.timestamp }}</td>
+                                            <td>{{ key.published_date }}</td>
+                                            <td>{{ key.next_rollover }}</td>
+                                            <td>
+                                              {% if key.ds_status == 'omnipresent' %}
+                                                <span class="status-indicator status-green" title="DS record submitted and active at parent zone">
+                                                  <span class="status-indicator-circle"></span>
+                                                </span>
+                                              {% elseif key.ds_status == 'rumoured' %}
+                                                <span class="status-indicator status-orange status-indicator-animated" title="DS record needs submission to parent zone">
+                                                  <span class="status-indicator-circle"></span>
+                                                </span>
+                                              {% else %}
+                                                <span class="status-indicator status-gray" title="DS record status unknown or unavailable">
+                                                  <span class="status-indicator-circle"></span>
+                                                </span>
+                                              {% endif %}
+                                            </td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>

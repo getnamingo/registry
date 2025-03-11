@@ -1012,9 +1012,8 @@ class SystemController extends Controller
 
                 $secureTld = $tld['secure'];
                 if ($secureTld === 1) {
-                    $tld_extension_cleaned = ltrim($tld['tld'], '.');
-                    $zone = escapeshellarg($tld_extension_cleaned);
-                    $statusOutput = shell_exec("rndc dnssec -status $zone");
+                    $zone = ltrim($tld['tld'], '.');
+                    $statusOutput = shell_exec("sudo rndc dnssec -status " . escapeshellarg($zone) . " 2>&1");
 
                     if (!$statusOutput) {
                         $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone."];
@@ -1031,14 +1030,46 @@ class SystemController extends Controller
                         foreach ($matches as $match) {
                             $keyId = $match[1];
                             $algorithm = $match[2];
+                            
+                            // Convert algorithm name to corresponding number for dnssec-dsfromkey
+                            $algoMap = [
+                                'RSASHA1' => '005', 'RSASHA1-NSEC3-SHA1' => '007',
+                                'RSASHA256' => '008', 'RSASHA512' => '010',
+                                'ECDSAP256SHA256' => '013', 'ECDSAP384SHA384' => '014',
+                                'ED25519' => '015', 'ED448' => '016'
+                            ];
+                            $algoNum = $algoMap[$algorithm] ?? '000'; // Default to unknown if missing
 
                             // Determine if key is active or in rollover state
-                            $keyStatus = strpos($statusOutput, "key: $keyId") !== false
-                                ? (strpos($statusOutput, "key signing: yes") !== false ? 'Active' : 'Pending Rollover')
-                                : 'Unknown';
+                            preg_match("/key: $keyId.*?(?=\\nkey:|\\z)/s", $statusOutput, $keyBlockMatch);
+                            $keyBlock = $keyBlockMatch[0] ?? '';
+
+                            // Skip keys explicitly removed from the zone
+                            if (strpos($keyBlock, 'Key has been removed from the zone') !== false) {
+                                continue;
+                            }
+
+                            // Determine key status accurately
+                            $keyStatus = strpos($keyBlock, 'key signing:    yes') !== false ? 'Active' : 'Pending Rollover';
+
+                            // Extract next rollover date
+                            preg_match('/Next rollover scheduled on ([^\\n]+)/', $keyBlock, $rolloverMatch);
+                            $nextRollover = $rolloverMatch[1] ?? null;
+
+                            // Extract retirement date, if present
+                            preg_match('/Key.*removed.*on ([^\\n]+)/', $keyBlock, $retirementMatch);
+                            $retirementDate = $retirementMatch[1] ?? null;
+                            
+                            // Extract published date
+                            preg_match('/published:\s+yes\s+-\s+since\s+([^\n]+)/', $keyBlock, $publishedMatch);
+                            $publishedDate = isset($publishedMatch[1]) ? trim($publishedMatch[1]) : null;
+
+                            // Extract DS status ("rumoured" or "omnipresent")
+                            preg_match('/- ds:\s+(\w+)/', $keyBlock, $dsMatch);
+                            $dsStatus = $dsMatch[1] ?? null;
 
                             // Extract DS record for this key
-                            $dsRecord = shell_exec("dnssec-dsfromkey -2 /var/lib/bind/K{$tld_extension_cleaned}.+008+{$keyId}.key");
+                            $dsRecord = shell_exec("dnssec-dsfromkey -2 /var/lib/bind/K{$zone}.+{$algoNum}+{$keyId}.key");
                             $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
 
                             // Append key details
@@ -1048,6 +1079,10 @@ class SystemController extends Controller
                                 'ds_record' => $dsRecord,
                                 'status' => $keyStatus,
                                 'timestamp' => date('Y-m-d H:i:s'),
+                                'next_rollover' => $nextRollover,
+                                'retirement_date' => $retirementDate,
+                                'published_date' => $publishedDate,
+                                'ds_status' => $dsStatus,
                             ];
                         }
 

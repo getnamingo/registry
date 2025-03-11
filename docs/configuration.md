@@ -309,7 +309,6 @@ return [
     'backup_upload' => false, // Enable or disable backup upload
     'gtld_mode' => false,   // Enable or disable gTLD mode
     'spec11' => false,      // Enable or disable Spec 11 checks
-    'dnssec' => false,     // Enable or disable DNSSEC
     'exchange_rates' => false,     // Enable or disable exchange rate download
 ];
 ```
@@ -514,7 +513,7 @@ dnssec-policy "namingo-policy" {
 };
 ```
 
-Add the following zone definition:
+Then, add the zone definition:
 
 ```bash
 zone "test." {
@@ -530,21 +529,11 @@ zone "test." {
 
 Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
 
-Initially, you will need to generate the DNSSEC ZSK and KSK manually:
-
-```bash
-dnssec-keygen -a Ed25519 -n ZONE test.
-dnssec-keygen -a Ed25519 -n ZONE -f KSK test.
-```
-
-After generating the keys, place them in ```/var/lib/bind```. Run ```dnssec-dsfromkey Ktest.EXAMPLE.key``` on the KSK key you just generated, and the DS record must be submitted to IANA once setup is complete.
-
-Use rndc to tell BIND to load and use the new keys:
+Finally, set correct permissions and restart BIND9 to apply changes:
 
 ```bash
 chown -R bind:bind /var/lib/bind
 systemctl restart bind9
-rndc loadkeys test.
 ```
 
 Configure the `Zone Writer` in Registry Automation and run it manually the first time.
