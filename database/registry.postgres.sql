@@ -863,7 +863,6 @@ INSERT INTO settings (name, value) VALUES
  
 ALTER TABLE domain_tld ADD FOREIGN KEY (launch_phase_id) REFERENCES launch_phases(id);
 ALTER TABLE launch_phases ADD FOREIGN KEY (tld_id) REFERENCES domain_tld(id);
-ALTER TABLE error_log ADD FOREIGN KEY (registrar_id) REFERENCES registrar(id);
 ALTER TABLE invoices ADD FOREIGN KEY (registrar_id) REFERENCES registrar(id);
 ALTER TABLE invoices ADD FOREIGN KEY (billing_contact_id) REFERENCES registrar_contact(id);
 ALTER TABLE users_webauthn ADD FOREIGN KEY (user_id) REFERENCES users(id);
