@@ -1012,44 +1012,49 @@ class SystemController extends Controller
 
                 $secureTld = $tld['secure'];
                 if ($secureTld === 1) {
-                    // Remove the leading dot
                     $tld_extension_cleaned = ltrim($tld['tld'], '.');
+                    $zone = escapeshellarg($tld_extension_cleaned);
+                    $statusOutput = shell_exec("rndc dnssec -status $zone");
 
-                    // Path to the JSON file
-                    $jsonFilePath = "/tmp/{$tld_extension_cleaned}.json";
-
-                    // Initialize a variable to hold the data for Twig
-                    $dnssecData = null;
-
-                    if (file_exists($jsonFilePath) && is_readable($jsonFilePath)) {
-                        // Read and decode the JSON file
-                        $jsonContent = file_get_contents($jsonFilePath);
-                        $data = json_decode($jsonContent, true);
-
-                        if (json_last_error() === JSON_ERROR_NONE) {
-                            // Ensure keys exist and process them
-                            if (isset($data['keys']) && is_array($data['keys'])) {
-                                $dnssecData = [
-                                    'zoneName' => $data['zoneName'] ?? 'N/A',
-                                    'timestamp' => $data['timestamp'] ?? 'N/A',
-                                    'keys' => [],
-                                ];
-
-                                foreach ($data['keys'] as $key) {
-                                    $dnssecData['keys'][] = [
-                                        'keyFile' => $key['keyFile'] ?? 'N/A',
-                                        'dsRecord' => $key['dsRecord'] ?? 'N/A',
-                                        'timestamp' => $key['timestamp'] ?? 'N/A',
-                                    ];
-                                }
-                            } else {
-                                $dnssecData = ['error' => "No keys found in JSON."];
-                            }
-                        } else {
-                            $dnssecData = ['error' => "Failed to decode JSON: " . json_last_error_msg()];
-                        }
+                    if (!$statusOutput) {
+                        $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone."];
                     } else {
-                        $dnssecData = ['error' => "File {$jsonFilePath} not found or not readable."];
+                        // Extract all KSKs regardless of algorithm
+                        preg_match_all('/key: (\d+) \((\w+)\), KSK/', $statusOutput, $matches, PREG_SET_ORDER);
+
+                        $dnssecData = [
+                            'zoneName' => $tld['tld'],
+                            'timestamp' => date('Y-m-d H:i:s'),
+                            'keys' => [],
+                        ];
+
+                        foreach ($matches as $match) {
+                            $keyId = $match[1];
+                            $algorithm = $match[2];
+
+                            // Determine if key is active or in rollover state
+                            $keyStatus = strpos($statusOutput, "key: $keyId") !== false
+                                ? (strpos($statusOutput, "key signing: yes") !== false ? 'Active' : 'Pending Rollover')
+                                : 'Unknown';
+
+                            // Extract DS record for this key
+                            $dsRecord = shell_exec("dnssec-dsfromkey -2 /var/lib/bind/K{$tld_extension_cleaned}.+008+{$keyId}.key");
+                            $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
+
+                            // Append key details
+                            $dnssecData['keys'][] = [
+                                'key_id' => $keyId,
+                                'algorithm' => $algorithm,
+                                'ds_record' => $dsRecord,
+                                'status' => $keyStatus,
+                                'timestamp' => date('Y-m-d H:i:s'),
+                            ];
+                        }
+
+                        // If no keys were found, set an error message
+                        if (empty($dnssecData['keys'])) {
+                            $dnssecData = ['error' => "No DNSSEC keys found for $zone."];
+                        }
                     }
                 } else {
                     $dnssecData = ['error' => "DNSSEC is not enabled for this TLD."];

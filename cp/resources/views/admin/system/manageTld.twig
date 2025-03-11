@@ -93,56 +93,80 @@
                   </div>
                 </div>
 
-                {% if dnssecData is defined and dnssecData.keys is defined %}
-                <div class="card mb-3">
-                  <div class="card-header">
-                    <h5 class="card-title">{{ __('DNSSEC Details') }} <span class="card-subtitle">{{ __('Last Updated:') }} {{ dnssecData.timestamp }}</span></h5>
-                  </div>
-                  <div class="card-body">
-                    <div class="table-responsive">
-                      <table class="table table-vcenter card-table">
-                        <thead>
-                          <tr>
-                            <th>{{ __('Key File') }}</th>
-                            <th>{{ __('DS Record') }}</th>
-                            <th>{{ __('Timestamp') }}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for key in dnssecData.keys %}
-                          <tr>
-                            <td>{{ key.keyFile }}</td>
-                            <td><p class="user-select-all tracking-wide mb-0"><kbd>{{ key.dsRecord }}</kbd></p></td>
-                            <td>{{ key.timestamp }}</td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
+                {% if dnssecData is defined and dnssecData.keys is defined and dnssecData.keys|length > 0 %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title">{{ __('DNSSEC Details') }}
+                                <span class="card-subtitle">{{ __('Last Updated:') }} {{ dnssecData.timestamp }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-vcenter card-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ __('Key ID') }}</th>
+                                            <th>{{ __('Algorithm') }}</th>
+                                            <th>{{ __('DS Record') }}</th>
+                                            <th>{{ __('Status') }}</th>
+                                            <th>{{ __('Timestamp') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for key in dnssecData.keys %}
+                                        <tr>
+                                            <td>{{ key.key_id }}</td>
+                                            <td>{{ key.algorithm }}</td>
+                                            <td>
+                                                {% if key.ds_record != 'N/A' %}
+                                                    <p class="user-select-all tracking-wide mb-0">
+                                                        <kbd>{{ key.ds_record }}</kbd>
+                                                    </p>
+                                                {% else %}
+                                                    <span class="text-muted">{{ __('Not Available') }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if key.status == 'Active' %}
+                                                    <span class="badge bg-success">{{ __('Active') }}</span>
+                                                {% elseif key.status == 'Pending Rollover' %}
+                                                    <span class="badge bg-warning">{{ __('Pending Rollover') }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ __('Unknown') }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ key.timestamp }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </div>
                 {% elseif dnssecData.error is defined %}
-                <div class="card mb-3">
-                  <div class="card-header">
-                    <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
-                  </div>
-                  <div class="card-body">
-                    <div class="alert alert-warning" role="alert">
-                      <h4 class="alert-title">{{ dnssecData.error }}</h4>
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning" role="alert">
+                                <h4 class="alert-title">{{ dnssecData.error }}</h4>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </div>
                 {% else %}
-                <div class="card mb-3">
-                  <div class="card-header">
-                    <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
-                  </div>
-                  <div class="card-body">
-                    <div class="alert alert-info" role="alert">
-                      <div><h4 class="alert-heading">{{ __('No DNSSEC data available.') }}</h4></div>
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info" role="alert">
+                                <div>
+                                    <h4 class="alert-heading">{{ __('No DNSSEC data available.') }}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </div>
                 {% endif %}
 
                 <div class="card mb-3">
