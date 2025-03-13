@@ -1497,7 +1497,13 @@ class SystemController extends Controller
                                   OR (start_date >= ? AND (end_date IS NULL OR end_date <= ?))
                                )
                                AND (end_date IS NULL OR end_date >= NOW()) -- Ensures ongoing phases count
-                            ) AS dateOverlapExists";
+                            ) AS dateOverlapExists,
+
+                            (SELECT COUNT(*) 
+                             FROM launch_phases 
+                             WHERE tld_id = ? 
+                               AND phase_name = ?
+                            ) AS duplicatePhaseNameExists";
 
                 $result = $db->selectRow(
                     $query,
@@ -1505,7 +1511,8 @@ class SystemController extends Controller
                         $sData['tldid'], $sData['phaseType'], $sData['phaseName'],
                         $sData['tldid'], $sData['phaseEnd'], $sData['phaseStart'],
                         $sData['phaseStart'], $sData['phaseEnd'],
-                        $sData['phaseStart'], $sData['phaseEnd']
+                        $sData['phaseStart'], $sData['phaseEnd'],
+                        $sData['tldid'], $sData['phaseName']
                     ]
                 );
 
@@ -1513,6 +1520,12 @@ class SystemController extends Controller
                     // phase_type already exists for the tldid
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'The phase type already exists for this TLD.');
+                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                }
+
+                if ($result['duplicatePhaseNameExists'] > 0) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'A phase with this name already exists for this TLD.');
                     return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
                 }
 
