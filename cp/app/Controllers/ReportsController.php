@@ -197,6 +197,10 @@ class ReportsController extends Controller
             }
         }
 
+        $db = $this->container->get('db');
+        $whoisQueries = $db->selectValue("SELECT value FROM settings WHERE name = 'whois-43-queries'");
+        $webWhoisQueries = $db->selectValue("SELECT value FROM settings WHERE name = 'web-whois-queries'");
+
         return $this->view->render($response, 'admin/reports/serverHealth.twig', [
             'serverHealth' => $serverHealth,
             'csrfTokenName' => $csrfTokenName,
@@ -214,7 +218,9 @@ class ReportsController extends Controller
             'msgwStatus' => $msgwStatus,
             'msgbLogs' => $msgbLogs,
             'msgwLogs' => $msgwLogs,
-            'redisStatus' => $redisStatus
+            'redisStatus' => $redisStatus,
+            'whoisQueries' => $whoisQueries,
+            'webWhoisQueries' => $webWhoisQueries
         ]);
     }
 
