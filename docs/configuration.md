@@ -1800,6 +1800,22 @@ return [
 ];
 ```
 
+### Web WHOIS/RDAP Client Configuration (`/var/www/whois/config.php`)
+
+```php
+<?php
+
+return [
+    'whois_url' => 'whois.example.com',
+    'rdap_url' => 'rdap.example.com',
+    'ignore_captcha' => true,
+    'registry_name' => 'Domain Registry LLC',
+    'registry_url' => 'https://example.com',
+    'branding' => false,
+    'ignore_case_captcha' => false,
+];
+```
+
 In conclusion, this detailed configuration guide aims to streamline the setup process of the Namingo system for users of all expertise levels. The guide meticulously details each configuration file, providing clear explanations and guidance for customization to suit your specific needs. This approach ensures that you can configure Namingo with confidence, optimizing it for your registry management requirements. We are committed to making the configuration process as straightforward as possible, and we welcome any questions or requests for further assistance. Your successful deployment and efficient management of Namingo is our top priority.
 
 After finalizing the configuration of Namingo, the next step is to consult the [Initial Operation Guide](iog.md). This guide provides comprehensive details on configuring your registry, adding registrars, and much more, to ensure a smooth start with your system.

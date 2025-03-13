@@ -7,4 +7,5 @@ return [
     'registry_name' => 'Domain Registry LLC',
     'registry_url' => 'https://example.com',
     'branding' => false,
+    'ignore_case_captcha' => false,
 ];

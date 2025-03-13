@@ -7,9 +7,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if ($c['ignore_captcha'] === false && $_POST['captcha'] !== $_SESSION['captcha']) {
-    echo json_encode(['error' => 'Captcha verification failed.']);
-    exit;
+if ($c['ignore_captcha'] === false) {
+    $captchaInput = $_POST['captcha'];
+    $captchaStored = $_SESSION['captcha'];
+
+    if (!empty($c['ignore_case_captcha'])) {
+        $isValid = strcasecmp($captchaInput, $captchaStored) === 0;
+    } else {
+        $isValid = $captchaInput === $captchaStored;
+    }
+
+    if (!$isValid) {
+        echo json_encode(['error' => 'Captcha verification failed.']);
+        exit;
+    }
 }
 
 $domain = $_POST['domain'];

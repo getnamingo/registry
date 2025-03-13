@@ -237,12 +237,15 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
             }
 
             document.getElementById('domainInput').addEventListener('keypress', function(event) {
-                // Check if the key pressed is 'Enter'
                 if (event.key === 'Enter') {
-                    // Prevent the default action to avoid form submission or any other default behavior
                     event.preventDefault();
+                    document.getElementById('whoisButton').click();
+                }
+            });
 
-                    // Trigger the click event of the whoisButton
+            document.getElementById('captchaInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
                     document.getElementById('whoisButton').click();
                 }
             });
