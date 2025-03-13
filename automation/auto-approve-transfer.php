@@ -49,22 +49,16 @@ try {
             $label = $matches[1];
             $domain_extension = $matches[2];
 
-            $tld_id = null;
-            $stmt_tld = $dbh->prepare("SELECT id, tld FROM domain_tld");
-            $stmt_tld->execute();
+            $stmt_tld = $dbh->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = :tld LIMIT 1");
+            $stmt_tld->execute([':tld' => '.' . strtoupper($domain_extension)]);
+            $tld_id = $stmt_tld->fetchColumn();
 
-            while ($tld_row = $stmt_tld->fetch(PDO::FETCH_ASSOC)) {
-                if ('.' . strtoupper($domain_extension) === strtoupper($tld_row['tld'])) {
-                    $tld_id = $tld_row['id'];
-                    break;
-                }
-            }
-            
             $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer', $reid, $currency);
             $price = $returnValue['price'];
 
             if (($registrar_balance + $creditLimit) < $price) {
                 $log->notice($name . ': The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
+                $log->error("Registrar $reid failed to process transfer for domain $name: Insufficient funds (Balance: $registrar_balance, Credit Limit: $creditLimit, Required: $price).");
                 continue;
             }
         }
@@ -167,6 +161,18 @@ try {
         $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
         $stmt_update_auth->execute();
 
+        // Remove "pendingTransfer" status
+        $stmt_remove_pending = $dbh->prepare("DELETE FROM domain_status WHERE domain_id = :domain_id AND status = 'pendingTransfer'");
+        $stmt_remove_pending->execute([
+            ':domain_id' => $domain_id
+        ]);
+
+        // Insert "ok" status
+        $stmt_insert_ok = $dbh->prepare("INSERT INTO domain_status (domain_id, status) VALUES (:domain_id, 'ok')");
+        $stmt_insert_ok->execute([
+            ':domain_id' => $domain_id
+        ]);
+
         if (!$minimum_data) {
             foreach ($contactMap as $contact) {
                 // Construct the SQL update query
@@ -191,6 +197,7 @@ try {
 
         if ($stmt_update->errorCode() != "00000") {
             $log->error($name . ': The domain transfer was not successful, something is wrong | DB Update failed:' . implode(", ", $stmt_update->errorInfo()));
+            $log->error("Registrar $reid failed to process transfer for domain $name: Database update failed.");
             continue;
         } else {
             $dbh->exec("UPDATE registrar SET accountBalance = (accountBalance - $price) WHERE id = '$reid'");
@@ -207,6 +214,23 @@ try {
             
             $stmt_auto_approve_transfer = $dbh->prepare("INSERT INTO domain_auto_approve_transfer (name,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
             $stmt_auto_approve_transfer->execute(array_values($domain_data));
+
+            $stmt_log = $dbh->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_log->execute([
+                'auto_transfer',
+                250,
+                'NOTICE',
+                "Domain transfer auto-approved: $name (New registrant: $newRegistrantId, Registrar: $reid)",
+                json_encode(['domain_id' => $domain_id, 'new_registrant' => $newRegistrantId, 'registrar' => $reid]),
+                json_encode([
+                    'received_on' => date('Y-m-d H:i:s'),
+                    'read_on' => null,
+                    'is_read' => false,
+                    'message_type' => 'auto_transfer_approval'
+                ])
+            ]);
+
+            $log->notice("Domain transfer processed: $name (New registrant: $newRegistrantId, Registrar: $reid, New Expiry: $to)");
         }
 
     }
@@ -225,6 +249,7 @@ try {
 
         if ($stmt_update_contact->errorCode() != "00000") {
             $log->error($contact_id . ': The contact transfer was not successful, something is wrong | DB Update failed:' . implode(", ", $stmt_update_contact->errorInfo()));
+            $log->error("Registrar $reid failed to process contact transfer for contact ID $contact_id");
             continue;
         } else {
             $stmt_select_contact = $dbh->prepare("SELECT identifier, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = ? LIMIT 1");
@@ -241,10 +266,13 @@ try {
 } catch (Exception $e) {
     $dbh->rollBack();
     $log->error('Database error: ' . $e->getMessage());
+    $log->error("Registrar $reid failed to process transfer for domain $name due to unexpected exception: " . $e->getMessage());
 } catch (PDOException $e) {
     $dbh->rollBack();
     $log->error('Database error: ' . $e->getMessage());
+    $log->error("Registrar $reid failed to process transfer for domain $name due to unexpected exception: " . $e->getMessage());
 } catch (Throwable $e) {
     $dbh->rollBack();
     $log->error('Error: ' . $e->getMessage());
+    $log->error("Registrar $reid failed to process transfer for domain $name due to unexpected exception: " . $e->getMessage());
 }

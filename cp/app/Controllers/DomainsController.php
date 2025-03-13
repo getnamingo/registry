@@ -3009,6 +3009,28 @@ class DomainsController extends Controller
                         'UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()'
                     );
 
+                    $stmt_log = $db->exec(
+                        'INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)',
+                        [
+                            'manual_transfer',
+                            250,
+                            'NOTICE',
+                            "Manual domain transfer approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
+                            json_encode([
+                                'domain_id' => $domain_id,
+                                'new_registrant' => $newRegistrantId,
+                                'registrar' => $reid,
+                                'performed_by' => $clid
+                            ]),
+                            json_encode([
+                                'received_on' => date('Y-m-d H:i:s'),
+                                'read_on' => null,
+                                'is_read' => false,
+                                'message_type' => 'manual_transfer_approval'
+                            ])
+                        ]
+                    );
+
                     $db->commit();
                 } catch (Exception $e) {
                     $db->rollBack();
@@ -3103,7 +3125,29 @@ class DomainsController extends Controller
                         'status' => 'ok'
                     ]
                 );
-                
+
+                $db->exec(
+                    'INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)',
+                    [
+                        'manual_transfer_reject',
+                        250, // NOTICE level
+                        'NOTICE',
+                        "Manual domain transfer rejected: $domainName (Losing Registrar: $clid)",
+                        json_encode([
+                            'domain_id' => $domain_id,
+                            'losing_registrar' => $clid,
+                            'status' => 'clientRejected',
+                            'performed_by' => $clid
+                        ]),
+                        json_encode([
+                            'received_on' => date('Y-m-d H:i:s'),
+                            'read_on' => null,
+                            'is_read' => false,
+                            'message_type' => 'manual_transfer_rejection'
+                        ])
+                    ]
+                );
+
                 $this->container->get('flash')->addMessage('success', 'Transfer for ' . $domainName . ' has been rejected successfully');
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             } else {
@@ -3189,6 +3233,28 @@ class DomainsController extends Controller
                     [
                         'domain_id' => $domain_id,
                         'status' => 'ok'
+                    ]
+                );
+
+                $db->exec(
+                    'INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)',
+                    [
+                        'manual_transfer_cancel',
+                        250, // NOTICE level
+                        'NOTICE',
+                        "Manual domain transfer canceled: $domainName (Applicant: $clid)",
+                        json_encode([
+                            'domain_id' => $domain_id,
+                            'applicant' => $clid,
+                            'status' => 'clientCancelled',
+                            'performed_by' => $clid
+                        ]),
+                        json_encode([
+                            'received_on' => date('Y-m-d H:i:s'),
+                            'read_on' => null,
+                            'is_read' => false,
+                            'message_type' => 'manual_transfer_cancellation'
+                        ])
                     ]
                 );
 

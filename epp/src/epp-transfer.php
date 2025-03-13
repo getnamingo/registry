@@ -575,7 +575,23 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
             $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
-            
+
+            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_log->execute([
+                'domain_transfer',
+                250,
+                'NOTICE',
+                "Domain transfer manually approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
+                json_encode(['domain_id' => $domain_id, 'new_registrant' => $newRegistrantId, 'registrar' => $reid]),
+                json_encode([
+                    'received_on' => date('Y-m-d H:i:s'),
+                    'read_on' => null,
+                    'is_read' => false,
+                    'message_type' => 'manual_transfer_approval',
+                    'performed_by' => $clid
+                ])
+            ]);
+
             $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
             $stmt->execute([$domain_id, 'pendingTransfer']);
             $existingStatus = $stmt->fetchColumn();
@@ -711,7 +727,23 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         if ($trstatus === 'pending') {
             $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
             $stmt->execute(['domain_id' => $domain_id]);
-            
+
+            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_log->execute([
+                'domain_transfer',
+                250,
+                'NOTICE',
+                "Domain transfer manually canceled: $domainName (Registrar: $reid)",
+                json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
+                json_encode([
+                    'received_on' => date('Y-m-d H:i:s'),
+                    'read_on' => null,
+                    'is_read' => false,
+                    'message_type' => 'manual_transfer_cancellation',
+                    'performed_by' => $clid
+                ])
+            ]);
+
             $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
             $stmt->execute([$domain_id, 'pendingTransfer']);
             $existingStatus = $stmt->fetchColumn();
@@ -844,6 +876,22 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         if ($trstatus === 'pending') {
             $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
             $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
+
+            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_log->execute([
+                'domain_transfer',
+                250,
+                'NOTICE',
+                "Domain transfer manually rejected: $domainName (Registrar: $reid)",
+                json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
+                json_encode([
+                    'received_on' => date('Y-m-d H:i:s'),
+                    'read_on' => null,
+                    'is_read' => false,
+                    'message_type' => 'manual_transfer_rejection',
+                    'performed_by' => $clid
+                ])
+            ]);
 
             $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
             $stmt->execute([$domain_id, 'pendingTransfer']);
