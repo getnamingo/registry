@@ -243,12 +243,15 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                 }
             });
 
-            document.getElementById('captchaInput').addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    document.getElementById('whoisButton').click();
-                }
-            });
+            const captchaInput = document.getElementById('captchaInput');
+            if (captchaInput) {
+                captchaInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter' && !captchaInput.disabled) {
+                        event.preventDefault();
+                        document.getElementById('whoisButton').click();
+                    }
+                });
+            }
 
             document.getElementById('whoisButton').addEventListener('click', function() {
                 if (!validateInput()) return;
