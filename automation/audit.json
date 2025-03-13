@@ -65,7 +65,7 @@
             "skip": null
         },
         "settings": {
-            "audit": true,
+            "audit": null,
             "skip": null
         },
         "domain_price": {
