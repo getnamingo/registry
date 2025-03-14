@@ -470,6 +470,8 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
     $cldate = $currentDateTime->format("Y-m-d H:i:s.v");
     $dateForClTransaction = microtime(true);
     $clmicrosecond = sprintf("%06d", ($dateForClTransaction - floor($dateForClTransaction)) * 1000000);
+    
+    $clTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $clTRIDframe);
 
     if (empty($clTRID)) {
         // If $clTRID is empty, generate a random string prefixed with "client-not-provided-"
@@ -505,6 +507,8 @@ function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, 
     $svdate = $currentDateTime->format("Y-m-d H:i:s.v");
     $dateForSvTransaction = microtime(true);
     $svmicrosecond = sprintf("%06d", ($dateForSvTransaction - floor($dateForSvTransaction)) * 1000000);
+
+    $svTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $svTRIDframe);
 
     // Execute the statement
     if (!$stmt->execute([
