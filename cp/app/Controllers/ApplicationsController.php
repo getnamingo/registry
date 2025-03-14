@@ -467,8 +467,8 @@ class ApplicationsController extends Controller
                                     'error_log',
                                     [
                                         'channel' => 'control_panel',
-                                        'level' => 3,
-                                        'level_name' => 'warning',
+                                        'level' => 300,
+                                        'level_name' => 'WARNING',
                                         'message' => "Application: $domainName; hostName: $nameserver - is duplicated",
                                         'context' => json_encode([
                                             'registrar_id' => $clid, 
@@ -588,7 +588,26 @@ class ApplicationsController extends Controller
                         }
                     }
                 }
-             
+
+                $db->insert('error_log', [
+                    'channel' => 'applications',
+                    'level' => 250,
+                    'level_name' => 'NOTICE',
+                    'message' => "User {$_SESSION['auth_user_id']} from registrar {$clid} created a domain application: {$domainName}",
+                    'context' => json_encode([
+                        'domain_name' => $domainName,
+                        'user_id' => $_SESSION['auth_user_id'],
+                        'registrar' => $clid,
+                        'status' => 'pending'
+                    ]),
+                    'extra' => json_encode([
+                        'received_on' => date('Y-m-d H:i:s'),
+                        'read_on' => null,
+                        'is_read' => false,
+                        'message_type' => 'application_creation'
+                    ])
+                ]);
+
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
@@ -1034,9 +1053,14 @@ class ApplicationsController extends Controller
             );
         }
     }
-    
+
     public function approveApplication(Request $request, Response $response, $args)
     {
+        if ($_SESSION["auth_roles"] != 0) {
+            $this->container->get('flash')->addMessage('error', 'Only registry administrators can perform this action.');
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI
@@ -1248,7 +1272,26 @@ class ApplicationsController extends Controller
                         "SELECT crdate FROM domain WHERE id = ? LIMIT 1",
                         [$domain_id]
                     );
-                    
+
+                    $db->insert('error_log', [
+                        'channel' => 'applications',
+                        'level' => 250,
+                        'level_name' => 'NOTICE',
+                        'message' => "User {$_SESSION['auth_user_id']} from registrar {$clid} approved the domain application: {$domainName}",
+                        'context' => json_encode([
+                            'domain_name' => $domainName,
+                            'user_id' => $_SESSION['auth_user_id'],
+                            'registrar' => $clid,
+                            'status' => 'approved'
+                        ]),
+                        'extra' => json_encode([
+                            'received_on' => date('Y-m-d H:i:s'),
+                            'read_on' => null,
+                            'is_read' => false,
+                            'message_type' => 'application_approval'
+                        ])
+                    ]);
+
                     $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 } catch (Exception $e) {
@@ -1271,6 +1314,11 @@ class ApplicationsController extends Controller
     
     public function rejectApplication(Request $request, Response $response, $args)
     {
+        if ($_SESSION["auth_roles"] != 0) {
+            $this->container->get('flash')->addMessage('error', 'Only registry administrators can perform this action.');
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI
@@ -1322,7 +1370,26 @@ class ApplicationsController extends Controller
                             'domain_id' => $domain_id
                         ]
                     );
-                                
+
+                    $db->insert('error_log', [
+                        'channel' => 'applications',
+                        'level' => 250,
+                        'level_name' => 'NOTICE',
+                        'message' => "User {$_SESSION['auth_user_id']} from registrar {$clid} rejected the domain application: {$domainName}",
+                        'context' => json_encode([
+                            'domain_name' => $domainName,
+                            'user_id' => $_SESSION['auth_user_id'],
+                            'registrar' => $clid,
+                            'status' => 'rejected'
+                        ]),
+                        'extra' => json_encode([
+                            'received_on' => date('Y-m-d H:i:s'),
+                            'read_on' => null,
+                            'is_read' => false,
+                            'message_type' => 'application_rejection'
+                        ])
+                    ]);
+
                     $db->commit();
                 } catch (Exception $e) {
                     $db->rollBack();
@@ -1417,7 +1484,26 @@ class ApplicationsController extends Controller
                             'id' => $domain_id
                         ]
                     );
-                                
+
+                    $db->insert('error_log', [
+                        'channel' => 'applications',
+                        'level' => 250, // NOTICE level
+                        'level_name' => 'NOTICE',
+                        'message' => "User {$_SESSION['auth_user_id']} from registrar {$clid} deleted the domain application: {$domainName}",
+                        'context' => json_encode([
+                            'domain_name' => $domainName,
+                            'user_id' => $_SESSION['auth_user_id'],
+                            'registrar' => $clid,
+                            'status' => 'deleted'
+                        ]),
+                        'extra' => json_encode([
+                            'received_on' => date('Y-m-d H:i:s'),
+                            'read_on' => null,
+                            'is_read' => false,
+                            'message_type' => 'application_deletion'
+                        ])
+                    ]);
+
                     $db->commit();
                 } catch (Exception $e) {
                     $db->rollBack();

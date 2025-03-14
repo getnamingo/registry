@@ -1367,7 +1367,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         } else {
                             $errorLogStmt = $db->prepare("INSERT INTO error_log 
                                 (channel, level, level_name, message, context, extra, created_at) 
-                                VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
+                                VALUES ('epp', 300, 'WARNING', :log, :context, '{}', CURRENT_TIMESTAMP)");
                             $errorLogStmt->execute([
                                 ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
                                 ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
@@ -1437,7 +1437,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                             // Log duplicate mapping error
                             $stmt = $db->prepare("INSERT INTO error_log 
                                 (channel, level, level_name, message, context, extra, created_at) 
-                                VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                                VALUES ('epp', 300, 'WARNING', ?, ?, '{}', CURRENT_TIMESTAMP)");
                             $stmt->execute([
                                 "Domain: $domainName; hostName: $hostName - duplicate mapping",
                                 json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])
@@ -1736,7 +1736,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         } else {
                             $errorLogStmt = $db->prepare("INSERT INTO error_log 
                                 (channel, level, level_name, message, context, extra, created_at) 
-                                VALUES ('epp', 3, 'warning', :log, :context, '{}', CURRENT_TIMESTAMP)");
+                                VALUES ('epp', 300, 'WARNING', :log, :context, '{}', CURRENT_TIMESTAMP)");
                             $errorLogStmt->execute([
                                 ':log' => "Domain: $domainName; hostObj: $hostObj - is duplicated",
                                 ':context' => json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostObj])
@@ -1806,7 +1806,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                             // Log duplicate mapping error
                             $stmt = $db->prepare("INSERT INTO error_log 
                                 (channel, level, level_name, message, context, extra, created_at) 
-                                VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                                VALUES ('epp', 300, 'WARNING', ?, ?, '{}', CURRENT_TIMESTAMP)");
                             $stmt->execute([
                                 "Domain: $domainName; hostName: $hostName - duplicate mapping",
                                 json_encode(['registrar_id' => $clid, 'domain' => $domainName, 'host' => $hostName])

@@ -578,7 +578,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt_log->execute([
-                'domain_transfer',
+                'manual_transfer',
                 250,
                 'NOTICE',
                 "Domain transfer manually approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
@@ -730,7 +730,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt_log->execute([
-                'domain_transfer',
+                'manual_transfer',
                 250,
                 'NOTICE',
                 "Domain transfer manually canceled: $domainName (Registrar: $reid)",
@@ -879,7 +879,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
 
             $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt_log->execute([
-                'domain_transfer',
+                'manual_transfer',
                 250,
                 'NOTICE',
                 "Domain transfer manually rejected: $domainName (Registrar: $reid)",

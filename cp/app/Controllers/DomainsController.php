@@ -749,8 +749,8 @@ class DomainsController extends Controller
                                     'error_log',
                                     [
                                         'channel' => 'control_panel',
-                                        'level' => 3,
-                                        'level_name' => 'warning',
+                                        'level' => 300,
+                                        'level_name' => 'WARNING',
                                         'message' => "Domain: $domainName; hostName: $nameserver - is duplicated",
                                         'context' => json_encode([
                                             'registrar_id' => $clid, 
@@ -3129,7 +3129,7 @@ class DomainsController extends Controller
                 $db->exec(
                     'INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)',
                     [
-                        'manual_transfer_reject',
+                        'manual_transfer',
                         250, // NOTICE level
                         'NOTICE',
                         "Manual domain transfer rejected: $domainName (Losing Registrar: $clid)",
@@ -3239,7 +3239,7 @@ class DomainsController extends Controller
                 $db->exec(
                     'INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)',
                     [
-                        'manual_transfer_cancel',
+                        'manual_transfer',
                         250, // NOTICE level
                         'NOTICE',
                         "Manual domain transfer canceled: $domainName (Applicant: $clid)",

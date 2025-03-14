@@ -1537,7 +1537,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     ]);
                     $stmt = $db->prepare("INSERT INTO error_log 
                         (channel, level, level_name, message, context, extra, created_at) 
-                        VALUES ('epp', 3, 'warning', ?, ?, '{}', CURRENT_TIMESTAMP)");
+                        VALUES ('epp', 300, 'WARNING', ?, ?, '{}', CURRENT_TIMESTAMP)");
                     $stmt->execute([$logMessage, $contextData]);
                 }
             } else {
