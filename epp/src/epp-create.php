@@ -634,6 +634,10 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         } elseif ($launch_phase === 'landrush') {
             // Continue
         } elseif ($launch_phase === 'custom') {
+            if (empty($launch_phase_name)) {
+                sendEppError($conn, $db, 2003, 'Missing required element: A phase name is mandatory for the custom phase.', $clTRID, $trans);
+                return;
+            }
             // Continue
         } else {
             // Mixed or unsupported form

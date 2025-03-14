@@ -74,6 +74,11 @@ class ApplicationsController extends Controller
             $authInfo = $data['authInfo'] ?? null;
             $invalid_domain = validate_label($domainName, $db);
 
+            if ($phaseType === 'custom' && empty($phaseName)) {
+                $this->container->get('flash')->addMessage('error', 'Please provide a phase name when selecting the "Custom" phase type.');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
+            }
+
             if ($invalid_domain) {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: Invalid domain name');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
