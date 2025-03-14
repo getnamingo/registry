@@ -228,14 +228,23 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
 
     // Check for premium pricing
-    $premiumPrice = $redis->get("premium_price_{$domain_name}_{$tld_id}") ?: fetchSingleValue(
-        $pdo,
-        'SELECT c.category_price 
-         FROM premium_domain_pricing p
-         JOIN premium_domain_categories c ON p.category_id = c.category_id
-         WHERE p.domain_name = ? AND p.tld_id = ?',
-        [$domain_name, $tld_id]
-    );
+    $premiumCacheKey = "premium_price_{$domain_name}_{$tld_id}";
+    $premiumPrice = json_decode($redis->get($premiumCacheKey), true);
+
+    if ($premiumPrice === null || $premiumPrice == 0) {
+        $premiumPrice = fetchSingleValue(
+            $pdo,
+            'SELECT c.category_price 
+             FROM premium_domain_pricing p
+             JOIN premium_domain_categories c ON p.category_id = c.category_id
+             WHERE p.domain_name = ? AND p.tld_id = ?',
+            [$domain_name, $tld_id]
+        );
+
+        if (!is_null($premiumPrice) && $premiumPrice !== false) {
+            $redis->setex($premiumCacheKey, 1800, json_encode($premiumPrice));
+        }
+    }
 
     if (!is_null($premiumPrice) && $premiumPrice !== false) {
         $money = convertMoney(new Money((int) ($premiumPrice * 100), new Currency($baseCurrency)), $exchangeRate, $currency);
@@ -247,46 +256,65 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
 
     // Check for active promotions
     $currentDate = date('Y-m-d');
-    $promo = json_decode($redis->get("promo_{$tld_id}"), true) ?: fetchSingleRow(
-        $pdo,
-        "SELECT discount_percentage, discount_amount 
-         FROM promotion_pricing 
-         WHERE tld_id = ? 
-         AND promo_type = 'full' 
-         AND status = 'active' 
-         AND start_date <= ? 
-         AND end_date >= ?",
-        [$tld_id, $currentDate, $currentDate]
-    );
+    $promoCacheKey = "promo_{$tld_id}";
+    $promo = json_decode($redis->get($promoCacheKey), true);
 
-    if ($promo) {
-        $redis->setex("promo_{$tld_id}", 3600, json_encode($promo));
+    if ($promo === null) {
+        $promo = fetchSingleRow(
+            $pdo,
+            "SELECT discount_percentage, discount_amount 
+             FROM promotion_pricing 
+             WHERE tld_id = ? 
+             AND promo_type = 'full' 
+             AND status = 'active' 
+             AND start_date <= ? 
+             AND end_date >= ?",
+            [$tld_id, $currentDate, $currentDate]
+        );
+
+        if ($promo) {
+            $redis->setex($promoCacheKey, 3600, json_encode($promo));
+        }
     }
 
     // Get regular price from DB
     $priceColumn = "m" . (int) $date_add;
-    $regularPrice = json_decode($redis->get("regular_price_{$tld_id}_{$command}_{$registrar_id}"), true) ?: fetchSingleValue(
-        $pdo,
-        "SELECT $priceColumn 
-         FROM domain_price 
-         WHERE tldid = ? AND command = ? 
-         AND (registrar_id = ? OR registrar_id IS NULL) 
-         ORDER BY registrar_id DESC LIMIT 1",
-        [$tld_id, $command, $registrar_id]
-    );
+    $regularPriceCacheKey = "regular_price_{$tld_id}_{$command}_{$date_add}_{$registrar_id}";
+    $regularPrice = json_decode($redis->get($regularPriceCacheKey), true);
+
+    if ($regularPrice === null || $regularPrice == 0) {
+        $regularPrice = fetchSingleValue(
+            $pdo,
+            "SELECT $priceColumn 
+             FROM domain_price 
+             WHERE tldid = ? AND command = ? 
+             AND (registrar_id = ? OR registrar_id IS NULL) 
+             ORDER BY registrar_id DESC LIMIT 1",
+            [$tld_id, $command, $registrar_id]
+        );
+
+        if (!is_null($regularPrice) && $regularPrice !== false) {
+            $redis->setex($regularPriceCacheKey, 1800, json_encode($regularPrice));
+        }
+    }
 
     if (!is_null($regularPrice) && $regularPrice !== false) {
         $redis->setex("regular_price_{$tld_id}_{$command}_{$registrar_id}", 1800, json_encode($regularPrice));
 
         $finalPrice = $regularPrice * 100; // Convert DB float to cents
         if ($promo) {
-            if (!empty($promo['discount_percentage'])) {
-                $discountAmount = (int) ($finalPrice * ($promo['discount_percentage'] / 100));
+            if ($finalPrice > 0) {
+                if (!empty($promo['discount_percentage'])) {
+                    $discountAmount = (int) ($finalPrice * ($promo['discount_percentage'] / 100));
+                } else {
+                    $discountAmount = (int) ($promo['discount_amount'] * 100);
+                }
+                $finalPrice = max(0, $finalPrice - $discountAmount);
+                $type = 'promotion';
             } else {
-                $discountAmount = (int) ($promo['discount_amount'] * 100);
+                $finalPrice = 0;
+                $type = 'promotion';
             }
-            $finalPrice = max(0, $finalPrice - $discountAmount);
-            $type = 'promotion';
         } else {
             $type = 'regular';
         }

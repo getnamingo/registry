@@ -1134,6 +1134,16 @@ class ApplicationsController extends Controller
                 $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
                 $price = $returnValue['price'];
 
+                if (!$price) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: The price, period and currency for such TLD are not declared');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+
+                if (($registrar_balance + $creditLimit) < $price) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Low credit: minimum threshold reached');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+
                 try {
                     $db->beginTransaction();
 
