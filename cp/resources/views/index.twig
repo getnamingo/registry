@@ -6,7 +6,7 @@
     <meta name="description" content="Namingo Registry Panel - a powerful solution for managing domains, registrars, and registry operations seamlessly.">
     <meta name="author" content="Namingo Team">
     <meta name="keywords" content="Namingo, Registry Panel, Domain Management, Registrar Tools, Namingo Software, ICANN, Domain Registrar">
-    <meta name="theme-color" content="#A62A6C">
+    <meta name="theme-color" content="#066fd1">
     <title>Registry Panel</title>
     {% include 'partials/css.twig' %}
     <style>
@@ -126,10 +126,15 @@
                 </div>
             </div>
 
-            <div class="alert alert-secondary text-start mt-4" role="alert">
-                To customize this page, copy <code>index.twig</code> from 
-                <code>/var/www/cp/resources/views</code> to 
-                <code>index.custom.twig</code> and edit the file as required.
+            <div class="alert alert-info alert-dismissible mt-4" role="alert">
+                <div class="alert-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" />
+                    </svg>
+                </div>
+                <h4 class="alert-title">To customize this page, copy <code>index.twig</code> from <code>/var/www/cp/resources/views</code> to <code>index.custom.twig</code> and edit the file as required.</h4>
+                <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
             </div>
         </div>
     </main>

@@ -26,8 +26,14 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
-                  <div class="alert alert-important alert-info" role="alert">
-                    {{ __('The host you\'re trying to update') }}, <strong>{{ host.name }}</strong>, {{ __('is external to the registry. Consequently, it does not store any IP addresses within our system, and therefore, does not require any updates from your end. This means there are no associated IP addresses under our management that need your attention.') }}
+                  <div class="alert alert-info" role="alert">
+                    <div class="alert-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" />
+                        </svg>
+                    </div>
+                    <h4 class="alert-title">{{ __('The host you\'re trying to update') }}, <strong>{{ host.name }}</strong>, {{ __('is external to the registry. Consequently, it does not store any IP addresses within our system, and therefore, does not require any updates from your end. This means there are no associated IP addresses under our management that need your attention.') }}</h4>
                   </div>
                 </div>
             </div>
