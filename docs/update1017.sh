@@ -127,19 +127,19 @@ echo "Backup saved to $BACKUP"
 # 1. For the rdap block: insert the new log block after "header -Server"
 #    and before the following "header * {" line.
 # --------------------------------------------------------------------
-perl -0777 -pi -e 's/(^\s*rdap\.namingo\.org\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-rdap.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
+perl -0777 -pi -e 's/(^\s*rdap\.[^\s]+\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-rdap.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
 
 # --------------------------------------------------------------------
 # 2. For the whois block: insert the new log block after "header -Server"
 #    and before the following "header * {" line.
 # --------------------------------------------------------------------
-perl -0777 -pi -e 's/(^\s*whois\.namingo\.org\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-whois.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
+perl -0777 -pi -e 's/(^\s*whois\.[^\s]+\s*\{.*?header\s+-Server.*?\n)(\s*header\s+\*\s*\{)/$1        log {\n            output file \/var\/log\/namingo\/web-whois.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }\n$2/sm' "$CADDYFILE"
 
 # --------------------------------------------------------------------
 # 3. For the cp block: replace the log block that outputs to caddy.log
 #    with a new block that outputs to web-cp.log.
 # --------------------------------------------------------------------
-perl -0777 -pi -e 's/(^\s*cp\.namingo\.org\s*\{.*?log\s*\{\s*\n\s*output\s+file\s+\/var\/log\/namingo\/)caddy\.log(\s*\n\s*\})/$1web-cp.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }/sm' "$CADDYFILE"
+perl -0777 -pi -e 's/(^\s*cp\.[^\s]+\s*\{.*?log\s*\{\s*\n\s*output\s+file\s+\/var\/log\/namingo\/)caddy\.log(\s*\n\s*\})/$1web-cp.log {\n                roll_size 10MB\n                roll_keep 5\n                roll_keep_days 14\n            }\n            format json\n        }/sm' "$CADDYFILE"
 
 # --------------------------------------------------------------------
 # 4. Create the new log files and set their ownership to caddy:caddy
