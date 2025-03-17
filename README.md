@@ -8,21 +8,19 @@ Open-source domain registry platform. Revolutionizing ccTLD and gTLD management 
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2024, it adheres to the latest standards, ensuring a cutting-edge experience. 
+Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2025, it adheres to the latest standards, ensuring a cutting-edge experience. 
 
-Namingo is optimally designed for the upcoming ICANN application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
+Namingo is optimally designed for the 2026 ICANN new gTLD application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
 ## Get Involved
 
-**Namingo** is now complete, thanks to our dedicated community. The journey doesn't end here, and we invite volunteers to help us continue testing and improving Namingo.
+We’re finalizing support for Alpine Linux, PostgreSQL, and SQLite and are looking for contributors to help test and refine these features.
 
-Namingo is compatible with Ubuntu 22.04/24.04 LTS and Debian 12, supporting MariaDB/MySQL databases. We are also seeking testers for new operating systems and database setups, including Alpine Linux, and FreeBSD 14, with both MariaDB/MySQL and PostgreSQL options.
+We also seek assistance from gTLD operators to test Namingo in real-world environments. If you can provide access to ICANN and other relevant infrastructure, your contributions will help improve Namingo’s compatibility and reliability for registry operations.
 
-Namingo efficiently manages up to 150,000 domains on a VPS setup with 2 cores, 4GB RAM, and an 11GB SSD. It can handle up to 1,000,000 domains on a more robust VPS configuration with 8 cores, 32GB RAM, and a 125GB NVMe SSD, though a few minor issues are noted in the [issues tab](https://github.com/getnamingo/registry/issues?q=is%3Aissue+is%3Aopen+label%3A%221+000+000+domains+issue%22). Zone generation for 1 million domains takes approximately 6 minutes.
+### EPP Benchmark Summary
 
-Additionally, we are looking for assistance from gTLD operators to test Namingo by providing access to ICANN and other relevant systems. Your contributions are invaluable in refining and expanding Namingo's capabilities. Join us in ensuring Namingo remains the best in its class.
-
-### EPP Benchmark Summary (per registrar)
+Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM, and an 11GB SSD. On a larger setup with 8 cores, 32GB RAM, and a 125GB NVMe SSD, it scales to 1,000,000 domains, with zone generation taking approximately 6 minutes.
 
 | **Metric**                      | 2 vCPU, 2 GB RAM, SSD | 8 vCPU, 32 GB RAM, NVMe |
 |---------------------------------|-----------------------|-------------------------|
