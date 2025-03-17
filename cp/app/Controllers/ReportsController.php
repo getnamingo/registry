@@ -201,6 +201,8 @@ class ReportsController extends Controller
         $whoisQueries = $db->selectValue("SELECT value FROM settings WHERE name = 'whois-43-queries'");
         $webWhoisQueries = $db->selectValue("SELECT value FROM settings WHERE name = 'web-whois-queries'");
 
+        $os = 'Namingo registry with hostname ' . $system->getHostname() . ' running on ' . $system->getOS() . ' (' . $system->getArch() . ')';
+
         return $this->view->render($response, 'admin/reports/serverHealth.twig', [
             'serverHealth' => $serverHealth,
             'csrfTokenName' => $csrfTokenName,
@@ -220,7 +222,8 @@ class ReportsController extends Controller
             'msgwLogs' => $msgwLogs,
             'redisStatus' => $redisStatus,
             'whoisQueries' => $whoisQueries,
-            'webWhoisQueries' => $webWhoisQueries
+            'webWhoisQueries' => $webWhoisQueries,
+            'os' => $os,
         ]);
     }
 
