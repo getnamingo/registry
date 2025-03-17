@@ -1364,6 +1364,77 @@ To enhance your customer support experience with Namingo, consider using one of 
 
 To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
 
+#### 3.3.1. Install ProxySQL:
+
+```bash
+apt update
+apt install proxysql
+```
+
+#### 3.3.2. Configure ProxySQL:
+
+1. Access the Admin Interface:
+
+- ProxySQL's admin interface listens on port 6032. Connect using the MySQL client:
+
+```bash
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+
+The default username and password are both `admin`. For security reasons, it's advisable to change these credentials.
+
+2. Add Backend MySQL Servers:
+
+Define your MySQL servers in the `mysql_servers` table. For example, to add a server:
+
+```sql
+INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (1, 'your_db_server_ip', 3306);
+```
+
+Replace `'your_db_server_ip'` with the IP address of your MySQL server. The `hostgroup_id` is used to group servers; you can assign it based on your architecture.
+
+3. Configure Users:
+
+Specify the MySQL users that ProxySQL will use to connect to the backend servers:
+
+```sql
+INSERT INTO mysql_users (username, password, default_hostgroup) VALUES ('your_db_user', 'your_db_password', 1);
+```
+
+Replace `'your_db_user'` and `'your_db_password'` with your MySQL user's credentials. Ensure this user has the necessary permissions on the backend MySQL servers.
+
+4. Load Configuration to Runtime and Save to Disk:
+
+After making configuration changes, load them into runtime and save to disk:
+
+```sql
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS TO DISK;
+
+LOAD MYSQL USERS TO RUNTIME;
+SAVE MYSQL USERS TO DISK;
+```
+
+This ensures that your changes take effect immediately and persist after a restart.
+
+#### 3.3.3. Update Namingo Configuration:
+
+Point all Namingo configuration files to ProxySQL instead of directly connecting to the MySQL servers:
+
+- Update Namingo's database host to the IP address of the ProxySQL server and set the port to 6033 (ProxySQL's default port for MySQL client connections).
+
+Ensure that Namingo uses the same database user credentials configured in ProxySQL.
+
+#### 3.3.4. Test the Configuration:
+
+1. Verify Connections:
+
+Ensure that Namingo can connect to the database through ProxySQL and that queries are being distributed across the backend servers as intended.
+
+2. Monitor Performance:
+
+Use ProxySQL's statistics tables to monitor query performance and load distribution.
+
 ## 4. Security Hardening
 
 ### 4.1. Create the namingo user
