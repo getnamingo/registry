@@ -1662,3 +1662,42 @@ msgstr "Виберіть контакт для призначення"
 
 msgid "Assign Contact"
 msgstr "Призначити контакт"
+
+msgid "Expiring Domains"
+msgstr "Домени, що скоро закінчаться"
+
+msgid "Expired Domains"
+msgstr "Домени, що закінчилися"
+
+msgid "WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator."
+msgstr "WebAuthn наразі вимкнено для цієї інсталяції. Щоб увімкнути аутентифікацію WebAuthn, зверніться до адміністратора реєстру."
+
+msgid "Security"
+msgstr "Безпека"
+
+msgid "If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices."
+msgstr "Якщо ви увійшли на кількох пристроях або браузерах і хочете забезпечити безпеку свого облікового запису, ви можете вийти з усіх інших сесій, окрім цієї. Це завершить доступ з усіх інших увійдених пристроїв."
+
+msgid "Log Out from All Devices"
+msgstr "Вийти з усіх пристроїв"
+
+msgid "Port 43 WHOIS Queries"
+msgstr "WHOIS-запити на порту 43"
+
+msgid "Web WHOIS Queries"
+msgstr "WHOIS-запити через веб"
+
+msgid "Enable DNSSEC"
+msgstr "Увімкнути DNSSEC"
+
+msgid "DNSSEC Mode"
+msgstr "Режим DNSSEC"
+
+msgid "DNSSEC Details"
+msgstr "Деталі DNSSEC"
+
+msgid "Export IDN Table"
+msgstr "Експортувати таблицю IDN"
+
+msgid "Published"
+msgstr "Опубліковано"

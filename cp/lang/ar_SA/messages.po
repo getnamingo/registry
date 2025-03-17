@@ -1659,3 +1659,42 @@ msgstr "اختر جهة اتصال للتعيين"
 
 msgid "Assign Contact"
 msgstr "تعيين جهة الاتصال"
+
+msgid "Expiring Domains"
+msgstr "المجالات التي ستنتهي صلاحيتها"
+
+msgid "Expired Domains"
+msgstr "المجالات المنتهية الصلاحية"
+
+msgid "WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator."
+msgstr "WebAuthn معطل حاليًا لهذا التثبيت. لتمكين المصادقة عبر WebAuthn، يرجى الاتصال بمسؤول السجل."
+
+msgid "Security"
+msgstr "الأمان"
+
+msgid "If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices."
+msgstr "إذا قمت بتسجيل الدخول على عدة أجهزة أو متصفحات وتريد ضمان أمان حسابك، يمكنك تسجيل الخروج من جميع الجلسات الأخرى باستثناء هذه الجلسة. سيؤدي ذلك إلى إنهاء الوصول من أي أجهزة أخرى تم تسجيل الدخول إليها."
+
+msgid "Log Out from All Devices"
+msgstr "تسجيل الخروج من جميع الأجهزة"
+
+msgid "Port 43 WHOIS Queries"
+msgstr "استعلامات WHOIS على المنفذ 43"
+
+msgid "Web WHOIS Queries"
+msgstr "استعلامات WHOIS عبر الويب"
+
+msgid "Enable DNSSEC"
+msgstr "تمكين DNSSEC"
+
+msgid "DNSSEC Mode"
+msgstr "وضع DNSSEC"
+
+msgid "DNSSEC Details"
+msgstr "تفاصيل DNSSEC"
+
+msgid "Export IDN Table"
+msgstr "تصدير جدول IDN"
+
+msgid "Published"
+msgstr "منشور"

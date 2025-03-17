@@ -48,8 +48,10 @@ class HomeController extends Controller
 
         if ($clid !== null) {
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);
-            $latest_domains = $db->select('SELECT name, crdate FROM domain WHERE clid = ? ORDER BY crdate DESC LIMIT 10', [$clid]);
-            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 10', [$clid]);
+            $latest_domains = $db->select('SELECT name, crdate FROM domain WHERE clid = ? ORDER BY crdate DESC LIMIT 5', [$clid]);
+            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;', [$clid]);
+            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;', [$clid]);
+            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 5', [$clid]);
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
             
@@ -58,6 +60,8 @@ class HomeController extends Controller
                 'hosts' => $hosts,
                 'contacts' => $contacts,
                 'latest_domains' => $latest_domains,
+                'expiring_domains' => $expiring_domains,
+                'expired_domains' => $expired_domains,
                 'tickets' => $tickets,
             ]);
         } else {
@@ -162,8 +166,10 @@ class HomeController extends Controller
             }
 
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain');
-            $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 10');
-            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets ORDER BY date_created DESC LIMIT 10');
+            $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 5');
+            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;');
+            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;');
+            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets ORDER BY date_created DESC LIMIT 5');
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host');
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact');
             $registrars = $db->selectValue('SELECT count(id) as registrars FROM registrar');
@@ -174,6 +180,8 @@ class HomeController extends Controller
                 'contacts' => $contacts,
                 'registrars' => $registrars,
                 'latest_domains' => $latest_domains,
+                'expiring_domains' => $expiring_domains,
+                'expired_domains' => $expired_domains,
                 'tickets' => $tickets,
                 'dates' => json_encode($dates),
                 'counts' => json_encode($counts),

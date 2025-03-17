@@ -1662,3 +1662,42 @@ msgstr "割り当てる連絡先を選択"
 
 msgid "Assign Contact"
 msgstr "連絡先を割り当てる"
+
+msgid "Expiring Domains"
+msgstr "期限切れ間近のドメイン"
+
+msgid "Expired Domains"
+msgstr "期限切れのドメイン"
+
+msgid "WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator."
+msgstr "このインストールではWebAuthnが無効になっています。WebAuthn認証を有効にするには、レジストリ管理者に連絡してください。"
+
+msgid "Security"
+msgstr "セキュリティ"
+
+msgid "If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices."
+msgstr "複数のデバイスやブラウザでログインしている場合、アカウントのセキュリティを確保するために、このセッションを除くすべてのセッションからログアウトできます。これにより、他のログイン済みデバイスからのアクセスが終了します。"
+
+msgid "Log Out from All Devices"
+msgstr "すべてのデバイスからログアウト"
+
+msgid "Port 43 WHOIS Queries"
+msgstr "ポート43のWHOISクエリ"
+
+msgid "Web WHOIS Queries"
+msgstr "Web WHOISクエリ"
+
+msgid "Enable DNSSEC"
+msgstr "DNSSECを有効化"
+
+msgid "DNSSEC Mode"
+msgstr "DNSSECモード"
+
+msgid "DNSSEC Details"
+msgstr "DNSSECの詳細"
+
+msgid "Export IDN Table"
+msgstr "IDNテーブルをエクスポート"
+
+msgid "Published"
+msgstr "公開済み"

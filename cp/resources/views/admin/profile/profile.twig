@@ -208,7 +208,7 @@
                         </div>
                         <div class="tab-pane" id="tabs-security">
                           <h3 class="card-title">{{ __('Security') }}</h3>
-                          <p>{{ __('If you’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices.') }}</p>
+                          <p>{{ __('If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices.') }}</p>
                           <form action="{{route('profile.logout.everywhere')}}" name="logoutEverywhere" method="post">
                           {{ csrf.field | raw }}
                           <button type="submit" class="btn btn-danger">

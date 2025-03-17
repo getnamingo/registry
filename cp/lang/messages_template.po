@@ -1662,3 +1662,42 @@ msgstr ""
 
 msgid "Assign Contact"
 msgstr ""
+
+msgid "Expiring Domains"
+msgstr ""
+
+msgid "Expired Domains"
+msgstr ""
+
+msgid "WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator."
+msgstr ""
+
+msgid "Security"
+msgstr ""
+
+msgid "If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices."
+msgstr ""
+
+msgid "Log Out from All Devices"
+msgstr ""
+
+msgid "Port 43 WHOIS Queries"
+msgstr ""
+
+msgid "Web WHOIS Queries"
+msgstr ""
+
+msgid "Enable DNSSEC"
+msgstr ""
+
+msgid "DNSSEC Mode"
+msgstr ""
+
+msgid "DNSSEC Details"
+msgstr ""
+
+msgid "Export IDN Table"
+msgstr ""
+
+msgid "Published"
+msgstr ""

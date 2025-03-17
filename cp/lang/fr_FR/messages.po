@@ -1662,3 +1662,42 @@ msgstr "Choisissez un contact à attribuer"
 
 msgid "Assign Contact"
 msgstr "Attribuer un contact"
+
+msgid "Expiring Domains"
+msgstr "Domaines expirant"
+
+msgid "Expired Domains"
+msgstr "Domaines expirés"
+
+msgid "WebAuthn is currently disabled for this installation. To enable WebAuthn authentication, please contact the registry administrator."
+msgstr "WebAuthn est actuellement désactivé pour cette installation. Pour activer l’authentification WebAuthn, veuillez contacter l’administrateur du registre."
+
+msgid "Security"
+msgstr "Sécurité"
+
+msgid "If you\’ve logged in on multiple devices or browsers and want to ensure your account remains secure, you can log out from all other sessions except this one. This will end access from any other logged-in devices."
+msgstr "Si vous vous êtes connecté sur plusieurs appareils ou navigateurs et que vous souhaitez assurer la sécurité de votre compte, vous pouvez vous déconnecter de toutes les autres sessions sauf celle-ci. Cela mettra fin à l'accès depuis tous les autres appareils connectés."
+
+msgid "Log Out from All Devices"
+msgstr "Se déconnecter de tous les appareils"
+
+msgid "Port 43 WHOIS Queries"
+msgstr "Requêtes WHOIS sur le port 43"
+
+msgid "Web WHOIS Queries"
+msgstr "Requêtes WHOIS sur le Web"
+
+msgid "Enable DNSSEC"
+msgstr "Activer DNSSEC"
+
+msgid "DNSSEC Mode"
+msgstr "Mode DNSSEC"
+
+msgid "DNSSEC Details"
+msgstr "Détails DNSSEC"
+
+msgid "Export IDN Table"
+msgstr "Exporter le tableau IDN"
+
+msgid "Published"
+msgstr "Publié"

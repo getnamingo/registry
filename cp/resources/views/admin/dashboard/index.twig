@@ -190,7 +190,7 @@
                     </a>
                   </div>
                   {% endif %}
-                  <div class="col-12 col-md-6 mt-5">
+                  <div class="col-12 col-md-6">
                     <div class="card">
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Recent Domains') }}</h3>
@@ -219,7 +219,65 @@
                       </div>
                     </div>
                   </div>
-                  <div class="col-12 col-md-6 mt-5">
+                  <div class="col-12 col-md-6">
+                    <div class="card">
+                      <div class="card-header">
+                        <h3 class="card-title">{{ __('Expiring Domains') }}</h3>
+                      </div>
+                      <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                          <thead>
+                            <tr>
+                              <th>{{ __('Name') }}</th>
+                              <th>{{ __('Expiration Date') }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                          {% if expiring_domains|length > 0 %}
+                            {% for domain in expiring_domains %}
+                              <tr>
+                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
+                                <td class="text-secondary">{{ domain.exdate }}</td>
+                              </tr>
+                            {% endfor %}
+                          {% else %}
+                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
+                          {% endif %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="card">
+                      <div class="card-header">
+                        <h3 class="card-title">{{ __('Expired Domains') }}</h3>
+                      </div>
+                      <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                          <thead>
+                            <tr>
+                              <th>{{ __('Name') }}</th>
+                              <th>{{ __('Expiration Date') }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                          {% if expired_domains|length > 0 %}
+                            {% for domain in expired_domains %}
+                              <tr>
+                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
+                                <td class="text-secondary">{{ domain.exdate }}</td>
+                              </tr>
+                            {% endfor %}
+                          {% else %}
+                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
+                          {% endif %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
                     <div class="card">
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Recent Support Tickets') }}</h3>
