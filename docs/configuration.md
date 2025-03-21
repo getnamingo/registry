@@ -1435,6 +1435,22 @@ Ensure that Namingo can connect to the database through ProxySQL and that querie
 
 Use ProxySQL's statistics tables to monitor query performance and load distribution.
 
+### 3.4. Recommended Call Center Solution
+
+To enhance your voice-based customer support, we recommend:
+
+**[Bland.com](https://bland.com)**  
+Bland is a modern AI-powered call center platform that allows businesses to deploy ultra-realistic voice agents capable of speaking any language and operating 24/7. It’s built for developers and enterprises looking to automate phone interactions like scheduling, CRM updates, and customer support—at scale.
+
+Key features include:
+- AI phone agents with human-like speech
+- Fully self-hosted, end-to-end infrastructure
+- Customizable conversation flows ("Pathways")
+- API-driven integration with CRMs, schedulers, and more
+- Enterprise-grade security (SOC2, HIPAA, PCI DSS)
+
+> **Note:** Bland.com is a commercial service and not affiliated with Namingo. While not open-source, it provides advanced AI voice automation capabilities and is ideal for companies seeking scalable, programmable phone support solutions.
+
 ## 4. Security Hardening
 
 ### 4.1. Create the namingo user
