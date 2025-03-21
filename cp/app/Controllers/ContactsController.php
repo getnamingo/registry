@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Contact;
+use App\Lib\Mail;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
@@ -1134,36 +1135,93 @@ class ContactsController extends Controller
             } else {
                 $clid = $contact['clid'];
             }
-            
+
             if ($contact) {
-                try {
-                    $db->beginTransaction();
-                    $currentDateTime = new \DateTime();
-                    $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
-                    $db->update(
-                        'contact',
-                        [
-                            'validation' => $data['verify'],
-                            'validation_stamp' => $stamp,
-                            'validation_log' => json_encode($data['v_log']),
-                            'upid' => $clid,
-                            'lastupdate' => $stamp
+                if (!empty(envi('SUMSUB_TOKEN')) && !empty(envi('SUMSUB_KEY'))) {
+                    $level_name = 'idv-and-phone-verification';
+
+                    // Build request body
+                    $bodyArray = [
+                        'levelName' => $level_name,
+                        'userId' => $identifier,
+                        'applicantIdentifiers' => [
+                            'email' => $contact['email'],
+                            'phone' => $contact['voice']
                         ],
-                        [
-                            'identifier' => $identifier
+                        'ttlInSecs' => 1800
+                    ];
+
+                    $body = json_encode($bodyArray);
+                    $path = '/resources/sdkIntegrations/levels/-/websdkLink';
+                    $ts = time();
+                    $signature = sign($ts, 'POST', $path, $body, envi('SUMSUB_KEY'));
+
+                    // Guzzle client
+                    $client = new \GuzzleHttp\Client([
+                        'base_uri' => 'https://api.sumsub.com',
+                        'headers' => [
+                            'X-App-Token' => envi('SUMSUB_TOKEN'),
+                            'X-App-Access-Ts' => $ts,
+                            'X-App-Access-Sig' => $signature,
+                            'Content-Type' => 'application/json',
                         ]
-                    );                
-                    $db->commit();
-                } catch (Exception $e) {
-                    $db->rollBack();
-                    $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                    ]);
+
+                    // Send request
+                    try {
+                        $response = $client->post($path, ['body' => $body]);
+                        $data = json_decode($response->getBody(), true);
+                        $link = $data['url'];
+
+                        $currentDateTime = new \DateTime();
+                        $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+                        $email = $db->selectValue('SELECT email FROM users WHERE id = ?', [$_SESSION['auth_user_id']]);
+                        $registry = $db->selectValue('SELECT value FROM settings WHERE name = ?', ['company_name']);
+                        $message = file_get_contents(__DIR__.'/../../resources/views/mail/validation.html');
+                        $placeholders = ['{registry}', '{link}', '{app_name}', '{app_url}', '{identifier}'];
+                        $replacements = [$registry, $link, envi('APP_NAME'), envi('APP_URL'), $contact['identifier']];
+                        $message = str_replace($placeholders, $replacements, $message);   
+                        $mailsubject = '[' . envi('APP_NAME') . '] Contact Verification Required';
+                        $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
+                        $to = ['email'=>$contact['email'], 'name'=>''];
+                        // send message
+                        Mail::send($mailsubject, $message, $from, $to);
+
+                        $this->container->get('flash')->addMessage('info', 'Contact validation process initiated with SumSub on ' . $stamp);
+                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                    } catch (\GuzzleHttp\Exception\ClientException $e) {
+                        $this->container->get('flash')->addMessage('error', 'Contact validation error: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                    }
+                } else {
+                    try {
+                        $db->beginTransaction();
+                        $currentDateTime = new \DateTime();
+                        $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+                        $db->update(
+                            'contact',
+                            [
+                                'validation' => $data['verify'],
+                                'validation_stamp' => $stamp,
+                                'validation_log' => json_encode($data['v_log']),
+                                'upid' => $clid,
+                                'lastupdate' => $stamp
+                            ],
+                            [
+                                'identifier' => $identifier
+                            ]
+                        );                
+                        $db->commit();
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                    }
+
+                    unset($_SESSION['contacts_to_validate']);
+                    $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been validated successfully on ' . $stamp);
                     return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
                 }
-
-                unset($_SESSION['contacts_to_validate']);
-                $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been validated successfully on ' . $stamp);
-                return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
-
             } else {
                 // Contact does not exist, redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
@@ -1628,6 +1686,64 @@ class ContactsController extends Controller
         
         //}
 
-    }    
+    }
+    
+    public function webhookSumsub(Request $request, Response $response)
+    {
+        $body = $request->getBody()->getContents();
+        $data = json_decode($body, true);
+        $db = $this->container->get('db');
+
+        // Validate input
+        if (!isset($data['externalUserId']) || !isset($data['type'])) {
+            $response->getBody()->write('Missing required fields');
+            return $response->withStatus(400);
+        }
+
+        $identifier = $data['externalUserId'];
+        $type = $data['type'];
+
+        // Only process applicantReviewed type
+        if ($type === 'applicantReviewed') {
+            $answer = $data['reviewResult']['reviewAnswer'] ?? null;
+            switch ($answer) {
+                case 'GREEN':
+                    $verify = '4'; // verified
+                    break;
+                case 'RED':
+                    $verify = '0'; // failed
+                    break;
+                default:
+                    // Ignore anything else
+                    $response->getBody()->write('Ignored (unhandled reviewAnswer)');
+                    return $response->withStatus(202);
+            }
+            $v_log = $data; // store full webhook for audit
+            $clid = $data['applicantId'] ?? null;
+
+            $currentDateTime = new \DateTime();
+            $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+            
+            $db->update(
+                'contact',
+                [
+                    'validation' => $verify,
+                    'validation_stamp' => $stamp,
+                    'validation_log' => json_encode($v_log),
+                    //'upid' => $clid,
+                    'lastupdate' => $stamp
+                ],
+                [
+                    'identifier' => $identifier
+                ]
+            );
+
+            $response->getBody()->write('OK');
+            return $response->withStatus(200);
+        }
+
+        $response->getBody()->write('Ignored');
+        return $response->withStatus(202);
+    }
 
 }

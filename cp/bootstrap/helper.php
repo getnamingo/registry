@@ -1149,3 +1149,9 @@ function isValidHostname($hostname) {
 
     return true;
 }
+
+// HMAC Signature generator
+function sign($ts, $method, $path, $body, $secret_key) {
+    $stringToSign = $ts . strtoupper($method) . $path . $body;
+    return hash_hmac('sha256', $stringToSign, $secret_key);
+}

@@ -44,4 +44,7 @@ NOW_API_KEY='now-api-key'
 
 NICKY_API_KEY='nicky-api-key'
 
+SUMSUB_TOKEN=
+SUMSUB_KEY=
+
 TEST_TLDS=.test,.com.test
