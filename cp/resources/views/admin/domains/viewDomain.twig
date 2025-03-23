@@ -95,18 +95,6 @@
                       </div>
                     {% endfor %}{% endif %}
                       <div class="datagrid-item">
-                        <div class="datagrid-title">{{ __('Auth Type') }}</div>
-                        <div class="datagrid-content">
-                        {% if domainAuth.authtype == 'pw' %}
-                          Regular
-                        {% elseif domainAuth.authtype == 'ext' %}
-                          HSM
-                        {% else %}
-                          {{ domainAuth.authtype }} {# Fallback in case there are other types #}
-                        {% endif %}
-                        </div>
-                      </div>
-                      <div class="datagrid-item">
                         <div class="datagrid-title">{{ __('Auth Info') }}</div>
                         <div class="datagrid-content blur" id="authInfo" onclick="toggleBlur()">
                           {{ domainAuth.authinfo }}
@@ -121,16 +109,18 @@
                   <div class="card h-100">
                     <div class="card-body">
                       <h5 class="card-title">{{ __('Nameservers') }}</h5>
-                        <div class="datagrid">
-                          {% for host in domainHosts %}
-                          <div class="datagrid-item">
-                            <div class="datagrid-title">{{ __('Nameserver') }} {{ loop.index }}</div>
-                            <div class="datagrid-content">
-                              <strong><a href="/host/view/{{ host.name }}">{{ host.name }}</a></strong>
-                            </div>
+                        {% if domainHosts is not empty %}
+                          <div class="datagrid">
+                            {% for host in domainHosts %}
+                              <div class="datagrid-item">
+                                <div class="datagrid-title">{{ __('Nameserver') }} {{ loop.index }}</div>
+                                <div class="datagrid-content">
+                                  <strong><a href="/host/view/{{ host.name }}">{{ host.name }}</a></strong>
+                                </div>
+                              </div>
+                            {% endfor %}
                           </div>
-                          {% endfor %}
-                        </div>
+                        {% endif %}
                     </div>
                   </div>
                 </div>
