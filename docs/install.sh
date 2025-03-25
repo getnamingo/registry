@@ -17,9 +17,15 @@ set_php_ini_value() {
     local key=$2
     local value=$3
 
-    if grep -qE "^\s*;?\s*${key}\s*=" "$ini_file"; then
-        sed -i "s/^\s*;?\s*${key}\s*=.*/${key} = ${value}/" "$ini_file"
+    # Escape slashes for sed compatibility
+    local escaped_value
+    escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
+
+    if grep -Eq "^\s*[;#]?\s*${key}\s*=" "$ini_file"; then
+        # Update the existing line, uncomment it and set correct value
+        sed -i -E "s|^\s*[;#]?\s*(${key})\s*=.*|\1 = ${escaped_value}|" "$ini_file"
     else
+        # Add new line if key doesn't exist
         echo "${key} = ${value}" >> "$ini_file"
     fi
 }
@@ -43,6 +49,8 @@ MIN_DISK_GB=10
 
 # Get the available RAM in MB
 AVAILABLE_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+PHP_MEMORY_MB=$(( AVAILABLE_RAM_MB / 2 ))
+PHP_MEMORY_LIMIT="${PHP_MEMORY_MB}M"
 
 # Get the available disk space in GB for the root partition
 AVAILABLE_DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
@@ -130,11 +138,9 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
         phpIniCli='/etc/php/8.3/cli/php.ini'
         phpIniFpm='/etc/php/8.3/fpm/php.ini'
-        phpIniOpcache='/etc/php/8.3/mods-available/opcache.ini'
     else
         phpIniCli='/etc/php/8.2/cli/php.ini'
         phpIniFpm='/etc/php/8.2/fpm/php.ini'
-        phpIniOpcache='/etc/php/8.2/mods-available/opcache.ini'
     fi
 
     # Update php.ini files
@@ -142,11 +148,12 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     set_php_ini_value "$phpIniCli" "opcache.enable_cli" "1"
     set_php_ini_value "$phpIniCli" "opcache.jit_buffer_size" "100M"
     set_php_ini_value "$phpIniCli" "opcache.jit" "1255"
-    set_php_ini_value "$phpIniCli" "session.cookie_secure" "1"
-    set_php_ini_value "$phpIniCli" "session.cookie_httponly" "1"
-    set_php_ini_value "$phpIniCli" "session.cookie_samesite" "\"Strict\""
-    set_php_ini_value "$phpIniCli" "session.cookie_domain" "\"$REGISTRY_DOMAIN,cp.$REGISTRY_DOMAIN,whois.$REGISTRY_DOMAIN\""
-    set_php_ini_value "$phpIniCli" "memory_limit" "2G"
+    set_php_ini_value "$phpIniCli" "memory_limit" "$PHP_MEMORY_LIMIT"
+    set_php_ini_value "$phpIniCli" "opcache.memory_consumption" "128"
+    set_php_ini_value "$phpIniCli" "opcache.interned_strings_buffer" "16"
+    set_php_ini_value "$phpIniCli" "opcache.max_accelerated_files" "10000"
+    set_php_ini_value "$phpIniCli" "opcache.validate_timestamps" "0"
+    set_php_ini_value "$phpIniCli" "expose_php" "0"
 
     # Repeat the same settings for php-fpm
     set_php_ini_value "$phpIniFpm" "opcache.enable" "1"
@@ -156,12 +163,13 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     set_php_ini_value "$phpIniFpm" "session.cookie_secure" "1"
     set_php_ini_value "$phpIniFpm" "session.cookie_httponly" "1"
     set_php_ini_value "$phpIniFpm" "session.cookie_samesite" "\"Strict\""
-    set_php_ini_value "$phpIniFpm" "session.cookie_domain" "\"$REGISTRY_DOMAIN,cp.$REGISTRY_DOMAIN,whois.$REGISTRY_DOMAIN\""
-    set_php_ini_value "$phpIniFpm" "memory_limit" "2G"
-
-    # Update opcache.ini
-    set_php_ini_value "$phpIniOpcache" "opcache.jit" "1255"
-    set_php_ini_value "$phpIniOpcache" "opcache.jit_buffer_size" "100M"
+    set_php_ini_value "$phpIniFpm" "session.cookie_domain" "\".$REGISTRY_DOMAIN\""
+    set_php_ini_value "$phpIniFpm" "memory_limit" "$PHP_MEMORY_LIMIT"
+    set_php_ini_value "$phpIniFpm" "opcache.memory_consumption" "128"
+    set_php_ini_value "$phpIniFpm" "opcache.interned_strings_buffer" "16"
+    set_php_ini_value "$phpIniFpm" "opcache.max_accelerated_files" "10000"
+    set_php_ini_value "$phpIniFpm" "opcache.validate_timestamps" "0"
+    set_php_ini_value "$phpIniFpm" "expose_php" "0"
 
     # Restart PHP-FPM service
     echo "Restarting PHP FPM service..."

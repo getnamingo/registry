@@ -116,6 +116,83 @@ composer_update "/opt/registry/whois/port43"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
+# Function to ensure a setting is present, uncommented, and correctly set
+set_php_ini_value() {
+    local ini_file=$1
+    local key=$2
+    local value=$3
+
+    # Escape slashes for sed compatibility
+    local escaped_value
+    escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
+
+    if grep -Eq "^\s*[;#]?\s*${key}\s*=" "$ini_file"; then
+        # Update the existing line, uncomment it and set correct value
+        sed -i -E "s|^\s*[;#]?\s*(${key})\s*=.*|\1 = ${escaped_value}|" "$ini_file"
+    else
+        # Add new line if key doesn't exist
+        echo "${key} = ${value}" >> "$ini_file"
+    fi
+}
+
+# Check the Linux distribution and version
+if [[ -e /etc/os-release ]]; then
+    . /etc/os-release
+    OS=$NAME
+    VER=$VERSION_ID
+fi
+
+# Get the available RAM in MB
+AVAILABLE_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+PHP_MEMORY_MB=$(( AVAILABLE_RAM_MB / 2 ))
+PHP_MEMORY_LIMIT="${PHP_MEMORY_MB}M"
+
+REGISTRY_DOMAIN=$(grep -E '^APP_DOMAIN=' /var/www/cp/.env | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+
+# Determine PHP configuration files based on OS and version
+if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+    phpIniCli='/etc/php/8.3/cli/php.ini'
+    phpIniFpm='/etc/php/8.3/fpm/php.ini'
+	PHP_VERSION="php8.3"
+else
+    phpIniCli='/etc/php/8.2/cli/php.ini'
+    phpIniFpm='/etc/php/8.2/fpm/php.ini'
+	PHP_VERSION="php8.2"
+fi
+
+# Update php.ini files
+set_php_ini_value "$phpIniCli" "opcache.enable" "1"
+set_php_ini_value "$phpIniCli" "opcache.enable_cli" "1"
+set_php_ini_value "$phpIniCli" "opcache.jit_buffer_size" "100M"
+set_php_ini_value "$phpIniCli" "opcache.jit" "1255"
+set_php_ini_value "$phpIniCli" "memory_limit" "$PHP_MEMORY_LIMIT"
+set_php_ini_value "$phpIniCli" "opcache.memory_consumption" "128"
+set_php_ini_value "$phpIniCli" "opcache.interned_strings_buffer" "16"
+set_php_ini_value "$phpIniCli" "opcache.max_accelerated_files" "10000"
+set_php_ini_value "$phpIniCli" "opcache.validate_timestamps" "0"
+set_php_ini_value "$phpIniCli" "expose_php" "0"
+
+# Repeat the same settings for php-fpm
+set_php_ini_value "$phpIniFpm" "opcache.enable" "1"
+set_php_ini_value "$phpIniFpm" "opcache.enable_cli" "1"
+set_php_ini_value "$phpIniFpm" "opcache.jit_buffer_size" "100M"
+set_php_ini_value "$phpIniFpm" "opcache.jit" "1255"
+set_php_ini_value "$phpIniFpm" "session.cookie_secure" "1"
+set_php_ini_value "$phpIniFpm" "session.cookie_httponly" "1"
+set_php_ini_value "$phpIniFpm" "session.cookie_samesite" "\"Strict\""
+set_php_ini_value "$phpIniFpm" "session.cookie_domain" "\".$REGISTRY_DOMAIN\""
+set_php_ini_value "$phpIniFpm" "memory_limit" "$PHP_MEMORY_LIMIT"
+set_php_ini_value "$phpIniFpm" "opcache.memory_consumption" "128"
+set_php_ini_value "$phpIniFpm" "opcache.interned_strings_buffer" "16"
+set_php_ini_value "$phpIniFpm" "opcache.max_accelerated_files" "10000"
+set_php_ini_value "$phpIniFpm" "opcache.validate_timestamps" "0"
+set_php_ini_value "$phpIniFpm" "expose_php" "0"
+
+# Restart PHP-FPM service
+echo "Restarting PHP FPM service..."
+systemctl restart ${PHP_VERSION}-fpm
+echo "PHP configuration update complete!"
+
 # Start services
 echo "Starting services..."
 systemctl start epp
