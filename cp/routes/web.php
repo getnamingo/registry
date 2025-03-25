@@ -386,4 +386,4 @@ $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\S
     }
 });
 
-$app->addErrorMiddleware(true, true, true);
+$app->addErrorMiddleware(false, true, true);

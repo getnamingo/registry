@@ -48,6 +48,7 @@ $app = AppFactory::create();
 $responseFactory = $app->getResponseFactory();
 
 $routeCollector = $app->getRouteCollector();
+$routeCollector->setCacheFile(__DIR__ . '/../cache/routes.php');
 $routeCollector->setDefaultInvocationStrategy(new RequestResponseArgs());
 $routeParser = $app->getRouteCollector()->getRouteParser();
 

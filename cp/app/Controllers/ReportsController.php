@@ -267,6 +267,12 @@ class ReportsController extends Controller
                     rmdir($dir->getRealPath());
                 }
             }
+
+            // Clear Slim route cache if it exists
+            $routeCacheFile = $cacheDir . '/routes.php';
+            if (file_exists($routeCacheFile)) {
+                unlink($routeCacheFile);
+            }
         } catch (Exception $e) {
             $result = [
                 'success' => false,
