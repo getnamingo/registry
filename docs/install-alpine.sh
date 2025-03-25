@@ -61,7 +61,7 @@ fi
 
 # --- Minimum requirements check ---
 
-MIN_RAM_MB=2048
+MIN_RAM_MB=2000
 MIN_DISK_GB=10
 
 # (Assumes that the "free" and "df" commands are available.)
@@ -102,7 +102,7 @@ apk update
 # Install common packages. (readline gnupg missing)
 apk add \
   bash curl caddy gettext icu-data-full git php83-phar gnupg net-tools pv redis unzip wget whois ufw tzdata \
-  php83 php83-fpm php83-common php83-curl php83-fileinfo php83-iconv php83-dom php83-gd php83-ftp php83-gmp php83-bcmath php83-mysqli \
+  php83 php83-fpm php83-common php83-curl php83-fileinfo php83-pdo php83-pdo_mysql php83-ctype nano php83-iconv php83-dom php83-gd php83-ftp php83-gmp php83-bcmath php83-mysqli \
   php83-pecl-igbinary php83-imap php83-intl php83-mbstring php83-opcache php83-pecl-redis \
   php83-soap php83-xml \
   php83-pecl-ds php83-pecl-swoole php83-pecl-uuid \
@@ -177,7 +177,7 @@ ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
 # --- Clone registry source code ---
 echo "Cloning registry source code..."
-git clone --branch v1.0.17 --single-branch https://github.com/getnamingo/registry /opt/registry
+git clone --branch v1.0.18 --single-branch https://github.com/getnamingo/registry /opt/registry
 
 # --- Firewall configuration using ufw ---
 echo "Configuring firewall rules..."
@@ -309,7 +309,7 @@ EOF
 
 # Create log directory and adjust permissions
 mkdir -p /var/log/namingo
-chown -R www-data:www-data /var/log/namingo
+chown -R caddy:caddy /var/log/namingo
 touch /var/log/namingo/web-cp.log
 chown caddy:caddy /var/log/namingo/web-cp.log
 touch /var/log/namingo/web-whois.log
@@ -423,7 +423,7 @@ php /var/www/cp/bin/create_admin_user.php
 
 echo "Downloading initial data and setting up cache..."
 php /var/www/cp/bin/file_cache.php
-chown www-data:www-data /var/www/cp/cache
+chown caddy:caddy /var/www/cp/cache
 
 echo -e "Installation complete!\n"
 echo -e "Next steps:\n"

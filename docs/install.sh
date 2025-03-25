@@ -38,7 +38,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Minimum requirements
-MIN_RAM_MB=2048
+MIN_RAM_MB=2000
 MIN_DISK_GB=10
 
 # Get the available RAM in MB
@@ -246,7 +246,7 @@ EOF
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
-    git clone --branch v1.0.17 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.18 --single-branch https://github.com/getnamingo/registry /opt/registry
     
     echo "Setting up firewall rules..."
     ufw allow 22/tcp
