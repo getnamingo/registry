@@ -163,7 +163,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     set_php_ini_value "$phpIniFpm" "session.cookie_secure" "1"
     set_php_ini_value "$phpIniFpm" "session.cookie_httponly" "1"
     set_php_ini_value "$phpIniFpm" "session.cookie_samesite" "\"Strict\""
-    set_php_ini_value "$phpIniFpm" "session.cookie_domain" "\".$REGISTRY_DOMAIN\""
+    set_php_ini_value "$phpIniFpm" "session.cookie_domain" ""
     set_php_ini_value "$phpIniFpm" "memory_limit" "$PHP_MEMORY_LIMIT"
     set_php_ini_value "$phpIniFpm" "opcache.memory_consumption" "128"
     set_php_ini_value "$phpIniFpm" "opcache.interned_strings_buffer" "16"
