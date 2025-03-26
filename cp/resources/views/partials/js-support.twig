@@ -89,15 +89,16 @@
         responsiveLayoutCollapseStartOpen:false,
         resizableColumns:false,
         initialSort:[
-            {column:"status", dir:"desc"},
+            {column:"date_created", dir:"desc"},
         ],
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Subject') }}", field:"subject", minWidth:220, resizable:false, headerSort:true, formatter: ticketLinkFormatter, responsive:0},
             {title:"{{ __('Category') }}", field:"category_id.name", minWidth:80, formatter: catFormatter, resizable:false, headerSort:true, responsive:2},
-            {title:"{{ __('Status') }}", field:"status", resizable:false, headerSort:true, width:250, minWidth:100, formatter: statusFormatter, responsive:2},
-            {title:"{{ __('Priority') }}", field:"priority", resizable:false, headerSort:true, width:250, minWidth:100, formatter: priorityFormatter, responsive:2},
+            {title:"{{ __('Status') }}", field:"status", resizable:false, headerSort:true, width:200, minWidth:80, formatter: statusFormatter, responsive:2},
+            {title:"{{ __('Priority') }}", field:"priority", resizable:false, headerSort:true, width:200, minWidth:80, formatter: priorityFormatter, responsive:2},
+            {title:"{{ __('Creation Date') }}", field:"date_created", resizable:false, headerSort:true, width:250, minWidth:100, responsive:2},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort: false, download:false, hozAlign: "center", responsive:0, cellClick:function(e, cell){ e.stopPropagation(); }},
         ]
     });
