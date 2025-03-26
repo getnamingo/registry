@@ -5,13 +5,7 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
     $node = $xml->command->poll;
     $op = (string) $node->attributes()->op;
     $response = [];
-
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
-
+    $clid = getClid($db, $clid);
     $next_msg_id = null;
 
     if ($op === 'ack') {
@@ -19,6 +13,7 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
         $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id AND id = :id LIMIT 1");
         $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
         $ack_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         if (!$ack_id) {
             $response['resultCode'] = 2303; // Object does not exist
@@ -31,12 +26,14 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
             $stmt->execute([':registrar_id' => $clid]);
             $next_msg_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($next_msg_id) {
                 // Messages remain, return 1000 with next message ID
                 $stmt = $db->prepare("SELECT COUNT(*) FROM poll WHERE registrar_id = :registrar_id");
                 $stmt->execute([':registrar_id' => $clid]);
                 $remaining = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 $response['resultCode'] = 1000; // Command completed successfully
             } else {
@@ -49,6 +46,7 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
         $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
         $stmt->execute([':registrar_id' => $clid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
 
         $id = $result['id'] ?? null;
         $response['resultCode'] = $id ? 1301 : 1300;
@@ -57,6 +55,7 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
     $stmt = $db->prepare("SELECT COUNT(id) AS counter FROM poll WHERE registrar_id = :registrar_id");
     $stmt->execute([':registrar_id' => $clid]);
     $counter = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     $response['command'] = 'poll';
     $response['count'] = $counter;

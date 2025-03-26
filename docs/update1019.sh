@@ -145,10 +145,10 @@ fi
 # Determine PHP configuration files based on OS and version
 if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
     phpIniFpm='/etc/php/8.3/fpm/php.ini'
-	PHP_VERSION="php8.3"
+    PHP_VERSION="php8.3"
 else
     phpIniFpm='/etc/php/8.2/fpm/php.ini'
-	PHP_VERSION="php8.2"
+    PHP_VERSION="php8.2"
 fi
 
 # Update php.ini files

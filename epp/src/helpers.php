@@ -94,6 +94,7 @@ function checkLogin($db, $clID, $pw) {
     $stmt = $db->prepare("SELECT pw FROM registrar WHERE clid = :username");
     $stmt->execute(['username' => $clID]);
     $hashedPassword = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     return password_verify($pw, $hashedPassword);
 }
@@ -533,9 +534,10 @@ function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {
     $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
-    
+
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+    $stmt->closeCursor();
+
     return $result ? (int)$result['id'] : null;
 }
 
