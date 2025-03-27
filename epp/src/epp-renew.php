@@ -42,11 +42,13 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
     $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     $stmt = $db->prepare("SELECT id, name, tldid, exdate, clid FROM domain WHERE name = :domainName LIMIT 1");
     $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
     $stmt->execute();
     $domainData = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     if (!$domainData) {
         sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
@@ -70,6 +72,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
+    $stmt->closeCursor();
 
     $expiration_date = explode(" ", $domainData['exdate'])[0];  // remove time, keep only date
 
@@ -93,11 +96,13 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $after_10_years = $db->query("SELECT YEAR(DATE_ADD(CURDATE(),INTERVAL 10 YEAR))")->fetchColumn();
+        $stmt->closeCursor();
         $stmt = $db->prepare("SELECT YEAR(DATE_ADD(:exdate, INTERVAL :date_add MONTH))");
         $stmt->bindParam(':exdate', $domainData['exdate'], PDO::PARAM_STR);
         $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
         $stmt->execute();
         $after_renew = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         // Domains can be renewed at any time, but the expire date cannot be more than 10 years in the future.
         if ($after_renew > $after_10_years) {
@@ -110,6 +115,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->bindParam(':registrarId', $clid['id'], PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         $registrar_balance = $row['accountBalance'];
         $creditLimit = $row['creditLimit'];
         $currency = $row['currency'];
@@ -126,6 +132,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
         $stmt->execute();
         $from = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         $rgpstatus = 'renewPeriod';
         $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
@@ -162,6 +169,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
             $stmt->execute();
             $to = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             // Insert into statement:
             $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
@@ -174,11 +182,13 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->bindParam(':name', $domainName, PDO::PARAM_STR);
     $stmt->execute();
     $exdateUpdated = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     // Check for an existing entry in statistics for the current date
     $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
     $stmt->execute();
     $curdate_id = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     // If there's no entry for the current date, insert one
     if (!$curdate_id) {

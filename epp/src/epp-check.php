@@ -18,6 +18,7 @@ function processContactCheck($conn, $db, $xml, $trans) {
         $stmt->execute(['id' => $contactID]);
 
         $results[$contactID] = $stmt->fetch() ? '0' : '1'; // 0 if exists, 1 if not
+        $stmt->closeCursor();
     }
 
     $ids = [];
@@ -85,6 +86,7 @@ function processHostCheck($conn, $db, $xml, $trans) {
         $stmt->execute(['name' => $host]);
 
         $results[$host] = $stmt->fetch() ? '0' : '1'; // 0 if exists, 1 if not
+        $stmt->closeCursor();
     }
 
     $names = [];
@@ -157,6 +159,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                 $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
                 $stmt->execute();
                 $claim_key = $stmt->fetchColumn();
+                $stmt->closeCursor();
                 
                 if ($claim_key) {
                     $domainEntry[] = 1;
@@ -200,6 +203,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                     $stmt->bindParam(':phase', $launchPhaseName, PDO::PARAM_STR);
                     $stmt->execute();
                     $taken = $stmt->fetchColumn();
+                    $stmt->closeCursor();
                     $availability = $taken ? '0' : '1';
 
                     // Initialize a new domain entry with the domain name
@@ -218,6 +222,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                         $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
                         $stmt->execute();
                         $reserved = $stmt->fetchColumn();
+                        $stmt->closeCursor();
 
                         if ($reserved) {
                             $domainEntry[] = 0; // Set status to unavailable
@@ -278,6 +283,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             $stmt->bindParam(':label', $label, PDO::PARAM_STR);
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             if ($result) {
                 if ($result['type'] === 'taken') {
@@ -293,6 +299,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                         $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
                         $stmt->execute();
                         $token = $stmt->fetchColumn();
+                        $stmt->closeCursor();
 
                         if ($token) {
                             $domainEntry[] = 1; // Available with a valid allocation token
@@ -366,6 +373,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                     $stmt->bindParam(':domain_extension', $domain_extension, PDO::PARAM_STR);
                     $stmt->execute();
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor();
 
                     if ($result != false) {
                         $tld_id = $result['id'];
