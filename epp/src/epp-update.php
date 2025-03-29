@@ -22,6 +22,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = :identifier LIMIT 1");
     $stmt->execute([':identifier' => $contactID]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     $contact_id = $row['id'] ?? null;
     $registrar_id_contact = $row['clid'] ?? null;
 
@@ -29,13 +30,8 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
         return;
     }
-    
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
 
+    $clid = getClid($db, $clid);
     if ($clid != $registrar_id_contact) {
         sendEppError($conn, $db, 2201, 'It belongs to another registrar', $clTRID, $trans);
         return;
@@ -50,11 +46,13 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
+    $stmt->closeCursor();
 
     $clientUpdateProhibited = 0;
     $stmt = $db->prepare("SELECT id FROM contact_status WHERE contact_id = :contact_id AND status = 'clientUpdateProhibited' LIMIT 1");
     $stmt->execute([':contact_id' => $contact_id]);
     $clientUpdateProhibited = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($contactRem) {
         $statusList = $xml->xpath('//contact:status/@s', $contactRem);
@@ -100,6 +98,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM contact_status WHERE contact_id = :contact_id AND status = :status LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id, ':status' => $status]);
                 $contactStatusId = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($contactStatusId) {
                     sendEppError($conn, $db, 2306, 'This status '.$status.' already exists for this contact', $clTRID, $trans);
@@ -110,10 +109,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if ($contactChg) {
-        $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-        $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-        $stmt->execute();
-        $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+        $clid = getClid($db, $clid);
         $postalInfoInt = null;
         $postalInfoLoc = null;
 
@@ -433,6 +429,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         extract($row);
 
         if ($postalInfoInt) {
@@ -441,6 +438,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt_int->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
             $stmt_int->execute();
             $row_int = $stmt_int->fetch(PDO::FETCH_ASSOC);
+            $stmt_int->closeCursor();
             extract($row_int);
         }
 
@@ -450,6 +448,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt_loc->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
             $stmt_loc->execute();
             $row_loc = $stmt_loc->fetch(PDO::FETCH_ASSOC);
+            $stmt_loc->closeCursor();
             extract($row_loc);
         }
 
@@ -458,12 +457,14 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt_pw->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
         $stmt_pw->execute();
         $e_authInfo_pw = $stmt_pw->fetchColumn();
+        $stmt_pw->closeCursor();
 
         // For contact_authInfo table with authtype = 'ext'
         $stmt_ext = $db->prepare("SELECT authinfo FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'ext' LIMIT 1");
         $stmt_ext->bindParam(':contact_id', $contact_id, PDO::PARAM_INT);
         $stmt_ext->execute();
         $e_authInfo_ext = $stmt_ext->fetchColumn();
+        $stmt_ext->closeCursor();
 
         $postalInfo_int = $xml->xpath("//contact:postalInfo[@type='int']")[0] ?? null;
         if ($postalInfoInt) {
@@ -692,6 +693,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->execute([$name]);
 
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     $hostId = $row['id'] ?? null;
     $registrarIdHost = $row['clid'] ?? null;
 
@@ -700,12 +702,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
-
+    $clid = getClid($db, $clid);
     if ($clid !== $registrarIdHost) {
         sendEppError($conn, $db, 2201, 'Not registrar for host', $clTRID, $trans);
         return;
@@ -721,12 +718,14 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
+    $stmtStatus->closeCursor();
 
     $clientUpdateProhibited = 0;
     $stmtClientUpdateProhibited = $db->prepare("SELECT id FROM host_status WHERE host_id = ? AND status = 'clientUpdateProhibited' LIMIT 1");
     $stmtClientUpdateProhibited->execute([$hostId]);
 
     $clientUpdateProhibited = $stmtClientUpdateProhibited->fetchColumn();
+    $stmtClientUpdateProhibited->closeCursor();
 
     if (isset($hostRem)) {
         $addrList = $xml->xpath('//host:rem/host:addr');
@@ -774,6 +773,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM host_status WHERE host_id = ? AND status = ? LIMIT 1");
                 $stmt->execute([$hostId, $status]);
                 $contact_status_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
                 if ($contact_status_id) {
                     sendEppError($conn, $db, 2306, 'This status '.$status.' already exists for this host', $clTRID, $trans);
                     return;
@@ -792,6 +792,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = '6' LIMIT 1");
                     $stmt->execute([$hostId, $addr]);
                     $ipv6_addr_already_exists = $stmt->fetchColumn();
+                    $stmt->closeCursor();
                     if ($ipv6_addr_already_exists) {
                         sendEppError($conn, $db, 2306, 'This addr '.$addr.' already exists for this host', $clTRID, $trans);
                         return;
@@ -808,6 +809,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = '4' LIMIT 1");
                     $stmt->execute([$hostId, $addr]);
                     $ipv4_addr_already_exists = $stmt->fetchColumn();
+                    $stmt->closeCursor();
                     if ($ipv4_addr_already_exists) {
                         sendEppError($conn, $db, 2306, 'This addr '.$addr.' already exists for this host', $clTRID, $trans);
                         return;
@@ -832,6 +834,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
             $stmt->execute([$chg_name]);
             $chg_name_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($chg_name_id) {
                 sendEppError($conn, $db, 2306, 'If it already exists, then we can\'t change it', $clTRID, $trans);
@@ -845,11 +848,13 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt = $db->prepare("SELECT domain_id FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$name]);
         $domain_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         if ($domain_id) {
             $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
             $stmt->execute([$domain_id]);
             $domain_name = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if (!stripos($chg_name, ".$domain_name")) {
                 sendEppError($conn, $db, 2005, 'It must be a subdomain of '.$domain_name, $clTRID, $trans);
@@ -868,6 +873,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     break;
                 }
             }
+            $stmt->closeCursor();
 
             if ($internal_host) {
                 sendEppError($conn, $db, 2005, 'Must be external host', $clTRID, $trans);
@@ -882,6 +888,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             LIMIT 1");
         $stmt->execute([$hostId]);
         $domain_host_map_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         if ($domain_host_map_id) {
             sendEppError($conn, $db, 2305, 'It is not possible to modify because it is a dependency, it is used by some domain as NS', $clTRID, $trans);
@@ -992,6 +999,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
         $stmt->execute();
         $launch_extension_enabled = $stmt->fetchColumn();
+        $stmt->closeCursor();
     }
 
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {
@@ -1007,18 +1015,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare("SELECT id,tldid,exdate,clid FROM domain WHERE name = ? LIMIT 1");
     $stmt->execute([$domainName]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     if (!$row) {
         sendEppError($conn, $db, 2303, 'Domain name does not exist', $clTRID, $trans);
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
-
+    $clid = getClid($db, $clid);
     if ($clid != $row['clid']) {
         sendEppError($conn, $db, 2201, 'You do not have privileges to modify a domain name that belongs to another registrar', $clTRID, $trans);
         return;
@@ -1048,6 +1052,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $launch_valid = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         if (!$launch_valid) {
             sendEppError($conn, $db, 2304, 'Invalid launch phase or applicationID for this domain', $clTRID, $trans);
@@ -1063,11 +1068,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
     }
+    $stmt->closeCursor();
 
     $clientUpdateProhibited = 0;
     $stmt = $db->prepare("SELECT id FROM domain_status WHERE domain_id = ? AND status = 'clientUpdateProhibited' LIMIT 1");
     $stmt->execute([$row['id']]);
     $clientUpdateProhibited = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if (isset($domainRem)) {
         $ns = $xml->xpath('//domain:rem/domain:ns') ?? [];
@@ -1130,6 +1137,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1");
                 $stmt->execute([$row['id'], $status]);
                 $domainStatusId = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($domainStatusId) {
                     sendEppError($conn, $db, 2306, 'This status '.$status.' already exists for this domain', $clTRID, $trans);
@@ -1197,6 +1205,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT tld FROM domain_tld");
                 $stmt->execute();
                 $tlds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                $stmt->closeCursor();
                 $host_from_this_registry = 0;
                 foreach ($tlds as $tld) {
                     $tld = preg_quote(strtoupper($tld), '/');
@@ -1214,6 +1223,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         $stmt->bindParam(':hostObj', $hostObj);
                         $stmt->execute();
                         $host_id_already_exist = $stmt->fetchColumn();
+                        $stmt->closeCursor();
                         if (!$host_id_already_exist) {
                             sendEppError($conn, $db, 2303, 'Invalid domain:hostObj '.$hostObj, $clTRID, $trans);
                             return;
@@ -1287,6 +1297,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
             $stmt->execute([$contact]);
             $contact_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
             
             if (!$contact_id) {
                 sendEppError($conn, $db, 2303, 'This contact '.$contact.' does not exist', $clTRID, $trans);
@@ -1296,6 +1307,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt2 = $db->prepare("SELECT id FROM domain_contact_map WHERE domain_id = ? AND contact_id = ? AND type = ? LIMIT 1");
             $stmt2->execute([$row['id'], $contact_id, $contact_type]);
             $domain_contact_map_id = $stmt2->fetchColumn();
+            $stmt2->closeCursor();
             
             if ($domain_contact_map_id) {
                 sendEppError($conn, $db, 2306, 'This contact '.$contact.' already exists for type '.$contact_type, $clTRID, $trans);
@@ -1314,6 +1326,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt3 = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
             $stmt3->execute([$registrant]);
             $registrant_id = $stmt3->fetchColumn();
+            $stmt3->closeCursor();
             
             if (!$registrant_id) {
                 sendEppError($conn, $db, 2303, 'Registrant does not exist', $clTRID, $trans);
@@ -1329,6 +1342,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
         }
+        $stmt4->closeCursor();
 
         $authInfo_pw_elements = $domainChg->xpath('//domain:authInfo/domain:pw[1]');
         if (!empty($authInfo_pw_elements)) {
@@ -1361,6 +1375,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
             $stmt->execute();
             $temp_id_rgpstatus = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($temp_id_rgpstatus == 0) {
                 sendEppError($conn, $db, 2304, 'pendingRestore can only be done if the domain is now in redemptionPeriod rgpStatus', $clTRID, $trans);
@@ -1371,6 +1386,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
             $stmt->execute();
             $temp_id_status = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($temp_id_status == 0) {
                 sendEppError($conn, $db, 2304, 'pendingRestore can only be done if the domain is now in pendingDelete status', $clTRID, $trans);
@@ -1381,6 +1397,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
             $stmt->execute();
             $temp_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($temp_id == 0) {
                 sendEppError($conn, $db, 2304, 'report can only be sent if the domain is in pendingRestore status', $clTRID, $trans);
@@ -1405,6 +1422,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':hostObj', $hostObj, PDO::PARAM_STR);
             $stmt->execute();
             $host_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($host_id) {
                 $stmt = $db->prepare("DELETE FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id");
@@ -1430,6 +1448,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->bindParam(':hostName', $hostName, PDO::PARAM_STR);
                 $stmt->execute();
                 $host_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($host_id) {
                     $stmt = $db->prepare("DELETE FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id");
@@ -1462,6 +1481,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':contact', $contact, PDO::PARAM_STR);
             $stmt->execute();
             $contact_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if ($contact_id) {
                 $stmt = $db->prepare("DELETE FROM domain_contact_map WHERE domain_id = :domain_id AND contact_id = :contact_id AND type = :contact_type");
@@ -1509,6 +1529,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':hostObj', $hostObj, PDO::PARAM_STR);
             $stmt->execute();
             $hostObj_already_exist = $stmt->fetchColumn();
+            $stmt->closeCursor();
             
             if ($hostObj_already_exist) {
                 $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :hostObj_already_exist LIMIT 1");
@@ -1516,6 +1537,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->bindParam(':hostObj_already_exist', $hostObj_already_exist, PDO::PARAM_INT);
                 $stmt->execute();
                 $domain_host_map_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if (!$domain_host_map_id) {
                     $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(:domain_id, :hostObj_already_exist)");
@@ -1557,6 +1579,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         break;
                     }
                 }
+                $sth->closeCursor();
 
                 if ($host_from_this_registry) {
                     if (preg_match("/\.$domainName$/i", $hostObj)) {
@@ -1611,11 +1634,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->bindParam(':hostName', $hostName, PDO::PARAM_STR);
                 $stmt->execute();
                 $hostName_already_exist = $stmt->fetchColumn();
+                $stmt->closeCursor();
                 
                 if ($hostName_already_exist) {
                     $sth = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
                     $sth->execute([$domain_id, $hostName_already_exist]);
                     $domain_host_map_id = $sth->fetchColumn();
+                    $sth->closeCursor();
 
                     if (!$domain_host_map_id) {
                         $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
@@ -1690,6 +1715,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->bindParam(':contact', $contact, PDO::PARAM_STR);
             $stmt->execute();
             $contact_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             try {
                 $stmt = $db->prepare("INSERT INTO domain_contact_map (domain_id,contact_id,type) VALUES(:domain_id, :contact_id, :contact_type)");
@@ -1746,6 +1772,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
                 $sth->execute([$registrant]);
                 $registrant_id = $sth->fetchColumn();
+                $sth->closeCursor();
                 
                 $sth = $db->prepare("UPDATE domain SET registrant = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 if (!$sth->execute([$registrant_id, $clid, $domain_id])) {
@@ -1820,6 +1847,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $sth = $db->prepare("SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = 'redemptionPeriod' AND id = ?");
             $sth->execute([$domain_id]);
             $temp_id = $sth->fetchColumn();
+            $sth->closeCursor();
 
             if ($temp_id == 1) {
                 $sth = $db->prepare("UPDATE domain SET rgpstatus = 'pendingRestore', resTime = CURRENT_TIMESTAMP(3), upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
@@ -1854,11 +1882,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $sth = $db->prepare("SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = 'pendingRestore' AND id = ?");
             $sth->execute([$domain_id]);
             $temp_id = $sth->fetchColumn();
+            $sth->closeCursor();
 
             if ($temp_id == 1) {
                 $sth = $db->prepare("SELECT accountBalance,creditLimit,currency FROM registrar WHERE id = ?");
                 $sth->execute([$clid]);
                 list($registrar_balance, $creditLimit, $currency) = $sth->fetch();
+                $sth->closeCursor();
 
                 $returnValue = getDomainPrice($db, $domainName, $row['tldid'], 12, 'renew', $clid, $currency);
                 $renew_price = $returnValue['price'];
@@ -1873,6 +1903,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $sth = $db->prepare("SELECT exdate FROM domain WHERE id = ?");
                 $sth->execute([$domain_id]);
                 $from = $sth->fetchColumn();
+                $sth->closeCursor();
 
                 $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 
@@ -1895,6 +1926,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = ?");
                     $stmt->execute([$domain_id]);
                     $to = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
                     $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
@@ -1904,6 +1936,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
                     $stmt->execute();
                     $curdate_id = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     if (!$curdate_id) {
                         $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())")

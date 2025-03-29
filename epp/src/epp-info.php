@@ -31,6 +31,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
         ");
         $stmt->execute(['id' => $contactID]);
         $contact = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
 
         if (!$contact) {
             sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
@@ -61,6 +62,7 @@ function processContactInfo($conn, $db, $xml, $trans) {
         $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :id");
         $stmt->execute(['id' => $contactRow['id']]);
         $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->closeCursor();
         $statusArray = array_map(fn($status) => [$status], $statuses);
 
         // Handle Disclose Fields (Only Show When Set to `1`)
@@ -138,6 +140,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         $stmt->execute(['name' => $hostName]);
 
         $host = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
 
         if (!$host) {
             sendEppError($conn, $db, 2303, 'Host does not exist', $clTRID, $trans);
@@ -148,6 +151,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         $stmt3 = $db->prepare("SELECT `addr`, `ip` FROM `host_addr` WHERE `host_id` = :id");
         $stmt3->execute(['id' => $host['id']]);
         $addresses = $stmt3->fetchAll(PDO::FETCH_ASSOC);
+        $stmt3->closeCursor();
 
         $addrArray = [];
         foreach($addresses as $addr) {
@@ -158,6 +162,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         $stmt = $db->prepare("SELECT * FROM host_status WHERE host_id = :id");
         $stmt->execute(['id' => $host['id']]);
         $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         
         $statusArray = [];
         foreach($statuses as $status) {
@@ -168,6 +173,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
         $stmt2 = $db->prepare("SELECT domain_id FROM domain_host_map WHERE host_id = :id LIMIT 1");
         $stmt2->execute(['id' => $host['id']]);
         $domainData = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $stmt2->closeCursor();
 
         if ($domainData) {
             $statusArray[] = ['linked'];
@@ -269,6 +275,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->execute();
             
             $domain = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             if (!$domain) {
                 sendEppError($conn, $db, 2303, 'Application does not exist', $clTRID, $trans);
@@ -279,6 +286,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM application_contact_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             $transformedContacts = [];
             foreach ($contacts as $contact) {
@@ -289,6 +297,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM application_host_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             $transformedHosts = [];
             if ($hosts) {
@@ -301,11 +310,13 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM application_status WHERE domain_id = :id LIMIT 1");
             $stmt->execute(['id' => $domain['id']]);
             $status = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             // Fetch registrant identifier
             $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
             $stmt->execute(['id' => $domain['registrant']]);
             $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
+            $stmt->closeCursor();
 
             $svTRID = generateSvTRID();
             $response = [
@@ -360,6 +371,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->execute();
             
             $domain = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             if (!$domain) {
                 sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
@@ -370,6 +382,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
                 $stmt->execute([$domain['id'], $authInfo_pw]);
                 $domain_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if (!$domain_authinfo_id) {
                     sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
@@ -381,6 +394,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             $transformedContacts = [];
             foreach ($contacts as $contact) {
@@ -391,6 +405,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM domain_host_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             $transformedHosts = [];
             if ($hosts) {
@@ -402,16 +417,19 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT name FROM host WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $hostNames = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            $stmt->closeCursor();
 
             // Fetch authInfo
             $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
             // Fetch status
             $stmt = $db->prepare("SELECT * FROM domain_status WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
             
             $statusArray = [];
             foreach($statuses as $status) {
@@ -422,11 +440,13 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $secDnsRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
             
             // Fetch registrant identifier
             $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id");
             $stmt->execute(['id' => $domain['registrant']]);
             $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
+            $stmt->closeCursor();
 
             $transformedSecDnsRecords = [];
             if ($secDnsRecords) {
@@ -528,6 +548,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
                 $stmt->execute();
                 $token = $stmt->fetchColumn();
+                $stmt->closeCursor();
                         
                 if ($token) {
                     $response['allocation'] = $token;
@@ -556,6 +577,7 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
         $stmt->execute(['id' => $clid]);
 
         $funds = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         
         $creditBalance = ($funds['accountBalance'] < 0) ? -$funds['accountBalance'] : 0;
         $availableCredit = $funds['creditLimit'] - $creditBalance;

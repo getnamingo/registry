@@ -18,18 +18,14 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     
     $stmt = $db->prepare("SELECT * FROM contact WHERE identifier = :id");
     $stmt->execute(['id' => $contactID]);
-
     $contact = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    $stmt->closeCursor();
     if ($contact) {
         sendEppError($conn, $db, 2302, 'Contact ID already exists', $clTRID, $trans);
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
+    $clid = getClid($db, $clid);
     
     $contactCreate = $xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create;
     $postalInfoInt = null;
@@ -332,8 +328,8 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $email,
             $nin ?? null,
             $nin_type ?? null,
-            $clid['id'],
-            $clid['id'],
+            $clid,
+            $clid,
             $disclose_voice,
             $disclose_fax,
             $disclose_email
@@ -356,14 +352,14 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         
         $stmt = $db->prepare("INSERT INTO contact_status (contact_id,status) VALUES(?,?)");
         $stmt->execute([$contact_id, 'ok']);
-        
-        $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = ? LIMIT 1");
-        $stmt->execute([$contact_id]);
-        $identifier = $stmt->fetchColumn();
 
-        $stmt = $db->prepare("SELECT crdate FROM contact WHERE id = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT identifier, crdate FROM contact WHERE id = ? LIMIT 1");
         $stmt->execute([$contact_id]);
-        $crdate = $stmt->fetchColumn();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+
+        $identifier = $row['identifier'] ?? null;
+        $crdate = $row['crdate'] ?? null;
 
     } catch (PDOException $e) {
         sendEppError($conn, $db, 2400, 'Contact could not be created due to database error', $clTRID, $trans);
@@ -411,11 +407,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
+    $clid = getClid($db, $clid);
 
     $nsArr = [];
 
@@ -476,6 +468,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
                 break;
             }
         }
+        $stmt->closeCursor();
         
         if (!$domain_exist) {
             sendEppError($conn, $db, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
@@ -520,6 +513,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$hostName]);
         $crdate = $stmt->fetchColumn();
+        $stmt->closeCursor();
         
         $svTRID = generateSvTRID();
         $response = [
@@ -551,6 +545,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$hostName]);
         $crdate = $stmt->fetchColumn();
+        $stmt->closeCursor();
         
         $svTRID = generateSvTRID();
         $response = [
@@ -589,6 +584,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
         $stmt->execute();
         $launch_extension_enabled = $stmt->fetchColumn();
+        $stmt->closeCursor();
     }
 
     if ($launch_extension_enabled && isset($launch_create)) {
@@ -660,6 +656,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = ?");
     $stmt->execute([$domain_extension]);
     $tld_id = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if (!$tld_id) {
         sendEppError($conn, $db, 2306, 'Invalid domain extension', $clTRID, $trans);
@@ -669,6 +666,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $stmt = $db->prepare("SELECT id FROM domain WHERE name = ? LIMIT 1");
     $stmt->execute([$domainName]);
     $domain_already_exist = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($domain_already_exist) {
         sendEppError($conn, $db, 2302, 'Domain name already exists', $clTRID, $trans);
@@ -690,6 +688,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         ");
         $stmt->execute([$tld_id, $currentDate, $currentDate]);
         $phase_details = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         $launch_phase = $launch_phase ?? null;
 
@@ -714,6 +713,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         ");
         $stmt->execute([$tld_id, $currentDate, $currentDate]);
         $phase_details = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         // Check if the phase requires application submission
         if (empty($launch_phase) && $launch_phase !== 'custom' && $phase_details === 'Application') {
@@ -822,6 +822,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $stmt = $db->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
     $stmt->execute([$label]);
     $domain_already_reserved = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($domain_already_reserved) {
         if ($allocation_token !== null) {
@@ -832,6 +833,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
             $stmt->execute();
             $token = $stmt->fetchColumn();
+            $stmt->closeCursor();
                         
             if ($token) {
                 // No action needed, script continues
@@ -885,16 +887,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
+    $clid = getClid($db, $clid);
 
     $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrar_id LIMIT 1");
     $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
     $stmt->execute();
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     $registrar_balance = $result['accountBalance'];
     $creditLimit = $result['creditLimit'];
     $currency = $result['currency'];
@@ -973,6 +972,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $stmt->execute();
                 
                 $host_id_already_exist = $stmt->fetch(PDO::FETCH_COLUMN);
+                $stmt->closeCursor();
 
                 if (!$host_id_already_exist) {
                     sendEppError($conn, $db, 2303, 'domain:hostObj '.$hostObj.' does not exist', $clTRID, $trans);
@@ -1002,6 +1002,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         break;
                     }
                 }
+                $stmt->closeCursor();
 
                 if ($internal_host) {
                     if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
@@ -1032,34 +1033,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $addr_type = (string) ($node['ip'] ?? 'v4');
         
                         if ($addr_type == 'v6') {
-                            if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
-                                preg_match('/^::$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
-                                preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
-                            ) {
-                                // true
-                                // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
-                            } else {
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                                 return;
                             }
                         } else {
-                            list($a, $b, $c, $d) = explode('.', $hostAddr);
-                            if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) && $a < 256 &&  $b < 256 && $c < 256 && $d < 256) {
-                                // true
-                                // Additional verifications for reserved or private IPs as per [RFC5735] [RFC5156] can go here.
-                                if ($hostAddr == '127.0.0.1') {
-                                  sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                                  return;
-                                }
-                            } else {
-                               sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                               return;
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $hostAddr === '127.0.0.1') {
+                                sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                                return;
                             }
                         }
                     }
@@ -1081,6 +1062,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                                 break;
                             }
                         }
+                        $stmt->closeCursor();
 
                         // Object does not exist error
                         if (!$domain_exist) {
@@ -1129,36 +1111,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
 
                         if ($addr_type === 'v6') {
-                            if (preg_match('/^[\da-fA-F]{1,4}(:[\da-fA-F]{1,4}){7}$/', $hostAddr) ||
-                                $hostAddr === '::' ||
-                                preg_match('/^([\da-fA-F]{1,4}:){1,7}:$/', $hostAddr) ||
-                                preg_match('/^[\da-fA-F]{1,4}:(:[\da-fA-F]{1,4}){1,6}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){2}(:[\da-fA-F]{1,4}){1,5}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){3}(:[\da-fA-F]{1,4}){1,4}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){4}(:[\da-fA-F]{1,4}){1,3}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){5}(:[\da-fA-F]{1,4}){1,2}$/', $hostAddr) ||
-                                preg_match('/^([\da-fA-F]{1,4}:){6}:[\da-fA-F]{1,4}$/', $hostAddr)
-                            ) {
-                                // true
-                                // Add check for reserved or private IP addresses (not implemented here, add as needed)
-                            } else {
-                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
-                                 return;
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                                sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
+                                return;
                             }
                         } else {
-                            list($a, $b, $c, $d) = explode('.', $hostAddr);
-
-                            if (preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostAddr) &&
-                                $a < 256 && $b < 256 && $c < 256 && $d < 256) {
-                                // true
-                                // Add check for reserved or private IP addresses (not implemented here, add as needed)
-                                if ($hostAddr === '127.0.0.1') {
-                                   sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                                   return;
-                                }
-                            } else {
-                                   sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
-                                   return;
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $hostAddr === '127.0.0.1') {
+                                sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
+                                return;
                             }
                         }
                     }
@@ -1203,6 +1163,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $registrantStmt = $db->prepare("SELECT id FROM contact WHERE identifier = :registrant LIMIT 1");
         $registrantStmt->execute([':registrant' => $registrant_id]);
         $registrant_id = $registrantStmt->fetchColumn();
+        $registrantStmt->closeCursor();
 
         // Set registrant_id to null if it returns false
         if ($registrant_id === false) {
@@ -1215,6 +1176,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $stmt->execute();
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
         if (!$row) {
             sendEppError($conn, $db, 2303, 'domain:registrant does not exist', $clTRID, $trans);
             return;
@@ -1246,6 +1208,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $stmt->execute();
 
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
             if (!$row) {
                 sendEppError($conn, $db, 2303, 'domain:contact '.$type.' does not exist', $clTRID, $trans);
                 return;
@@ -1340,6 +1303,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $selectDomainDatesStmt = $db->prepare("SELECT crdate,exdate FROM application WHERE name = :name LIMIT 1");
             $selectDomainDatesStmt->execute([':name' => $domainName]);
             [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
+            $selectDomainDatesStmt->closeCursor();
 
             $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
             $statementStmt->execute([
@@ -1359,11 +1323,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $hostExistStmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
                     $hostExistStmt->execute([':hostObj' => $hostObj]);
                     $hostObj_already_exist = $hostExistStmt->fetchColumn();
+                    $hostExistStmt->closeCursor();
 
                     if ($hostObj_already_exist) {
                         $domainHostMapStmt = $db->prepare("SELECT domain_id FROM application_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
                         $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
                         $domain_host_map_id = $domainHostMapStmt->fetchColumn();
+                        $domainHostMapStmt->closeCursor();
 
                         if (!$domain_host_map_id) {
                             $insertDomainHostMapStmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
@@ -1426,12 +1392,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
                     $stmt->execute([$hostName]);
                     $hostName_already_exist = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     if ($hostName_already_exist) {
                         // Check if the host is already mapped to this domain
                         $stmt = $db->prepare("SELECT domain_id FROM application_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
                         $stmt->execute([$domain_id, $hostName_already_exist]);
                         $domain_host_map_id = $stmt->fetchColumn();
+                        $stmt->closeCursor();
 
                         if (!$domain_host_map_id) {
                             // Map the host to the domain
@@ -1493,6 +1461,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
                     $stmt->execute([$contact]);
                     $contact_id = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     $stmt = $db->prepare("INSERT INTO application_contact_map (domain_id,contact_id,type) VALUES(?,?,?)");
                     $stmt->execute([$domain_id, $contact_id, $type]);
@@ -1502,6 +1471,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
             $stmt->execute([$domainName]);
             [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
+            $stmt->closeCursor();
 
             $db->commit();
         } catch (Exception $e) {
@@ -1709,6 +1679,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $selectDomainDatesStmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = :name LIMIT 1");
             $selectDomainDatesStmt->execute([':name' => $domainName]);
             [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
+            $selectDomainDatesStmt->closeCursor();
 
             $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
             $statementStmt->execute([
@@ -1728,11 +1699,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $hostExistStmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
                     $hostExistStmt->execute([':hostObj' => $hostObj]);
                     $hostObj_already_exist = $hostExistStmt->fetchColumn();
+                    $hostExistStmt->closeCursor();
 
                     if ($hostObj_already_exist) {
                         $domainHostMapStmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
                         $domainHostMapStmt->execute([':domain_id' => $domain_id, ':host_id' => $hostObj_already_exist]);
                         $domain_host_map_id = $domainHostMapStmt->fetchColumn();
+                        $domainHostMapStmt->closeCursor();
 
                         if (!$domain_host_map_id) {
                             $insertDomainHostMapStmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(:domain_id,:host_id)");
@@ -1795,12 +1768,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
                     $stmt->execute([$hostName]);
                     $hostName_already_exist = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     if ($hostName_already_exist) {
                         // Check if the host is already mapped to this domain
                         $stmt = $db->prepare("SELECT domain_id FROM domain_host_map WHERE domain_id = ? AND host_id = ? LIMIT 1");
                         $stmt->execute([$domain_id, $hostName_already_exist]);
                         $domain_host_map_id = $stmt->fetchColumn();
+                        $stmt->closeCursor();
 
                         if (!$domain_host_map_id) {
                             // Map the host to the domain
@@ -1862,6 +1837,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $stmt = $db->prepare("SELECT id FROM contact WHERE identifier = ? LIMIT 1");
                     $stmt->execute([$contact]);
                     $contact_id = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
                     $stmt = $db->prepare("INSERT INTO domain_contact_map (domain_id,contact_id,type) VALUES(?,?,?)");
                     $stmt->execute([$domain_id, $contact_id, $type]);
@@ -1871,10 +1847,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
             $stmt->execute([$domainName]);
             [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
+            $stmt->closeCursor();
 
             $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
             $stmt->execute();
             $curdate_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             if (!$curdate_id) {
                 $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");

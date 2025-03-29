@@ -12,6 +12,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare("SELECT id, clid FROM contact WHERE identifier = ? LIMIT 1");
     $stmt->execute([$contactID]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     $contact_id = $row['id'] ?? null;
     $registrar_id_contact = $row['clid'] ?? null;
@@ -21,12 +22,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
-
+    $clid = getClid($db, $clid);
     if ($clid !== $registrar_id_contact) {
         sendEppError($conn, $db, 2201, 'Contact belongs to another registrar', $clTRID, $trans);
         return;
@@ -35,6 +31,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare("SELECT id FROM domain WHERE registrant = ? LIMIT 1");
     $stmt->execute([$contact_id]);
     $registrantExists = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($registrantExists) {
         sendEppError($conn, $db, 2305, 'This contact is associated with a domain as a registrant', $clTRID, $trans);
@@ -44,6 +41,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare("SELECT id FROM domain_contact_map WHERE contact_id = ? LIMIT 1");
     $stmt->execute([$contact_id]);
     $contactInUse = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($contactInUse) {
         sendEppError($conn, $db, 2305, 'This contact is associated with a domain', $clTRID, $trans);
@@ -59,6 +57,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
         }
     }
+    $stmt->closeCursor();
 
     // Delete associated records
     $db->prepare("DELETE FROM contact_postalInfo WHERE contact_id = ?")->execute([$contact_id]);
@@ -108,6 +107,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare($query);
     $stmt->execute([':name' => $hostName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     $host_id = $result['id'] ?? null;
     $registrar_id_host = $result['clid'] ?? null;
@@ -117,12 +117,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $clid = $clid['id'];
-
+    $clid = getClid($db, $clid);
     if ($clid !== $registrar_id_host) {
         sendEppError($conn, $db, 2201, 'Host belongs to another registrar', $clTRID, $trans);
         return;
@@ -132,6 +127,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt = $db->prepare($query);
     $stmt->execute([':host_id' => $host_id]);
     $nameserver_inuse = $stmt->fetchColumn();
+    $stmt->closeCursor();
 
     if ($nameserver_inuse) {
         sendEppError($conn, $db, 2305, 'It is not possible to delete because it is a dependency, it is used by some domain', $clTRID, $trans);
@@ -199,6 +195,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     $stmt->execute([':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     if (!$result) {
         sendEppError($conn, $db, 2303, 'domain:name does not exist', $clTRID, $trans);
@@ -230,6 +227,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
     $stmt->execute();
     $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
     $clid = $result2['id'];
     $currency = $result2['currency'];
 
@@ -248,6 +246,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
         }
+        $stmt->closeCursor();
     }
     
     if (isset($launch_delete)) {
@@ -257,6 +256,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt = $db->prepare("SELECT id FROM application WHERE name = ? AND phase_type = ? AND application_id = ? LIMIT 1");
         $stmt->execute([$domainName, $phaseType, $applicationID]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
 
         if (!$result) {
             sendEppError($conn, $db, 2306, "Please verify the launch phase and/or the application ID", $clTRID, $trans);
@@ -306,6 +306,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1");
                 $stmt->execute([$domain_id]);
                 $addPeriod_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($addPeriod_id) {
                     $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create', $clid, $currency);
@@ -334,6 +335,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $db->exec("DELETE FROM host_status WHERE host_id = $host_id");
                         $db->exec("DELETE FROM domain_host_map WHERE host_id = $host_id");
                     }
+                    $stmt->closeCursor();
 
                     // Delete domain related records
                     $db->exec("DELETE FROM domain_contact_map WHERE domain_id = $domain_id");
@@ -364,6 +366,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1");
                 $stmt->execute([$domain_id]);
                 $autoRenewPeriod_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($autoRenewPeriod_id) {
                     $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew', $clid, $currency);
@@ -387,6 +390,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1");
                 $stmt->execute([$domain_id]);
                 $renewPeriod_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($renewPeriod_id) {
                     $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew', $clid, $currency);
@@ -410,6 +414,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1");
                 $stmt->execute([$domain_id]);
                 $transferPeriod_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
                 if ($transferPeriod_id) {
                     // Return money if a transfer was also a renew

@@ -38,11 +38,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $period = 'y';
     }
     
-    $stmt = $db->prepare("SELECT id FROM registrar WHERE clid = :clid LIMIT 1");
-    $stmt->bindParam(':clid', $clid, PDO::PARAM_STR);
-    $stmt->execute();
-    $clid = $stmt->fetch(PDO::FETCH_ASSOC);
-    $stmt->closeCursor();
+    $clid = getClid($db, $clid);
 
     $stmt = $db->prepare("SELECT id, name, tldid, exdate, clid FROM domain WHERE name = :domainName LIMIT 1");
     $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
@@ -55,7 +51,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
 
-    if ($clid['id'] != $domainData['clid']) {
+    if ($clid != $domainData['clid']) {
         sendEppError($conn, $db, 2201, 'It belongs to another registrar', $clTRID, $trans);
         return;
     }
@@ -96,7 +92,6 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $after_10_years = $db->query("SELECT YEAR(DATE_ADD(CURDATE(),INTERVAL 10 YEAR))")->fetchColumn();
-        $stmt->closeCursor();
         $stmt = $db->prepare("SELECT YEAR(DATE_ADD(:exdate, INTERVAL :date_add MONTH))");
         $stmt->bindParam(':exdate', $domainData['exdate'], PDO::PARAM_STR);
         $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
@@ -112,7 +107,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
 
         // Check registrar account balance
         $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrarId LIMIT 1");
-        $stmt->bindParam(':registrarId', $clid['id'], PDO::PARAM_INT);
+        $stmt->bindParam(':registrarId', $clid, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
@@ -120,7 +115,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $creditLimit = $row['creditLimit'];
         $currency = $row['currency'];
 
-        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid['id'], $currency);
+        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid, $currency);
         $price = $returnValue['price'];
 
         if (($registrar_balance + $creditLimit) < $price) {
@@ -139,7 +134,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
         $stmt->bindParam(':rgpstatus', $rgpstatus, PDO::PARAM_STR);
         $stmt->bindParam(':renewPeriod', $date_add, PDO::PARAM_INT);
-        $stmt->bindParam(':upid', $clid['id'], PDO::PARAM_INT);
+        $stmt->bindParam(':upid', $clid, PDO::PARAM_INT);
         $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
         $stmt->execute();
 
@@ -152,14 +147,14 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             // Update registrar's account balance:
             $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
             $stmt->bindParam(':price', $price, PDO::PARAM_INT);
-            $stmt->bindParam(':registrar_id', $clid['id'], PDO::PARAM_INT);
+            $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
             $stmt->execute();
 
             // Insert into payment_history:
             $description = "renew domain $domainName for period $date_add MONTH";
             $negative_price = -$price;
             $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)");
-            $stmt->bindParam(':registrar_id', $clid['id'], PDO::PARAM_INT);
+            $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
             $stmt->bindParam(':description', $description, PDO::PARAM_STR);
             $stmt->bindParam(':amount', $negative_price, PDO::PARAM_INT);
             $stmt->execute();
@@ -173,7 +168,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
 
             // Insert into statement:
             $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$clid['id'], 'renew', $domainName, $date_add, $from, $to, $price]);
+            $stmt->execute([$clid, 'renew', $domainName, $date_add, $from, $to, $price]);
         }
     }
     

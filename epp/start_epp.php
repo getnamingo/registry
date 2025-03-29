@@ -101,13 +101,15 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             // Get a PDO connection from the pool
             $pdo = $pool->get();
             if (!$pdo) {
-                throw new PDOException("Failed to retrieve a connection from Swoole PDOPool.");
+                $conn->close();
+                break;
             }
             $data = $conn->recv();
             $connId = spl_object_id($conn);
 
             if ($data === false || strlen($data) < 4) {
-                sendEppError($conn, $pdo, 2000, 'Data reception error');
+                sendEppError($conn, $pdo, 2000, 'Invalid or no data received');
+                $conn->close();
                 break;
             }
 
@@ -120,8 +122,8 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
 
             $xml = simplexml_load_string($xmlData);
             if ($xml === false) {
-                sendEppError($conn, $pdo, 2001, 'Invalid XML');
-                break;
+                sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
+                continue;
             }
 
             $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
@@ -137,7 +139,8 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
             $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
 
             if ($xml->getName() != 'epp') {
-                continue;  // Skip this iteration if not an EPP command
+                sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
+                continue;
             }
 
             switch (true) {
@@ -148,7 +151,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $clTRID = (string) $xml->command->clTRID;
                     $clid = getClid($pdo, $clID);
                     if (!$clid) {
-                        sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
+                        sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
                         break;
                     }
                     $xmlString = $xml->asXML();
@@ -210,7 +213,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     }
                     break;
                 }
-          
+
                 case isset($xml->command->logout):
                 {
                     $data = $table->get($connId);
@@ -591,17 +594,20 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                     $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
                     sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
                     $conn->close();
+                    break;
                 }
             } else {
                 // Non-connection errors (e.g. syntax error, constraint violation) => no reconnect attempt
                 sendEppError($conn, $pdo, 2500, 'DB error: ' . $e->getMessage());
                 $conn->close();
+                break;
             }
         } catch (Throwable $e) {
             // Catch any other exceptions or errors
             $log->error('General Error: ' . $e->getMessage());
             sendEppError($conn, $pdo, 2500, 'General error');
             $conn->close();
+            break;
         } finally {
             // Return the connection to the pool
             $pool->put($pdo);

@@ -647,6 +647,7 @@ function updatePermittedIPs($pool, $permittedIPsTable) {
     $query = "SELECT addr FROM registrar_whitelist";
     $stmt = $pdo->query($query);
     $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $stmt->closeCursor();
     $pool->put($pdo);
 
     // Manually clear the table by removing each entry
