@@ -1430,6 +1430,7 @@ class SystemController extends Controller
 
                 $db->update('allocation_tokens', [
                     'domain_name' => $domain_name,
+                    'tokenStatus' => 'active',
                     'lastupdate' => $update
                 ],
                 [

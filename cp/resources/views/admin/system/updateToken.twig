@@ -47,6 +47,8 @@
 
                         {% if status == 'new' %}
                           {% set color = 'green' %}
+                        {% elseif status == 'active' %}
+                          {% set color = 'info' %}
                         {% elseif status == 'used' %}
                           {% set color = 'yellow' %}
                         {% elseif status == 'deprecated' %}
@@ -60,7 +62,7 @@
                   <form action="/registry/tokens/update" method="post">
                   {{ csrf.field | raw }}
                     <div class="form-group mt-3">
-                        <label for="domain_name" class="form-label required">{{ __('Create Domain') }}:</label>
+                        <label for="domain_name" class="form-label required">{{ token.domain_name ? __('Update Domain') : __('Create Domain') }}:</label>
                         <input type="text" class="form-control" id="domain_name" name="domain_name" placeholder="example.com" value="{{ token.domain_name }}" required="required">
                     </div>
                 </div>
