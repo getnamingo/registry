@@ -1,0 +1,81 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Update Token') }} {{ token.token }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Update Token') }} {{ token.token }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <div class="card">
+                <div class="card-body">
+                  <div class="datagrid">
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">{{ __('Token') }}</div>
+                      <div class="datagrid-content">{{ token.token }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">{{ __('Creation Date') }}</div>
+                      <div class="datagrid-content">{{ token.crdate }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">{{ __('Last Updated') }}</div>
+                      <div class="datagrid-content">{{ token.lastupdate | default('N/A') }}</div>
+                    </div>
+                    <div class="datagrid-item">
+                      <div class="datagrid-title">{{ __('Status') }}</div>
+                      <div class="datagrid-content">{% set status = token.tokenStatus|lower %}
+                        {% set color = 'gray' %}
+
+                        {% if status == 'new' %}
+                          {% set color = 'green' %}
+                        {% elseif status == 'used' %}
+                          {% set color = 'yellow' %}
+                        {% elseif status == 'deprecated' %}
+                          {% set color = 'red' %}
+                        {% endif %}
+
+                        <span class="status status-{{ color }}">{{ status|capitalize }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <form action="/registry/tokens/update" method="post">
+                  {{ csrf.field | raw }}
+                    <div class="form-group mt-3">
+                        <label for="domain_name" class="form-label required">{{ __('Create Domain') }}:</label>
+                        <input type="text" class="form-control" id="domain_name" name="domain_name" placeholder="example.com" value="{{ token.domain_name }}" required="required">
+                    </div>
+                </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">{{ __('Update Token') }}</button>
+                    </div>
+                  </div>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

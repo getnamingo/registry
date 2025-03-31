@@ -1358,6 +1358,98 @@ class SystemController extends Controller
         ]);
     }
 
+    public function updateToken(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid token format');
+                return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+            }
+
+            $token = $db->selectRow('SELECT token, domain_name, crdate, lastupdate, tokenStatus FROM allocation_tokens WHERE token = ?', [ $args ]);
+            if ($token) {
+                $_SESSION['token_to_update'] = $token;
+                return view($response,'admin/system/updateToken.twig', [
+                    'token' => $token,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Token does not exist, redirect to the tokens view
+                return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+            }
+        } else {
+            // Redirect to the tokens view
+            return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+        }
+    }
+
+    public function updateTokenProcess(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if ($request->getMethod() === 'POST') {
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $db = $this->container->get('db');
+            if (!empty($_SESSION['token_to_update'])) {
+                $token = $_SESSION['token_to_update']['token'];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No token specified for update');
+                return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+            }
+            $domain_name = $data['domain_name'] ?? null;
+
+            if (empty($domain_name)) {
+                $this->container->get('flash')->addMessage('error', 'Domain name must be provided');
+                return $response->withHeader('Location', '/registry/tokens/update/'.$token)->withStatus(302);
+            }
+
+            $invalid_domain = validate_label($domain_name, $this->container->get('db'));
+            if ($invalid_domain) {
+                $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is invalid: ' . $invalid_domain);
+                return $response->withHeader('Location', '/registry/tokens/update/'.$token)->withStatus(302);
+            }
+
+            try {
+                $db->beginTransaction();
+
+                $currentDateTime = new \DateTime();
+                $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+                $db->update('allocation_tokens', [
+                    'domain_name' => $domain_name,
+                    'lastupdate' => $update
+                ],
+                [
+                    'token' => $token
+                ]
+                );
+
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
+                return $response->withHeader('Location', '/registry/tokens/update/'.$token)->withStatus(302);
+            }
+
+            unset($_SESSION['token_to_update']);
+            $this->container->get('flash')->addMessage('success', 'Token ' . $token . ' has been updated successfully on ' . $update);
+            return $response->withHeader('Location', '/registry/tokens/update/'.$token)->withStatus(302);
+        }
+    }
+
     public function deleteToken(Request $request, Response $response, $args)
     {
         if ($_SESSION["auth_roles"] != 0) {
