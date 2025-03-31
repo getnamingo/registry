@@ -1749,6 +1749,11 @@ class SystemController extends Controller
             $idn_table = $db->selectValue('SELECT idn_table FROM domain_tld WHERE tld = ?',
             [ $args ]);
 
+            if (!$idn_table) {
+                $this->container->get('flash')->addMessage('error', 'TLD does not exist');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+
             $idn_table_map = [
                 '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i' => 'ascii',
                 '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u' => 'cyrillic',
