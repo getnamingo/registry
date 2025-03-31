@@ -139,7 +139,9 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':manageTld')->setName('manageTld');
     $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');
     $route->map(['GET', 'POST'], '/registry/reserved', SystemController::class .':manageReserved')->setName('manageReserved');
-    $route->map(['GET', 'POST'], '/registry/tokens', SystemController::class .':manageTokens')->setName('manageTokens');
+    $route->get('/registry/tokens', SystemController::class .':manageTokens')->setName('manageTokens');
+    $route->get('/registry/tokens/generate', SystemController::class .':generateTokens')->setName('generateTokens');
+    $route->map(['GET', 'POST'], '/registry/tokens/delete/{token}', SystemController::class . ':deleteToken')->setName('deleteToken');
     $route->post('/registry/promotions', SystemController::class . ':managePromo')->setName('managePromo');
     $route->post('/registry/phases', SystemController::class . ':managePhases')->setName('managePhases');
     $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');

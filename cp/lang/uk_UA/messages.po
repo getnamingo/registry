@@ -1701,3 +1701,15 @@ msgstr "Експортувати таблицю IDN"
 
 msgid "Published"
 msgstr "Опубліковано"
+
+msgid "Manage Allocation Tokens"
+msgstr "Керування токенами розподілу"
+
+msgid "Generate 10 Tokens"
+msgstr "Створити 10 токенів"
+
+msgid "Token"
+msgstr "Токен"
+
+msgid "Are you sure you want to delete this token?"
+msgstr "Ви впевнені, що хочете видалити цей токен?"

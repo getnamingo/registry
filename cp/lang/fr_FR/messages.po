@@ -1701,3 +1701,15 @@ msgstr "Exporter le tableau IDN"
 
 msgid "Published"
 msgstr "Publié"
+
+msgid "Manage Allocation Tokens"
+msgstr "Gérer les jetons d’allocation"
+
+msgid "Generate 10 Tokens"
+msgstr "Générer 10 jetons"
+
+msgid "Token"
+msgstr "Jeton"
+
+msgid "Are you sure you want to delete this token?"
+msgstr "Êtes-vous sûr de vouloir supprimer ce jeton ?"

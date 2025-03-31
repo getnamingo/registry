@@ -7,6 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use Respect\Validation\Validator as v;
 use League\ISO3166\ISO3166;
+use Ramsey\Uuid\Uuid;
 
 class SystemController extends Controller
 {
@@ -1306,27 +1307,93 @@ class SystemController extends Controller
             'currentUri' => $uri
         ]);
     }
-    
+
+    public function generateTokens(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+
+        try {         
+            $currentDateTime = new \DateTime();
+            $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
+
+            $db->beginTransaction();
+
+            for ($i = 0; $i < 10; $i++) {
+                $uuid = Uuid::uuid4()->toString();
+
+                $db->insert('allocation_tokens', [
+                    'token' => $uuid,
+                    'domain_name' => null,
+                    'tokenStatus' => 'new',
+                    'tokenType' => 'simple',
+                    'crdate' => $crdate
+                ]);
+            }
+
+            $db->commit();
+
+            $this->container->get('flash')->addMessage('success', '10 tokens successfully created');
+            return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+        } catch (Exception $e) {
+            $db->rollBack();
+            $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+            return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+        }
+    }
+
     public function manageTokens(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
         
-        if ($request->getMethod() === 'POST') {
-            return $response->withHeader('Location', '/dashboard')->withStatus(302);
-        }
-
-        $db = $this->container->get('db');
         $uri = $request->getUri()->getPath();
-        $tokens = $db->select("SELECT * FROM allocation_tokens");
 
         return view($response,'admin/system/manageTokens.twig', [
-            'tokens' => $tokens,
             'currentUri' => $uri
         ]);
     }
-    
+
+    public function deleteToken(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+       // if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+
+            if ($args) {
+                $args = trim($args);
+
+                if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid token format');
+                    return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+                }
+
+                $db->delete(
+                    'allocation_tokens',
+                    [
+                        'token' => $args
+                    ]
+                );
+                    
+                $this->container->get('flash')->addMessage('success', 'Token ' . $args . ' deleted successfully');
+                return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+            } else {
+                // Redirect to the tokens view
+                return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+            }
+
+        //}
+    }
+
     public function managePromo(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {

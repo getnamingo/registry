@@ -1698,3 +1698,15 @@ msgstr "تصدير جدول IDN"
 
 msgid "Published"
 msgstr "منشور"
+
+msgid "Manage Allocation Tokens"
+msgstr "إدارة رموز التخصيص"
+
+msgid "Generate 10 Tokens"
+msgstr "إنشاء 10 رموز"
+
+msgid "Token"
+msgstr "رمز"
+
+msgid "Are you sure you want to delete this token?"
+msgstr "هل أنت متأكد أنك تريد حذف هذا الرمز؟"

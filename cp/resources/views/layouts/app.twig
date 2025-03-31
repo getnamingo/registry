@@ -7,7 +7,7 @@
     <title>{% block title %}{% endblock %} | Namingo</title>
     <meta name="theme-color" content="#066fd1">
     <!-- CSS files -->
-{% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or is_current_url('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or is_current_url('ticketview') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') or route_is('profile') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
+{% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or is_current_url('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or is_current_url('ticketview') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') or route_is('profile') or route_is('registry/tokens') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
   </head>
   <body{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
     <div class="page">
@@ -308,6 +308,8 @@
     {% include 'partials/js-server.twig' %}
 {% elseif route_is('deposit') %}
     {% include 'partials/js-server.twig' %}
+{% elseif route_is('registry/tokens') %}
+    {% include 'partials/js-tokens.twig' %}
 {% else %}
     {% include 'partials/js.twig' %}
 {% endif %}
