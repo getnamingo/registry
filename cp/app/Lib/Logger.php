@@ -128,6 +128,35 @@ class Logger extends \Monolog\Logger
         } else {
             $logger = new Logger('errors');
             ErrorHandler::register($logger);
+
+            set_exception_handler(function ($e) use ($logger) {
+                http_response_code(500);
+
+                $logger->error("Unhandled exception", [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+
+                include '/var/www/cp/resources/error.html';
+            });
+
+            register_shutdown_function(function () use ($logger) {
+                $error = error_get_last();
+                if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+                    http_response_code(500);
+
+                    $logger->error("Fatal error", [
+                        'message' => $error['message'],
+                        'file' => $error['file'],
+                        'line' => $error['line'],
+                        'type' => $error['type']
+                    ]);
+
+                    include '/var/www/cp/resources/error.html';
+                }
+            });
         }
     }
 

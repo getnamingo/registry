@@ -385,5 +385,3 @@ $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\S
             ->withStatus(302);
     }
 });
-
-$app->addErrorMiddleware(false, true, true);
