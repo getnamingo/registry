@@ -97,10 +97,10 @@
         placeholder: "{{ __('No Data') }}",
         columns:[
             {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Token') }}", field:"token", width:400, minWidth:200, headerSort:true, resizable:false, formatter: copyableFormatter, responsive:0},
+            {title:"{{ __('Token') }}", field:"token", width:400, minWidth:200, headerSort:true, resizable:false, formatter: copyableFormatter, responsive:2},
             { title: "{{ __('Domain') }}", field: "domain_name", width:300, minWidth:80, headerSort:true, resizable:false, formatter: domainFormatter, responsive:2},
             {title:"{{ __('Type') }}", field:"tokenType", width:160, minWidth:100, headerSort:true, resizable:false, formatter: typeStatusFormatter, responsive:2},
-            {title:"{{ __('Status') }}", field:"tokenStatus", width:160, minWidth:100, headerSort:true, resizable:false, formatter: lifecycleStatusFormatter, responsive:2},
+            {title:"{{ __('Status') }}", field:"tokenStatus", width:160, minWidth:100, headerSort:true, resizable:false, formatter: lifecycleStatusFormatter, responsive:0},
             {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort:false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
                 if (e.target.closest('.delete-btn')) {
                     e.preventDefault(); // Prevent the default link behavior
