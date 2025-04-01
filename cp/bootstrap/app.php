@@ -304,6 +304,9 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     if ($path && $path === '/clear-cache') {
         return $handler->handle($request);
     }
+    if (str_starts_with($path, '/registrar/updatepricing/')) {
+        return $handler->handle($request);
+    }
     if ($path && $path === '/token-well') {
         $csrf->generateToken();
         return $handler->handle($request);

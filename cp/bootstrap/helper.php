@@ -1155,3 +1155,8 @@ function sign($ts, $method, $path, $body, $secret_key) {
     $stringToSign = $ts . strtoupper($method) . $path . $body;
     return hash_hmac('sha256', $stringToSign, $secret_key);
 }
+
+function getClid($db, string $clid): ?int {
+    $result = $db->selectValue('SELECT id FROM registrar WHERE clid = ? LIMIT 1', [$clid]);
+    return $result !== false ? (int)$result : null;
+}

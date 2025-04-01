@@ -25,107 +25,221 @@
           <div class="container-xl">
             <div class="col-12">
             {% include 'partials/flash.twig' %}
-            <form action="/registrar/pricing/{{ clid }}" method="post">
-            {{ csrf.field | raw }}
               <div class="card mb-3">
                 <div class="card-header">
                   <h3 class="card-title">{{ __('Registrar') }} {{ name }}</h3>
-                  <div class="card-actions">
-                    <!--<button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                    {{ __('Update Prices') }}
-                    </button>-->
-                  </div>
                 </div>
                 <div class="card-body">
-				  <div class="alert alert-info" role="alert">
-					  {{ __('Custom registrar pricing can currently be viewed in this panel but must be managed directly via the database.') }}
-				  </div>
                   <div class="table-responsive">
-                    <table class="table table-vcenter table-bordered">
+                    <table class="table table-vcenter table-bordered" id="pricing-table">
                       <thead>
-                          <tr>
-                              <th>{{ __('TLD') }} / {{ __('Command') }}</th>
-                              <th>{{ __('Create') }}</th>
-                              <th>{{ __('Renew') }}</th>
-                              <th>{{ __('Transfer') }}</th>
-                              <th>{{ __('Restore Price') }}</th>
-                          </tr>
+                        <tr>
+                          <th>{{ __('TLD') }}</th>
+                          <th>{{ __('Create') }}</th>
+                          <th>{{ __('Renew') }}</th>
+                          <th>{{ __('Transfer') }}</th>
+                          <th>{{ __('Restore Price') }}</th>
+                        </tr>
                       </thead>
-                        <tbody>
-                            {% for tld in tlds %}
-                                <tr>
-                                    <td>{{ tld.tld }}</td>
-                                    {% if tld.createPrices or tld.renewPrices or tld.transferPrices or tld.tld_restore %}
-                                        <td>
-                                            {% if tld.createPrices %}
-                                                {% for year in [12, 24, 36, 48, 60, 72, 84, 96, 108, 120] %}
-                                                    <div class="row mb-2">
-                                                        <div class="col-auto">
-                                                            <label class="form-label">{{ year/12 }} Year{{ year > 12 ? 's' : '' }}</label>
-                                                        </div>
-                                                        <div class="col">
-                                                            <input type="text" class="form-control" name="create_{{ tld.tld }}_{{ year }}" value="{{ attribute(tld.createPrices, 'm' ~ year) | default('N/A') }}">
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if tld.renewPrices %}
-                                                {% for year in [12, 24, 36, 48, 60, 72, 84, 96, 108, 120] %}
-                                                    <div class="row mb-2">
-                                                        <div class="col-auto">
-                                                            <label class="form-label">{{ year/12 }} Year{{ year > 12 ? 's' : '' }}</label>
-                                                        </div>
-                                                        <div class="col">
-                                                            <input type="text" class="form-control" name="renew_{{ tld.tld }}_{{ year }}" value="{{ attribute(tld.renewPrices, 'm' ~ year) | default('N/A') }}">
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if tld.transferPrices %}
-                                                {% for year in [12, 24, 36, 48, 60, 72, 84, 96, 108, 120] %}
-                                                    <div class="row mb-2">
-                                                        <div class="col-auto">
-                                                            <label class="form-label">{{ year/12 }} Year{{ year > 12 ? 's' : '' }}</label>
-                                                        </div>
-                                                        <div class="col">
-                                                            <input type="text" class="form-control" name="transfer_{{ tld.tld }}_{{ year }}" value="{{ attribute(tld.transferPrices, 'm' ~ year) | default('N/A') }}">
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if tld.tld_restore %}
-                                                <input type="text" class="form-control" name="restore_{{ tld.tld }}" value="{{ tld.tld_restore.price | default('N/A') }}">
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                    {% else %}
-                                        <td colspan="4">{{ __('Registrar does not have custom prices for') }} {{ tld.tld }}</td>
-                                    {% endif %}
-                                </tr>
+                      <tbody>
+                        {% for tld in tlds %}
+                          <tr data-tld="{{ tld.tld }}">
+                            <td>{{ tld.tld }}</td>
+
+                            {% for action in ['create', 'renew', 'transfer'] %}
+                              <td data-action="{{ action }}"
+                                  data-prices='{
+                                    {% set prices = attribute(tld, action ~ "Prices") %}
+                                    {% for year in 1..10 %}
+                                      {% set key = "m" ~ (year * 12) %}
+                                      {% if attribute(prices, key) is defined %}
+                                        "y{{ year }}": "{{ attribute(prices, key) }}"{% if not loop.last %},{% endif %}
+                                      {% endif %}
+                                    {% endfor %}
+                                  }'>
+
+                                {% set prices = attribute(tld, action ~ 'Prices') %}
+                                {% if prices %}
+                                  <div>
+                                    <div class="fw-bold">
+                                      {% for year in 1..10 %}
+                                        {% set key = 'm' ~ (year * 12) %}
+                                        {% if attribute(prices, key) is defined %}
+                                          {{ year }}y: ${{ attribute(prices, key) }}{% if not loop.last %}, {% endif %}
+                                        {% endif %}
+                                      {% endfor %}
+                                    </div>
+                                    <div class="d-flex gap-2 justify-content-center mt-2">
+                                      <button class="edit-btn btn btn-sm btn-warning">{{ __('Edit') }}</button>
+                                      <button class="delete-btn btn btn-sm btn-danger"
+                                              data-action="{{ action }}"
+                                              data-tld="{{ tld.tld }}">
+                                        {{ __('Delete') }}
+                                      </button>
+                                    </div>
+                                  </div>
+                                {% else %}
+                                  <span class="text-muted">{{ __('No custom price') }}</span><br>
+                                  <button class="edit-btn btn btn-sm btn-primary">{{ __('Set') }}</button>
+                                {% endif %}
+                              </td>
                             {% endfor %}
-                        </tbody>
+
+                            <td data-action="restore"
+                                {% if tld.tld_restore %}
+                                  data-price="{{ tld.tld_restore.price }}"
+                                {% endif %}>
+                              {% if tld.tld_restore %}
+                                <div class="fw-bold">${{ tld.tld_restore.price }}</div>
+                                <div class="d-flex gap-2 justify-content-center mt-2">
+                                  <button class="edit-btn btn btn-sm btn-warning">{{ __('Edit') }}</button>
+                                  <button class="delete-btn btn btn-sm btn-danger"
+                                          data-action="restore"
+                                          data-tld="{{ tld.tld }}">
+                                    {{ __('Delete') }}
+                                  </button>
+                                </div>
+                              {% else %}
+                                <span class="text-muted">{{ __('No custom price') }}</span><br>
+                                <button class="edit-btn btn btn-sm btn-primary">{{ __('Set') }}</button>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
                     </table>
                   </div>
                 </div>
               </div>
-             </form>
             </div>
           </div>
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script>
+  document.getElementById("pricing-table").addEventListener("click", async function (e) {
+    const btn = e.target;
+
+    // DELETE BUTTON HANDLER
+    if (btn.classList.contains("delete-btn")) {
+      const confirmed = confirm("Are you sure you want to delete custom prices for this TLD?");
+      if (!confirmed) return;
+
+      const tld = btn.dataset.tld;
+      const action = btn.dataset.action;
+
+      const res = await fetch(`/registrar/updatepricing/{{ clid }}`, {
+        method: "DELETE",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tld, action })
+      });
+
+      if (res.ok) {
+        location.reload();
+      } else {
+        alert("Error deleting price");
+      }
+      return;
+    }
+
+    // EDIT BUTTON HANDLER
+    if (!btn.classList.contains("edit-btn")) return;
+
+    const td = btn.closest("td");
+    const tr = td.closest("tr");
+    const tld = tr.dataset.tld;
+    const action = td.dataset.action;
+    td.setAttribute("data-original", td.innerHTML);
+
+    let inputHTML = "";
+    if (action === "restore") {
+      inputHTML = `<label class="form-label">Restore Price
+          <input class="form-control form-control-sm" type="number" step="0.01" name="restore" placeholder="$">
+        </label>`;
+    } else {
+      inputHTML = Array.from({ length: 10 }, (_, i) => {
+        const year = i + 1;
+        return `<label class="form-label">${year}y
+          <input class="form-control form-control-sm" type="number" step="0.01" name="y${year}" placeholder="$" data-year="${year}">
+        </label>`;
+      }).join('');
+    }
+
+    const form = document.createElement("form");
+    form.classList.add("price-form");
+    form.innerHTML = `
+      <div class="year-inputs" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px;">
+        ${inputHTML}
+      </div>
+      <button class="save-btn btn btn-sm btn-success" type="submit">Save</button>
+      <button class="cancel-btn btn btn-sm btn-secondary" type="button">Cancel</button>
+    `;
+
+    td.innerHTML = "";
+    td.appendChild(form);
+
+    const priceData = td.dataset.prices ? JSON.parse(td.dataset.prices) : {};
+    const restorePrice = td.dataset.price;
+
+    // Prefill values if present
+    if (action !== "restore") {
+      for (let y = 1; y <= 10; y++) {
+        const input = form.querySelector(`input[name="y${y}"]`);
+        if (input && priceData[`y${y}`]) {
+          input.value = priceData[`y${y}`];
+        }
+      }
+    } else {
+      const input = form.querySelector(`input[name="restore"]`);
+      if (input && restorePrice) {
+        input.value = restorePrice;
+      }
+    }
+
+    // Cancel button
+    form.querySelector(".cancel-btn").addEventListener("click", () => {
+      td.innerHTML = td.getAttribute("data-original");
+    });
+
+    // Auto-fill other years when typing in y1
+    if (action !== "restore") {
+      form.querySelector('input[name="y1"]').addEventListener("input", (ev) => {
+        const base = parseFloat(ev.target.value);
+        if (isNaN(base)) return;
+        for (let y = 2; y <= 10; y++) {
+          const input = form.querySelector(`input[name="y${y}"]`);
+          if (input) input.value = (base * y).toFixed(2);
+        }
+      });
+    }
+
+    // Submit save
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const data = new FormData(form);
+      const payload = {};
+      for (const [key, value] of data.entries()) {
+        if (value.trim() !== "") {
+          if (action === "restore") {
+            payload.restore = parseFloat(value);
+          } else {
+            payload[key] = parseFloat(value);
+          }
+        }
+      }
+
+      const res = await fetch(`/registrar/updatepricing/{{ clid }}`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tld, action, prices: payload })
+      });
+
+      if (res.ok) {
+        location.reload();
+      } else {
+        alert("Error saving price");
+      }
+    });
+  });
+</script>
 {% endblock %}

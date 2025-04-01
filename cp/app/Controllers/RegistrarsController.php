@@ -1245,24 +1245,16 @@ class RegistrarsController extends Controller
         }
     }
     
-    public function updateCustomPricing(Request $request, Response $response, $args)
+    public function customPricingView(Request $request, Response $response, $args)
     {
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        //TODO
-        if ($request->getMethod() === 'POST') {
-            // Retrieve POST data
-            $data = $request->getParsedBody();
-            $db = $this->container->get('db');
-            
-            var_dump ($data);die();
-        }
-        
+
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath(); 
-        
+
         if ($args) {
             $args = trim($args);
 
@@ -1298,6 +1290,108 @@ class RegistrarsController extends Controller
             // Redirect to the registrars view
             return $response->withHeader('Location', '/registrars')->withStatus(302);
         }
+    }
+
+    public function updateCustomPricing(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if (!$args) {
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+
+        $method = $request->getMethod();
+        $body = $request->getBody()->__toString();
+        $data = json_decode($body, true);
+        $db = $this->container->get('db');
+        $clid = getClid($db, $args);
+
+        $tld = $data['tld'] ?? null;
+        $action = $data['action'] ?? null;
+
+        if (!$tld || !$action || !in_array($action, ['create', 'renew', 'transfer', 'restore'])) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid input']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $tldId = $db->selectValue('SELECT id FROM domain_tld WHERE tld = ?', [$tld]);
+        if (!$tldId) {
+            $response->getBody()->write(json_encode(['error' => 'TLD not found']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        if ($method === 'POST') {
+            $prices = $data['prices'] ?? [];
+
+            if ($action === 'restore') {
+                $price = $prices['restore'] ?? null;
+                if ($price === null) {
+                    $response->getBody()->write(json_encode(['error' => 'Missing restore price']));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                }
+
+                $db->exec('
+                    INSERT INTO domain_restore_price (tldid, registrar_id, price)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE price = VALUES(price)
+                ', [$tldId, $clid, $price]);
+
+            } else {
+                $columns = [];
+                foreach ($prices as $key => $val) {
+                    if (preg_match('/^y(\d{1,2})$/', $key, $matches)) {
+                        $year = (int)$matches[1];
+                        $months = $year * 12;
+                        $col = 'm' . $months;
+                        $columns[$col] = $val;
+                    }
+                }
+
+                if (!empty($columns)) {
+                    $columns['tldid'] = $tldId;
+                    $columns['registrar_id'] = $clid;
+                    $columns['command'] = $action;
+
+                    $colNames = array_keys($columns);
+                    $placeholders = array_fill(0, count($columns), '?');
+                    $values = array_values($columns);
+
+                    $updateClause = implode(', ', array_map(function ($col) {
+                        return "$col = VALUES($col)";
+                    }, $colNames));
+
+                    $sql = 'INSERT INTO domain_price (' . implode(', ', $colNames) . ')
+                            VALUES (' . implode(', ', $placeholders) . ')
+                            ON DUPLICATE KEY UPDATE ' . $updateClause;
+
+                    $db->exec($sql, $values);
+                }
+            }
+
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        elseif ($method === 'DELETE') {
+            if ($action === 'restore') {
+                $db->delete('domain_restore_price', [
+                    'tldid' => $tldId,
+                    'registrar_id' => $clid
+                ]);
+            } else {
+                $db->exec('DELETE FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ?', [
+                    $tldId, $clid, $action
+                ]);
+            }
+
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['error' => 'Method not allowed']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(405);
     }
 
     public function transferRegistrar(Request $request, Response $response)
