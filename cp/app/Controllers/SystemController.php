@@ -1784,21 +1784,21 @@ class SystemController extends Controller
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'ASCII',
+                        'Script'        => 'latn',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
                         'Address'       => $address . ', ' . $address2 . ', ' . $cc,
                         'Telephone'     => $phone,
                         'Website'       => 'www.example.com',
-                        'Notes'         => 'This table describes codepoints allowed for the ASCII script.'
+                        'Notes'         => 'This table describes codepoints allowed for the Latin script.'
                     ];
                     break;
                 case 'cyrillic':
                     $idntable = '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'Cyrillic',
+                        'Script'        => 'cyrl',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
@@ -1812,7 +1812,7 @@ class SystemController extends Controller
                     $idntable = '/^[ぁ-んァ-ン一-龯々0-9]+$/u';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'Japanese',
+                        'Script'        => 'jpan',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
@@ -1826,7 +1826,7 @@ class SystemController extends Controller
                     $idntable = '/^[가-힣0-9]+$/u';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'Korean',
+                        'Script'        => 'kore',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
@@ -1840,7 +1840,7 @@ class SystemController extends Controller
                     $idntable = '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'Arabic',
+                        'Script'        => 'arab',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
@@ -1854,14 +1854,14 @@ class SystemController extends Controller
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     $metadata = [
                         'Registry'      => $company_name,
-                        'Script'        => 'ASCII (default)',
+                        'Script'        => 'latn',
                         'Version'       => '1.0',
                         'Effective Date'=> date('Y-m-d'),
                         'Contact'       => $email,
                         'Address'       => $address . ', ' . $address2 . ', ' . $cc,
                         'Telephone'     => $phone,
                         'Website'       => 'www.example.com',
-                        'Notes'         => 'This table describes codepoints allowed for the ASCII script (default).'
+                        'Notes'         => 'This table describes codepoints allowed for the Latin script.'
                     ];
                     break;
             }
