@@ -20,11 +20,11 @@
               <!-- Page title actions -->
               <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-info d-none d-sm-inline-block">
+                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-outline-info d-none d-sm-inline-block">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
                     {{ __('Export IDN Table') }}
                   </a>
-                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-info d-sm-none btn-icon" aria-label="{{ __('Export IDN Table') }}" title="{{ __('Export IDN Table') }}">
+                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-outline-info d-sm-none btn-icon" aria-label="{{ __('Export IDN Table') }}" title="{{ __('Export IDN Table') }}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
                   </a>
                 </div>
@@ -320,98 +320,6 @@
                 </div>
               </form>
 
-              <div class="card mb-3">
-                  <div class="card-header">
-                      <h5 class="card-title">{{ __('Manage Promotions') }}</h5>
-                  </div>
-                  <div class="card-body">
-                  <div class="table-responsive mb-3">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>{{ __('Promotion Name') }}</th>
-                                <th>{{ __('Start Date') }}</th>
-                                <th>{{ __('End Date') }}</th>
-                                <th>{{ __('Discount') }} (%)</th>
-                                <th>{{ __('Discount Amount') }}</th>
-                                <th>{{ __('Description') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for promo in promotions %}
-                                <tr>
-                                    <td>{{ promo.promo_name }}</td>
-                                    <td>{{ promo.start_date }}</td>
-                                    <td>{{ promo.end_date }}</td>
-                                    <td>{{ promo.discount_percentage ? promo.discount_percentage ~ '%' : 'N/A' }}</td>
-                                    <td>{{ promo.discount_amount ? promo.discount_amount : 'N/A' }}</td>
-                                    <td>{{ promo.description ? promo.description : 'N/A' }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="8">{{ __('No promotions found.') }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                  </div>
-                      <h5 class="card-title mb-3">{{ __('Create New Promotion') }}</h5>
-                      <form action="/registry/promotions" method="post">
-                      {{ csrf.field | raw }}
-                          <div class="mb-3">
-                              <label for="promotionName" class="form-label required">{{ __('Promotion Name') }}</label>
-                              <input type="text" class="form-control" id="promotionName" name="promotionName" placeholder="Enter promotion name" required>
-                          </div>
-                          <div class="row">
-                              <div class="col-sm-6 col-md-6">
-                                <div class="mb-3">
-                                  <label for="promotionStart" class="form-label required">{{ __('Promotion Start Date') }}</label>
-                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionStart" name="promotionStart" required>
-                                  <small class="form-text text-muted"><strong>{{ __('Please Note:') }}</strong> {{ __('All times displayed are in') }} <strong>Coordinated Universal Time (UTC)</strong></small>
-                                </div>
-                              </div>
-                              <div class="col-sm-6 col-md-6">
-                                <div class="mb-3">
-                                  <label for="promotionEnd" class="form-label required">{{ __('Promotion End Date') }}</label>
-                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="promotionEnd" name="promotionEnd" required>
-                                </div>
-                              </div>
-                          </div>
-                          <div class="mb-3">
-                              <label for="discountType" class="form-label required">{{ __('Discount Type') }}</label>
-                              <select class="form-select" id="discountType" name="discountType" required>
-                                  <option value="percentage">{{ __('Percentage') }}</option>
-                                  <option value="fixed">{{ __('Fixed Amount') }}</option>
-                                  <option value="free">{{ __('Free Domains') }}</option>
-                              </select>
-                          </div>
-                          <div class="mb-3">
-                              <label for="discountValue" class="form-label">{{ __('Discount Value') }}</label>
-                              <input type="text" class="form-control" id="discountValue" name="discountValue" placeholder="{{ __('Enter discount value') }}">
-                          </div>
-                          <div class="mb-3">
-                              <label for="max_count" class="form-label">{{ __('Maximum Discounted Items') }}</label>
-                              <input type="text" class="form-control" id="max_count" name="max_count">
-                          </div>
-                          <div class="mb-3">
-                              <label for="promotionConditions" class="form-label">{{ __('Conditions') }}</label>
-                              <textarea class="form-control" id="promotionConditions" name="promotionConditions" rows="3" placeholder="{{ __('Enter conditions') }}"></textarea>
-                          </div>
-                          <div class="mb-3">
-                              <label for="promotionDescription" class="form-label">{{ __('Description') }}</label>
-                              <textarea class="form-control" id="promotionDescription" name="promotionDescription" rows="3" placeholder="{{ __('Enter description') }}"></textarea>
-                          </div>
-                  </div>
-                  <div class="card-footer">
-                    <div class="row align-items-center">
-                      <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">{{ __('Update Promotions') }}</button>
-                      </div>
-                    </div>
-                    </form>
-                  </div>
-              </div>
-              
               <div class="card">
                   <div class="card-header">
                       <h5 class="card-title">{{ __('Manage Launch Phases') }}</h5>

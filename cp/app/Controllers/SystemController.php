@@ -976,8 +976,6 @@ class SystemController extends Controller
                 $premium_pricing = $db->selectRow('SELECT * FROM premium_domain_pricing WHERE tld_id = ?',
                 [ $tld['id'] ]);
                 $premium_categories = $db->select('SELECT * FROM premium_domain_categories');
-                $promotions = $db->select('SELECT * FROM promotion_pricing WHERE tld_id = ?',
-                [ $tld['id'] ]);
                 $launch_phases = $db->select('SELECT * FROM launch_phases WHERE tld_id = ?',
                 [ $tld['id'] ]);
 
@@ -1169,7 +1167,6 @@ class SystemController extends Controller
                     'tld_restore' => $tld_restore,
                     'premium_pricing' => $premium_pricing,
                     'premium_categories' => $premium_categories,
-                    'promotions' => $promotions,
                     'launch_phases' => $launch_phases,
                     'secureTld' => $secureTld,
                     'dnssecData' => $dnssecData,
@@ -1487,6 +1484,60 @@ class SystemController extends Controller
         //}
     }
 
+    public function viewPromo(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+                
+            $tld = $db->selectRow('SELECT id, tld, idn_table, secure FROM domain_tld WHERE tld = ?',
+            [ $args ]);
+
+            if ($tld) {
+                $promotions = $db->select('SELECT * FROM promotion_pricing WHERE tld_id = ?',
+                [ $tld['id'] ]);
+
+                if (strpos(strtolower($tld['tld']), '.xn--') === 0) {
+                    $tld['tld'] = ltrim($tld['tld'], '.');
+                    $tld_u = '.'.idn_to_utf8($tld['tld'], 0, INTL_IDNA_VARIANT_UTS46);
+                    $tld['tld'] = '.'.$tld['tld'];
+                } else {
+                    $tld_u = $tld['tld'];
+                }
+
+                $_SESSION['u_tld_id'] = [$tld['id']];
+                $_SESSION['u_tld_extension'] = [$tld['tld']];
+
+                return view($response,'admin/system/viewPromo.twig', [
+                    'tld' => $tld,
+                    'tld_u' => $tld_u,
+                    'promotions' => $promotions,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // TLD does not exist, redirect to the tlds view
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the tlds view
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
+
     public function managePromo(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
@@ -1568,11 +1619,11 @@ class SystemController extends Controller
                 unset($_SESSION['u_tld_extension']);
                 
                 $this->container->get('flash')->addMessage('success', 'Promotion updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
-                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+                return $response->withHeader('Location', '/registry/promotion/'.$sData['extension'])->withStatus(302);
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-               return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+               return $response->withHeader('Location', '/registry/promotion/'.$sData['extension'])->withStatus(302);
             }
             
         } else {
