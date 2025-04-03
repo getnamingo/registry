@@ -150,6 +150,7 @@ $app->group('', function ($route) {
     $route->get('/registry/phases/{tld}', SystemController::class . ':viewPhases')->setName('viewPhases');
     $route->post('/registry/phases', SystemController::class . ':managePhases')->setName('managePhases');
     $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');
+    $route->map(['GET', 'POST'], '/registry/dnssec', SystemController::class . ':manageDnssec')->setName('manageDnssec');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');

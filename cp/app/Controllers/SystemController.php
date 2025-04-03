@@ -728,18 +728,6 @@ class SystemController extends Controller
                     return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
                 }
 
-                if (isset($data['dnssec_enable'], $data['bind9_enable'])) {
-                    if ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] === 'on') {
-                        $dnssec_both = 1;
-                    } elseif ($data['dnssec_enable'] === 'on' && $data['bind9_enable'] !== 'on') {
-                        $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
-                        return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
-                    } elseif ($data['dnssec_enable'] !== 'on' && $data['bind9_enable'] === 'on') {
-                        $this->container->get('flash')->addMessage('error', 'DNSSEC can be only enabled for BIND9');
-                        return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
-                    }
-                }
-
                 try {
                     $db->beginTransaction();
                     
@@ -820,18 +808,6 @@ class SystemController extends Controller
                             'tldid' => $tld_id
                         ]
                     );
-
-                    if (isset($dnssec_both) && $dnssec_both === 1) {
-                        $db->update(
-                            'domain_tld',
-                            [
-                                'secure' => 1
-                            ],
-                            [
-                                'id' => $tld_id
-                            ]
-                        );
-                    }
 
                     // Loop through category indices from 1 to 10
                     for ($i = 1; $i <= 10; $i++) {
@@ -1980,6 +1956,52 @@ class SystemController extends Controller
         } else {
             // Redirect to the tlds view
             return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
+
+    public function manageDnssec(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+
+        if (!empty($_SESSION['u_tld_id'])) {
+            $tld_id = $_SESSION['u_tld_id'][0];
+        } else {
+            $this->container->get('flash')->addMessage('error', 'No TLD specified for DNSSEC');
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+        if (!empty($_SESSION['u_tld_extension'])) {
+            $tld_extension = $_SESSION['u_tld_extension'][0];
+        } else {
+            $this->container->get('flash')->addMessage('error', 'No TLD specified for DNSSEC');
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+        try {
+            $db->update(
+                'domain_tld',
+                [
+                    'secure' => 1
+                ],
+                [
+                    'id' => $tld_id
+                ]
+            );
+
+            unset($_SESSION['u_tld_id']);
+            unset($_SESSION['u_tld_extension']);
+
+            $this->container->get('flash')->addMessage('success', 'DNSSEC for ' . $tld_extension . ' has been successfully activated');
+            return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
+        } catch (Exception $e) {
+            $db->rollBack();
+            $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
+           return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
         }
 
     }

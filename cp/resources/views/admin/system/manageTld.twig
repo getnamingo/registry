@@ -3,6 +3,7 @@
 {% block title %}{{ __('Manage TLD') }} {{ tld.tld }}{% endblock %}
 
 {% block content %}
+<link href="/assets/css/sweetalert2.min.css" rel="stylesheet">
       <div class="page-wrapper">
         <!-- Page header -->
         <div class="page-header d-print-none">
@@ -17,18 +18,6 @@
                   {{ __('Manage TLD') }} {{ tld_u }}
                 </h2>
               </div>
-              <!-- Page title actions -->
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-outline-info d-none d-sm-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
-                    {{ __('Export IDN Table') }}
-                  </a>
-                  <a href="/registry/idnexport/{{ tld.tld }}" class="btn btn-outline-info d-sm-none btn-icon" aria-label="{{ __('Export IDN Table') }}" title="{{ __('Export IDN Table') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -41,7 +30,12 @@
               {{ csrf.field | raw }}
                 <div class="card mb-3">
                   <div class="card-header">
-                    <h5 class="card-title">{{ __('General Details') }}</h5>
+                    <h3 class="card-title">{{ __('General Details') }}</h3>
+                    <div class="card-actions">
+                      <a href="/registry/idnexport/{{ tld.tld }}" target="_blank" class="btn btn-outline-orange"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
+                        {{ __('Export IDN Table') }}
+                      </a>
+                    </div>
                   </div>
                   <div class="card-body">
                     <div class="datagrid">
@@ -71,24 +65,6 @@
                           {% endif %}
                         </div>
                       </div>
-                      <div class="datagrid-item">
-                        <div class="datagrid-title">{{ __('Enable DNSSEC') }}</div>
-                        <div class="datagrid-content">
-                          <label class="form-check">
-                            <input class="form-check-input" type="checkbox" name="dnssec_enable" {% if secureTld == 1 %} checked disabled {% endif %}>
-                            <span class="form-check-label">{{ __('Enable') }}</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div class="datagrid-item">
-                        <div class="datagrid-title">{{ __('DNSSEC Mode') }}</div>
-                        <div class="datagrid-content">
-                          <label class="form-check">
-                            <input class="form-check-input" type="checkbox" name="bind9_enable" {% if secureTld == 1 %} checked disabled {% endif %}>
-                            <span class="form-check-label">{{ __('BIND9') }}</span>
-                          </label>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -96,9 +72,9 @@
                 {% if dnssecData is defined and dnssecData.keys is defined and dnssecData.keys|length > 0 %}
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h5 class="card-title">{{ __('DNSSEC Details') }}
+                            <h3 class="card-title">{{ __('DNSSEC Details') }}
                                 <span class="card-subtitle">{{ __('Last Updated') }}: {{ dnssecData.timestamp }}</span>
-                            </h5>
+                            </h3>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -160,7 +136,15 @@
                 {% elseif dnssecData.error is defined %}
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                            <h3 class="card-title">{{ __('DNSSEC Details') }}</h3>
+                            {% if secureTld != 1 %}
+                            <div class="card-actions">
+                              <a href="/registry/dnssec" class="btn btn-outline-indigo btn-3" id="enableDnssecLink">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.462 20.87c-.153 .047 -.307 .09 -.462 .13a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 .11 6.37" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
+                                {{ __('Enable DNSSEC') }}
+                              </a>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="card-body">
                             <div class="alert alert-warning" role="alert">
@@ -171,7 +155,7 @@
                 {% else %}
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h5 class="card-title">{{ __('DNSSEC Details') }}</h5>
+                            <h3 class="card-title">{{ __('DNSSEC Details') }}</h3>
                         </div>
                         <div class="card-body">
                             <div class="alert alert-info" role="alert">
@@ -185,7 +169,7 @@
 
                 <div class="card mb-3">
                   <div class="card-header">
-                    <h5 class="card-title">{{ __('Pricing') }}</h5>
+                    <h3 class="card-title">{{ __('Pricing') }}</h3>
                   </div>
                   <div class="card-body">
                     <div class="table-responsive">
@@ -324,6 +308,27 @@
           </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script src="/assets/js/sweetalert2.min.js" defer></script>
+<script>
+document.getElementById('enableDnssecLink').addEventListener('click', function (e) {
+  e.preventDefault(); // Prevent default link behavior
+
+  Swal.fire({
+    title: 'Are you sure?',
+    text: 'Please ensure DNSSEC has been properly configured for this TLD prior to proceeding, as outlined in section 2.1.3b. of the manual.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, continue',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#4263eb',
+    cancelButtonColor: '#9ba9be'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = e.target.closest('a').href;
+    }
+  });
+});
+</script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const createm12Input = document.querySelector('input[name="createm12"]');
