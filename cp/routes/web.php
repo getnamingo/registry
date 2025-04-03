@@ -147,6 +147,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/registry/tokens/delete/{token}', SystemController::class . ':deleteToken')->setName('deleteToken');
     $route->get('/registry/promotion/{tld}', SystemController::class . ':viewPromo')->setName('viewPromo');
     $route->post('/registry/promotions', SystemController::class . ':managePromo')->setName('managePromo');
+    $route->get('/registry/phases/{tld}', SystemController::class . ':viewPhases')->setName('viewPhases');
     $route->post('/registry/phases', SystemController::class . ':managePhases')->setName('managePhases');
     $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');
 

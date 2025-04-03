@@ -1,0 +1,131 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Manage Launch Phases') }} {{ __('for') }} {{ tld_u }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <!-- Page pre-title -->
+                <div class="page-pretitle">
+                  {{ __('Overview') }}
+                </div>
+                <h2 class="page-title">
+                  {{ __('Manage Launch Phases') }} {{ __('for') }} {{ tld_u }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+
+              <div class="card">
+                  <div class="card-header">
+                      <h5 class="card-title">{{ __('Manage Launch Phases') }}</h5>
+                  </div>
+                  <div class="card-body">
+                  <div class="table-responsive mb-3">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Phase Type') }}</th>
+                                <th>{{ __('Phase Name') }}</th>
+                                <th>{{ __('Phase Category') }}</th>
+                                <th>{{ __('Phase Description') }}</th>
+                                <th>{{ __('Start Date') }}</th>
+                                <th>{{ __('End Date') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for phase in launch_phases %}
+                                <tr>
+                                    <td>{{ phase.phase_type|capitalize }}</td>
+                                    <td>{{ phase.phase_name|default('N/A') }}</td>
+                                    <td>{{ phase.phase_category }}</td>
+                                    <td>{{ phase.phase_description }}</td>
+                                    <td>{{ phase.start_date }}</td>
+                                    <td>{{ phase.end_date|default('N/A') }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7">{{ __('No launch phases found.') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                  </div>
+                      <h5 class="card-title mb-3">{{ __('Create New Phase') }}</h5>
+                      <form action="/registry/phases" method="post">
+                      {{ csrf.field | raw }}
+                          <div class="mb-3">
+                              <label for="phaseType" class="form-label required">{{ __('Phase Type') }}</label>
+                              <select class="form-select" id="phaseType" name="phaseType" required>
+                                  <option value="sunrise">Sunrise</option>
+                                  <option value="landrush">Landrush</option>
+                                  <option value="claims">Claims</option>
+                                  <option value="open">Open</option>
+                                  <option value="custom">Custom</option>
+                              </select>
+                          </div>
+                          <div class="mb-3">
+                              <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
+                              <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
+                              <small class="form-hint">The "Phase Name" field is required only if the "Type" is set to "Custom".</small>
+                          </div>
+                          <div class="mb-3">
+                            <div class="form-label">{{ __('Phase Category') }}</div>
+                            <div>
+                              <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="phaseCategory" id="First-Come-First-Serve" value="First-Come-First-Serve" checked>
+                                <span class="form-check-label">First-Come-First-Serve</span>
+                                <small class="form-hint">{{ __('Single application only.') }}</small>
+                              </label>
+                              <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="phaseCategory" id="Application" value="Application">
+                                <span class="form-check-label">Application</span>
+                                <small class="form-hint">{{ __('Multiple applications allowed.') }}</small>
+                              </label>
+                            </div>
+                          </div>
+                          <div class="mb-3">
+                              <label for="phaseDescription" class="form-label required">{{ __('Phase Description') }}</label>
+                              <textarea class="form-control" id="phaseDescription" name="phaseDescription" rows="3" placeholder="{{ __('Enter phase description') }}" required></textarea>
+                          </div>
+                          <div class="row">
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="phaseStart" class="form-label required">{{ __('Phase Start Date') }}</label>
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseStart" name="phaseStart" required>
+                                  <small class="form-text text-muted"><strong>{{ __('Please Note:') }}</strong> {{ __('All times displayed are in') }} <strong>Coordinated Universal Time (UTC)</strong></small>
+                                </div>
+                              </div>
+                              <div class="col-sm-6 col-md-6">
+                                <div class="mb-3">
+                                  <label for="phaseEnd" class="form-label">{{ __('Phase End Date') }}</label>
+                                  <input type="datetime-local" class="form-control" placeholder="e.g., 01/01/2023" id="phaseEnd" name="phaseEnd">
+                                </div>
+                              </div>
+                          </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">{{ __('Update Phases') }}</button>
+                      </div>
+                    </div>
+                    </form>
+                  </div>
+              </div>
+
+            </div>
+          </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

@@ -976,8 +976,6 @@ class SystemController extends Controller
                 $premium_pricing = $db->selectRow('SELECT * FROM premium_domain_pricing WHERE tld_id = ?',
                 [ $tld['id'] ]);
                 $premium_categories = $db->select('SELECT * FROM premium_domain_categories');
-                $launch_phases = $db->select('SELECT * FROM launch_phases WHERE tld_id = ?',
-                [ $tld['id'] ]);
 
                 // Mapping of regex patterns to script names
                 $regexToScriptName = [
@@ -1167,7 +1165,6 @@ class SystemController extends Controller
                     'tld_restore' => $tld_restore,
                     'premium_pricing' => $premium_pricing,
                     'premium_categories' => $premium_categories,
-                    'launch_phases' => $launch_phases,
                     'secureTld' => $secureTld,
                     'dnssecData' => $dnssecData,
                     'currentUri' => $uri
@@ -1632,7 +1629,61 @@ class SystemController extends Controller
         }
 
     }
-    
+
+    public function viewPhases(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^\.(xn--[a-zA-Z0-9-]+|[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)?)$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid TLD format');
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+                
+            $tld = $db->selectRow('SELECT id, tld, idn_table, secure FROM domain_tld WHERE tld = ?',
+            [ $args ]);
+
+            if ($tld) {
+                $launch_phases = $db->select('SELECT * FROM launch_phases WHERE tld_id = ?',
+                [ $tld['id'] ]);
+
+                if (strpos(strtolower($tld['tld']), '.xn--') === 0) {
+                    $tld['tld'] = ltrim($tld['tld'], '.');
+                    $tld_u = '.'.idn_to_utf8($tld['tld'], 0, INTL_IDNA_VARIANT_UTS46);
+                    $tld['tld'] = '.'.$tld['tld'];
+                } else {
+                    $tld_u = $tld['tld'];
+                }
+
+                $_SESSION['u_tld_id'] = [$tld['id']];
+                $_SESSION['u_tld_extension'] = [$tld['tld']];
+
+                return view($response,'admin/system/viewPhase.twig', [
+                    'tld' => $tld,
+                    'tld_u' => $tld_u,
+                    'launch_phases' => $launch_phases,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // TLD does not exist, redirect to the tlds view
+                return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the tlds view
+            return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
+        }
+
+    }
+
     public function managePhases(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
@@ -1647,14 +1698,14 @@ class SystemController extends Controller
             if (!empty($_SESSION['u_tld_id'])) {
                 $tld_id = $_SESSION['u_tld_id'][0];
             } else {
-                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for launch phases');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
             }
             
             if (!empty($_SESSION['u_tld_extension'])) {
                 $tld_extension = $_SESSION['u_tld_extension'][0];
             } else {
-                $this->container->get('flash')->addMessage('error', 'No TLD specified for promotions');
+                $this->container->get('flash')->addMessage('error', 'No TLD specified for launch phases');
                 return $response->withHeader('Location', '/registry/tlds')->withStatus(302);
             }
 
@@ -1673,7 +1724,7 @@ class SystemController extends Controller
                 $sData['phaseEnd'] = str_replace('T', ' ', $data['phaseEnd']) . ':00';
             } elseif (!in_array($sData['phaseType'], ['open', 'custom'])) {
                 $this->container->get('flash')->addMessage('error', "Error: phaseEnd is required for phaseType '{$sData['phaseType']}'");
-                return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
             }
 
             try {           
@@ -1686,7 +1737,7 @@ class SystemController extends Controller
                 if ($sData['phaseType'] === 'custom' && (empty($sData['phaseName']) || is_null($sData['phaseName']))) {
                     // Handle the error scenario
                     $this->container->get('flash')->addMessage('error', 'Phase name is required when the type is Custom.');
-                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
                 }
 
                 // Check for existing phase_type (excluding 'custom' with different phase_name) or date overlap (excluding 'custom' and 'open' types)
@@ -1731,20 +1782,20 @@ class SystemController extends Controller
                     // phase_type already exists for the tldid
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'The phase type already exists for this TLD.');
-                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
                 }
 
                 if ($result['duplicatePhaseNameExists'] > 0) {
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'A phase with this name already exists for this TLD.');
-                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
                 }
 
                 if ($result['dateOverlapExists'] > 0) {
                     // Date range overlaps with an existing entry
                     $db->rollBack();
                     $this->container->get('flash')->addMessage('error', 'Date range overlaps with an existing phase for this TLD.');
-                    return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                    return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
                 }
 
                 $db->insert(
@@ -1767,11 +1818,11 @@ class SystemController extends Controller
                 unset($_SESSION['u_tld_extension']);
                 
                 $this->container->get('flash')->addMessage('success', 'Launch phase updates for the ' . $sData['extension'] . ' TLD have been successfully applied');
-                return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+                return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-               return $response->withHeader('Location', '/registry/tld/'.$sData['extension'])->withStatus(302);
+               return $response->withHeader('Location', '/registry/phases/'.$sData['extension'])->withStatus(302);
             }
             
         } else {
