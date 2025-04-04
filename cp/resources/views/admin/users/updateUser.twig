@@ -172,29 +172,6 @@
         {% include 'partials/footer.twig' %}
       </div>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-    var el;
-    window.TomSelect && (new TomSelect(el = document.getElementById('select-roles'), {
-        copyClassesToDropdown: false,
-        dropdownParent: 'body',
-        controlInput: '<input>',
-        render:{
-            item: function(data,escape) {
-                if( data.customProperties ){
-                    return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-                }
-                return '<div>' + escape(data.text) + '</div>';
-            },
-            option: function(data,escape){
-                if( data.customProperties ){
-                    return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-                }
-                return '<div>' + escape(data.text) + '</div>';
-            },
-        },
-    }));
-});
-
 document.querySelector('form').addEventListener('submit', function (e) {
   const select = document.getElementById('select-roles');
   let rolesMask = 0;
@@ -217,5 +194,4 @@ document.querySelector('form').addEventListener('submit', function (e) {
   select.disabled = true;
 });
 </script>
-<script src="/assets/libs/tom-select/dist/js/tom-select.base.min.js" defer></script>
 {% endblock %}

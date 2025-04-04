@@ -1543,7 +1543,7 @@ class RegistrarsController extends Controller
                 FROM registrar r
                 JOIN registrar_users ru ON ru.registrar_id = r.id
                 JOIN users u ON u.id = ru.user_id
-                WHERE r.clid = ? AND u.roles_mask = 4
+                WHERE r.clid = ? AND u.roles_mask = 4 AND u.status = 0
                 ORDER BY ru.user_id ASC
             ', [ $args ]);
 

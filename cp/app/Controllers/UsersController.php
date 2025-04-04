@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
 use Respect\Validation\Validator as v;
+use App\Auth\Auth;
 
 class UsersController extends Controller
 {
@@ -416,5 +417,41 @@ class UsersController extends Controller
             return $response->withHeader('Location', '/user/update/'.$username)->withStatus(302);
         }
     }
-    
+
+    public function impersonateUser(Request $request, Response $response, $args)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+
+        if ($args) {
+            $args = trim($args);
+            
+            if (!preg_match('/^[a-z0-9_-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid user name');
+                return $response->withHeader('Location', '/users')->withStatus(302);
+            }
+
+            $user_id = $db->selectValue('
+                SELECT ru.user_id
+                FROM registrar r
+                JOIN registrar_users ru ON ru.registrar_id = r.id
+                JOIN users u ON u.id = ru.user_id
+                WHERE u.username = ? AND u.status = 0
+            ', [ $args ]);
+
+            if (!$user_id) {
+                $this->container->get('flash')->addMessage('error', 'The specified user does not exist or is no longer active');
+                return $response->withHeader('Location', '/users')->withStatus(302);
+            }
+
+            Auth::impersonateUser($user_id);
+        } else {
+            // Redirect to the users view
+            return $response->withHeader('Location', '/users')->withStatus(302);
+        }
+    }
+
 }
