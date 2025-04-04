@@ -1713,3 +1713,36 @@ msgstr "Token"
 
 msgid "Are you sure you want to delete this token?"
 msgstr "¿Está seguro de que desea eliminar este token?"
+
+msgid "Users"
+msgstr "Usuarios"
+
+msgid "No custom price"
+msgstr "Sin precio personalizado"
+
+msgid "Set"
+msgstr "Establecer"
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Are you sure you want to delete custom prices for this TLD?"
+msgstr "¿Estás seguro de que deseas eliminar los precios personalizados para este TLD?"
+
+msgid "Allocation Tokens"
+msgstr "Tokens de Asignación"
+
+msgid "Reserved Names"
+msgstr "Nombres Reservados"
+
+msgid "Update Token"
+msgstr "Actualizar Token"
+
+msgid "Delete Token"
+msgstr "Eliminar Token"

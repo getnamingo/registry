@@ -1710,3 +1710,36 @@ msgstr "رمز"
 
 msgid "Are you sure you want to delete this token?"
 msgstr "هل أنت متأكد أنك تريد حذف هذا الرمز؟"
+
+msgid "Users"
+msgstr "المستخدمون"
+
+msgid "No custom price"
+msgstr "لا يوجد سعر مخصص"
+
+msgid "Set"
+msgstr "تعيين"
+
+msgid "Save"
+msgstr "حفظ"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "Delete"
+msgstr "حذف"
+
+msgid "Are you sure you want to delete custom prices for this TLD?"
+msgstr "هل أنت متأكد أنك تريد حذف الأسعار المخصصة لهذا TLD؟"
+
+msgid "Allocation Tokens"
+msgstr "رموز التخصيص"
+
+msgid "Reserved Names"
+msgstr "الأسماء المحجوزة"
+
+msgid "Update Token"
+msgstr "تحديث الرمز"
+
+msgid "Delete Token"
+msgstr "حذف الرمز"
