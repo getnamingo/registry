@@ -9,9 +9,15 @@
           <div class="container-xl">
             <div class="row g-2 align-items-center">
               <div class="col">
-                <!-- Page pre-title -->
-                <div class="page-pretitle">
-                  {{ __('Overview') }}
+                <div class="mb-1">
+                  <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                      <a href="{{route('home')}}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><polyline points="5 12 3 12 12 3 21 12 19 12" /><path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-8" /><rect x="10" y="12" width="4" height="4" /></svg></a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                      {{ __('Update Registrar') }}
+                    </li>
+                  </ol>
                 </div>
                 <h2 class="page-title">
                   {{ __('Update Registrar') }} {{ registrar.name }}
@@ -36,7 +42,7 @@
                         <div class="col-md-6">
                           <div class="mb-3">
                             <label for="name" class="form-label required">{{ __('Name') }}</label>
-                            <input type="text" class="form-control" id="name" name="name" required value="{{ registrar.name }}">
+                            <input type="text" class="form-control" id="name" name="name" required value="{{ registrar.name }}" autocomplete="off">
                             <small class="text-muted">{{ __('The official name of the registrar.') }}</small>
                           </div>
                           <div class="mb-3">
@@ -46,7 +52,7 @@
                           </div>
                           <div class="mb-3">
                             <label for="email" class="form-label required">{{ __('Email') }}</label>
-                            <input type="text" class="form-control" id="email" name="email" required autocapitalize="none" value="{{ registrar.email }}">
+                            <input type="text" class="form-control" id="email" name="email" required autocapitalize="none" value="{{ registrar.email }}" autocomplete="off">
                             <small class="text-muted">{{ __('Primary contact email of the registrar.') }}</small>
                           </div>
                           <div class="mb-3">
@@ -69,8 +75,8 @@
                             <small class="text-muted">{{ __('Address of the registrar\'s RDAP server.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="abuseEmail" class="form-label required">{{ __('Abuse Email') }}</label>
-                            <input type="text" class="form-control" id="abuseEmail" name="abuseEmail" required autocapitalize="none" value="{{ registrar.abuse_email }}">
+                            <label for="abuseMainEmail" class="form-label required">{{ __('Abuse Email') }}</label>
+                            <input type="text" class="form-control" id="abuseMainEmail" name="abuseEmail" required autocapitalize="none" value="{{ registrar.abuse_email }}">
                             <small class="text-muted">{{ __('Email address for reporting abuse.') }}</small>
                           </div>
                           <div class="mb-3">
@@ -91,12 +97,12 @@
                         <!-- First Column -->
                         <div class="col-md-4">
                           <div class="mb-3">
-                            <label for="accountBalance" class="form-label">{{ __('Account Balance') }}</label>
+                            <div class="form-label">{{ __('Account Balance') }}</div>
                             <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.accountBalance }}</div>
                             <small class="text-muted">{{ __('Current balance in the registrar\'s account.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="creditLimit" class="form-label">{{ __('Credit Limit') }}</label>
+                            <div class="form-label">{{ __('Credit Limit') }}</div>
                             <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.creditLimit }}</div>
                             <small class="text-muted">{{ __('Maximum credit limit for the registrar.') }}</small>
                           </div>
@@ -105,12 +111,12 @@
                         <!-- Second Column -->
                         <div class="col-md-4">
                           <div class="mb-3">
-                            <label for="creditThreshold" class="form-label">{{ __('Credit Threshold') }}</label>
+                            <div class="form-label">{{ __('Credit Threshold') }}</div>
                             <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.creditThreshold }}</div>
                             <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="thresholdType" class="form-label">{{ __('Threshold Type') }}</label>
+                            <div class="form-label">{{ __('Threshold Type') }}</div>
                             <div class="form-control-plaintext">{{ registrar.thresholdType|slice(0, 1)|upper ~ registrar.thresholdType|slice(1) }}</div>
                             <small class="text-muted">{{ __('Type of threshold: fixed value or percentage.') }}</small>
                           </div>
@@ -119,12 +125,12 @@
                         <!-- Third Column -->
                         <div class="col-md-4">
                           <div class="mb-3">
-                            <label for="companyNumber" class="form-label">{{ __('Company Number') }}</label>
+                            <div class="form-label">{{ __('Company Number') }}</div>
                             <div class="form-control-plaintext">{{ registrar.companyNumber|default('N/A') }}</div>
                             <small class="text-muted">{{ __('Official registration number provided by the relevant authority.') }}</small>
                           </div>
                           <div class="mb-3">
-                            <label for="vatNumber" class="form-label">{{ __('VAT Number') }}</label>
+                            <div class="form-label">{{ __('VAT Number') }}</div>
                             <div class="form-control-plaintext">{{ registrar.vatNumber|default('N/A') }}</div>
                             <small class="text-muted">{{ __('VAT number for tax purposes, if registered for VAT.') }}</small>
                           </div>

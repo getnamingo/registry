@@ -329,13 +329,11 @@ class HostsController extends Controller
             if (!$internal_host) {
                 $host = $db->selectRow('SELECT id, name, clid, crdate FROM host WHERE name = ?',
                 [ $args ]);
-                
+
                 if ($host) {            
-                    return view($response,'admin/hosts/updateInternalHost.twig', [
-                        'host' => $host,
-                        'currentUri' => $uri
-                    ]);
-                    
+                    $this->container->get('flash')->addMessage('info', $host['name'].'  is an external host, not managed by the registry. No action needed');
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+
                 } else {
                     // Host does not exist, redirect to the hosts view
                     return $response->withHeader('Location', '/hosts')->withStatus(302);
