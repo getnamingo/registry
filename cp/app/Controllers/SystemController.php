@@ -1117,6 +1117,8 @@ class SystemController extends Controller
                                 $dnssecData = ['error' => "No DNSSEC keys found for $zone using Knot DNS."];
                             }
                         }
+                    } else {
+                        $dnssecData = ['error' => "Setup incomplete. Refer to manual."];
                     }
                 } else {
                     $dnssecData = ['error' => "DNSSEC is not enabled for this TLD."];

@@ -27,6 +27,26 @@
                   {{ __('Manage TLD') }} {{ tld_u }}
                 </h2>
               </div>
+              <div class="col-auto ms-auto">
+                <div class="btn-list">
+                  <a href="/registry/idnexport/{{ tld.tld }}" target="_blank" class="btn btn-outline-orange d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
+                    {{ __('Export IDN Table') }}
+                  </a>
+                  <a href="/registry/idnexport/{{ tld.tld }}" target="_blank" class="btn btn-outline-orange d-sm-none btn-icon" aria-label="{{ __('Export IDN Table') }}" title="{{ __('Export IDN Table') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
+                  </a>
+                  {% if secureTld != 1 %}
+                  <a href="/registry/dnssec" class="btn btn-outline-indigo enable-dnssec-link desktop-only d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.462 20.87c-.153 .047 -.307 .09 -.462 .13a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 .11 6.37" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
+                    {{ __('Enable DNSSEC') }}
+                  </a>
+                  <a href="/registry/dnssec" class="btn btn-outline-indigo enable-dnssec-link mobile-only d-sm-none btn-icon" aria-label="{{ __('Enable DNSSEC') }}" title="{{ __('Enable DNSSEC') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.462 20.87c-.153 .047 -.307 .09 -.462 .13a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 .11 6.37" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>      
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -40,11 +60,6 @@
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">{{ __('General Details') }}</h3>
-                    <div class="card-actions">
-                      <a href="/registry/idnexport/{{ tld.tld }}" target="_blank" class="btn btn-outline-orange"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>
-                        {{ __('Export IDN Table') }}
-                      </a>
-                    </div>
                   </div>
                   <div class="card-body">
                     <div class="datagrid">
@@ -64,11 +79,17 @@
                         <div class="datagrid-title">DNSSEC</div>
                         <div class="datagrid-content">
                           {% if secureTld == 1 %}
-                            <span class="status status-blue">
-                              {{ __('Signed') }}
-                            </span>
+                            {% if dnssecData.error is defined %}
+                              <span class="status status-red" title="{{ dnssecData.error }}">
+                                {{ __('Issue') }}
+                              </span>
+                            {% else %}
+                              <span class="status status-blue">
+                                {{ __('Signed') }}
+                              </span>
+                            {% endif %}
                           {% else %}
-                            <span class="status status-yellow">
+                            <span class="status status-secondary">
                               {{ __('Not signed') }}
                             </span>
                           {% endif %}
@@ -139,38 +160,6 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                    </div>
-                {% elseif dnssecData.error is defined %}
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h3 class="card-title">{{ __('DNSSEC Details') }}</h3>
-                            {% if secureTld != 1 %}
-                            <div class="card-actions">
-                              <a href="/registry/dnssec" class="btn btn-outline-indigo btn-3" id="enableDnssecLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.462 20.87c-.153 .047 -.307 .09 -.462 .13a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 .11 6.37" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
-                                {{ __('Enable DNSSEC') }}
-                              </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-warning" role="alert">
-                                <h4 class="alert-title">{{ dnssecData.error }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h3 class="card-title">{{ __('DNSSEC Details') }}</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info" role="alert">
-                                <div>
-                                    <h4 class="alert-heading">{{ __('No DNSSEC data available.') }}</h4>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -319,22 +308,26 @@
       </div>
 <script src="/assets/js/sweetalert2.min.js" defer></script>
 <script>
-document.getElementById('enableDnssecLink').addEventListener('click', function (e) {
-  e.preventDefault(); // Prevent default link behavior
+document.querySelectorAll('.enable-dnssec-link').forEach(function (el) {
+  el.addEventListener('click', function (e) {
+    e.preventDefault();
 
-  Swal.fire({
-    title: 'Are you sure?',
-    text: 'Please ensure DNSSEC has been properly configured for this TLD prior to proceeding, as outlined in section 2.1.3b. of the manual.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Yes, continue',
-    cancelButtonText: 'Cancel',
-    confirmButtonColor: '#4263eb',
-    cancelButtonColor: '#9ba9be'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      window.location.href = e.target.closest('a').href;
-    }
+    const link = e.currentTarget.getAttribute('href');
+
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'Please ensure DNSSEC has been properly configured for this TLD prior to proceeding, as outlined in section 2.1.3b. of the manual.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, continue',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#4263eb',
+      cancelButtonColor: '#9ba9be'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = link;
+      }
+    });
   });
 });
 </script>

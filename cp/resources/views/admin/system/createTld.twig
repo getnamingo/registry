@@ -47,13 +47,6 @@
                         <small class="form-text text-muted">{{ __('Enter the desired top-level domain (TLD) name, like') }} '.test' {{ __('or') }} '.example'.</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="dnssecToggle" disabled>
-                          <span class="form-check-label">DNSSEC</span>
-                        </label>
-                        <small class="form-text text-muted">{{ __('DNSSEC is currently activated manually. This option is for display purposes only.') }}</small>
-                    </div>
-                    <div class="mb-3">
                         <label for="scriptDropdown" class="form-label required">{{ __('Supported Script') }}</label>
                         <select class="form-select" id="scriptDropdown" name="script" required>
                           <option value="ascii" selected>ASCII</option>
@@ -63,6 +56,11 @@
                           <option value="arabic">{{ __('Arabic') }}</option>
                         </select>
                         <small class="form-text text-muted">{{ __('Choose the script type that the TLD will support. Options include ASCII, Cyrillic, Japanese, and Korean.') }}</small>
+                    </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="row align-items-center">
+                      <div class="col">{{ __('DNSSEC requires hidden DNS master configuration. Follow the manual to set it up, then enable DNSSEC from the Manage TLD page.') }}</div>
                     </div>
                   </div>
                 </div>
