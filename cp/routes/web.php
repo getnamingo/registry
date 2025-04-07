@@ -48,6 +48,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/domain/check', DomainsController::class . ':checkDomain')->setName('checkDomain');
     $route->map(['GET', 'POST'], '/domain/create', DomainsController::class . ':createDomain')->setName('createDomain');
     $route->get('/domain/view/{domain}', DomainsController::class . ':viewDomain')->setName('viewDomain');
+    $route->get('/domain/history/{domain}', DomainsController::class . ':historyDomain')->setName('historyDomain');
     $route->get('/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
     $route->post('/domain/update', DomainsController::class . ':updateDomainProcess')->setName('updateDomainProcess');
     $route->post('/domain/deletesecdns', DomainsController::class . ':domainDeleteSecdns')->setName('domainDeleteSecdns');

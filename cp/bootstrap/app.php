@@ -66,6 +66,14 @@ $container->set('pdo', function () use ($pdo) {
     return $pdo;
 });
 
+$container->set('db_audit', function () use ($db_audit) {
+    return $db_audit;
+});
+
+$container->set('pdo_audit', function () use ($pdo_audit) {
+    return $pdo_audit;
+});
+
 $container->set('auth', function() {
     //$responseFactory = new \Nyholm\Psr7\Factory\Psr17Factory();
     //$response = $responseFactory->createResponse();

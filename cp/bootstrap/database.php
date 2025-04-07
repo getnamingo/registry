@@ -33,3 +33,27 @@ try {
 } catch (PDOException $e) {
     $log->alert("Database connection failed: " . $e->getMessage(), ['driver' => $defaultDriver]);
 }
+
+// Audit DB (optional)
+try {
+    $auditDriver = match ($defaultDriver) {
+        'mysql' => "{$config['mysql']['driver']}:dbname=registryAudit;host={$config['mysql']['host']};charset={$config['mysql']['charset']}",
+        'sqlite' => "{$config['sqlite']['driver']}:{$config['sqlite']['audit_path']}", // assumes audit_path is set for SQLite
+        'pgsql' => "{$config['pgsql']['driver']}:dbname=registryAudit;host={$config['pgsql']['host']}",
+        default => throw new \RuntimeException('Unsupported database driver for audit'),
+    };
+
+    if (str_starts_with($auditDriver, "sqlite")) {
+        $pdo_audit = new \PDO($auditDriver);
+    } else {
+        $pdo_audit = new \PDO(
+            $auditDriver,
+            $config[$defaultDriver]['username'],
+            $config[$defaultDriver]['password']
+        );
+    }
+
+    $db_audit = PdoDatabase::fromPdo($pdo_audit);
+} catch (PDOException $e) {
+    $log->alert("Audit database connection failed: " . $e->getMessage(), ['driver' => 'audit']);
+}

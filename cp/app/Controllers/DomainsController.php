@@ -1056,7 +1056,61 @@ class DomainsController extends Controller
         }
 
     }
-    
+
+    public function historyDomain(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        $db_audit = $this->container->get('db_audit');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = strtolower(trim($args));
+
+            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
+            try {
+                $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
+            } catch (\PDOException $e) {
+                throw new \RuntimeException('Audit table is empty or not configured');
+            }
+
+            $domain = $db->selectRow('SELECT id,name FROM domain WHERE name = ?',
+            [ $args ]);
+
+            if ($domain) {
+                $history = $db_audit->select(
+                    'SELECT * FROM domain WHERE name = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
+                    [$args]
+                );
+
+                if (strpos($domain['name'], 'xn--') === 0) {
+                    $domain['name_o'] = $domain['name'];
+                    $domain['name'] = idn_to_utf8($domain['name'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                } else {
+                    $domain['name_o'] = $domain['name'];
+                }
+
+                return view($response,'admin/domains/historyDomain.twig', [
+                    'domain' => $domain,
+                    'history' => $history,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Domain does not exist, redirect to the domains view
+                return $response->withHeader('Location', '/domains')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the domains view
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
+    }
+
     public function updateDomain(Request $request, Response $response, $args)
     {
         $db = $this->container->get('db');
