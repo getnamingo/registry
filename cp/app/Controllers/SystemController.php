@@ -986,7 +986,7 @@ class SystemController extends Controller
                 $secureTld = $tld['secure'];
                 if ($secureTld === 1) {
                     if (file_exists('/usr/sbin/rndc')) {
-                        $zone = ltrim($tld['tld'], '.');
+                        $zone = strtolower(ltrim($tld['tld'], '.'));
                         $statusOutput = shell_exec("sudo rndc dnssec -status " . escapeshellarg($zone) . " 2>&1");
 
                         if (!$statusOutput) {
@@ -1066,7 +1066,7 @@ class SystemController extends Controller
                             }
                         }
                     } elseif (file_exists('/usr/sbin/knotc')) {
-                        $zone = ltrim($tld['tld'], '.');
+                        $zone = strtolower(ltrim($tld['tld'], '.'));
                         $keyDir = '/etc/knot/keys';
 
                         // Use knotc to get key statuses
