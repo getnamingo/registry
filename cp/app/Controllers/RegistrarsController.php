@@ -427,6 +427,20 @@ class RegistrarsController extends Controller
             [ $args ]);
 
             if ($registrar) {
+                // Check if the user is not an admin
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrar['id'], $userRegistrarIds)) {
+                        // Redirect to the registrars view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/registrars')->withStatus(302);
+                    }
+                }
+
                 try {
                     $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
                 } catch (\PDOException $e) {

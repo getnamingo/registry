@@ -906,10 +906,26 @@ class ContactsController extends Controller
                 throw new \RuntimeException('Audit table is empty or not configured');
             }
 
-            $contact = $db->selectRow('SELECT id, identifier FROM contact WHERE identifier = ?',
+            $contact = $db->selectRow('SELECT id, identifier, clid FROM contact WHERE identifier = ?',
             [ $args ]);
 
             if ($contact) {
+                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
+
+                // Check if the user is not an admin (assuming role 0 is admin)
+                if ($_SESSION["auth_roles"] != 0) {
+                    $userRegistrars = $db->select('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+
+                    // Assuming $userRegistrars returns an array of arrays, each containing 'registrar_id'
+                    $userRegistrarIds = array_column($userRegistrars, 'registrar_id');
+
+                    // Check if the registrar's ID is in the user's list of registrar IDs
+                    if (!in_array($registrars['id'], $userRegistrarIds)) {
+                        // Redirect to the contacts view if the user is not authorized for this contact
+                        return $response->withHeader('Location', '/contacts')->withStatus(302);
+                    }
+                }
+
                 $history = $db_audit->select(
                     'SELECT * FROM contact WHERE identifier = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
                     [$args]
