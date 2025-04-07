@@ -297,7 +297,57 @@ class HostsController extends Controller
         }
 
     }
-    
+
+    public function historyHost(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        $db_audit = $this->container->get('db_audit');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args && isValidHostname($args)) {
+            $args = trim($args);
+
+            if (mb_detect_encoding($args, 'ASCII', true) === false) {
+                $args = idn_to_ascii($args, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($args === false) {
+                    // Redirect to the hosts view
+                    return $response->withHeader('Location', '/hosts')->withStatus(302);
+                }
+            }
+
+            $host = $db->selectRow('SELECT id, name FROM host WHERE name = ?',
+            [ $args ]);
+
+            if ($host) {
+                try {
+                    $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
+                } catch (\PDOException $e) {
+                    throw new \RuntimeException('Audit table is empty or not configured');
+                }
+
+                $history = $db_audit->select(
+                    'SELECT * FROM host WHERE name = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
+                    [$args]
+                );
+
+                return view($response,'admin/hosts/historyHost.twig', [
+                    'host' => $host,
+                    'history' => $history,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Host does not exist, redirect to the hosts view
+                return $response->withHeader('Location', '/hosts')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the hosts view
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
+    }
+
     public function updateHost(Request $request, Response $response, $args)
     {
         $db = $this->container->get('db');

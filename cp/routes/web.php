@@ -78,6 +78,7 @@ $app->group('', function ($route) {
     $route->map(['GET', 'POST'], '/contact/create', ContactsController::class . ':createContact')->setName('createContact');
     $route->map(['GET', 'POST'], '/contact/create-api', ContactsController::class . ':createContactApi')->setName('createContactApi');
     $route->get('/contact/view/{contact}', ContactsController::class . ':viewContact')->setName('viewContact');
+    $route->get('/contact/history/{contact}', ContactsController::class . ':historyContact')->setName('historyContact');
     $route->get('/contact/update/{contact}', ContactsController::class . ':updateContact')->setName('updateContact');
     $route->get('/contact/validate/{contact}', ContactsController::class . ':validateContact')->setName('validateContact');
     $route->post('/contact/update', ContactsController::class . ':updateContactProcess')->setName('updateContactProcess');
@@ -87,6 +88,7 @@ $app->group('', function ($route) {
     $route->get('/hosts', HostsController::class .':listHosts')->setName('listHosts');
     $route->map(['GET', 'POST'], '/host/create', HostsController::class . ':createHost')->setName('createHost');
     $route->get('/host/view/{host}', HostsController::class . ':viewHost')->setName('viewHost');
+    $route->get('/host/history/{host}', HostsController::class . ':historyHost')->setName('historyHost');
     $route->get('/host/update/{host}', HostsController::class . ':updateHost')->setName('updateHost');
     $route->post('/host/update', HostsController::class . ':updateHostProcess')->setName('updateHostProcess');
     $route->map(['GET', 'POST'], '/host/delete/{host}', HostsController::class . ':deleteHost')->setName('deleteHost');
@@ -94,6 +96,7 @@ $app->group('', function ($route) {
     $route->get('/registrars', RegistrarsController::class .':view')->setName('registrars');
     $route->map(['GET', 'POST'], '/registrar/create', RegistrarsController::class . ':create')->setName('registrarcreate');
     $route->get('/registrar/view/{registrar}', RegistrarsController::class . ':viewRegistrar')->setName('viewRegistrar');
+    $route->get('/registrar/history/{registrar}', RegistrarsController::class . ':historyRegistrar')->setName('historyRegistrar');
     $route->get('/registrar/update/{registrar}', RegistrarsController::class . ':updateRegistrar')->setName('updateRegistrar');
     $route->get('/registrar/pricing/{registrar}', RegistrarsController::class . ':customPricingView')->setName('customPricingView');
     $route->map(['POST', 'DELETE'], '/registrar/updatepricing/{registrar}', RegistrarsController::class . ':updateCustomPricing')->setName('updateCustomPricing');

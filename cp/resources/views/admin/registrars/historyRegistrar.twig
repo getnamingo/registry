@@ -1,0 +1,125 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Registrar History') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <div class="mb-1">
+                  <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                      <a href="{{route('home')}}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><polyline points="5 12 3 12 12 3 21 12 19 12" /><path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-8" /><rect x="10" y="12" width="4" height="4" /></svg></a>
+                    </li>
+                    <li class="breadcrumb-item">
+                      <a href="{{route('registrars')}}">{{ __('Registrar') }}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                      <a href="/registrar/view/{{ registrar.name }}">{{ __('Registrar') }} {{ registrar.name }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                      {{ __('Registrar History') }}
+                    </li>
+                  </ol>
+                </div>
+                <h2 class="page-title">
+                  {{ __('Registrar History') }}
+                </h2>
+              </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <a href="/registrar/view/{{ registrar.name }}" class="btn d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
+                    {{ __('Back to View') }}
+                  </a>
+                  <a href="/registrar/view/{{ registrar.name }}" class="btn d-sm-none btn-icon" aria-label="{{ __('Back to View') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {{ __('Registrar') }} {{ registrar.name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table table-striped">
+                      <thead>
+                        <tr>
+                          <th>{{ __('Timestamp') }}</th>
+                          <th>{{ __('Action') }}</th>
+                          <th>{{ __('User') }}</th>
+                          <th>{{ __('Session') }}</th>
+                          <th>{{ __('Changed Field') }}</th>
+                          <th>{{ __('Old Value') }}</th>
+                          <th>{{ __('New Value') }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% if history|length == 0 %}
+                          <tr>
+                            <td colspan="7" class="text-center text-muted">{{ __('No audit history available for this registrar.') }}</td>
+                          </tr>
+                        {% else %}
+                          {% set max = history|length %}
+                          {% for i in 0..max-1 %}
+                            {% set entry = history[i] %}
+                            {% if entry.audit_statement == 'UPDATE' and entry.audit_type == 'OLD' %}
+                              {% set old = entry %}
+                              {% set new = history[i + 1] is defined and history[i + 1].audit_type == 'NEW' ? history[i + 1] : {} %}
+                              {% for key in old|keys %}
+                                {% if old[key] != new[key] and key not in ['audit_timestamp','audit_statement','audit_type','audit_uuid','audit_rownum','audit_user','audit_ses_id','audit_usr_id'] %}
+                                  <tr>
+                                    <td>{{ old.audit_timestamp }}</td>
+                                    <td>{{ old.audit_statement }}</td>
+                                    <td>{{ old.audit_usr_id|default('–') }}</td>
+                                    <td>{{ old.audit_ses_id|default('–') }}</td>
+                                    <td><strong>{{ key }}</strong></td>
+                                    <td class="text-muted">{{ old[key]|default('–') }}</td>
+                                    <td class="text-success">{{ new[key]|default('–') }}</td>
+                                  </tr>
+                                {% endif %}
+                              {% endfor %}
+                            {% elseif entry.audit_statement == 'INSERT' %}
+                              <tr>
+                                <td>{{ entry.audit_timestamp }}</td>
+                                <td>{{ entry.audit_statement }}</td>
+                                <td>{{ entry.audit_usr_id|default('–') }}</td>
+                                <td>{{ entry.audit_ses_id|default('–') }}</td>
+                                <td colspan="3" class="text-muted">{{ __('New registrar inserted.') }}</td>
+                              </tr>
+                            {% elseif entry.audit_statement == 'DELETE' %}
+                              <tr>
+                                <td>{{ entry.audit_timestamp }}</td>
+                                <td>{{ entry.audit_statement }}</td>
+                                <td>{{ entry.audit_usr_id|default('–') }}</td>
+                                <td>{{ entry.audit_ses_id|default('–') }}</td>
+                                <td colspan="3" class="text-muted">{{ __('Registrar was deleted.') }}</td>
+                              </tr>
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

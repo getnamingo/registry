@@ -407,7 +407,54 @@ class RegistrarsController extends Controller
         }
 
     }
-    
+
+    public function historyRegistrar(Request $request, Response $response, $args) 
+    {
+        $db = $this->container->get('db');
+        $db_audit = $this->container->get('db_audit');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim(preg_replace('/\s+/', ' ', $args));
+
+            if (!preg_match('/^[a-zA-Z0-9\s.\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid registrar');
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+            $registrar = $db->selectRow('SELECT id,name,clid FROM registrar WHERE clid = ?',
+            [ $args ]);
+
+            if ($registrar) {
+                try {
+                    $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
+                } catch (\PDOException $e) {
+                    throw new \RuntimeException('Audit table is empty or not configured');
+                }
+
+                $history = $db_audit->select(
+                    'SELECT * FROM registrar WHERE clid = ? ORDER BY audit_timestamp DESC, audit_rownum ASC LIMIT 200',
+                    [$args]
+                );
+
+                return view($response,'admin/registrars/historyRegistrar.twig', [
+                    'registrar' => $registrar,
+                    'history' => $history,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Registrar does not exist, redirect to the registrars view
+                return $response->withHeader('Location', '/registrars')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the registrars view
+            return $response->withHeader('Location', '/registrars')->withStatus(302);
+        }
+
+    }
+
     public function registrar(Request $request, Response $response) 
     {
         $db = $this->container->get('db');

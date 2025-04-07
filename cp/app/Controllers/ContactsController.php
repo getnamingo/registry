@@ -881,6 +881,57 @@ class ContactsController extends Controller
 
     }
     
+    public function historyContact(Request $request, Response $response, $args) 
+    {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        $db_audit = $this->container->get('db_audit');
+        // Get the current URI
+        $uri = $request->getUri()->getPath();
+
+        if ($args) {
+            $args = trim($args);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+            try {
+                $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
+            } catch (\PDOException $e) {
+                throw new \RuntimeException('Audit table is empty or not configured');
+            }
+
+            $contact = $db->selectRow('SELECT id, identifier FROM contact WHERE identifier = ?',
+            [ $args ]);
+
+            if ($contact) {
+                $history = $db_audit->select(
+                    'SELECT * FROM contact WHERE identifier = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
+                    [$args]
+                );
+
+                return view($response,'admin/contacts/historyContact.twig', [
+                    'contact' => $contact,
+                    'history' => $history,
+                    'currentUri' => $uri
+                ]);
+            } else {
+                // Contact does not exist, redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+        } else {
+            // Redirect to the contacts view
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
+    }
+    
     public function updateContact(Request $request, Response $response, $args) 
     {
         if (envi('MINIMUM_DATA') === 'true') {
