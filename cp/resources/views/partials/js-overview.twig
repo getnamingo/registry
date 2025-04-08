@@ -1,6 +1,5 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
@@ -75,7 +74,7 @@
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Registrar') }}", field:"registrar_name", minWidth:150, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Date') }}", field:"date", resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Description') }}", field:"description", resizable:false, headerSort:true, responsive:2, formatter:cell => (cell.getElement().setAttribute("title", cell.getValue() || ""), cell.getValue()?.length > 80 ? cell.getValue().substring(0, 80) + "..." : cell.getValue())},
@@ -102,14 +101,6 @@
    
     function downloadCSV() {
         table.download("csv", "overview.csv");
-    }
-
-    function downloadJSON() {
-        table.download("json", "overview.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "overview.xlsx", {sheetName:"My Overview"});
     }
     
     function downloadPDF() {

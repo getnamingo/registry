@@ -1,12 +1,12 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
+
     table = new Tabulator("#reportTable", {
         ajaxURL:"/api/records/statistics", // Set the URL for your JSON data
         ajaxConfig:"GET",
@@ -27,7 +27,7 @@
         ],
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Date') }}", field:"date", minWidth:150, resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Total Domains') }}", minWidth:150, field:"total_domains", resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Created Domains') }}", field:"created_domains", resizable:false, headerSort:true, responsive:2},
@@ -64,14 +64,6 @@
         table.download("csv", "reports.csv");
     }
 
-    function downloadJSON() {
-        table.download("json", "reports.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "reports.xlsx", {sheetName:"My Reports"});
-    }
-    
     function downloadPDF() {
         table.download("pdf", "reports.pdf", {
             orientation:"portrait",

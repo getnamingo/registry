@@ -1,12 +1,12 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
    
     document.addEventListener("DOMContentLoaded", function(){
+
     function emailLinkFormatter(cell){
         var value = cell.getValue();
         return `<span style="font-weight:bold;">${value}</a>`;
@@ -166,8 +166,8 @@
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Email') }}", field:"email", width:270, resizable:false, headerSort:true, formatter: emailLinkFormatter, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Email') }}", field:"email", minWidth:200, resizable:false, headerSort:true, formatter: emailLinkFormatter, responsive:0},
             {title:"{{ __('User Name') }}", field:"username", width:200, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Roles') }}", field:"roles_mask", width:300, resizable:false, headerSort:true, formatter: roleLabelFormatter, responsive:2},
             {title:"{{ __('Verified') }}", field:"verified", width:150, resizable:false, headerSort:true, formatter: verifiedFormatter, responsive:2},
@@ -188,14 +188,6 @@
 
     function downloadCSV() {
         table.download("csv", "users.csv");
-    }
-
-    function downloadJSON() {
-        table.download("json", "users.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "users.xlsx", {sheetName:"My Users"});
     }
     
     function downloadPDF() {

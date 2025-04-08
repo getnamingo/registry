@@ -1,7 +1,6 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/sweetalert2.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
@@ -96,7 +95,7 @@
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Token') }}", field:"token", width:400, minWidth:200, headerSort:true, resizable:false, formatter: copyableFormatter, responsive:2},
             { title: "{{ __('Domain') }}", field: "domain_name", width:300, minWidth:80, headerSort:true, resizable:false, formatter: domainFormatter, responsive:2},
             {title:"{{ __('Type') }}", field:"tokenType", width:160, minWidth:100, headerSort:true, resizable:false, formatter: typeStatusFormatter, responsive:2},
@@ -142,14 +141,6 @@
         table.download("csv", "tokens.csv");
     }
 
-    function downloadJSON() {
-        table.download("json", "tokens.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "tokens.xlsx", {sheetName:"My Tokens"});
-    }
-    
     function downloadPDF() {
         table.download("pdf", "tokens.pdf", {
             orientation:"portrait",

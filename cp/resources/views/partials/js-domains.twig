@@ -1,13 +1,13 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/sweetalert2.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
+
     function domainLinkFormatter(cell){
         var displayName = cell.getValue();
         var punycodeName = cell.getRow().getData().name_o;
@@ -22,7 +22,7 @@
         var hasPendingRestore = rowData.rgpstatus ? rowData.rgpstatus.includes('pendingRestore') : false;
 
         // Common action button for all statuses
-        actionButtons += `<a class="btn btn-outline-primary btn-icon" href="domain/update/${cell.getRow().getData().name_o}" title="{{ __('Update Domain') }}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a> `;
+        actionButtons += `<a class="btn btn-outline-primary btn-icon" href="domain/update/${cell.getRow().getData().name_o}" title="{{ __('Update Domain') }}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a> <a class="btn btn-outline-secondary btn-icon" href="domain/view/${cell.getRow().getData().name_o}" title="{{ __('Domain Details') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg></a> `;
 
         if (hasPendingRestore) {
             actionButtons += `<a class="btn btn-outline-secondary btn-icon report-btn" id="report-btn" href="javascript:void(0);" data-report-url="domain/report/${cell.getRow().getData().name_o}" title="{{ __('Submit Report') }}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3.06 13a9 9 0 1 0 .49 -4.087" /><path d="M3 4.001v5h5" /><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg></a>`;
@@ -126,13 +126,13 @@
         resizableColumns:false,
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Name') }}", field:"name", minWidth:180, resizable:false, headerSort:true, formatter: domainLinkFormatter, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Name') }}", field:"name", minWidth:100, resizable:false, headerSort:true, formatter: domainLinkFormatter, responsive:0},
             {title:"{{ __('Registrant') }}", minWidth:200, field:"registrant_identifier", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Creation Date') }}", width:250, minWidth:150, field:"crdate", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Expiration Date') }}", width:250, minWidth:150, field:"exdate", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Status') }}", width:150, field:"domain_status", formatter: statusFormatter, resizable:false, headerSort:true, download:false, responsive:2},
-            {title: "{{ __('Actions') }}", formatter: actionsFormatter, resizable:false, headerSort:false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
+            {title: "{{ __('Actions') }}", formatter: actionsFormatter, minWidth:190, resizable:false, headerSort:false, download:false, hozAlign: "center", responsive:0, cellClick: function(e, cell){
                 if (e.target.closest('.delete-btn')) {
                     e.preventDefault(); // Prevent the default link behavior
                     Swal.fire({
@@ -182,20 +182,13 @@
         updateSearchTerm(searchInput.value);
       }, 300); // 300ms delay
     });
+
     });
 
     function downloadCSV() {
         table.download("csv", "domains.csv");
     }
 
-    function downloadJSON() {
-        table.download("json", "domains.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "domains.xlsx", {sheetName:"My Domains"});
-    }
-    
     function downloadPDF() {
         table.download("pdf", "domains.pdf", {
             orientation:"portrait",

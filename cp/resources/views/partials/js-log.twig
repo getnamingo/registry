@@ -1,12 +1,12 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/xlsx.full.min.js" defer></script>
 <script src="/assets/js/jspdf.umd.min.js" defer></script>
 <script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
+
     table = new Tabulator("#logsTable", {
         ajaxURL:"/api/records/error_log", // Set the URL for your JSON data
         ajaxConfig:"GET",
@@ -27,8 +27,8 @@
         ],
         placeholder: "{{ __('No Data') }}",
         columns:[
-            {formatter:"responsiveCollapse", width:30, minWidth:30, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
-            {title:"{{ __('Channel') }}", field:"channel", minWidth:190, width:200, resizable:false, headerSort:true, responsive:0},
+            {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
+            {title:"{{ __('Channel') }}", field:"channel", minWidth:170, width:190, resizable:false, headerSort:true, responsive:0},
             {title:"{{ __('Level') }}", field:"level_name", resizable:false, minWidth:90, width:135, headerSort:true, responsive:0},
             {title:"{{ __('Log') }}", field:"message", resizable:false, minWidth:550, width:650, headerSort:true, responsive:2},
             {title:"{{ __('Date') }}", field:"created_at", resizable:false, minWidth:250, headerSort:true, responsive:2},
@@ -58,14 +58,6 @@
         table.download("csv", "log.csv");
     }
 
-    function downloadJSON() {
-        table.download("json", "log.json");
-    }
-
-    function downloadXLSX() {
-        table.download("xlsx", "log.xlsx", {sheetName:"My Logs"});
-    }
-    
     function downloadPDF() {
         table.download("pdf", "log.pdf", {
             orientation:"portrait",
