@@ -203,6 +203,8 @@ echo "MariaDB updated..."
 echo "Restarting PHP FPM service..."
 systemctl restart ${PHP_VERSION}-fpm
 
+wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
+
 # Start services
 echo "Starting services..."
 systemctl start epp
