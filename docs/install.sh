@@ -179,38 +179,43 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     #if [ "$DB_TYPE" == "MariaDB" ]; then
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
-        
+
         # Check for Ubuntu 22.04
         if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
-            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
-    # MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
-    # https://mariadb.org/download/
-    X-Repolib-Name: MariaDB
-    Types: deb
-    # URIs: https://deb.mariadb.org/10.11/ubuntu
-    URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/ubuntu
-    Suites: jammy
-    Components: main main/debug
-    Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+# MariaDB 11 Rolling repository list - created 2025-04-08 06:39 UTC
+# https://mariadb.org/download/
+X-Repolib-Name: MariaDB
+Types: deb
+# URIs: https://deb.mariadb.org/11/ubuntu
+URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/ubuntu
+Suites: jammy
+Components: main main/debug
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
-    elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        cat > /etc/apt/sources.list.d/mariadb.list << EOF
-    # MariaDB 11.4 repository list - created 2024-07-23 18:24 UTC
-    # https://mariadb.org/download/
-    deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://fastmirror.pp.ua/mariadb/repo/11.4/ubuntu noble main
+        elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+# MariaDB 11 Rolling repository list - created 2025-04-08 06:40 UTC
+# https://mariadb.org/download/
+X-Repolib-Name: MariaDB
+Types: deb
+# URIs: https://deb.mariadb.org/11/ubuntu
+URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/ubuntu
+Suites: noble
+Components: main main/debug
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
         else
-            cat > /etc/apt/sources.list.d/mariadb.sources << EOF
-    # MariaDB 10.11 repository list - created 2024-01-05 12:23 UTC
-    # https://mariadb.org/download/
-    X-Repolib-Name: MariaDB
-    Types: deb
-    # deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
-    # URIs: https://deb.mariadb.org/10.11/debian
-    URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/debian
-    Suites: bookworm
-    Components: main
-    Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+cat > /etc/apt/sources.list.d/mariadb.sources << EOF
+# MariaDB 11 Rolling repository list - created 2025-04-08 06:40 UTC
+# https://mariadb.org/download/
+X-Repolib-Name: MariaDB
+Types: deb
+# URIs: https://deb.mariadb.org/11/ubuntu
+URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/debian
+Suites: bookworm
+Components: main
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
         fi
 
