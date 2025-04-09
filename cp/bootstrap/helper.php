@@ -62,6 +62,7 @@ function routePath() {
 function config($key, $default=null){
     return \App\Lib\Config::get($key, $default);
 }
+
 /**
  * @param $var
  * @return mixed
@@ -102,8 +103,8 @@ function session($var){
 function pdo(){
     global $container;
     return $container->get('pdo');
-
 }
+
 /**
  * @return Auth
  */
@@ -124,7 +125,6 @@ function auth(){
 function route($name, $params1 =[], $params2=[]){
     global $container;
     return $container->get('router')->urlFor($name,$params1,$params2);
-
 }
 
 /**
@@ -209,7 +209,6 @@ function validate_identifier($identifier) {
         return 'Identifier must be between 3 and 16 characters long. Please try again.';
     }
 
-    // Updated pattern: allows letters and digits at start and end, hyphens in the middle only
     $pattern = '/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/';
 
     if (!preg_match($pattern, $identifier)) {
