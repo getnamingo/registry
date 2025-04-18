@@ -398,7 +398,7 @@
                   fontFamily: 'inherit'
                 }
               },
-              colors: [tabler.getColor("primary")],
+              colors: ["color-mix(in srgb, transparent, var(--tblr-primary) 100%)",],
               legend: {
                   show: false,
               },
@@ -437,7 +437,12 @@
                   fontFamily: 'inherit'
                 }
               },
-              colors: [tabler.getColor("primary"), tabler.getColor("primary", 0.8), tabler.getColor("primary", 0.6), tabler.getColor("gray-300")],
+              colors: [
+                "color-mix(in srgb, transparent, var(--tblr-primary) 100%)", 
+                "color-mix(in srgb, transparent, var(--tblr-primary) 80%)", 
+                "color-mix(in srgb, transparent, var(--tblr-primary) 60%)", 
+                "color-mix(in srgb, transparent, var(--tblr-gray-300) 100%)"
+              ],
               legend: {
                   show: true,
                   position: 'bottom',
@@ -528,7 +533,7 @@
                   fontFamily: 'inherit'
                 }
               },
-              colors: [tabler.getColor("primary"), tabler.getColor("red")],
+              colors: ["color-mix(in srgb, transparent, var(--tblr-primary) 100%)", "color-mix(in srgb, transparent, var(--tblr-red) 100%)",],
               legend: {
                   show: false,
               },
