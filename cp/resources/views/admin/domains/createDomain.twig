@@ -664,7 +664,7 @@
 
                     // Keep the modal open when there's an error
                     let modalElement = document.getElementById("addContactModal");
-                    let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    let modalInstance = tabler.Modal.getInstance(modalElement);
                     if (modalInstance) {
                         modalInstance._isShown = true;
                     }
@@ -686,7 +686,7 @@
             // ✅ Only close modal if form submission is successful
             if (data.identifier) {
                 let modalElement = document.getElementById("addContactModal");
-                let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                let modalInstance = tabler.Modal.getInstance(modalElement);
                 if (modalInstance) {
                     modalInstance.hide();
                 }
@@ -705,7 +705,7 @@
 
             // ❌ Prevent modal from closing on error
             let modalElement = document.getElementById("addContactModal");
-            let modalInstance = bootstrap.Modal.getInstance(modalElement);
+            let modalInstance = tabler.Modal.getInstance(modalElement);
             if (modalInstance) {
                 modalInstance._isShown = true; // Keep modal open
             }
@@ -765,7 +765,7 @@
         // Close the modal
         let modalElement = document.getElementById("contactModal");
         if (modalElement) {
-            let modalInstance = bootstrap.Modal.getInstance(modalElement);
+            let modalInstance = tabler.Modal.getInstance(modalElement);
             if (modalInstance) {
                 modalInstance.hide();
             }
