@@ -1,6 +1,6 @@
 /*!
- * Signature Pad v5.0.4 | https://github.com/szimek/signature_pad
- * (c) 2024 Szymon Nowak | Released under the MIT license
+ * Signature Pad v5.0.7 | https://github.com/szimek/signature_pad
+ * (c) 2025 Szymon Nowak | Released under the MIT license
  */
 
 class Point {

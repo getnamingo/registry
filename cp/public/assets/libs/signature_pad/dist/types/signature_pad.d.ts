@@ -10,6 +10,7 @@
  */
 import { BasicPoint } from './point';
 import { SignatureEventTarget } from './signature_event_target';
+export { BasicPoint } from './point';
 export interface SignatureEvent {
     event: MouseEvent | TouchEvent | PointerEvent;
     type: string;
