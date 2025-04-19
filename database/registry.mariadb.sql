@@ -934,6 +934,10 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('rdap_server',    'https://rdap.example.com'),
 ('currency',    'USD');
 
+CREATE INDEX idx_domain_crdate ON domain (crdate DESC);
+CREATE INDEX idx_domain_exdate ON domain (exdate);
+CREATE INDEX idx_support_tickets_date_created ON support_tickets (date_created);
+
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 
 CREATE TABLE IF NOT EXISTS `registryTransaction`.`transaction_identifier` (

@@ -116,24 +116,24 @@ composer_update "/opt/registry/whois/port43"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
-# Function to ensure a setting is present, uncommented, and correctly set
-set_php_ini_value() {
-    local ini_file=$1
-    local key=$2
-    local value=$3
+CONFIG_FILE="/opt/registry/rdap/config.php"
 
-    # Escape slashes for sed compatibility
-    local escaped_value
-    escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
+# Extract database credentials from the config file
+DB_NAME=$(grep "'db_database'" "$CONFIG_FILE" | awk -F "=> " '{print $2}' | tr -d "',")
+DB_USER=$(grep "'db_username'" "$CONFIG_FILE" | awk -F "=> " '{print $2}' | tr -d "',")
+DB_PASS=$(grep "'db_password'" "$CONFIG_FILE" | awk -F "=> " '{print $2}' | tr -d "',")
 
-    if grep -Eq "^\s*[;#]?\s*${key}\s*=" "$ini_file"; then
-        # Update the existing line, uncomment it and set correct value
-        sed -i -E "s|^\s*[;#]?\s*(${key})\s*=.*|\1 = ${escaped_value}|" "$ini_file"
-    else
-        # Add new line if key doesn't exist
-        echo "${key} = ${value}" >> "$ini_file"
-    fi
-}
+# Add indexes for performance improvements
+echo "Creating index idx_domain_crdate..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "CREATE INDEX idx_domain_crdate ON domain (crdate DESC);"
+
+echo "Creating index idx_domain_exdate..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "CREATE INDEX idx_domain_exdate ON domain (exdate);"
+
+echo "Creating index idx_support_tickets_date_created..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "CREATE INDEX idx_support_tickets_date_created ON support_tickets (date_created);"
+
+echo "Database structure updated successfully."
 
 # Check the Linux distribution and version
 if [[ -e /etc/os-release ]]; then
@@ -196,7 +196,7 @@ apt update
 
 # Install MariaDB and PHP MySQL module
 apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
-		
+systemctl restart mariadb
 echo "MariaDB updated..."
 
 # Restart PHP-FPM service

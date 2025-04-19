@@ -375,6 +375,9 @@ CREATE TABLE IF NOT EXISTS domain (
     FOREIGN KEY (acid) REFERENCES registrar(id),
     FOREIGN KEY (tldid) REFERENCES domain_tld(id)
 );
+CREATE INDEX idx_domain_crdate ON domain (crdate);
+CREATE INDEX idx_domain_exdate ON domain (exdate);
+CREATE INDEX idx_support_tickets_date_created ON support_tickets (date_created);
 
 -- application
 CREATE TABLE IF NOT EXISTS application (

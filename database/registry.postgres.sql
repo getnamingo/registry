@@ -913,3 +913,7 @@ ALTER TABLE support_tickets ADD FOREIGN KEY ("user_id") REFERENCES users(id);
 ALTER TABLE users_audit ADD FOREIGN KEY ("user_id") REFERENCES users(id);
 ALTER TABLE support_tickets ADD FOREIGN KEY ("category_id") REFERENCES ticket_categories(id);
 ALTER TABLE ticket_responses ADD FOREIGN KEY ("ticket_id") REFERENCES support_tickets(id);
+
+CREATE INDEX idx_domain_crdate ON domain (crdate DESC);
+CREATE INDEX idx_domain_exdate ON domain (exdate);
+CREATE INDEX idx_support_tickets_date_created ON support_tickets (date_created);
