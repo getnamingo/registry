@@ -1,8 +1,10 @@
 # Namingo Update Guide
 
-## v1.0.0 to v1.0.16
+## v1.0.0 to v1.0.17
 
-You must run update scripts in order, without skipping versions. For example, if you're on 1.0.10 and the latest is 1.0.12, first update to 1.0.11, then to 1.0.12.
+You must run update scripts in order, without skipping versions. For example, if you're on 1.0.15 and the latest is 1.0.17, first update to 1.0.16, then to 1.0.17.
+
+- v1.0.16 to v1.0.17 - download and run the [update1017.sh](docs/update1017.sh) script.
 
 - v1.0.15 to v1.0.16 - download and run the [update1016.sh](docs/update1016.sh) script.
 

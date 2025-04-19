@@ -88,16 +88,16 @@ After installation, be sure to review all the guides in the Documentation sectio
 ### Updating
 
 To update, you **must run the update scripts sequentially** without skipping versions.  
-For example, if you're on **v1.0.16** and the latest is **v1.0.18**, first update to **v1.0.17**, then to **v1.0.18**.
+For example, if you're on **v1.0.18** and the latest is **v1.0.20**, first update to **v1.0.19**, then to **v1.0.20**.
 
+- **v1.0.19 → v1.0.20**  
+  Download and run the [`update1020.sh`](docs/update1020.sh) script.
+  
 - **v1.0.18 → v1.0.19**  
   Download and run the [`update1019.sh`](docs/update1019.sh) script.
   
 - **v1.0.17 → v1.0.18**  
   Download and run the [`update1018.sh`](docs/update1018.sh) script.
-
-- **v1.0.16 → v1.0.17**  
-  Download and run the [`update1017.sh`](docs/update1017.sh) script.
 
 For **older versions**, please refer to [`update.md`](docs/update.md).
 
