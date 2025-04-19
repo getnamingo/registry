@@ -1,4 +1,4 @@
-# Namingo Registry EPP Server
+# Namingo Registry: EPP Operations Guide
 
 The **Namingo EPP Server** provides a robust and standards-compliant interface for managing domain registrations, hosts, and contacts via the **Extensible Provisioning Protocol (EPP)**. This section offers practical examples of commonly used EPP commands, showcasing request and response structures for seamless integration with the Namingo Registry.
 

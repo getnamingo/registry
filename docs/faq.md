@@ -1,4 +1,4 @@
-# Namingo FAQ
+# Namingo Registry: Registrar FAQ
 
 Welcome to the FAQ for Namingo. This document is intended as a resource for registries to share with their registrars, providing answers to common questions and guidance on managing registrar accounts.
 

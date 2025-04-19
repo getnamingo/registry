@@ -1,4 +1,6 @@
-# Guide to Adding Custom Pricing per Registrar
+# Guide to Adding Custom Pricing per Registrar (Deprecated since v1.0.19)
+
+**Since v1.0.19 this is done directly in the panel, Registrars menu**
 
 To add custom pricing per registrar in the domain price and domain restore price tables using Adminer, follow these steps:
 

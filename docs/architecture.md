@@ -1,4 +1,4 @@
-# Namingo Registry Architecture Guide
+# Namingo Registry: System Architecture
 
 ## Introduction
 

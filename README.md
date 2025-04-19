@@ -107,17 +107,15 @@ For **older versions**, please refer to [`update.md`](docs/update.md).
 
 #### [Data Encryption](docs/encryption.md)
 
-#### [Custom Pricing per Registrar](docs/custom-registrar-pricing.md)
-
 #### [Minimum Data Set](docs/minimum-data-set.md)
 
-### [Initial Operation Guide](docs/iog.md)
+### [First Steps Guide](docs/iog.md)
 
-### [Namingo EPP Server](docs/epp.md)
+### [EPP Operations Guide](docs/epp.md)
 
-### [FAQ](docs/faq.md)
+### [Registrar FAQ](docs/faq.md)
 
-### [Architecture of Namingo](docs/architecture.md)
+### [System Architecture](docs/architecture.md)
 
 ## Support
 
