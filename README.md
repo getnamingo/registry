@@ -101,21 +101,23 @@ For example, if you're on **v1.0.18** and the latest is **v1.0.20**, first updat
 
 For **older versions**, please refer to [`update.md`](docs/update.md).
 
-### [Configuration Guide](docs/configuration.md)
+### [Configuration Guide](docs/configuration.md) [Required]
 
-#### [Database Replication](docs/replication.md)
+#### [DNS Setup Guide](docs/dns.md) [Required]
 
-#### [Data Encryption](docs/encryption.md)
+#### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
 
-#### [Minimum Data Set](docs/minimum-data-set.md)
+#### [Database Replication](docs/replication.md) [Recommended]
 
-### [First Steps Guide](docs/iog.md)
+#### [Data Encryption](docs/encryption.md) [Recommended]
 
-### [EPP Operations Guide](docs/epp.md)
+### [First Steps Guide](docs/iog.md) [Required]
 
-### [Registrar FAQ](docs/faq.md)
+### [EPP Operations Guide](docs/epp.md) [Required]
 
-### [System Architecture](docs/architecture.md)
+### [Registrar FAQ](docs/faq.md) [Required]
+
+### [System Architecture](docs/architecture.md) [Advanced]
 
 ## Support
 

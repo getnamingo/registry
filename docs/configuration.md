@@ -176,58 +176,9 @@ To set up backups in Namingo:
 
 1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details. If using SFTP and just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
 
-2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.9. Running the Automation System** to activate the automation system on your server.
+2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.8. Running the Automation System** to activate the automation system on your server.
 
-#### 1.4.5. RDE (Registry data escrow) configuration
-
-**1.4.5.1. Generate the Key Pair**: Create a configuration file, say key-config, with the following content:
-
-```yaml
-%echo Generating a default key
-Key-Type: RSA
-Key-Length: 2048
-Subkey-Type: RSA
-Subkey-Length: 2048
-Name-Real: Your Name
-Name-Comment: Your Comment
-Name-Email: your.email@example.com
-Expire-Date: 0
-%no-protection
-%commit
-%echo done
-```
-
-Replace "Your Name", "Your Comment", and "your.email@example.com" with your details.
-
-Use the following command to generate the key:
-
-```bash
-gpg2 --batch --generate-key key-config
-```
-
-Your GPG key pair will now be generated.
-
-**1.4.5.2. Exporting Your Keys**:
-
-Public key:
-
-```bash
-gpg2 --armor --export your.email@example.com > publickey.asc
-```
-
-Replace `your-email@example.com` with the email address you used when generating the key.
-
-Private key:
-
-```bash
-gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
-```
-
-**1.4.5.3. Secure Your Private Key**: Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
-
-**1.4.5.4. Use in RDE deposit generation**: Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
-
-#### 1.4.6. Setting Up Exchange Rate Download
+#### 1.4.5. Setting Up Exchange Rate Download
 
 To enable exchange rate updates, follow these steps:
 
@@ -249,7 +200,7 @@ Ensure your `cron.php` or `cron_config.php` executes the exchange rate update sc
 
 If this is not enabled, you will need to manually edit `/var/www/cp/resources/exchange_rates.json` to provide exchange rates.
 
-#### 1.4.7. Zone generator custom records
+#### 1.4.6. Zone generator custom records
 
 Each TLD can have its own custom records file, located in `/opt/registry/automation/`. For example, for the TLD `example`, create the file `/opt/registry/automation/example.php`.
 
@@ -285,7 +236,7 @@ return [
 ];
 ```
 
-#### 1.4.8. Extra Scheduled Notification Scripts
+#### 1.4.7. Extra Scheduled Notification Scripts
 
 In `/opt/registry/tests/`, you will find three notification scripts:
 
@@ -295,11 +246,11 @@ In `/opt/registry/tests/`, you will find three notification scripts:
 
 Some registries may wish to use these scripts and run them automatically. Each script includes comments at the beginning that explain the recommended cron job schedule.
 
-#### 1.4.9. Running the Automation System
+#### 1.4.8. Running the Automation System
 
 1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
 
-2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements. Note: If you are managing a gTLD, all services must be enabled for proper operation.
+2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements.
 
 ```php
 <?php
@@ -319,696 +270,13 @@ return [
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
 ```
 
-### 1.5. SFTP Server Setup for ICANN
-
-1. Install OpenSSH Server
-
-```bash
-apt update && apt install openssh-server
-```
-
-2. Configure SSH for SFTP
-
-Edit SSH config:
-
-```bash
-nano /etc/ssh/sshd_config
-```
-
-Add at the end:
-
-```bash
-Subsystem sftp internal-sftp
-
-Match Address 192.0.47.240,192.0.32.241,2620:0:2830:241::c613,2620:0:2d0:241::c6a5
-    PasswordAuthentication no
-    PermitRootLogin no
-
-Match User sftpuser
-    ChrootDirectory /home/sftpuser
-    ForceCommand internal-sftp
-    AllowTcpForwarding no
-    X11Forwarding no
-```
-
-Restart SSH:
-
-```bash
-systemctl restart ssh
-```
-
-3. Create SFTP User
-
-```bash
-groupadd sftp_users
-useradd -m -G sftp_users -s /usr/sbin/nologin sftpuser
-```
-
-4. Set Directory Permissions
-
-```bash
-chown root:root /home/sftpuser
-chmod 755 /home/sftpuser
-mkdir -p /home/sftpuser/files
-chown sftpuser:sftp_users /home/sftpuser/files
-chmod 700 /home/sftpuser/files
-```
-
-5. Whitelist ICANN IPs in UFW
-
-```bash
-ufw allow OpenSSH
-ufw allow from 192.0.47.240 to any port 22
-ufw allow from 192.0.32.241 to any port 22
-ufw allow from 2620:0:2830:241::c613 to any port 22
-ufw allow from 2620:0:2d0:241::c6a5 to any port 22
-ufw enable
-```
-
-6. Generate and Add SSH Key for ICANN
-
-```bash
-ssh-keygen -t rsa -b 2048 -f icann_sftp_key -C "icann_sftp"
-```
-
-```bash
-mkdir /home/sftpuser/.ssh
-chmod 700 /home/sftpuser/.ssh
-nano /home/sftpuser/.ssh/authorized_keys
-```
-
-Paste `icann_sftp_key.pub`, then set permissions:
-
-```bash
-sudo chmod 600 /home/sftpuser/.ssh/authorized_keys
-sudo chown -R sftpuser:sftp_users /home/sftpuser/.ssh
-```
-
-7. Update DNS for `sftp.namingo.org`
-
-Create an A record pointing `sftp.namingo.org` → `<your-server-ip>`.
-
-8. Send ICANN the Following
-
-- SFTP Host: `sftp://sftp.namingo.org`
-- Port: `22`
-- Username: `sftpuser`
-- Public Key: `icann_sftp_key.pub`
-- File Path: `/files`
-
-9. Test SFTP Access
-
-```bash
-sftp -i icann_sftp_key sftpuser@sftp.namingo.org
-```
-
-## 2. DNS Server Setup
-
-### 2.1. Hidden Master DNS with BIND
-
-#### 2.1.1. Install BIND9 and its utilities:
-
-```bash
-apt install bind9 bind9-utils bind9-doc
-```
-
-#### 2.1.2. Generate a TSIG key:
-
-Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
-
-```bash
-cd /etc/bind
-tsig-keygen -a HMAC-SHA256 test.key
-```
-
-The output will be in the format that can be directly included in your BIND configuration files. It looks something like this:
-
-```bash
-key "test.key" {
-    algorithm hmac-sha256;
-    secret "base64-encoded-secret==";
-};
-```
-
-Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
-
-#### 2.1.3. Named Configuration - Please Choose One:
-
-#### 2.1.3a. Unsigned zone (No DNSSEC):
-
-Edit the named.conf.local file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-Add the following zone definition:
-
-```bash
-zone "test." {
-    type master;
-    file "/var/lib/bind/test.zone";
-    allow-transfer { key "test.key"; };
-    also-notify { <slave-server-IP>; };
-};
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
-
-Use rndc to reload BIND:
-
-```bash
-systemctl restart bind9
-```
-
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
-#### 2.1.3b. Signed zone (With DNSSEC):
-
-Edit the named.conf.local file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-Add the following DNSSEC policy:
-
-```bash
-dnssec-policy "namingo-policy" {
-    keys {
-        ksk lifetime P1Y algorithm ed25519;
-        zsk lifetime P2M algorithm ed25519;
-    };
-    max-zone-ttl 86400;
-    dnskey-ttl 3600;
-    zone-propagation-delay 3600;
-    parent-propagation-delay 7200;
-    parent-ds-ttl 86400;
-};
-```
-
-Then, add the zone definition:
-
-```bash
-zone "test." {
-    type master;
-    file "/var/lib/bind/test.zone";
-    dnssec-policy "namingo-policy";
-    key-directory "/var/lib/bind";
-    inline-signing yes;
-    allow-transfer { key "test.key"; };
-    also-notify { <slave-server-IP>; };
-};
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
-
-Finally, set correct permissions and restart BIND9 to apply changes:
-
-```bash
-chown -R bind:bind /var/lib/bind
-systemctl restart bind9
-```
-
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
-**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
-
-**Optional: Configure BIND with PKCS#11 support
-
-```bash
-apt install softhsm2 opensc libengine-pkcs11-openssl
-```
-
-Edit `/etc/bind/named.conf.options` and add the following:
-
-```bash
-options {
-    // Existing options...
-    dnssec-policy "hsm-policy";
-};
-
-dnssec-policy "hsm-policy" {
-    keys {
-        ksk key-directory "pkcs11:token=YourTokenLabel" lifetime P1Y algorithm ecdsap256sha256;
-        zsk key-directory "pkcs11:token=YourTokenLabel" lifetime P2M algorithm ecdsap256sha256;
-    };
-    max-zone-ttl 86400;
-    dnskey-ttl 3600;
-    zone-propagation-delay 3600;
-    parent-propagation-delay 7200;
-    parent-ds-ttl 86400;
-};
-```
-
-Replace `YourTokenLabel` with your actual HSM token label.
-
-BIND will automatically generate keys within the device when configured correctly:
-
-```bash
-rndc loadkeys your.tld
-```
-
-You can verify the keys with tools provided by your HSM vendor or via standard PKCS#11 utilities:
-
-```bash
-softhsm2-util --show-slots
-```
-
-#### 2.1.3c. Signed zone (DNSSEC with OpenDNSSEC):
-
-3. Using DNSSEC with :
-
-Edit the named.conf.local file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-Add the following zone definition:
-
-```bash
-zone "test." {
-    type master;
-    file "/var/lib/bind/test.zone.signed";
-    allow-transfer { key "test.key"; };
-    also-notify { <slave-server-IP>; };
-};
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
-
-Install OpenDNSSEC:
-
-```bash
-apt install opendnssec opendnssec-enforcer-sqlite3 opendnssec-signer softhsm2
-mkdir -p /var/lib/softhsm/tokens
-chown -R opendnssec:opendnssec /var/lib/softhsm/tokens
-softhsm2-util --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234
-```
-
-Update files in `/etc/opendnssec` to match your registry policy. As minimum, please enable at least Signer Threads in `/etc/opendnssec/conf.xml`, but we recommend to fully review [all the files](https://wiki.opendnssec.org/configuration/confxml/). Then run the following commands:
-
-```bash
-chown -R opendnssec:opendnssec /etc/opendnssec
-ods-enforcer-db-setup
-ods-enforcer policy import
-rm /etc/opendnssec/prevent-startup
-chown opendnssec:opendnssec /var/lib/bind/test.zone
-chmod 644 /var/lib/bind/test.zone
-ods-enforcer zone add -z test -p default -i /var/lib/bind/test.zone
-ods-control start
-```
-
-Edit again the named.conf.local file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-Replace the value for `file` with the following filename:
-
-```bash
-...
-    file "/var/lib/opendnssec/signed/test.zone.signed";
-...
-};
-```
-
-Use rndc to reload BIND:
-
-```bash
-systemctl restart bind9
-```
-
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
-#### 2.1.4. Logging:
-
-Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
-
-```bash
-logging {
-    // General logs (startup, shutdown, errors)
-    channel "misc" {
-        file "/var/log/named/misc.log" versions 10 size 10m;
-        print-time YES;
-        print-severity YES;
-        print-category YES;
-    };
-
-    // Query logs (log every DNS query)
-    channel "query" {
-        file "/var/log/named/query.log" versions 20 size 5m;
-        print-time YES;
-        print-severity NO;
-        print-category NO;
-    };
-
-    // Lame server logs (misconfigured DNS servers)
-    channel "lame" {
-        file "/var/log/named/lamers.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-        severity info;
-    };
-
-    // Security logs (e.g., unauthorized query attempts)
-    channel "security" {
-        file "/var/log/named/security.log" versions 5 size 10m;
-        print-time YES;
-        print-severity YES;
-        severity dynamic;
-    };
-
-    // DNS updates (useful for dynamic zones)
-    channel "update" {
-        file "/var/log/named/update.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Resolver logs (useful for debugging recursive queries)
-    channel "resolver" {
-        file "/var/log/named/resolver.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Zone transfer logs (incoming & outgoing transfers)
-    channel "xfer" {
-        file "/var/log/named/xfer.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Assign categories to log files
-    category "default" { "misc"; };
-    category "queries" { "query"; };
-    category "lame-servers" { "lame"; };
-    category "security" { "security"; };
-    category "update" { "update"; };
-    category "resolver" { "resolver"; };
-    category "xfer-in" { "xfer"; };
-    category "xfer-out" { "xfer"; };
-};
-```
-
-#### 2.1.5. Check BIND9 Configuration:
-
-```bash
-named-checkconf
-named-checkzone test /var/lib/bind/test.zone
-```
-
-#### 2.1.6. Restart BIND9 Service:
-
-```bash
-systemctl restart bind9
-```
-
-#### 2.1.7. Verify Zone Loading:
-
-Check the BIND9 logs to ensure that the .test zone is loaded without errors:
-
-```bash
-grep named /var/log/syslog
-```
-
-### 2.2. Hidden Master DNS with Knot DNS and DNSSEC
-
-#### 2.2.1. Install Knot DNS and its utilities:
-
-```bash
-apt install knot knot-dnsutils
-```
-
-#### 2.2.2. Generate a TSIG key:
-
-Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
-
-```bash
-cd /etc/knot
-knotc conf-gen-key test.key hmac-sha256
-```
-
-The output will be in the format that can be directly included in your configuration files. It looks something like this:
-
-```bash
-key:
-  - id: "test.key"
-    algorithm: hmac-sha256
-    secret: "base64-encoded-secret=="
-```
-
-Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
-
-#### 2.2.3. Configure DNSSEC Policy:
-
-Add the DNSSEC policy to `/etc/knot/knot.conf`:
-
-```bash
-nano /etc/knot/knot.conf
-```
-
-Add the following DNSSEC policy:
-
-```bash
-policy:
-  - id: "namingo-policy"
-    description: "Default DNSSEC policy for TLD"
-    algorithm: ed25519
-    ksk-lifetime: 1y
-    zsk-lifetime: 2m
-    max-zone-ttl: 86400
-    rrsig-lifetime: 14d
-    rrsig-refresh: 7d
-    dnskey-ttl: 3600
-```
-
-#### 2.2.4. Add your zone:
-
-Add the zone to `/etc/knot/knot.conf`:
-
-```bash
-zone:
-  - domain: "test."
-    file: "/etc/knot/zones/test.zone"
-    dnssec-policy: "namingo-policy"
-    key-directory: "/etc/knot/keys"
-    storage: "/etc/knot/zones"
-    notify: <slave-server-IP>
-    acl:
-      - id: "test.key"
-        address: <slave-server-IP>
-        key: "test.key"
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
-
-Generate the necessary DNSSEC keys for your zone using keymgr:
-
-```bash
-keymgr policy:generate test.
-```
-
-This will create the required keys in `/etc/knot/keys`. Ensure the directory permissions are secure:
-
-```bash
-chown -R knot:knot /etc/knot/keys
-chmod -R 700 /etc/knot/keys
-```
-
-Reload Knot DNS and enable DNSSEC signing for the zone:
-
-```bash
-knotc reload
-knotc signzone test.
-```
-
-Generate the DS record for the parent zone using `keymgr`:
-
-```bash
-keymgr ds test.
-```
-
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
-**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be KnotDNS.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
-
-### 2.3. Regular DNS Server Setup
-
-Before editing the configuration files, you need to copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
-
-```bash
-key "test.key" {
-    algorithm hmac-sha256;
-    secret "base64-encoded-secret==";
-};
-```
-
-#### 2.3.1. Installation of BIND9
-
-```bash
-apt update
-apt install bind9 bind9-utils bind9-doc
-```
-
-#### 2.3.2. Add the TSIG key to the BIND Configuration
-
-Create a directory to store zone files:
-
-```bash
-mkdir /var/cache/bind/zones
-```
-
-Edit the `named.conf.local` file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-First, define the TSIG key at the top of the file:
-
-```bash
-key "test.key" {
-    algorithm hmac-sha256;
-    secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
-};
-```
-
-Then, add the slave zone configuration:
-
-```bash
-zone "test." {
-    type slave;
-    file "/var/cache/bind/zones/test.zone";
-    masters { 192.0.2.1 key "test.key"; }; // IP of the hidden master and TSIG key reference
-    allow-query { any; }; // Allow queries from all IPs
-    allow-transfer { none; }; // Disable zone transfers (AXFR) to others
-};
-```
-
-Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
-
-#### 2.3.3. Adjusting Permissions and Ownership
-
-Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
-
-```bash
-chown bind:bind /var/cache/bind/zones
-chmod 755 /var/cache/bind/zones
-```
-
-#### 2.3.4. Logging:
-
-Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
-
-```bash
-logging {
-    // General logs (startup, shutdown, errors)
-    channel "misc" {
-        file "/var/log/named/misc.log" versions 10 size 10m;
-        print-time YES;
-        print-severity YES;
-        print-category YES;
-    };
-
-    // Query logs (log every DNS query)
-    channel "query" {
-        file "/var/log/named/query.log" versions 20 size 5m;
-        print-time YES;
-        print-severity NO;
-        print-category NO;
-    };
-
-    // Lame server logs (misconfigured DNS servers)
-    channel "lame" {
-        file "/var/log/named/lamers.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-        severity info;
-    };
-
-    // Security logs (e.g., unauthorized query attempts)
-    channel "security" {
-        file "/var/log/named/security.log" versions 5 size 10m;
-        print-time YES;
-        print-severity YES;
-        severity dynamic;
-    };
-
-    // DNS updates (useful for dynamic zones)
-    channel "update" {
-        file "/var/log/named/update.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Resolver logs (useful for debugging recursive queries)
-    channel "resolver" {
-        file "/var/log/named/resolver.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Zone transfer logs (incoming & outgoing transfers)
-    channel "xfer" {
-        file "/var/log/named/xfer.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Assign categories to log files
-    category "default" { "misc"; };
-    category "queries" { "query"; };
-    category "lame-servers" { "lame"; };
-    category "security" { "security"; };
-    category "update" { "update"; };
-    category "resolver" { "resolver"; };
-    category "xfer-in" { "xfer"; };
-    category "xfer-out" { "xfer"; };
-};
-```
-
-#### 2.3.5. Restart BIND9 Service
-
-After making these changes, restart the BIND9 service to apply them:
-
-```bash
-systemctl restart bind9
-```
-
-#### 2.3.6. Verify Configuration and Zone Transfer
-
-```bash
-named-checkconf
-grep 'transfer of "test."' /var/log/syslog
-```
-
-## 3. Recommended Components and Integrations
+## 2. Recommended Components and Integrations
 
 This section outlines recommended components to enhance the functionality and reliability of your Namingo setup.
 
-### 3.1. Setup Monitoring
+### 2.1. Setup Monitoring
 
-#### 3.1.1. Option 1: Prometheus
+#### 2.1.1. Option 1: Prometheus
 
 ```bash
 apt update
@@ -1341,7 +609,7 @@ If you want notifications via email, Slack, Telegram, or other tools, you can co
 
 3. Create alert rules (e.g., "Alert if Redis is down for 1 minute").
 
-#### 3.1.2. Option 2: Netdata
+#### 2.1.2. Option 2: Netdata
 
 ```bash
 wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && ./install.sh
@@ -1349,7 +617,7 @@ wget https://my-netdata.io/kickstart.sh -O install.sh && chmod +x install.sh && 
 
 Open Netdata in your browser: http://your-server-ip:19999
 
-### 3.2. Recommended Help Desk Solutions
+### 2.2. Recommended Help Desk Solutions
 
 To enhance your customer support experience with Namingo, consider using one of these open-source help desk solutions:
 
@@ -1360,18 +628,18 @@ To enhance your customer support experience with Namingo, consider using one of 
 
 **Note:** These solutions are independent of Namingo. FreeScout is licensed under AGPL-3.0, while Chatwoot uses MIT. If using FreeScout, ensure compliance with AGPL-3.0 licensing.
 
-### 3.3. Scaling Your Database with ProxySQL
+### 2.3. Scaling Your Database with ProxySQL
 
 To enhance the scalability and performance of your database, consider integrating [ProxySQL](https://proxysql.com/) into your architecture. ProxySQL is a high-performance, open-source proxy designed for MySQL, MariaDB, and other database systems, providing features like query caching, load balancing, query routing, and failover support. By acting as an intermediary between your application and the database, ProxySQL enables efficient distribution of queries across multiple database nodes, reducing latency and improving overall reliability, making it an excellent choice for scaling your database infrastructure.
 
-#### 3.3.1. Install ProxySQL:
+#### 2.3.1. Install ProxySQL:
 
 ```bash
 apt update
 apt install proxysql
 ```
 
-#### 3.3.2. Configure ProxySQL:
+#### 2.3.2. Configure ProxySQL:
 
 1. Access the Admin Interface:
 
@@ -1417,7 +685,7 @@ SAVE MYSQL USERS TO DISK;
 
 This ensures that your changes take effect immediately and persist after a restart.
 
-#### 3.3.3. Update Namingo Configuration:
+#### 2.3.3. Update Namingo Configuration:
 
 Point all Namingo configuration files to ProxySQL instead of directly connecting to the MySQL servers:
 
@@ -1425,7 +693,7 @@ Point all Namingo configuration files to ProxySQL instead of directly connecting
 
 Ensure that Namingo uses the same database user credentials configured in ProxySQL.
 
-#### 3.3.4. Test the Configuration:
+#### 2.3.4. Test the Configuration:
 
 1. Verify Connections:
 
@@ -1435,7 +703,7 @@ Ensure that Namingo can connect to the database through ProxySQL and that querie
 
 Use ProxySQL's statistics tables to monitor query performance and load distribution.
 
-### 3.4. Recommended Call Center Solution
+### 2.4. Recommended Call Center Solution
 
 To enhance your voice-based customer support, we recommend:
 
@@ -1451,16 +719,16 @@ Key features include:
 
 > **Note:** Bland.com is a commercial service and not affiliated with Namingo. While not open-source, it provides advanced AI voice automation capabilities and is ideal for companies seeking scalable, programmable phone support solutions.
 
-## 4. Security Hardening
+## 3. Security Hardening
 
-### 4.1. Create the namingo user
+### 3.1. Create the namingo user
 
 ```bash
 adduser namingo
 usermod -aG sudo namingo
 ```
 
-### 4.2. Set Up Services
+### 3.2. Set Up Services
 
 ```bash
 su namingo
@@ -1483,7 +751,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart whois epp rdap
 ```
 
-### 4.3. SSH Hardening
+### 3.3. SSH Hardening
 
 1. Disable Root Login:
 
@@ -1534,7 +802,7 @@ sudo ufw enable
 sudo systemctl restart ssh
 ```
 
-### 4.4. Other Server Hardening
+### 3.4. Other Server Hardening
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -1556,7 +824,7 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-### 4.5. Adminer Security settings
+### 3.5. Adminer Security settings
 
 To enhance the security of your Adminer installation, we recommend the following settings for Caddy, Apache2, and Nginx:
 
@@ -1608,7 +876,7 @@ location /dbtool.php {
 }
 ```
 
-## 5. In-Depth Configuration File Overview
+## 4. In-Depth Configuration File Overview
 
 In this section, we provide a detailed overview of each configuration file used in the Namingo domain registry platform. Understanding these files is essential for customizing and optimizing your system according to your specific needs. We will walk you through the purpose of each file, key settings, and recommended configurations to ensure smooth operation and integration with other components of your setup.
 
@@ -1903,6 +1171,15 @@ return [
 ];
 ```
 
-In conclusion, this detailed configuration guide aims to streamline the setup process of the Namingo system for users of all expertise levels. The guide meticulously details each configuration file, providing clear explanations and guidance for customization to suit your specific needs. This approach ensures that you can configure Namingo with confidence, optimizing it for your registry management requirements. We are committed to making the configuration process as straightforward as possible, and we welcome any questions or requests for further assistance. Your successful deployment and efficient management of Namingo is our top priority.
+---
 
-After finalizing the configuration of Namingo, the next step is to consult the [First Steps Guide](iog.md). This guide provides comprehensive details on configuring your registry, adding registrars, and much more, to ensure a smooth start with your system.
+For additional setup steps beyond the core configuration, refer to the following guides:
+
+- [DNS Setup Guide](dns.md) – for configuring your hidden master and public DNS servers.
+- [gTLD-Specific Setup](gtld.md) – required if you are operating a gTLD under ICANN policies.
+
+> 📘 These guides provide essential configurations for DNS integration and gTLD compliance.
+
+Once you’ve completed the configuration, continue with the operational setup by following this guide:
+
+- [First Steps Guide](iog.md) – continue here to delete test data, configure your registry, add TLDs and registrars, and run your first tests.
