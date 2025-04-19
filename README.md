@@ -105,6 +105,8 @@ For **older versions**, please refer to [`update.md`](docs/update.md).
 
 #### [DNS Setup Guide](docs/dns.md) [Required]
 
+#### [Registrar Payment Guide](docs/payment.md) [Required]
+
 #### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
 
 #### [Database Replication](docs/replication.md) [Recommended]

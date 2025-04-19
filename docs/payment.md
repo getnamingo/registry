@@ -1,4 +1,4 @@
-# Payment Methods for Registrars
+# Namingo Registry: Registrar Payment Guide
 
 Namingo Registry provides an efficient and automated deposit system that allows registrars to add funds to their accounts quickly. This ensures uninterrupted access to domain operations without manual delays. Below are the payment setup instructions for both registry providers and registrars.
 
