@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang == 'ar' or _lang == 'ar_SA' ? 'rtl' : 'ltr' }}">
+<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang == 'ar' or _lang == 'ar_SA' ? 'rtl' : 'ltr' }}"{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
@@ -9,7 +9,7 @@
     <!-- CSS files -->
 {% if route_is('domains') or route_is('applications') or route_is('contacts') or route_is('hosts') or route_is('epphistory') or is_current_url('registrars') or route_is('transactions') or route_is('overview') or route_is('reports') or route_is('transfers') or route_is('users') or is_current_url('ticketview') or route_is('poll') or route_is('log') or route_is('invoices') or route_is('registry/tlds') or route_is('profile') or route_is('registry/tokens') %}{% include 'partials/css-tables.twig' %}{% else %}{% include 'partials/css.twig' %}{% endif %}
   </head>
-  <body{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
+  <body>
     <div class="page">
       <!-- Navbar -->
       <header class="navbar navbar-expand-md navbar-light d-print-none">
@@ -39,7 +39,7 @@
                 </div>
               </div>
             </div>
-            <div class="d-none d-md-flex me-3">
+            <div class="d-flex me-3">
               <a href="/mode" class="nav-link px-0 hide-theme-dark" title="{{ __('Enable dark mode') }}" data-bs-toggle="tooltip"
            data-bs-placement="bottom">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>
