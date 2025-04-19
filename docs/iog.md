@@ -85,7 +85,7 @@ php /opt/registry/tests/clean-test-details.php
    - **Manage Registrar**: Edit status, credentials, and settings
    - **Registrar Details**: View all saved information
    - **Manage Custom Pricing**: Override default TLD pricing  
-     *(Note: Manual config required before version 1.0.19 — see [custom-registrar-pricing.md](docs/custom-registrar-pricing.md))*
+     *(Note: Manual config required before version 1.0.19 — see [custom-registrar-pricing.md](custom-registrar-pricing.md))*
    - **Impersonate**: Log in as the registrar for testing purposes
 
 > Use impersonation only for internal testing or support – all actions are logged.
