@@ -28,6 +28,15 @@
             height: 15px;
             display: inline-block;
         }
+        .responsive-logo {
+          height: 32px;
+          width: auto;
+        }
+        @media (max-width: 576px) {
+          .responsive-logo {
+            height: 24px;
+          }
+        }
 {% if _lang == 'ar' or _lang == 'ar_SA' %}
         [dir="rtl"] {
             text-align: right;

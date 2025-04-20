@@ -19,11 +19,11 @@
           </button>
           <h1 class="navbar-brand d-none-navbar-horizontal pe-0 pe-md-3">
             <a href="{{route('home')}}">
-              <img src="{{ logoPath }}" width="110" height="32" alt="Namingo" class="navbar-brand-image">
+              <img src="{{ logoPath }}" alt="Namingo" class="navbar-brand-image responsive-logo">
             </a>
           </h1>
           <div class="navbar-nav flex-row order-md-last">
-            <div class="nav-item d-md-flex me-3">
+            <div class="nav-item d-md-flex me-1 me-sm-2 me-md-3">
               <div class="btn-list">
                 <div class="dropdown small-dropdown">
                   <a href="#" class="btn dropdown-toggle" data-bs-toggle="dropdown"><span class="flag flag-country-{{ uiLang }}"></span>&nbsp;{{ lang }}</a>
@@ -39,7 +39,7 @@
                 </div>
               </div>
             </div>
-            <div class="d-flex me-3">
+            <div class="d-flex me-1 me-sm-2 me-md-3 gap-1 gap-sm-2">
               <a href="/mode" class="nav-link px-0 hide-theme-dark" title="{{ __('Enable dark mode') }}" data-bs-toggle="tooltip"
            data-bs-placement="bottom">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>
