@@ -15,6 +15,8 @@ Change these lines:
 
 > ✅ This enables gTLD-specific features and ICANN Spec 11 abuse checks required for compliance.
 
+---
+
 ## 2. RDE (Registry data escrow) configuration
 
 ### 2.1. Generate the Key Pair
@@ -69,6 +71,8 @@ Always keep your private key secure. Do not share it. If someone gains access to
 ### 2.4. Use in RDE deposit generation
 
 Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
+
+---
 
 ## 3. SFTP Server Setup for ICANN
 
@@ -173,6 +177,8 @@ Create an A record pointing `sftp.namingo.org` → `<your-server-ip>`.
 sftp -i icann_sftp_key sftpuser@sftp.namingo.org
 ```
 
+---
+
 ## 4. Minimum Data Set
 
 This document provides guidance on transitioning to the Minimum Data Set for domain registration data. This change requires registries to update their systems to stop accepting specific contact data for domain names. The purpose of this document is to provide an overview of the Minimum Data Set, how to activate it in your configuration files, and the implications of this change.
@@ -223,3 +229,74 @@ Registries can manually purge current contact details if and when needed. It is 
 ### 4.5. Conclusion
 
 Transitioning to the Minimum Data Set is a significant step in enhancing privacy and compliance with updated registration data policies. By following the steps outlined in this document, registrars can ensure a smooth transition and continued compatibility with the new requirements.
+
+---
+
+## 5. ICANN Reporting
+
+Namingo automatically generates ICANN-required reports and uploads them via SFTP. These reports are generated in the directory specified by the `reporting_path` value in `/opt/registry/automation/config.php`.
+
+To enable automatic uploading, set the following values:
+
+- `reporting_upload` → `true`
+- `reporting_username` → your ICANN-issued username
+- `reporting_password` → your ICANN-issued password
+
+The primary report generated is the **Registry Operator Monthly Report**, which includes statistics on domain transactions, contact counts, DNS activity, abuse cases, and more — required monthly by ICANN for all gTLD operators.
+
+---
+
+## 6. LORDN File Generation
+
+Namingo supports automatic generation and submission of the **LORDN (Launch OR Derivatives Notification)** file to ICANN.
+
+To enable this:
+
+- Set `lordn_user` and `lordn_pass` in `/opt/registry/automation/config.php` under the automation settings.
+
+Once enabled, Namingo will generate the LORDN XML file and securely transmit it to the ICANN endpoint on your behalf.
+
+---
+
+## 7. TMCH Integration
+
+TMCH (Trademark Clearinghouse) integration allows the registry to receive sunrise claims information.
+
+To enable TMCH support:
+
+- Edit the `tmch` section in `/opt/registry/automation/config.php`
+- Add the required credentials and API endpoints provided by the TMDB (TMCH Database provider)
+
+Namingo will automatically pull TMCH records and store them in the registry database for use during sunrise validations and claims notices.
+
+---
+
+## 8. URS Integration
+
+URS (Uniform Rapid Suspension) support allows the registry to process complaints issued through ICANN’s URS system.
+
+To enable URS handling:
+
+- Configure the `urs` section in `/opt/registry/automation/config.php` with the credentials for the designated URS mailbox.
+
+Namingo will regularly scan this mailbox for incoming URS case notifications. Detected cases will be parsed, recorded, and automatically added to the registry system as internal tickets assigned to the affected registrar.
+
+---
+
+## 9. Spec 11 Monitoring
+
+Spec 11 abuse monitoring is required under the ICANN Registry Agreement for gTLDs. Namingo fulfills this by scanning all active domains against several public threat intelligence sources, including databases listing:
+
+- Malware
+- Phishing
+- Botnets
+- Spam abuse
+
+If a domain is flagged:
+
+- A ticket is created in the affected registrar’s account
+- An abuse report is sent automatically to the registrar via email
+
+To use this feature, ensure `spec11` is set to `true` in `/opt/registry/automation/cron_config.php`.
+
+> ⚠️ This functionality helps maintain registry compliance with Specification 11 and supports proactive registrar communication.
