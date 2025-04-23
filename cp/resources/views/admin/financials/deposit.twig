@@ -30,7 +30,7 @@
                   <form id="depositForm" action="/deposit" method="post">
                   {{ csrf.field | raw }}
                     <div class="mb-3">
-                        <label for="registrarSelect" class="form-label">{{ __('Registrar') }}</label>
+                        <label for="registrarSelect" class="form-label required">{{ __('Registrar') }}</label>
                         <select class="form-select" id="registrarSelect" name="registrar" required>
                                 <option selected disabled value="">{{ __('Choose Registrar...') }}</option>
                             {% for registrar in registrars %}
@@ -45,13 +45,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="amount" class="form-label">{{ __('Amount') }}</label>
+                        <label for="amount" class="form-label required">{{ __('Amount') }}</label>
                         <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="{{ __('Enter deposit amount') }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">{{ __('Description') }}</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="{{ __('Optional deposit description') }}"></textarea>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="{{ __('Optional deposit description') }}">
                     </div>
                 </div>
                 <div class="card-footer">
