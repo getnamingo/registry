@@ -657,12 +657,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $nameserver = $convertedDomain;
                     }
                 }
-                
-                if (!preg_match('/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $nameserver)) {
+
+                if (!isValidHostname($nameserver)) {
                     $server->send($fd, "Nameserver contains invalid characters or is not in the correct format.");
                     $server->close($fd);
                 }
-                
+
                 $query = "SELECT name,clid FROM host WHERE name = :nameserver";
                 $stmt = $pdo->prepare($query);
                 $stmt->bindParam(':nameserver', $nameserver, PDO::PARAM_STR);
