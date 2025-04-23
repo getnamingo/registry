@@ -4,39 +4,39 @@
 
 You must run update scripts in order, without skipping versions. For example, if you're on 1.0.15 and the latest is 1.0.17, first update to 1.0.16, then to 1.0.17.
 
-- v1.0.16 to v1.0.17 - download and run the [update1017.sh](docs/update1017.sh) script.
+- v1.0.16 to v1.0.17 - download and run the [update1017.sh](update1017.sh) script.
 
-- v1.0.15 to v1.0.16 - download and run the [update1016.sh](docs/update1016.sh) script.
+- v1.0.15 to v1.0.16 - download and run the [update1016.sh](update1016.sh) script.
 
-- v1.0.14 to v1.0.15 - download and run the [update1015.sh](docs/update1015.sh) script.
+- v1.0.14 to v1.0.15 - download and run the [update1015.sh](update1015.sh) script.
 
-- v1.0.13 to v1.0.14 - download and run the [update1014.sh](docs/update1014.sh) script.
+- v1.0.13 to v1.0.14 - download and run the [update1014.sh](update1014.sh) script.
 
-- v1.0.12 to v1.0.13 - download and run the [update1013.sh](docs/update1013.sh) script.
+- v1.0.12 to v1.0.13 - download and run the [update1013.sh](update1013.sh) script.
 
-- v1.0.11 to v1.0.12 - download and run the [update1012.sh](docs/update1012.sh) script.
+- v1.0.11 to v1.0.12 - download and run the [update1012.sh](update1012.sh) script.
 
-- v1.0.10 to v1.0.11 - download and run the [update1011.sh](docs/update1011.sh) script.
+- v1.0.10 to v1.0.11 - download and run the [update1011.sh](update1011.sh) script.
 
-- v1.0.9 to v1.0.10 - download and run the [update1010.sh](docs/update1010.sh) script.
+- v1.0.9 to v1.0.10 - download and run the [update1010.sh](update1010.sh) script.
 
-- v1.0.8 to v1.0.9 - download and run the [update109.sh](docs/update109.sh) script.
+- v1.0.8 to v1.0.9 - download and run the [update109.sh](update109.sh) script.
 
-- v1.0.7 to v1.0.8 - download and run the [update108.sh](docs/update108.sh) script.
+- v1.0.7 to v1.0.8 - download and run the [update108.sh](update108.sh) script.
 
-- v1.0.6 to v1.0.7 - download and run the [update107.sh](docs/update107.sh) script.
+- v1.0.6 to v1.0.7 - download and run the [update107.sh](update107.sh) script.
 
-- v1.0.5 to v1.0.6 - download and run the [update106.sh](docs/update106.sh) script.
+- v1.0.5 to v1.0.6 - download and run the [update106.sh](update106.sh) script.
 
-- v1.0.4 to v1.0.5 - download and run the [update105.sh](docs/update105.sh) script.
+- v1.0.4 to v1.0.5 - download and run the [update105.sh](update105.sh) script.
 
-- v1.0.3 to v1.0.4 - download and run the [update104.sh](docs/update104.sh) script.
+- v1.0.3 to v1.0.4 - download and run the [update104.sh](update104.sh) script.
 
-- v1.0.2 to v1.0.3 - download and run the [update103.sh](docs/update103.sh) script.
+- v1.0.2 to v1.0.3 - download and run the [update103.sh](update103.sh) script.
 
-- v1.0.1 to v1.0.2 - download and run the [update102.sh](docs/update102.sh) script.
+- v1.0.1 to v1.0.2 - download and run the [update102.sh](update102.sh) script.
 
-- v1.0.0 to v1.0.1 - download and run the [update101.sh](docs/update101.sh) script.
+- v1.0.0 to v1.0.1 - download and run the [update101.sh](update101.sh) script.
 
 ## v1.0.0-RC4 to v1.0.0
 
