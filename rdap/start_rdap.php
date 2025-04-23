@@ -514,12 +514,15 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         }
         
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+        $rdapClean = rtrim(preg_replace('#^.*?//#', '', $registrarDetails['rdap_server'] ?? ''), '/');
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
+                'icann_rdap_response_profile_0',
                 'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_0',
                 'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'domain',
@@ -575,20 +578,20 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     ],
                     ],
                 ],
-                !$c['minimum_data'] ? [
-                    [
-                        mapContactToVCard($registrantDetails, 'registrant', $c)
-                    ],
-                    array_map(function ($contact) use ($c) {
-                        return mapContactToVCard($contact, 'admin', $c);
-                    }, $adminDetails),
-                    array_map(function ($contact) use ($c) {
-                        return mapContactToVCard($contact, 'tech', $c);
-                    }, $techDetails),
-                    array_map(function ($contact) use ($c) {
-                        return mapContactToVCard($contact, 'billing', $c);
-                    }, $billingDetails)
-                ] : []
+                !$c['minimum_data']
+                    ? array_merge(
+                        [mapContactToVCard($registrantDetails, 'registrant', $c)],
+                        array_map(function ($contact) use ($c) {
+                            return mapContactToVCard($contact, 'administrative', $c);
+                        }, $adminDetails),
+                        array_map(function ($contact) use ($c) {
+                            return mapContactToVCard($contact, 'technical', $c);
+                        }, $techDetails),
+                        array_map(function ($contact) use ($c) {
+                            return mapContactToVCard($contact, 'billing', $c);
+                        }, $billingDetails)
+                    )
+                    : []
             ),
             'events' => $events,
             'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
@@ -601,8 +604,8 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     'type' => 'application/rdap+json',
                 ],
                 [
-                    'href' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
-                    'value' => $registrarDetails['rdap_server'] . 'domain/' . $domain,
+                    'href' => 'https://' . $rdapClean . '/domain/' . $domain,
+                    'value' => 'https://' . $rdapClean . '/domain/' . $domain,
                     'rel' => 'related',
                     'type' => 'application/rdap+json',
                 ]
@@ -918,7 +921,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         // Initialize an array to hold entity blocks
         $entityBlocks = [];
         // Define an array of allowed contact types
-        $allowedTypes = ['owner', 'tech', 'abuse'];
+        $allowedTypes = ['owner', 'billing', 'abuse'];
 
         foreach ($contacts as $contact) {
             // Check if the contact type is one of the allowed types
@@ -929,14 +932,14 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 // Create an entity block for each allowed contact type
                 $entityBlock = [
                     'objectClassName' => 'entity',
-                    'roles' => [$contact['type']],
+                    'roles' => [($contact['type'] === 'owner') ? 'administrative' : $contact['type']],
                     "status" => ["active"],
                     "vcardArray" => [
                         "vcard",
                         [
                             ['version', new stdClass(), 'text', '4.0'],
                             ["fn", new stdClass(), "text", $fullName],
-                            ["tel", ["type" => ["voice"]], "uri", "tel:" . $contact['voice']],
+                            ["tel", ["type" => ["voice"]], $contact['voice'] ? "uri" : "text", $contact['voice'] ? "tel:" . $contact['voice'] : ""],
                             ["email", new stdClass(), "text", $contact['email']]
                         ]
                     ],
@@ -951,7 +954,9 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
+                'icann_rdap_response_profile_0',
                 'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_0',
                 'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'entity',
@@ -1129,11 +1134,11 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         }
     }
 
-    // Check for prohibited patterns in nameserver
-    if (!preg_match('/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $ns)) {
+    // Validate nameserver
+    if (!isValidHostname($ns)) {
         $response->header('Content-Type', 'application/json');
         $response->status(400); // Bad Request
-        $response->end(json_encode(['error' => 'Nameserver invalid format']));
+        $response->end(json_encode(['error' => 'Nameserver format is invalid. Expected a fully qualified domain name (FQDN), punycode supported (e.g., ns1.example.com)']));
         return;
     }
     
@@ -1298,12 +1303,15 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         if (!empty($associated)) {
             $statuses[] = 'associated';
         }
+        $statuses = array_unique(array_map(fn($s) => $s === 'ok' ? 'active' : $s, $statuses));
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
+                'icann_rdap_response_profile_0',
                 'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_0',
                 'icann_rdap_technical_implementation_guide_1',
             ],
             'objectClassName' => 'nameserver',
@@ -1366,8 +1374,9 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
             'ldhName' => $hostDetails['name'],
             'links' => [
                 [
-                    'href' => $c['rdap_url'] . '/nameserver/' . $hostDetails['name'],
+                    'value' => $c['rdap_url'] . '/nameserver/' . $hostDetails['name'],
                     'rel' => 'self',
+                    'href' => $c['rdap_url'] . '/nameserver/' . $hostDetails['name'],
                     'type' => 'application/rdap+json',
                 ]
             ],
@@ -1855,7 +1864,9 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
+                'icann_rdap_response_profile_0',
                 'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_0',
                 'icann_rdap_technical_implementation_guide_1',
             ],
             'domainSearchResults' => [
@@ -2117,14 +2128,14 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                     }
                 }
 
-                // Check for prohibited patterns in nameserver
-                if (!preg_match('/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){2,}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $ns)) {
+                // Validate nameserver
+                if (!isValidHostname($ns)) {
                     $response->header('Content-Type', 'application/json');
                     $response->status(400); // Bad Request
-                    $response->end(json_encode(['error' => 'Nameserver invalid format']));
+                    $response->end(json_encode(['error' => 'Nameserver format is invalid. Expected a fully qualified domain name (FQDN), punycode supported (e.g., ns1.example.com)']));
                     return;
                 }
-                
+
                 // Extract TLD from the domain
                 $parts = explode('.', $ns);
                 $tld = "." . end($parts);
@@ -2339,7 +2350,9 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $rdapResponse = [
                 'rdapConformance' => [
                     'rdap_level_0',
+                    'icann_rdap_response_profile_0',
                     'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
                     'icann_rdap_technical_implementation_guide_1',
                 ],
                 'nameserverSearchResults' => $rdapResult,
@@ -2466,7 +2479,9 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $rdapResponse = [
                 'rdapConformance' => [
                     'rdap_level_0',
+                    'icann_rdap_response_profile_0',
                     'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
                     'icann_rdap_technical_implementation_guide_1',
                 ],
                 'nameserverSearchResults' => [
@@ -2815,7 +2830,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         // Initialize an array to hold entity blocks
         $entityBlocks = [];
         // Define an array of allowed contact types
-        $allowedTypes = ['owner', 'tech', 'abuse'];
+        $allowedTypes = ['owner', 'billing', 'abuse'];
 
         foreach ($contacts as $contact) {
             // Check if the contact type is one of the allowed types
@@ -2826,14 +2841,14 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 // Create an entity block for each allowed contact type
                 $entityBlock = [
                     'objectClassName' => 'entity',
-                    'roles' => [$contact['type']],
+                    'roles' => [($contact['type'] === 'owner') ? 'administrative' : $contact['type']],
                     "status" => ["active"],
                     "vcardArray" => [
                         "vcard",
                         [
                             ['version', new stdClass(), 'text', '4.0'],
                             ["fn", new stdClass(), "text", $fullName],
-                            ["tel", ["type" => ["voice"]], "uri", "tel:" . $contact['voice']],
+                            ["tel", ["type" => ["voice"]], $contact['voice'] ? "uri" : "text", $contact['voice'] ? "tel:" . $contact['voice'] : ""],
                             ["email", new stdClass(), "text", $contact['email']]
                         ]
                     ],
@@ -2848,7 +2863,9 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $rdapResponse = [
             'rdapConformance' => [
                 'rdap_level_0',
+                'icann_rdap_response_profile_0',
                 'icann_rdap_response_profile_1',
+                'icann_rdap_technical_implementation_guide_0',
                 'icann_rdap_technical_implementation_guide_1',
             ],
             'entitySearchResults' => [
@@ -2993,9 +3010,11 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
 function handleHelpQuery($request, $response, $pdo, $c) {
     // Set the RDAP conformance levels
     $rdapConformance = [
-        "rdap_level_0",
-        "icann_rdap_response_profile_1",
-        "icann_rdap_technical_implementation_guide_1"
+        'rdap_level_0',
+        'icann_rdap_response_profile_0',
+        'icann_rdap_response_profile_1',
+        'icann_rdap_technical_implementation_guide_0',
+        'icann_rdap_technical_implementation_guide_1',
     ];
 
     // Set the descriptions and links for the help section
@@ -3015,13 +3034,15 @@ function handleHelpQuery($request, $response, $pdo, $c) {
         ],
         'links' => [
             [
-                'href' => $c['rdap_url'] . '/help',
+                'value' => $c['rdap_url'] . '/help',
                 'rel' => 'self',
+                'href' => $c['rdap_url'] . '/help',
                 'type' => 'application/rdap+json',
             ],
             [
-                'href' => 'https://namingo.org',
+                'value' => 'https://namingo.org',
                 'rel' => 'related',
+                'href' => 'https://namingo.org',
                 'type' => 'application/rdap+json',
             ]
         ],

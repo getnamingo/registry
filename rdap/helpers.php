@@ -92,25 +92,18 @@ function mapContactToVCard($contactDetails, $role, $c) {
         'remarks' => [
             [
                 "description" => [
-                    "This object's data has been partially omitted for privacy.",
-                    "Only the registrar managing the record can view personal contact data."
-                ],
-                "links" => [
-                    [
-                        "href" => "https://namingo.org",
-                        "rel" => "alternate",
-                        "type" => "text/html"
-                    ]
+                    "REDACTED FOR PRIVACY",
+                    "Visit www.icann.org/privacy for details."
                 ],
                 "title" => "REDACTED FOR PRIVACY",
-                "type" => "Details are withheld due to privacy restrictions."
+                "type" => "object redacted due to authorization"
             ],
             [
                 "description" => [
                     "To obtain contact information for the domain registrant, please refer to the Registrar of Record's RDDS service as indicated in this report."
                 ],
                 "title" => "EMAIL REDACTED FOR PRIVACY",
-                "type" => "Details are withheld due to privacy restrictions."
+                "type" => "object truncated due to authorization"
             ],
         ],
         'vcardArray' => [
@@ -119,7 +112,7 @@ function mapContactToVCard($contactDetails, $role, $c) {
                 ['version', new stdClass(), 'text', '4.0'],
                 ["fn", new stdClass(), 'text', $disclose_name ? $contactDetails['name'] : "REDACTED FOR PRIVACY"],
                 ["org", new stdClass(), 'text', $disclose_org ? $contactDetails['org'] : "REDACTED FOR PRIVACY"],
-                ["adr", ["CC" => strtoupper($contactDetails['cc'])], 'text', [ // specify "CC" parameter for country code
+                ["adr", ["cc" => strtoupper($contactDetails['cc'])], 'text', [ // specify "cc" parameter for country code
                     $disclose_addr ? $contactDetails['street1'] : "REDACTED FOR PRIVACY", // Extended address
                     $disclose_addr ? $contactDetails['street2'] : "REDACTED FOR PRIVACY", // Street address
                     $disclose_addr ? $contactDetails['street3'] : "REDACTED FOR PRIVACY", // Additional street address
@@ -128,8 +121,8 @@ function mapContactToVCard($contactDetails, $role, $c) {
                     $disclose_addr ? $contactDetails['pc'] : "REDACTED FOR PRIVACY", // Postal code
                     ""  // Add empty last element as required for ADR structure
                 ]],
-                ["tel", ["type" => "voice"], 'uri', $disclose_voice ? "tel:" . $contactDetails['voice'] : "REDACTED FOR PRIVACY"],
-                ["tel", ["type" => "fax"], 'uri', $disclose_fax ? "tel:" . $contactDetails['fax'] : "REDACTED FOR PRIVACY"],
+                ["tel", ["type" => "voice"], $disclose_voice ? 'uri' : 'text', $disclose_voice ? "tel:" . $contactDetails['voice'] : "REDACTED FOR PRIVACY"],
+                ["tel", ["type" => "fax"], $disclose_fax ? 'uri' : 'text', $disclose_fax ? "tel:" . $contactDetails['fax'] : "REDACTED FOR PRIVACY"],
                 ["email", new stdClass(), 'text', $disclose_email ? $contactDetails['email'] : "REDACTED FOR PRIVACY"],
             ]
         ],
@@ -193,4 +186,44 @@ function mapStatuses(array $statuses): array {
     return array_map(function ($status) use ($statusMap) {
         return $statusMap[$status] ?? $status; // Return mapped value or original if not found
     }, $statuses);
+}
+
+function isValidHostname($hostname) {
+    $hostname = trim($hostname);
+
+    // Convert IDN (Unicode) to ASCII if necessary
+    if (mb_detect_encoding($hostname, 'ASCII', true) === false) {
+        $hostname = idn_to_ascii($hostname, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+        if ($hostname === false) {
+            return false; // Invalid IDN conversion
+        }
+    }
+
+    // Ensure there is at least **one dot** (to prevent single-segment hostnames)
+    if (substr_count($hostname, '.') < 1) {
+        return false;
+    }
+
+    // Regular expression for validating a hostname
+    $pattern = '/^((xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.)*([a-zA-Z0-9-]{1,63}|xn--[a-zA-Z0-9-]{2,63})$/';
+
+    // Ensure it matches the hostname pattern
+    if (!preg_match($pattern, $hostname)) {
+        return false;
+    }
+
+    // Ensure no label exceeds 63 characters
+    $labels = explode('.', $hostname);
+    foreach ($labels as $label) {
+        if (strlen($label) > 63) {
+            return false;
+        }
+    }
+
+    // Ensure full hostname is not longer than 255 characters
+    if (strlen($hostname) > 255) {
+        return false;
+    }
+
+    return true;
 }
