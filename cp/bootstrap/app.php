@@ -306,6 +306,9 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     if ($path && $path === '/create-adyen-payment') {
         return $handler->handle($request);
     }
+    if ($path && $path === '/create-nicky-payment') {
+        return $handler->handle($request);
+    }
     if ($path && $path === '/create-crypto-payment') {
         return $handler->handle($request);
     }
