@@ -114,26 +114,26 @@
                     </a>
                   </div>
                   <div class="col-lg-6 col-xl-4">
-                    <div class="card">
+                    <div class="card h-100">
                       <div class="card-body">
                         <h3 class="card-title">{{ __('Last 7 Days: Domain Registrations') }}</h3>
-                        <div id="last-7-days"></div>
+                        <div id="last-7-days" class="flex-grow-1"></div>
                       </div>
                     </div>
                   </div>
                   <div class="col-lg-6 col-xl-4">
-                    <div class="card">
+                    <div class="card h-100">
                       <div class="card-body">
                       <h3 class="card-title">{{ __('Top Registrars by Domains') }}</h3>
-                        <div id="top-registrars"></div>
+                        <div id="top-registrars" class="flex-grow-1"></div>
                       </div>
                     </div>
                   </div>
                   <div class="col-lg-6 col-xl-4">
-                    <div class="card">
+                    <div class="card h-100">
                       <div class="card-body">
                       <h3 class="card-title">{{ __('Support Tickets: Last Week') }}</h3>
-                        <div id="support-tickets"></div>
+                        <div id="support-tickets" class="flex-grow-1"></div>
                       </div>
                     </div>
                   </div>
@@ -316,229 +316,112 @@
       </div>
     {% if registrars %}
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        var dates = JSON.parse('{{ dates|raw }}');
-        var counts = JSON.parse('{{ counts|raw }}');
-        
-        var labels = JSON.parse('{{ labels|raw }}');
-        var series = JSON.parse('{{ series|raw }}');
-        
-        var labels3 = JSON.parse('{{ labels3|raw }}');
-        var answeredData = JSON.parse('{{ answeredData|raw }}');
-        var unansweredData = JSON.parse('{{ unansweredData|raw }}');
-    
-          window.ApexCharts && (new ApexCharts(document.getElementById('last-7-days'), {
-              chart: {
-                  type: "bar",
-                  fontFamily: 'inherit',
-                  height: 240,
-                  parentHeightOffset: 0,
-                  toolbar: {
-                      show: false,
-                  },
-                  animations: {
-                      enabled: false
-                  },
-              },
-              plotOptions: {
-                  bar: {
-                      columnWidth: '50%',
-                  }
-              },
-              dataLabels: {
-                  enabled: false,
-              },
-              fill: {
-                  opacity: 1,
-              },
-              series: counts.some(count => count > 0) ? [{
-                name: "Domain Registrations",
-                data: counts
-              }] : [],
-              tooltip: {
-                  theme: 'dark'
-              },
-              grid: {
-                  padding: {
-                      top: -20,
-                      right: 0,
-                      left: -4,
-                      bottom: -4
-                  },
-                  strokeDashArray: 4,
-              },
-              xaxis: {
-                  labels: {
-                      padding: 0,
-                  },
-                  tooltip: {
-                      enabled: false
-                  },
-                  axisBorder: {
-                      show: false,
-                  },
-                  type: 'category',
-                  categories: dates,
-              },
-              yaxis: {
-                  labels: {
-                      padding: 4,
-                      formatter: function (value) {
-                        return value;
-                      }
-                  },
-              },
-              noData: {
-                text: "No data available",
-                align: 'center',
-                verticalAlign: 'middle',
-                style: {
-                  color: '#888',
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }
-              },
-              colors: ["color-mix(in srgb, transparent, var(--tblr-primary) 100%)",],
-              legend: {
-                  show: false,
-              },
-          })).render();
+    document.addEventListener("DOMContentLoaded", function () {
+      const parse = (str) => {
+        try {
+          const val = JSON.parse(str);
+          return Array.isArray(val) ? val : [];
+        } catch {
+          return [];
+        }
+      };
 
-          window.ApexCharts && (new ApexCharts(document.getElementById('top-registrars'), {
-              chart: {
-                  type: "donut",
-                  fontFamily: 'inherit',
-                  height: 245,
-                  sparkline: {
-                      enabled: true
-                  },
-                  animations: {
-                      enabled: false
-                  },
-              },
-              fill: {
-                  opacity: 1,
-              },
-              series: series.some(val => val > 0) ? series : [],
-              labels: labels,
-              tooltip: {
-                  theme: 'dark'
-              },
-              grid: {
-                  strokeDashArray: 4,
-              },
-              noData: {
-                text: "No data to display",
-                align: 'center',
-                verticalAlign: 'middle',
-                style: {
-                  color: '#888',
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }
-              },
-              colors: [
-                "color-mix(in srgb, transparent, var(--tblr-primary) 100%)", 
-                "color-mix(in srgb, transparent, var(--tblr-primary) 80%)", 
-                "color-mix(in srgb, transparent, var(--tblr-primary) 60%)", 
-                "color-mix(in srgb, transparent, var(--tblr-gray-300) 100%)"
-              ],
-              legend: {
-                  show: true,
-                  position: 'bottom',
-                  markers: {
-                      width: 10,
-                      height: 10,
-                      radius: 100,
-                  },
-                  itemMargin: {
-                      horizontal: 8,
-                      vertical: 8
-                  },
-              },
-              tooltip: {
-                  fillSeriesColor: false
-              },
-          })).render();
+      let dates = parse('{{ dates|raw }}');
+      let counts = parse('{{ counts|raw }}');
+      let labels = parse('{{ labels|raw }}');
+      let series = parse('{{ series|raw }}');
+      let labels3 = parse('{{ labels3|raw }}');
+      let answeredData = parse('{{ answeredData|raw }}');
+      let unansweredData = parse('{{ unansweredData|raw }}');
 
-          window.ApexCharts && (new ApexCharts(document.getElementById('support-tickets'), {
-              chart: {
-                  type: "bar",
-                  fontFamily: 'inherit',
-                  height: 240,
-                  parentHeightOffset: 0,
-                  toolbar: {
-                      show: false,
-                  },
-                  animations: {
-                      enabled: false
-                  },
-                  stacked: true,
-              },
-              plotOptions: {
-                  bar: {
-                      columnWidth: '50%',
-                  }
-              },
-              dataLabels: {
-                  enabled: false,
-              },
-              fill: {
-                  opacity: 1,
-              },
-              series: (answeredData.some(val => val > 0) || unansweredData.some(val => val > 0)) ? [
-                { name: "Answered", data: answeredData },
-                { name: "Pending", data: unansweredData }
-              ] : [],
-              tooltip: {
-                  theme: 'dark'
-              },
-              grid: {
-                  padding: {
-                      top: -20,
-                      right: 0,
-                      left: -4,
-                      bottom: -4
-                  },
-                  strokeDashArray: 4,
-              },
-              xaxis: {
-                  labels: {
-                      padding: 0,
-                  },
-                  tooltip: {
-                      enabled: false
-                  },
-                  axisBorder: {
-                      show: false,
-                  },
-                  type: 'category',
-                  categories: labels3,
-              },
-              yaxis: {
-                  labels: {
-                      padding: 4,
-                      formatter: function (value) {
-                        return value;
-                      }
-                  },
-              },
-              noData: {
-                text: "No support ticket data available",
-                align: 'center',
-                verticalAlign: 'middle',
-                style: {
-                  color: '#888',
-                  fontSize: '14px',
-                  fontFamily: 'inherit'
-                }
-              },
-              colors: ["color-mix(in srgb, transparent, var(--tblr-primary) 100%)", "color-mix(in srgb, transparent, var(--tblr-red) 100%)",],
-              legend: {
-                  show: false,
-              },
-          })).render();
-      });
+      // Domains: last 7 days
+      if (counts.length > 0 && dates.length > 0 && counts.length === dates.length && counts.some(v => v > 0)) {
+        new ApexCharts(document.getElementById('last-7-days'), {
+          chart: { type: "bar", height: 240, fontFamily: 'inherit', animations: { enabled: false }, toolbar: { show: false }, parentHeightOffset: 0 },
+          plotOptions: { bar: { columnWidth: '50%' } },
+          dataLabels: { enabled: false },
+          fill: { opacity: 1 },
+          series: [{ name: "Domain Registrations", data: counts }],
+          xaxis: { categories: dates, type: 'category', labels: { padding: 0 }, tooltip: { enabled: false }, axisBorder: { show: false } },
+          yaxis: { labels: { padding: 4 } },
+          tooltip: { theme: 'dark' },
+          grid: { padding: { top: -20, right: 0, bottom: -4, left: -4 }, strokeDashArray: 4 },
+          colors: ["color-mix(in srgb, transparent, var(--tblr-primary) 100%)"],
+          legend: { show: false }
+        }).render();
+      } else {
+        document.getElementById('last-7-days').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center" style="height: 240px;">
+            <div class="text-muted text-center">
+              <strong>No data available</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      // Top Registrars
+      if (series.length > 0 && labels.length === series.length && series.some(v => v > 0)) {
+        new ApexCharts(document.getElementById('top-registrars'), {
+          chart: { type: "donut", height: 245, fontFamily: 'inherit', animations: { enabled: false }, sparkline: { enabled: true } },
+          fill: { opacity: 1 },
+          series: series,
+          labels: labels,
+          tooltip: { theme: 'dark', fillSeriesColor: false },
+          grid: { strokeDashArray: 4 },
+          colors: [
+            "color-mix(in srgb, transparent, var(--tblr-primary) 100%)",
+            "color-mix(in srgb, transparent, var(--tblr-primary) 80%)",
+            "color-mix(in srgb, transparent, var(--tblr-primary) 60%)",
+            "color-mix(in srgb, transparent, var(--tblr-gray-300) 100%)"
+          ],
+          legend: { show: true, position: 'bottom', markers: { width: 10, height: 10, radius: 100 }, itemMargin: { horizontal: 8, vertical: 8 } }
+        }).render();
+      } else {
+        document.getElementById('top-registrars').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center" style="height: 240px;">
+            <div class="text-muted text-center">
+              <strong>No data available</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      // Support Tickets
+      if (
+        labels3.length > 0 &&
+        answeredData.length === unansweredData.length &&
+        answeredData.length === labels3.length &&
+        (answeredData.some(v => v > 0) || unansweredData.some(v => v > 0))
+      ) {
+        new ApexCharts(document.getElementById('support-tickets'), {
+          chart: { type: "bar", height: 240, fontFamily: 'inherit', animations: { enabled: false }, toolbar: { show: false }, parentHeightOffset: 0, stacked: true },
+          plotOptions: { bar: { columnWidth: '50%' } },
+          dataLabels: { enabled: false },
+          fill: { opacity: 1 },
+          series: [
+            { name: "Answered", data: answeredData },
+            { name: "Pending", data: unansweredData }
+          ],
+          xaxis: { categories: labels3, type: 'category', labels: { padding: 0 }, tooltip: { enabled: false }, axisBorder: { show: false } },
+          yaxis: { labels: { padding: 4 } },
+          tooltip: { theme: 'dark' },
+          grid: { padding: { top: -20, right: 0, bottom: -4, left: -4 }, strokeDashArray: 4 },
+          colors: [
+            "color-mix(in srgb, transparent, var(--tblr-primary) 100%)",
+            "color-mix(in srgb, transparent, var(--tblr-red) 100%)"
+          ],
+          legend: { show: false }
+        }).render();
+      } else {
+        document.getElementById('support-tickets').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center" style="height: 240px;">
+            <div class="text-muted text-center">
+              <strong>No support ticket data available</strong>
+            </div>
+          </div>
+        `;
+      }
+    });
     </script>
     {% endif %}
 {% endblock %}
