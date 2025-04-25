@@ -155,6 +155,11 @@ $container->set('view', function ($container) {
     } else {
         $view->getEnvironment()->addGlobal('screen_mode', 'light');
     }
+    if (isset($_SESSION['_theme'])) {
+        $view->getEnvironment()->addGlobal('theme', $_SESSION['_theme']);
+    } else {
+        $view->getEnvironment()->addGlobal('theme', 'blue');
+    }
     if (envi('MINIMUM_DATA') === 'true') {
         $view->getEnvironment()->addGlobal('minimum_data', 'true');
     } else {

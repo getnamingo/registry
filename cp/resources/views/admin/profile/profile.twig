@@ -49,56 +49,145 @@
                   <div class="card-body">
                       <div class="tab-content">
                         <div class="tab-pane active show" id="tabs-details">
-                            <h3 class="card-title">{{ __('Details') }}</h3>
-                            <form action="{{route('change.password')}}" name="register" method="post">
-                            {{ csrf.field | raw }}
-                            <div class="datagrid">
-                              <div class="datagrid-item">
-                                <div class="datagrid-title">{{ __('User Name') }}</div>
-                                <div class="datagrid-content">{{ username }}</div>
-                              </div>
-                              <div class="datagrid-item">
-                                <div class="datagrid-title">{{ __('Email') }}</div>
-                                <div class="datagrid-content">{{ email }}</div>
-                              </div>
-                              <div class="datagrid-item">
-                                <div class="datagrid-title">{{ __('Status') }}</div>
-                                <div class="datagrid-content">
-                                  <span class="status status-azure">
-                                    {{ status }}
-                                  </span>
-                                </div>
-                              </div>
-                              <div class="datagrid-item">
-                                <div class="datagrid-title">{{ __('Role') }}</div>
-                                <div class="datagrid-content">
-                                  <span class="status status-{% if role == 'Administrator' %}purple{% elseif role == 'Registrar' %}indigo{% elseif role == 'Registrar Assistant' %}azure{% endif %}">
-                                    {{ role }}
-                                  </span>
-                                </div>
+                          <h3 class="card-title">{{ __('Details') }}</h3>
+                          <div class="datagrid">
+                            <div class="datagrid-item">
+                              <div class="datagrid-title">{{ __('User Name') }}</div>
+                              <div class="datagrid-content">{{ username }}</div>
+                            </div>
+                            <div class="datagrid-item">
+                              <div class="datagrid-title">{{ __('Email') }}</div>
+                              <div class="datagrid-content">{{ email }}</div>
+                            </div>
+                            <div class="datagrid-item">
+                              <div class="datagrid-title">{{ __('Status') }}</div>
+                              <div class="datagrid-content">
+                                <span class="status status-azure">
+                                  {{ status }}
+                                </span>
                               </div>
                             </div>
-                            <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
-                            <div class="row g-3 mb-3">
-                              <div class="col-md">
-                                <div class="form-label required">{{ __('Old Password') }}</div>
-                                <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="{{ __('Enter old password') }}" required>
-                                {% if errors.old_password %}
-                                    <small class="form-hint">{{ errors.old_password | first }}</small>
-                                {% endif %}
-                              </div>
-                              <div class="col-md">
-                                <div class="form-label required">{{ __('New Password') }}</div>
-                                <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="{{ __('Enter new password') }}" required>
-                                {% if errors.new_password %}
-                                    <small class="form-hint">{{ errors.new_password | first }}</small>
-                                {% endif %}
+                            <div class="datagrid-item">
+                              <div class="datagrid-title">{{ __('Role') }}</div>
+                              <div class="datagrid-content">
+                                <span class="status status-{% if role == 'Administrator' %}purple{% elseif role == 'Registrar' %}indigo{% elseif role == 'Registrar Assistant' %}azure{% endif %}">
+                                  {{ role }}
+                                </span>
                               </div>
                             </div>
-                              <button type="submit" class="btn btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
-                              </button>
-                            </form>
+                          </div>
+                          <div class="row g-5">
+                            <div class="col-md-6">
+                              <form action="{{route('change.password')}}" name="register" method="post">
+                              {{ csrf.field | raw }}
+                              <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
+                              <div class="row g-3 mb-3">
+                                <div class="col-md">
+                                  <div class="form-label required">{{ __('Old Password') }}</div>
+                                  <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="{{ __('Enter old password') }}" required>
+                                  {% if errors.old_password %}
+                                      <small class="form-hint">{{ errors.old_password | first }}</small>
+                                  {% endif %}
+                                </div>
+                                <div class="col-md">
+                                  <div class="form-label required">{{ __('New Password') }}</div>
+                                  <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="{{ __('Enter new password') }}" required>
+                                  {% if errors.new_password %}
+                                      <small class="form-hint">{{ errors.new_password | first }}</small>
+                                  {% endif %}
+                                </div>
+                              </div>
+                                <button type="submit" class="btn btn-primary">
+                                  <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path></svg> {{ __('Update') }}
+                                </button>
+                              </form>
+                            </div>
+                            <div class="col-md-6">
+                              <form action="{{route('select.theme')}}" name="theme" method="post">
+                              {{ csrf.field | raw }}
+                              <h3 class="card-title mt-4">{{ __('Select Theme') }}</h3>                    
+                              <div class="row g-3 mb-3">
+                                <div class="row g-2">
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="blue" class="form-colorinput-input" {% if theme == 'blue' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-blue"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="azure" class="form-colorinput-input" {% if theme == 'azure' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-azure"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="indigo" class="form-colorinput-input" {% if theme == 'indigo' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-indigo"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="purple" class="form-colorinput-input" {% if theme == 'purple' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-purple"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="pink" class="form-colorinput-input" {% if theme == 'pink' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-pink"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="red" class="form-colorinput-input" {% if theme == 'red' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-red"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="orange" class="form-colorinput-input" {% if theme == 'orange' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-orange"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="yellow" class="form-colorinput-input" {% if theme == 'yellow' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-yellow"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="lime" class="form-colorinput-input" {% if theme == 'lime' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-lime"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="green" class="form-colorinput-input" {% if theme == 'green' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-green"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="teal" class="form-colorinput-input" {% if theme == 'teal' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-teal"></span>
+                                    </label>
+                                  </div>
+                                  <div class="col-auto">
+                                    <label class="form-colorinput">
+                                      <input name="theme-primary" type="radio" value="cyan" class="form-colorinput-input" {% if theme == 'cyan' %}checked{% endif %} />
+                                      <span class="form-colorinput-color bg-cyan"></span>
+                                    </label>
+                                  </div>
+                                </div>
+                              </div>
+                                <button type="submit" class="btn btn-outline-primary">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 3m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" /><path d="M19 6h1a2 2 0 0 1 2 2a5 5 0 0 1 -5 5l-5 0v2" /><path d="M10 15m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z" /></svg> {{ __('Select') }}
+                                </button>
+                              </form>
+                            </div>
+                          </div>
                         </div>
                         <div class="tab-pane" id="tabs-2fa">
                           {% if secret is defined %}

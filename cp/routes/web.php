@@ -173,6 +173,7 @@ $app->group('', function ($route) {
     $route->post('/token-well', ProfileController::class .':tokenWell')->setName('tokenWell');
 
     $route->get('/mode', HomeController::class .':mode')->setName('mode');
+    $route->post('/theme', HomeController::class . ':selectTheme')->setName('select.theme');
     $route->get('/lang', HomeController::class .':lang')->setName('lang');
     $route->get('/logout', AuthController::class . ':logout')->setName('logout');
     $route->post('/change-password', PasswordController::class . ':changePassword')->setName('change.password');

@@ -222,4 +222,15 @@ class HomeController extends Controller
         }
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
+
+    public function selectTheme(Request $request, Response $response)
+    {
+        global $container;
+
+        $data = $request->getParsedBody();
+        $_SESSION['_theme'] = ($v = substr(trim(preg_replace('/[^\x20-\x7E]/', '', $data['theme-primary'] ?? '')), 0, 30)) !== '' ? $v : 'blue';
+
+        $container->get('flash')->addMessage('success', 'Theme color has been set successfully');
+        return $response->withHeader('Location', '/profile')->withStatus(302);
+    }
 }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang == 'ar' or _lang == 'ar_SA' ? 'rtl' : 'ltr' }}"{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}>
+<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang in ['ar', 'ar_SA'] ? 'rtl' : 'ltr' }}"{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}{% if theme is not defined or theme is empty %} data-bs-theme-primary="blue"{% else %} data-bs-theme-primary="{{ theme }}"{% endif %}>
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
