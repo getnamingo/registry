@@ -130,7 +130,7 @@ function sendGreeting($conn) {
             'access' => ['all'],
             'statement' => [
                 'purpose' => ['admin', 'prov'],
-                'recipient' => ['ours'],
+                'recipient' => ['ours', 'public'],
                 'retention' => ['stated']
             ]
         ]
