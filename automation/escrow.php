@@ -34,11 +34,6 @@ try {
 }
 
 try {
-    $domainCount = fetchCount($dbh, 'domain');
-    $hostCount = fetchCount($dbh, 'host');
-    $contactCount = fetchCount($dbh, 'contact');
-    $registrarCount = fetchCount($dbh, 'registrar');
-
     // Fetching TLDs
     $stmt = $dbh->query("SELECT id,tld FROM domain_tld;");
     $tlds = $stmt->fetchAll();
@@ -61,7 +56,12 @@ try {
     foreach ($tlds as $tld) {
         $tldname = ltrim($tld['tld'], '.');
         $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
-        
+
+        $domainCount = fetchDomainCount($dbh, $tld['id']);
+        $hostCount = fetchCount($dbh, 'host');
+        $contactCount = fetchCount($dbh, 'contact');
+        $registrarCount = fetchCount($dbh, 'registrar');
+
         // Skip subdomains
         if (strpos($tldname, '.') !== false) {
             continue;
@@ -84,7 +84,6 @@ try {
         $xml->writeAttributeNS('xmlns', 'domain', null, 'urn:ietf:params:xml:ns:domain-1.0');
         $xml->writeAttributeNS('xmlns', 'contact', null, 'urn:ietf:params:xml:ns:contact-1.0');
         $xml->writeAttributeNS('xmlns', 'secDNS', null, 'urn:ietf:params:xml:ns:secDNS-1.1');
-        $xml->writeAttributeNS('xmlns', 'rdeHeader', null, 'urn:ietf:params:xml:ns:rdeHeader-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeDomain', null, 'urn:ietf:params:xml:ns:rdeDomain-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeHost', null, 'urn:ietf:params:xml:ns:rdeHost-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeContact', null, 'urn:ietf:params:xml:ns:rdeContact-1.0');
@@ -110,7 +109,6 @@ try {
 
         // Array of objURI values
         $objURIs = [
-            'urn:ietf:params:xml:ns:rdeHeader-1.0',
             'urn:ietf:params:xml:ns:rdeContact-1.0',
             'urn:ietf:params:xml:ns:rdeHost-1.0',
             'urn:ietf:params:xml:ns:rdeDomain-1.0',
@@ -659,7 +657,6 @@ try {
 
             // Array of objURI values
             $objURIs = [
-                'urn:ietf:params:xml:ns:rdeHeader-1.0',
                 'urn:ietf:params:xml:ns:rdeContact-1.0',
                 'urn:ietf:params:xml:ns:rdeHost-1.0',
                 'urn:ietf:params:xml:ns:rdeDomain-1.0',

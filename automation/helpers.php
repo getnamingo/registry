@@ -138,6 +138,22 @@ function fetchCount($pdo, $tableName) {
     return $result['count'];
 }
 
+function fetchDomainCount($pdo, $tld_id) {
+    // Calculate the end of the previous day
+    $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
+
+    // Prepare the SQL query
+    $query = "SELECT COUNT(id) AS count FROM domain WHERE crdate <= :endOfPreviousDay AND tldid = :tldid";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+    $stmt->bindParam(':tldid', $tld_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    // Fetch and return the count
+    $result = $stmt->fetch();
+    return $result['count'];
+}
+
 // Function to check domain against Spamhaus SBL
 function checkSpamhaus($domain) {
     // Append '.sbl.spamhaus.org' to the domain
