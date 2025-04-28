@@ -191,7 +191,10 @@ try {
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $status = $stmt->fetch();
-            $xml->writeElement('rdeDomain:status', $status['status'] ?? 'okk');
+            $xml->startElement('rdeDomain:status');
+            $xml->writeAttribute('s', $status['status'] ?? 'ok');
+            $xml->text($status['status'] ?? 'ok');
+            $xml->endElement(); // Close rdeDomain:status
 
             $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
 
@@ -218,8 +221,8 @@ try {
             }
             $xml->endElement();  // Closing rdeDomain:ns
 
-            $xml->writeElement('rdeDomain:clID', $domain['clid']);
-            $xml->writeElement('rdeDomain:crRr', $domain['crid']);
+            $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
+            $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
             $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
@@ -244,8 +247,8 @@ try {
             $xml->text('ok');
             $xml->endElement();  // Closing rdeHost:status
             
-            $xml->writeElement('rdeHost:clID', $host['clid']);
-            $xml->writeElement('rdeHost:crRr', $host['crid']);
+            $xml->writeElement('rdeHost:clID', getClid($dbh, $host['clid']));
+            $xml->writeElement('rdeHost:crRr', getClid($dbh, $host['crid']));
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $host['crdate']);
             $xml->writeElement('rdeHost:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             $xml->endElement();  // Closing rdeHost:host
@@ -289,8 +292,8 @@ try {
             $xml->writeElement('rdeContact:voice', $contact['voice']);
             $xml->writeElement('rdeContact:fax', $contact['fax']);
             $xml->writeElement('rdeContact:email', $contact['email']);
-            $xml->writeElement('rdeContact:clID', $contact['clid']);
-            $xml->writeElement('rdeContact:crRr', $contact['crid']);
+            $xml->writeElement('rdeContact:clID', getClid($dbh, $contact['clid']));
+            $xml->writeElement('rdeContact:crRr', getClid($dbh, $contact['crid']));
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['crdate']);
             $xml->writeElement('rdeContact:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             if (!empty($contact['upid'])) {
@@ -736,7 +739,10 @@ try {
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $status = $stmt->fetch();
-                $xml->writeElement('rdeDomain:status', $status['status'] ?? 'okk');
+                $xml->startElement('rdeDomain:status');
+                $xml->writeAttribute('s', $status['status'] ?? 'ok');
+                $xml->text($status['status'] ?? 'ok');
+                $xml->endElement(); // Close rdeDomain:status
 
                 $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
 
@@ -763,8 +769,8 @@ try {
                 }
                 $xml->endElement();  // Closing rdeDomain:ns
 
-                $xml->writeElement('rdeDomain:clID', $domain['clid']);
-                $xml->writeElement('rdeDomain:crRr', $domain['crid']);
+                $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
+                $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
                 $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
                 $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);

@@ -197,6 +197,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     // Extract and validate the domain name from the request
     $domain = urldecode($domainName);
     $domain = trim($domain);
+    $domain = strtolower($domain);
 
     // Empty domain check
     if (!$domain) {

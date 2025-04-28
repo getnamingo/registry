@@ -525,3 +525,13 @@ function generateSerial($soa_type = null) {
             return time();
     }
 }
+
+function getClid(PDO $db, int $registrar_id): ?string {
+    $stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :id LIMIT 1");
+    $stmt->bindParam(':id', $registrar_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $result ? (string)$result['clid'] : null;
+}
