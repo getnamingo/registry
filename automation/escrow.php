@@ -110,14 +110,14 @@ try {
 
         // Array of objURI values
         $objURIs = [
-            'urn:ietf:params:xml:ns:rdeHeader-1.0',
             'urn:ietf:params:xml:ns:rdeContact-1.0',
             'urn:ietf:params:xml:ns:rdeHost-1.0',
             'urn:ietf:params:xml:ns:rdeDomain-1.0',
             'urn:ietf:params:xml:ns:rdeRegistrar-1.0',
             'urn:ietf:params:xml:ns:rdeIDN-1.0',
             'urn:ietf:params:xml:ns:rdeNNDN-1.0',
-            'urn:ietf:params:xml:ns:rdeEppParams-1.0'
+            'urn:ietf:params:xml:ns:rdeEppParams-1.0',
+            'urn:ietf:params:xml:ns:rdePolicy-1.0'
         ];
 
         // Write each rde:objURI element
@@ -157,17 +157,22 @@ try {
         
         $xml->startElement('rdeHeader:count');
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-        $xml->text('0');
+        $xml->text('1');
         $xml->endElement();
 
         $xml->startElement('rdeHeader:count');
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
         $xml->text('0');
         $xml->endElement();
-        
+
+        $xml->startElement('rdeHeader:count');
+        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdePolicy-1.0');
+        $xml->text('1');
+        $xml->endElement();
+
         $xml->startElement('rdeHeader:count');
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeEppParams-1.0');
-        $xml->text('0');
+        $xml->text('1');
         $xml->endElement();
 
         $xml->endElement();  // Closing rdeHeader:header
@@ -666,14 +671,14 @@ try {
 
             // Array of objURI values
             $objURIs = [
-                'urn:ietf:params:xml:ns:rdeHeader-1.0',
                 'urn:ietf:params:xml:ns:rdeContact-1.0',
                 'urn:ietf:params:xml:ns:rdeHost-1.0',
                 'urn:ietf:params:xml:ns:rdeDomain-1.0',
                 'urn:ietf:params:xml:ns:rdeRegistrar-1.0',
                 'urn:ietf:params:xml:ns:rdeIDN-1.0',
                 'urn:ietf:params:xml:ns:rdeNNDN-1.0',
-                'urn:ietf:params:xml:ns:rdeEppParams-1.0'
+                'urn:ietf:params:xml:ns:rdeEppParams-1.0',
+                'urn:ietf:params:xml:ns:rdePolicy-1.0'
             ];
 
             // Write each rde:objURI element
@@ -713,17 +718,22 @@ try {
             
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-            $xml->text('0');
+            $xml->text('1');
             $xml->endElement();
 
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
             $xml->text('0');
             $xml->endElement();
-            
+
+            $xml->startElement('rdeHeader:count');
+            $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdePolicy-1.0');
+            $xml->text('1');
+            $xml->endElement();
+
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeEppParams-1.0');
-            $xml->text('0');
+            $xml->text('1');
             $xml->endElement();
 
             $xml->endElement();  // Closing rdeHeader:header

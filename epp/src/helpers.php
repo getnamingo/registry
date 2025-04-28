@@ -1035,9 +1035,23 @@ function validateHostName(string $hostName): bool
 }
 
 function ipMatches($ip, $cidr) {
+    if (strpos($cidr, '/') === false) {
+        return false; // invalid CIDR
+    }
+    
     list($subnet, $mask) = explode('/', $cidr);
+    if (!is_numeric($mask) || $mask < 0 || $mask > 32) {
+        return false; // invalid mask
+    }
+
     $ipLong = ip2long($ip);
     $subnetLong = ip2long($subnet);
+
+    if ($ipLong === false || $subnetLong === false) {
+        return false; // invalid IP
+    }
+
     $maskLong = -1 << (32 - (int)$mask);
+
     return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
 }
