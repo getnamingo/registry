@@ -465,48 +465,11 @@ try {
         if ($c['escrow_deleteXML']) {
             unlink($c['escrow_deposit_path']."/".$xmlFileName);
         }
-        
-        // Initialize a GnuPG instance
-        $res = gnupg_init();
-
-        // Get information about the public key from its content
-        $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        if ($publicKeyInfo === false) {
-            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
-            exit(1);
-        }
-        $fingerprint = $publicKeyInfo['fingerprint'];
-
-        // Check if the key is already in the keyring
-        $existingKeys = gnupg_keyinfo($res, $fingerprint);
-
-        if (!$existingKeys) {
-            // If not, import the public key
-            gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        }
 
         // Read the .tar.gz file contents
         $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $gzipFileName);
-        
-        // Add the encryption key
-        gnupg_addencryptkey($res, $fingerprint);
 
-        // Encrypt the file data using the public key
-        $encryptedData = gnupg_encrypt($res, $fileData);
-
-        if (!$encryptedData) {
-            $log->error('Error encrypting data: ' . gnupg_geterror($res));
-        }
-
-        // Save the encrypted data to a new file
-        file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde", $encryptedData);
-
-        // Delete the original .tar.gz file
-        unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
-        
-        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
-        
-        // Initialize the GnuPG extension
+        // Initialize GnuPG for signing
         $gpg = new gnupg();
         $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
 
@@ -532,17 +495,49 @@ try {
         // Specify the detached signature mode
         $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
-        // Sign the encrypted data
-        $encryptedData = file_get_contents($encryptedFilePath);
-        $signature = $gpg->sign($encryptedData);
+        // Sign the original file
+        $signature = $gpg->sign($fileData);
 
         // Save the signature to a .sig file
-        $signatureFilePath = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePath, PATHINFO_FILENAME) . '.sig';
+        $signatureFilePath = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
         file_put_contents($signatureFilePath, $signature);
 
-        // Optionally, delete the encrypted file if you don't need it anymore
-        // unlink($encryptedFilePath);
-        
+        // Initialize GnuPG for encryption
+        $res = gnupg_init();
+
+        // Get information about the public key from its content
+        $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
+        if ($publicKeyInfo === false) {
+            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
+            exit(1);
+        }
+        $fingerprint = $publicKeyInfo['fingerprint'];
+
+        // Check if the key is already in the keyring
+        $existingKeys = gnupg_keyinfo($res, $fingerprint);
+
+        if (!$existingKeys) {
+            // If not, import the public key
+            gnupg_import($res, file_get_contents($c['escrow_keyPath']));
+        }
+
+        // Add the encryption key
+        gnupg_addencryptkey($res, $fingerprint);
+
+        // Encrypt the file data using the public key
+        $encryptedData = gnupg_encrypt($res, $fileData);
+
+        if (!$encryptedData) {
+            $log->error('Error encrypting data: ' . gnupg_geterror($res));
+        }
+
+        // Save the encrypted data to a new file
+        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
+        file_put_contents($encryptedFilePath, $encryptedData);
+
+        // Delete the original .tar.gz file
+        unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
+
         // Start XMLWriter for the report
         $reportXML = new XMLWriter();
         $reportXML->openMemory();
@@ -609,7 +604,7 @@ try {
         $reps = $reportXML->outputMemory();
 
         // Save the report file
-        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_".date('Ymd')."_full_R{$finalDepositId}.rep";
+        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_" . date('Y-m-d') . "_full_R{$finalDepositId}.rep";
         file_put_contents($reportFilePath, $reps, LOCK_EX);
         
         $dayOfWeekToRunBRDA = $c['escrow_BRDAday'];
@@ -857,41 +852,8 @@ try {
                 unlink($c['escrow_deposit_path']."/".$xmlFileName);
             }
             
-            // Initialize a GnuPG instance
-            $res = gnupg_init();
-
-            // Get information about the public key from its content
-            $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
-            $fingerprint = $publicKeyInfo['fingerprint'];
-
-            // Check if the key is already in the keyring
-            $existingKeys = gnupg_keyinfo($res, $fingerprint);
-
-            if (!$existingKeys) {
-                // If not, import the public key
-                gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
-            }
-
             // Read the .tar.gz file contents
             $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $gzipFileName);
-            
-            // Add the encryption key
-            gnupg_addencryptkey($res, $fingerprint);
-
-            // Encrypt the file data using the public key
-            $encryptedData = gnupg_encrypt($res, $fileData);
-
-            if (!$encryptedData) {
-                $log->error('Error encrypting data: ' . gnupg_geterror($res));
-            }
-
-            // Save the encrypted data to a new file
-            file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde", $encryptedData);
-
-            // Delete the original .tar.gz file
-            unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
-            
-            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
             
             // Initialize the GnuPG extension
             $gpg = new gnupg();
@@ -909,12 +871,44 @@ try {
             $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
             // Sign the encrypted data
-            $encryptedData = file_get_contents($encryptedFilePathBrda);
-            $signature = $gpg->sign($encryptedData);
+            $signature = $gpg->sign($fileData);
 
             // Save the signature to a .sig file
-            $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePathBrda, PATHINFO_FILENAME) . '.sig';
+            $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
             file_put_contents($signatureFilePathBrda, $signature);
+            
+            // Initialize a GnuPG instance
+            $res = gnupg_init();
+
+            // Get information about the public key from its content
+            $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
+            $fingerprint = $publicKeyInfo['fingerprint'];
+
+            // Check if the key is already in the keyring
+            $existingKeys = gnupg_keyinfo($res, $fingerprint);
+
+            if (!$existingKeys) {
+                // If not, import the public key
+                gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
+            }            
+
+            // Add the encryption key
+            gnupg_addencryptkey($res, $fingerprint);
+
+            // Encrypt the file data using the public key
+            $encryptedData = gnupg_encrypt($res, $fileData);
+
+            if (!$encryptedData) {
+                $log->error('Error encrypting data: ' . gnupg_geterror($res));
+            }
+
+            // Save the encrypted data to a new file
+            file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde", $encryptedData);
+
+            // Delete the original .tar.gz file
+            unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
+
+            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
 
             // Optionally, delete the encrypted file if you don't need it anymore
             // unlink($encryptedFilePathBrda);
