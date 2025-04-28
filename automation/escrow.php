@@ -84,6 +84,7 @@ try {
         $xml->writeAttributeNS('xmlns', 'domain', null, 'urn:ietf:params:xml:ns:domain-1.0');
         $xml->writeAttributeNS('xmlns', 'contact', null, 'urn:ietf:params:xml:ns:contact-1.0');
         $xml->writeAttributeNS('xmlns', 'secDNS', null, 'urn:ietf:params:xml:ns:secDNS-1.1');
+        $xml->writeAttributeNS('xmlns', 'rdeHeader', null, 'urn:ietf:params:xml:ns:rdeHeader-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeDomain', null, 'urn:ietf:params:xml:ns:rdeDomain-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeHost', null, 'urn:ietf:params:xml:ns:rdeHost-1.0');
         $xml->writeAttributeNS('xmlns', 'rdeContact', null, 'urn:ietf:params:xml:ns:rdeContact-1.0');
@@ -109,6 +110,7 @@ try {
 
         // Array of objURI values
         $objURIs = [
+            'urn:ietf:params:xml:ns:rdeHeader-1.0',
             'urn:ietf:params:xml:ns:rdeContact-1.0',
             'urn:ietf:params:xml:ns:rdeHost-1.0',
             'urn:ietf:params:xml:ns:rdeDomain-1.0',
@@ -664,6 +666,7 @@ try {
 
             // Array of objURI values
             $objURIs = [
+                'urn:ietf:params:xml:ns:rdeHeader-1.0',
                 'urn:ietf:params:xml:ns:rdeContact-1.0',
                 'urn:ietf:params:xml:ns:rdeHost-1.0',
                 'urn:ietf:params:xml:ns:rdeDomain-1.0',
