@@ -386,8 +386,15 @@ try {
 
         // Add extURI elements
         $extUriArray = [
+            'https://namingo.org/epp/funds-1.0',
+            'https://namingo.org/epp/identica-1.0',
+            'urn:ietf:params:xml:ns:secDNS-1.1',
             'urn:ietf:params:xml:ns:rgp-1.0',
-            'urn:ietf:params:xml:ns:secDNS-1.1'
+            'urn:ietf:params:xml:ns:launch-1.0',
+            'urn:ietf:params:xml:ns:idn-1.0',
+            'urn:ietf:params:xml:ns:epp:fee-1.0',
+            'urn:ietf:params:xml:ns:mark-1.0',
+            'urn:ietf:params:xml:ns:allocationToken-1.0'
         ];
 
         foreach ($extUriArray as $extUri) {
