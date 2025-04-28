@@ -316,6 +316,29 @@ try {
             $xml->writeElement('rdeRegistrar:name', $registrar['name']);
             $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
             $xml->writeElement('rdeRegistrar:status', 'ok');
+
+            // Fetch and incorporate registrar contact details
+            $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
+            $stmt->bindParam(':registrar_id', $registrar['id']);
+            $stmt->execute();
+            $registrar_contacts = $stmt->fetch();
+
+            if ($registrar_contacts) {
+                $xml->startElement('rdeRegistrar:postalInfo');
+                $xml->writeAttribute('type', 'int');
+                $xml->startElement('rdeRegistrar:addr');
+                $xml->writeElement('rdeRegistrar:street', $registrar_contacts['street1']);
+                $xml->writeElement('rdeRegistrar:city', $registrar_contacts['city']);
+                $xml->writeElement('rdeRegistrar:pc', $registrar_contacts['pc']);
+                $xml->writeElement('rdeRegistrar:cc', $registrar_contacts['cc']);
+                $xml->endElement(); // Closing rdeRegistrar:addr
+                $xml->endElement(); // Closing rdeRegistrar:postalInfo
+            }
+
+            $xml->writeElement('rdeRegistrar:voice', $registrar_contacts['voice']);
+            $xml->writeElement('rdeRegistrar:fax', $registrar_contacts['fax']);
+            $xml->writeElement('rdeRegistrar:email', $registrar['email']);
+            
             $xml->writeElement('rdeRegistrar:url', $registrar['url']);
 
             $xml->startElement('rdeRegistrar:whoisInfo');
@@ -332,27 +355,6 @@ try {
                 $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             }
 
-            // Fetch and incorporate registrar contact details
-            $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
-            $stmt->bindParam(':registrar_id', $registrar['id']);
-            $stmt->execute();
-            $registrar_contacts = $stmt->fetchAll();
-
-            foreach ($registrar_contacts as $contact) {
-                $xml->startElement('rdeRegistrar:postalInfo');
-                $xml->writeAttribute('type', 'int');
-                $xml->startElement('rdeRegistrar:addr');
-                $xml->writeElement('rdeRegistrar:street', $contact['street1']);
-                $xml->writeElement('rdeRegistrar:city', $contact['city']);
-                $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
-                $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
-                $xml->endElement();  // Closing rdeRegistrar:addr
-                $xml->endElement();  // Closing rdeRegistrar:postalInfo
-                
-                $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
-                $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
-                $xml->writeElement('rdeRegistrar:email', $contact['email']);
-            }
             $xml->endElement();  // Closing rdeRegistrar:registrar
         }
 
@@ -784,19 +786,42 @@ try {
             $stmt->execute();
             $registrars = $stmt->fetchAll();
 
-            $xml->startElement('rdeRegistrar:registrar');
             foreach ($registrars as $registrar) {
+                $xml->startElement('rdeRegistrar:registrar');
                 $xml->writeElement('rdeRegistrar:id', getClid($dbh, $registrar['id']));
                 $xml->writeElement('rdeRegistrar:name', $registrar['name']);
                 $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
                 $xml->writeElement('rdeRegistrar:status', 'ok');
+
+                // Fetch and incorporate registrar contact details
+                $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
+                $stmt->bindParam(':registrar_id', $registrar['id']);
+                $stmt->execute();
+                $registrar_contacts = $stmt->fetch();
+
+                if ($registrar_contacts) {
+                    $xml->startElement('rdeRegistrar:postalInfo');
+                    $xml->writeAttribute('type', 'int');
+                    $xml->startElement('rdeRegistrar:addr');
+                    $xml->writeElement('rdeRegistrar:street', $registrar_contacts['street1']);
+                    $xml->writeElement('rdeRegistrar:city', $registrar_contacts['city']);
+                    $xml->writeElement('rdeRegistrar:pc', $registrar_contacts['pc']);
+                    $xml->writeElement('rdeRegistrar:cc', $registrar_contacts['cc']);
+                    $xml->endElement();  // Closing rdeRegistrar:addr
+                    $xml->endElement();  // Closing rdeRegistrar:postalInfo
+                }
+
+                $xml->writeElement('rdeRegistrar:voice', $registrar_contacts['voice']);
+                $xml->writeElement('rdeRegistrar:fax', $registrar_contacts['fax']);
+                $xml->writeElement('rdeRegistrar:email', $registrar['email']);
+
                 $xml->writeElement('rdeRegistrar:url', $registrar['url']);
 
                 $xml->startElement('rdeRegistrar:whoisInfo');
                 $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
                 $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
                 $xml->endElement();  // Closing rdeRegistrar:whoisInfo
-
+                
                 $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
                 $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 if (!empty($registrar['lastupdate'])) {
@@ -805,30 +830,8 @@ try {
                 } else {
                     $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 }
-
-                // Fetch and incorporate registrar contact details
-                $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
-                $stmt->bindParam(':registrar_id', $registrar['id']);
-                $stmt->execute();
-                $registrar_contacts = $stmt->fetchAll();
-
-                foreach ($registrar_contacts as $contact) {
-                    $xml->startElement('rdeRegistrar:postalInfo');
-                    $xml->writeAttribute('type', 'int');
-                    $xml->startElement('rdeRegistrar:addr');
-                    $xml->writeElement('rdeRegistrar:street', $contact['street1']);
-                    $xml->writeElement('rdeRegistrar:city', $contact['city']);
-                    $xml->writeElement('rdeRegistrar:pc', $contact['pc']);
-                    $xml->writeElement('rdeRegistrar:cc', $contact['cc']);
-                    $xml->endElement();  // Closing rdeRegistrar:addr
-                    $xml->endElement();  // Closing rdeRegistrar:postalInfo
-                    
-                    $xml->writeElement('rdeRegistrar:voice', $contact['voice']);
-                    $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
-                    $xml->writeElement('rdeRegistrar:email', $contact['email']);
-                }
+                $xml->endElement();  // Closing rdeRegistrar:registrar
             }
-            $xml->endElement();  // Closing rdeRegistrar:registrar
             
             // End the rde:contents element
             $xml->endElement(); // End rde:contents
