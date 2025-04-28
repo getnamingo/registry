@@ -91,9 +91,18 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
 
     // Check if the IP is in the permitted list
     if (!$permittedIPsTable->exist($clientIP)) {
-        $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
-        $conn->close();
-        return;
+        $allowed = false;
+        foreach ($permittedIPsTable as $row) {
+            if (strpos($row['addr'], '/') !== false && ipMatches($clientIP, $row['addr'])) {
+                $allowed = true;
+                break;
+            }
+        }
+        if (!$allowed) {
+            $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
+            $conn->close();
+            return;
+        }
     }
 
     if (($c['rately'] == true) && ($rateLimiter->isRateLimited('epp', $clientIP, $c['limit'], $c['period']))) {

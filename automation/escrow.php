@@ -180,20 +180,20 @@ try {
         $domains = $stmt->fetchAll();
 
         foreach ($domains as $domain) {
-            $xml->startElement('rdeDom:domain');
-            $xml->writeElement('rdeDom:name', $domain['name']);
-            $xml->writeElement('rdeDom:roid', 'D' . $domain['id'] . '-' . $c['roid']);
-            $xml->writeElement('rdeDom:uName', $domain['name']);
-            $xml->writeElement('rdeDom:idnTableId', 'Latn');
+            $xml->startElement('rdeDomain:domain');
+            $xml->writeElement('rdeDomain:name', $domain['name']);
+            $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
+            $xml->writeElement('rdeDomain:uName', $domain['name']);
+            $xml->writeElement('rdeDomain:idnTableId', 'Latn');
 
             // Fetch domain status
             $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $status = $stmt->fetch();
-            $xml->writeElement('rdeDom:status', $status['status'] ?? 'okk');
+            $xml->writeElement('rdeDomain:status', $status['status'] ?? 'okk');
 
-            $xml->writeElement('rdeDom:registrant', $domain['registrant']);
+            $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
 
             // Fetch domain contacts
             $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
@@ -201,10 +201,10 @@ try {
             $stmt->execute();
             $domain_contacts = $stmt->fetchAll();
             foreach ($domain_contacts as $contact) {
-                $xml->startElement('rdeDom:contact');
+                $xml->startElement('rdeDomain:contact');
                 $xml->writeAttribute('type', $contact['type']);
                 $xml->text($contact['contact_id']);
-                $xml->endElement();  // Closing rdeDom:contact
+                $xml->endElement();  // Closing rdeDomain:contact
             }
 
             // Fetch domain hosts and incorporate into XML
@@ -212,20 +212,20 @@ try {
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $domain_hosts = $stmt->fetchAll();
-            $xml->startElement('rdeDom:ns');
+            $xml->startElement('rdeDomain:ns');
             foreach ($domain_hosts as $host) {
                 $xml->writeElement('domain:hostObj', $host['name']);
             }
-            $xml->endElement();  // Closing rdeDom:ns
+            $xml->endElement();  // Closing rdeDomain:ns
 
-            $xml->writeElement('rdeDom:clID', $domain['clid']);
-            $xml->writeElement('rdeDom:crRr', $domain['crid']);
+            $xml->writeElement('rdeDomain:clID', $domain['clid']);
+            $xml->writeElement('rdeDomain:crRr', $domain['crid']);
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
-            $xml->writeElement('rdeDom:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
-            $xml->writeElement('rdeDom:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            $xml->writeElement('rdeDomain:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
             
-            $xml->endElement();  // Closing rdeDom:domain
+            $xml->endElement();  // Closing rdeDomain:domain
         }
 
         // Fetch and incorporate host details
@@ -438,7 +438,7 @@ try {
         $deposit = $xml->outputMemory();
 
         // Define the base name without the extension
-        $baseFileName = "{$tldname}_".date('Ymd')."_full_S1_R{$finalDepositId}";
+        $baseFileName = "{$tldname}_" . date('Y-m-d') . "_full_S1_R{$finalDepositId}";
 
         // XML, tar, and gzip filenames
         $xmlFileName = $baseFileName . ".xml";
@@ -725,20 +725,20 @@ try {
             $domains = $stmt->fetchAll();
 
             foreach ($domains as $domain) {
-                $xml->startElement('rdeDom:domain');
-                $xml->writeElement('rdeDom:name', $domain['name']);
-                $xml->writeElement('rdeDom:roid', 'D' . $domain['id'] . '-' . $c['roid']);
-                $xml->writeElement('rdeDom:uName', $domain['name']);
-                $xml->writeElement('rdeDom:idnTableId', 'Latn');
+                $xml->startElement('rdeDomain:domain');
+                $xml->writeElement('rdeDomain:name', $domain['name']);
+                $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
+                $xml->writeElement('rdeDomain:uName', $domain['name']);
+                $xml->writeElement('rdeDomain:idnTableId', 'Latn');
 
                 // Fetch domain status
                 $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $status = $stmt->fetch();
-                $xml->writeElement('rdeDom:status', $status['status'] ?? 'okk');
+                $xml->writeElement('rdeDomain:status', $status['status'] ?? 'okk');
 
-                $xml->writeElement('rdeDom:registrant', $domain['registrant']);
+                $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
 
                 // Fetch domain contacts
                 $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
@@ -746,10 +746,10 @@ try {
                 $stmt->execute();
                 $domain_contacts = $stmt->fetchAll();
                 foreach ($domain_contacts as $contact) {
-                    $xml->startElement('rdeDom:contact');
+                    $xml->startElement('rdeDomain:contact');
                     $xml->writeAttribute('type', $contact['type']);
                     $xml->text($contact['contact_id']);
-                    $xml->endElement();  // Closing rdeDom:contact
+                    $xml->endElement();  // Closing rdeDomain:contact
                 }
 
                 // Fetch domain hosts and incorporate into XML
@@ -757,20 +757,20 @@ try {
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $domain_hosts = $stmt->fetchAll();
-                $xml->startElement('rdeDom:ns');
+                $xml->startElement('rdeDomain:ns');
                 foreach ($domain_hosts as $host) {
                     $xml->writeElement('domain:hostObj', $host['name']);
                 }
-                $xml->endElement();  // Closing rdeDom:ns
+                $xml->endElement();  // Closing rdeDomain:ns
 
-                $xml->writeElement('rdeDom:clID', $domain['clid']);
-                $xml->writeElement('rdeDom:crRr', $domain['crid']);
+                $xml->writeElement('rdeDomain:clID', $domain['clid']);
+                $xml->writeElement('rdeDomain:crRr', $domain['crid']);
                 $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
-                $xml->writeElement('rdeDom:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+                $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
-                $xml->writeElement('rdeDom:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
+                $xml->writeElement('rdeDomain:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 
-                $xml->endElement();  // Closing rdeDom:domain
+                $xml->endElement();  // Closing rdeDomain:domain
             }
 
             // Fetch and incorporate registrar details
