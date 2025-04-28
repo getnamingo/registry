@@ -535,3 +535,13 @@ function getClid(PDO $db, int $registrar_id): ?string {
 
     return $result ? (string)$result['clid'] : null;
 }
+
+function getIdentifier(PDO $db, int $contact_id): ?string {
+    $stmt = $db->prepare("SELECT identifier FROM contact WHERE id = :id LIMIT 1");
+    $stmt->bindParam(':id', $contact_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $result ? (string)$result['identifier'] : null;
+}

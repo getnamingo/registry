@@ -196,7 +196,7 @@ try {
             $xml->text($status['status'] ?? 'ok');
             $xml->endElement(); // Close rdeDomain:status
 
-            $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
+            $xml->writeElement('rdeDomain:registrant', getIdentifier($dbh, $domain['registrant']));
 
             // Fetch domain contacts
             $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
@@ -206,7 +206,7 @@ try {
             foreach ($domain_contacts as $contact) {
                 $xml->startElement('rdeDomain:contact');
                 $xml->writeAttribute('type', $contact['type']);
-                $xml->text($contact['contact_id']);
+                $xml->text(getIdentifier($dbh, $contact['contact_id']));
                 $xml->endElement();  // Closing rdeDomain:contact
             }
 
@@ -297,7 +297,7 @@ try {
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['crdate']);
             $xml->writeElement('rdeContact:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             if (!empty($contact['upid'])) {
-                $xml->writeElement('rdeContact:upRr', $contact['upid']);
+                $xml->writeElement('rdeContact:upRr', getClid($dbh, $contact['upid']));
                 $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['lastupdate']);
                 $xml->writeElement('rdeContact:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
             }
@@ -310,12 +310,27 @@ try {
         $stmt->execute();
         $registrars = $stmt->fetchAll();
 
-        $xml->startElement('rdeRegistrar:registrar');
         foreach ($registrars as $registrar) {
-            $xml->writeElement('rdeRegistrar:id', $registrar['id']);
+            $xml->startElement('rdeRegistrar:registrar');
+            $xml->writeElement('rdeRegistrar:id', getClid($dbh, $registrar['id']));
             $xml->writeElement('rdeRegistrar:name', $registrar['name']);
             $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
             $xml->writeElement('rdeRegistrar:status', 'ok');
+            $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+
+            $xml->startElement('rdeRegistrar:whoisInfo');
+            $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+            $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+            $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+
+            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+            $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            if (!empty($registrar['lastupdate'])) {
+                $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['lastupdate']);
+                $xml->writeElement('rdeRegistrar:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            } else {
+                $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            }
 
             // Fetch and incorporate registrar contact details
             $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
@@ -338,18 +353,9 @@ try {
                 $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
                 $xml->writeElement('rdeRegistrar:email', $contact['email']);
             }
-
-            $xml->writeElement('rdeRegistrar:url', $registrar['url']);
-            $xml->startElement('rdeRegistrar:whoisInfo');
-            $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-            $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-            $xml->endElement();  // Closing rdeRegistrar:whoisInfo
-
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
-            $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            $xml->endElement();  // Closing rdeRegistrar:registrar
         }
-        $xml->endElement();  // Closing rdeRegistrar:registrar
-        
+
         // Writing the idnTableRef section
         $xml->startElement('rdeIDN:idnTableRef');
         $xml->writeAttribute('id', 'Latn');
@@ -443,10 +449,9 @@ try {
         // Define the base name without the extension
         $baseFileName = "{$tldname}_" . date('Y-m-d') . "_full_S1_R{$finalDepositId}";
 
-        // XML, tar, and gzip filenames
+        // XML and tar filenames
         $xmlFileName = $baseFileName . ".xml";
         $tarFileName = $baseFileName . ".tar";
-        $gzipFileName = $baseFileName . ".tar.gz";
 
         // Save the main XML file
         file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX);
@@ -455,21 +460,52 @@ try {
         $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
         $phar->addFile($c['escrow_deposit_path']."/".$xmlFileName, $xmlFileName);
 
-        // Compress the tar archive using gzip
-        $phar->compress(Phar::GZ);
-
-        // Delete the original tar file
-        unlink($c['escrow_deposit_path']."/".$tarFileName);
-
         // Check if the $c['escrow_deleteXML'] variable is set to true and delete the original XML file
         if ($c['escrow_deleteXML']) {
             unlink($c['escrow_deposit_path']."/".$xmlFileName);
         }
+        
+        // Initialize a GnuPG instance
+        $res = gnupg_init();
 
-        // Read the .tar.gz file contents
-        $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $gzipFileName);
+        // Get information about the public key from its content
+        $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
+        if ($publicKeyInfo === false) {
+            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
+            exit(1);
+        }
+        $fingerprint = $publicKeyInfo['fingerprint'];
 
-        // Initialize GnuPG for signing
+        // Check if the key is already in the keyring
+        $existingKeys = gnupg_keyinfo($res, $fingerprint);
+
+        if (!$existingKeys) {
+            // If not, import the public key
+            gnupg_import($res, file_get_contents($c['escrow_keyPath']));
+        }
+
+        // Read the .tar file contents
+        $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
+        
+        // Add the encryption key
+        gnupg_addencryptkey($res, $fingerprint);
+
+        // Encrypt the file data using the public key
+        $encryptedData = gnupg_encrypt($res, $fileData);
+
+        if (!$encryptedData) {
+            $log->error('Error encrypting data: ' . gnupg_geterror($res));
+        }
+
+        // Save the encrypted data to a new file
+        file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde", $encryptedData);
+
+        // Delete the original .tar file
+        unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
+        
+        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
+        
+        // Initialize the GnuPG extension
         $gpg = new gnupg();
         $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
 
@@ -495,49 +531,17 @@ try {
         // Specify the detached signature mode
         $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
-        // Sign the original file
-        $signature = $gpg->sign($fileData);
+        // Sign the encrypted data
+        $encryptedData = file_get_contents($encryptedFilePath);
+        $signature = $gpg->sign($encryptedData);
 
         // Save the signature to a .sig file
-        $signatureFilePath = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
+        $signatureFilePath = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePath, PATHINFO_FILENAME) . '.sig';
         file_put_contents($signatureFilePath, $signature);
 
-        // Initialize GnuPG for encryption
-        $res = gnupg_init();
-
-        // Get information about the public key from its content
-        $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        if ($publicKeyInfo === false) {
-            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
-            exit(1);
-        }
-        $fingerprint = $publicKeyInfo['fingerprint'];
-
-        // Check if the key is already in the keyring
-        $existingKeys = gnupg_keyinfo($res, $fingerprint);
-
-        if (!$existingKeys) {
-            // If not, import the public key
-            gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        }
-
-        // Add the encryption key
-        gnupg_addencryptkey($res, $fingerprint);
-
-        // Encrypt the file data using the public key
-        $encryptedData = gnupg_encrypt($res, $fileData);
-
-        if (!$encryptedData) {
-            $log->error('Error encrypting data: ' . gnupg_geterror($res));
-        }
-
-        // Save the encrypted data to a new file
-        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
-        file_put_contents($encryptedFilePath, $encryptedData);
-
-        // Delete the original .tar.gz file
-        unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
-
+        // Optionally, delete the encrypted file if you don't need it anymore
+        // unlink($encryptedFilePath);
+        
         // Start XMLWriter for the report
         $reportXML = new XMLWriter();
         $reportXML->openMemory();
@@ -739,7 +743,7 @@ try {
                 $xml->text($status['status'] ?? 'ok');
                 $xml->endElement(); // Close rdeDomain:status
 
-                $xml->writeElement('rdeDomain:registrant', $domain['registrant']);
+                $xml->writeElement('rdeDomain:registrant', getIdentifier($dbh, $domain['registrant']));
 
                 // Fetch domain contacts
                 $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
@@ -749,7 +753,7 @@ try {
                 foreach ($domain_contacts as $contact) {
                     $xml->startElement('rdeDomain:contact');
                     $xml->writeAttribute('type', $contact['type']);
-                    $xml->text($contact['contact_id']);
+                    $xml->text(getIdentifier($dbh, $contact['contact_id']));
                     $xml->endElement();  // Closing rdeDomain:contact
                 }
 
@@ -782,10 +786,25 @@ try {
 
             $xml->startElement('rdeRegistrar:registrar');
             foreach ($registrars as $registrar) {
-                $xml->writeElement('rdeRegistrar:id', $registrar['id']);
+                $xml->writeElement('rdeRegistrar:id', getClid($dbh, $registrar['id']));
                 $xml->writeElement('rdeRegistrar:name', $registrar['name']);
                 $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
                 $xml->writeElement('rdeRegistrar:status', 'ok');
+                $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+
+                $xml->startElement('rdeRegistrar:whoisInfo');
+                $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+                $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+                $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+
+                $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+                $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+                if (!empty($registrar['lastupdate'])) {
+                    $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['lastupdate']);
+                    $xml->writeElement('rdeRegistrar:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
+                } else {
+                    $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+                }
 
                 // Fetch and incorporate registrar contact details
                 $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id;");
@@ -808,15 +827,6 @@ try {
                     $xml->writeElement('rdeRegistrar:fax', $contact['fax']);
                     $xml->writeElement('rdeRegistrar:email', $contact['email']);
                 }
-
-                $xml->writeElement('rdeRegistrar:url', $registrar['url']);
-                $xml->startElement('rdeRegistrar:whoisInfo');
-                $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-                $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-                $xml->endElement();  // Closing rdeRegistrar:whoisInfo
-
-                $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
-                $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             }
             $xml->endElement();  // Closing rdeRegistrar:registrar
             
@@ -829,10 +839,9 @@ try {
             // Define the base name without the extension
             $baseFileNameBrda = "{$tldname}_".date('Ymd')."_brda_S1_R{$finalDepositId}";
 
-            // XML, tar, and gzip filenames
+            // XML and tar filenames
             $xmlFileName = $baseFileNameBrda . ".xml";
             $tarFileName = $baseFileNameBrda . ".tar";
-            $gzipFileName = $baseFileNameBrda . ".tar.gz";
 
             // Save the main XML file
             file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX);
@@ -841,19 +850,46 @@ try {
             $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
             $phar->addFile($c['escrow_deposit_path']."/".$xmlFileName, $xmlFileName);
 
-            // Compress the tar archive using gzip
-            $phar->compress(Phar::GZ);
-
-            // Delete the original tar file
-            unlink($c['escrow_deposit_path']."/".$tarFileName);
-
             // Check if the $c['escrow_deleteXML'] variable is set to true and delete the original XML file
             if ($c['escrow_deleteXML']) {
                 unlink($c['escrow_deposit_path']."/".$xmlFileName);
             }
             
-            // Read the .tar.gz file contents
-            $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $gzipFileName);
+            // Initialize a GnuPG instance
+            $res = gnupg_init();
+
+            // Get information about the public key from its content
+            $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
+            $fingerprint = $publicKeyInfo['fingerprint'];
+
+            // Check if the key is already in the keyring
+            $existingKeys = gnupg_keyinfo($res, $fingerprint);
+
+            if (!$existingKeys) {
+                // If not, import the public key
+                gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
+            }
+
+            // Read the .tar file contents
+            $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
+            
+            // Add the encryption key
+            gnupg_addencryptkey($res, $fingerprint);
+
+            // Encrypt the file data using the public key
+            $encryptedData = gnupg_encrypt($res, $fileData);
+
+            if (!$encryptedData) {
+                $log->error('Error encrypting data: ' . gnupg_geterror($res));
+            }
+
+            // Save the encrypted data to a new file
+            file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde", $encryptedData);
+
+            // Delete the original .tar file
+            unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
+            
+            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
             
             // Initialize the GnuPG extension
             $gpg = new gnupg();
@@ -871,44 +907,12 @@ try {
             $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
             // Sign the encrypted data
-            $signature = $gpg->sign($fileData);
+            $encryptedData = file_get_contents($encryptedFilePathBrda);
+            $signature = $gpg->sign($encryptedData);
 
             // Save the signature to a .sig file
-            $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
+            $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePathBrda, PATHINFO_FILENAME) . '.sig';
             file_put_contents($signatureFilePathBrda, $signature);
-            
-            // Initialize a GnuPG instance
-            $res = gnupg_init();
-
-            // Get information about the public key from its content
-            $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
-            $fingerprint = $publicKeyInfo['fingerprint'];
-
-            // Check if the key is already in the keyring
-            $existingKeys = gnupg_keyinfo($res, $fingerprint);
-
-            if (!$existingKeys) {
-                // If not, import the public key
-                gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
-            }            
-
-            // Add the encryption key
-            gnupg_addencryptkey($res, $fingerprint);
-
-            // Encrypt the file data using the public key
-            $encryptedData = gnupg_encrypt($res, $fileData);
-
-            if (!$encryptedData) {
-                $log->error('Error encrypting data: ' . gnupg_geterror($res));
-            }
-
-            // Save the encrypted data to a new file
-            file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde", $encryptedData);
-
-            // Delete the original .tar.gz file
-            unlink($c['escrow_deposit_path'] . "/" . $gzipFileName);
-
-            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
 
             // Optionally, delete the encrypted file if you don't need it anymore
             // unlink($encryptedFilePathBrda);
