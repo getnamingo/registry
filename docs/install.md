@@ -1,19 +1,15 @@
-# Installation (Deprecated)
+# Namingo Registry: Manual Installation Guide
 
-Welcome to the Installation Guide for the Namingo domain registry platform. Note: The manual installation process is now deprecated. We highly recommend using the automated installer available at [https://namingo.org](https://namingo.org) for a streamlined and hassle-free setup experience.
+> **⚠️ This manual installation guide for the Namingo domain registry platform is provided for reference and debugging purposes only. It is no longer supported. For all new installations, please use the automated installer available at [https://namingo.org](https://namingo.org) for a faster and more reliable setup.**
 
-After completing the installation, please refer to the [Configuration Guide](configuration.md) to tailor the system to your specific requirements. Once configured, visit the [Initial Operation Guide](iog.md) for detailed instructions on how to set up your registry, add registrars, and perform other essential operational tasks.
-
-***To upgrade from v1.0.0-RC4 or v1.0.0-RC5, please see our [upgrade guide](upgrade.md)***
+After completing the installation, please refer to the [Configuration Guide](configuration.md) to tailor the system to your specific requirements. Once configured, visit the [Initial Operation Guide](iog.md) for detailed instructions on how to set up your registry, add registrars, and perform other essential operational tasks. To upgrade from older versions, please see our [upgrade guide](upgrade.md).
 
 ## 1. Install the required packages:
 
 ```bash
-apt install -y curl software-properties-common ufw
 add-apt-repository ppa:ondrej/php
-apt install -y debian-keyring debian-archive-keyring apt-transport-https
 apt update
-apt install -y bzip2 composer gettext git gnupg2 net-tools php8.2 php8.2-cli php8.2-common php8.2-curl php8.2-ds php8.2-fpm php8.2-gd php8.2-gmp php8.2-gnupg php8.2-igbinary php8.2-imap php8.2-intl php8.2-mbstring php8.2-opcache php8.2-readline php8.2-redis php8.2-soap php8.2-swoole php8.2-uuid php8.2-xml pv redis unzip wget whois
+apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 gettext git gnupg2 net-tools pv redis unzip wget whois php8.3 php8.3-bcmath php8.3-cli php8.3-common php8.3-curl php8.3-ds php8.3-fpm php8.3-gd php8.3-gmp php8.3-gnupg php8.3-igbinary php8.3-imap php8.3-intl php8.3-mbstring php8.3-opcache php8.3-readline php8.3-redis php8.3-soap php8.3-swoole php8.3-uuid php8.3-xml php8.3-zip
 ```
 
 Then install the webserver you prefer:
@@ -52,7 +48,7 @@ Make sure your server is set to UTC:
 timedatectl status
 ```
 
-If your server is not set to UTC, you can change it using the ```timedatectl``` command:
+If your server is not set to UTC, you can change it using the `timedatectl` command:
 
 ```bash
 timedatectl set-timezone UTC
@@ -64,11 +60,11 @@ timedatectl status
 Edit the PHP Configuration Files:
 
 ```bash
-nano /etc/php/8.2/cli/php.ini
-nano /etc/php/8.2/fpm/php.ini
+nano /etc/php/8.3/cli/php.ini
+nano /etc/php/8.3/fpm/php.ini
 ```
 
-Locate or add these lines in ```php.ini```, also replace ```example.com``` with your registry domain name:
+Locate and set or add these lines in `php.ini`:
 
 ```bash
 opcache.enable=1
@@ -79,62 +75,54 @@ opcache.jit=1255
 session.cookie_secure = 1
 session.cookie_httponly = 1
 session.cookie_samesite = "Strict"
-session.cookie_domain = example.com
+session.cookie_domain =
+
+opcache.memory_consumption = 128
+opcache.interned_strings_buffer = 16
+opcache.max_accelerated_files = 10000
+opcache.validate_timestamps = 0
+expose_php = 0
 ```
 
-In ```/etc/php/8.2/fpm/php.ini``` make one additional change.
-
-If you have about 10000 domains, use:
+In `/etc/php/8.3/fpm/php.ini` change the PHP memory limit to about 40% of your server RAM, for example:
 
 ```bash
-memory_limit = 512M
+memory_limit = 1024M
 ```
 
-If you have 50000 or more domains, use:
-
-```bash
-memory_limit = -1
-```
-
-In ```/etc/php/8.2/mods-available/opcache.ini``` make one additional change:
-
-```bash
-opcache.jit=1255
-opcache.jit_buffer_size=100M
-```
+If you have 50000 or more domains, please use `memory_limit = -1` instead.
 
 After configuring PHP, restart the service to apply changes:
 
 ```bash
-systemctl restart php8.2-fpm
+systemctl restart php8.3-fpm
 ```
 
 ## 2. Database installation (please choose one):
 
-### 2a. Install and configure MariaDB: (please use this for v1.0)
+### 2a. Install and configure MariaDB: (use for production)
 
 ```bash
 curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
 ```
 
-Place the following in ```/etc/apt/sources.list.d/mariadb.sources```:
+Place the following in `/etc/apt/sources.list.d/mariadb.sources`:
 
 ```bash
-# MariaDB 10.11 repository list - created 2023-12-02 22:16 UTC
+# MariaDB 11 Rolling repository list - created 2025-04-08 06:40 UTC
 # https://mariadb.org/download/
 X-Repolib-Name: MariaDB
 Types: deb
-# deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
-# URIs: https://deb.mariadb.org/10.11/ubuntu
-URIs: https://mirrors.chroot.ro/mariadb/repo/10.11/ubuntu
-Suites: jammy
+# URIs: https://deb.mariadb.org/11/ubuntu
+URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/ubuntu
+Suites: noble
 Components: main main/debug
 Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 ```
 
 ```bash
 apt-get update
-apt install -y mariadb-client mariadb-server php8.2-mysql
+apt install -y mariadb-client mariadb-server php8.3-mysql
 mysql_secure_installation
 ```
 
@@ -146,7 +134,7 @@ mysql_secure_installation
 sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
 apt update
-apt install -y postgresql postgresql-client php8.2-pgsql
+apt install -y postgresql postgresql-client php8.3-pgsql
 psql --version
 ```
 
@@ -226,6 +214,14 @@ rdap.example.com {
     file_server
     tls your-email@example.com
     header -Server
+    log {
+        output file /var/log/namingo/web-rdap.log {
+            roll_size 10MB
+            roll_keep 5
+            roll_keep_days 14
+        }
+        format json
+    }
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -246,10 +242,18 @@ whois.example.com {
     bind YOUR_IPV4_ADDRESS YOUR_IPV6_ADDRESS
     root * /var/www/whois
     encode gzip
-    php_fastcgi unix//run/php/php8.2-fpm.sock
+    php_fastcgi unix//run/php/php8.3-fpm.sock
     file_server
     tls your-email@example.com
     header -Server
+    log {
+        output file /var/log/namingo/web-whois.log {
+            roll_size 10MB
+            roll_keep 5
+            roll_keep_days 14
+        }
+        format json
+    }
     header * {
         Referrer-Policy "no-referrer"
         Strict-Transport-Security max-age=31536000;
@@ -265,23 +269,23 @@ whois.example.com {
 cp.example.com {
     bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
     root * /var/www/cp/public
-    php_fastcgi unix//run/php/php8.2-fpm.sock
+    php_fastcgi unix//run/php/php8.3-fpm.sock
     encode gzip
     file_server
     tls your-email@example.com
     header -Server
     log {
-        output file /var/log/caddy/access.log
-        format console
-    }
-    log {
-        output file /var/log/caddy/error.log
-        level ERROR
+        output file /var/log/namingo/web-cp.log {
+            roll_size 10MB
+            roll_keep 5
+            roll_keep_days 14
+        }
+        format json
     }
     # Adminer Configuration
     route /adminer.php* {
         root * /usr/share/adminer
-        php_fastcgi unix//run/php/php8.2-fpm.sock
+        php_fastcgi unix//run/php/php8.3-fpm.sock
     }
     header * {
         Referrer-Policy "same-origin"
