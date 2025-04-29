@@ -857,7 +857,7 @@ try {
             $deposit = $xml->outputMemory();
 
             // Define the base name without the extension
-            $baseFileNameBrda = "{$tldname}_".date('Ymd')."_brda_S1_R{$finalDepositId}";
+            $baseFileNameBrda = "{$tldname}_" . date('Y-m-d') . "_brda_S1_R{$finalDepositId}";
 
             // XML and tar filenames
             $xmlFileName = $baseFileNameBrda . ".xml";
