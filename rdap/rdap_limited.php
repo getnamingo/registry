@@ -973,6 +973,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             'links' => [
                 [
                     'href' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                    'value' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]
@@ -2892,6 +2893,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             'links' => [
                 [
                     'href' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
+                    'value' => $c['rdap_url'] . '/entity/' . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
                     'rel' => 'self',
                     'type' => 'application/rdap+json',
                 ]

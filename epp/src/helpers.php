@@ -1038,20 +1038,28 @@ function ipMatches($ip, $cidr) {
     if (strpos($cidr, '/') === false) {
         return false; // invalid CIDR
     }
-    
+
     list($subnet, $mask) = explode('/', $cidr);
-    if (!is_numeric($mask) || $mask < 0 || $mask > 32) {
-        return false; // invalid mask
-    }
+    $ipBin = inet_pton($ip);
+    $subnetBin = inet_pton($subnet);
 
-    $ipLong = ip2long($ip);
-    $subnetLong = ip2long($subnet);
-
-    if ($ipLong === false || $subnetLong === false) {
+    if ($ipBin === false || $subnetBin === false) {
         return false; // invalid IP
     }
 
-    $maskLong = -1 << (32 - (int)$mask);
+    $ipLen = strlen($ipBin) * 8; // 32 for IPv4, 128 for IPv6
 
-    return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
+    if (!is_numeric($mask) || $mask < 0 || $mask > $ipLen) {
+        return false; // invalid mask
+    }
+
+    $maskBin = str_repeat("f", intval($mask / 4));
+    if ($mask % 4) {
+        $bits = $mask % 4;
+        $maskBin .= dechex(bindec(str_repeat('1', $bits) . str_repeat('0', 4 - $bits)));
+    }
+    $maskBin = str_pad($maskBin, $ipLen / 4, '0'); // pad to full length
+    $maskBin = pack("H*", $maskBin);
+
+    return ($ipBin & $maskBin) === ($subnetBin & $maskBin);
 }
