@@ -744,7 +744,7 @@ CREATE TABLE IF NOT EXISTS rde_escrow_deposits (
     notes TEXT DEFAULT NULL,
     verification_status VARCHAR(20) DEFAULT 'Pending' CHECK(verification_status IN ('Verified','Failed','Pending')),
     verification_notes TEXT DEFAULT NULL,
-    UNIQUE (deposit_id, deposit_type)
+    UNIQUE (deposit_id, deposit_type, file_name)
 );
 
 -- icann_reports

@@ -716,7 +716,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`rde_escrow_deposits` (
     `notes` TEXT DEFAULT NULL,
     `verification_status` ENUM('Verified', 'Failed', 'Pending') DEFAULT 'Pending',  -- Status after the escrow agent verifies the deposit
     `verification_notes` TEXT DEFAULT NULL,  -- Notes or remarks from the verification process
-    UNIQUE KEY `deposit_id_deposit_type` (`deposit_id`,`deposit_type`)
+    UNIQUE KEY `deposit_id_deposit_type` (`deposit_id`,`deposit_type`,`file_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Escrow Deposits';
 
 CREATE TABLE IF NOT EXISTS `registry`.`icann_reports` (
