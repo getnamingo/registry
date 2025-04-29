@@ -251,7 +251,21 @@ try {
             $xml->writeAttribute('s', 'ok');
             $xml->text('ok');
             $xml->endElement();  // Closing rdeHost:status
-            
+
+            if (implode('.', array_slice(explode('.', $host['name']), -count(explode('.', ltrim($tld['tld'], '.'))))) === ltrim($tld['tld'], '.')) {
+                // Fetch and add addresses
+                $stmtAddr = $dbh->prepare("SELECT addr, ip FROM host_addr WHERE host_id = :host_id");
+                $stmtAddr->execute([':host_id' => $host['id']]);
+                $addresses = $stmtAddr->fetchAll();
+
+                foreach ($addresses as $address) {
+                    $xml->startElement('rdeHost:addr');
+                    $xml->writeAttribute('ip', $address['ip']); // v4 or v6
+                    $xml->text($address['addr']);
+                    $xml->endElement();  // Closing rdeHost:addr
+                }
+            }
+
             $xml->writeElement('rdeHost:clID', getClid($dbh, $host['clid']));
             $xml->writeElement('rdeHost:crRr', getClid($dbh, $host['crid']));
             $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $host['crdate']);
