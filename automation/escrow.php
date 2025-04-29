@@ -536,6 +536,7 @@ try {
         // Initialize the GnuPG extension
         $gpg = new gnupg();
         $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
+        $gpg->setarmor(0);
 
         // Import your private key (if it's not already in the keyring)
         if (!file_exists($c['escrow_privateKey'])) {
@@ -928,6 +929,7 @@ try {
             // Initialize the GnuPG extension
             $gpg = new gnupg();
             $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
+            $gpg->setarmor(0);
 
             // Import your private key (if it's not already in the keyring)
             $privateKeyData = file_get_contents($c['escrow_privateKey']);
