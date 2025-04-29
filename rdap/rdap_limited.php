@@ -922,7 +922,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         // Initialize an array to hold entity blocks
         $entityBlocks = [];
         // Define an array of allowed contact types
-        $allowedTypes = ['owner', 'billing', 'abuse'];
+        $allowedTypes = ['owner', 'billing', 'abuse', 'tech'];
 
         foreach ($contacts as $contact) {
             // Check if the contact type is one of the allowed types
@@ -933,7 +933,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 // Create an entity block for each allowed contact type
                 $entityBlock = [
                     'objectClassName' => 'entity',
-                    'roles' => [($contact['type'] === 'owner') ? 'administrative' : $contact['type']],
+                    'roles' => [
+                        match ($contact['type']) {
+                            'owner' => 'administrative',
+                            'tech' => 'technical',
+                            default => $contact['type']
+                        }
+                    ],
                     "status" => ["active"],
                     "vcardArray" => [
                         "vcard",
@@ -979,21 +985,23 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             ],
             "roles" => ["registrar"],
             "status" => ["active"],  
-            'vcardArray' => [
+            "lang" => "en",
+            "vcardArray" => [
                 "vcard",
                 [
                     ['version', new stdClass(), 'text', '4.0'],
-                    ["fn", new stdClass(), 'text', $registrarContact['org']],
-                    ["adr", [
-                        "", // Post office box
-                        $registrarContact['street1'], // Extended address
-                        $registrarContact['street2'], // Street address
-                        $registrarContact['city'], // Locality
-                        $registrarContact['sp'], // Region
-                        $registrarContact['pc'], // Postal code
-                        $registrarContact['cc']  // Country name
+                    ['fn', new stdClass(), 'text', $registrarContact['org']],
+                    ['adr', new stdClass(), 'text', [
+                        '',         // PO Box
+                        '',         // Extended address
+                        $registrarContact['street1'], // Street address
+                        $registrarContact['city'],    // City
+                        $registrarContact['sp'],      // Region
+                        $registrarContact['pc'],      // Postal code
+                        strtoupper($registrarContact['cc']) // Country
                     ]],
-                    ["email", $registrarDetails['email']],
+                    ["tel", ["type" => ["voice"]], $contact['voice'] ? "uri" : "text", $contact['voice'] ? "tel:" . $contact['voice'] : ""],
+                    ['email', new stdClass(), 'text', $registrarDetails['email']],
                 ]
             ],
             "notices" => [
@@ -2831,7 +2839,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         // Initialize an array to hold entity blocks
         $entityBlocks = [];
         // Define an array of allowed contact types
-        $allowedTypes = ['owner', 'billing', 'abuse'];
+        $allowedTypes = ['owner', 'billing', 'abuse', 'tech'];
 
         foreach ($contacts as $contact) {
             // Check if the contact type is one of the allowed types
@@ -2842,7 +2850,13 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 // Create an entity block for each allowed contact type
                 $entityBlock = [
                     'objectClassName' => 'entity',
-                    'roles' => [($contact['type'] === 'owner') ? 'administrative' : $contact['type']],
+                    'roles' => [
+                        match ($contact['type']) {
+                            'owner' => 'administrative',
+                            'tech' => 'technical',
+                            default => $contact['type']
+                        }
+                    ],
                     "status" => ["active"],
                     "vcardArray" => [
                         "vcard",
@@ -2890,21 +2904,23 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             ],
             "roles" => ["registrar"],
             "status" => ["active"],  
-            'vcardArray' => [
+            "lang" => "en",
+            "vcardArray" => [
                 "vcard",
                 [
                     ['version', new stdClass(), 'text', '4.0'],
-                    ["fn", new stdClass(), 'text', $registrarContact['org']],
-                    ["adr", [
-                        "", // Post office box
-                        $registrarContact['street1'], // Extended address
-                        $registrarContact['street2'], // Street address
-                        $registrarContact['city'], // Locality
-                        $registrarContact['sp'], // Region
-                        $registrarContact['pc'], // Postal code
-                        $registrarContact['cc']  // Country name
+                    ['fn', new stdClass(), 'text', $registrarContact['org']],
+                    ['adr', new stdClass(), 'text', [
+                        '',         // PO Box
+                        '',         // Extended address
+                        $registrarContact['street1'], // Street address
+                        $registrarContact['city'],    // City
+                        $registrarContact['sp'],      // Region
+                        $registrarContact['pc'],      // Postal code
+                        strtoupper($registrarContact['cc']) // Country
                     ]],
-                    ["email", $registrarDetails['email']],
+                    ["tel", ["type" => ["voice"]], $contact['voice'] ? "uri" : "text", $contact['voice'] ? "tel:" . $contact['voice'] : ""],
+                    ['email', new stdClass(), 'text', $registrarDetails['email']],
                 ]
             ],
             ],
