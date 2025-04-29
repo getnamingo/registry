@@ -34,11 +34,17 @@ class RegistrarsController extends Controller
             $countries = $iso3166->all();
 
             $ipAddressValidator = v::when(
-                v::arrayType()->notEmpty(), // Condition: If it's a non-empty array
-                v::arrayType()->each(v::ip()), // Then: Each element must be a valid IP address
-                v::equals('') // Else: Allow it to be an empty string
+                v::arrayType()->notEmpty(),
+                v::arrayType()->each(
+                    v::oneOf(
+                        v::ip(), // Accepts IPv4 and IPv6
+                        v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
+                        v::regex('/^([0-9a-fA-F:]+)\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/') // IPv6 CIDR
+                    )
+                ),
+                v::equals('')
             );
-            
+
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
@@ -645,11 +651,17 @@ class RegistrarsController extends Controller
             $countries = $iso3166->all();
 
             $ipAddressValidator = v::when(
-                v::arrayType()->notEmpty(), // Condition: If it's a non-empty array
-                v::arrayType()->each(v::ip()), // Then: Each element must be a valid IP address
-                v::equals('') // Else: Allow it to be an empty string
+                v::arrayType()->notEmpty(),
+                v::arrayType()->each(
+                    v::oneOf(
+                        v::ip(), // Accepts IPv4 and IPv6
+                        v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
+                        v::regex('/^([0-9a-fA-F:]+)\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/') // IPv6 CIDR
+                    )
+                ),
+                v::equals('')
             );
-            
+
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
@@ -901,11 +913,17 @@ class RegistrarsController extends Controller
             $countries = $iso3166->all();
 
             $ipAddressValidator = v::when(
-                v::arrayType()->notEmpty(), // Condition: If it's a non-empty array
-                v::arrayType()->each(v::ip()), // Then: Each element must be a valid IP address
-                v::equals('') // Else: Allow it to be an empty string
+                v::arrayType()->notEmpty(),
+                v::arrayType()->each(
+                    v::oneOf(
+                        v::ip(), // Accepts IPv4 and IPv6
+                        v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
+                        v::regex('/^([0-9a-fA-F:]+)\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/') // IPv6 CIDR
+                    )
+                ),
+                v::equals('')
             );
-            
+
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
