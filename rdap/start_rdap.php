@@ -980,7 +980,8 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             "publicIds" => [
                 [
                     "identifier" => (string)$registrarDetails['iana_id'],
-                    "type" => "IANA Registrar ID"
+                    "type" => "IANA Registrar ID",
+                    "value" => (string)$registrarDetails['iana_id']
                 ]
             ],
             "roles" => ["registrar"],
@@ -2899,7 +2900,8 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             "publicIds" => [
                 [
                     "identifier" => (string)$registrarDetails['iana_id'],
-                    "type" => "IANA Registrar ID"
+                    "type" => "IANA Registrar ID",
+                    "value" => (string)$registrarDetails['iana_id']
                 ]
             ],
             "roles" => ["registrar"],
