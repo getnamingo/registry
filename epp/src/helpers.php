@@ -99,10 +99,15 @@ function checkLogin($db, $clID, $pw) {
     return password_verify($pw, $hashedPassword);
 }
 
-function sendGreeting($conn) {
+function sendGreeting($conn, Swoole\Table $eppExtensionsTable) {
     global $c;
     $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
     $currentDate = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+    
+    $extensions = [];
+    foreach ($eppExtensionsTable as $urn => $row) {
+        $extensions[] = $urn;
+    }
 
     $response = [
         'command' => 'greeting',
@@ -115,17 +120,7 @@ function sendGreeting($conn) {
             'urn:ietf:params:xml:ns:contact-1.0',
             'urn:ietf:params:xml:ns:host-1.0'
         ],
-        'extensions' => [
-            'https://namingo.org/epp/funds-1.0',
-            'https://namingo.org/epp/identica-1.0',
-            'urn:ietf:params:xml:ns:secDNS-1.1',
-            'urn:ietf:params:xml:ns:rgp-1.0',
-            'urn:ietf:params:xml:ns:launch-1.0',
-            'urn:ietf:params:xml:ns:idn-1.0',
-            'urn:ietf:params:xml:ns:epp:fee-1.0',
-            'urn:ietf:params:xml:ns:mark-1.0',
-            'urn:ietf:params:xml:ns:allocationToken-1.0'
-        ],
+        'extensions' => $extensions,
         'dcp' => [ // Data Collection Policy (optional)
             'access' => ['all'],
             'statement' => [

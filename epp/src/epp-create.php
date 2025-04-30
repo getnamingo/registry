@@ -242,8 +242,8 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
 
-    if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
+    if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
         return;
     }
 
@@ -1228,8 +1228,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
 
-    if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 16) {
-        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 16 characters long', $clTRID, $trans);
+    if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 64) {
+        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
         return;
     }
 

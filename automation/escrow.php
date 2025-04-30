@@ -414,20 +414,33 @@ try {
 
         // Start of svcExtension
         $xml->startElementNS('rdeEppParams', 'svcExtension', null);
+        $extUriArray = [];
+        if (file_exists('/opt/registry/epp/extensions.json')) {
+            $json = file_get_contents('/opt/registry/epp/extensions.json');
+            $data = json_decode($json, true);
 
-        // Add extURI elements
-        $extUriArray = [
-            'https://namingo.org/epp/funds-1.0',
-            'https://namingo.org/epp/identica-1.0',
-            'urn:ietf:params:xml:ns:secDNS-1.1',
-            'urn:ietf:params:xml:ns:rgp-1.0',
-            'urn:ietf:params:xml:ns:launch-1.0',
-            'urn:ietf:params:xml:ns:idn-1.0',
-            'urn:ietf:params:xml:ns:epp:fee-1.0',
-            'urn:ietf:params:xml:ns:mark-1.0',
-            'urn:ietf:params:xml:ns:allocationToken-1.0'
-        ];
-
+            if (is_array($data)) {
+                foreach ($data as $urn => $ext) {
+                    if (!empty($ext['enabled'])) {
+                        $extUriArray[] = $urn;
+                    }
+                }
+            }
+        }
+        // Fallback to hardcoded list if needed
+        if (empty($extUriArray)) {
+            $extUriArray = [
+                'https://namingo.org/epp/funds-1.0',
+                'https://namingo.org/epp/identica-1.0',
+                'urn:ietf:params:xml:ns:secDNS-1.1',
+                'urn:ietf:params:xml:ns:rgp-1.0',
+                'urn:ietf:params:xml:ns:launch-1.0',
+                'urn:ietf:params:xml:ns:idn-1.0',
+                'urn:ietf:params:xml:ns:epp:fee-1.0',
+                'urn:ietf:params:xml:ns:mark-1.0',
+                'urn:ietf:params:xml:ns:allocationToken-1.0'
+            ];
+        }
         foreach ($extUriArray as $extUri) {
             $xml->writeElementNS('epp', 'extURI', null, $extUri);
         }

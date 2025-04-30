@@ -377,8 +377,12 @@ class EppWriter {
     private function _postamble($writer, $resp) {
         if (isset($resp['clTRID']) || isset($resp['svTRID'])) {
             $writer->startElement('trID');
-            $writer->writeElement('clTRID', $resp['clTRID']);
-            $writer->writeElement('svTRID', $resp['svTRID']);
+            if (isset($resp['clTRID']) && $resp['clTRID'] !== '') {
+                $writer->writeElement('clTRID', $resp['clTRID']);
+            }
+            if (isset($resp['svTRID']) && $resp['svTRID'] !== '') {
+                $writer->writeElement('svTRID', $resp['svTRID']);
+            }
             $writer->endElement();  // End of 'trID'
         }
         $writer->endElement();  // End of 'response'

@@ -244,8 +244,8 @@ class ContactsController extends Controller
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 16 characters long');
+            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 64 characters long');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
@@ -644,8 +644,8 @@ class ContactsController extends Controller
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
 
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                $error = ["error" => "Unable to create contact: Password needs to be at least 6 and up to 16 characters long"];
+            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                $error = ["error" => "Unable to create contact: Password needs to be at least 6 and up to 64 characters long"];
                 $response->getBody()->write(json_encode($error));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
@@ -1498,8 +1498,8 @@ class ContactsController extends Controller
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 16)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password needs to be at least 6 and up to 16 characters long');
+            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password needs to be at least 6 and up to 64 characters long');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
