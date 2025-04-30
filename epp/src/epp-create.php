@@ -71,7 +71,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         if ($postalInfoIntOrg) {
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
+            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\'\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
                 return;
             }
@@ -213,6 +213,10 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     
     $contactCreate = $xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create;
 
+    if (isset($contactCreate->voice) && trim((string) $contactCreate->voice) === '') {
+        sendEppError($conn, $db, 2003, 'Voice element must not be empty if provided', $clTRID, $trans);
+        return;
+    }
     $voice = (string) $contactCreate->voice;
     $voice_x = (string) $contactCreate->voice->attributes()->x;
     if ($voice && (!preg_match('/^\+\d{1,3}\.\d{1,14}$/', $voice) || strlen($voice) > 17)) {
@@ -422,13 +426,13 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         // v6 IP validation
-        if ($addr_type === 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        if ($addr_type === 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
             sendEppError($conn, $db, 2005, 'Invalid host:addr v6', $clTRID, $trans);
             return;
         }
 
         // v4 IP validation
-        if ($addr_type !== 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        if ($addr_type !== 'v6' && !filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
             sendEppError($conn, $db, 2005, 'Invalid host:addr v4', $clTRID, $trans);
             return;
         }
@@ -461,7 +465,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->execute();
         
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (strpos($hostName, $row['name']) !== false) {
+            if (preg_match('/\.' . preg_quote($row['name'], '/') . '$/i', $hostName)) {
                 $domain_exist = true;
                 $clid_domain = $row['clid'];
                 $superordinate_dom = $row['id'];
@@ -533,6 +537,36 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppResponse($conn, $xml);
 
     } else {
+        $parts = explode('.', $hostName, 2);
+        $superordinate = $parts[1] ?? null;
+
+        if (!$superordinate) {
+            sendEppError($conn, $db, 2005, 'Invalid host:name format', $clTRID, $trans);
+            return;
+        }
+
+        // Check if domain exists
+        $stmt = $db->prepare("SELECT id FROM domain WHERE name = :name LIMIT 1");
+        $stmt->execute([':name' => $superordinate]);
+        $domain_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if (!$domain_id) {
+            sendEppError($conn, $db, 2303, 'Superordinate domain does not exist for host:name', $clTRID, $trans);
+            return;
+        }
+
+        // Check if the domain belongs to same registrar
+        $stmt = $db->prepare("SELECT clid FROM domain WHERE name = :name LIMIT 1");
+        $stmt->execute([':name' => $superordinate]);
+        $domain_clid = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if ($clid != $domain_clid) {
+            sendEppError($conn, $db, 2201, 'The superordinate domain belongs to another registrar', $clTRID, $trans);
+            return;
+        }
+    
         $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $clid, $clid]);
         
@@ -588,21 +622,32 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     }
 
     if ($launch_extension_enabled && isset($launch_create)) {
+        $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
+        $xml->registerXPathNamespace('signedMark', 'urn:ietf:params:xml:ns:signedMark-1.0');
+
         $launch_phase_node = $launch_create->xpath('launch:phase')[0] ?? null;
         $launch_phase = $launch_phase_node ? (string)$launch_phase_node : null;
         $launch_phase_name = $launch_phase_node ? (string)$launch_phase_node['name'] : null;
-        $smd_encodedSignedMark = $launch_create->xpath('smd:encodedSignedMark')[0] ?? null;
-        $launch_notice = $launch_create->xpath('launch:notice')[0] ?? null;
-        $launch_noticeID = $launch_notice ? (string) $launch_notice->xpath('launch:noticeID')[0] ?? null : null;
-        $launch_notAfter = $launch_notice ? (string) $launch_notice->xpath('launch:notAfter')[0] ?? null : null;
-        $launch_acceptedDate = $launch_notice ? (string) $launch_notice->xpath('launch:acceptedDate')[0] ?? null : null;
+
+        $xpath = '//*[namespace-uri()="urn:ietf:params:xml:ns:signedMark-1.0" and local-name()="encodedSignedMark"]';
+        $smd_encodedSignedMark = $xml->xpath($xpath)[0] ?? null;
+        $smd_encodedSignedMark = $smd_encodedSignedMark ? preg_replace('/\s+/', '', (string)$smd_encodedSignedMark) : null;
+
+        $launch_notice_exists = $xml->xpath('//launch:notice');
+        if (!empty($launch_notice_exists)) {
+            $launch_noticeID = (string) ($xml->xpath('//launch:noticeID')[0] ?? '');
+            $launch_notAfter = (string) ($xml->xpath('//launch:notAfter')[0] ?? '');
+            $launch_acceptedDate = (string) ($xml->xpath('//launch:acceptedDate')[0] ?? '');
+        } else {
+            $launch_noticeID = $launch_notAfter = $launch_acceptedDate = null;
+        }
 
         // Validate and handle each specific case
         if ($launch_phase === 'sunrise' && $smd_encodedSignedMark) {
             // Parse and validate SMD encoded signed mark later
         } elseif ($launch_phase === 'claims') {
             // Check for missing notice elements and validate dates
-            if (!$launch_notice || !$launch_noticeID || !$launch_notAfter || !$launch_acceptedDate) {
+            if (!$launch_notice_exists || !$launch_noticeID || !$launch_notAfter || !$launch_acceptedDate) {
                 sendEppError($conn, $db, 2003, 'Missing required elements in claims phase', $clTRID, $trans);
                 return;
             }
@@ -1033,12 +1078,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $addr_type = (string) ($node['ip'] ?? 'v4');
         
                         if ($addr_type == 'v6') {
-                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                                 return;
                             }
                         } else {
-                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $hostAddr === '127.0.0.1') {
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE) || $hostAddr === '127.0.0.1') {
                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                                 return;
                             }
@@ -1111,12 +1156,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
 
                         if ($addr_type === 'v6') {
-                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                                 return;
                             }
                         } else {
-                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $hostAddr === '127.0.0.1') {
+                            if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE) || $hostAddr === '127.0.0.1') {
                                 sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                                 return;
                             }

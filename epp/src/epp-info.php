@@ -1,6 +1,6 @@
 <?php
 
-function processContactInfo($conn, $db, $xml, $trans) {
+function processContactInfo($conn, $db, $xml, $clid, $trans) {
     $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
     $clTRID = (string) $xml->command->clTRID;
 
@@ -35,6 +35,12 @@ function processContactInfo($conn, $db, $xml, $trans) {
 
         if (!$contact) {
             sendEppError($conn, $db, 2303, 'Contact does not exist', $clTRID, $trans);
+            return;
+        }
+
+        $clid = getClid($db, $clid);
+        if ($clid !== $contact[0]['clid']) {
+            sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
             return;
         }
 

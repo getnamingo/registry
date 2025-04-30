@@ -76,6 +76,11 @@ function processHostCheck($conn, $db, $xml, $trans) {
     foreach ($hosts as $host) {
         $host = (string)$host;
 
+        if (preg_match('/^\.[a-z]{2,}$/i', $host) || preg_match('/^[a-z]{2,}$/i', $host)) {
+            sendEppError($conn, $db, 2306, 'Host name must be fully qualified (FQDN)', $clTRID, $trans);
+            return;
+        }
+
         // Validation for host name
         if (!validateHostName($host)) {
             sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);

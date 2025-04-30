@@ -55,7 +55,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $stmt->closeCursor();
 
     if ($contactRem) {
-        $statusList = $xml->xpath('//contact:status/@s', $contactRem);
+        $statusList = $contactRem[0]->xpath('contact:status/@s');
 
         if (count($statusList) == 0) {
             sendEppError($conn, $db, 2005, 'At least one status element MUST be present', $clTRID, $trans);
@@ -80,7 +80,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if ($contactAdd) {
-        $statusList = $xml->xpath('//contact:status/@s', $contactAdd);
+        $statusList = $contactAdd[0]->xpath('contact:status/@s');
 
         if (count($statusList) == 0) {
             sendEppError($conn, $db, 2005, 'At least one status element MUST be present', $clTRID, $trans);
@@ -94,7 +94,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
 
-            if (count($xml->xpath('contact:status[@s="' . $status . '"]', $contactRem)) == 0) {
+            if (!$contactRem || count($contactRem[0]->xpath('contact:status[@s="' . $status . '"]')) == 0) {
                 $stmt = $db->prepare("SELECT id FROM contact_status WHERE contact_id = :contact_id AND status = :status LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id, ':status' => $status]);
                 $contactStatusId = $stmt->fetchColumn();
@@ -112,6 +112,17 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $clid = getClid($db, $clid);
         $postalInfoInt = null;
         $postalInfoLoc = null;
+
+        $postalInfoAllNodes = $xml->xpath('//contact:postalInfo');
+
+        foreach ($postalInfoAllNodes as $node) {
+            $typeAttr = (string) $node['type'];
+
+            if ($typeAttr !== 'int' && $typeAttr !== 'loc') {
+                sendEppError($conn, $db, 2003, 'Invalid postalInfo type attribute: must be "int" or "loc"', $clTRID, $trans);
+                return;
+            }
+        }
 
         $postalInfoIntNodes = $xml->xpath("//contact:postalInfo[@type='int']");
 
@@ -150,40 +161,64 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
 
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
+            if (
+                preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) ||
+                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName) ||
+                strlen($postalInfoIntName) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
                 return;
             }
 
             if ($postalInfoIntOrg) {
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
+                if (
+                    preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) ||
+                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg) ||
+                    strlen($postalInfoIntOrg) > 255
+                ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
                     return;
                 }
             }
 
             if ($postalInfoIntStreet1) {
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
+                if (
+                    preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) ||
+                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
+                    strlen($postalInfoIntStreet1) > 255
+                ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                     return;
                 }
             }
 
             if ($postalInfoIntStreet2) {
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
+                if (
+                    preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) ||
+                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
+                    strlen($postalInfoIntStreet2) > 255
+                ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                     return;
                 }
             }
 
             if ($postalInfoIntStreet3) {
-                if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
+                if (
+                    preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) ||
+                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
+                    strlen($postalInfoIntStreet3) > 255
+                ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                     return;
                 }
             }
 
-            if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
+            if (
+                preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) ||
+                !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity) ||
+                strlen($postalInfoIntCity) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:city', $clTRID, $trans);
                 return;
             }
@@ -465,6 +500,17 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt_ext->execute();
         $e_authInfo_ext = $stmt_ext->fetchColumn();
         $stmt_ext->closeCursor();
+
+        $postalInfoAllNodes = $xml->xpath('//contact:postalInfo');
+
+        foreach ($postalInfoAllNodes as $node) {
+            $typeAttr = (string) $node['type'];
+
+            if ($typeAttr !== 'int' && $typeAttr !== 'loc') {
+                sendEppError($conn, $db, 2003, 'Invalid postalInfo type attribute: must be "int" or "loc"', $clTRID, $trans);
+                return;
+            }
+        }
 
         $postalInfo_int = $xml->xpath("//contact:postalInfo[@type='int']")[0] ?? null;
         if ($postalInfoInt) {
@@ -783,11 +829,15 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         foreach ($addr_list as $node) {
             $addr = (string) $node;
-            $addr_type = $node->attributes()->ip ?? 'v4';
+            $addr_type = (string) ($node->attributes()->ip ?? 'v4');
+            if (!in_array($addr_type, ['v4', 'v6'])) {
+                sendEppError($conn, $db, 2005, 'host:addr ip attribute must be "v4" or "v6"', $clTRID, $trans);
+                return;
+            }
 
             if ($addr_type == 'v6') {
                 // IPv6 validation and normalization
-                if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
                     $addr = normalize_v6_address($addr);
                     $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = '6' LIMIT 1");
                     $stmt->execute([$hostId, $addr]);
@@ -804,7 +854,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
             } else {
                 // IPv4 validation and normalization
-                if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                if (filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
                     $addr = normalize_v4_address($addr);
                     $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = '4' LIMIT 1");
                     $stmt->execute([$hostId, $addr]);
@@ -1023,7 +1073,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     
     $clid = getClid($db, $clid);
-    if ($clid != $row['clid']) {
+    if ($clid !== $row['clid']) {
         sendEppError($conn, $db, 2201, 'You do not have privileges to modify a domain name that belongs to another registrar', $clTRID, $trans);
         return;
     }
@@ -1195,6 +1245,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (count($hostObjList) > 0) {
         foreach ($hostObjList as $node) {
             $hostObj = strtoupper((string)$node);
+            $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
+            $stmt->execute([$hostObj]);
+            $hostExists = $stmt->fetchColumn();
+            $stmt->closeCursor();
+
+            if (!$hostExists) {
+                sendEppError($conn, $db, 2303, "domain:hostObj $hostObj does not exist", $clTRID, $trans);
+                return;
+            }
+
             if (preg_match('/[^A-Z0-9\.\-]/', $hostObj) || preg_match('/^-|^\.-|-\.-|^-|-$/', $hostObj)) {
                 sendEppError($conn, $db, 2005, 'Invalid domain:hostObj', $clTRID, $trans);
                 return;
@@ -1269,12 +1329,12 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $addrType = (string)$addrType;
 
                     if ($addrType === 'v6') {
-                        if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                        if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) {
                             sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v6', $clTRID, $trans);
                             return;
                         }
                     } else {
-                        if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $hostAddr == '127.0.0.1') {
+                        if (!filter_var($hostAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE) || $hostAddr == '127.0.0.1') {
                             sendEppError($conn, $db, 2005, 'Invalid domain:hostAddr v4', $clTRID, $trans);
                             return;
                         }
@@ -1435,6 +1495,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                     return;
                 }
+            } else {
+                sendEppError($conn, $db, 2303, "hostObj $hostObj does not exist", $clTRID, $trans);
+                return;
             }
         }
 
@@ -1500,6 +1563,19 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         foreach ($status_list as $node) {
             $status = (string) $node;
+
+            $stmt = $db->prepare("SELECT 1 FROM domain_status WHERE domain_id = :domain_id AND status = :status LIMIT 1");
+            $stmt->execute([
+                ':domain_id' => $domain_id,
+                ':status' => $status
+            ]);
+            $exists = $stmt->fetchColumn();
+            $stmt->closeCursor();
+
+            if (!$exists) {
+                sendEppError($conn, $db, 2303, "Cannot remove status '$status': not present on domain", $clTRID, $trans);
+                return;
+            }
 
             $stmt = $db->prepare("DELETE FROM domain_status WHERE domain_id = :domain_id AND status = :status");
             $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
@@ -2010,6 +2086,20 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
 
                         try {
+                            // Check if DS record exists before attempting to delete
+                            $stmt = $db->prepare("SELECT COUNT(*) FROM secdns WHERE domain_id = :domain_id AND keytag = :keyTag AND alg = :alg AND digesttype = :digestType AND digest = :digest");
+                            $stmt->execute([
+                                ':domain_id' => $domain_id,
+                                ':keyTag' => $keyTag,
+                                ':alg' => $alg,
+                                ':digestType' => $digestType,
+                                ':digest' => $digest
+                            ]);
+                            if ($stmt->fetchColumn() == 0) {
+                                sendEppError($conn, $db, 2306, 'DS record not found for removal', $clTRID, $trans);
+                                return;
+                            }
+
                             $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND keytag = :keyTag AND alg = :alg AND digesttype = :digestType AND digest = :digest");
                             $stmt->execute([
                                 ':domain_id' => $domain_id,
@@ -2060,6 +2150,20 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             return;
                         }
 
+                        // Check if keyData exists before attempting to delete
+                        $stmt = $db->prepare("SELECT COUNT(*) FROM secdns WHERE domain_id = :domain_id AND flags = :flags AND protocol = :protocol AND keydata_alg = :algKeyData AND pubkey = :pubKey");
+                        $stmt->execute([
+                            ':domain_id' => $domain_id,
+                            ':flags' => $flags,
+                            ':protocol' => $protocol,
+                            ':algKeyData' => $algKeyData,
+                            ':pubKey' => $pubKey
+                        ]);
+                        if ($stmt->fetchColumn() == 0) {
+                            sendEppError($conn, $db, 2306, 'KeyData not found for removal', $clTRID, $trans);
+                            return;
+                        }
+
                         try {
                             $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND flags = :flags AND protocol = :protocol AND algKeyData = :algKeyData AND pubKey = :pubKey");
                             $stmt->execute([
@@ -2089,10 +2193,48 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 if ($secDNSDataSet) {
                     foreach ($secDNSDataSet as $secDNSData) {
                         // Extract dsData elements
-                        $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
-                        $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
-                        $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
-                        $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                        $keyTagNode = $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
+                        if (!isset($keyTagNode) || trim((string)$keyTagNode) === '') {
+                            sendEppError($conn, $db, 2005, 'Missing or empty keyTag', $clTRID, $trans);
+                            return;
+                        }
+                        $keyTag = (int) $keyTagNode;
+
+                        $algNode = $secDNSData->xpath('secDNS:alg')[0] ?? null;
+                        if (!isset($algNode) || trim((string)$algNode) === '') {
+                            sendEppError($conn, $db, 2005, 'Missing or empty algorithm', $clTRID, $trans);
+                            return;
+                        }
+                        $alg = (int) $algNode;
+                        $validAlgorithms = [8, 13, 14, 15, 16];
+                        if (!in_array($alg, $validAlgorithms)) {
+                            sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                            return;
+                        }
+
+                        $digestTypeNode = $secDNSData->xpath('secDNS:digestType')[0] ?? null;
+                        if (!isset($digestTypeNode) || trim((string)$digestTypeNode) === '') {
+                            sendEppError($conn, $db, 2005, 'Missing or empty digestType', $clTRID, $trans);
+                            return;
+                        }
+                        $digestType = (int) $digestTypeNode;
+                        $validDigests = [2 => 64, 4 => 96]; // SHA-256 and SHA-384
+                        if (!array_key_exists($digestType, $validDigests)) {
+                            sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                            return;
+                        }
+
+                        $digestNode = $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                        if (!isset($digestNode) || trim((string)$digestNode) === '') {
+                            sendEppError($conn, $db, 2005, 'Missing or empty digest', $clTRID, $trans);
+                            return;
+                        }
+                        $digest = (string) $digestNode;
+                        if (strlen($digest) !== $validDigests[$digestType] || !ctype_xdigit($digest)) {
+                            sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                            return;
+                        }
+
                         $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                         // Data sanity checks
