@@ -154,6 +154,37 @@ function fetchDomainCount($pdo, $tld_id) {
     return $result['count'];
 }
 
+function fetchNNDNCount($pdo) {
+    // Prepare the SQL query
+    $query = "SELECT COUNT(name) AS count FROM reserved_domain_names";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+
+    // Fetch and return the count
+    $result = $stmt->fetch();
+    return $result['count'];
+}
+
+function isIDN($pdo, $tld_id) {
+    // Fetch the idn_table value for the given TLD ID
+    $query = "SELECT idn_table FROM domain_tld WHERE id = :tldid";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(':tldid', $tld_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $result = $stmt->fetch();
+
+    if (!$result || !isset($result['idn_table'])) {
+        return false; // default to false if not found
+    }
+
+    $idnTable = $result['idn_table'];
+
+    // Check if the value matches the pattern for non-IDN ASCII-only domain labels
+    $asciiPattern = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
+
+    return !preg_match($asciiPattern, $idnTable); // true if it's IDN
+}
+
 // Function to check domain against Spamhaus SBL
 function checkSpamhaus($domain) {
     // Append '.sbl.spamhaus.org' to the domain

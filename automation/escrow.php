@@ -58,6 +58,7 @@ try {
         $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
 
         $domainCount = fetchDomainCount($dbh, $tld['id']);
+        $NNDNCount = fetchNNDNCount($dbh);
         $hostCount = fetchCount($dbh, 'host');
         $contactCount = fetchCount($dbh, 'contact');
         $registrarCount = fetchCount($dbh, 'registrar');
@@ -66,7 +67,7 @@ try {
         if (strpos($tldname, '.') !== false) {
             continue;
         }
-        
+
         // Starting the escrow deposit for this TLD
         // Initializing XMLWriter
         $xml = new XMLWriter();
@@ -114,11 +115,14 @@ try {
             'urn:ietf:params:xml:ns:rdeHost-1.0',
             'urn:ietf:params:xml:ns:rdeDomain-1.0',
             'urn:ietf:params:xml:ns:rdeRegistrar-1.0',
-            'urn:ietf:params:xml:ns:rdeIDN-1.0',
             'urn:ietf:params:xml:ns:rdeNNDN-1.0',
             'urn:ietf:params:xml:ns:rdeEppParams-1.0',
             'urn:ietf:params:xml:ns:rdePolicy-1.0'
         ];
+
+        if (!isIDN($dbh, $tld['id'])) {
+            $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
+        }
 
         // Write each rde:objURI element
         foreach ($objURIs as $objURI) {
@@ -154,15 +158,17 @@ try {
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
         $xml->text($registrarCount);
         $xml->endElement();
-        
-        $xml->startElement('rdeHeader:count');
-        $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-        $xml->text('1');
-        $xml->endElement();
+
+        if (!isIDN($dbh, $tld['id'])) {
+            $xml->startElement('rdeHeader:count');
+            $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
+            $xml->text('1');
+            $xml->endElement();
+        }
 
         $xml->startElement('rdeHeader:count');
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
-        $xml->text('0');
+        $xml->text($NNDNCount);
         $xml->endElement();
 
         $xml->startElement('rdeHeader:count');
@@ -189,7 +195,9 @@ try {
             $xml->writeElement('rdeDomain:name', $domain['name']);
             $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
             $xml->writeElement('rdeDomain:uName', $domain['name']);
-            $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+            if (!isIDN($dbh, $tld['id'])) {
+                $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+            }
 
             // Fetch domain status
             $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
@@ -377,13 +385,15 @@ try {
             $xml->endElement();  // Closing rdeRegistrar:registrar
         }
 
-        // Writing the idnTableRef section
-        $xml->startElement('rdeIDN:idnTableRef');
-        $xml->writeAttribute('id', 'Latn');
-        $xml->writeElement('rdeIDN:url', 'https://namingo.org');
-        $xml->writeElement('rdeIDN:urlPolicy', 'https://namingo.org');
-        $xml->endElement();  // Closing rdeIDN:idnTableRef
-        
+        if (!isIDN($dbh, $tld['id'])) {
+            // Writing the idnTableRef section
+            $xml->startElement('rdeIDN:idnTableRef');
+            $xml->writeAttribute('id', 'Latn');
+            $xml->writeElement('rdeIDN:url', 'https://namingo.org');
+            $xml->writeElement('rdeIDN:urlPolicy', 'https://namingo.org');
+            $xml->endElement();  // Closing rdeIDN:idnTableRef
+        }
+
         // Start of rdeEppParams:eppParams
         $xml->startElementNS('rdeEppParams', 'eppParams', null);
 
@@ -616,14 +626,16 @@ try {
         $reportXML->text($registrarCount);
         $reportXML->endElement();
 
-        $reportXML->startElement('rdeHeader:count');
-        $reportXML->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-        $reportXML->text('0');
-        $reportXML->endElement();
+        if (!isIDN($dbh, $tld['id'])) {
+            $reportXML->startElement('rdeHeader:count');
+            $reportXML->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
+            $reportXML->text('0');
+            $reportXML->endElement();
+        }
 
         $reportXML->startElement('rdeHeader:count');
         $reportXML->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
-        $reportXML->text('0');
+        $reportXML->text($NNDNCount);
         $reportXML->endElement();
 
         $reportXML->startElement('rdeHeader:count');
@@ -690,11 +702,14 @@ try {
                 'urn:ietf:params:xml:ns:rdeHost-1.0',
                 'urn:ietf:params:xml:ns:rdeDomain-1.0',
                 'urn:ietf:params:xml:ns:rdeRegistrar-1.0',
-                'urn:ietf:params:xml:ns:rdeIDN-1.0',
                 'urn:ietf:params:xml:ns:rdeNNDN-1.0',
                 'urn:ietf:params:xml:ns:rdeEppParams-1.0',
                 'urn:ietf:params:xml:ns:rdePolicy-1.0'
             ];
+
+            if (!isIDN($dbh, $tld['id'])) {
+                $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
+            }
 
             // Write each rde:objURI element
             foreach ($objURIs as $objURI) {
@@ -730,15 +745,17 @@ try {
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeRegistrar-1.0');
             $xml->text($registrarCount);
             $xml->endElement();
-            
-            $xml->startElement('rdeHeader:count');
-            $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
-            $xml->text('1');
-            $xml->endElement();
+
+            if (!isIDN($dbh, $tld['id'])) {
+                $xml->startElement('rdeHeader:count');
+                $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
+                $xml->text('1');
+                $xml->endElement();
+            }
 
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeNNDN-1.0');
-            $xml->text('0');
+            $xml->text($NNDNCount);
             $xml->endElement();
 
             $xml->startElement('rdeHeader:count');
@@ -765,7 +782,9 @@ try {
                 $xml->writeElement('rdeDomain:name', $domain['name']);
                 $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
                 $xml->writeElement('rdeDomain:uName', $domain['name']);
-                $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+                if (!isIDN($dbh, $tld['id'])) {
+                    $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+                }
 
                 // Fetch domain status
                 $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
