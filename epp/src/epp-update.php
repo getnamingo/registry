@@ -443,7 +443,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $status_list = $xml->xpath("contact:status/@s");
 
         foreach ($status_list as $node) {
-            $status = (string)$node;
+            $status = (string)$node[0];
             $sth = $db->prepare("DELETE FROM contact_status WHERE contact_id = ? AND status = ?");
             $sth->execute([$contact_id, $status]);
         }
@@ -453,7 +453,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $status_list = $xml->xpath("contact:status/@s");
 
         foreach ($status_list as $node) {
-            $status = (string)$node;
+            $status = (string)$node[0];
             $sth = $db->prepare("INSERT INTO contact_status (contact_id,status) VALUES(?,?)");
             $sth->execute([$contact_id, $status]);
         }

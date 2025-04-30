@@ -536,37 +536,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         updateTransaction($db, 'create', 'host', $hostName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 
-    } else {
-        $parts = explode('.', $hostName, 2);
-        $superordinate = $parts[1] ?? null;
-
-        if (!$superordinate) {
-            sendEppError($conn, $db, 2005, 'Invalid host:name format', $clTRID, $trans);
-            return;
-        }
-
-        // Check if domain exists
-        $stmt = $db->prepare("SELECT id FROM domain WHERE name = :name LIMIT 1");
-        $stmt->execute([':name' => $superordinate]);
-        $domain_id = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if (!$domain_id) {
-            sendEppError($conn, $db, 2303, 'Superordinate domain does not exist for host:name', $clTRID, $trans);
-            return;
-        }
-
-        // Check if the domain belongs to same registrar
-        $stmt = $db->prepare("SELECT clid FROM domain WHERE name = :name LIMIT 1");
-        $stmt->execute([':name' => $superordinate]);
-        $domain_clid = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if ($clid != $domain_clid) {
-            sendEppError($conn, $db, 2201, 'The superordinate domain belongs to another registrar', $clTRID, $trans);
-            return;
-        }
-    
+    } else {   
         $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $clid, $clid]);
         
