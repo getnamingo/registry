@@ -34,6 +34,34 @@ $permittedIPsTable = new Table(1024);
 $permittedIPsTable->column('addr', Table::TYPE_STRING, 64);
 $permittedIPsTable->create();
 
+$eppExtensionsTable = new Swoole\Table(64); // adjust size as needed
+$eppExtensionsTable->column('extension', Swoole\Table::TYPE_INT, 1); // Column name just for compliance
+$eppExtensionsTable->create();
+$data = json_decode(@file_get_contents('/opt/registry/epp/extensions.json'), true);
+if (is_array($data)) {
+    foreach ($data as $urn => $info) {
+        if (!empty($info['enabled'])) {
+            $eppExtensionsTable->set($urn, ['extension' => 1]);
+        }
+    }
+} else {
+    // fallback if file is missing or invalid
+    $fallback = [
+        'https://namingo.org/epp/funds-1.0',
+        'https://namingo.org/epp/identica-1.0',
+        'urn:ietf:params:xml:ns:secDNS-1.1',
+        'urn:ietf:params:xml:ns:rgp-1.0',
+        'urn:ietf:params:xml:ns:launch-1.0',
+        'urn:ietf:params:xml:ns:idn-1.0',
+        'urn:ietf:params:xml:ns:epp:fee-1.0',
+        'urn:ietf:params:xml:ns:mark-1.0',
+        'urn:ietf:params:xml:ns:allocationToken-1.0'
+    ];
+    foreach ($fallback as $urn) {
+        $eppExtensionsTable->set($urn, ['extension' => 1]);
+    }
+}
+
 // Initialize the PDO connection pool
 $pool = new Swoole\Database\PDOPool(
     (new Swoole\Database\PDOConfig())
@@ -84,7 +112,7 @@ $server->set([
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server started');
 
-$server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
+$server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
     // Get the client information
     $clientInfo = $conn->exportSocket()->getpeername();
     $clientIP = isset($clientInfo['address']) ? (strpos($clientInfo['address'], '::ffff:') === 0 ? substr($clientInfo['address'], 7) : $clientInfo['address']) : '';
@@ -115,7 +143,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
     }
 
     $log->info('new client from ' . $clientIP . ' connected');
-    sendGreeting($conn);
+    sendGreeting($conn, $eppExtensionsTable);
 
     while (true) {
         try {
@@ -263,7 +291,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                 
                 case isset($xml->hello):
                 {
-                    sendGreeting($conn);
+                    sendGreeting($conn, $eppExtensionsTable);
                     break;
                 }
                 
@@ -335,7 +363,7 @@ $server->handle(function (Connection $conn) use ($table, $pool, $c, $log, $permi
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
                     }
-                    processContactInfo($conn, $pdo, $xml, $trans);
+                    processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
                     break;
                 }
                 
