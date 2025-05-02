@@ -65,40 +65,64 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName)) {
+        if (
+            preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) ||
+            !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName) ||
+            strlen($postalInfoIntName) > 255
+        ) {
             sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
             return;
         }
 
         if ($postalInfoIntOrg) {
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) || !preg_match('/^[a-zA-Z0-9\-\'\&\,\.\/\s]{5,}$/', $postalInfoIntOrg)) {
+            if (
+                preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) ||
+                !preg_match('/^[a-zA-Z0-9\-\'\&\,\.\/\s]{5,}$/', $postalInfoIntOrg) ||
+                strlen($postalInfoIntOrg) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet1) {
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1)) {
+            if (
+                preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) ||
+                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
+                strlen($postalInfoIntStreet1) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet2) {
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2)) {
+            if (
+                preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) ||
+                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
+                strlen($postalInfoIntStreet2) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
         if ($postalInfoIntStreet3) {
-            if (preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) || !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3)) {
+            if (
+                preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) ||
+                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
+                strlen($postalInfoIntStreet3) > 255
+            ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
                 return;
             }
         }
 
-        if (preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) || !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity)) {
+        if (
+            preg_match('/(^\-)|(^\.)|(\-\-)|(\.\.)|(\.\-)|(\-\.)|(\-$)|(\.$)/', $postalInfoIntCity) ||
+            !preg_match('/^[a-z][a-z\-\.\'\s]{2,}$/i', $postalInfoIntCity) ||
+            strlen($postalInfoIntCity) > 255
+        ) {
             sendEppError($conn, $db, 2005, 'Invalid contact:city', $clTRID, $trans);
             return;
         }

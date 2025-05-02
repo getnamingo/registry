@@ -173,7 +173,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($postalInfoIntOrg) {
                 if (
                     preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntOrg) ||
-                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntOrg) ||
+                    !preg_match('/^[a-zA-Z0-9\-\'\&\,\.\/\s]{5,}$/', $postalInfoIntOrg) ||
                     strlen($postalInfoIntOrg) > 255
                 ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:org', $clTRID, $trans);
