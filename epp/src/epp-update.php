@@ -947,6 +947,13 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($hostRem)) {
+        $rem_name = $xml->xpath('//host:name[1]')[0];
+
+        if (!validateHostName($rem_name)) {
+            sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
+            return;
+        }
+
         $addr_list = $xml->xpath('//host:rem/host:addr');
         $status_list = $xml->xpath('//host:rem/host:status/@s');
 
@@ -967,6 +974,13 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($hostAdd)) {
+        $add_name = $xml->xpath('//host:name[1]')[0];
+
+        if (!validateHostName($add_name)) {
+            sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
+            return;
+        }
+
         $addr_list = $xml->xpath('//host:add/host:addr');
         $status_list = $xml->xpath('//host:add/host:status/@s');
 
