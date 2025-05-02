@@ -1058,3 +1058,8 @@ function ipMatches($ip, $cidr) {
 
     return ($ipBin & $maskBin) === ($subnetBin & $maskBin);
 }
+
+function normalizeDatetime($input) {
+    $dt = DateTime::createFromFormat(DateTime::ATOM, $input); // handles 'T' and 'Z'
+    return $dt ? $dt->format('Y-m-d H:i:s.v') : null; // .v gives milliseconds
+}

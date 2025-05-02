@@ -1576,8 +1576,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':tm_phase' => $launch_phase ?? 'none',
                 ':tm_smd_id' => $smd_encodedSignedMark ?? null,
                 ':tm_notice_id' => $noticeid ?? null,
-                ':tm_notice_accepted' => $accepted ?? null,
-                ':tm_notice_expires' => $notafter ?? null
+                ':tm_notice_accepted' => normalizeDatetime($accepted) ?? null,
+                ':tm_notice_expires' => normalizeDatetime($notafter) ?? null
             ]);
 
             $domain_id = $db->lastInsertId();
