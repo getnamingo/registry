@@ -880,17 +880,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     if (isset($hostChg)) {
         $chg_name = $xml->xpath('//host:name[1]')[0];
 
-        if (validateHostName($chg_name)) {
-            $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
-            $stmt->execute([$chg_name]);
-            $chg_name_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
-
-            if ($chg_name_id) {
-                sendEppError($conn, $db, 2306, 'If it already exists, then we can\'t change it', $clTRID, $trans);
-                return;
-            }
-        } else {
+        if (!validateHostName($chg_name)) {
             sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
             return;
         }
@@ -906,31 +896,41 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $domain_name = $stmt->fetchColumn();
             $stmt->closeCursor();
 
-            if (!stripos($chg_name, ".$domain_name")) {
-                sendEppError($conn, $db, 2005, 'It must be a subdomain of '.$domain_name, $clTRID, $trans);
+            if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', $chg_name)) {
+                sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of '.$domain_name, $clTRID, $trans);
                 return;
             }
         } else {
-            $internal_host = 0;
-
+            $internal_host = false;
             $stmt = $db->prepare("SELECT tld FROM domain_tld");
             $stmt->execute();
             while ($row = $stmt->fetch()) {
-                $tld = strtoupper($row['tld']);
-                $tld = preg_quote($tld, '/');
-                if (preg_match("/$tld\$/i", $chg_name)) {
-                    $internal_host = 1;
+                $tld = preg_quote(strtolower($row['tld']), '/');
+                if (preg_match("/$tld\$/i", strtolower($chg_name))) {
+                    $internal_host = true;
                     break;
                 }
             }
             $stmt->closeCursor();
 
             if ($internal_host) {
-                sendEppError($conn, $db, 2005, 'Must be external host', $clTRID, $trans);
+                sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host must be external to registry-managed domains', $clTRID, $trans);
                 return;
             }
         }
 
+        // Check if new host name already exists
+        $stmt = $db->prepare("SELECT id FROM host WHERE name = ? LIMIT 1");
+        $stmt->execute([$chg_name]);
+        $chg_name_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if ($chg_name_id) {
+            sendEppError($conn, $db, 2306, 'If it already exists, then we can\'t change it', $clTRID, $trans);
+            return;
+        }
+
+        // Check if used as NS by other domains
         $stmt = $db->prepare("SELECT h.id FROM host AS h
             INNER JOIN domain_host_map AS dhm ON (dhm.host_id = h.id)
             INNER JOIN domain AS d ON (d.id = dhm.domain_id AND d.clid != h.clid)
