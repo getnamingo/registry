@@ -76,7 +76,12 @@ function processHostCheck($conn, $db, $xml, $trans) {
     foreach ($hosts as $host) {
         $host = (string)$host;
 
-        if (preg_match('/^\.[a-z]{2,}$/i', $host) || preg_match('/^[a-z]{2,}$/i', $host)) {
+        if (
+            strpos($host, '.') === false ||                         // No dot = not FQDN
+            preg_match('/^\./', $host) ||                           // Starts with dot
+            preg_match('/^-/', $host) ||                            // Starts with dash
+            preg_match('/[^\w.-]/', $host)                          // Invalid characters
+        ) {
             sendEppError($conn, $db, 2306, 'Host name must be fully qualified (FQDN)', $clTRID, $trans);
             return;
         }
