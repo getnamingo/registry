@@ -439,24 +439,36 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
-    if ($contactRem && $xml->xpath("./*[name()='$contactRem']")) {
-        $status_list = $xml->xpath("contact:status/@s");
+    if (!empty($contactRem)) {
+        $status_list = $xml->xpath('//contact:rem/contact:status/@s');
 
         foreach ($status_list as $node) {
-            $status = (string)$node[0];
+            $status = (string)$node;
             $sth = $db->prepare("DELETE FROM contact_status WHERE contact_id = ? AND status = ?");
             $sth->execute([$contact_id, $status]);
         }
+
+        $sth = $db->prepare("SELECT COUNT(*) FROM contact_status WHERE contact_id = ?");
+        $sth->execute([$contact_id]);
+        $remaining = $sth->fetchColumn();
+
+        if ((int)$remaining === 0) {
+            $sth = $db->prepare("INSERT INTO contact_status (contact_id, status) VALUES (?, 'ok')");
+            $sth->execute([$contact_id]);
+        }
     }
 
-    if ($contactAdd && $xml->xpath("./*[name()='$contactAdd']")) {
-        $status_list = $xml->xpath("contact:status/@s");
+    if (!empty($contactAdd)) {
+        $status_list = $xml->xpath('//contact:add/contact:status/@s');
 
         foreach ($status_list as $node) {
-            $status = (string)$node[0];
-            $sth = $db->prepare("INSERT INTO contact_status (contact_id,status) VALUES(?,?)");
+            $status = (string)$node;
+            $sth = $db->prepare("INSERT INTO contact_status (contact_id, status) VALUES (?, ?)");
             $sth->execute([$contact_id, $status]);
         }
+
+        $sth = $db->prepare("DELETE FROM contact_status WHERE contact_id = ? AND status = 'ok'");
+        $sth->execute([$contact_id]);
     }
 
     if ($contactChg) {
