@@ -106,7 +106,7 @@ $server->set([
     'ssl_client_cert_file' => '/etc/ssl/certs/ca-certificates.crt',
     'ssl_allow_self_signed' => false,
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
-    'ssl_ciphers' => 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE+AESGCM:ECDHE+AES256:ECDHE+AES128:DHE+AES256:DHE+AES128:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK',
+    'ssl_ciphers' => 'TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK:!CBC',
 ]);
 
 $rateLimiter = new Rately();
@@ -115,6 +115,14 @@ $log->info('Namingo EPP server started');
 $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
     // Get the client information
     $clientInfo = $conn->exportSocket()->getpeername();
+    $certInfo = $conn->exportSocket()->getPeerCert();
+
+    if (!$certInfo) {
+        $log->warning("Client at $clientIP did not provide a valid certificate.");
+        $conn->close();
+        return;
+    }
+
     $clientIP = isset($clientInfo['address']) ? (strpos($clientInfo['address'], '::ffff:') === 0 ? substr($clientInfo['address'], 7) : $clientInfo['address']) : '';
     if (isIPv6($clientIP)) {
         $clientIP = expandIPv6($clientIP);
