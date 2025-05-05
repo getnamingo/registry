@@ -560,7 +560,34 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         updateTransaction($db, 'create', 'host', $hostName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 
-    } else {   
+    } else {
+        $domain_exist = false;
+        $clid_domain = 0;
+        $superordinate_dom = 0;
+        
+        $stmt = $db->prepare("SELECT id, clid, name FROM domain");
+        $stmt->execute();
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (preg_match('/\.' . preg_quote($row['name'], '/') . '$/i', $hostName)) {
+                $domain_exist = true;
+                $clid_domain = $row['clid'];
+                $superordinate_dom = $row['id'];
+                break;
+            }
+        }
+        $stmt->closeCursor();
+
+        if (!$domain_exist) {
+            sendEppError($conn, $db, 2303, 'A host name object cannot be created for a non-existent superordinate domain', $clTRID, $trans);
+            return;
+        }
+
+        if ($clid != $clid_domain) {
+            sendEppError($conn, $db, 2201, 'Superordinate domain belongs to another registrar', $clTRID, $trans);
+            return;
+        }
+
         $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $clid, $clid]);
         
