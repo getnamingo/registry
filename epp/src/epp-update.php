@@ -979,6 +979,18 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $addr_list = $xml->xpath('//host:rem/host:addr');
         $status_list = $xml->xpath('//host:rem/host:status/@s');
 
+        $removingCount = count($addr_list);
+
+        $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
+        $stmt->execute([$hostId]);
+        $currentCount = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if ($currentCount - $removingCount <= 0) {
+            sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
+            return;
+        }
+
         foreach ($addr_list as $node) {
             $addr = (string) $node;
             $addr_type = $node->attributes()['ip'] ? (string) $node->attributes()['ip'] : 'v4';
@@ -1007,15 +1019,6 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute([$hostId, $status]);
         }
 
-        $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
-        $stmt->execute([$hostId]);
-        $remainingAddrs = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if ($remainingAddrs == 0) {
-            sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
-            return;
-        }
     }
 
     if (isset($hostAdd)) {
