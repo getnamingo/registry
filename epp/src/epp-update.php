@@ -1313,20 +1313,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
             // Additional checks related to domain TLDs and existing records
             if (validateHostName($hostObj)) {
-                $stmt = $db->prepare("SELECT tld FROM domain_tld");
-                $stmt->execute();
-                $tlds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                $stmt->closeCursor();
-                $host_from_this_registry = 0;
+                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+                $internal_host = false;
                 foreach ($tlds as $tld) {
-                    $tld = preg_quote(strtoupper($tld), '/');
-                    if (preg_match("/$tld$/i", $hostObj)) {
-                        $host_from_this_registry = 1;
+                    if (str_ends_with(strtolower($hostObj), strtolower($tld))) {
+                        $internal_host = true;
                         break;
                     }
                 }
 
-                if ($host_from_this_registry) {
+                if ($internal_host) {
                     if (preg_match("/\.$domainName$/i", $hostObj)) {
                         $superordinate_domain = 1;
                     } else {
@@ -1690,25 +1686,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt->execute([$logMessage, $contextData]);
                 }
             } else {
-                $host_from_this_registry = 0;
-                
-                $sth = $db->prepare("SELECT tld FROM domain_tld");
-                if (!$sth->execute()) {
-                    sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                    return;
-                }
-                
-                while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-                    $tld = strtoupper($row['tld']);
-                    $tld = str_replace('.', '\\.', $tld);
-                    if (preg_match("/{$tld}$/i", $hostObj)) {
-                        $host_from_this_registry = 1;
+                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+                $internal_host = false;
+                foreach ($tlds as $tld) {
+                    if (str_ends_with(strtolower($hostObj), strtolower($tld))) {
+                        $internal_host = true;
                         break;
                     }
                 }
-                $sth->closeCursor();
 
-                if ($host_from_this_registry) {
+                if ($internal_host) {
                     if (preg_match("/\.$domainName$/i", $hostObj)) {
                         $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                         if (!$sth->execute([$hostObj, $domain_id, $clid, $clid])) {
