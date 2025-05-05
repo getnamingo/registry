@@ -987,9 +987,22 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         foreach ($addr_list as $node) {
             $addr = (string) $node;
             $addr_type = $node->attributes()['ip'] ? (string) $node->attributes()['ip'] : 'v4';
-            
+
+            $normalized_addr = $addr_type === 'v6' ? normalize_v6_address($addr) : normalize_v4_address($addr);
+
+            // Check if this addr exists
+            $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
+            $stmt->execute([$hostId, $normalized_addr, $addr_type]);
+            $exists = $stmt->fetchColumn();
+            $stmt->closeCursor();
+
+            if (!$exists) {
+                sendEppError($conn, $db, 2306, "host:addr $addr not found for host, cannot remove", $clTRID, $trans);
+                return;
+            }
+
             $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
-            $stmt->execute([$hostId, $addr, $addr_type]);
+            $stmt->execute([$hostId, $normalized_addr, $addr_type]);
         }
 
         foreach ($status_list as $node) {
