@@ -1063,6 +1063,10 @@ function ipMatches($ip, $cidr) {
 }
 
 function normalizeDatetime($input) {
+    if ($input instanceof DateTime) {
+        return $input->format('Y-m-d H:i:s.v');
+    }
+
     $dt = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $input);
     return $dt ? $dt->format('Y-m-d H:i:s.v') : null;
 }

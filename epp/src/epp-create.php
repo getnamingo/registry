@@ -799,15 +799,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
         if ($launch_phase === 'sunrise') {
             if ($smd_encodedSignedMark !== null && $smd_encodedSignedMark !== '') {
-                // Extract the BASE64 encoded part
-                $beginMarker = "-----BEGIN ENCODED SMD-----";
-                $endMarker = "-----END ENCODED SMD-----";
-                $beginPos = strpos($smd_encodedSignedMark, $beginMarker) + strlen($beginMarker);
-                $endPos = strpos($smd_encodedSignedMark, $endMarker);
-                $encodedSMD = trim(substr($smd_encodedSignedMark, $beginPos, $endPos - $beginPos));
+                if (strpos($smd_encodedSignedMark, '-----BEGIN ENCODED SMD-----') !== false ||
+                    strpos($smd_encodedSignedMark, '-----END ENCODED SMD-----') !== false) {
+                    sendEppError($conn, $db, 2306, 'SMD must not include BEGIN/END ENCODED SMD lines', $clTRID, $trans);
+                    return;
+                }
 
                 // Decode the BASE64 content
-                $xmlContent = base64_decode($encodedSMD);
+                $xmlContent = base64_decode($smd_encodedSignedMark);
+                $xmlContent = str_replace('&#13;', '', $xmlContent);
 
                 // Load the XML content using DOMDocument
                 $domDocument = new \DOMDocument();
@@ -819,10 +819,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $xpath = new \DOMXPath($domDocument);
                 $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
                 $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+                $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+                $certNode = $xpath->evaluate('string(//ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate)');
+                $certBase64 = preg_replace('/\s+/', '', $certNode);
+                $certPem = "-----BEGIN CERTIFICATE-----\n" .
+                           chunk_split($certBase64, 64, "\n") .
+                           "-----END CERTIFICATE-----\n";
 
                 $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
                 $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
                 $markName = $xpath->evaluate('string(//mark:markName)');
+                $markId = $xpath->evaluate('string(//mark:id)');
                 $labels = [];
                 foreach ($xpath->query('//mark:label') as $x_label) {
                     $labels[] = $x_label->nodeValue;
@@ -841,13 +848,19 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
 
                 // Verify the signature
-                $publicKeyStore = new PublicKeyStore();
-                $publicKeyStore->loadFromDocument($domDocument);
-                $cryptoVerifier = new CryptoVerifier($publicKeyStore);
-                $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
-                $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+                $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
+                $signatureNode = $dsig->locateSignature($domDocument);
+                $dsig->canonicalizeSignedInfo();
+                $dsig->idKeys = ['ID'];
+                $dsig->idNS = ['smd' => 'urn:ietf:params:xml:ns:signedMark-1.0'];
 
-                if (!$isValid) {
+                $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
+                    \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
+                    ['type' => 'public']
+                );
+                $key->loadKey($certPem, false, true);
+
+                if (!$dsig->verify($key, $signatureNode)) {
                     sendEppError($conn, $db, 2306, 'Error creating domain: The XML signature of the SMD file is not valid.', $clTRID, $trans);
                     return;
                 }
@@ -1549,7 +1562,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':registrar_id' => $clid,
                 ':phase_name' => $launch_phase_name ?? null,
                 ':tm_phase' => $launch_phase ?? 'none',
-                ':tm_smd_id' => $smd_encodedSignedMark ?? null,
+                ':tm_smd_id' => $markId ?? null,
                 ':tm_notice_id' => $noticeid ?? null,
                 ':tm_notice_accepted' => normalizeDatetime($accepted) ?? null,
                 ':tm_notice_expires' => normalizeDatetime($notafter) ?? null
