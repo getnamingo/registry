@@ -1060,6 +1060,6 @@ function ipMatches($ip, $cidr) {
 }
 
 function normalizeDatetime($input) {
-    $dt = DateTime::createFromFormat(DateTime::ATOM, $input); // handles 'T' and 'Z'
-    return $dt ? $dt->format('Y-m-d H:i:s.v') : null; // .v gives milliseconds
+    $dt = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $input);
+    return $dt ? $dt->format('Y-m-d H:i:s.v') : null;
 }

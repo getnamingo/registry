@@ -615,6 +615,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $stmt->closeCursor();
     }
 
+    $invalid_domain = validate_label($domainName, $db);
+
+    if ($invalid_domain) {
+        sendEppError($conn, $db, 2306, 'Invalid domain:name', $clTRID, $trans);
+        return;
+    }
+
+    $parts = extractDomainAndTLD($domainName);
+    $label = $parts['domain'];
+    $domain_extension = '.' . strtoupper($parts['tld']);
+
     if ($launch_extension_enabled && isset($launch_create)) {
         $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
         $xml->registerXPathNamespace('signedMark', 'urn:ietf:params:xml:ns:signedMark-1.0');
@@ -622,6 +633,10 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $launch_phase_node = $launch_create->xpath('launch:phase')[0] ?? null;
         $launch_phase = $launch_phase_node ? (string)$launch_phase_node : null;
         $launch_phase_name = $launch_phase_node ? (string)$launch_phase_node['name'] : null;
+        
+        $noticeid = null;
+        $notafter = null;
+        $accepted = null;
 
         $xpath = '//*[namespace-uri()="urn:ietf:params:xml:ns:signedMark-1.0" and local-name()="encodedSignedMark"]';
         $smd_encodedSignedMark = $xml->xpath($xpath)[0] ?? null;
@@ -641,10 +656,16 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             // Parse and validate SMD encoded signed mark later
         } elseif ($launch_phase === 'claims') {
             // Check for missing notice elements and validate dates
-            if (!$launch_notice_exists || !$launch_noticeID || !$launch_notAfter || !$launch_acceptedDate) {
-                sendEppError($conn, $db, 2003, 'Missing required elements in claims phase', $clTRID, $trans);
+            if (!isset($launch_noticeID) || $launch_noticeID === '' ||
+                !isset($launch_notAfter) || $launch_notAfter === '' ||
+                !isset($launch_acceptedDate) || $launch_acceptedDate === '') {
+                sendEppError($conn, $db, 2306, "Error creating domain: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'", $clTRID, $trans);
                 return;
             }
+            
+            $noticeid = $launch_noticeID;
+            $notafter = $launch_notAfter;
+            $accepted = $launch_acceptedDate;
 
             // Validate that acceptedDate is before notAfter
             try {
@@ -665,7 +686,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 return;
             }
 
-            // If all validations pass, continue
+            $stmt = $db->prepare("SELECT id FROM tmch_claims WHERE domain_label = ? AND claim_key = ? LIMIT 1");
+            $stmt->execute([$label, $noticeid]);
+            $claim_valid = $stmt->fetchColumn();
+            $stmt->closeCursor();
+
+            if (!$claim_valid) {
+                sendEppError($conn, $db, 2306, 'Invalid or expired claims noticeID for this domain label', $clTRID, $trans);
+                return;
+            }
         } elseif ($launch_phase === 'landrush') {
             // Continue
         } elseif ($launch_phase === 'custom') {
@@ -680,17 +709,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             return;
         }
     }
-
-    $invalid_domain = validate_label($domainName, $db);
-
-    if ($invalid_domain) {
-        sendEppError($conn, $db, 2306, 'Invalid domain:name', $clTRID, $trans);
-        return;
-    }
-
-    $parts = extractDomainAndTLD($domainName);
-    $label = $parts['domain'];
-    $domain_extension = '.' . strtoupper($parts['tld']);
 
     $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = ?");
     $stmt->execute([$domain_extension]);
@@ -778,23 +796,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 sendEppError($conn, $db, 2306, 'Error creating domain: The launch phase ' . $launch_phase . ' is currently not active.', $clTRID, $trans);
                 return;
             }
-        }
-                
-        if ($launch_phase === 'claims') {
-            if (!isset($launch_noticeID) || $launch_noticeID === '' ||
-                !isset($launch_notAfter) || $launch_notAfter === '' ||
-                !isset($launch_acceptedDate) || $launch_acceptedDate === '') {
-                sendEppError($conn, $db, 2306, "Error creating domain: 'noticeid', 'notafter', or 'accepted' cannot be empty when phaseType is 'claims'", $clTRID, $trans);
-                return;
-            }
-
-            $noticeid = $launch_noticeID;
-            $notafter = $launch_notAfter;
-            $accepted = $launch_acceptedDate;
-        } else {
-            $noticeid = null;
-            $notafter = null;
-            $accepted = null;
         }
 
         if ($launch_phase === 'sunrise') {

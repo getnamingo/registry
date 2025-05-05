@@ -605,6 +605,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
             $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
+            $reid = $row['reid'];
             $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt_log->execute([
                 'manual_transfer',
