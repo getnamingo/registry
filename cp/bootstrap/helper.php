@@ -268,8 +268,11 @@ function validate_label($domain, $db) {
             }
         } else {
             // Prevent consecutive or invalid hyphen usage
-            if (preg_match('/--|\.\./', $label)) {
-                return 'Domain labels cannot contain consecutive dashes (--) or dots (..)';
+            if ($label !== $labels[0] && preg_match('/\.\./', $label)) {
+                return 'Domain labels cannot contain consecutive dots (..)';
+            }
+            if (preg_match('/^..--/', $label)) {
+                return 'Domain labels cannot have double hyphens at position 3 and 4';
             }
         }
     }

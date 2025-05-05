@@ -1128,7 +1128,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2201, 'You do not have privileges to modify a domain name that belongs to another registrar', $clTRID, $trans);
         return;
     }
-    
+
     $domain_id = $row['id'];
     
     if ($launch_extension_enabled && isset($launch_update)) {
@@ -1646,7 +1646,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         foreach ($hostObj_list as $node) {
             $hostObj = (string) $node;
-            
+
             // Check if hostObj exists in the database
             $stmt = $db->prepare("SELECT id FROM host WHERE name = :hostObj LIMIT 1");
             $stmt->bindParam(':hostObj', $hostObj, PDO::PARAM_STR);
@@ -1686,58 +1686,10 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $stmt->execute([$logMessage, $contextData]);
                 }
             } else {
-                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-                $internal_host = false;
-                foreach ($tlds as $tld) {
-                    if (str_ends_with(strtolower($hostObj), strtolower($tld))) {
-                        $internal_host = true;
-                        break;
-                    }
-                }
-
-                if ($internal_host) {
-                    if (preg_match("/\.$domainName$/i", $hostObj)) {
-                        $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        if (!$sth->execute([$hostObj, $domain_id, $clid, $clid])) {
-                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                            return;
-                        }
-                        $host_id = $db->lastInsertId();
-                        
-                        $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                        if (!$sth->execute([$domain_id, $host_id])) {
-                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                            return;
-                        }
-                        
-                        $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                        if (!$sth->execute([$clid, $domain_id])) {
-                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                            return;
-                        }
-                    }
-                } else {
-                    $sth = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
-                    if (!$sth->execute([$hostObj, $clid, $clid])) {
-                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                        return;
-                    }
-                    $host_id = $db->lastInsertId();
-                    
-                    $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                    if (!$sth->execute([$domain_id, $host_id])) {
-                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                        return;
-                    }
-                    
-                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                    if (!$sth->execute([$clid, $domain_id])) {
-                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                        return;
-                    }
-                }
+                sendEppError($conn, $db, 2303, "Host object $hostObj does not exist", $clTRID, $trans);
+                return;
             }
-    }
+        }
 
         foreach ($hostAttr_list as $node) {
             $hostNames = $node->xpath('domain:hostName[1]');
@@ -1784,37 +1736,45 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
                     }
                 } else {
-                    // Insert into the host table
-                    $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                    $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);
-                    
-                    $host_id = $db->lastInsertId();
-
-                    // Insert into the domain_host_map table
-                    $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                    $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
-
-                    // Iterate over the hostAddr_list
-                    $hostAddr_list = $node->xpath('domain:hostAddr');
-                    foreach ($hostAddr_list as $node) {
-                        $hostAddr = (string)$node;
-                        $addr_type = isset($node['ip']) ? (string)$node['ip'] : 'v4';
-
-                        // Normalize
-                        if ($addr_type == 'v6') {
-                            $hostAddr = _normalise_v6_address($hostAddr); // PHP function to normalize IPv6
-                        } else {
-                            $hostAddr = _normalise_v4_address($hostAddr); // PHP function to normalize IPv4
+                    $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+                    $internal_host = false;
+                    foreach ($tlds as $tld) {
+                        if (str_ends_with(strtolower($hostName), strtolower($tld))) {
+                            $internal_host = true;
+                            break;
                         }
-
-                        // Insert into the host_addr table
-                        $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
-                        $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
                     }
-                   
-                    $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                    if (!$sth->execute([$clid, $domain_id])) {
-                        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+
+                    if ($internal_host) {
+                        $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                        $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);                    
+                        $host_id = $db->lastInsertId();
+
+                        $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
+                        $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
+
+                        $hostAddr_list = $node->xpath('domain:hostAddr');
+                        foreach ($hostAddr_list as $node) {
+                            $hostAddr = (string)$node;
+                            $addr_type = isset($node['ip']) ? (string)$node['ip'] : 'v4';
+
+                            if ($addr_type == 'v6') {
+                                $hostAddr = _normalise_v6_address($hostAddr); // PHP function to normalize IPv6
+                            } else {
+                                $hostAddr = _normalise_v4_address($hostAddr); // PHP function to normalize IPv4
+                            }
+
+                            $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
+                            $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
+                        }
+                       
+                        $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                        if (!$sth->execute([$clid, $domain_id])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
+                    } else {
+                        sendEppError($conn, $db, 2303, "Host attribute $hostName does not exist", $clTRID, $trans);
                         return;
                     }
                 }

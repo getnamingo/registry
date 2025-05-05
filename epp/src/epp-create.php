@@ -429,7 +429,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $hostName = strtolower($hostName);
 
-    $host_addr_list = $xml->xpath('//addr'); 
+    $host_addr_list = $xml->xpath('//host:addr');
     if (count($host_addr_list) > 13) {
         sendEppError($conn, $db, 2306, 'No more than 13 host:addr are allowed', $clTRID, $trans);
         return;
@@ -1379,38 +1379,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                             ]);
                         }
                     } else {
-                        $internal_host = false;
-                        $stmt = $db->prepare("SELECT tld FROM domain_tld");
-                        $stmt->execute();
-
-                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                            $tld = strtoupper($row['tld']);
-                            $tld = str_replace('.', '\\.', $tld); // Escape the dot for regex pattern matching
-                            if (preg_match("/$tld$/i", $hostObj)) {
-                                $internal_host = true;
-                                break;
-                            }
-                        }
-                        $stmt->closeCursor();
-
-                        if ($internal_host) {
-                            if (preg_match("/\.$domainName$/i", $hostObj)) {
-                                $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                                $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
-                                $host_id = $db->lastInsertId();
-
-                                $stmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(?, ?)");
-                                $stmt->execute([$domain_id, $host_id]);
-                            }
-                        } else {
-                            $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
-                            $stmt->execute([$hostObj, $clid, $clid]);
-                            $host_id = $db->lastInsertId();
-
-                            $stmt = $db->prepare("INSERT INTO application_host_map (domain_id,host_id) VALUES(?, ?)");
-                            $stmt->execute([$domain_id, $host_id]);
-                        }
-
+                        sendEppError($conn, $db, 2303, "Host object $hostObj does not exist", $clTRID, $trans);
+                        return;
                     }
                 }
             }
@@ -1451,30 +1421,39 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                             ]);
                         }
                     } else {
-                        // Insert a new host
-                        $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                        $host_id = $db->lastInsertId();
-
-                        // Map the new host to the domain
-                        $stmt = $db->prepare("INSERT INTO application_host_map (domain_id, host_id) VALUES (?, ?)");
-                        $stmt->execute([$domain_id, $host_id]);
-
-                        // Process and insert host addresses
-                        foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
-                            $hostAddr = (string)$nodeAddr;
-                            $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
-
-                            // Normalize the address
-                            if ($addr_type === 'v6') {
-                                $hostAddr = normalize_v6_address($hostAddr);
-                            } else {
-                                $hostAddr = normalize_v4_address($hostAddr);
+                        $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+                        $internal_host = false;
+                        foreach ($tlds as $tld) {
+                            if (str_ends_with(strtolower($hostName), strtolower($tld))) {
+                                $internal_host = true;
+                                break;
                             }
+                        }
 
-                            // Insert the address into host_addr table
-                            $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
-                            $stmt->execute([$host_id, $hostAddr, $addr_type]);
+                        if ($internal_host) {
+                            $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
+                            $stmt->execute([$hostName, $domain_id, $clid, $clid]);
+                            $host_id = $db->lastInsertId();
+
+                            $stmt = $db->prepare("INSERT INTO application_host_map (domain_id, host_id) VALUES (?, ?)");
+                            $stmt->execute([$domain_id, $host_id]);
+
+                            foreach ($node->xpath('./domain:hostAddr') as $nodeAddr) {
+                                $hostAddr = (string)$nodeAddr;
+                                $addr_type = (string)($nodeAddr->attributes()->ip ?? 'v4');
+
+                                if ($addr_type === 'v6') {
+                                    $hostAddr = normalize_v6_address($hostAddr);
+                                } else {
+                                    $hostAddr = normalize_v4_address($hostAddr);
+                                }
+
+                                $stmt = $db->prepare("INSERT INTO host_addr (host_id, addr, ip) VALUES (?, ?, ?)");
+                                $stmt->execute([$host_id, $hostAddr, $addr_type]);
+                            }
+                        } else {
+                            sendEppError($conn, $db, 2303, "Host attribute $hostName does not exist", $clTRID, $trans);
+                            return;
                         }
                     }
                 }
