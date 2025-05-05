@@ -626,6 +626,10 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $label = $parts['domain'];
     $domain_extension = '.' . strtoupper($parts['tld']);
 
+    $noticeid = null;
+    $notafter = null;
+    $accepted = null;
+
     if ($launch_extension_enabled && isset($launch_create)) {
         $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
         $xml->registerXPathNamespace('signedMark', 'urn:ietf:params:xml:ns:signedMark-1.0');
@@ -634,10 +638,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $launch_phase = $launch_phase_node ? (string)$launch_phase_node : null;
         $launch_phase_name = $launch_phase_node ? (string)$launch_phase_node['name'] : null;
         
-        $noticeid = null;
-        $notafter = null;
-        $accepted = null;
-
         $xpath = '//*[namespace-uri()="urn:ietf:params:xml:ns:signedMark-1.0" and local-name()="encodedSignedMark"]';
         $smd_encodedSignedMark = $xml->xpath($xpath)[0] ?? null;
         $smd_encodedSignedMark = $smd_encodedSignedMark ? preg_replace('/\s+/', '', (string)$smd_encodedSignedMark) : null;
