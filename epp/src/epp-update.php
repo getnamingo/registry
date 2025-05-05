@@ -905,7 +905,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($hostChg)) {
-        $chg_name = $xml->xpath('//host:name[1]')[0];
+        $chg_name = (string) $xml->xpath('//host:chg/host:name')[0];
 
         if (!validateHostName($chg_name)) {
             sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
@@ -971,9 +971,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($hostRem)) {
-        $rem_name = $xml->xpath('//host:name[1]')[0];
-
-        if (!validateHostName($rem_name)) {
+        if (!validateHostName($name)) {
             sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
             return;
         }
@@ -1007,6 +1005,16 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             
             $stmt = $db->prepare("DELETE FROM host_status WHERE host_id = ? AND status = ?");
             $stmt->execute([$hostId, $status]);
+        }
+
+        $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
+        $stmt->execute([$hostId]);
+        $remainingAddrs = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if ($remainingAddrs == 0) {
+            sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
+            return;
         }
     }
 
