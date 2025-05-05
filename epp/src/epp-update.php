@@ -928,17 +928,14 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
         } else {
+            $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
             $internal_host = false;
-            $stmt = $db->prepare("SELECT tld FROM domain_tld");
-            $stmt->execute();
-            while ($row = $stmt->fetch()) {
-                $tld = preg_quote(strtolower($row['tld']), '/');
-                if (preg_match("/$tld\$/i", strtolower($chg_name))) {
+            foreach ($tlds as $tld) {
+                if (str_ends_with(strtolower($chg_name), strtolower($tld))) {
                     $internal_host = true;
                     break;
                 }
             }
-            $stmt->closeCursor();
 
             if ($internal_host) {
                 sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host must be external to registry-managed domains', $clTRID, $trans);

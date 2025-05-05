@@ -470,11 +470,10 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $nsArr[$addr_type][$addr] = $addr;
     }
 
+    $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
     $internal_host = false;
-
-    $query = "SELECT tld FROM domain_tld";
-    foreach ($db->query($query) as $row) {
-        if (preg_match("/" . preg_quote(strtoupper($row['tld']), '/') . "$/i", $hostName)) {
+    foreach ($tlds as $tld) {
+        if (str_ends_with($hostName, strtolower($tld))) {
             $internal_host = true;
             break;
         }
@@ -1031,18 +1030,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
 
                 // Check if the host is internal or external
+                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
                 $internal_host = false;
-                $stmt = $db->prepare("SELECT tld FROM domain_tld");
-                $stmt->execute();
-                while ($tld = $stmt->fetchColumn()) {
-                    $tld = strtoupper($tld);
-                    $escapedTld = preg_quote($tld, '/');
-                    if (preg_match("/$escapedTld$/i", $hostName)) {
+                foreach ($tlds as $tld) {
+                    if (str_ends_with($hostName, strtolower($tld))) {
                         $internal_host = true;
                         break;
                     }
                 }
-                $stmt->closeCursor();
 
                 if ($internal_host) {
                     if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
