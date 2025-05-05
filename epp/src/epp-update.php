@@ -48,10 +48,12 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     $stmt->closeCursor();
 
-    $clientUpdateProhibited = 0;
+    $hasClientUpdateProhibited = false;
+    $clientWantsToRemoveUpdateLock = false;
+
     $stmt = $db->prepare("SELECT id FROM contact_status WHERE contact_id = :contact_id AND status = 'clientUpdateProhibited' LIMIT 1");
     $stmt->execute([':contact_id' => $contact_id]);
-    $clientUpdateProhibited = $stmt->fetchColumn();
+    $hasClientUpdateProhibited = $stmt->fetchColumn() ? true : false;
     $stmt->closeCursor();
 
     if ($contactRem) {
@@ -64,18 +66,20 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         foreach ($statusList as $node) {
             $status = (string)$node;
-            if ($status === 'clientUpdateProhibited') {
-                $clientUpdateProhibited = 0;
-            }
+
             if (!preg_match('/^(clientDeleteProhibited|clientTransferProhibited|clientUpdateProhibited)$/', $status)) {
                 sendEppError($conn, $db, 2005, 'Only these clientDeleteProhibited|clientTransferProhibited|clientUpdateProhibited statuses are accepted', $clTRID, $trans);
                 return;
             }
+
+            if ($status === 'clientUpdateProhibited') {
+                $clientWantsToRemoveUpdateLock = true;
+            }
         }
     }
 
-    if ($clientUpdateProhibited) {
-        sendEppError($conn, $db, 2304, 'It has clientUpdateProhibited status, but you did not indicate this status when deleting', $clTRID, $trans);
+    if ($hasClientUpdateProhibited && !$clientWantsToRemoveUpdateLock) {
+        sendEppError($conn, $db, 2304, 'Object status prohibits operation: It has clientUpdateProhibited status, but you did not indicate this status when deleting', $clTRID, $trans);
         return;
     }
 
@@ -444,6 +448,17 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         foreach ($status_list as $node) {
             $status = (string)$node;
+
+            $sth = $db->prepare("SELECT id FROM contact_status WHERE contact_id = ? AND status = ?");
+            $sth->execute([$contact_id, $status]);
+            $exists = $sth->fetchColumn();
+            $sth->closeCursor();
+
+            if (!$exists) {
+                sendEppError($conn, $db, 2303, 'Cannot remove status "' . $status . '" because it does not exist on the contact', $clTRID, $trans);
+                return;
+            }
+
             $sth = $db->prepare("DELETE FROM contact_status WHERE contact_id = ? AND status = ?");
             $sth->execute([$contact_id, $status]);
         }
