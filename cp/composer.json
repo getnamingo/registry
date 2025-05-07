@@ -40,7 +40,6 @@
         "league/flysystem": "^3.28",
         "mpociot/vat-calculator": "^3.11.0",
         "ramsey/uuid": "^4.7",
-        "selective/xmldsig": "^3.1",
         "adyen/php-api-library": "^19.1",
         "giggsey/libphonenumber-for-php-lite": "^8.13",
         "egulias/email-validator": "^4.0",
@@ -50,7 +49,8 @@
         "bjeavons/zxcvbn-php": "^1.4",
         "moneyphp/money": "^4.6",
         "phpmailer/phpmailer": "^6.9",
-        "filips123/monolog-phpmailer": "^2.0"
+        "filips123/monolog-phpmailer": "^2.0",
+        "robrichards/xmlseclibs": "^3.1"
     },
     "autoload": {
         "psr-4": {

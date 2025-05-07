@@ -5,9 +5,6 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
-use Selective\XmlDSig\PublicKeyStore;
-use Selective\XmlDSig\CryptoVerifier;
-use Selective\XmlDSig\XmlSignatureVerifier;
 use League\ISO3166\ISO3166;
 
 class ApplicationsController extends Controller
@@ -65,7 +62,6 @@ class ApplicationsController extends Controller
             
             $phaseType = $data['phaseType'] ?? null;
             $phaseName = $data['phaseName'] ?? null;
-            $smd = $data['smd'] ?? null;
             
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
@@ -73,6 +69,23 @@ class ApplicationsController extends Controller
 
             $authInfo = $data['authInfo'] ?? null;
             $invalid_domain = validate_label($domainName, $db);
+            
+            $uploadedFiles = $request->getUploadedFiles();
+            $smdFile = $uploadedFiles['smd'] ?? null;
+            $smd = null;
+
+            if ($smdFile && $smdFile->getError() === UPLOAD_ERR_OK) {
+                $smd = $smdFile->getStream()->getContents();
+                $smd_filename = $smdFile->getClientFilename();
+                
+                if (pathinfo($smd_filename, PATHINFO_EXTENSION) !== 'smd') {
+                    $this->container->get('flash')->addMessage('error', 'Only .smd files are allowed');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+            } else {
+                $this->container->get('flash')->addMessage('error', 'SMD file upload failed');
+                return $response->withHeader('Location', '/application/create')->withStatus(302);
+            }
 
             if ($phaseType === 'custom' && empty($phaseName)) {
                 $this->container->get('flash')->addMessage('error', 'Please provide a phase name when selecting the "Custom" phase type.');
@@ -167,15 +180,22 @@ class ApplicationsController extends Controller
                     $domDocument->preserveWhiteSpace = false;
                     $domDocument->formatOutput = true;
                     $domDocument->loadXML($xmlContent);
-
+                    
                     // Parse data
                     $xpath = new \DOMXPath($domDocument);
                     $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
                     $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+                    $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+                    $certNode = $xpath->evaluate('string(//ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate)');
+                    $certBase64 = preg_replace('/\s+/', '', $certNode);
+                    $certPem = "-----BEGIN CERTIFICATE-----\n" .
+                               chunk_split($certBase64, 64, "\n") .
+                               "-----END CERTIFICATE-----\n";
 
                     $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
-                    $notAfter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
+                    $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
                     $markName = $xpath->evaluate('string(//mark:markName)');
+                    $markId = $xpath->evaluate('string(//mark:id)');
                     $labels = [];
                     foreach ($xpath->query('//mark:label') as $x_label) {
                         $labels[] = $x_label->nodeValue;
@@ -188,20 +208,28 @@ class ApplicationsController extends Controller
 
                     // Check if current date and time is between notBefore and notAfter
                     $now = new \DateTime();
-                    if (!($now >= $notBefore && $now <= $notAfter)) {
+                    if (!($now >= $notBefore && $now <= $notafter)) {
                         $this->container->get('flash')->addMessage('error', 'Error creating application: Current time is outside the valid range in the SMD file');
                         return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
 
                     // Verify the signature
-                    $publicKeyStore = new PublicKeyStore();
-                    $publicKeyStore->loadFromDocument($domDocument);
-                    $cryptoVerifier = new CryptoVerifier($publicKeyStore);
-                    $xmlSignatureVerifier = new XmlSignatureVerifier($cryptoVerifier);
-                    $isValid = $xmlSignatureVerifier->verifyXml($xmlContent);
+                    $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
+                    $signatureNode = $dsig->locateSignature($domDocument);
+                    $dsig->canonicalizeSignedInfo();
+                    $dsig->idKeys = ['ID'];
+                    $dsig->idNS = ['smd' => 'urn:ietf:params:xml:ns:signedMark-1.0'];
 
-                    if (!$isValid) {
-                        $this->container->get('flash')->addMessage('error', 'Error creating application: The XML signature of the SMD file is not valid');
+                    $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
+                        \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
+                        ['type' => 'public']
+                    );
+                    $key->loadKey($certPem, false, true);
+
+                    $accepted = (new \DateTime())->format('Y-m-d H:i:s.v');
+
+                    if (!$dsig->verify($key, $signatureNode)) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: The XML signature of the SMD file is not valid.');
                         return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
                 } else {
@@ -374,12 +402,13 @@ class ApplicationsController extends Controller
                     'acdate' => null,            
                     'authtype' => 'pw',
                     'authinfo' => $authInfo,
-                    'phase_name' => $phaseName,
-                    'phase_type' => $phaseType,
-                    'smd' => $smd,
-                    'tm_notice_id' => $noticeid,
-                    'tm_notice_accepted' => $accepted,
-                    'tm_notice_expires' => $notafter
+                    'phase_name' => $phaseName ?? null,
+                    'phase_type' => $phaseType ?? 'none',
+                    'smd' => $smd ?? null,
+                    'tm_smd_id' => $markId ?? null,
+                    'tm_notice_id' => $noticeid ?? null,
+                    'tm_notice_accepted' => $accepted ?? null,
+                    'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s') : $notafter) : null
                 ]);
                 $domain_id = $db->getlastInsertId();
                 

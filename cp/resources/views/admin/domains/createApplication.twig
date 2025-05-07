@@ -36,7 +36,7 @@
             {% include 'partials/flash.twig' %}
                 <div class="card">
                     <div class="card-body">
-                        <form id="domainCreateForm" action="/application/create" method="post">
+                        <form id="domainCreateForm" action="/application/create" method="post" enctype="multipart/form-data">
                         {{ csrf.field | raw }}
                         
                         <div class="row mb-2">
@@ -195,7 +195,7 @@
                           <div class="col-md-6">
                             <div class="mb-3">
                               <label class="form-label">{{ __('Signed Mark Information') }}</label>
-                              <textarea class="form-control" data-bs-toggle="autosize" name="smd" placeholder="{{ __('Paste SMD contents') }}…"></textarea>
+                              <input type="file" class="form-control" name="smd" accept=".smd" />
                             </div>
                             
                             <div class="mb-3">
