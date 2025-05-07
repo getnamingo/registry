@@ -85,6 +85,10 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         ];
         $disclose_required = array_filter($disclose_fields, fn($value) => $value === '1');
 
+        $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
         $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_contact',
@@ -93,7 +97,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'id' => $contactRow['identifier'],
-            'roid' => 'C' . $contactRow['id'],
+            'roid' => 'C' . $contactRow['id'] . $roid,
             'status' => $statusArray,
             'postal' => $postalArray,
             'voice' => $contactRow['voice'],
@@ -184,6 +188,10 @@ function processHostInfo($conn, $db, $xml, $trans) {
         if ($domainData) {
             $statusArray[] = ['linked'];
         }
+        
+        $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
+        $stmt->closeCursor();
 
         $svTRID = generateSvTRID();
         $response = [
@@ -193,7 +201,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'name' => $host['name'],
-            'roid' => 'H' . $host['id'],
+            'roid' => 'H' . $host['id'] . $roid,
             'status' => $statusArray,
             'addr' => $addrArray,
             'clID' => getRegistrarClid($db, $host['clid']),
@@ -323,6 +331,10 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->execute(['id' => $domain['registrant']]);
             $registrant_id = $stmt->fetch(PDO::FETCH_COLUMN);
             $stmt->closeCursor();
+            
+            $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
+            $roid = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             $svTRID = generateSvTRID();
             $response = [
@@ -332,7 +344,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 'resultCode' => 1000,
                 'msg' => 'Command completed successfully',
                 'name' => $domain['name'],
-                'roid' => 'A' . $domain['id'],
+                'roid' => 'A' . $domain['id'] . $roid,
                 'status' => $status['status'],
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
@@ -487,6 +499,10 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
 
             // Fetch RGP status
             $rgpstatus = isset($domain['rgpstatus']) && $domain['rgpstatus'] ? $domain['rgpstatus'] : null;
+            
+            $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
+            $roid = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
             $svTRID = generateSvTRID();
             $response = [
@@ -496,7 +512,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 'resultCode' => 1000,
                 'msg' => 'Command completed successfully',
                 'name' => $domain['name'],
-                'roid' => 'D' . $domain['id'],
+                'roid' => 'D' . $domain['id'] . $roid,
                 'status' => $statusArray,
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
