@@ -67,7 +67,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         if (
             preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) ||
-            !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName) ||
+            !preg_match('/^[a-zA-Z0-9\-\&\,\.\'\/\s]{5,}$/', $postalInfoIntName) ||
             strlen($postalInfoIntName) > 255
         ) {
             sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
@@ -507,6 +507,11 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
+        if (empty($host_addr_list)) {
+            sendEppError($conn, $db, 2306, 'In-bailiwick hosts must include at least one IP address (glue record)', $clTRID, $trans);
+            return;
+        }
+
         $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP(3))");
         $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
         $host_id = $db->lastInsertId();
@@ -897,7 +902,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
     if (!empty($periodElements)) {
         $periodElement = $periodElements[0];
-        $period = (int) $periodElement;
+        $period_raw = trim((string) $periodElement);
+
+        if (!ctype_digit($period_raw)) {
+            sendEppError($conn, $db, 2004, 'domain:period must be a whole number', $clTRID, $trans);
+            return;
+        }
+
+        $period = (int) $period_raw;
         $period_unit = (string) $periodElement['unit'];
     } else {
         $periodElement = null;

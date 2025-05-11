@@ -167,7 +167,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
             if (
                 preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntName) ||
-                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntName) ||
+                !preg_match('/^[a-zA-Z0-9\-\&\,\.\'\/\s]{5,}$/', $postalInfoIntName) ||
                 strlen($postalInfoIntName) > 255
             ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:name', $clTRID, $trans);
@@ -1709,6 +1709,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         (channel, level, level_name, message, context, extra, created_at) 
                         VALUES ('epp', 300, 'WARNING', ?, ?, '{}', CURRENT_TIMESTAMP)");
                     $stmt->execute([$logMessage, $contextData]);
+
+                    sendEppError($conn, $db, 2306, "Host object $hostObj already present on domain", $clTRID, $trans);
+                    return;
                 }
             } else {
                 sendEppError($conn, $db, 2303, "Host object $hostObj does not exist", $clTRID, $trans);
@@ -1759,6 +1762,9 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                             return;
                         }
+
+                        sendEppError($conn, $db, 2306, "Host attribute $hostName already present on domain", $clTRID, $trans);
+                        return;
                     }
                 } else {
                     $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
