@@ -685,14 +685,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 return;
             }
 
-            $stmt = $db->prepare("SELECT id FROM tmch_claims WHERE domain_label = ? AND claim_key = ? LIMIT 1");
-            $stmt->execute([$label, $noticeid]);
-            $claim_valid = $stmt->fetchColumn();
-            $stmt->closeCursor();
-
-            if (!$claim_valid) {
-                sendEppError($conn, $db, 2306, 'Invalid or expired claims noticeID for this domain label', $clTRID, $trans);
-                return;
+            if (strlen($noticeid) !== 27 || !ctype_alnum($noticeid)) {
+                sendEppError($conn, $db, 2306, 'Invalid noticeID format', $clTRID, $trans);
             }
         } elseif ($launch_phase === 'landrush') {
             // Continue

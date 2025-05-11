@@ -84,7 +84,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'delete', 'contact', $contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'delete', 'contact', 'C'.$contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
@@ -163,7 +163,7 @@ function processHostDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'delete', 'host', $host_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'delete', 'host', $hostName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 

@@ -736,7 +736,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'update', 'contact', $contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'update', 'contact', 'C'.$contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
@@ -912,20 +912,30 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        $stmt = $db->prepare("SELECT domain_id FROM host WHERE name = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT id, domain_id FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$name]);
-        $domain_id = $stmt->fetchColumn();
+        $hostRow = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
 
-        if ($domain_id) {
+        if ($hostRow) {
+            $domain_id = $hostRow['domain_id'];
+            $host_id = $hostRow['id'];
+
             $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
             $stmt->execute([$domain_id]);
             $domain_name = $stmt->fetchColumn();
             $stmt->closeCursor();
 
             if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', $chg_name)) {
-                sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of '.$domain_name, $clTRID, $trans);
-                return;
+                $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
+                $stmt->execute([$host_id]);
+                $ipCount = $stmt->fetchColumn();
+                $stmt->closeCursor();
+
+                if ($ipCount > 0) {
+                    sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of ' . $domain_name, $clTRID, $trans);
+                    return;
+                }
             }
         } else {
             $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
@@ -979,44 +989,48 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $addr_list = $xml->xpath('//host:rem/host:addr');
         $status_list = $xml->xpath('//host:rem/host:status/@s');
 
-        $removingCount = count($addr_list);
+        if (!empty($addr_list)) {
+            $removingCount = count($addr_list);
 
-        $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
-        $stmt->execute([$hostId]);
-        $currentCount = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if ($currentCount - $removingCount <= 0) {
-            sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
-            return;
-        }
-
-        foreach ($addr_list as $node) {
-            $addr = (string) $node;
-            $addr_type = $node->attributes()['ip'] ? (string) $node->attributes()['ip'] : 'v4';
-
-            $normalized_addr = $addr_type === 'v6' ? normalize_v6_address($addr) : normalize_v4_address($addr);
-
-            // Check if this addr exists
-            $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
-            $stmt->execute([$hostId, $normalized_addr, $addr_type]);
-            $exists = $stmt->fetchColumn();
+            $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
+            $stmt->execute([$hostId]);
+            $currentCount = $stmt->fetchColumn();
             $stmt->closeCursor();
 
-            if (!$exists) {
-                sendEppError($conn, $db, 2306, "host:addr $addr not found for host, cannot remove", $clTRID, $trans);
+            if ($currentCount - $removingCount <= 0) {
+                sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
                 return;
             }
 
-            $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
-            $stmt->execute([$hostId, $normalized_addr, $addr_type]);
+            foreach ($addr_list as $node) {
+                $addr = (string) $node;
+                $addr_type = $node->attributes()['ip'] ? (string) $node->attributes()['ip'] : 'v4';
+
+                $normalized_addr = $addr_type === 'v6' ? normalize_v6_address($addr) : normalize_v4_address($addr);
+
+                // Check if this addr exists
+                $stmt = $db->prepare("SELECT id FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
+                $stmt->execute([$hostId, $normalized_addr, $addr_type]);
+                $exists = $stmt->fetchColumn();
+                $stmt->closeCursor();
+
+                if (!$exists) {
+                    sendEppError($conn, $db, 2306, "host:addr $addr not found for host, cannot remove", $clTRID, $trans);
+                    return;
+                }
+
+                $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ? AND addr = ? AND ip = ?");
+                $stmt->execute([$hostId, $normalized_addr, $addr_type]);
+            }
         }
 
-        foreach ($status_list as $node) {
-            $status = (string) $node;
-            
-            $stmt = $db->prepare("DELETE FROM host_status WHERE host_id = ? AND status = ?");
-            $stmt->execute([$hostId, $status]);
+        if (!empty($status_list)) {
+            foreach ($status_list as $node) {
+                $status = (string) $node;
+                
+                $stmt = $db->prepare("DELETE FROM host_status WHERE host_id = ? AND status = ?");
+                $stmt->execute([$hostId, $status]);
+            }
         }
 
     }
@@ -1088,7 +1102,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'update', 'host', $hostId, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'update', 'host', $name, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 

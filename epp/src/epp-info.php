@@ -97,7 +97,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'id' => $contactRow['identifier'],
-            'roid' => 'C' . $contactRow['id'] . $roid,
+            'roid' => 'C' . $contactRow['id'] . '-' . $roid,
             'status' => $statusArray,
             'postal' => $postalArray,
             'voice' => $contactRow['voice'],
@@ -122,7 +122,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
-        updateTransaction($db, 'info', 'contact', 'C_'.$contactRow['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        updateTransaction($db, 'info', 'contact', 'C'.$contactRow['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {
@@ -201,7 +201,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
             'resultCode' => 1000,
             'msg' => 'Command completed successfully',
             'name' => $host['name'],
-            'roid' => 'H' . $host['id'] . $roid,
+            'roid' => 'H' . $host['id'] . '-' . $roid,
             'status' => $statusArray,
             'addr' => $addrArray,
             'clID' => getRegistrarClid($db, $host['clid']),
@@ -214,7 +214,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'info', 'host', 'H_'.$host['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'info', 'host', $host['name'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
@@ -344,7 +344,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 'resultCode' => 1000,
                 'msg' => 'Command completed successfully',
                 'name' => $domain['name'],
-                'roid' => 'A' . $domain['id'] . $roid,
+                'roid' => 'A' . $domain['id'] . '-' . $roid,
                 'status' => $status['status'],
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
@@ -377,7 +377,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             
             $epp = new EPP\EppWriter();
             $xml = $epp->epp_writer($response);
-            updateTransaction($db, 'info', 'domain', 'A_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            updateTransaction($db, 'info', 'domain', $domain['name'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
             sendEppResponse($conn, $xml);
         } catch (PDOException $e) {
             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
@@ -512,7 +512,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 'resultCode' => 1000,
                 'msg' => 'Command completed successfully',
                 'name' => $domain['name'],
-                'roid' => 'D' . $domain['id'] . $roid,
+                'roid' => 'D' . $domain['id'] . '-' . $roid,
                 'status' => $statusArray,
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
@@ -581,13 +581,12 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             
             $epp = new EPP\EppWriter();
             $xml = $epp->epp_writer($response);
-            updateTransaction($db, 'info', 'domain', 'D_'.$domain['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            updateTransaction($db, 'info', 'domain', $domain['name'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
             sendEppResponse($conn, $xml);
         } catch (PDOException $e) {
             sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
         }
     }
-    
 
 }
 
