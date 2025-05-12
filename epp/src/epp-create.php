@@ -849,6 +849,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     }
                 }
 
+                $smdId = $xpath->evaluate('string(//smd:id)');
+                $stmt = $db->prepare("SELECT 1 FROM tmch_revocation WHERE smd_id = ?");
+                $stmt->execute([$smdId]);
+                if ($stmt->fetchColumn()) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD certificate has been revoked.', $clTRID, $trans);
+                    return;
+                }
+
                 $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
                 $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
                 $markName = $xpath->evaluate('string(//mark:markName)');

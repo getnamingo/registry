@@ -1557,6 +1557,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->closeCursor();
 
             if ($host_id) {
+                $stmt = $db->prepare("SELECT 1 FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
+                $stmt->execute([':domain_id' => $domain_id, ':host_id' => $host_id]);
+                $linked = $stmt->fetchColumn();
+                $stmt->closeCursor();
+
+                if (!$linked) {
+                    sendEppError($conn, $db, 2305, "hostObj $hostObj is not associated with this domain", $clTRID, $trans);
+                    return;
+                }
+
                 $stmt = $db->prepare("DELETE FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id");
                 $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
                 $stmt->bindParam(':host_id', $host_id, PDO::PARAM_INT);
@@ -1586,6 +1596,16 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $stmt->closeCursor();
 
                 if ($host_id) {
+                    $stmt = $db->prepare("SELECT 1 FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id LIMIT 1");
+                    $stmt->execute([':domain_id' => $domain_id, ':host_id' => $host_id]);
+                    $linked = $stmt->fetchColumn();
+                    $stmt->closeCursor();
+
+                    if (!$linked) {
+                        sendEppError($conn, $db, 2305, "hostAttr $hostName is not associated with this domain", $clTRID, $trans);
+                        return;
+                    }
+
                     $stmt = $db->prepare("DELETE FROM domain_host_map WHERE domain_id = :domain_id AND host_id = :host_id");
                     $stmt->bindParam(':domain_id', $domain_id, PDO::PARAM_INT);
                     $stmt->bindParam(':host_id', $host_id, PDO::PARAM_INT);

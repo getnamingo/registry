@@ -240,6 +240,16 @@ class ApplicationsController extends Controller
                         }
                     }
 
+                    $smdId = $xpath->evaluate('string(//smd:id)');
+                    $isRevoked = $db->selectValue(
+                        "SELECT 1 FROM tmch_revocation WHERE smd_id = ?",
+                        [ $smdId ]
+                    );
+                    if ($isRevoked === 1) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: SMD certificate has been revoked');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
                     $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
                     $markName = $xpath->evaluate('string(//mark:markName)');
