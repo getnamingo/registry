@@ -59,10 +59,10 @@ class ApplicationsController extends Controller
             $contactAdmin = $data['contactAdmin'] ?? null;
             $contactTech = $data['contactTech'] ?? null;
             $contactBilling = $data['contactBilling'] ?? null;
-            
+
             $phaseType = $data['phaseType'] ?? null;
-            $phaseName = $data['phaseName'] ?? null;
-            
+            $phaseName = isset($data['phaseName']) && trim($data['phaseName']) !== '' ? $data['phaseName'] : null;
+
             $nameservers = !empty($data['nameserver']) ? $data['nameserver'] : null;
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
@@ -74,17 +74,19 @@ class ApplicationsController extends Controller
             $smdFile = $uploadedFiles['smd'] ?? null;
             $smd = null;
 
-            if ($smdFile && $smdFile->getError() === UPLOAD_ERR_OK) {
-                $smd = $smdFile->getStream()->getContents();
-                $smd_filename = $smdFile->getClientFilename();
-                
-                if (pathinfo($smd_filename, PATHINFO_EXTENSION) !== 'smd') {
-                    $this->container->get('flash')->addMessage('error', 'Only .smd files are allowed');
+            if ($phaseType === 'sunrise' || $phaseType === 'landrush') {
+                if ($smdFile && $smdFile->getError() === UPLOAD_ERR_OK) {
+                    $smd = $smdFile->getStream()->getContents();
+                    $smd_filename = $smdFile->getClientFilename();
+                    
+                    if (pathinfo($smd_filename, PATHINFO_EXTENSION) !== 'smd') {
+                        $this->container->get('flash')->addMessage('error', 'Only .smd files are allowed');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+                } else {
+                    $this->container->get('flash')->addMessage('error', 'SMD file upload failed');
                     return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
-            } else {
-                $this->container->get('flash')->addMessage('error', 'SMD file upload failed');
-                return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
             if ($phaseType === 'custom' && empty($phaseName)) {
@@ -141,11 +143,15 @@ class ApplicationsController extends Controller
                 [$tld_id, $phaseType, $currentDate, $currentDate]
             );
 
+            $noticeid = null;
+            $notafter = null;
+            $accepted = null;
+
             if ($phase_details !== 'Application') {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: The launch phase ' . $phaseType . ' is improperly configured. Please check the settings or contact support.');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
-            
+
             if ($phaseType === 'claims') {
                 if (!isset($data['noticeid']) || $data['noticeid'] === '' ||
                     !isset($data['notafter']) || $data['notafter'] === '' ||
@@ -157,12 +163,32 @@ class ApplicationsController extends Controller
                 $noticeid = $data['noticeid'];
                 $notafter = $data['notafter'];
                 $accepted = $data['accepted'];
-            } else {
-                $noticeid = null;
-                $notafter = null;
-                $accepted = null;
+
+                // Validate that acceptedDate is before notAfter
+                try {
+                    $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $data['accepted']);
+                    $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $data['notafter']);
+                    
+                    if (!$acceptedDate || !$notAfterDate) {
+                        $this->container->get('flash')->addMessage('error', "Invalid date format");
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    if ($acceptedDate >= $notAfterDate) {
+                        $this->container->get('flash')->addMessage('error', "Invalid dates: acceptedDate must be before notAfter");
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+                } catch (Exception $e) {
+                    $this->container->get('flash')->addMessage('error', "Invalid date format");
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+
+                if (!validateTcnId($domainName, $noticeid, $data['notafter'])) {
+                    $this->container->get('flash')->addMessage('error', "Invalid TMCH claims noticeID format");
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
             }
-            
+
             if ($phaseType === 'sunrise') {
                 if ($smd !== null && $smd !== '') {
                     // Extract the BASE64 encoded part
@@ -191,6 +217,28 @@ class ApplicationsController extends Controller
                     $certPem = "-----BEGIN CERTIFICATE-----\n" .
                                chunk_split($certBase64, 64, "\n") .
                                "-----END CERTIFICATE-----\n";
+                               
+                    // Load the SMD certificate
+                    $x509 = new \phpseclib3\File\X509();
+                    $cert = $x509->loadX509($certPem);
+                    $serial = strtoupper($cert['tbsCertificate']['serialNumber']->toHex()); // serial as hex
+
+                    // Get latest CRL from DB
+                    $crlDer = $db->selectValue('SELECT content FROM tmch_crl ORDER BY update_timestamp DESC LIMIT 1');
+
+                    // Load and parse the CRL
+                    $crl = new \phpseclib3\File\X509();
+                    $crlData = $crl->loadCRL($crlDer);
+
+                    // Check revoked serials
+                    $revoked = $crlData['tbsCertList']['revokedCertificates'] ?? [];
+                    foreach ($revoked as $entry) {
+                        $revokedSerial = strtoupper($entry['userCertificate']->toHex());
+                        if ($revokedSerial === $serial) {
+                            $this->container->get('flash')->addMessage('error', 'Error creating application: SMD certificate has been revoked.');
+                            return $response->withHeader('Location', '/application/create')->withStatus(302);
+                        }
+                    }
 
                     $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
                     $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));

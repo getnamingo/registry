@@ -88,7 +88,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         if ($postalInfoIntStreet1) {
             if (
                 preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) ||
-                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
+                !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
                 strlen($postalInfoIntStreet1) > 255
             ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
@@ -99,7 +99,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         if ($postalInfoIntStreet2) {
             if (
                 preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) ||
-                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
+                !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
                 strlen($postalInfoIntStreet2) > 255
             ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
@@ -110,7 +110,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         if ($postalInfoIntStreet3) {
             if (
                 preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) ||
-                !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
+                !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
                 strlen($postalInfoIntStreet3) > 255
             ) {
                 sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
@@ -690,8 +690,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 return;
             }
 
-            if (strlen($noticeid) !== 27 || !ctype_alnum($noticeid)) {
-                sendEppError($conn, $db, 2306, 'Invalid noticeID format', $clTRID, $trans);
+            if (!validateTcnId($domainName, $noticeid, $launch_notAfter)) {
+                sendEppError($conn, $db, 2306, 'Invalid TMCH claims noticeID format', $clTRID, $trans);
             }
         } elseif ($launch_phase === 'landrush') {
             // Continue
@@ -824,6 +824,30 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $certPem = "-----BEGIN CERTIFICATE-----\n" .
                            chunk_split($certBase64, 64, "\n") .
                            "-----END CERTIFICATE-----\n";
+                           
+                // Load the SMD certificate
+                $x509 = new \phpseclib3\File\X509();
+                $cert = $x509->loadX509($certPem);
+                $serial = strtoupper($cert['tbsCertificate']['serialNumber']->toHex()); // serial as hex
+
+                // Get latest CRL from DB
+                $stmt = $db->query("SELECT content FROM tmch_crl ORDER BY update_timestamp DESC LIMIT 1");
+                $crlDer = $stmt->fetchColumn();
+                $stmt->closeCursor();
+
+                // Load and parse the CRL
+                $crl = new \phpseclib3\File\X509();
+                $crlData = $crl->loadCRL($crlDer);
+
+                // Check revoked serials
+                $revoked = $crlData['tbsCertList']['revokedCertificates'] ?? [];
+                foreach ($revoked as $entry) {
+                    $revokedSerial = strtoupper($entry['userCertificate']->toHex());
+                    if ($revokedSerial === $serial) {
+                        sendEppError($conn, $db, 2306, 'Error creating domain: SMD certificate has been revoked.', $clTRID, $trans);
+                        return;
+                    }
+                }
 
                 $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
                 $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));

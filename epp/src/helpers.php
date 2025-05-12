@@ -1070,3 +1070,33 @@ function normalizeDatetime($input) {
     $dt = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $input);
     return $dt ? $dt->format('Y-m-d H:i:s.v') : null;
 }
+
+function validateTcnId(string $domain, string $noticeId, string $notAfterUtc): bool
+{
+    // Ensure ID is at least 9 chars (8 for checksum + 1 for notice number)
+    if (strlen($noticeId) < 9) return false;
+
+    $tcnChecksum = substr($noticeId, 0, 8); // First 8 hex chars
+    $noticeNumber = substr($noticeId, 8);   // Rest is TMDB Notice Identifier
+
+    // Validate numeric part
+    if (!ctype_digit($noticeNumber)) return false;
+
+    // Convert domain to ASCII and get leftmost label
+    $asciiDomain = idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+    $leftmostLabel = explode('.', $asciiDomain)[0];
+
+    // Convert notAfter to Unix time
+    $notAfterTimestamp = strtotime($notAfterUtc);
+    if ($notAfterTimestamp === false) return false;
+
+    // Build the checksum input string
+    $input = $leftmostLabel . $notAfterTimestamp . $noticeNumber;
+
+    // Compute CRC32 as unsigned int, then format as 8-digit lowercase hex
+    $crc32 = hash('crc32b', $input);
+    $crc32Hex = str_pad(strtolower($crc32), 8, '0', STR_PAD_LEFT);
+
+    // Compare
+    return hash_equals($tcnChecksum, $crc32Hex);
+}

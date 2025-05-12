@@ -10,6 +10,7 @@
         "phpmailer/phpmailer": "^6.9",
         "filips123/monolog-phpmailer": "^2.0",
         "ramsey/uuid": "^4.7",
-        "robrichards/xmlseclibs": "^3.1"
+        "robrichards/xmlseclibs": "^3.1",
+        "phpseclib/phpseclib": "^3.0"
     }
 }

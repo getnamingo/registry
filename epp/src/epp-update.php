@@ -188,7 +188,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($postalInfoIntStreet1) {
                 if (
                     preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet1) ||
-                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
+                    !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet1) ||
                     strlen($postalInfoIntStreet1) > 255
                 ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
@@ -199,7 +199,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($postalInfoIntStreet2) {
                 if (
                     preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet2) ||
-                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
+                    !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet2) ||
                     strlen($postalInfoIntStreet2) > 255
                 ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
@@ -210,7 +210,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             if ($postalInfoIntStreet3) {
                 if (
                     preg_match('/(^\-)|(^\,)|(^\.)|(\-\-)|(\,\,)|(\.\.)|(\-$)/', $postalInfoIntStreet3) ||
-                    !preg_match('/^[a-zA-Z0-9\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
+                    !preg_match('/^[a-zA-Z0-9\'\-\&\,\.\/\s]{5,}$/', $postalInfoIntStreet3) ||
                     strlen($postalInfoIntStreet3) > 255
                 ) {
                     sendEppError($conn, $db, 2005, 'Invalid contact:street', $clTRID, $trans);
