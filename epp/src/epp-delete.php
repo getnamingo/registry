@@ -84,7 +84,7 @@ function processContactDelete($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'delete', 'contact', 'C'.$contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'delete', 'contact', $contactID, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 

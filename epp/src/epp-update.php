@@ -736,7 +736,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'update', 'contact', 'C'.$contact_id, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'update', 'contact', $contactID, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 
@@ -903,7 +903,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
     }
-
+    
     if (isset($hostChg)) {
         $chg_name = (string) $xml->xpath('//host:chg/host:name')[0];
 
@@ -927,14 +927,16 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->closeCursor();
 
             if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', $chg_name)) {
-                $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
-                $stmt->execute([$host_id]);
-                $ipCount = $stmt->fetchColumn();
-                $stmt->closeCursor();
+                if (!isset($hostRem)) {
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
+                    $stmt->execute([$host_id]);
+                    $ipCount = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
-                if ($ipCount > 0) {
-                    sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of ' . $domain_name, $clTRID, $trans);
-                    return;
+                    if ($ipCount > 0) {
+                        sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of ' . $domain_name, $clTRID, $trans);
+                        return;
+                    }
                 }
             }
         } else {
@@ -978,8 +980,13 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             sendEppError($conn, $db, 2305, 'It is not possible to modify because it is a dependency, it is used by some domain as NS', $clTRID, $trans);
             return;
         }
-    }
 
+        $query = "UPDATE host SET name = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?";
+
+        $stmt = $db->prepare($query);
+        $stmt->execute([$chg_name, $clid, $name]);
+    }
+    
     if (isset($hostRem)) {
         if (!validateHostName($name)) {
             sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
@@ -989,7 +996,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $addr_list = $xml->xpath('//host:rem/host:addr');
         $status_list = $xml->xpath('//host:rem/host:status/@s');
 
-        if (!empty($addr_list)) {
+        if (!empty($addr_list) && !isset($hostChg)) {
             $removingCount = count($addr_list);
 
             $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
@@ -1081,15 +1088,6 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
-    if (isset($hostChg)) {
-        $chg_name = strtoupper($xml->xpath('//host:name[1]')[0]);
-
-        $query = "UPDATE host SET name = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?";
-
-        $stmt = $db->prepare($query);
-        $stmt->execute([$chg_name, $clid, $name]);
-    }
-
     $svTRID = generateSvTRID();
     $response = [
         'command' => 'update_host',
@@ -1102,7 +1100,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'update', 'host', $name, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+    updateTransaction($db, 'update', 'host', strtolower($name), 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }
 

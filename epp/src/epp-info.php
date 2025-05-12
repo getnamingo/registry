@@ -495,6 +495,8 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             
                     $transformedSecDnsRecords[] = $tmpRecord;
                 }
+
+                usort($transformedSecDnsRecords, fn($a, $b) => $a['keyTag'] <=> $b['keyTag']);
             }
 
             // Fetch RGP status

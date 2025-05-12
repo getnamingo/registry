@@ -440,8 +440,12 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $nsArr = [];
 
     foreach ($host_addr_list as $node) {
-        $addr = (string)$node;
-        $addr_type = (string) $node['ip'] ?? 'v4';
+        $addr = (string) $node;
+        $addr_type = (string) ($node->attributes()->ip ?? 'v4');
+        if (!in_array($addr_type, ['v4', 'v6'])) {
+            sendEppError($conn, $db, 2005, 'host:addr ip attribute must be "v4" or "v6"', $clTRID, $trans);
+            return;
+        }
 
         if ($addr_type === 'v6') {
             $addr = normalize_v6_address($addr);
