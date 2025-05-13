@@ -921,37 +921,39 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $domain_id = $hostRow['domain_id'];
             $host_id = $hostRow['id'];
 
-            $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
-            $stmt->execute([$domain_id]);
-            $domain_name = $stmt->fetchColumn();
-            $stmt->closeCursor();
+            // Subordinate host
+            if ($domain_id) {
+                $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
+                $stmt->execute([$domain_id]);
+                $domain_name = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', $chg_name)) {
-                if (!isset($hostRem)) {
-                    $stmt = $db->prepare("SELECT COUNT(*) FROM host_addr WHERE host_id = ?");
-                    $stmt->execute([$host_id]);
-                    $ipCount = $stmt->fetchColumn();
-                    $stmt->closeCursor();
-
-                    if ($ipCount > 0) {
-                        sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host name must be a subdomain of ' . $domain_name, $clTRID, $trans);
-                        return;
+                if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
+                    // Renaming to another domain → not allowed
+                    sendEppError($conn, $db, 2304, 'Out-of-bailiwick renaming is not allowed for subordinate hosts', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                // External host
+                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+                $internal_host = false;
+                foreach ($tlds as $tld) {
+                    if (str_ends_with(strtolower($chg_name), strtolower($tld))) {
+                        $internal_host = true;
+                        break;
                     }
                 }
-            }
-        } else {
-            $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-            $internal_host = false;
-            foreach ($tlds as $tld) {
-                if (str_ends_with(strtolower($chg_name), strtolower($tld))) {
-                    $internal_host = true;
-                    break;
-                }
-            }
 
-            if ($internal_host) {
-                sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host must be external to registry-managed domains', $clTRID, $trans);
-                return;
+                if ($internal_host) {
+                    sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host must be external to registry-managed domains', $clTRID, $trans);
+                    return;
+                }
+
+                // External + new name is also external → delete IPs if not explicitly removed
+                if (!isset($hostRem)) {
+                    $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
+                    $stmt->execute([$host_id]);
+                }
             }
         }
 

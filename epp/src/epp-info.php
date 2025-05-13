@@ -122,7 +122,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
-        updateTransaction($db, 'info', 'contact', 'C'.$contactRow['id'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        updateTransaction($db, 'info', 'contact', $contactID, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
 
     } catch (PDOException $e) {

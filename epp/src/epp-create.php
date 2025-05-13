@@ -689,6 +689,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     sendEppError($conn, $db, 2003, 'Invalid dates: acceptedDate must be before notAfter', $clTRID, $trans);
                     return;
                 }
+
+                $currentTime = new DateTime('now', new DateTimeZone('UTC'));
+                $interval = $currentTime->getTimestamp() - $acceptedDate->getTimestamp();
+
+                if ($interval > 172800) { // 172800 seconds = 48 hours
+                    sendEppError($conn, $db, 2003, 'Invalid acceptedDate: must be within 48 hours of current time', $clTRID, $trans);
+                    return;
+                }
             } catch (Exception $e) {
                 sendEppError($conn, $db, 2003, 'Invalid date format', $clTRID, $trans);
                 return;
@@ -696,6 +704,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
             if (!validateTcnId($domainName, $noticeid, $launch_notAfter)) {
                 sendEppError($conn, $db, 2306, 'Invalid TMCH claims noticeID format', $clTRID, $trans);
+                return;
             }
         } elseif ($launch_phase === 'landrush') {
             // Continue
