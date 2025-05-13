@@ -929,21 +929,21 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $chg_clid = $stmt->fetchColumn();
             $stmt->closeCursor();
 
-            if ($chg_clid === false) {
-                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
-                return;
-            }
-
             if ($chg_clid !== false && $chg_clid !== $clid) {
                 sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
                 return;
             }
-            
+
             $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
             $stmt->execute([$domain_id]);
             $domain_name = $stmt->fetchColumn();
             $stmt->closeCursor();
-            
+
+            if ($chg_domain !== null && $chg_clid === false) {
+                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
+                return;
+            }
+
             if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
                 $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
                 $stmt->execute([$host_id]);
