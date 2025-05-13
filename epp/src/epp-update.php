@@ -917,43 +917,36 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $hostRow = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
 
-        if ($hostRow) {
-            $domain_id = $hostRow['domain_id'];
-            $host_id = $hostRow['id'];
+        $domain_id = $hostRow['domain_id'];
+        $host_id = $hostRow['id'];
 
-            // Subordinate host
-            if ($domain_id) {
-                $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
-                $stmt->execute([$domain_id]);
-                $domain_name = $stmt->fetchColumn();
-                $stmt->closeCursor();
+        if ($domain_id !== null) {
+            $tlds_scan = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+            $chg_domain = extractDomainFromHost($chg_name, $tlds_scan);
 
-                if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
-                    // Renaming to another domain → not allowed
-                    sendEppError($conn, $db, 2304, 'Out-of-bailiwick renaming is not allowed for subordinate hosts', $clTRID, $trans);
-                    return;
-                }
-            } else {
-                // External host
-                $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-                $internal_host = false;
-                foreach ($tlds as $tld) {
-                    if (str_ends_with(strtolower($chg_name), strtolower($tld))) {
-                        $internal_host = true;
-                        break;
-                    }
-                }
+            $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$chg_domain]);
+            $chg_clid = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
-                if ($internal_host) {
-                    sendEppError($conn, $db, 2005, 'Out-of-bailiwick change not allowed: host must be external to registry-managed domains', $clTRID, $trans);
-                    return;
-                }
+            if ($chg_clid === false) {
+                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
+                return;
+            }
 
-                // External + new name is also external → delete IPs if not explicitly removed
-                if (!isset($hostRem)) {
-                    $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
-                    $stmt->execute([$host_id]);
-                }
+            if ($chg_clid !== false && $chg_clid !== $clid) {
+                sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
+                return;
+            }
+            
+            $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
+            $stmt->execute([$domain_id]);
+            $domain_name = $stmt->fetchColumn();
+            $stmt->closeCursor();
+            
+            if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
+                $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
+                $stmt->execute([$host_id]);
             }
         }
 
