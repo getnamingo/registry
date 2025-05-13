@@ -1100,3 +1100,19 @@ function validateTcnId(string $domain, string $noticeId, string $notAfterUtc): b
     // Compare
     return hash_equals($tcnChecksum, $crc32Hex);
 }
+
+function extractDomainFromHost(string $hostname, array $tlds): ?string {
+    $hostname = strtolower($hostname);
+    foreach ($tlds as $tld) {
+        $tld = ltrim(strtolower($tld), '.'); // remove dot if present
+        if (str_ends_with($hostname, '.' . $tld)) {
+            $labels = explode('.', $hostname);
+            $tld_parts = explode('.', $tld);
+            $domain_parts = array_slice($labels, -count($tld_parts) - 1); // 1 label before TLD
+            if (count($domain_parts) === count($tld_parts) + 1) {
+                return implode('.', $domain_parts);
+            }
+        }
+    }
+    return null;
+}
