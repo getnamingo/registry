@@ -2098,14 +2098,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             return;
                         }
                         if ($keyTag < 0 || $keyTag > 65535) {
-                            sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid keyTag provided', $clTRID, $trans);
                             return;
                         }
 
                         // Validate alg
                         $validAlgorithms = [8, 13, 14, 15, 16];
                         if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
-                            sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
                             return;
                         }
 
@@ -2119,11 +2119,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         4 => 96   // SHA-384
                         ];
                         if (!isset($validDigests[$digestType])) {
-                            sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Unsupported digestType', $clTRID, $trans);
                             return;
                         }
                         if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                            sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                            sendEppError($conn, $db, 2005, 'Invalid digest length or format', $clTRID, $trans);
                             return;
                         }
 
@@ -2170,13 +2170,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         // Validate flags
                         $validFlags = [256, 257];
                         if (!isset($flags) && !in_array($flags, $validFlags)) {
-                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans);
                             return;
                         }
 
                         // Validate protocol
                         if (!isset($protocol) && $protocol != 3) {
-                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
                             return;
                         }
 
@@ -2250,7 +2250,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         $alg = (int) $algNode;
                         $validAlgorithms = [8, 13, 14, 15, 16];
                         if (!in_array($alg, $validAlgorithms)) {
-                            sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
                             return;
                         }
 
@@ -2262,7 +2262,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         $digestType = (int) $digestTypeNode;
                         $validDigests = [2 => 64, 4 => 96]; // SHA-256 and SHA-384
                         if (!array_key_exists($digestType, $validDigests)) {
-                            sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Unsupported digestType', $clTRID, $trans);
                             return;
                         }
 
@@ -2273,7 +2273,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
                         $digest = (string) $digestNode;
                         if (strlen($digest) !== $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                            sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                            sendEppError($conn, $db, 2005, 'Invalid digest length or format', $clTRID, $trans);
                             return;
                         }
 
@@ -2286,14 +2286,14 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             return;
                         }
                         if ($keyTag < 0 || $keyTag > 65535) {
-                            sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid keyTag provided', $clTRID, $trans);
                             return;
                         }
 
                         // Validate alg
                         $validAlgorithms = [8, 13, 14, 15, 16];
                         if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
-                            sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
                             return;
                         }
 
@@ -2307,11 +2307,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         4 => 96   // SHA-384
                         ];
                         if (!isset($validDigests[$digestType])) {
-                            sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Unsupported digestType', $clTRID, $trans);
                             return;
                         }
                         if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
-                            sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                            sendEppError($conn, $db, 2005, 'Invalid digest length or format', $clTRID, $trans);
                             return;
                         }
 
@@ -2331,13 +2331,13 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             // Validate flags
                             $validFlags = [256, 257];
                             if (!isset($flags) && !in_array($flags, $validFlags)) {
-                                sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                                sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans);
                                 return;
                             }
 
                             // Validate protocol
                             if (!isset($protocol) && $protocol != 3) {
-                                sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                                sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
                                 return;
                             }
 

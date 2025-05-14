@@ -1647,7 +1647,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     }
                     if ($keyTag < 0 || $keyTag > 65535) {
                         $db->rollBack();
-                        sendEppError($conn, $db, 2006, 'Invalid keyTag provided', $clTRID, $trans);
+                        sendEppError($conn, $db, 2004, 'Invalid keyTag provided', $clTRID, $trans);
                         return;
                     }
 
@@ -1655,7 +1655,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $validAlgorithms = [8, 13, 14, 15, 16];
                     if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
                         $db->rollBack();
-                        sendEppError($conn, $db, 2006, 'Invalid algorithm', $clTRID, $trans);
+                        sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
                         return;
                     }
 
@@ -1671,12 +1671,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     ];
                     if (!isset($validDigests[$digestType])) {
                         $db->rollBack();
-                        sendEppError($conn, $db, 2006, 'Unsupported digestType', $clTRID, $trans);
+                        sendEppError($conn, $db, 2004, 'Unsupported digestType', $clTRID, $trans);
                         return;
                     }
                     if (!isset($digest) || strlen($digest) != $validDigests[$digestType] || !ctype_xdigit($digest)) {
                         $db->rollBack();
-                        sendEppError($conn, $db, 2006, 'Invalid digest length or format', $clTRID, $trans);
+                        sendEppError($conn, $db, 2005, 'Invalid digest length or format', $clTRID, $trans);
                         return;
                     }
 
@@ -1697,14 +1697,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         $validFlags = [256, 257];
                         if (isset($flags) && !in_array($flags, $validFlags)) {
                             $db->rollBack();
-                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans);
                             return;
                         }
 
                         // Validate protocol
                         if (isset($protocol) && $protocol != 3) {
                             $db->rollBack();
-                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
+                            sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
                             return;
                         }
 
