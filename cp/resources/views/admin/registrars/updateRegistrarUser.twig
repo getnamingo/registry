@@ -152,6 +152,9 @@
                         <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab" aria-controls="billing" aria-selected="false">{{ __('Billing') }}</button>
                       </li>
                       <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tech-tab" data-bs-toggle="tab" data-bs-target="#tech" type="button" role="tab" aria-controls="tech" aria-selected="false">{{ __('Technical') }}</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
                         <button class="nav-link" id="abuse-tab" data-bs-toggle="tab" data-bs-target="#abuse" type="button" role="tab" aria-controls="abuse" aria-selected="false">{{ __('Abuse') }}</button>
                       </li>
                     </ul>
@@ -281,6 +284,69 @@
                               <div class="mb-3">
                                 <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
                                 <input type="text" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none" value="{{ contact.email }}">
+                              </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Tech Tab -->
+                      <div class="tab-pane fade" id="tech" role="tabpanel" aria-labelledby="tech-tab">
+                        <div class="mt-3">
+                          <div class="row">
+                          {% for contact in contacts %}
+                          {% if contact.type == 'tech' %}
+                            <!-- First Column -->
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                <input type="text" class="form-control" id="billingFirstName" name="tech[first_name]" value="{{ contact.first_name }}" required>
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                <input type="text" class="form-control" id="billingLastName" name="tech[last_name]" value="{{ contact.last_name }}"required>
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
+                                <input type="text" class="form-control" id="billingOrg" name="tech[org]" value="{{ contact.org }}">
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
+                                <input type="text" class="form-control" id="billingStreet1" name="tech[street1]" value="{{ contact.street1 }}">
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingCity" class="form-label required">{{ __('City') }}</label>
+                                <input type="text" class="form-control" id="billingCity" name="tech[city]" value="{{ contact.city }}" required>
+                              </div>
+                            </div>
+
+                            <!-- Second Column -->
+                            <div class="col-md-6">
+                              <div class="mb-3">
+                                <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
+                                <input type="text" class="form-control" id="billingSp" name="tech[sp]" value="{{ contact.sp }}">
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
+                                <input type="text" class="form-control" id="billingPc" name="tech[pc]" value="{{ contact.pc }}">
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingCc" class="form-label required">{{ __('Country') }}</label>
+                                <select class="form-select" id="billingCc" name="tech[cc]" required="required">
+                                  {% for country in countries %}
+                                    <option value="{{ country.alpha2 }}" {% if country.alpha2|lower == contact.cc %}selected{% endif %}>{{ country.name }}</option>
+                                  {% endfor %}
+                                </select>
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
+                                <input type="tel" class="form-control" id="billingVoice" name="tech[voice]" value="{{ contact.voice }}">
+                              </div>
+                              <div class="mb-3">
+                                <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
+                                <input type="text" class="form-control" id="billingEmail" name="tech[email]" required autocapitalize="none" value="{{ contact.email }}">
                               </div>
                             </div>
                             {% endif %}
@@ -560,10 +626,11 @@ document.addEventListener('DOMContentLoaded', function() {
     copyCheckbox.addEventListener('change', function() {
         if (this.checked) {
             copyDataToTab('#billing');
+            copyDataToTab('#tech');
             copyDataToTab('#abuse');
         } else {
             // Clear fields when unchecked, if desired
-            ['#billing', '#abuse'].forEach(tabId => {
+            ['#billing', '#tech', '#abuse'].forEach(tabId => {
                 const fields = document.querySelectorAll(`${tabId} input:not([type='checkbox']), ${tabId} select`);
                 fields.forEach(field => {
                     field.value = '';

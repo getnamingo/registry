@@ -121,6 +121,264 @@
                 </div>
               </div>
             </div>
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">{{ __('Registrar Contacts') }}</h5>
+                <ul class="nav nav-tabs nav-fill" id="contactTabs" role="tablist">
+                  <!-- Tab Headers -->
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="owner-tab" data-bs-toggle="tab" data-bs-target="#owner" type="button" role="tab" aria-controls="owner" aria-selected="true">{{ __('Owner') }}</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab" aria-controls="billing" aria-selected="false">{{ __('Billing') }}</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tech-tab" data-bs-toggle="tab" data-bs-target="#tech" type="button" role="tab" aria-controls="tech" aria-selected="false">{{ __('Technical') }}</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="abuse-tab" data-bs-toggle="tab" data-bs-target="#abuse" type="button" role="tab" aria-controls="abuse" aria-selected="false">{{ __('Abuse') }}</button>
+                  </li>
+                </ul>
+
+                <div class="tab-content" id="contactTabsContent">
+                  <!-- Owner Tab -->
+                  <div class="tab-pane fade show active" id="owner" role="tabpanel" aria-labelledby="owner-tab">
+                    <div class="mt-3">
+                      <div class="row">
+                      {% for contact in contacts %}
+                      {% if contact.type == 'owner' %}
+                        <!-- First Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="ownerFirstName" class="form-label">{{ __('First Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.first_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerLastName" class="form-label">{{ __('Last Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.last_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerOrg" class="form-label">{{ __('Organization') }}</label>
+                            <div class="form-control-plaintext">{{ contact.org }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerStreet1" class="form-label">{{ __('Street Address') }}</label>
+                            <div class="form-control-plaintext">{{ contact.street1 }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerCity" class="form-label">{{ __('City') }}</label>
+                            <div class="form-control-plaintext">{{ contact.city }}</div>
+                          </div>
+                        </div>
+
+                        <!-- Second Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="ownerSp" class="form-label">{{ __('State/Province') }}</label>
+                            <div class="form-control-plaintext">{{ contact.sp }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerPc" class="form-label">{{ __('Postal Code') }}</label>
+                            <div class="form-control-plaintext">{{ contact.pc }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerCc" class="form-label">{{ __('Country') }}</label>
+                            <div class="form-control-plaintext">{{ countries[contact.cc|upper] }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerVoice" class="form-label">{{ __('Phone') }}</label>
+                            <div class="form-control-plaintext">{{ contact.voice }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="ownerEmail" class="form-label">{{ __('Email') }}</label>
+                            <div class="form-control-plaintext">{{ contact.email }}</div>
+                          </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Billing Tab -->
+                  <div class="tab-pane fade" id="billing" role="tabpanel" aria-labelledby="billing-tab">
+                    <div class="mt-3">
+                      <div class="row">
+                      {% for contact in contacts %}
+                      {% if contact.type == 'billing' %}
+                        <!-- First Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="billingFirstName" class="form-label">{{ __('First Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.first_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingLastName" class="form-label">{{ __('Last Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.last_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
+                            <div class="form-control-plaintext">{{ contact.org }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
+                            <div class="form-control-plaintext">{{ contact.street1 }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingCity" class="form-label">{{ __('City') }}</label>
+                            <div class="form-control-plaintext">{{ contact.city }}</div>
+                          </div>
+                        </div>
+
+                        <!-- Second Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
+                            <div class="form-control-plaintext">{{ contact.sp }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
+                            <div class="form-control-plaintext">{{ contact.pc }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingCc" class="form-label">{{ __('Country') }}</label>
+                            <div class="form-control-plaintext">{{ countries[contact.cc|upper] }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
+                            <div class="form-control-plaintext">{{ contact.voice }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="billingEmail" class="form-label">{{ __('Email') }}</label>
+                            <div class="form-control-plaintext">{{ contact.email }}</div>
+                          </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                      
+                  <!-- Tech Tab -->
+                  <div class="tab-pane fade" id="tech" role="tabpanel" aria-labelledby="tech-tab">
+                    <div class="mt-3">
+                      <div class="row">
+                      {% for contact in contacts %}
+                      {% if contact.type == 'tech' %}
+                        <!-- First Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="techFirstName" class="form-label">{{ __('First Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.first_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techLastName" class="form-label">{{ __('Last Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.last_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techOrg" class="form-label">{{ __('Organization') }}</label>
+                            <div class="form-control-plaintext">{{ contact.org }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techStreet1" class="form-label">{{ __('Street Address') }}</label>
+                            <div class="form-control-plaintext">{{ contact.street1 }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techCity" class="form-label">{{ __('City') }}</label>
+                            <div class="form-control-plaintext">{{ contact.city }}</div>
+                          </div>
+                        </div>
+
+                        <!-- Second Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="techSp" class="form-label">{{ __('State/Province') }}</label>
+                            <div class="form-control-plaintext">{{ contact.sp }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techPc" class="form-label">{{ __('Postal Code') }}</label>
+                            <div class="form-control-plaintext">{{ contact.pc }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techCc" class="form-label">{{ __('Country') }}</label>
+                            <div class="form-control-plaintext">{{ countries[contact.cc|upper] }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techVoice" class="form-label">{{ __('Phone') }}</label>
+                            <div class="form-control-plaintext">{{ contact.voice }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="techEmail" class="form-label">{{ __('Email') }}</label>
+                            <div class="form-control-plaintext">{{ contact.email }}</div>
+                          </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Abuse Tab -->
+                  <div class="tab-pane fade" id="abuse" role="tabpanel" aria-labelledby="abuse-tab">
+                    <div class="mt-3">
+                      <div class="row">
+                      {% for contact in contacts %}
+                      {% if contact.type == 'abuse' %}
+                        <!-- First Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="abuseFirstName" class="form-label">{{ __('First Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.first_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseLastName" class="form-label">{{ __('Last Name') }}</label>
+                            <div class="form-control-plaintext">{{ contact.last_name }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseOrg" class="form-label">{{ __('Organization') }}</label>
+                            <div class="form-control-plaintext">{{ contact.org }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseStreet1" class="form-label">{{ __('Street Address') }}</label>
+                            <div class="form-control-plaintext">{{ contact.street1 }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseCity" class="form-label">{{ __('City') }}</label>
+                            <div class="form-control-plaintext">{{ contact.city }}</div>
+                          </div>
+                        </div>
+
+                        <!-- Second Column -->
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="abuseSp" class="form-label">{{ __('State/Province') }}</label>
+                            <div class="form-control-plaintext">{{ contact.sp }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abusePc" class="form-label">{{ __('Postal Code') }}</label>
+                            <div class="form-control-plaintext">{{ contact.pc }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseCc" class="form-label">{{ __('Country') }}</label>
+                            <div class="form-control-plaintext">{{ countries[contact.cc|upper] }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseVoice" class="form-label">{{ __('Phone') }}</label>
+                            <div class="form-control-plaintext">{{ contact.voice }}</div>
+                          </div>
+                          <div class="mb-3">
+                            <label for="abuseEmail" class="form-label">{{ __('Email') }}</label>
+                            <div class="form-control-plaintext">{{ contact.email }}</div>
+                          </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <div class="card h-100">

@@ -47,6 +47,7 @@ class RegistrarsController extends Controller
 
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
+            $data['tech']['cc'] = strtoupper($data['tech']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
             
             $phoneValidator = v::regex('/^\+\d{1,3}\.\d{2,12}$/');
@@ -73,9 +74,13 @@ class RegistrarsController extends Controller
                 'email' => v::email(),
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
+                'tech' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
-                'rdapServer' => v::domain(false),
+                'rdapServer' => v::oneOf(
+                    v::domain(false),
+                    v::url()->startsWith('http')
+                ),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
@@ -223,6 +228,24 @@ class RegistrarsController extends Controller
                     'registrar_contact',
                     [
                         'registrar_id' => $registrar_id,
+                        'type' => 'tech',
+                        'first_name' => $data['tech']['first_name'],
+                        'last_name' => $data['tech']['last_name'],
+                        'org' => $data['tech']['org'],
+                        'street1' => $data['tech']['street1'],
+                        'city' => $data['tech']['city'],
+                        'sp' => $data['tech']['sp'],
+                        'pc' => $data['tech']['pc'],
+                        'cc' => strtolower($data['tech']['cc']),
+                        'voice' => $data['tech']['voice'],
+                        'email' => $data['tech']['email']
+                    ]
+                );
+                
+                $db->insert(
+                    'registrar_contact',
+                    [
+                        'registrar_id' => $registrar_id,
                         'type' => 'abuse',
                         'first_name' => $data['abuse']['first_name'],
                         'last_name' => $data['abuse']['last_name'],
@@ -332,6 +355,8 @@ class RegistrarsController extends Controller
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
 
         if ($args) {
             $args = trim(preg_replace('/\s+/', ' ', $args));
@@ -359,7 +384,7 @@ class RegistrarsController extends Controller
                     }
                 }
                 
-                $registrarContact = $db->selectRow('SELECT * FROM registrar_contact WHERE registrar_id = ?',
+                $contacts = $db->select('SELECT * FROM registrar_contact WHERE registrar_id = ?',
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select('SELECT * FROM registrar_ote WHERE registrar_id = ? ORDER by command',
                 [ $registrar['id'] ]);
@@ -392,9 +417,15 @@ class RegistrarsController extends Controller
                 // Check if the user is not an admin
                 $role = $_SESSION['auth_roles'] ?? null;
 
+                $countriesAssoc = [];
+                foreach ($countries as $country) {
+                    $countriesAssoc[strtoupper($country['alpha2'])] = $country['name'];
+                }
+
                 return view($response,'admin/registrars/viewRegistrar.twig', [
                     'registrar' => $registrar,
-                    'registrarContact' => $registrarContact,
+                    'contacts' => $contacts,
+                    'countries' => $countriesAssoc,
                     'firstHalf' => $firstHalf,
                     'secondHalf' => $secondHalf,
                     'userEmail' => $userEmail,
@@ -664,6 +695,7 @@ class RegistrarsController extends Controller
 
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
+            $data['tech']['cc'] = strtoupper($data['tech']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
             
             $phoneValidator = v::regex('/^\+\d{1,3}\.\d{2,12}$/');
@@ -690,9 +722,13 @@ class RegistrarsController extends Controller
                 'email' => v::email(),
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
+                'tech' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
-                'rdapServer' => v::domain(false),
+                'rdapServer' => v::oneOf(
+                    v::domain(false),
+                    v::url()->startsWith('http')
+                ),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
@@ -831,6 +867,26 @@ class RegistrarsController extends Controller
                 $db->update(
                     'registrar_contact',
                     [
+                        'first_name' => $data['tech']['first_name'],
+                        'last_name' => $data['tech']['last_name'],
+                        'org' => $data['tech']['org'],
+                        'street1' => $data['tech']['street1'],
+                        'city' => $data['tech']['city'],
+                        'sp' => $data['tech']['sp'],
+                        'pc' => $data['tech']['pc'],
+                        'cc' => strtolower($data['tech']['cc']),
+                        'voice' => $data['tech']['voice'],
+                        'email' => $data['tech']['email']
+                    ],
+                    [
+                        'registrar_id' => $registrar_id,
+                        'type' => 'tech'
+                    ]
+                );
+                
+                $db->update(
+                    'registrar_contact',
+                    [
                         'first_name' => $data['abuse']['first_name'],
                         'last_name' => $data['abuse']['last_name'],
                         'org' => $data['abuse']['org'],
@@ -926,6 +982,7 @@ class RegistrarsController extends Controller
 
             $data['owner']['cc'] = strtoupper($data['owner']['cc']);
             $data['billing']['cc'] = strtoupper($data['billing']['cc']);
+            $data['tech']['cc'] = strtoupper($data['tech']['cc']);
             $data['abuse']['cc'] = strtoupper($data['abuse']['cc']);
             
             $phoneValidator = v::regex('/^\+\d{1,3}\.\d{2,12}$/');
@@ -951,9 +1008,13 @@ class RegistrarsController extends Controller
                 'email' => v::email(),
                 'owner' => v::optional(v::keySet(...$contactValidator)),
                 'billing' => v::optional(v::keySet(...$contactValidator)),
+                'tech' => v::optional(v::keySet(...$contactValidator)),
                 'abuse' => v::optional(v::keySet(...$contactValidator)),
                 'whoisServer' => v::domain(false),
-                'rdapServer' => v::domain(false),
+                'rdapServer' => v::oneOf(
+                    v::domain(false),
+                    v::url()->startsWith('http')
+                ),
                 'url' => v::url(),
                 'abuseEmail' => v::email(),
                 'abusePhone' => v::optional($phoneValidator),
@@ -1076,6 +1137,26 @@ class RegistrarsController extends Controller
                     [
                         'registrar_id' => $registrar_id,
                         'type' => 'billing'
+                    ]
+                );
+                
+                $db->update(
+                    'registrar_contact',
+                    [
+                        'first_name' => $data['tech']['first_name'],
+                        'last_name' => $data['tech']['last_name'],
+                        'org' => $data['tech']['org'],
+                        'street1' => $data['tech']['street1'],
+                        'city' => $data['tech']['city'],
+                        'sp' => $data['tech']['sp'],
+                        'pc' => $data['tech']['pc'],
+                        'cc' => strtolower($data['tech']['cc']),
+                        'voice' => $data['tech']['voice'],
+                        'email' => $data['tech']['email']
+                    ],
+                    [
+                        'registrar_id' => $registrar_id,
+                        'type' => 'tech'
                     ]
                 );
                 
