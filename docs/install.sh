@@ -525,6 +525,11 @@ EOF
     echo "Setting up cache."
     chown www-data:www-data /var/www/cp/cache
 
+    echo "Downloading ICANN TMCH certificate data."
+    curl -o /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
+    curl -o /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
+    chmod 644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
+
     echo -e "Installation complete!\n"
     echo -e "Next steps:\n"
     echo -e "1. Configure each component by editing their respective configuration files."

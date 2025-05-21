@@ -164,6 +164,11 @@ systemctl restart ${PHP_VERSION}-fpm
 
 wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 
+echo "Downloading ICANN TMCH certificate data."
+curl -o /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
+curl -o /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
+chmod 644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
+
 # Start services
 echo "Starting services..."
 systemctl start epp
