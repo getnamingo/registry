@@ -18,6 +18,7 @@ try {
 
 $savePath = $c['tmch_path'];
 
+// https://newgtlds.icann.org/sites/default/files/smd-test-repository-15may18-en.pdf
 $files = [
     'smdrl' => 'https://test.ry.marksdb.org/smdrl/smdrl-latest.csv',
     'dnl' => 'https://test.ry.marksdb.org/dnl/dnl-latest.csv',
