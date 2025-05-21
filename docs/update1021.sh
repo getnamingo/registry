@@ -130,6 +130,18 @@ mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "ALTER TABLE rde_escrow_deposits DROP IN
 echo "Creating new UNIQUE KEY deposit_id_deposit_type (deposit_id, deposit_type, file_name)..."
 mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "ALTER TABLE rde_escrow_deposits ADD UNIQUE KEY deposit_id_deposit_type (deposit_id, deposit_type, file_name);"
 
+echo "Copying owner contacts as tech where missing..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME <<EOF
+INSERT INTO registrar_contact (registrar_id, type, title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email)
+SELECT registrar_id, 'tech', title, first_name, middle_name, last_name, org, street1, street2, street3, city, sp, pc, cc, voice, fax, email
+FROM registrar_contact rc
+WHERE type = 'owner'
+AND NOT EXISTS (
+    SELECT 1 FROM registrar_contact
+    WHERE registrar_id = rc.registrar_id AND type = 'tech'
+);
+EOF
+
 echo "Database structure updated successfully."
 
 # Check the Linux distribution and version
