@@ -318,30 +318,40 @@
                                     <option value="custom">Custom</option>
                                 </select>
                             </div>
-                            
+                          </div>
+                          <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="phaseName" class="form-label">{{ __('Phase Name') }}</label>
                                 <input type="text" class="form-control" id="phaseName" name="phaseName" placeholder="Enter phase name">
-                                <small class="form-hint">The "Phase name" field is required only if the "Type" is set to "Custom".</small>
                             </div>
+                          </div>
+                        </div>
 
+                        <div class="row">
+                          <div class="col-md-12">
                             <div class="mb-3">
                               <label class="form-label">{{ __('Signed Mark Information') }}</label>
                               <input type="file" class="form-control" name="smd" accept=".smd" />
                             </div>
                           </div>
-                          <div class="col-md-6">
-
+                        </div>
+                        
+                        <div class="row">
+                          <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="noticeid" class="form-label">{{ __('Notice ID') }}</label>
                                 <input type="text" class="form-control" name="noticeid">
                             </div>
-                            
+                          </div>
+                          
+                          <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="notafter" class="form-label">{{ __('Not After Date') }}</label>
                                 <input type="datetime-local" class="form-control" name="notafter">
                             </div>
-                            
+                          </div>
+                          
+                          <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="accepted" class="form-label">{{ __('Accepted Date') }}</label>
                                 <input type="datetime-local" class="form-control" name="accepted">
@@ -981,6 +991,28 @@
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    {% if launch_phases == 'on' %}
+    const phaseType = document.getElementById('phaseType');
+    const phaseName = document.getElementById('phaseName');
+    const phaseNameLabel = document.querySelector('label[for="phaseName"]');
+
+    function togglePhaseNameRequired() {
+        const isCustom = phaseType.value === 'custom';
+
+        // Toggle 'required' attribute
+        phaseName.required = isCustom;
+
+        // Add or remove "required" class from the label
+        if (isCustom) {
+            phaseNameLabel.classList.add('required');
+        } else {
+            phaseNameLabel.classList.remove('required');
+        }
+    }
+
+    phaseType.addEventListener('change', togglePhaseNameRequired);
+    togglePhaseNameRequired();
+    {% endif %}
 
     window.currencySymbol = "{{ currencySymbol }}";
     window.currencyPosition = "{{ currencyPosition }}";
