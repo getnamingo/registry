@@ -11,8 +11,8 @@ ExecStart=/usr/bin/php /opt/registry/rdap/start_rdap.php
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStop=/bin/kill -INT $MAINPID
 WorkingDirectory=/opt/registry/rdap
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=rdap
 
 [Install]

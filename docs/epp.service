@@ -11,8 +11,8 @@ ExecStart=/usr/bin/php /opt/registry/epp/start_epp.php
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStop=/bin/kill -INT $MAINPID
 WorkingDirectory=/opt/registry/epp
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=epp
 
 [Install]

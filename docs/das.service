@@ -11,8 +11,8 @@ ExecStart=/usr/bin/php /opt/registry/das/start_das.php
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStop=/bin/kill -INT $MAINPID
 WorkingDirectory=/opt/registry/das
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=das
 
 [Install]

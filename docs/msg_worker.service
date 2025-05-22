@@ -11,8 +11,8 @@ ExecStart=/usr/bin/php /opt/registry/automation/msg_worker.php
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStop=/bin/kill -INT $MAINPID
 WorkingDirectory=/opt/registry/automation
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=msg_worker
 
 [Install]
