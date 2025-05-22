@@ -298,6 +298,11 @@ cp.example.com {
         Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
     }
 }
+
+cp.example.com {
+    bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
+    redir https://cp.example.com{uri}
+}
 ```
 
 Activate and reload Caddy:
@@ -305,6 +310,13 @@ Activate and reload Caddy:
 ```bash
 systemctl enable caddy
 systemctl restart caddy
+```
+
+Wait a few seconds and link the EPP certificates:
+
+```
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.example.com/epp.example.com.crt /opt/registry/epp/epp.crt
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.example.com/epp.example.com.key /opt/registry/epp/epp.key
 ```
 
 ### 6b. Nginx:
@@ -496,19 +508,18 @@ mv config.php.dist config.php
 
 Configure all options in ```config.php```.
 
-To create test certificates (cert.pem and key.pem):
-
-```bash
-openssl genrsa -out key.pem 2048
-openssl req -new -x509 -key key.pem -out cert.pem -days 365
-```
-
 - Copy ```docs/epp.service``` to ```/etc/systemd/system/```. Change only User and Group lines to your user and group.
 
 ```bash
+cp /opt/registry/docs/namingo-epp-reload.service /etc/systemd/system/namingo-epp-reload.service
+cp /opt/registry/docs/namingo-epp-reload.path /etc/systemd/system/namingo-epp-reload.path
+
+systemctl daemon-reexec
 systemctl daemon-reload
 systemctl start epp.service
 systemctl enable epp.service
+
+systemctl enable --now namingo-epp-reload.path
 ```
 
 After that you can manage EPP via systemctl as any other service.

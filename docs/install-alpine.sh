@@ -305,6 +305,11 @@ cp.${REGISTRY_DOMAIN} {
         Permissions-Policy "accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=()"
     }
 }
+
+cp.${REGISTRY_DOMAIN} {
+    ${BIND_LINE}
+    redir https://cp.${REGISTRY_DOMAIN}{uri}
+}
 EOF
 
 # Create log directory and adjust permissions
@@ -320,6 +325,11 @@ chown caddy:caddy /var/log/namingo/web-rdap.log
 # Restart Caddy and add to default runlevel
 rc-service caddy restart
 rc-update add caddy default
+
+sleep 5
+
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.${REGISTRY_DOMAIN}/epp.${REGISTRY_DOMAIN}.crt /opt/registry/epp/epp.crt
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.${REGISTRY_DOMAIN}/epp.${REGISTRY_DOMAIN}.key /opt/registry/epp/epp.key
 
 # --- Install Control Panel ---
 echo "Installing Control Panel..."
@@ -425,9 +435,18 @@ echo "Downloading initial data and setting up cache..."
 php /var/www/cp/bin/file_cache.php
 chown caddy:caddy /var/www/cp/cache
 
+echo "Downloading ICANN TMCH certificate data."
+curl -o /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
+curl -o /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
+chmod 644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
+
 echo -e "Installation complete!\n"
 echo -e "Next steps:\n"
 echo -e "1. Configure each component by editing their respective configuration files."
 echo -e "2. Once configuration is complete, start each service with the following command:\n   rc-service SERVICE_NAME start\n   Replace 'SERVICE_NAME' with the specific service (whois, rdap, epp, das) as needed."
 echo -e "3. To initiate the automation system, please refer to the configuration manual.\n"
 echo -e "For more detailed information, please consult the accompanying documentation or support resources."
+
+echo -e "⚠️ Notice: Automatic certificate monitoring and EPP reload via systemd is NOT supported on Alpine Linux."
+echo -e "Please remember to manually reload the EPP service every 3 months after certificate renewal:"
+echo -e "    systemctl reload namingo-epp"

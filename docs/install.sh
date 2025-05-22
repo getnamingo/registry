@@ -387,6 +387,11 @@ EOF
             Permissions-Policy: accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=();
         }
     }
+
+    epp.$REGISTRY_DOMAIN {
+        $BIND_LINE
+        redir https://cp.$REGISTRY_DOMAIN{uri}
+    }
 EOF
 
     mkdir -p /var/log/namingo
@@ -400,6 +405,11 @@ EOF
 
     systemctl enable caddy
     systemctl restart caddy
+
+    sleep 5
+
+    ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$REGISTRY_DOMAIN/epp.$REGISTRY_DOMAIN.crt /opt/registry/epp/epp.crt
+    ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$REGISTRY_DOMAIN/epp.$REGISTRY_DOMAIN.key /opt/registry/epp/epp.key
     
     echo "Installing Control Panel."
     mkdir -p /var/www
@@ -509,6 +519,27 @@ EOF
     systemctl daemon-reload
     systemctl enable msg_producer
     systemctl enable msg_worker
+
+    SERVICE_SRC="/opt/registry/docs/namingo-epp-reload.service"
+    PATH_SRC="/opt/registry/docs/namingo-epp-reload.path"
+    SERVICE_DEST="/etc/systemd/system/namingo-epp-reload.service"
+    PATH_DEST="/etc/systemd/system/namingo-epp-reload.path"
+
+    if [[ ! -f "$SERVICE_SRC" || ! -f "$PATH_SRC" ]]; then
+      echo "Error: Required files not found in /opt/registry/docs/"
+      exit 1
+    fi
+
+    echo "Copying systemd service and path files..."
+    cp "$SERVICE_SRC" "$SERVICE_DEST"
+    cp "$PATH_SRC" "$PATH_DEST"
+
+    echo "Reloading systemd daemon..."
+    systemctl daemon-reexec
+    systemctl daemon-reload
+
+    echo "Enabling and starting namingo-epp-reload.path..."
+    systemctl enable --now namingo-epp-reload.path
 
     echo "Enabling Redis."
     systemctl daemon-reload

@@ -1,0 +1,6 @@
+[Unit]
+Description=Reload Namingo EPP server after cert update
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl reload epp

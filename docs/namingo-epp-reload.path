@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for changes in EPP TLS cert/key
+
+[Path]
+PathChanged=/opt/registry/epp/epp.crt
+PathChanged=/opt/registry/epp/epp.key
+
+[Install]
+WantedBy=multi-user.target

@@ -169,6 +169,68 @@ curl -o /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
 curl -o /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
 chmod 644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
 
+echo "Updating EPP server configuration."
+CADDYFILE="/etc/caddy/Caddyfile"
+CBACKUP="/etc/caddy/Caddyfile.bak.$(date +%F-%H%M%S)"
+
+# Step 0: Backup original Caddyfile
+cp "$CADDYFILE" "$CBACKUP"
+echo "Caddy backup saved to $CBACKUP"
+
+rdap_line=$(grep -E '^\s*rdap\.[^ ]+\s*\{' "$CADDYFILE")
+bind_line=$(grep -A 3 "$rdap_line" "$CADDYFILE" | grep -E '^\s*bind\s')
+
+base_domain=$(echo "$rdap_line" | sed -E "s/^\s*rdap\.([^ ]+)\s*\{/\1/")
+
+bind_values=$(echo "$bind_line" | sed -E 's/^\s*bind\s+//')
+
+cat <<EOF >> "$CADDYFILE"
+
+epp.$base_domain {
+    bind $bind_values
+    redir https://cp.$base_domain{uri}
+}
+EOF
+
+echo "Added EPP block for epp.$base_domain with bind: $bind_values"
+
+systemctl reload caddy
+
+sleep 5
+
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$base_domain/epp.$base_domain.crt /opt/registry/epp/epp.crt
+ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$base_domain/epp.$base_domain.key /opt/registry/epp/epp.key
+
+CONFIG_FILE="/opt/registry/epp/config.php"
+NEW_CERT="/opt/registry/epp/epp.crt"
+NEW_KEY="/opt/registry/epp/epp.key"
+
+sed -i \
+  -e "s|^\(\s*'ssl_cert'\s*=>\s*\).*|\\1'$NEW_CERT',|" \
+  -e "s|^\(\s*'ssl_key'\s*=>\s*\).*|\\1'$NEW_KEY',|" \
+  "$CONFIG_FILE"
+
+SERVICE_SRC="/opt/registry/docs/namingo-epp-reload.service"
+PATH_SRC="/opt/registry/docs/namingo-epp-reload.path"
+SERVICE_DEST="/etc/systemd/system/namingo-epp-reload.service"
+PATH_DEST="/etc/systemd/system/namingo-epp-reload.path"
+
+if [[ ! -f "$SERVICE_SRC" || ! -f "$PATH_SRC" ]]; then
+  echo "Error: Required files not found in /opt/registry/docs/"
+  exit 1
+fi
+
+echo "Copying systemd service and path files..."
+cp "$SERVICE_SRC" "$SERVICE_DEST"
+cp "$PATH_SRC" "$PATH_DEST"
+
+echo "Reloading systemd daemon..."
+systemctl daemon-reexec
+systemctl daemon-reload
+
+echo "Enabling and starting namingo-epp-reload.path..."
+systemctl enable --now namingo-epp-reload.path
+
 # Start services
 echo "Starting services..."
 systemctl start epp
