@@ -177,7 +177,19 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 $basePath = '/var/lib/bind';
             }
 
-            file_put_contents("{$basePath}/{$cleanedTld}.zone", $completed_zone);
+            $tmpPath = "/tmp/{$cleanedTld}.zone.new";
+            $finalPath = "{$basePath}/{$cleanedTld}.zone";
+
+            file_put_contents($tmpPath, $completed_zone);
+
+            if (!file_exists($finalPath) || md5_file($tmpPath) !== md5_file($finalPath)) {
+                rename($tmpPath, $finalPath);
+                $tlds[] = $cleanedTld;
+                $log->info("Zone file updated for {$cleanedTld}.");
+            } else {
+                unlink($tmpPath);
+                $log->info("Zone file unchanged for {$cleanedTld}, skipping reload.");
+            }
 
             $tlds[] = $cleanedTld;
         }
