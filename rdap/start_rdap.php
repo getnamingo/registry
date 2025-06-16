@@ -177,12 +177,14 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
         $response->status(500);
         $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['Database error:' => $e->getMessage()]));
+        return;
     } catch (Throwable $e) {
         // Catch any other exceptions or errors
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
         $response->header('Content-Type', 'application/rdap+json');
-        $response->end(json_encode(['Error:' => $e->getMessage()]));
+        $response->end(json_encode(['General error:' => $e->getMessage()]));
+        return;
     } finally {
         // Return the connection to the pool
         $pool->put($pdo);
