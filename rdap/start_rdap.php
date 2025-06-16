@@ -326,12 +326,19 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested domain was not found in the RDAP database.',
+                'description' => ['The requested domain was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
@@ -782,12 +789,19 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested entity was not found in the RDAP database.',
+                'description' => ['The requested entity was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
@@ -890,13 +904,80 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested entity was not found in the RDAP database.',
-            ]));
+                'description' => ['The requested entity was not found in the RDAP database.'],
+                "notices" => [
+                    [
+                        "description" => [
+                            "Access to RDAP information is provided to assist persons in determining the contents of a domain name registration record in the Domain Name Registry registry database.",
+                            "The data in this record is provided by Domain Name Registry for informational purposes only, and Domain Name Registry does not guarantee its accuracy. ",
+                            "This service is intended only for query-based access. You agree that you will use this data only for lawful purposes and that, under no circumstances will you use this data to: (a) allow,",
+                            "enable, or otherwise support the transmission by e-mail, telephone, or facsimile of mass unsolicited, commercial advertising or solicitations to entities other than the data recipient's own existing customers; or",
+                            "(b) enable high volume, automated, electronic processes that send queries or data to the systems of Registry Operator, a Registrar, or NIC except as reasonably necessary to register domain names or modify existing registrations.",
+                            "All rights reserved. Domain Name Registry reserves the right to modify these terms at any time. By submitting this query, you agree to abide by this policy."
+                    ],
+                    "links" => [
+                        [
+                            "href" => $c['rdap_url'] . "/help",
+                            "value" => $c['rdap_url'] . "/help",
+                            "rel" => "self",
+                            "type" => "application/rdap+json"
+                        ],
+                        [
+                            "href" => $c['registry_url'],
+                            "value" => $c['registry_url'],
+                            "rel" => "alternate",
+                            "type" => "text/html"
+                        ],
+                    ],
+                        "title" => "RDAP Terms of Service"
+                    ],
+                    [
+                    "description" => [
+                        "This response conforms to the RDAP Operational Profile for gTLD Registries and Registrars version 1.0"
+                    ]
+                    ],
+                    [
+                    "description" => [
+                        "For more information on domain status codes, please visit https://icann.org/epp"
+                    ],
+                    "links" => [
+                        [
+                            "href" => "https://icann.org/epp",
+                            "value" => "https://icann.org/epp",
+                            "rel" => "glossary",
+                            "type" => "text/html"
+                        ]
+                    ],
+                        "title" => "Status Codes"
+                    ],
+                    [
+                        "description" => [
+                            "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                        ],
+                        "links" => [
+                        [
+                            "href" => "https://icann.org/wicf",
+                            "value" => "https://icann.org/wicf",
+                            "rel" => "help",
+                            "type" => "text/html"
+                        ]
+                        ],
+                        "title" => "RDDS Inaccuracy Complaint Form"
+                    ],
+                ]
+            ], JSON_UNESCAPED_SLASHES));
             // Close the connection
             $pdo = null;
             return;
@@ -1185,12 +1266,19 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested nameserver was not found in the RDAP database.',
+                'description' => ['The requested nameserver was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
@@ -1527,12 +1615,12 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested nameserver was not found in the RDAP database.',
+                'description' => ['The requested nameserver was not found in the RDAP database.'],
             ]));
             // Close the connection
             $pdo = null;
@@ -1682,12 +1770,19 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested domain was not found in the RDAP database.',
+                'description' => ['The requested domain was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
@@ -2216,9 +2311,16 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $response->header('Content-Type', 'application/json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested nameserver was not found in the RDAP database.',
+                'description' => ['The requested nameserver was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
@@ -2700,7 +2802,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         // Validate $entity to ensure it is numeric and contains only digits
         if (!is_numeric($entity)) {
             // Return a 404 response if $entity is not a purely numeric string
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
                 'errorCode' => 404,
@@ -2748,12 +2850,19 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
+                'rdapConformance' => [
+                    'rdap_level_0',
+                    'icann_rdap_response_profile_0',
+                    'icann_rdap_response_profile_1',
+                    'icann_rdap_technical_implementation_guide_0',
+                    'icann_rdap_technical_implementation_guide_1',
+                ],
                 'errorCode' => 404,
                 'title' => 'Not Found',
-                'description' => 'The requested entity was not found in the RDAP database.',
+                'description' => ['The requested entity was not found in the RDAP database.'],
                 "notices" => [
                     [
                         "description" => [
