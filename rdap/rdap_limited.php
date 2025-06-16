@@ -59,7 +59,7 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
         }
     } catch (PDOException $e) {
         $log->alert("Swoole PDO Pool failed: " . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(500);
         $response->end(json_encode(['error' => 'Database failure. Please try again later.']));
     }
@@ -68,7 +68,7 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
     if (!isIpWhitelisted($remoteAddr, $pdo)) {
         if (($c['rately'] == true) && ($rateLimiter->isRateLimited('rdap', $remoteAddr, $c['limit'], $c['period']))) {
             $log->error('rate limit exceeded for ' . $remoteAddr);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(429);
             $response->end(json_encode(['error' => 'Rate limit exceeded. Please try again later.']));
         }
@@ -108,12 +108,12 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
                     $searchPattern = $queryParams['nsIp'];
                     handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'nsIp');
                 } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
                 }
             } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
             }
@@ -130,12 +130,12 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
                     $searchPattern = $queryParams['ip'];
                     handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'ip');
                 } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
                 }
             } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
             }
@@ -152,12 +152,12 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
                     $searchPattern = $queryParams['handle'];
                     handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, $log, 'handle');
                 } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
                 }
             } else {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(404);
                     $response->end(json_encode(['error' => 'Object not found']));
             }
@@ -167,7 +167,7 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
             handleHelpQuery($request, $response, $pdo, $c);
         }
         else {
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode(['errorCode' => 404,'title' => 'Not Found','error' => 'Endpoint not found']));
         }
@@ -175,13 +175,13 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
         // Handle database exceptions
         $log->error('Database error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['Database error:' => $e->getMessage()]));
     } catch (Throwable $e) {
         // Catch any other exceptions or errors
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['Error:' => $e->getMessage()]));
     } finally {
         // Return the connection to the pool
@@ -201,7 +201,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
 
     // Empty domain check
     if (!$domain) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Please enter a domain name']));
         return;
@@ -209,7 +209,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     
     // Check domain length
     if (strlen($domain) > 68) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name is too long']));
         return;
@@ -219,7 +219,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     if (!mb_detect_encoding($domain, 'ASCII', true)) {
         $convertedDomain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
         if ($convertedDomain === false) {
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(400); // Bad Request
             $response->end(json_encode(['error' => 'Domain conversion to Punycode failed']));
             return;
@@ -230,7 +230,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
 
     // Check for prohibited patterns in domain names
     if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid format']));
         return;
@@ -253,7 +253,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     $tldExists = $stmtTLD->fetchColumn();
 
     if (!$tldExists) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Invalid TLD. Please search only allowed TLDs']));
         return;
@@ -266,7 +266,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
     $idnRegex = $stmtRegex->fetchColumn();
 
     if (!$idnRegex) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Failed to fetch domain IDN table']));
         return;
@@ -279,7 +279,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $label = $parts[0];
     }
     if (!preg_match($idnRegex, $label)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid IDN characters']));
         return;
@@ -301,7 +301,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             $domain_already_reserved = $stmtReserved->fetchColumn();
 
             if ($domain_already_reserved) {
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->status(400); // Bad Request
                 $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
                 return;
@@ -316,13 +316,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -718,13 +718,13 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }
@@ -733,14 +733,14 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
@@ -752,7 +752,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
 
     // Empty entity check
     if (!$entity) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Please enter an entity']));
         return;
@@ -760,7 +760,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
     
     // Check for prohibited patterns in RDAP entity handle
     if (!preg_match("/^[A-Za-z0-9]+$/", $entity)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Entity handle invalid format']));
         return;
@@ -779,13 +779,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -894,13 +894,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -1157,13 +1157,13 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }
@@ -1172,14 +1172,14 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
@@ -1192,7 +1192,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
 
     // Empty nameserver check
     if (!$ns) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Please enter a nameserver']));
         return;
@@ -1206,7 +1206,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
 
     if (strlen($ns) > 253 || in_array(false, $validLengths, true)) {
         // The nameserver format is invalid due to length
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Nameserver is too long']));
         return;
@@ -1216,7 +1216,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
     if (!mb_detect_encoding($ns, 'ASCII', true)) {
         $convertedDomain = idn_to_ascii($ns, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
         if ($convertedDomain === false) {
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(400); // Bad Request
             $response->end(json_encode(['error' => 'Host conversion to Punycode failed']));
             return;
@@ -1227,7 +1227,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
 
     // Validate nameserver
     if (!isValidHostname($ns)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Nameserver format is invalid. Expected a fully qualified domain name (FQDN), punycode supported (e.g., ns1.example.com)']));
         return;
@@ -1256,13 +1256,13 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -1550,13 +1550,13 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }    
@@ -1565,14 +1565,14 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
@@ -1585,7 +1585,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
     // Empty domain check
     if (!$domain) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Please enter a domain name']));
         return;
@@ -1605,13 +1605,13 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -1635,17 +1635,17 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
                 'errorCode' => 404,
@@ -1659,7 +1659,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     
     // Check domain length
     if (strlen($domain) > 68) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name is too long']));
         return;
@@ -1669,7 +1669,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     if (!mb_detect_encoding($domain, 'ASCII', true)) {
         $convertedDomain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
         if ($convertedDomain === false) {
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(400); // Bad Request
             $response->end(json_encode(['error' => 'Domain conversion to Punycode failed']));
             return;
@@ -1680,7 +1680,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     
     // Check for prohibited patterns in domain names
     if (!preg_match('/^(?:(xn--[a-zA-Z0-9-]{1,63}|[a-zA-Z0-9-]{1,63})\.){1,3}(xn--[a-zA-Z0-9-]{2,63}|[a-zA-Z]{2,63})$/', $domain)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid format']));
         return;
@@ -1697,7 +1697,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     $tldExists = $stmtTLD->fetchColumn();
 
     if (!$tldExists) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Invalid TLD. Please search only allowed TLDs']));
         return;
@@ -1709,7 +1709,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     $domain_already_reserved = $stmtReserved->fetchColumn();
 
     if ($domain_already_reserved) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
         return;
@@ -1722,7 +1722,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
     $idnRegex = $stmtRegex->fetchColumn();
 
     if (!$idnRegex) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Failed to fetch domain IDN table']));
         return;
@@ -1735,7 +1735,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $label = $parts[0];
     }
     if (!preg_match($idnRegex, $label)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Domain name invalid IDN characters']));
         return;
@@ -1760,17 +1760,17 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
                 'rdapConformance' => [
@@ -2158,13 +2158,13 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }
@@ -2173,14 +2173,14 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
@@ -2200,7 +2200,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 
                 // Empty nameserver check
                 if (!$ns) {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Please enter a nameserver']));
                     return;
@@ -2214,7 +2214,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
 
                 if (strlen($ns) > 253 || in_array(false, $validLengths, true)) {
                     // The nameserver format is invalid due to length
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Nameserver is too long']));
                     return;
@@ -2224,7 +2224,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 if (!mb_detect_encoding($ns, 'ASCII', true)) {
                     $convertedDomain = idn_to_ascii($ns, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
                     if ($convertedDomain === false) {
-                        $response->header('Content-Type', 'application/json');
+                        $response->header('Content-Type', 'application/rdap+json');
                         $response->status(400); // Bad Request
                         $response->end(json_encode(['error' => 'Host conversion to Punycode failed']));
                         return;
@@ -2235,7 +2235,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
 
                 // Validate nameserver
                 if (!isValidHostname($ns)) {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Nameserver format is invalid. Expected a fully qualified domain name (FQDN), punycode supported (e.g., ns1.example.com)']));
                     return;
@@ -2257,7 +2257,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 
                 // Empty IP check
                 if (!$ns) {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Please enter an IP address']));
                     return;
@@ -2265,7 +2265,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
 
                 // Validate IP address format
                 if (!filter_var($ns, FILTER_VALIDATE_IP)) {
-                    $response->header('Content-Type', 'application/json');
+                    $response->header('Content-Type', 'application/rdap+json');
                     $response->status(400); // Bad Request
                     $response->end(json_encode(['error' => 'Invalid IP address format']));
                     return;
@@ -2298,17 +2298,17 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
             $response->end(json_encode([
                 'rdapConformance' => [
@@ -2738,13 +2738,13 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }
@@ -2753,14 +2753,14 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
@@ -2772,7 +2772,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
     // Empty entity check
     if (!$entity) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Please enter an entity']));
         return;
@@ -2780,7 +2780,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
     
     // Check for prohibited patterns in RDAP entity handle
     if (!preg_match("/^[A-Za-z0-9]+$/", $entity)) {
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Entity handle invalid format']));
         return;
@@ -2840,13 +2840,13 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             } catch (PDOException $e) {
                 $log->error('DB Connection failed: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['Database error:' => $e->getMessage()]));
                 return;
             } catch (Throwable $e) {
                 $log->error('Error: ' . $e->getMessage());
                 $response->status(500);
-                $response->header('Content-Type', 'application/json');
+                $response->header('Content-Type', 'application/rdap+json');
                 $response->end(json_encode(['General error:' => $e->getMessage()]));
                 return;
             }
@@ -3107,13 +3107,13 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         } catch (PDOException $e) {
             $log->error('DB Connection failed: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['Database error:' => $e->getMessage()]));
             return;
         } catch (Throwable $e) {
             $log->error('Error: ' . $e->getMessage());
             $response->status(500);
-            $response->header('Content-Type', 'application/json');
+            $response->header('Content-Type', 'application/rdap+json');
             $response->end(json_encode(['General error:' => $e->getMessage()]));
             return;
         }
@@ -3122,14 +3122,14 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         $response->end(json_encode($rdapResponse, JSON_UNESCAPED_SLASHES));
     } catch (PDOException $e) {
         $log->error('DB Connection failed: ' . $e->getMessage());
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->status(503);
         $response->end(json_encode(['error' => 'Error connecting to the RDAP database']));
         return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $response->status(500);
-        $response->header('Content-Type', 'application/json');
+        $response->header('Content-Type', 'application/rdap+json');
         $response->end(json_encode(['General error:' => $e->getMessage()]));
         return;
     }
