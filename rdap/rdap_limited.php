@@ -27,7 +27,7 @@ $pool = new Swoole\Database\PDOPool(
 );
 
 // Create a Swoole HTTP server
-$http = new Server('0.0.0.0', 7500);
+$http = new Server('127.0.0.1', 7500);
 $http->set([
     'daemonize' => false,
     'log_file' => '/var/log/namingo/rdap_application.log',
