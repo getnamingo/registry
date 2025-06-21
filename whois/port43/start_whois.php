@@ -208,6 +208,9 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
 
                     $clidF = $stmt3->fetch(PDO::FETCH_ASSOC);
 
+                    $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+                    $roid = $stmt->fetchColumn();
+
                     // Check if the domain name is non-ASCII or starts with 'xn--'
                     $isNonAsciiOrPunycode = !mb_check_encoding($f['name'], 'ASCII') || strpos($f['name'], 'xn--') === 0;
 
@@ -221,7 +224,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $res .= "Internationalized Domain Name: " . mb_strtoupper($internationalizedName) . "\n";
                     }
 
-                    $res .= "Registry Domain ID: D".$f['id']."-".$c['roid']
+                    $res .= "Registry Domain ID: D".$f['id']."-".$roid
                         ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
                         ."\nRegistrar URL: ".$clidF['url']
                         ."\nUpdated Date: ".$f['lastupdate']
@@ -278,7 +281,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                             ."\nRegistrant Fax: REDACTED FOR PRIVACY"
                             ."\nRegistrant Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                         } else {
-                            $res .= "\nRegistry Registrant ID: C".$f2['id']."-".$c['roid'];
+                            $res .= "\nRegistry Registrant ID: C".$f2['id']."-".$roid;
                             
                             // Determine which type of disclosure to use
                             $disclose_name = ($f2['type'] == 'loc') ? $f2['disclose_name_loc'] : $f2['disclose_name_int'];
@@ -343,7 +346,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                             ."\nAdmin Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                         } else {
                             if (!empty($f2['id'])) {
-                                $res .= "\nRegistry Admin ID: C" . $f2['id'] . "-" . $c['roid'];
+                                $res .= "\nRegistry Admin ID: C" . $f2['id'] . "-" . $roid;
                             } else {
                                 $res .= "\nRegistry Admin ID:";
                             }
@@ -423,7 +426,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                             ."\nBilling Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                         } else {
                             if (!empty($f2['id'])) {
-                                $res .= "\nRegistry Billing ID: C" . $f2['id'] . "-" . $c['roid'];
+                                $res .= "\nRegistry Billing ID: C" . $f2['id'] . "-" . $roid;
                             } else {
                                 $res .= "\nRegistry Billing ID:";
                             }
@@ -503,7 +506,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                             ."\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.";
                         } else {
                             if (!empty($f2['id'])) {
-                                $res .= "\nRegistry Tech ID: C" . $f2['id'] . "-" . $c['roid'];
+                                $res .= "\nRegistry Tech ID: C" . $f2['id'] . "-" . $roid;
                             } else {
                                 $res .= "\nRegistry Tech ID:";
                             }
