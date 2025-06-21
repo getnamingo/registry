@@ -557,11 +557,9 @@ try {
 
         $gpg->clearencryptkeys();
         $gpg->clearsignkeys();
-        $gpg->setarmor(true);
-        $gpg->setsignmode(gnupg::SIG_MODE_DETACH);
-
-        // Use preloaded, trusted private key
+        $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
         $gpg->addsignkey($c['escrow_signing_fingerprint']);
+        $gpg->setarmor(false);
 
         // Read encrypted file
         $encryptedFileContents = file_get_contents($encryptedFilePath);
@@ -907,7 +905,7 @@ try {
             // Initialize the GnuPG object
             $gpg = new gnupg();
             $gpg->seterrormode(GNUPG::ERROR_EXCEPTION);
-            $gpg->setarmor(true);
+            $gpg->setarmor(false);
 
             // Import BRDA escrow public key
             $brdaPublicKeyData = file_get_contents($c['escrow_keyPath_brda']);
@@ -940,11 +938,9 @@ try {
 
             $gpg->clearencryptkeys(); // ensure clean context
             $gpg->clearsignkeys();
-            $gpg->setarmor(true);
             $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
-
-            // Import signing private key
             $gpg->addsignkey($c['escrow_signing_fingerprint']);
+            $gpg->setarmor(false);
 
             // Sign the BRDA .ryde file
             $brdaFileData = file_get_contents($encryptedFilePathBrda);
