@@ -623,7 +623,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     'type' => 'application/rdap+json',
                 ]
             ],
-            'nameservers' => array_map(function ($nameserverDetails) use ($c) {
+            'nameservers' => array_map(function ($nameserverDetails) use ($roid) {
                 return [
                     'objectClassName' => 'nameserver',
                     'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
@@ -2046,13 +2046,13 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 [
                     mapContactToVCard($registrantDetails, 'registrant', $roid)
                 ],
-                array_map(function ($contact) use ($c) {
+                array_map(function ($contact) use ($roid) {
                     return mapContactToVCard($contact, 'admin', $roid);
                 }, $adminDetails),
-                array_map(function ($contact) use ($c) {
+                array_map(function ($contact) use ($roid) {
                     return mapContactToVCard($contact, 'tech', $roid);
                 }, $techDetails),
-                array_map(function ($contact) use ($c) {
+                array_map(function ($contact) use ($roid) {
                     return mapContactToVCard($contact, 'billing', $roid);
                 }, $billingDetails)
             ),
@@ -2071,7 +2071,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     'type' => 'application/rdap+json',
                 ]
             ],
-            'nameservers' => array_map(function ($nameserverDetails) use ($c) {
+            'nameservers' => array_map(function ($nameserverDetails) use ($roid) {
                 return [
                     'objectClassName' => 'nameserver',
                     'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
