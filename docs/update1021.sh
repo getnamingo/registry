@@ -231,6 +231,23 @@ systemctl daemon-reload
 echo "Enabling and starting namingo-epp-reload.path..."
 systemctl enable --now namingo-epp-reload.path
 
+CONFIG_FILE="/opt/registry/automation/config.php"
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "Error: File $CONFIG_FILE not found."
+fi
+
+awk '
+/'\''escrow_privateKey'\''[[:space:]]*=>/ {
+    print
+    print "    '\''escrow_signing_fingerprint'\'' => '\''REPLACE_WITH_YOUR_40_CHAR_KEY_FINGERPRINT'\'',"
+    next
+}
+{ print }
+' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+
+echo "Automation config modified successfully."
+
 # Start services
 echo "Starting services..."
 systemctl start epp

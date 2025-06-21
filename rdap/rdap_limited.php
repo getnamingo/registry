@@ -525,6 +525,9 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
         $rdapClean = rtrim(preg_replace('#^.*?//#', '', $registrarDetails['rdap_server'] ?? ''), '/');
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -556,7 +559,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                         ],
                     ],
                     ],
-                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
@@ -604,7 +607,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                 ] : [] */
             ),
             'events' => $events,
-            //'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
+            //'handle' => 'D' . $domainDetails['id'] . '-' . $roid . '',
             'ldhName' => $domain,
             'links' => [
                 [
@@ -623,7 +626,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
             'nameservers' => array_map(function ($nameserverDetails) use ($c) {
                 return [
                     'objectClassName' => 'nameserver',
-                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $c['roid'] . '',
+                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
                     'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
@@ -1039,6 +1042,9 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
                 $entityBlocks[] = $entityBlock;
             }
         }
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -1051,7 +1057,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
             ],
             'objectClassName' => 'entity',
             'entities' => $entityBlocks,
-            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
             'events' => $events,
             'links' => [
                 [
@@ -1404,6 +1410,9 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
             $statuses[] = 'associated';
         }
         $statuses = array_unique(array_map(fn($s) => $s === 'ok' ? 'active' : $s, $statuses));
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -1435,7 +1444,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                         ],
                     ],
                     ],
-                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
@@ -1468,7 +1477,7 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
                     ],
                 ],
             ),
-            'handle' => 'H' . $hostDetails['id'] . '-' . $c['roid'] . '',
+            'handle' => 'H' . $hostDetails['id'] . '-' . $roid . '',
             'ipAddresses' => $ipAddresses,
             'events' => $events,
             'ldhName' => $hostDetails['name'],
@@ -1966,6 +1975,9 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         }
         
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -1999,7 +2011,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                         ],
                     ],
                     ],
-                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+                    "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
                     "links" => [
                         [
                             "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
@@ -2032,20 +2044,20 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     ],
                 ],
                 [
-                    mapContactToVCard($registrantDetails, 'registrant', $c)
+                    mapContactToVCard($registrantDetails, 'registrant', $roid)
                 ],
                 array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'admin', $c);
+                    return mapContactToVCard($contact, 'admin', $roid);
                 }, $adminDetails),
                 array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'tech', $c);
+                    return mapContactToVCard($contact, 'tech', $roid);
                 }, $techDetails),
                 array_map(function ($contact) use ($c) {
-                    return mapContactToVCard($contact, 'billing', $c);
+                    return mapContactToVCard($contact, 'billing', $roid);
                 }, $billingDetails)
             ),
             'events' => $events,
-            'handle' => 'D' . $domainDetails['id'] . '-' . $c['roid'] . '',
+            'handle' => 'D' . $domainDetails['id'] . '-' . $roid . '',
             'ldhName' => $domain,
             'links' => [
                 [
@@ -2062,7 +2074,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
             'nameservers' => array_map(function ($nameserverDetails) use ($c) {
                 return [
                     'objectClassName' => 'nameserver',
-                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $c['roid'] . '',
+                    'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
                     'ldhName' => $nameserverDetails['name'],
                     'links' => [
                         [
@@ -2388,6 +2400,9 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             $pdo = null;
             return;
         }
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         if ($ipS) {
             $rdapResult = []; 
@@ -2438,7 +2453,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                 // Build the RDAP response for the current host
                 $rdapResult[] = [
                     'objectClassName' => 'nameserver',
-                    'handle' => 'H' . $individualHostDetail['id'] . '-' . $c['roid'],
+                    'handle' => 'H' . $individualHostDetail['id'] . '-' . $roid,
                     'ipAddresses' => $ipAddresses,
                     'events' => $events,
                     'ldhName' => $individualHostDetail['name'],
@@ -2588,6 +2603,9 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
             if (!empty($associated)) {
                 $statuses[] = 'associated';
             }
+            
+            $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+            $roid = $stmt->fetchColumn();
 
             // Construct the RDAP response in JSON format
             $rdapResponse = [
@@ -2621,7 +2639,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                             ],
                         ],
                         ],
-                        "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+                        "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
                         "links" => [
                             [
                                 "href" => $c['rdap_url'] . "/entity/" . ($registrarDetails['iana_id'] ?: $registrarDetails['id']),
@@ -2654,7 +2672,7 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
                         ],
                     ],
                 ),
-                'handle' => 'H' . $hostDetails['id'] . '-' . $c['roid'] . '',
+                'handle' => 'H' . $hostDetails['id'] . '-' . $roid . '',
                 'ipAddresses' => $ipAddresses,
                 'events' => $events,
                 'ldhName' => $hostDetails['name'],
@@ -2985,6 +3003,9 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 $entityBlocks[] = $entityBlock;
             }
         }
+        
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
+        $roid = $stmt->fetchColumn();
 
         // Construct the RDAP response in JSON format
         $rdapResponse = [
@@ -2999,7 +3020,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
             [
             'objectClassName' => 'entity',
             'entities' => $entityBlocks,
-            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $c['roid'] . ''),
+            "handle" => (string)($registrarDetails['iana_id'] ?: 'R' . $registrarDetails['id'] . '-' . $roid . ''),
             'events' => $events,
             'links' => [
                 [

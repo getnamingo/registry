@@ -76,7 +76,7 @@ function setupLogger($logFilePath, $channelName = 'app') {
     return $log;
 }
 
-function mapContactToVCard($contactDetails, $role, $c) {
+function mapContactToVCard($contactDetails, $role, $roid) {
     // Determine which type of disclosure to use
     $disclose_name = ($contactDetails['type'] == 'loc') ? $contactDetails['disclose_name_loc'] : $contactDetails['disclose_name_int'];
     $disclose_org = ($contactDetails['type'] == 'loc') ? $contactDetails['disclose_org_loc'] : $contactDetails['disclose_org_int'];
@@ -87,7 +87,7 @@ function mapContactToVCard($contactDetails, $role, $c) {
 
     return [
         'objectClassName' => 'entity',
-        'handle' => 'C' . $contactDetails['id'] . '-' . $c['roid'],
+        'handle' => 'C' . $contactDetails['id'] . '-' . $roid,
         'roles' => [$role],
         'remarks' => [
             [
