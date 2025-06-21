@@ -53,6 +53,10 @@ try {
         $finalDepositId = 0;
     }
 
+    // Get ROID from database
+    $stmt = $dbh->query("SELECT value FROM settings WHERE name = 'handle'");
+    $roid = $stmt->fetchColumn();
+
     foreach ($tlds as $tld) {
         $tldname = ltrim($tld['tld'], '.');
         $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
@@ -193,7 +197,7 @@ try {
         foreach ($domains as $domain) {
             $xml->startElement('rdeDomain:domain');
             $xml->writeElement('rdeDomain:name', $domain['name']);
-            $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
+            $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
             $xml->writeElement('rdeDomain:uName', $domain['name']);
             if (!isIDN($dbh, $tld['id'])) {
                 $xml->writeElement('rdeDomain:idnTableId', 'Latn');
@@ -255,7 +259,7 @@ try {
         foreach ($hosts as $host) {
             $xml->startElement('rdeHost:host');
             $xml->writeElement('rdeHost:name', $host['name']);
-            $xml->writeElement('rdeHost:roid', 'H' . $host['id'] . '-' . $c['roid']);
+            $xml->writeElement('rdeHost:roid', 'H' . $host['id'] . '-' . $roid);
             
             $xml->startElement('rdeHost:status');
             $xml->writeAttribute('s', 'ok');
@@ -292,7 +296,7 @@ try {
         foreach ($contacts as $contact) {
             $xml->startElement('rdeContact:contact');
             $xml->writeElement('rdeContact:id', $contact['identifier']);
-            $xml->writeElement('rdeContact:roid', 'C' . $contact['id'] . '-' . $c['roid']);
+            $xml->writeElement('rdeContact:roid', 'C' . $contact['id'] . '-' . $roid);
             $xml->startElement('rdeContact:status');
             $xml->writeAttribute('s', 'ok');
             $xml->text('ok');
@@ -536,7 +540,7 @@ try {
 
         // Read .tar data and encrypt it
         $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
-        $gpg->setarmor(true);
+        $gpg->setarmor(false);
         $encryptedData = $gpg->encrypt($fileData);
 
         if (!$encryptedData) {
@@ -769,7 +773,7 @@ try {
             foreach ($domains as $domain) {
                 $xml->startElement('rdeDomain:domain');
                 $xml->writeElement('rdeDomain:name', $domain['name']);
-                $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $c['roid']);
+                $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
                 $xml->writeElement('rdeDomain:uName', $domain['name']);
                 if (!isIDN($dbh, $tld['id'])) {
                     $xml->writeElement('rdeDomain:idnTableId', 'Latn');
