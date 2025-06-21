@@ -228,11 +228,13 @@ try {
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $domain_hosts = $stmt->fetchAll();
-            $xml->startElement('rdeDomain:ns');
-            foreach ($domain_hosts as $host) {
-                $xml->writeElement('domain:hostObj', $host['name']);
+            if (!empty($domain_hosts)) {
+                $xml->startElement('rdeDomain:ns');
+                foreach ($domain_hosts as $host) {
+                    $xml->writeElement('domain:hostObj', $host['name']);
+                }
+                $xml->endElement();  // Closing rdeDomain:ns
             }
-            $xml->endElement();  // Closing rdeDomain:ns
 
             $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
             $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
@@ -515,81 +517,55 @@ try {
         if ($c['escrow_deleteXML']) {
             unlink($c['escrow_deposit_path']."/".$xmlFileName);
         }
-        
-        // Initialize a GnuPG instance
-        $res = gnupg_init();
 
-        // Get information about the public key from its content
-        $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        if ($publicKeyInfo === false) {
-            $log->error("Failed to import GPG key from: " . $c['escrow_keyPath']);
+        // Initialize the GnuPG object
+        $gpg = new gnupg();
+        $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
+
+        // Import public key (ICANN escrow key)
+        $publicKeyData = file_get_contents($c['escrow_keyPath']);
+        $importResult = $gpg->import($publicKeyData);
+        if (!$importResult || empty($importResult['fingerprint'])) {
+            $log->error("Failed to import escrow public key: " . $c['escrow_keyPath']);
             exit(1);
         }
-        $fingerprint = $publicKeyInfo['fingerprint'];
+        $escrowFingerprint = $importResult['fingerprint'];
 
-        // Check if the key is already in the keyring
-        $existingKeys = gnupg_keyinfo($res, $fingerprint);
+        // Add public key for encryption
+        $gpg->addencryptkey($escrowFingerprint);
 
-        if (!$existingKeys) {
-            // If not, import the public key
-            gnupg_import($res, file_get_contents($c['escrow_keyPath']));
-        }
-
-        // Read the .tar file contents
+        // Read .tar data and encrypt it
         $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
-        
-        // Add the encryption key
-        gnupg_addencryptkey($res, $fingerprint);
-
-        // Encrypt the file data using the public key
-        $encryptedData = gnupg_encrypt($res, $fileData);
+        $gpg->setarmor(true);
+        $encryptedData = $gpg->encrypt($fileData);
 
         if (!$encryptedData) {
-            $log->error('Error encrypting data: ' . gnupg_geterror($res));
+            $log->error("Encryption failed");
+            exit(1);
         }
 
-        // Save the encrypted data to a new file
-        file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde", $encryptedData);
+        // Write encrypted .ryde file
+        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
+        file_put_contents($encryptedFilePath, $encryptedData);
 
         // Delete the original .tar file
-        unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
-        
-        $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
-        
-        // Initialize the GnuPG extension
-        $gpg = new gnupg();
-        $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
-        $gpg->setarmor(0);
+        //unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
 
-        // Import your private key (if it's not already in the keyring)
-        if (!file_exists($c['escrow_privateKey'])) {
-            $log->error("Private key file not found: " . $c['escrow_privateKey']);
-            echo "Error: Private key file not found.\n";
-            exit(1);
-        }
+        $gpg->clearencryptkeys();
+        $gpg->clearsignkeys();
+        $gpg->setarmor(true);
+        $gpg->setsignmode(gnupg::SIG_MODE_DETACH);
 
-        $privateKeyData = file_get_contents($c['escrow_privateKey']);
-        if ($privateKeyData === false) {
-            $log->error("Failed to read private key file: " . $c['escrow_privateKey']);
-            echo "Error: Unable to read private key file.\n";
-            exit(1);
-        }
-        $importResult = $gpg->import($privateKeyData);
+        // Use preloaded, trusted private key
+        $gpg->addsignkey($c['escrow_signing_fingerprint']);
 
-        // Set the key to be used for signing
-        $privateKeyId = $importResult['fingerprint'];
-        $gpg->addsignkey($privateKeyId);
-        
-        // Specify the detached signature mode
-        $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
+        // Read encrypted file
+        $encryptedFileContents = file_get_contents($encryptedFilePath);
+        $signature = $gpg->sign($encryptedFileContents);
 
-        // Sign the encrypted data
-        $encryptedData = file_get_contents($encryptedFilePath);
-        $signature = $gpg->sign($encryptedData);
-
-        // Save the signature to a .sig file
-        $signatureFilePath = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePath, PATHINFO_FILENAME) . '.sig';
-        file_put_contents($signatureFilePath, $signature);
+        // Save .sig file
+        $signaturePath = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
+        file_put_contents($signaturePath, $signature);
 
         // Optionally, delete the encrypted file if you don't need it anymore
         // unlink($encryptedFilePath);
@@ -828,11 +804,13 @@ try {
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $domain_hosts = $stmt->fetchAll();
-                $xml->startElement('rdeDomain:ns');
-                foreach ($domain_hosts as $host) {
-                    $xml->writeElement('domain:hostObj', $host['name']);
+                if (!empty($domain_hosts)) {
+                    $xml->startElement('rdeDomain:ns');
+                    foreach ($domain_hosts as $host) {
+                        $xml->writeElement('domain:hostObj', $host['name']);
+                    }
+                    $xml->endElement();  // Closing rdeDomain:ns
                 }
-                $xml->endElement();  // Closing rdeDomain:ns
 
                 $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
                 $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
@@ -922,63 +900,53 @@ try {
                 unlink($c['escrow_deposit_path']."/".$xmlFileName);
             }
             
-            // Initialize a GnuPG instance
-            $res = gnupg_init();
+            // Initialize the GnuPG object
+            $gpg = new gnupg();
+            $gpg->seterrormode(GNUPG::ERROR_EXCEPTION);
+            $gpg->setarmor(true);
 
-            // Get information about the public key from its content
-            $publicKeyInfo = gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
-            $fingerprint = $publicKeyInfo['fingerprint'];
-
-            // Check if the key is already in the keyring
-            $existingKeys = gnupg_keyinfo($res, $fingerprint);
-
-            if (!$existingKeys) {
-                // If not, import the public key
-                gnupg_import($res, file_get_contents($c['escrow_keyPath_brda']));
+            // Import BRDA escrow public key
+            $brdaPublicKeyData = file_get_contents($c['escrow_keyPath_brda']);
+            $importResult = $gpg->import($brdaPublicKeyData);
+            if (!$importResult || empty($importResult['fingerprint'])) {
+                $log->error("Failed to import BRDA public key: " . $c['escrow_keyPath_brda']);
+                exit(1);
             }
+            $brdaFingerprint = $importResult['fingerprint'];
 
-            // Read the .tar file contents
-            $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
-            
-            // Add the encryption key
-            gnupg_addencryptkey($res, $fingerprint);
+            // Add BRDA public key for encryption
+            $gpg->addencryptkey($brdaFingerprint);
 
-            // Encrypt the file data using the public key
-            $encryptedData = gnupg_encrypt($res, $fileData);
+            // Encrypt the .tar contents
+            $tarFilePath = $c['escrow_deposit_path'] . "/" . $tarFileName;
+            $tarData = file_get_contents($tarFilePath);
+            $encryptedData = $gpg->encrypt($tarData);
 
             if (!$encryptedData) {
-                $log->error('Error encrypting data: ' . gnupg_geterror($res));
+                $log->error("Encryption failed for BRDA file");
+                exit(1);
             }
 
-            // Save the encrypted data to a new file
-            file_put_contents($c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde", $encryptedData);
+            // Save encrypted BRDA file (.ryde)
+            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
+            file_put_contents($encryptedFilePathBrda, $encryptedData);
 
             // Delete the original .tar file
-            unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
-            
-            $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
-            
-            // Initialize the GnuPG extension
-            $gpg = new gnupg();
-            $gpg->seterrormode(gnupg::ERROR_EXCEPTION); // throw exceptions on errors
-            $gpg->setarmor(0);
+            //unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
 
-            // Import your private key (if it's not already in the keyring)
-            $privateKeyData = file_get_contents($c['escrow_privateKey']);
-            $importResult = $gpg->import($privateKeyData);
-
-            // Set the key to be used for signing
-            $privateKeyId = $importResult['fingerprint'];
-            $gpg->addsignkey($privateKeyId);
-            
-            // Specify the detached signature mode
+            $gpg->clearencryptkeys(); // ensure clean context
+            $gpg->clearsignkeys();
+            $gpg->setarmor(true);
             $gpg->setsignmode(GNUPG_SIG_MODE_DETACH);
 
-            // Sign the encrypted data
-            $encryptedData = file_get_contents($encryptedFilePathBrda);
-            $signature = $gpg->sign($encryptedData);
+            // Import signing private key
+            $gpg->addsignkey($c['escrow_signing_fingerprint']);
 
-            // Save the signature to a .sig file
+            // Sign the BRDA .ryde file
+            $brdaFileData = file_get_contents($encryptedFilePathBrda);
+            $signature = $gpg->sign($brdaFileData);
+
+            // Save .sig file
             $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePathBrda, PATHINFO_FILENAME) . '.sig';
             file_put_contents($signatureFilePathBrda, $signature);
 
@@ -1001,8 +969,7 @@ try {
             // Upload the files
             $filesToUpload = [
                 $encryptedFilePath,
-                $signatureFilePath,
-                $reportFilePath
+                $signatureFilePath
             ];
 
             foreach ($filesToUpload as $filePath) {
@@ -1043,7 +1010,6 @@ try {
             }
 
             curl_close($ch);
-            
         }
         
         if ($currentDayOfWeek === $dayOfWeekToRunBRDA) {
