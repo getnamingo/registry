@@ -70,7 +70,37 @@ Always keep your private key secure. Do not share it. If someone gains access to
 
 ### 2.4. Use in RDE deposit generation
 
-Please send the exported `publickey.asc` to your RDE provider, and also place the path to `privatekey.asc` in the escrow.php system as required.
+After generating your key pair and exporting the files:
+
+#### 2.4.1. Send the Public Key
+
+Send the exported `publickey.asc` file to your RDE provider (e.g., DENIC).
+
+> 🔐 **Do not send the private key. Keep `privatekey.asc` secure and stored only on your server.**
+
+#### 2.4.2. Get the Fingerprint
+
+Run:
+
+```bash
+gpg2 --with-colons --list-keys your.email@example.com | grep '^fpr' | head -n 1 | cut -d: -f10
+```
+
+Or visually:
+
+```bash
+gpg2 --list-keys --fingerprint your.email@example.com
+```
+
+Use the 40-character fingerprint (e.g., `C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377`).
+
+#### 2.4.3. Configure in `conf.php`
+
+Set the value in `/opt/registry/automation/conf.php`:
+
+```bash
+'escrow_signing_fingerprint' => 'C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377',
+```
 
 ---
 

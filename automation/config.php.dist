@@ -18,6 +18,7 @@ return [
     'escrow_keyPath' => '/opt/escrow/escrowKey.asc',
     'escrow_keyPath_brda' => '/opt/escrow/icann-brda-gpg.pub',
     'escrow_privateKey' => '/opt/escrow/privatekey.asc',
+    'escrow_signing_fingerprint' => 'REPLACE_WITH_YOUR_40_CHAR_KEY_FINGERPRINT',
     'escrow_sftp_host' => 'your.sftp.server.com',
     'escrow_sftp_username' => 'your_username',
     'escrow_sftp_password' => 'your_password',
