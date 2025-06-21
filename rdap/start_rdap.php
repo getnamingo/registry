@@ -623,7 +623,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                     'type' => 'application/rdap+json',
                 ]
             ],
-            'nameservers' => array_map(function ($nameserverDetails) use ($roid) {
+            'nameservers' => array_map(function ($nameserverDetails) use ($c, $roid) {
                 return [
                     'objectClassName' => 'nameserver',
                     'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
@@ -2071,7 +2071,7 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
                     'type' => 'application/rdap+json',
                 ]
             ],
-            'nameservers' => array_map(function ($nameserverDetails) use ($roid) {
+            'nameservers' => array_map(function ($nameserverDetails) use ($c, $roid) {
                 return [
                     'objectClassName' => 'nameserver',
                     'handle' => 'H' . $nameserverDetails['host_id'] . '-' . $roid . '',
