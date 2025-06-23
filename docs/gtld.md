@@ -46,39 +46,7 @@ Use the following command to generate the key:
 gpg2 --batch --generate-key key-config
 ```
 
-Your GPG key pair will now be generated.
-
-### 2.2. Exporting Your Keys
-
-Public key:
-
-```bash
-gpg2 --armor --export your.email@example.com > publickey.asc
-```
-
-Replace `your-email@example.com` with the email address you used when generating the key.
-
-Private key:
-
-```bash
-gpg2 --armor --export-secret-keys your.email@example.com > privatekey.asc
-```
-
-### 2.3. Secure Your Private Key
-
-Always keep your private key secure. Do not share it. If someone gains access to your private key, they can impersonate you in cryptographic operations.
-
-### 2.4. Use in RDE deposit generation
-
-After generating your key pair and exporting the files:
-
-#### 2.4.1. Send the Public Key
-
-Send the exported `publickey.asc` file to your RDE provider (e.g., DENIC).
-
-> 🔐 **Do not send the private key. Keep `privatekey.asc` secure and stored only on your server.**
-
-#### 2.4.2. Get the Fingerprint
+### 2.2. Get the Key Fingerprint
 
 Run:
 
@@ -92,9 +60,34 @@ Or visually:
 gpg2 --list-keys --fingerprint your.email@example.com
 ```
 
-Use the 40-character fingerprint (e.g., `C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377`).
+Copy the 40-character fingerprint (e.g., `C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377`).
 
-#### 2.4.3. Configure in `conf.php`
+### 2.3. Export the Public Key
+
+Use the fingerprint (preferred) or email address to export the public key:
+
+```bash
+gpg2 --armor --export C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377 > denic-signing-public.asc
+```
+
+```bash
+gpg2 --armor --export your.email@example.com > denic-signing-public.asc
+```
+
+> 📤 Send only `denic-signing-public.asc` to your RDE provider (e.g., DENIC).
+
+### 2.4. Do Not Export or Share the Private Key
+
+Your private key must remain secure and local:
+
+```bash
+# Optional: If you need to export the private key for backup (not recommended for transmission)
+gpg2 --armor --export-secret-keys C5D2BC6174369B11C7CB1ADB80D7E3572F8BA377 > private-backup.asc
+```
+
+> 🔐 Never send this file to ICANN or any third party.
+
+### 2.5. Configure the Fingerprint in Namingo
 
 Set the value in `/opt/registry/automation/conf.php`:
 
