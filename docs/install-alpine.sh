@@ -306,7 +306,7 @@ cp.${REGISTRY_DOMAIN} {
     }
 }
 
-cp.${REGISTRY_DOMAIN} {
+epp.${REGISTRY_DOMAIN} {
     ${BIND_LINE}
     redir https://cp.${REGISTRY_DOMAIN}{uri}
 }

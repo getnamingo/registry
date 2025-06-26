@@ -299,7 +299,7 @@ cp.example.com {
     }
 }
 
-cp.example.com {
+epp.example.com {
     bind NEW_IPV4_ADDRESS NEW_IPV6_ADDRESS
     redir https://cp.example.com{uri}
 }
