@@ -147,6 +147,14 @@ Additionally, we extend our gratitude to:
 - [Tabler](https://tabler.io/), whose elegant and intuitive interface design has greatly influenced the user experience of Namingo.
 - [ActiveCampaign/postmark-templates](https://github.com/ActiveCampaign/postmark-templates) and [leemunroe/responsive-html-email-template](https://github.com/leemunroe/responsive-html-email-template), for providing great email templates.
 
+## 💖 Support This Project
+
+If you find Namingo Registry useful, consider donating:
+
+- [Donate via Stripe](https://donate.stripe.com/7sI2aI4jV3Offn28ww)
+- BTC: `bc1q9jhxjlnzv0x4wzxfp8xzc6w289ewggtds54uqa`
+- ETH: `0x330c1b148368EE4B8756B176f1766d52132f0Ea8`
+
 ## Licensing
 
 Namingo is licensed under the MIT License.

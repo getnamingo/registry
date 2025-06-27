@@ -1,3 +1,6 @@
 # These are supported funding model platforms
 
-ko_fi: namingo
+custom:
+  - https://donate.stripe.com/7sI2aI4jV3Offn28ww
+  - https://www.blockchain.com/btc/address/bc1q9jhxjlnzv0x4wzxfp8xzc6w289ewggtds54uqa
+  - https://etherscan.io/address/0x330c1b148368EE4B8756B176f1766d52132f0Ea8
