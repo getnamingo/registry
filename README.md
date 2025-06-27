@@ -157,4 +157,4 @@ If you find Namingo Registry useful, consider donating:
 
 ## Licensing
 
-Namingo is licensed under the MIT License.
+Namingo Registry is licensed under the MIT License.
