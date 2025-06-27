@@ -26,15 +26,7 @@ systemctl status das
 
 ### 1.2. Launching EPP Server
 
-Before launching the EPP server, edit `/opt/registry/epp/config.php` to set the paths to your certificates and configure other options as needed.
-
-To create test certificates (`cert.pem` and `key.pem`), execute the following commands:
-
-```bash
-cd /opt/registry/epp/
-openssl genrsa -out key.pem 2048
-openssl req -new -x509 -key key.pem -out cert.pem -days 365
-```
+Before launching the EPP server, edit `/opt/registry/epp/config.php` to set the paths to your certificates and configure other options as needed. Add `'disable_60days' => true,` if you wish to disable the 60-day transfer lock.
 
 Once configured, you can launch the EPP server in the same way as the others:
 
@@ -1103,6 +1095,7 @@ return [
     'limit' => 1000, // Request limit per period below
     'period' => 60, // 60 Seconds
     'minimum_data' => false, // Set to true to enable minimum data set support
+    // 'disable_60days' => true, // Disable 60-day transfer lock for domains and contacts
 ];
 ```
 

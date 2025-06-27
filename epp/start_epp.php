@@ -433,7 +433,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                             sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                             $conn->close();
                         }
-                        processContactTransfer($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                        processContactTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
                         break;
                     }
                 
@@ -523,7 +523,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                             sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                             $conn->close();
                         }
-                        processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                        processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
                         break;
                     }
                     

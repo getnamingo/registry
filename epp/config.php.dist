@@ -19,4 +19,5 @@ return [
     'limit' => 1000,
     'period' => 60,
     'minimum_data' => false,
+    // 'disable_60days' => true, // Disable 60-day transfer lock for domains and contacts
 ];

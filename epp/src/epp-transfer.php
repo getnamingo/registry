@@ -1,6 +1,7 @@
 <?php
 
-function processContactTransfer($conn, $db, $xml, $clid, $database_type, $trans) {
+function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
+    // $config['db_type'] for future
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
@@ -298,28 +299,30 @@ function processContactTransfer($conn, $db, $xml, $clid, $database_type, $trans)
             return;
         }
     } elseif ($op == 'request') {
-        // Check if contact is within 60 days of its initial registration
-        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
-        $stmt->execute([':contact_id' => $contact_id]);
-        $days_from_registration = $stmt->fetchColumn();
-        $stmt->closeCursor();
+        if (!($config['disable_60days'] ?? false)) {
+            // Check if contact is within 60 days of its initial registration
+            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
+            $stmt->execute([':contact_id' => $contact_id]);
+            $days_from_registration = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
-        if ($days_from_registration < 60) {
-            sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID, $trans);
-            return;
-        }
+            if ($days_from_registration < 60) {
+                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its initial registration', $clTRID, $trans);
+                return;
+            }
 
-        // Check if contact is within 60 days of its last transfer
-        $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
-        $stmt->execute([':contact_id' => $contact_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        $last_trdate = $result['trdate'];
-        $days_from_last_transfer = $result['intval'];
+            // Check if contact is within 60 days of its last transfer
+            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
+            $stmt->execute([':contact_id' => $contact_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+            $last_trdate = $result['trdate'];
+            $days_from_last_transfer = $result['intval'];
 
-        if ($last_trdate && $days_from_last_transfer < 60) {
-            sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
-            return;
+            if ($last_trdate && $days_from_last_transfer < 60) {
+                sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
+                return;
+            }
         }
 
         // Check the <contact:authInfo> element
@@ -418,7 +421,8 @@ function processContactTransfer($conn, $db, $xml, $clid, $database_type, $trans)
     }
 }
 
-function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) {
+function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
+    // $config['db_type'] for future
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
     $clTRID = (string) $xml->command->clTRID;
     $op = (string) $xml->xpath('//@op')[0] ?? null;
@@ -428,7 +432,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
         $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
     }
 
-    // -  An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
+    // An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
     $authInfo_pw = $result ? (string)$result[0] : null;
 
@@ -1017,28 +1021,30 @@ function processDomainTransfer($conn, $db, $xml, $clid, $database_type, $trans) 
             }
         }
         
-        // Check days from registration
-        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = :domain_id LIMIT 1");
-        $stmt->execute(['domain_id' => $domain_id]);
-        $days_from_registration = $stmt->fetchColumn();
-        $stmt->closeCursor();
+        if (!($config['disable_60days'] ?? false)) {
+            // Check days from registration
+            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = :domain_id LIMIT 1");
+            $stmt->execute(['domain_id' => $domain_id]);
+            $days_from_registration = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
-        if ($days_from_registration < 60) {
-            sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its initial registration', $clTRID, $trans);
-            return;
-        }
+            if ($days_from_registration < 60) {
+                sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its initial registration', $clTRID, $trans);
+                return;
+            }
 
-        // Check days from last transfer
-        $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = :domain_id LIMIT 1");
-        $stmt->execute(['domain_id' => $domain_id]);
-        $result = $stmt->fetch();
-        $stmt->closeCursor();
-        $last_trdate = $result["trdate"];
-        $days_from_last_transfer = $result["intval"];
+            // Check days from last transfer
+            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = :domain_id LIMIT 1");
+            $stmt->execute(['domain_id' => $domain_id]);
+            $result = $stmt->fetch();
+            $stmt->closeCursor();
+            $last_trdate = $result["trdate"];
+            $days_from_last_transfer = $result["intval"];
 
-        if ($last_trdate && $days_from_last_transfer < 60) {
-            sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
-            return;
+            if ($last_trdate && $days_from_last_transfer < 60) {
+                sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
+                return;
+            }
         }
 
         // Check days from expiry date
