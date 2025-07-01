@@ -48,3 +48,5 @@ SUMSUB_TOKEN=
 SUMSUB_KEY=
 
 TEST_TLDS=.test,.com.test
+
+PASSWORD_EXPIRATION_SKIP_USERS=admin,superadmin

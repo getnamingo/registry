@@ -248,6 +248,8 @@ awk '
 
 echo "Automation config modified successfully."
 
+sed -i '/^TEST_TLDS/ a\\nPASSWORD_EXPIRATION_SKIP_USERS=admin,superadmin' /var/www/cp/.env
+
 # Start services
 echo "Starting services..."
 systemctl start epp

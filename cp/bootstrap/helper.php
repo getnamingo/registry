@@ -884,6 +884,15 @@ function checkPasswordComplexity($password) {
 }
 
 function checkPasswordRenewal($lastPasswordUpdateTimestamp) {
+    // Check if expiration should be skipped for this user
+    $skipList = envi('PASSWORD_EXPIRATION_SKIP_USERS');
+    if ($skipList) {
+        $skipUsers = array_map('trim', explode(',', $skipList));
+        if (in_array($_SESSION['auth_username'], $skipUsers, true)) {
+            return null;
+        }
+    }
+
     // Use configured or default password expiration days
     $passwordExpiryDays = envi('PASSWORD_EXPIRATION_DAYS') ?: 90; // Default to 90 days
 

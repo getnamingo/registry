@@ -104,6 +104,14 @@ PASSWORD_EXPIRATION_DAYS=180
 
 This will extend the password expiration to **180** days.
 
+If you wish to **exclude specific accounts from password expiration**, open `/var/www/cp/.env` and **edit the existing** `PASSWORD_EXPIRATION_SKIP_USERS` line (or add it if missing):
+
+```bash
+PASSWORD_EXPIRATION_SKIP_USERS=admin,superadmin
+```
+
+Add usernames separated by commas. These accounts will **not be subject to password expiration**.
+
 **How to Apply Changes**
 - Edit the `.env` file located at `/var/www/cp/.env`
 - Save the file and restart Caddy if necessary.
