@@ -18,7 +18,7 @@
     "enabled": true
   },
   "urn:ietf:params:xml:ns:epp:loginSec-1.0": {
-    "enabled": false
+    "enabled": true
   },
   "urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0": {
     "enabled": false

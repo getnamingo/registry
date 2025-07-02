@@ -199,6 +199,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                 $xml->registerXPathNamespace('fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                 $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
                 $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
+                $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
 
                 if ($xml->getName() != 'epp') {
                     sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
@@ -216,12 +217,33 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                             sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
                             break;
                         }
+                        $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
+
+                        $loginSecPw = null;
+                        $loginSecNewPw = null;
+
+                        if ($loginSec) {
+                            if (isset($loginSec->pw)) {
+                                $loginSecPw = (string) $loginSec->pw;
+                            }
+                            if (isset($loginSec->newPW)) {
+                                $loginSecNewPw = (string) $loginSec->newPW;
+                            }
+                        }
+                        
+                        if ($pw === '[LOGIN-SECURITY]' && $loginSecPw) {
+                            $pw = $loginSecPw;
+                        }
+
                         $xmlString = $xml->asXML();
                         $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
 
                         if (checkLogin($pdo, $clID, $pw)) {
                             if (isset($xml->command->login->newPW)) {
                                 $newPW = (string) $xml->command->login->newPW;
+                                if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
+                                    $newPW = $loginSecNewPw;
+                                }
                                 $options = [
                                     'memory_cost' => 1024 * 128,
                                     'time_cost'   => 6,
