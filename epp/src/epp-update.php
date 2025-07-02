@@ -420,24 +420,12 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     }
 
-    $identicaUpdateResults = $xml->xpath('//identica:update');
-
-    if (!empty($identicaUpdateResults)) {
-        $identica_update = $identicaUpdateResults[0];
-    } else {
-        $identica_update = null;
-    }
-
-    if ($identica_update) {
-        $nin = (string)$identica_update->xpath('//identica:nin[1]')[0];
-        $nin_type = (string)$identica_update->xpath('//identica:nin/@type[1]')[0];
-        $status = $identica_update->xpath('//identica:status[1]');
-        $statusDate = $identica_update->xpath('//identica:date[1]');
-        $statusDetails = $identica_update->xpath('//identica:details[1]');
-
-        $validation = isset($status[0]) ? (string)$status[0] : null;
-        $validation_stamp = isset($statusDate[0]) ? (string)$statusDate[0] : null;
-        $validation_log = isset($statusDetails[0]) ? (string)$statusDetails[0] : null;
+    if (isset($identicaUpdate)) {
+        $nin = (string) ($xml->xpath('//identica:nin[1]')[0] ?? null);
+        $nin_type = (string) ($xml->xpath('//identica:nin/@type[1]')[0] ?? null);
+        $validation = (string) ($xml->xpath('//identica:status[1]')[0] ?? null);
+        $validation_stamp = (string) ($xml->xpath('//identica:date[1]')[0] ?? null);
+        $validation_log = (string) ($xml->xpath('//identica:details[1]')[0] ?? null);
 
         if (!preg_match('/\d/', $nin)) {
             sendEppError($conn, $db, 2005, 'NIN should contain one or more numbers', $clTRID, $trans);
@@ -454,8 +442,8 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        if ($validation_stamp !== null && !preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/', $validation_stamp)) {
-            sendEppError($conn, $db, 2005, 'Invalid status date format. Use ISO 8601 format like 2025-07-02T12:00:00.000Z', $clTRID, $trans);
+        if ($validation_stamp !== null && \DateTime::createFromFormat('Y-m-d H:i:s.u', $validation_stamp) === false) {
+            sendEppError($conn, $db, 2005, 'Validation date must be in format Y-m-d H:i:s.v (e.g. 2025-07-02 10:34:00.000)', $clTRID, $trans);
             return;
         }
 
@@ -724,7 +712,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     }
 
-    if ($identica_update) {
+    if ($identicaUpdate) {
         $query = "
             UPDATE contact
             SET nin = ?, nin_type = ?, validation = ?, validation_stamp = ?, validation_log = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3)

@@ -328,11 +328,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
-    $obj_ext = $xml->xpath('//identica:create')[0] ?? null;
+    $identicaCreate = $xml->xpath('//identica:create') ?? null;
 
-    if ($obj_ext) {
-        $nin = (string)$obj_ext->xpath('identica:nin')[0] ?? '';
-        $nin_type = (string)$obj_ext->xpath('identica:nin/@type')[0] ?? '';
+    if ($identicaCreate) {
+        $nin = (string) ($xml->xpath('//identica:nin[1]')[0] ?? null);
+        $nin_type = (string) ($xml->xpath('//identica:nin/@type[1]')[0] ?? null);
 
         if (!preg_match('/\d/', $nin)) {
             sendEppError($conn, $db, 2005, 'NIN should contain one or more numbers', $clTRID, $trans);

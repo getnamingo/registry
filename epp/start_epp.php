@@ -200,6 +200,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                 $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
                 $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
                 $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
+                $xml->registerXPathNamespace('identica', 'https://namingo.org/epp/identica-1.0');
 
                 if ($xml->getName() != 'epp') {
                     sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');

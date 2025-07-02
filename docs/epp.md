@@ -472,7 +472,7 @@ Each command section below includes real-world XML request and response samples 
     xsi:schemaLocation="https://namingo.org/epp/identica-1.0 identica-1.0.xsd">
     <identica:nin type="personal">1234567890</identica:nin>
     <identica:status>2</identica:status>
-    <identica:date>2025-07-02T10:34:00.000Z</identica:date>
+    <identica:date>2025-07-02 10:34:00.000</identica:date>
     <identica:details>admin42|api|Validated via national ID system</identica:details>
   </identica:infData>
 </extension>
@@ -556,7 +556,7 @@ Each command section below includes real-world XML request and response samples 
         xsi:schemaLocation="https://namingo.org/epp/identica-1.0 identica-1.0.xsd">
         <identica:nin type="personal">1234567890</identica:nin>
         <identica:status>2</identica:status>
-        <identica:date>2025-07-02T10:34:00.000Z</identica:date>
+        <identica:date>2025-07-02 10:34:00.000</identica:date>
         <identica:details>admin42|api|Validated via national ID system</identica:details>
       </identica:update>
     </extension>

@@ -620,7 +620,7 @@ class EppWriter {
                         // Validation timestamp
                         if (!empty($resp['validation_stamp'])) {
                             $stamp = new \DateTime($resp['validation_stamp']);
-                            $writer->writeElement('identica:date', $stamp->format('Y-m-d\TH:i:s.v\Z'));
+                            $writer->writeElement('identica:date', $stamp->format('Y-m-d H:i:s.v'));
                         }
 
                         // Validation log
