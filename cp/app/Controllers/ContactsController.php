@@ -1270,7 +1270,7 @@ class ContactsController extends Controller
                             [
                                 'validation' => $data['verify'],
                                 'validation_stamp' => $stamp,
-                                'validation_log' => json_encode($data['v_log']),
+                                'validation_log' => $clid . '|manual|Validated manually',
                                 'upid' => $clid,
                                 'lastupdate' => $stamp
                             ],
@@ -1796,7 +1796,7 @@ class ContactsController extends Controller
                 [
                     'validation' => $verify,
                     'validation_stamp' => $stamp,
-                    'validation_log' => json_encode($v_log),
+                    'validation_log' => $_SESSION['auth_user_id'] . '|automatic|Validated via SumSub',
                     //'upid' => $clid,
                     'lastupdate' => $stamp
                 ],
