@@ -611,6 +611,22 @@ class EppWriter {
                             $writer->writeAttribute('type', $resp['nin_type']);
                             $writer->text($resp['nin']);
                         $writer->endElement();  // End of 'identica:nin'
+                        
+                        // Validation status
+                        if (isset($resp['validation'])) {
+                            $writer->writeElement('identica:status', $resp['validation']);
+                        }
+
+                        // Validation timestamp
+                        if (!empty($resp['validation_stamp'])) {
+                            $stamp = new \DateTime($resp['validation_stamp']);
+                            $writer->writeElement('identica:date', $stamp->format('Y-m-d\TH:i:s.v\Z'));
+                        }
+
+                        // Validation log
+                        if (!empty($resp['validation_log'])) {
+                            $writer->writeElement('identica:details', $resp['validation_log']);
+                        }
                     
                     $writer->endElement();  // End of 'identica:infData'
                 $writer->endElement();  // End of 'extension'

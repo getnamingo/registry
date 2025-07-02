@@ -19,7 +19,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         // Optimized single query
         $stmt = $db->prepare("
             SELECT c.id, c.identifier, c.voice, c.fax, c.email, c.clid, c.crid, c.crdate, c.upid, c.lastupdate,
-                c.disclose_voice, c.disclose_fax, c.disclose_email,
+                c.disclose_voice, c.disclose_fax, c.disclose_email, c.nin, c.nin_type, c.validation, c.validation_stamp, c.validation_log,
                 p.type AS postal_type, p.name, p.org, p.street1, p.street2, p.street3, p.city, p.sp, p.pc, p.cc,
                 p.disclose_name_int, p.disclose_name_loc, p.disclose_org_int, p.disclose_org_loc, 
                 p.disclose_addr_int, p.disclose_addr_loc,
@@ -118,6 +118,23 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
                 'flag' => '1', // Show when disclosure is enabled
                 'fields' => array_keys($disclose_required)
             ];
+        }
+
+        if (!empty($contactRow['nin']) && !empty($contactRow['nin_type'])) {
+            $response['nin'] = $contactRow['nin'];
+            $response['nin_type'] = $contactRow['nin_type'];
+
+            if (!is_null($contactRow['validation'])) {
+                $response['validation'] = $contactRow['validation'];
+            }
+
+            if (!is_null($contactRow['validation_stamp'])) {
+                $response['validation_stamp'] = $contactRow['validation_stamp'];
+            }
+
+            if (!empty($contactRow['validation_log'])) {
+                $response['validation_log'] = $contactRow['validation_log'];
+            }
         }
 
         $epp = new EPP\EppWriter();

@@ -462,6 +462,23 @@ Each command section below includes real-world XML request and response samples 
 </epp>
 ```
 
+**Response with Identica in database:**
+
+```xml
+...
+<extension>
+  <identica:infData
+    xmlns:identica="https://namingo.org/epp/identica-1.0"
+    xsi:schemaLocation="https://namingo.org/epp/identica-1.0 identica-1.0.xsd">
+    <identica:nin type="personal">1234567890</identica:nin>
+    <identica:status>2</identica:status>
+    <identica:date>2025-07-02T10:34:00.000Z</identica:date>
+    <identica:details>admin42|api|Validated via national ID system</identica:details>
+  </identica:infData>
+</extension>
+...
+```
+
 #### 2.4. Contact Update
 
 **Standard request:**
@@ -538,6 +555,9 @@ Each command section below includes real-world XML request and response samples 
         xmlns:identica="https://namingo.org/epp/identica-1.0"
         xsi:schemaLocation="https://namingo.org/epp/identica-1.0 identica-1.0.xsd">
         <identica:nin type="personal">1234567890</identica:nin>
+        <identica:status>2</identica:status>
+        <identica:date>2025-07-02T10:34:00.000Z</identica:date>
+        <identica:details>admin42|api|Validated via national ID system</identica:details>
       </identica:update>
     </extension>
     <clTRID>client-20241128-12345</clTRID>
@@ -1187,20 +1207,6 @@ Each command section below includes real-world XML request and response samples 
     </trID>
   </response>
 </epp>
-```
-
-**Response with Identica in database:**
-
-```xml
-...
-<extension>
-  <identica:infData
-    xmlns:identica="https://namingo.org/epp/identica-1.0"
-    xsi:schemaLocation="https://namingo.org/epp/identica-1.0 identica-1.0.xsd">
-    <identica:nin type="personal">1234567890</identica:nin>
-  </identica:infData>
-</extension>
-...
 ```
 
 #### 4.4. Domain Update
