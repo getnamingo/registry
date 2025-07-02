@@ -12,7 +12,11 @@ Namingo is a state-of-the-art open-source domain registry platform, diligently c
 
 Namingo is optimally designed for the 2026 ICANN new gTLD application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
-✅ **Namingo passes ICANN OT&E RST for the `MainRSPEvaluationTest` profile**, demonstrating compliance with required operational standards.
+> ✅ **Namingo passes ICANN OT&E RST for the `MainRSPEvaluationTest` profile**, demonstrating compliance with required operational standards.
+
+### Want to pass your own RST?
+
+You can use our open-source [ICANN RST OT&E Test Script](https://github.com/getnamingo/registry-rst) tool to easily run your ICANN OT&E and production RST tests.
 
 ## Get Involved
 
