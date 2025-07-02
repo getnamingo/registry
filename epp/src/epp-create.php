@@ -677,8 +677,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
             // Validate that acceptedDate is before notAfter
             try {
-                $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $launch_acceptedDate);
-                $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $launch_notAfter);
+                $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $launch_acceptedDate);
+                $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $launch_notAfter);
                 
                 if (!$acceptedDate || !$notAfterDate) {
                     sendEppError($conn, $db, 2003, 'Invalid date format', $clTRID, $trans);

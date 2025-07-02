@@ -442,7 +442,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        if ($validation_stamp !== null && \DateTime::createFromFormat('Y-m-d H:i:s.u', $validation_stamp) === false) {
+        if ($validation_stamp !== null && \DateTime::createFromFormat('Y-m-d H:i:s.v', $validation_stamp) === false) {
             sendEppError($conn, $db, 2005, 'Validation date must be in format Y-m-d H:i:s.v (e.g. 2025-07-02 10:34:00.000)', $clTRID, $trans);
             return;
         }
