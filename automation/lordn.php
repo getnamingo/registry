@@ -15,43 +15,57 @@ $log = setupLogger($logFilePath, 'Lordn');
 $log->info('job started.');
 
 try {
-    $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
+    $pdo = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
 // Fetching TLDs
-$stmt = $dbh->query("SELECT id, tld FROM domain_tld;");
+$stmt = $pdo->query("SELECT id, tld FROM domain_tld;");
 $tlds = $stmt->fetchAll();
 
 foreach ($tlds as $tld) {
-    $stmt = $dbh->prepare("SELECT phase_type, phase_description FROM launch_phases WHERE tld_id = ?");
-    $stmt->execute([$tld['id']]);
-    $launchPhase = $stmt->fetch();
+    try {
+        $stmt = $pdo->prepare("SELECT phase_type, phase_description FROM launch_phases WHERE tld_id = ?");
+        $stmt->execute([$tld['id']]);
+        $launchPhase = $stmt->fetch();
 
-    if ($launchPhase) {
-        if ($launchPhase['phase_type'] == 'sunrise') {
-            // Generate Sunrise LORDN file
-            generateSunriseLordn($dbh, $tld, $c['lordn_user'], $c['lordn_pass']);
-        } elseif ($launchPhase['phase_type'] == 'claims' || strpos($launchPhase['phase_description'], 'claims') !== false) {
-            // Generate Claims LORDN file
-            generateClaimsLordn($dbh, $tld, $c['lordn_user'], $c['lordn_pass']);
+        if ($launchPhase) {
+            if ($launchPhase['phase_type'] == 'sunrise') {
+                // Generate Sunrise LORDN file
+                generateSunriseLordn($pdo, $tld, $c['lordn_user'], $c['lordn_pass'], $log);
+            } elseif ($launchPhase['phase_type'] == 'claims' || strpos($launchPhase['phase_description'], 'claims') !== false) {
+                // Generate Claims LORDN file
+                generateClaimsLordn($pdo, $tld, $c['lordn_user'], $c['lordn_pass'], $log);
+            }
+        } else {
+            $log->info("No launch phase found for TLD {$tld['tld']}.");
+            continue;
         }
+    } catch (Throwable $e) {
+        $log->error("Error processing TLD {$tld['tld']}: " . $e->getMessage());
     }
-
-    $log->info('job finished successfully.');
 }
 
-function generateSunriseLordn($dbh, $tld, $username, $password) {
+$log->info('job finished successfully.');
+
+function generateSunriseLordn($pdo, $tld, $username, $password, $log) {
     $dateStamp = date('Ymd');
     $tldName = ltrim($tld['tld'], '.'); // Remove leading dot
     $fileName = "sunrise_lordn_{$tldName}_{$dateStamp}.csv";
     $file = fopen($fileName, 'w');
 
+    if (!$file) {
+        $log->error("Unable to open file {$fileName} for writing.");
+        return false;
+    }
+    
     // Fetch data from your database
-    $stmt = $dbh->prepare("SELECT id, name, smd, clid, crdate FROM application WHERE tldid = ?");
+    $stmt = $pdo->prepare("SELECT id, name, smd, clid, crdate FROM application WHERE tldid = ?");
     $stmt->execute([$tld['id']]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $log->info("Creating LORDN file {$fileName} with " . count($rows) . " entries.");
 
     // First row: version, creation datetime, number of lines
     fputcsv($file, [1, gmdate('Y-m-d\TH:i:s\Z'), count($rows)]);
@@ -68,19 +82,32 @@ function generateSunriseLordn($dbh, $tld, $username, $password) {
     
     // Upload the file
     $uploadUrl = "https://<tmdb-domain-name>/LORDN/{$tldName}/sunrise";
-    uploadFile($fileName, $uploadUrl, $username, $password);
+    $result = uploadFile($fileName, $uploadUrl, $username, $password, $log);
+
+    if ($result['transactionId']) {
+        $log->info("LORDN upload successful for {$tld['tld']} ({$fileName}). Transaction ID: {$result['transactionId']}");
+    } else {
+        $log->warning("LORDN upload for {$tld['tld']} ({$fileName}) did not return a transaction ID.");
+    }
 }
 
-function generateClaimsLordn($dbh, $tld, $username, $password) {
+function generateClaimsLordn($pdo, $tld, $username, $password, $log) {
     $dateStamp = date('Ymd');
     $tldName = ltrim($tld['tld'], '.'); // Remove leading dot
     $fileName = "claims_lordn_{$tldName}_{$dateStamp}.csv";
     $file = fopen($fileName, 'w');
 
+    if (!$file) {
+        $log->error("Unable to open file {$fileName} for writing.");
+        return false;
+    }
+
     // Fetch data from your database
-    $stmt = $dbh->prepare("SELECT id, name, notice_id, clid, crdate, ack_datetime FROM domain WHERE tldid = ?");
+    $stmt = $pdo->prepare("SELECT id, name, notice_id, clid, crdate, ack_datetime FROM domain WHERE tldid = ?");
     $stmt->execute([$tld['id']]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $log->info("Creating LORDN file {$fileName} with " . count($rows) . " entries.");
 
     // First row: version, creation datetime, number of lines
     fputcsv($file, [1, gmdate('Y-m-d\TH:i:s\Z'), count($rows)]);
@@ -99,10 +126,16 @@ function generateClaimsLordn($dbh, $tld, $username, $password) {
     
     // Upload the file
     $uploadUrl = "https://<tmdb-domain-name>/LORDN/{$tldName}/claims";
-    uploadFile($fileName, $uploadUrl, $username, $password);
+    $result = uploadFile($fileName, $uploadUrl, $username, $password, $log);
+
+    if ($result['transactionId']) {
+        $log->info("LORDN upload successful for {$tld['tld']} ({$fileName}). Transaction ID: {$result['transactionId']}");
+    } else {
+        $log->warning("LORDN upload for {$tld['tld']} ({$fileName}) did not return a transaction ID.");
+    }
 }
 
-function uploadFile($filePath, $uploadUrl, $username, $password) {
+function uploadFile($filePath, $uploadUrl, $username, $password, $log) {
     $curl = curl_init();
     $fileData = file_get_contents($filePath);
 
@@ -133,19 +166,19 @@ function uploadFile($filePath, $uploadUrl, $username, $password) {
         }
     } elseif ($httpCode === 400) {
         // Syntax of the LORDN file is incorrect
-        echo "Error 400: Incorrect syntax - " . $body;
+        $log->error("Error 400: Incorrect syntax - " . $body);
     } elseif ($httpCode === 401) {
         // Unauthorized
-        echo "Error 401: Unauthorized";
+        $log->error("Error 401: Unauthorized");
     } elseif ($httpCode === 404) {
         // Not found, typically outside of a QLP Period
-        echo "Error 404: Not Found";
+        $log->error("Error 404: Not Found");
     } elseif ($httpCode === 500) {
         // Server error
-        echo "Error 500: Server error";
+        $log->error("Error 500: Server error");
     } else {
         // Other errors
-        echo "Error: HTTP status code " . $httpCode;
+        $log->error("Error: HTTP status code " . $httpCode);
     }
 
     curl_close($curl);

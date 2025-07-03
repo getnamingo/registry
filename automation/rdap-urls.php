@@ -23,7 +23,7 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $csv_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-$userAgent = 'Namingo Registry/0.5 (+https://namingo.org)';
+$userAgent = 'Namingo Registry/1.0 (+https://namingo.org)';
 curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
 $csv_data = curl_exec($ch);
 if (curl_errno($ch)) {
