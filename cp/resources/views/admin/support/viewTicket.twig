@@ -72,6 +72,16 @@
                             <div class="datagrid-title">{{ __('Created On') }}</div>
                             <div class="datagrid-content"><strong>{{ ticket.date_created }}</strong></div>
                           </div>
+                          {% if ticket.category_id == 8 %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Date of Incident') }}</div>
+                            <div class="datagrid-content"><strong>{{ ticket.date_of_incident }}</strong></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Last Updated') }}</div>
+                            <div class="datagrid-content"><strong>{{ ticket.last_updated }}</strong></div>
+                          </div>
+                          {% endif %}
                           <div class="datagrid-item">
                             <div class="datagrid-title">{{ __('Category') }}</div>
                             <div class="datagrid-content"><span class="status status-indigo">{{ category }}</span></div>
@@ -108,10 +118,24 @@
                             {% endif %}
                             </div>
                           </div>
+                          {% if ticket.category_id == 8 %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Nature of Abuse') }}</div>
+                            <div class="datagrid-content"><span class="status status-red">{{ ticket.nature_of_abuse|capitalize }}</span></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Evidence') }}</div>
+                            <div class="datagrid-content"><span class="status status-green">{{ ticket.evidence }}</span></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Relevant URLs') }}</div>
+                            <div class="datagrid-content"><span class="status status-blue">{{ ticket.relevant_urls }}</span></div>
+                          </div>
+                          {% endif %}
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-lg-7 col-xl-9 d-flex flex-column">
                     <div class="card-body">
                         <div class="card mt-4">

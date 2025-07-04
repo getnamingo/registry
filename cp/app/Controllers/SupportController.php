@@ -27,6 +27,12 @@ class SupportController extends Controller
             $subject = htmlspecialchars($data['subject'], ENT_QUOTES, 'UTF-8') ?? null;
             $message = $data['message'] ?? null;
 
+            $reportedDomain   = $data['reported_domain'] ?? null;
+            $natureOfAbuse    = $data['nature_of_abuse'] ?? null;
+            $evidence         = $data['evidence'] ?? null;
+            $relevantUrls     = $data['relevant_urls'] ?? null;
+            $dateOfIncident   = $data['date_of_incident'] ?? null;
+
             if (!$subject) {
                 $this->container->get('flash')->addMessage('error', 'Please enter a subject');
                 return $response->withHeader('Location', '/support/new')->withStatus(302);
@@ -41,7 +47,20 @@ class SupportController extends Controller
                 $this->container->get('flash')->addMessage('error', 'The provided message exceeds the 5,000 character limit');
                 return $response->withHeader('Location', '/support/new')->withStatus(302);
             }
-            
+
+            if ($category == 8) {
+                if (
+                    empty($reportedDomain) ||
+                    empty($natureOfAbuse) ||
+                    empty($evidence) ||
+                    empty($relevantUrls) ||
+                    empty($dateOfIncident)
+                ) {
+                    $this->container->get('flash')->addMessage('error', 'All abuse-related fields are required for Abuse Notifications.');
+                    return $response->withHeader('Location', '/support/new')->withStatus(302);
+                }
+            }
+
             try {    
                 $db->beginTransaction();
                 $currentDateTime = new \DateTime();
@@ -55,11 +74,11 @@ class SupportController extends Controller
                         'message' => $message,
                         'status' => 'Open',
                         'priority' => 'Medium',
-                        'reported_domain' => null,
-                        'nature_of_abuse' => null,
-                        'evidence' => null,
-                        'relevant_urls' => null,
-                        'date_of_incident' => null,
+                        'reported_domain' => $reportedDomain,
+                        'nature_of_abuse' => $natureOfAbuse,
+                        'evidence' => $evidence,
+                        'relevant_urls' => $relevantUrls,
+                        'date_of_incident' => $dateOfIncident ?: null,
                         'date_created' => $crdate,
                         'last_updated' => null,
                     ]

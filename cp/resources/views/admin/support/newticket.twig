@@ -55,6 +55,28 @@
                             <label for="message" class="form-label required">{{ __('Message') }}</label>
                             <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                         </div>
+                        <div id="abuse-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label for="reported_domain" class="form-label">Reported Domain</label>
+                                <input type="text" class="form-control" id="reported_domain" name="reported_domain">
+                            </div>
+                            <div class="mb-3">
+                                <label for="nature_of_abuse" class="form-label">Nature of Abuse</label>
+                                <textarea class="form-control" id="nature_of_abuse" name="nature_of_abuse" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="evidence" class="form-label">Evidence</label>
+                                <textarea class="form-control" id="evidence" name="evidence" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="relevant_urls" class="form-label">Relevant URLs</label>
+                                <textarea class="form-control" id="relevant_urls" name="relevant_urls" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="date_of_incident" class="form-label">Date of Incident</label>
+                                <input type="date" class="form-control" id="date_of_incident" name="date_of_incident">
+                            </div>
+                        </div>
                 </div>
                 <div class="card-footer text-end">
                   <div class="d-flex">
@@ -68,4 +90,27 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const categorySelect = document.getElementById('category');
+    const abuseFields = document.getElementById('abuse-fields');
+    const requiredInputs = abuseFields.querySelectorAll('input, textarea');
+    const requiredLabels = abuseFields.querySelectorAll('label');
+
+    categorySelect.addEventListener('change', function () {
+        if (this.value === '8') {
+            abuseFields.style.display = 'block';
+            requiredInputs.forEach(el => el.setAttribute('required', 'required'));
+            requiredLabels.forEach(label => label.classList.add('required'));
+        } else {
+            abuseFields.style.display = 'none';
+            requiredInputs.forEach(el => {
+                el.removeAttribute('required');
+                el.value = '';
+            });
+            requiredLabels.forEach(label => label.classList.remove('required'));
+        }
+    });
+});
+</script>
 {% endblock %}
