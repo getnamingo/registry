@@ -241,14 +241,15 @@ function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, 
 
     if ($userData) {
         // Prepare INSERT statement to add a ticket
-        $insertStmt = $pdo->prepare('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (NULL, ?, 8, ?, ?, "Open", "High", ?, "Abuse", ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))');
+        $insertStmt = $pdo->prepare('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (NULL, ?, 8, ?, ?, "Open", "High", ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))');
 
         // Execute the prepared statement with appropriate values
         $insertStmt->execute([
             $userData['user_id'], // user_id
-            "Abuse Report for $domain ($abuseType)", // subject
+            "Abuse Report for $domain", // subject
             "Abuse detected for domain $domain via $abuseType.", // message
             $domain, // reported_domain
+            $abuseType, // nature_of_abuse
             "Link to $abuseType", // evidence
             $evidenceLink, // relevant_urls
             date('Y-m-d H:i:s') // date_of_incident

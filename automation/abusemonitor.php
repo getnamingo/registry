@@ -36,7 +36,6 @@ if (!is_dir($cachePath)) {
     // Attempt to create the directory
     if (!mkdir($cachePath, 0755, true)) {
         $log->error("Unable to create cache directory at $cachePath. Please check permissions.");
-        throw new Exception("Unable to create cache directory at $cachePath. Please check permissions.");
     }
 }
 
