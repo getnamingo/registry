@@ -83,6 +83,7 @@ if ($cronJobConfig['gtld_mode']) {
     $scheduler->php('/opt/registry/automation/urs.php')->at('45 * * * *');
     $scheduler->php('/opt/registry/automation/escrow.php')->at('5 0 * * *');
     $scheduler->php('/opt/registry/automation/reporting.php')->at('1 0 1 * *');
+    // $scheduler->php('/opt/registry/automation/abuse_iq.php')->at('0 * * * *');
 }
 
 if ($cronJobConfig['exchange_rates']) {
