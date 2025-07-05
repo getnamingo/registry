@@ -158,7 +158,7 @@ try {
             $response = curl_exec($curl);
 
             if ($response === false) {
-                throw new Exception(curl_error($curl), curl_errno($curl));
+                $log->error('Email error: ' . curl_error($curl) . curl_errno($curl));
             }
 
             curl_close($curl);
