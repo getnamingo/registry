@@ -1,8 +1,30 @@
 # Namingo Registry: Manual Installation Guide
 
-> **⚠️ This manual installation guide for the Namingo domain registry platform is provided for reference and debugging purposes only. It is no longer supported. For all new installations, please use the automated installer available at [https://namingo.org](https://namingo.org) for a faster and more reliable setup.**
+> **⚠️ This manual installation guide for the Namingo domain registry platform is intended for advanced use cases or situations where the automated installer is not suitable or fails. For standard setups, please use the official installer at [https://namingo.org](https://namingo.org) for a faster and more reliable experience.**
 
 After completing the installation, please refer to the [Configuration Guide](configuration.md) to tailor the system to your specific requirements. Once configured, visit the [Initial Operation Guide](iog.md) for detailed instructions on how to set up your registry, add registrars, and perform other essential operational tasks. To upgrade from older versions, please see our [upgrade guide](upgrade.md).
+
+## Notes
+
+### Systems with Partial or Misconfigured IPv6 Support
+If your system has partial or broken IPv6 (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line:
+
+```bash
+precedence ::ffff:0:0/96 100
+```
+
+This ensures IPv4 is preferred when IPv6 is broken.  
+In the `config.php` files for WHOIS or DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
+
+---
+
+### AWS / Google Cloud Installations
+When installing on AWS or Google Cloud:
+
+- Use the **internal/private IPv4** address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) during setup — these platforms route traffic internally via private IPs.
+- Use the **public IPv6** address for external-facing services.
+
+For most other providers like **DigitalOcean** or **Linode**, you should provide the **public IPv4 and public IPv6** addresses directly.
 
 ## 1. Install the required packages:
 
