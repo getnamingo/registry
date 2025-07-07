@@ -151,6 +151,15 @@ class SupportController extends Controller
                 WHERE tr.ticket_id = ?
                 ORDER BY tr.date_created ASC', [$ticketNumber]);
             $category = $db->selectValue('SELECT name FROM ticket_categories WHERE id = ?', [$ticket['category_id']]);
+            
+            $subject = $ticket['subject'];
+
+            // Extract the domain (last word that looks like a domain)
+            if (preg_match('/\b([a-z0-9.-]+\.[a-z]{2,})\b/i', $subject, $matches)) {
+                $domainName = $matches[1];
+            } else {
+                $domainName = null;
+            }
 
             $_SESSION['current_ticket'] = [$ticket['id']];
             return view($response,'admin/support/viewTicket.twig', [
@@ -158,6 +167,7 @@ class SupportController extends Controller
                 'replies' => $replies,
                 'category' => $category,
                 'currentUri' => $uri,
+                'domain_name' => $domainName,
                 'user_id' => $_SESSION['auth_user_id']
             ]);
         } else {
