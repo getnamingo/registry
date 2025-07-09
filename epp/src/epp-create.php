@@ -290,11 +290,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     $disclose_fax = 1;
     $disclose_email = 1;
     $disclose_name_int = 1;
-    $disclose_name_loc = 1;
+    $disclose_name_loc = 0;
     $disclose_org_int = 1;
-    $disclose_org_loc = 1;
+    $disclose_org_loc = 0;
     $disclose_addr_int = 1;
-    $disclose_addr_loc = 1;
+    $disclose_addr_loc = 0;
 
     foreach ($contact_disclose as $node_disclose) {
         $flag = (string)$node_disclose['flag'];

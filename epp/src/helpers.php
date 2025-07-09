@@ -247,7 +247,7 @@ function validate_label($domain, $pdo) {
             }
             
             if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $label)) {
-                return 'The domain must start and end with a letter or number and contain only letters, numbers, or hyphens';
+                return 'Invalid: only a-z, 0-9, hyphen';
             }
         } 
         // Basic validation for other labels

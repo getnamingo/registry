@@ -135,6 +135,15 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         return;
     }
 
+    foreach ($domains as $domain) {
+        $domainName = (string) $domain;
+        $invalid_label = validate_label($domainName, $db);
+        if ($invalid_label) {
+            sendEppError($conn, $db, 2306, ucfirst($invalid_label), $clTRID, $trans);
+            return;
+        }
+    }
+
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $launch_check = $xml->xpath('//launch:check')[0] ?? null;
@@ -234,15 +243,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                             $domainEntry[] = 0; // Set status to unavailable
                             $domainEntry[] = ucfirst($reserved); // Capitalize the first letter
                         } else {
-                            $invalid_label = validate_label($domainName, $db);
-
-                            // Check if the domain is Invalid
-                            if ($invalid_label) {
-                                $domainEntry[] = 0;  // Set status to unavailable
-                                $domainEntry[] = ucfirst($invalid_label); // Capitalize the first letter
-                            } else {
-                                $domainEntry[] = 1; // Domain is available
-                            }
+                            $domainEntry[] = 1; // Domain is available
                         }
                     }
 
@@ -267,14 +268,6 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         foreach ($domains as $domain) {
             $domainName = (string) $domain;
             $domainEntry = [$domainName];
-
-            $invalid_label = validate_label($domainName, $db);
-            if ($invalid_label) {
-                $domainEntry[] = 0; // Unavailable
-                $domainEntry[] = ucfirst($invalid_label);
-                $names[] = $domainEntry;
-                continue;
-            }
 
             $parts = extractDomainAndTLD($domainName);
             $label = $parts['domain'];
