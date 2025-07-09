@@ -7,9 +7,9 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
     $contactRem = $xml->xpath('//contact:rem') ?? null;
     $contactAdd = $xml->xpath('//contact:add') ?? null;
     $contactChg = $xml->xpath('//contact:chg') ?? null;
-    $identicaUpdate = $xml->xpath('//identica:update') ?? null;
+    $identicaUpdate = $xml->xpath('//identica:update');
 
-    if (!$contactRem && !$contactAdd && !$contactChg && !$identicaUpdate) {
+    if (!$contactRem && !$contactAdd && !$contactChg && empty($identicaUpdate)) {
         sendEppError($conn, $db, 2003, 'At least one contact:rem || contact:add || contact:chg', $clTRID, $trans);
         return;
     }
@@ -420,7 +420,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     }
 
-    if (isset($identicaUpdate)) {
+    if (!empty($identicaUpdate)) {
         $nin = (string) ($xml->xpath('//identica:nin[1]')[0] ?? null);
         $nin_type = (string) ($xml->xpath('//identica:nin/@type[1]')[0] ?? null);
         $validation = (string) ($xml->xpath('//identica:status[1]')[0] ?? null);

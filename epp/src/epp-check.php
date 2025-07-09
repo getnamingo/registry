@@ -10,38 +10,33 @@ function processContactCheck($conn, $db, $xml, $trans) {
         return;
     }
 
-    $results = [];
+    $ids = [];
+
     foreach ($contactIDs as $contactID) {
         $contactID = (string)$contactID;
+        $entry = [$contactID];
 
-        $stmt = $db->prepare("SELECT 1 FROM contact WHERE identifier = :id");
-        $stmt->execute(['id' => $contactID]);
-
-        $results[$contactID] = $stmt->fetch() ? '0' : '1'; // 0 if exists, 1 if not
-        $stmt->closeCursor();
-    }
-
-    $ids = [];
-    foreach ($results as $id => $available) {
         $invalid_identifier = validate_identifier($contactID);
-        $entry = [$id];
 
-        // Check if the contact ID is Invalid
         if ($invalid_identifier) {
-            $entry[] = 0;  // Set status to unavailable
+            $entry[] = 0;
             $entry[] = $invalid_identifier;
         } else {
+            $stmt = $db->prepare("SELECT 1 FROM contact WHERE identifier = :id");
+            $stmt->execute(['id' => $contactID]);
+            $available = $stmt->fetch() ? '0' : '1';
+            $stmt->closeCursor();
+
             $entry[] = $available;
 
-            // Check if the contact is unavailable
             if (!$available) {
                 $entry[] = "In use";
             }
         }
-    
+
         $ids[] = $entry;
     }
-    
+
     $svTRID = generateSvTRID();
     $response = [
         'command' => 'check_contact',
@@ -55,9 +50,11 @@ function processContactCheck($conn, $db, $xml, $trans) {
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
+
     if (is_array($ids)) {
         $ids = implode(',', array_column($ids, 0));
     }
+
     updateTransaction($db, 'check', 'contact', $ids, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
     sendEppResponse($conn, $xml);
 }

@@ -590,7 +590,10 @@ class EppWriter {
                     $writer->writeAttribute('flag', $resp['disclose']['flag']); // 1 = disclose, 0 = restrict
 
                     foreach ($resp['disclose']['fields'] as $field) {
-                        $writer->startElement('contact:' . $field);
+                        $writer->startElement('contact:' . $field['name']);
+                        if (isset($field['type'])) {
+                            $writer->writeAttribute('type', $field['type']);
+                        }
                         $writer->endElement();
                     }
 
@@ -910,11 +913,6 @@ class EppWriter {
                     $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:crDate', $crDateFormatted);
                 }
-                if (isset($resp['exDate'])) {
-                    $exDate = new \DateTime($resp['exDate']);
-                    $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
-                    $writer->writeElement('domain:exDate', $exDateFormatted);
-                }
                 if (isset($resp['upID'])) {
                     $writer->writeElement('domain:upID', $resp['upID']);
                 }
@@ -922,6 +920,11 @@ class EppWriter {
                     $upDate = new \DateTime($resp['upDate']);
                     $upDateFormatted = $upDate->format('Y-m-d\TH:i:s.v\Z');
                     $writer->writeElement('domain:upDate', $upDateFormatted);
+                }
+                if (isset($resp['exDate'])) {
+                    $exDate = new \DateTime($resp['exDate']);
+                    $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:exDate', $exDateFormatted);
                 }
                 if (isset($resp['trDate'])) {
                     $trDate = new \DateTime($resp['trDate']);

@@ -230,6 +230,9 @@ function validate_label($domain, $pdo) {
     if (strpos($domain, '.') === false) {
         return 'Invalid domain name format: must contain at least one dot (.)';
     }
+    if ($domain[0] === '.' || substr($domain, -1) === '.') {
+        return 'Invalid domain name format: cannot start or end with a dot (.)';
+    }
 
     // Split domain into labels (subdomains, SLD, TLD)
     $labels = explode('.', $domain);

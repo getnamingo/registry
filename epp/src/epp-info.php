@@ -72,18 +72,35 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         $statusArray = array_map(fn($status) => [$status], $statuses);
 
         // Handle Disclose Fields (Only Show When Set to `1`)
-        $disclose_fields = [
-            'voice' => $contactRow['disclose_voice'],
-            'fax' => $contactRow['disclose_fax'],
-            'email' => $contactRow['disclose_email'],
-            'name_int' => $contactRow['disclose_name_int'],
-            'name_loc' => $contactRow['disclose_name_loc'],
-            'org_int' => $contactRow['disclose_org_int'],
-            'org_loc' => $contactRow['disclose_org_loc'],
-            'addr_int' => $contactRow['disclose_addr_int'],
-            'addr_loc' => $contactRow['disclose_addr_loc']
-        ];
-        $disclose_required = array_filter($disclose_fields, fn($value) => $value === '1');
+        $disclose_fields = [];
+
+        if ($contactRow['disclose_voice'] === '1') {
+            $disclose_fields[] = ['name' => 'voice'];
+        }
+        if ($contactRow['disclose_fax'] === '1') {
+            $disclose_fields[] = ['name' => 'fax'];
+        }
+        if ($contactRow['disclose_email'] === '1') {
+            $disclose_fields[] = ['name' => 'email'];
+        }
+        if ($contactRow['disclose_name_int'] === '1') {
+            $disclose_fields[] = ['name' => 'name', 'type' => 'int'];
+        }
+        if ($contactRow['disclose_name_loc'] === '1') {
+            $disclose_fields[] = ['name' => 'name', 'type' => 'loc'];
+        }
+        if ($contactRow['disclose_org_int'] === '1') {
+            $disclose_fields[] = ['name' => 'org', 'type' => 'int'];
+        }
+        if ($contactRow['disclose_org_loc'] === '1') {
+            $disclose_fields[] = ['name' => 'org', 'type' => 'loc'];
+        }
+        if ($contactRow['disclose_addr_int'] === '1') {
+            $disclose_fields[] = ['name' => 'addr', 'type' => 'int'];
+        }
+        if ($contactRow['disclose_addr_loc'] === '1') {
+            $disclose_fields[] = ['name' => 'addr', 'type' => 'loc'];
+        }
 
         $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
         $roid = $stmt->fetchColumn();
@@ -113,10 +130,10 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             'authInfo_val' => $contactRow['authinfo']
         ];
 
-        if (!empty($disclose_required)) {
+        if (!empty($disclose_fields)) {
             $response['disclose'] = [
-                'flag' => '1', // Show when disclosure is enabled
-                'fields' => array_keys($disclose_required)
+                'flag' => '1',
+                'fields' => $disclose_fields
             ];
         }
 
