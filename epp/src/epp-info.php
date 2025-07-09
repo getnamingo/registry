@@ -74,15 +74,6 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         // Handle Disclose Fields (Only Show When Set to `1`)
         $disclose_fields = [];
 
-        if ($contactRow['disclose_voice'] === '1') {
-            $disclose_fields[] = ['name' => 'voice'];
-        }
-        if ($contactRow['disclose_fax'] === '1') {
-            $disclose_fields[] = ['name' => 'fax'];
-        }
-        if ($contactRow['disclose_email'] === '1') {
-            $disclose_fields[] = ['name' => 'email'];
-        }
         if ($contactRow['disclose_name_int'] === '1') {
             $disclose_fields[] = ['name' => 'name', 'type' => 'int'];
         }
@@ -100,6 +91,15 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         }
         if ($contactRow['disclose_addr_loc'] === '1') {
             $disclose_fields[] = ['name' => 'addr', 'type' => 'loc'];
+        }
+        if ($contactRow['disclose_voice'] === '1') {
+            $disclose_fields[] = ['name' => 'voice'];
+        }
+        if ($contactRow['disclose_fax'] === '1') {
+            $disclose_fields[] = ['name' => 'fax'];
+        }
+        if ($contactRow['disclose_email'] === '1') {
+            $disclose_fields[] = ['name' => 'email'];
         }
 
         $stmt = $db->query("SELECT value FROM settings WHERE name = 'handle'");
