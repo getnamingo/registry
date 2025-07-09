@@ -945,7 +945,12 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $chg_clid = $stmt->fetchColumn();
         $stmt->closeCursor();
 
-        if ($chg_clid !== false && $chg_clid !== $clid) {
+        if ($chg_clid === false) {
+            sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
+            return;
+        }
+
+        if ($chg_clid !== $clid) {
             sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
             return;
         }
