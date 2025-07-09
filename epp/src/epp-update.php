@@ -937,20 +937,20 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $domain_id = $hostRow['domain_id'];
         $host_id = $hostRow['id'];
 
+        $tlds_scan = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
+        $chg_domain = extractDomainFromHost($chg_name, $tlds_scan);
+
+        $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
+        $stmt->execute([$chg_domain]);
+        $chg_clid = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        if ($chg_clid !== false && $chg_clid !== $clid) {
+            sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
+            return;
+        }
+
         if ($domain_id !== null) {
-            $tlds_scan = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-            $chg_domain = extractDomainFromHost($chg_name, $tlds_scan);
-
-            $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
-            $stmt->execute([$chg_domain]);
-            $chg_clid = $stmt->fetchColumn();
-            $stmt->closeCursor();
-
-            if ($chg_clid !== false && $chg_clid !== $clid) {
-                sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
-                return;
-            }
-
             $stmt = $db->prepare("SELECT name FROM domain WHERE id = ? LIMIT 1");
             $stmt->execute([$domain_id]);
             $domain_name = $stmt->fetchColumn();
