@@ -371,6 +371,9 @@ policy:
     rrsig-lifetime: 14d
     rrsig-refresh: 7d
     dnskey-ttl: 3600
+    nsec3: true
+    nsec3-iterations: 0
+    nsec3-salt-length: 0
 ```
 
 ### 2.4. Add your zone
