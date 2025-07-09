@@ -14,24 +14,23 @@ function processContactCheck($conn, $db, $xml, $trans) {
 
     foreach ($contactIDs as $contactID) {
         $contactID = (string)$contactID;
-        $entry = [$contactID];
 
         $invalid_identifier = validate_identifier($contactID);
-
         if ($invalid_identifier) {
-            $entry[] = 0;
-            $entry[] = $invalid_identifier;
-        } else {
-            $stmt = $db->prepare("SELECT 1 FROM contact WHERE identifier = :id");
-            $stmt->execute(['id' => $contactID]);
-            $available = $stmt->fetch() ? '0' : '1';
-            $stmt->closeCursor();
+            sendEppError($conn, $db, 2306, $invalid_identifier, $clTRID, $trans);
+            return;
+        }
 
-            $entry[] = $available;
+        $entry = [$contactID];
 
-            if (!$available) {
-                $entry[] = "In use";
-            }
+        $stmt = $db->prepare("SELECT 1 FROM contact WHERE identifier = :id");
+        $stmt->execute(['id' => $contactID]);
+        $available = $stmt->fetch() ? '0' : '1';
+        $stmt->closeCursor();
+
+        $entry[] = $available;
+        if (!$available) {
+            $entry[] = "In use";
         }
 
         $ids[] = $entry;
