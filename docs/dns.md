@@ -91,7 +91,7 @@ dnssec-policy "namingo-policy" {
         ksk lifetime P1Y algorithm ed25519;
         zsk lifetime P2M algorithm ed25519;
     };
-    nsec3param iterations 5 optout false salt-length 8;
+    nsec3param iterations 0 optout false salt-length 0;
     publish-safety 7d;
     max-zone-ttl 86400;
     dnskey-ttl 3600;
