@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS registrar (
     currency VARCHAR(5) NOT NULL DEFAULT 'USD',
     companyNumber VARCHAR(30) DEFAULT NULL,
     vatNumber VARCHAR(30) DEFAULT NULL,
+    ssl_fingerprint CHAR(64) DEFAULT NULL,
     crdate DATETIME NOT NULL,
     lastupdate DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (clid),

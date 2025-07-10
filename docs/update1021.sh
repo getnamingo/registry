@@ -142,6 +142,10 @@ AND NOT EXISTS (
 );
 EOF
 
+# Add ssl_fingerprint column
+echo "Adding ssl_fingerprint column to registrar table..."
+mysql -u$DB_USER -p$DB_PASS $DB_NAME -e "ALTER TABLE registrar ADD COLUMN ssl_fingerprint CHAR(64) DEFAULT NULL AFTER vatNumber;"
+
 echo "Database structure updated successfully."
 
 # Check the Linux distribution and version

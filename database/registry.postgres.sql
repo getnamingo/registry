@@ -116,6 +116,7 @@ CREATE TABLE registrar (
      "currency"   varchar(5) NOT NULL default 'USD',
      "companyNumber" VARCHAR(30) DEFAULT NULL,
      "vatNumber" VARCHAR(30) DEFAULT NULL,
+     "ssl_fingerprint" CHAR(64) DEFAULT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "lastupdate"   timestamp(3),
      unique ("clid"),

@@ -542,6 +542,30 @@ function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {
     return $result ? (int)$result['id'] : null;
 }
 
+function getFingerprint(Swoole\Database\PDOProxy $db, int $clid): ?string {
+    $stmt = $db->prepare("SELECT ssl_fingerprint FROM registrar WHERE id = :clid LIMIT 1");
+    $stmt->bindParam(':clid', $clid, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
+
+    return $result ? $result['ssl_fingerprint'] : null;
+}
+
+function getClientFingerprint(\Swoole\Server $serv, int $fd): ?string {
+    $info = $serv->getClientInfo($fd);
+    if (empty($info['ssl_client_cert'])) {
+        return null;
+    }
+
+    $cert = $info['ssl_client_cert'];
+    $pem = preg_replace('/\-+BEGIN CERTIFICATE\-+|\-+END CERTIFICATE\-+|\s+/', '', $cert);
+    $der = base64_decode($pem);
+
+    return $der ? strtoupper(hash('sha256', $der)) : null;
+}
+
 /**
  * Calculate ds-rdata from dnskey-rdata
  * For additional information please refer to RFC 5910: http://www.ietf.org/rfc/rfc5910.txt
