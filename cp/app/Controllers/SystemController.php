@@ -1117,6 +1117,59 @@ class SystemController extends Controller
                                 $dnssecData = ['error' => "No DNSSEC keys found for $zone using Knot DNS."];
                             }
                         }
+                    } elseif (file_exists('/usr/sbin/ods-ksmutil')) {
+                        $zone = strtolower(ltrim($tld['tld'], '.'));
+                        $keyListOutput = shell_exec("sudo ods-ksmutil key list --zone " . escapeshellarg($zone) . " --verbose 2>&1");
+
+                        if (!$keyListOutput) {
+                            $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone (OpenDNSSEC)."];
+                        } else {
+                            preg_match_all('/\|\s+(\d+)\s+\|\s+(KSK|ZSK)\s+\|\s+(\w+)\s+\|\s+(\w+)\s+\|\s+(\d+)\s+\|\s+([^\|]+)\s+\|\s+([^\|]+)\s+\|/', $keyListOutput, $matches, PREG_SET_ORDER);
+
+                            $dnssecData = [
+                                'zoneName' => '.' . $zone,
+                                'timestamp' => date('Y-m-d H:i:s'),
+                                'keys' => [],
+                            ];
+
+                            foreach ($matches as $match) {
+                                $keyId = $match[1];
+                                $keyType = $match[2];
+                                $state = $match[3];
+                                $algorithm = $match[4];
+                                $bits = $match[5];
+                                $created = trim($match[6]);
+                                $publish = trim($match[7]);
+
+                                $keyFilePattern = escapeshellarg("K{$zone}.+*+{$keyId}.key");
+                                $keyFilePath = trim(shell_exec("find /var/lib/opendnssec/ -type f -name {$keyFilePattern} | head -n1"));
+
+                                if ($keyFilePath && file_exists($keyFilePath)) {
+                                    $dsOutput = shell_exec("dnssec-dsfromkey -2 " . escapeshellarg($keyFilePath) . " 2>/dev/null");
+                                    $dsRecord = $dsOutput ? trim($dsOutput) : 'Unavailable';
+                                } else {
+                                    $dsRecord = 'Not Found';
+                                }
+
+                                $keyStatus = ($state === 'active') ? 'Active' : 'Pending Rollover';
+
+                                $dnssecData['keys'][] = [
+                                    'key_id' => $keyId,
+                                    'algorithm' => $algorithm,
+                                    'ds_record' => $dsRecord,
+                                    'status' => $keyStatus,
+                                    'timestamp' => date('Y-m-d H:i:s'),
+                                    'next_rollover' => 'Not shown',
+                                    'retirement_date' => null,
+                                    'published_date' => $publish,
+                                    'ds_status' => null,
+                                ];
+                            }
+
+                            if (empty($dnssecData['keys'])) {
+                                $dnssecData = ['error' => "No DNSSEC keys found for $zone using OpenDNSSEC."];
+                            }
+                        }
                     } else {
                         $dnssecData = ['error' => "Setup incomplete. Refer to manual."];
                     }

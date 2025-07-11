@@ -4,15 +4,23 @@ This guide walks you through configuring the core DNS setup for your Namingo-pow
 
 > ⚠️ This setup is [Required] for proper zone publication and delegation of domains under your TLDs.
 
-## 1. Setting Up the Hidden Master Using BIND
+## 1. Hidden Master DNS Server Setup
 
-### 1.1. Installation
+This section covers how to set up your hidden master — the central source Namingo updates with zone changes. Public-facing DNS servers (e.g., slaves or Anycast nodes) will pull zones from it and serve them to the world.
+
+> ⚠️ Choose only **one** of the following DNS backends based on your environment and preferences. Do **not** install all of them.
+
+### 1.1. BIND9 (with native DNSSEC, OpenDNSSEC, or Unsigned Zones)
+
+BIND9 supports multiple DNSSEC modes: native signing with automatic key rollover, external signing using OpenDNSSEC, or serving unsigned zones. Choose the method that fits your operational needs.
+
+#### 1.1.1. Installation
 
 ```bash
 apt install bind9 bind9-utils bind9-doc
 ```
 
-### 1.2. Generate a TSIG key
+#### 1.1.2. Generate a TSIG key
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
@@ -32,50 +40,9 @@ key "test.key" {
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
 
-### 1.3. Zone Configuration
+> ⚠️ **Choose one configuration from the following section that fits your setup. Do not combine them.**
 
-BIND can be configured in two distinct modes on your hidden master, depending on whether **DNSSEC signing will be handled at the hidden master level**.
-
-If your registry requires DNSSEC, you can choose to:
-- Use **BIND’s native DNSSEC capabilities** to sign zones automatically, or
-- Integrate with **OpenDNSSEC** for external key management and signing before serving signed zones via BIND.
-
-> ⚠️ **Important**: You must choose **either the unsigned or signed configuration** for your hidden master. Mixing both modes within the same TLD setup is not supported.
-
-#### 1.3.1. Unsigned Mode (No DNSSEC)
-
-Edit the named.conf.local file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-Add the following zone definition:
-
-```bash
-zone "test." {
-    type master;
-    file "/var/lib/bind/test.zone";
-    allow-transfer { key "test.key"; };
-    also-notify { <slave-server-IP>; };
-};
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
-
-Use rndc to reload BIND:
-
-```bash
-systemctl restart bind9
-```
-
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
-#### 1.3.2. Signed Mode (With DNSSEC)
+#### 1.1.3a. Native DNSSEC – Signed by BIND
 
 Edit the named.conf.local file:
 
@@ -117,10 +84,13 @@ zone "test." {
 
 Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
 
-Finally, set correct permissions and restart BIND9 to apply changes:
+> 🔒 **Security Tip:** DNSSEC private keys must be properly secured.
+
+Set correct ownership and permissions, then restart BIND9 to apply changes:
 
 ```bash
 chown -R bind:bind /var/lib/bind
+chmod -R go-rwx /var/lib/bind
 systemctl restart bind9
 ```
 
@@ -130,12 +100,18 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be BIND9.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
+> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
-**Optional: Configure BIND with PKCS#11 support
+##### 1.1.3a.1. Optional: Configure BIND with PKCS#11 Support
 
 ```bash
 apt install softhsm2 opensc libengine-pkcs11-openssl
+```
+
+If using SoftHSM, also initialize the token with:
+
+```bash
+softhsm2-util --init-token --slot 0 --label YourTokenLabel
 ```
 
 Edit `/etc/bind/named.conf.options` and add the following:
@@ -148,8 +124,8 @@ options {
 
 dnssec-policy "hsm-policy" {
     keys {
-        ksk key-directory "pkcs11:token=YourTokenLabel" lifetime P1Y algorithm ecdsap256sha256;
-        zsk key-directory "pkcs11:token=YourTokenLabel" lifetime P2M algorithm ecdsap256sha256;
+        ksk lifetime P1Y algorithm ecdsap256sha256;
+        zsk lifetime P2M algorithm ecdsap256sha256;
     };
     max-zone-ttl 86400;
     dnskey-ttl 3600;
@@ -159,12 +135,39 @@ dnssec-policy "hsm-policy" {
 };
 ```
 
-Replace `YourTokenLabel` with your actual HSM token label.
+Then, add the zone definition:
+
+```bash
+zone "test." {
+    type master;
+    file "/var/lib/bind/test.zone";
+    dnssec-policy "hsm-policy";
+    inline-signing yes;
+    allow-transfer { key "test.key"; };
+    also-notify { <slave-server-IP>; };
+};
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Set the PKCS#11 provider in environment before running BIND:
+
+```bash
+export PKCS11_PROVIDER=/usr/lib/softhsm/libsofthsm2.so
+```
+
+Set correct permissions and restart BIND9 to apply changes:
+
+```bash
+chown -R bind:bind /var/lib/bind
+systemctl restart bind9
+```
 
 BIND will automatically generate keys within the device when configured correctly:
 
 ```bash
 rndc loadkeys your.tld
+rndc signing -list your.tld
 ```
 
 You can verify the keys with tools provided by your HSM vendor or via standard PKCS#11 utilities:
@@ -173,7 +176,21 @@ You can verify the keys with tools provided by your HSM vendor or via standard P
 softhsm2-util --show-slots
 ```
 
-#### 1.3.3. Signed Mode (With DNSSEC and OpenDNSSEC)
+or
+
+```bash
+pkcs11-tool --list-objects --login --token-label YourTokenLabel
+```
+
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
+> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+
+#### 1.1.3b. External DNSSEC – Signed by OpenDNSSEC
 
 Edit the named.conf.local file:
 
@@ -243,7 +260,42 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-### 1.4. Enabling Logs in BIND
+> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+
+#### 1.1.3c. Unsigned Zone
+
+Edit the named.conf.local file:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Add the following zone definition:
+
+```bash
+zone "test." {
+    type master;
+    file "/var/lib/bind/test.zone";
+    allow-transfer { key "test.key"; };
+    also-notify { <slave-server-IP>; };
+};
+```
+
+Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+
+Use rndc to reload BIND:
+
+```bash
+systemctl restart bind9
+```
+
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
+#### 1.1.4. Enabling Logs
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -314,23 +366,23 @@ logging {
 };
 ```
 
-### 1.5. Validate and Apply BIND Configuration
+#### 1.1.5. Validate and Apply Configuration
 
-After completing your configuration, check for syntax errors using `named-checkconf` and verify your zone file with `named-checkzone test /var/lib/bind/test.zone`. If everything is correct, restart BIND using `systemctl restart bind9`.
+After completing your configuration, check for syntax errors using `named-checkconf` and verify your zone file with `named-checkzone test /var/lib/bind/test.zone`. If everything is correct, restart BIND9 using `systemctl restart bind9`.
 
 To confirm that your zone has been loaded successfully, run `grep named /var/log/syslog` and look for a log entry indicating the zone was loaded without errors.
 
 > ✅ You should see something like: `zone test/IN: loaded serial 2025041901` indicating success.
 
-## 2. Setting Up the Hidden Master Using Knot DNS and DNSSEC
+### 1.2. Knot DNS (with native DNSSEC)
 
-### 2.1. Installation
+#### 1.2.1. Installation
 
 ```bash
 apt install knot knot-dnsutils
 ```
 
-### 2.2. Generate a TSIG key
+#### 1.2.2. Generate a TSIG key
 
 Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
 
@@ -350,7 +402,7 @@ key:
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
 
-### 2.3. Configure DNSSEC Policy
+#### 1.2.3. Configure DNSSEC Policy
 
 Add the DNSSEC policy to `/etc/knot/knot.conf`:
 
@@ -376,7 +428,7 @@ policy:
     nsec3-salt-length: 0
 ```
 
-### 2.4. Add your zone
+#### 1.2.4. Add your zone
 
 Add the zone to `/etc/knot/knot.conf`:
 
@@ -428,20 +480,86 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-**NB! Enable DNSSEC in the TLD management page from the control panel. Mode must be KnotDNS.** Then upload the DS record to IANA or the parent registry from the Control Panel TLD page.
+> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
-## 3. Setting Up a Public Secondary DNS Using BIND
+### 1.4. NSD (Advanced)
+
+NSD is a high-performance, authoritative-only name server with no support for dynamic updates, inline signing, or native DNSSEC key management. It is suitable for production environments that prioritize speed and simplicity, but it **requires external zone signing**.
+
+> ⚠️ **Important:** NSD does **not** support DNSSEC signing or key management internally. You must handle all DNSSEC operations — such as key generation, zone signing, rollover, and DS management — using external tools like `ldns-signzone`, `dnssec-signzone`, or OpenDNSSEC.
+
+#### 1.4.1. Prerequisites
+
+You’ll need a separate process or automation to:
+
+- Generate KSK and ZSK keys
+- Sign your zone using `ldns-signzone` or equivalent
+- Update the `.signed` file before reloading NSD
+
+Example using `ldns-signzone`:
+
+```bash
+ldns-keygen test.
+ldns-keygen -k test.
+ldns-signzone test.zone Ktest.+* Ztest.+*
+```
+
+This will output a signed zone file, typically named `test.zone.signed`.
+
+#### 1.4.2. Installation
+
+```bash
+apt install nsd ldnsutils
+```
+
+#### 1.4.3. Configure NSD to Load Signed Zone
+
+Edit `/etc/nsd/nsd.conf` and define the zone:
+
+```bash
+zone:
+  name: "test."
+  zonefile: "test.zone.signed"
+```
+
+Make sure the signed zone file is placed in `/etc/nsd/` or the directory you define as the zone directory. Then restart NSD:
+
+```bash
+systemctl restart nsd
+```
+
+#### 1.4.4. Automating Zone Signing
+
+Because NSD does not sign zones automatically, you must:
+
+- Sign zones periodically via cron or a systemd timer
+- Replace the previous `.signed` file with the new one
+- Reload NSD (`nsd-control reload`) after each re-signing
+
+Example cron job:
+
+```bash
+0 */6 * * * /usr/local/bin/sign-and-publish-zone.sh
+```
+
+> 🧠 **Tip:** For easier DNSSEC lifecycle management, consider using **OpenDNSSEC** as the signer and **NSD** only for serving the signed zones.
+
+### 1.5. Other Options
+
+You may integrate with PowerDNS, YADIFA, or other servers, but this requires custom adaptation.
+
+## 2. Setting Up a Public Secondary DNS Using BIND
 
 This section describes how to configure a regular public-facing DNS server using BIND to act as a secondary for your hidden master. It will receive zone transfers (AXFR/IXFR) and serve as the authoritative DNS for your TLDs.
 
-### 3.1. Installation
+### 2.1. Installation
 
 ```bash
 apt update
 apt install bind9 bind9-utils bind9-doc
 ```
 
-### 3.2. Add the TSIG key to the BIND Configuration
+### 2.2. Add the TSIG key to the BIND Configuration
 
 Copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
 
@@ -487,7 +605,7 @@ zone "test." {
 
 Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
 
-### 3.3. Adjusting Permissions and Ownership
+### 2.3. Adjusting Permissions and Ownership
 
 Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
 
@@ -496,7 +614,7 @@ chown bind:bind /var/cache/bind/zones
 chmod 755 /var/cache/bind/zones
 ```
 
-### 3.4. Enabling Logs in BIND
+### 2.4. Enabling Logs
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -567,8 +685,8 @@ logging {
 };
 ```
 
-### 3.5. Validate and Apply BIND Configuration
+### 2.5. Validate and Apply Configuration
 
-After completing your secondary zone setup, check for syntax errors using `named-checkconf`, then restart BIND using `systemctl restart bind9` to apply the changes.
+After completing your secondary zone setup, check for syntax errors using `named-checkconf`, then restart BIND9 using `systemctl restart bind9` to apply the changes.
 
 To verify that the zone was successfully transferred from the hidden master, check your logs with `grep 'transfer of "test."' /var/log/syslog`. You should see a log entry confirming the successful zone transfer.
