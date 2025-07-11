@@ -542,6 +542,12 @@ Example cron job:
 0 */6 * * * /usr/local/bin/sign-and-publish-zone.sh
 ```
 
+Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+
+```bash
+php /opt/registry/automation/write-zone.php
+```
+
 > 🧠 **Tip:** For easier DNSSEC lifecycle management, consider using **OpenDNSSEC** as the signer and **NSD** only for serving the signed zones.
 
 ### 1.5. Other Options
