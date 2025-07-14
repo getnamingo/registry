@@ -172,11 +172,33 @@ This will initialize and configure the audit trail functionality. This process e
 
 #### 1.4.4. Setup Backup
 
-To set up backups in Namingo:
+The default backup system in Namingo is based on `phpbu`, which is well-suited for **small to medium databases** and multi-purpose PHP-driven automation. It supports database backups, file system snapshots, remote uploads (e.g., SFTP), and more, using customizable JSON configuration files.
 
-1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. Edit both files to include the correct database and other required details. If using SFTP and just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
+**Step-by-Step Setup:**
 
-2. Enable the backup functionality in `cron.php` or `cron_config.php` and make sure you follow the instructions in section **1.4.8. Running the Automation System** to activate the automation system on your server.
+1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. 
+
+2. Edit both files to include the correct database and other required details. If using SFTP for uploads with just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
+
+3. Enable the backup functionality in `cron.php` or `cron_config.php`.
+
+4. Follow the instructions in section **1.4.8. Running the Automation System** to activate the automation system on your server.
+
+##### 1.4.4.1. Using mariabackup for Large MariaDB Databases
+
+For large or high-performance MariaDB deployments, you can replace the default `mysqldump`-based backup with `mariabackup`, which performs **physical (binary) backups** without downtime.
+
+**Step-by-Step Setup:**
+
+1. Install `mariabackup` (usually part of the MariaDB-server package or as `mariadb-backup`).
+
+2. Modify `backup.json` to use a `preExec` shell command that runs:
+
+```bash
+mariabackup --backup --target-dir=/opt/registry/backups/mariadb --user=... --password=...
+```
+
+3. (Optional) Add a `postExec` command to compress the backup or prepare it for upload.
 
 #### 1.4.5. Setting Up Exchange Rate Download
 
