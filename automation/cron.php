@@ -17,6 +17,7 @@
 //     'gtld_mode' => false,   // Enable or disable gTLD mode
 //     'spec11' => false,      // Enable or disable Spec 11 checks
 //     'exchange_rates' => false,     // Enable or disable exchange rate download
+//     'cds_scanner' => false,     // Enable or disable CDS/CDNSKEY scanning and DS publishing to the zone
 // ];
 //
 // Any keys omitted in cron_config.php will fall back to the defaults
@@ -31,6 +32,7 @@ $defaultConfig = [
     'gtld_mode' => false,    // Set to true to enable
     'spec11' => false,    // Set to true to enable
     'exchange_rates' => false,    // Set to true to enable
+    'cds_scanner' => false,    // Set to true to enable
 ];
 
 // Load External Config if Exists
@@ -88,6 +90,10 @@ if ($cronJobConfig['gtld_mode']) {
 
 if ($cronJobConfig['exchange_rates']) {
     $scheduler->php('/opt/registry/automation/exchange-rates.php')->at('0 1 * * *');
+}
+
+if ($cronJobConfig['cds_scanner']) { 
+    $scheduler->php('/opt/registry/automation/cds_scanner.php')->at('0 */6 * * *');
 }
 
 // Run Scheduled Tasks

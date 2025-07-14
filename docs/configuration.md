@@ -261,6 +261,7 @@ return [
     'gtld_mode' => false,   // Enable or disable gTLD mode
     'spec11' => false,      // Enable or disable Spec 11 checks
     'exchange_rates' => false,     // Enable or disable exchange rate download
+    'cds_scanner' => false,     // Enable or disable CDS/CDNSKEY scanning and DS publishing to the zone
 ];
 ```
 
