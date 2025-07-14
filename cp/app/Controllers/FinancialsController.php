@@ -17,12 +17,12 @@ class FinancialsController extends Controller
     {
         return view($response,'admin/financials/transactions.twig');
     }
-    
+
     public function overview(Request $request, Response $response)
     {
         return view($response,'admin/financials/overview.twig');
     }
-    
+
     public function invoices(Request $request, Response $response)
     {
         return view($response,'admin/financials/invoices.twig');
@@ -73,6 +73,41 @@ class FinancialsController extends Controller
         $statement = $db->select('SELECT * FROM statement WHERE date BETWEEN ? AND ? AND registrar_id = ?',
         [ $firstDayPrevMonth, $lastDayPrevMonth, $invoice_details['registrar_id'] ]
         );
+        
+        $refunds = $db->select("
+            SELECT 
+                date,
+                description,
+                amount * -1 AS amount -- negate the refund to show as negative
+            FROM payment_history
+            WHERE registrar_id = ?
+              AND date BETWEEN ? AND ?
+              AND description LIKE '%provides a credit%'
+        ", [
+            $invoice_details['registrar_id'],
+            $firstDayPrevMonth,
+            $lastDayPrevMonth
+        ]);
+
+        foreach ($refunds as &$r) {
+            $r['domain_name'] = '(refund)';
+            $r['command'] = 'REFUND';
+            $r['type'] = 'credit';
+
+            if (preg_match('/domain ([a-z0-9.-]+\.[a-z]{2,})/i', $r['description'], $matchDomain)) {
+                $r['domain_name'] = $matchDomain[1];
+            }
+
+            if (preg_match('/provides a credit (.*)$/i', $r['description'], $matchReason)) {
+                $r['reason'] = trim($matchReason[1]);
+            } else {
+                $r['reason'] = $r['description']; // fallback
+            }
+        }
+        unset($r);
+
+        $allTransactions = array_merge($statement, $refunds);
+        usort($allTransactions, fn($a, $b) => strtotime($a['date']) <=> strtotime($b['date']));
 
         $vatCalculator = new VatCalculator();
         $vatCalculator->setBusinessCountryCode(strtoupper($cc));
@@ -107,7 +142,7 @@ class FinancialsController extends Controller
             'billing' => $billing,
             'billing_company' => $billing_company,
             'billing_vat' => $billing_vat,
-            'statement' => $statement,
+            'statement' => $allTransactions,
             'company_name' => $company_name,
             'address' => $address,
             'address2' => $address2,

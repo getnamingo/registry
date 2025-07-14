@@ -1,6 +1,6 @@
 <?php
 
-require_once 'vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
@@ -18,32 +18,15 @@ try {
     $log->error('DB Connection failed: ' . $e->getMessage());
 }
 
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
-$stmt->execute(['name' => 'email']);
-$row = $stmt->fetch();
-if ($row) {
-    $supportEmail = $row['value'];
-} else {
-    $supportEmail = 'default-support@example.com';
-}
+$settingsStmt = $pdo->query("
+    SELECT name, value FROM settings
+    WHERE name IN ('email', 'phone', 'company_name')
+");
+$settings = $settingsStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
-$stmt->execute(['name' => 'phone']);
-$row = $stmt->fetch();
-if ($row) {
-    $supportPhoneNumber = $row['value'];
-} else {
-    $supportPhoneNumber = '+1.23456789';
-}
-
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
-$stmt->execute(['name' => 'company_name']);
-$row = $stmt->fetch();
-if ($row) {
-    $registryName = $row['value'];
-} else {
-    $registryName = 'Example Registry LLC';
-}
+$supportEmail = $settings['email'] ?? 'default-support@example.com';
+$supportPhoneNumber = $settings['phone'] ?? '+1.23456789';
+$registryName = $settings['company_name'] ?? 'Example Registry LLC';
 
 $previous = date("Y-m", strtotime("first day of previous month"));
 
@@ -59,6 +42,7 @@ try {
 
     foreach ($result as $row) {
         $startDate = $previous . "-01";
+        $endDate = date("Y-m-d", strtotime("+1 month", strtotime($startDate)));
         $combinedStmt = $pdo->prepare("
             SELECT 
                 COUNT(id) AS trans, 
@@ -67,29 +51,41 @@ try {
                 statement 
             WHERE 
                 registrar_id = :registrarId AND 
-                date BETWEEN :startDate AND LAST_DAY(:startDate)
+                date >= :startDate AND date < :endDate
         ");
         $combinedStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
         $combinedStmt->bindParam(':startDate', $startDate);
+        $combinedStmt->bindParam(':endDate', $endDate);
         $combinedStmt->execute();
         $combinedResult = $combinedStmt->fetch(PDO::FETCH_ASSOC);
 
-        $transactionsCount = $combinedResult['trans'] ?? 0;
-        $totalAmount = $combinedResult['total'] ?? '0';
+        $refundStmt = $pdo->prepare("
+            SELECT  GROUP_CONCAT(description SEPARATOR '\n') AS refund_list,
+                    SUM(amount)                        AS refund_total
+            FROM    payment_history
+            WHERE   registrar_id = :registrarId
+              AND   date BETWEEN :startDate AND LAST_DAY(:startDate)
+              AND   description LIKE '%provides a credit%'
+        ");
+        $refundStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
+        $refundStmt->bindParam(':startDate', $startDate);
+        $refundStmt->execute();
+        $refundRow        = $refundStmt->fetch(PDO::FETCH_ASSOC);
+        $refundTotal      = $refundRow['refund_total'] ?? 0;
+        $refundDetailsRaw = $refundRow['refund_list']  ?? '';
 
-        if ($transactionsCount > 0) {
+        $transactionsCount = $combinedResult['trans'] ?? 0;
+        $totalAmount       = ($combinedResult['total'] ?? 0) - $refundTotal;
+
+        if ($transactionsCount > 0 && $totalAmount > 0) {
             // Prepare and execute insert statement
             $insertStmt = $pdo->prepare("INSERT INTO invoices (registrar_id, billing_contact_id, issue_date, due_date, total_amount, payment_status, created_at) VALUES (:registrarId, :billingContactId, :issueDate, :dueDate, :totalAmount, :paymentStatus, :createdAt)");
-            
-            $currentDateTime = new DateTime(); // Current date and time
-            $currentDateTimeFormatted = $currentDateTime->format('Y-m-d H:i:s.u'); // Format with microseconds
 
-            $dueDateTime = (new DateTime())->modify('+30 days'); // Current date and time plus 30 days
-            $dueDateTimeFormatted = $dueDateTime->format('Y-m-d H:i:s.u'); // Format with microseconds
+            $currentDateTime = new DateTimeImmutable();
+            $dueDateTime = $currentDateTime->modify('+30 days');
 
-            // Truncate microseconds to milliseconds
-            $currentDateTimeMilliseconds = substr($currentDateTimeFormatted, 0, 23);
-            $dueDateTimeMilliseconds = substr($dueDateTimeFormatted, 0, 23);
+            $currentDateTimeMilliseconds = $currentDateTime->format('Y-m-d H:i:s.v');
+            $dueDateTimeMilliseconds = $dueDateTime->format('Y-m-d H:i:s.v');
 
             $paymentStatus = 'unpaid';
 
@@ -112,8 +108,15 @@ try {
             $stmt->bindParam(':invoiceNumber', $invoiceNumber, PDO::PARAM_INT);
             $stmt->execute();
 
+            $log->info("Generated invoice {$invoiceIdFormatted} for registrar ID {$row['id']} ({$row['registrar_name']}) - Amount: {$totalAmount}");
+
             $issueDate = date("Y-m-d");
             $dueDate = date("Y-m-d", strtotime("+30 days"));
+
+            if (empty($row['billing_email'])) {
+                $log->warning("Missing billing email for registrar ID {$row['id']}, skipping email.");
+                continue;
+            }
 
             // Prepare the email content
             $subject = "New Invoice Notification - " . $issueDate;
@@ -123,14 +126,21 @@ try {
                     "- Invoice Number: " . $invoiceIdFormatted . "\n" .
                     "- Issue Date: " . $issueDate . "\n" .
                     "- Due Date: " . $dueDate . "\n" .
-                    "- Total Amount: " . $totalAmount . "\n\n" .
-                    "The invoice is available in your account for review and payment. Please ensure that the payment is made by the due date to avoid any late fees or service interruptions.\n\n" .
-                    "Should you have any questions or require further assistance, please do not hesitate to contact us at {$supportEmail}.\n\n" .
-                    "Thank you for your prompt attention to this matter.\n\n" .
-                    "Warm regards,\n\n" .
-                    "{$registryName}\n" .
-                    "{$supportEmail}\n" .
-                    "{$supportPhoneNumber}";
+                    "- Total Amount: " . $totalAmount . "\n\n";
+
+            if ($refundTotal > 0) {
+                $body .= "- Credits This Period: -" . $refundTotal . "\n";
+                $body .= "  (Details below)\n\n";
+                $body .= $refundDetailsRaw . "\n\n";
+            }
+
+            $body .= "The invoice is available in your account for review and payment. Please ensure that the payment is made by the due date to avoid any late fees or service interruptions.\n\n" .
+                     "Should you have any questions or require further assistance, please do not hesitate to contact us at {$supportEmail}.\n\n" .
+                     "Thank you for your prompt attention to this matter.\n\n" .
+                     "Warm regards,\n\n" .
+                     "{$registryName}\n" .
+                     "{$supportEmail}\n" .
+                     "{$supportPhoneNumber}";
 
             // Prepare the data array for the cURL request
             $data = [

@@ -85,7 +85,12 @@
                         <tr>
                             <td class="text-center">{{ loop.index }}</td>
                             <td>
-                                <p class="strong mb-1">{{ item.command }} {{ item.domain_name }}</p>
+                                <p class="strong mb-1">
+                                  {{ item.command }} {{ item.domain_name }}
+                                  {% if item.type == 'credit' and item.reason is defined %}
+                                    <br><small class="text-muted">{{ item.reason }}</small>
+                                  {% endif %}
+                                </p>
                             </td>
                             <td class="text-end">{{ item.amount }}</td>
                         </tr>

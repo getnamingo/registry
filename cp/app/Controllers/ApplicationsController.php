@@ -166,8 +166,8 @@ class ApplicationsController extends Controller
 
                 // Validate that acceptedDate is before notAfter
                 try {
-                    $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $data['accepted']);
-                    $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.u\Z', $data['notafter']);
+                    $acceptedDate = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $data['accepted']);
+                    $notAfterDate = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $data['notafter']);
                     
                     if (!$acceptedDate || !$notAfterDate) {
                         $this->container->get('flash')->addMessage('error', "Invalid date format");
