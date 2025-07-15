@@ -267,18 +267,20 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
 
-                    $fingerprint = getClientFingerprint($serv, $fd);
+                    if (!empty($c['mandatory_client_ssl'])) {
+                        $fingerprint = getClientFingerprint($serv, $fd);
 
-                    if (!$fingerprint) {
-                        sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: no certificate provided', $clTRID);
-                        return;
-                    }
+                        if (!$fingerprint) {
+                            sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: no certificate provided', $clTRID);
+                            return;
+                        }
 
-                    $storedFingerprint = getFingerprint($pdo, $clid);
+                        $storedFingerprint = getFingerprint($pdo, $clid);
 
-                    if (!$storedFingerprint || strcasecmp($fingerprint, $storedFingerprint) !== 0) {
-                        sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: incorrect certificate', $clTRID);
-                        return;
+                        if (!$storedFingerprint || strcasecmp($fingerprint, $storedFingerprint) !== 0) {
+                            sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: incorrect certificate', $clTRID);
+                            return;
+                        }
                     }
 
                     if (checkLogin($pdo, $clID, $pw)) {
