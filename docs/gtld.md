@@ -323,3 +323,34 @@ If a domain is flagged:
 To use this feature, ensure `spec11` is set to `true` in `/opt/registry/automation/cron_config.php`.
 
 > ⚠️ This functionality helps maintain registry compliance with Specification 11 and supports proactive registrar communication.
+
+---
+
+## 10. ICANN MoSAPI Integration
+
+This tool connects to ICANN MoSAPI to monitor TLD-specific compliance and abuse statistics for registry operators.
+
+### What It Does
+
+- Authenticates with MoSAPI using registry credentials
+- Retrieves per-TLD state, including service status and incident data (`/monitoring/state`)
+- Retrieves latest abuse metrics for delegated domains (`/metrica/domainList/latest`)
+
+### Output Includes
+
+- TLD status and tested interfaces (e.g. RDAP, EPP)
+- Emergency threshold settings and active incident logs
+- Abuse types (e.g. spam, botnetCc) with domain counts
+
+### Requirements
+
+- PHP 8.2+
+- MoSAPI registry credentials
+
+### Usage
+
+Configure your details in `/opt/registrar/tests/icann_mosapi.php` and then run:
+
+```bash
+php icann_mosapi.php
+```
