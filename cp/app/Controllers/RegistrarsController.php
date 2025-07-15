@@ -780,6 +780,41 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
             }
 
+            $uploadedFiles = $request->getUploadedFiles();
+            $certFile = $uploadedFiles['sslUpload'] ?? null;
+
+            if ($certFile && $certFile->getError() === UPLOAD_ERR_OK) {
+                $filename = $certFile->getClientFilename();
+                $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+                if (!in_array($extension, ['pem', 'crt'])) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid file extension for SSL upload');
+                    return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+                }
+
+                $tmpPath = sys_get_temp_dir() . '/' . uniqid('cert_', true) . '.' . $extension;
+                $certFile->moveTo($tmpPath);
+
+                $certContent = file_get_contents($tmpPath);
+
+                $certData = @openssl_x509_read($certContent);
+                if ($certData === false) {
+                    unlink($tmpPath);
+                    $this->container->get('flash')->addMessage('error', 'Invalid certificate for SSL upload');
+                    return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+                }
+
+                $pem = preg_replace('#-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+#', '', $certContent);
+                $der = base64_decode($pem);
+                $fingerprint = $der ? strtoupper(hash('sha256', $der)) : null;
+
+                unlink($tmpPath);
+            } elseif (!empty($data['sslUploadHidden']) && preg_match('/^[A-F0-9]{64}$/', $data['sslUploadHidden'])) {
+                $fingerprint = $data['sslUploadHidden'];
+            } else {
+                $fingerprint = null;
+            }
+
             $db->beginTransaction();
 
             try {
@@ -810,6 +845,12 @@ class RegistrarsController extends Controller
                 if (!empty($data['eppPassword'])) {
                     $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
                     $updateData['pw'] = $eppPassword;
+                }
+
+                if (!empty($fingerprint)) {
+                    $updateData['ssl_fingerprint'] = $fingerprint;
+                } else {
+                    $updateData['ssl_fingerprint'] = null;
                 }
 
                 $db->update(
@@ -1056,6 +1097,41 @@ class RegistrarsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'No email specified for update');
                 return $response->withHeader('Location', '/registrar/edit')->withStatus(302);
             }
+            
+            $uploadedFiles = $request->getUploadedFiles();
+            $certFile = $uploadedFiles['sslUpload'] ?? null;
+
+            if ($certFile && $certFile->getError() === UPLOAD_ERR_OK) {
+                $filename = $certFile->getClientFilename();
+                $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+                if (!in_array($extension, ['pem', 'crt'])) {
+                    $this->container->get('flash')->addMessage('error', 'Invalid file extension for SSL upload');
+                    return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+                }
+
+                $tmpPath = sys_get_temp_dir() . '/' . uniqid('cert_', true) . '.' . $extension;
+                $certFile->moveTo($tmpPath);
+
+                $certContent = file_get_contents($tmpPath);
+
+                $certData = @openssl_x509_read($certContent);
+                if ($certData === false) {
+                    unlink($tmpPath);
+                    $this->container->get('flash')->addMessage('error', 'Invalid certificate for SSL upload');
+                    return $response->withHeader('Location', '/registrar/update/'.$registrar)->withStatus(302);
+                }
+
+                $pem = preg_replace('#-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+#', '', $certContent);
+                $der = base64_decode($pem);
+                $fingerprint = $der ? strtoupper(hash('sha256', $der)) : null;
+
+                unlink($tmpPath);
+            } elseif (!empty($data['sslUploadHidden']) && preg_match('/^[A-F0-9]{64}$/', $data['sslUploadHidden'])) {
+                $fingerprint = $data['sslUploadHidden'];
+            } else {
+                $fingerprint = null;
+            }
 
             $db->beginTransaction();
 
@@ -1086,6 +1162,12 @@ class RegistrarsController extends Controller
                 if (!empty($data['eppPassword'])) {
                     $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
                     $updateData['pw'] = $eppPassword;
+                }
+
+                if (!empty($fingerprint)) {
+                    $updateData['ssl_fingerprint'] = $fingerprint;
+                } else {
+                    $updateData['ssl_fingerprint'] = null;
                 }
 
                 $db->update(

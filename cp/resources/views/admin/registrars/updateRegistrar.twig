@@ -511,7 +511,7 @@
                         {% if registrar.ssl_fingerprint is not empty %}
                           <div class="datagrid-item">
                             <div class="datagrid-title">{{ __('SSL Certificate Fingerprint') }}</div>
-                            <div class="datagrid-content">{{ registrar.ssl_fingerprint }}</div>
+                            <div class="datagrid-content">{{ registrar.ssl_fingerprint }}<input type="hidden" name="sslUploadHidden" value="{{ registrar.ssl_fingerprint }}" /></div>
                           </div>
                         {% endif %}
                         </div>
