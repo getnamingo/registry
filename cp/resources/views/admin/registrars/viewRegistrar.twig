@@ -402,26 +402,22 @@
                   <div class="card h-100">
                     <div class="card-body">
                       <h5 class="card-title">{{ __('Registrar User') }}</h5>
-                        <div class="table-responsive">
-                          <table class="table">
-                            <thead>
-                              <tr>
-                                <th scope="col required">{{ __('EPP Username/CLID') }}</th>
-                                <th scope="col">{{ __('Panel Login Email') }}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td>
-                                  <div class="form-control-plaintext">{{ registrar.clid }}</div>
-                                </td>
-                                <td>
-                                  <div class="form-control-plaintext">{{ userEmail.email }}</div>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                      <div class="datagrid">
+                        <div class="datagrid-item">
+                          <div class="datagrid-title">{{ __('EPP Username/CLID') }}</div>
+                          <div class="datagrid-content">{{ registrar.clid }}</div>
                         </div>
+                        <div class="datagrid-item">
+                          <div class="datagrid-title">{{ __('Panel Login Email') }}</div>
+                          <div class="datagrid-content">{{ userEmail.email }}</div>
+                        </div>
+                        {% if registrar.ssl_fingerprint is not empty %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('SSL Certificate Fingerprint') }}</div>
+                            <div class="datagrid-content">{{ registrar.ssl_fingerprint }}</div>
+                          </div>
+                        {% endif %}
+                      </div>
                     </div>
                   </div>
                 </div>

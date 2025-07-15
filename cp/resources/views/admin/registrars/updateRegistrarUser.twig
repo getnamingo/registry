@@ -31,7 +31,7 @@
           <div class="container-xl">
             <div class="col-12">
             {% include 'partials/flash.twig' %}
-              <form action="/registrar/edit" method="post" autocomplete="off">
+              <form action="/registrar/edit" method="post" autocomplete="off" enctype="multipart/form-data">
               {{ csrf.field | raw }}
                 <!-- Registrar Details Card -->
                 <div class="card mb-3">
@@ -459,43 +459,43 @@
                         <p class="card-text">
                         {{ __('For an existing registrar user, you can view the current EPP username (also known as CLID) and panel access email. Additionally, you have the option to reset the passwords for EPP and panel access as needed.') }}
                         </p>
-                        <div class="table-responsive">
-                          <table class="table">
-                            <thead>
-                              <tr>
-                                <th scope="col required">{{ __('Username/CLID') }}</th>
-                                <th scope="col">{{ __('Login Email') }}</th>
-                                <th scope="col">{{ __('Panel Password') }} <span class="text-red">*</span></th>
-                                <th scope="col">{{ __('EPP Password') }} <span class="text-red">*</span></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td>
-                                  {{ registrar.clid }}
-                                </td>
-                                <td>
-                                  {{ user.email ? user.email : 'N/A' }}
-                                </td>
-                                <td>
-                                  <div class="d-flex align-items-center">
-                                    <input type="password" class="form-control form-control-sm me-2" name="panelPassword" id="panelPassword" autocomplete="off" disabled>
-                                    <div class="form-check mb-0">
-                                      <input class="form-check-input" type="checkbox" id="updatePanelPassword" title="{{ __('Update Panel Password') }}">
-                                    </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div class="d-flex align-items-center">
-                                    <input type="password" class="form-control form-control-sm me-2" name="eppPassword" id="eppPassword" autocomplete="off" disabled>
-                                    <div class="form-check mb-0">
-                                      <input class="form-check-input" type="checkbox" id="updateEppPassword" title="{{ __('Update EPP Password') }}">
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div class="datagrid">
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('EPP Username/CLID') }}</div>
+                            <div class="datagrid-content">{{ registrar.clid }}</div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Panel Login Email') }}</div>
+                            <div class="datagrid-content">{{ user.email ? user.email : 'N/A' }}</div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('EPP Password') }}</div>
+                            <div class="datagrid-content">
+                              <div class="d-flex align-items-center">
+                                <input type="password" class="form-control form-control-sm me-2" name="eppPassword" id="eppPassword" autocomplete="off" disabled>
+                                <input class="form-check-input mt-0" type="checkbox" id="updateEppPassword" title="{{ __('Update EPP Password') }}">
+                              </div>
+                            </div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Panel Password') }}</div>
+                            <div class="datagrid-content">
+                              <div class="d-flex align-items-center">
+                                <input type="password" class="form-control form-control-sm me-2" name="panelPassword" id="panelPassword" autocomplete="off" disabled>
+                                <input class="form-check-input mt-0" type="checkbox" id="updatePanelPassword" title="{{ __('Update Panel Password') }}">
+                              </div>
+                            </div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('SSL Certificate Fingerprint') }}</div>
+                            <div class="datagrid-content"><input class="form-control" type="file" name="sslUpload" accept=".pem,.crt"></div>
+                          </div>
+                        {% if registrar.ssl_fingerprint is not empty %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('SSL Certificate Fingerprint') }}</div>
+                            <div class="datagrid-content">{{ registrar.ssl_fingerprint }}</div>
+                          </div>
+                        {% endif %}
                         </div>
                       </div>
                     </div>
