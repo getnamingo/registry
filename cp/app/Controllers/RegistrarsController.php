@@ -282,7 +282,8 @@ class RegistrarsController extends Controller
                         'username' => $data['user_name'],
                         'verified' => 1,
                         'roles_mask' => 4,
-                        'registered' => \time()
+                        'registered' => \time(),
+                        'password_last_updated' => date('Y-m-d H:i:s')
                     ]
                 );
                 $user_id = $db->getLastInsertId();
@@ -971,6 +972,7 @@ class RegistrarsController extends Controller
                         'users',
                         [
                             'password' => $panelPassword,
+                            'password_last_updated' => date('Y-m-d H:i:s')
                         ],
                         [
                             'email' => $regEmail
@@ -1288,6 +1290,7 @@ class RegistrarsController extends Controller
                         'users',
                         [
                             'password' => $panelPassword,
+                            'password_last_updated' => date('Y-m-d H:i:s')
                         ],
                         [
                             'email' => $regEmail
