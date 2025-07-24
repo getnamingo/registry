@@ -1,6 +1,6 @@
 {% extends "layouts/app.twig" %}
 
-{% block title %}{{ __('View Invoice') }}{% endblock %}
+{% block title %}{{ __('View Invoice') }} {{ invoice_details.invoice_number }}{% endblock %}
 
 {% block content %}
       <div class="page-wrapper">
@@ -118,7 +118,9 @@
                     <td class="font-weight-bold text-end">{{ total }}</td>
                   </tr>
                 </table>
-                <p class="text-secondary text-center mt-5">{{ __('Notes') }}: {{ invoice_details.notes }}</p>
+                {% if invoice_details.notes %}
+                    <p class="text-secondary text-center mt-5">{{ __('Notes') }}: {{ invoice_details.notes }}</p>
+                {% endif %}
                 <p class="text-secondary text-center mt-5">{{ __('Thank you very much for doing business with us. We look forward to working with you again!') }}</p>
               </div>
             </div>
