@@ -133,6 +133,12 @@ class Auth
      */
     public static function login($email, $password, $remember=null, $code=null){
         $auth = self::$auth;
+
+        if (empty($email) || empty($password)) {
+            redirect()->route('login')->with('error', 'Please enter both email and password');
+            return;
+        }
+
         try {
             if ($remember !='') {
                 // keep logged in for one year
