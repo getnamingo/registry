@@ -225,7 +225,6 @@ rdap.${REGISTRY_DOMAIN} {
         output file /var/log/namingo/web-rdap.log {
             roll_size 10MB
             roll_keep 5
-            roll_keep_days 14
         }
         format json
     }
@@ -257,7 +256,6 @@ whois.${REGISTRY_DOMAIN} {
         output file /var/log/namingo/web-whois.log {
             roll_size 10MB
             roll_keep 5
-            roll_keep_days 14
         }
         format json
     }
@@ -285,7 +283,6 @@ cp.${REGISTRY_DOMAIN} {
         output file /var/log/namingo/web-cp.log {
             roll_size 10MB
             roll_keep 5
-            roll_keep_days 14
         }
         format json
     }
