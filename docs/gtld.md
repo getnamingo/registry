@@ -354,3 +354,42 @@ Configure your details in `/opt/registrar/tests/icann_mosapi.php` and then run:
 ```bash
 php icann_mosapi.php
 ```
+
+---
+
+## 11. ICANN RST
+
+### 11.1. EPP Server Startup Options
+
+Two launch variants are available:
+
+- **start_epp.php**  
+  The default EPP server using `Swoole\Coroutine\Server`. Currently recommended for default installation.
+
+- **start_epp_alt.php**  
+  An alternate server implementation using `Swoole\Server` (non-coroutine listener with coroutine workers). This version is fully compatible with ICANN RST and may become the default in future releases.
+
+  If you wish to use this version in place of the current one:
+
+  1. Move the existing `start_epp.php` to a backup location:
+     ```bash
+     mv start_epp.php start_epp.php.bak
+     ```
+  2. Rename `start_epp_alt.php` to become the main entry point:
+     ```bash
+     mv start_epp_alt.php start_epp.php
+     ```
+  3. In your `config.php`, ensure the following are set correctly:
+     ```php
+     'epp_host' => 'your IPv4 address',
+     'epp_host_ipv6' => 'your IPv6 address',
+     ```
+  4. Restart the EPP server service:
+     ```bash
+     service epp stop
+     service epp start
+     ```
+
+  After this, your server will be running the RST-compatible implementation under the default name.
+
+Both versions share the same logic and configuration. Choose based on your integration requirements.
