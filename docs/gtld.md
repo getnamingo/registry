@@ -359,7 +359,7 @@ php icann_mosapi.php
 
 ## 11. ICANN RST
 
-### 11.1. EPP Server Startup Options
+### 11.1. EPP Server Startup
 
 Two launch variants are available:
 
@@ -393,3 +393,49 @@ Two launch variants are available:
   After this, your server will be running the RST-compatible implementation under the default name.
 
 Both versions share the same logic and configuration. Choose based on your integration requirements.
+
+### 11.2. EPP Server Configuration
+
+#### 11.2.1. Modify `/opt/registry/epp/extensions.json`
+
+Ensure the following EPP extensions are **disabled** (i.e., `"enabled": false`) or **enabled** where noted:
+
+```json
+{
+  "urn:ietf:params:xml:ns:epp:loginSec-1.0": {
+    "enabled": false
+  },
+  "urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0": {
+    "enabled": false
+  },
+  "urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0": {
+    "enabled": false
+  },
+  ...
+  "urn:ietf:params:xml:ns:mark-1.0": {
+    "enabled": false
+  },
+  "https://namingo.org/epp/funds-1.0": {
+    "enabled": false
+  },
+  "https://namingo.org/epp/identica-1.0": {
+    "enabled": false
+  }
+}
+```
+
+#### 11.2.2. Modify `/opt/registry/epp/config.php`
+
+Ensure the following configuration options are present and set to `true`. If the keys do not exist, add them:
+
+```php
+<?php
+...
+    // Enforce TLS client certificate validation
+    'mandatory_client_ssl' => true,
+
+    // Disable the 60-day inter-registrar transfer lock
+    'disable_60days' => true,
+
+];
+```
