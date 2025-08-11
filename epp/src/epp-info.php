@@ -482,12 +482,16 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->execute(['id' => $domain['id']]);
             $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
-            
+
             $statusArray = [];
-            foreach($statuses as $status) {
-                $statusArray[] = [$status['status']];
+            if (!empty($statuses)) {
+                foreach ($statuses as $status) {
+                    $statusArray[] = [$status['status']];
+                }
+            } else {
+                $statusArray[] = ['ok'];
             }
-            
+
             // Fetch secDNS data
             $stmt = $db->prepare("SELECT * FROM secdns WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);

@@ -149,7 +149,7 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
     }
 
     // Check if the IP is in the permitted list
-/*     if (!$permittedIPsTable->exist($clientIP)) {
+    if (!$permittedIPsTable->exist($clientIP)) {
         $allowed = false;
         foreach ($permittedIPsTable as $row) {
             if (strpos($row['addr'], '/') !== false && ipMatches($clientIP, $row['addr'])) {
@@ -163,7 +163,7 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
             return;
         }
     }
- */
+
     if (($c['rately'] == true) && ($rateLimiter->isRateLimited('epp', $clientIP, $c['limit'], $c['period']))) {
         $log->error('rate limit exceeded for ' . $clientIP);
         $conn->close();
