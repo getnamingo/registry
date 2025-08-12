@@ -169,7 +169,7 @@ class DapiController extends Controller
             $sqlWhere
             GROUP BY d.id
             ORDER BY $sortField $sortDir
-            LIMIT $offset, $size
+            " . $this->limitClause($offset, $size) . "
         ";
 
         $records = $db->select($dataSql, $bindParams);
@@ -375,7 +375,7 @@ class DapiController extends Controller
             $sqlWhere
             GROUP BY d.id
             ORDER BY $sortField $sortDir
-            LIMIT $offset, $size
+            " . $this->limitClause($offset, $size) . "
         ";
 
         $records = $db->select($dataSql, $bindParams);
@@ -564,7 +564,7 @@ class DapiController extends Controller
             $sqlBase
             $sqlWhere
             ORDER BY $sortField $sortDir
-            LIMIT $offset, $size
+            " . $this->limitClause($offset, $size) . "
         ";
 
         $records = $db->select($dataSql, $bindParams);
@@ -736,7 +736,7 @@ class DapiController extends Controller
             $sqlBase
             $sqlWhere
             ORDER BY $sortField $sortDir
-            LIMIT $offset, $size
+            " . $this->limitClause($offset, $size) . "
         ";
 
         $records = $db->select($dataSql, $bindParams);
@@ -779,6 +779,24 @@ class DapiController extends Controller
 
         $response->getBody()->write(json_encode($result));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function limitClause(int $offset, int $size): string
+    {
+        // harden numbers
+        $offset = max(0, (int)$offset);
+        $size   = max(1, (int)$size);
+
+        switch (envi('DB_DRIVER')) {
+            case 'mysql':
+                // MySQL/MariaDB
+                return "LIMIT {$offset}, {$size}";
+            case 'pgsql':
+            case 'sqlite':
+            default:
+                // PostgreSQL & SQLite
+                return "LIMIT {$size} OFFSET {$offset}";
+        }
     }
 
 }
