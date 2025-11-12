@@ -224,38 +224,45 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $res .= "Internationalized Domain Name: " . mb_strtoupper($internationalizedName) . "\n";
                     }
 
-                    $res .= "Registry Domain ID: D".$f['id']."-".$roid
-                        ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
-                        ."\nRegistrar URL: ".$clidF['url']
-                        ."\nUpdated Date: ".$f['lastupdate']
-                        ."\nCreation Date: ".$f['crdate']
-                        ."\nRegistry Expiry Date: ".$f['exdate']
-                        ."\nRegistrar: ".$clidF['name']
-                        ."\nRegistrar IANA ID: ".$clidF['iana_id']
-                        ."\nRegistrar Abuse Contact Email: ".$clidF['abuse_email']
-                        ."\nRegistrar Abuse Contact Phone: ".$clidF['abuse_phone'];
-                        
-                    $query4 = "SELECT status FROM domain_status WHERE domain_id = :domain_id";
-                    $stmt4 = $pdo->prepare($query4);
-                    $stmt4->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
-                    $stmt4->execute();
-
-                    $statusFound = false;
-
-                    while ($f2 = $stmt4->fetch(PDO::FETCH_ASSOC)) {
-                        $res .= "\nDomain Status: " . $f2['status'] . " https://icann.org/epp#" . $f2['status'];
-                        $statusFound = true;
+                    if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                        $res .= "Registry Domain ID: D".$f['id']."-".$roid
+                            ."\nRegistrar WHOIS Server: ".$clidF['whois_server']
+                            ."\nRegistrar URL: ".$clidF['url']
+                            ."\nUpdated Date: ".$f['lastupdate']
+                            ."\nCreation Date: ".$f['crdate']
+                            ."\nRegistry Expiry Date: ".$f['exdate']
+                            ."\nRegistrar: ".$clidF['name']
+                            ."\nRegistrar IANA ID: ".$clidF['iana_id']
+                            ."\nRegistrar Abuse Contact Email: ".$clidF['abuse_email']
+                            ."\nRegistrar Abuse Contact Phone: ".$clidF['abuse_phone'];
+                    } else {
+                        $res .= "Registrar: ".$clidF['name'];
+                        $res .= "\nUpdated Date: ".$f['lastupdate'];
                     }
 
-                    // Check for additional statuses
-                    if (!empty($f['rgpstatus'])) {
-                        $res .= "\nDomain Status: " . $f['rgpstatus'] . " https://icann.org/epp#" . $f['rgpstatus'];
-                        $statusFound = true;
-                    }
+                    if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                        $query4 = "SELECT status FROM domain_status WHERE domain_id = :domain_id";
+                        $stmt4 = $pdo->prepare($query4);
+                        $stmt4->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
+                        $stmt4->execute();
 
-                    // If no status is found, default to 'ok'
-                    if (!$statusFound) {
-                        $res .= "\nDomain Status: ok https://icann.org/epp#ok";
+                        $statusFound = false;
+
+                        while ($f2 = $stmt4->fetch(PDO::FETCH_ASSOC)) {
+                            $res .= "\nDomain Status: " . $f2['status'] . " https://icann.org/epp#" . $f2['status'];
+                            $statusFound = true;
+                        }
+
+                        // Check for additional statuses
+                        if (!empty($f['rgpstatus'])) {
+                            $res .= "\nDomain Status: " . $f['rgpstatus'] . " https://icann.org/epp#" . $f['rgpstatus'];
+                            $statusFound = true;
+                        }
+
+                        // If no status is found, default to 'ok'
+                        if (!$statusFound) {
+                            $res .= "\nDomain Status: ok https://icann.org/epp#ok";
+                        }
                     }
 
                     if (!$minimum_data) {
@@ -564,7 +571,13 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         }
                     }
                     
-                    $query9 = "SELECT name FROM domain_host_map,host WHERE domain_host_map.domain_id = :domain_id AND domain_host_map.host_id = host.id";
+                    $query9 = "SELECT h.name, 
+                              GROUP_CONCAT(ha.addr ORDER BY INET6_ATON(ha.addr) SEPARATOR ', ') AS ips 
+                           FROM domain_host_map dhm
+                           JOIN host h ON dhm.host_id = h.id
+                           LEFT JOIN host_addr ha ON h.id = ha.host_id
+                           WHERE dhm.domain_id = :domain_id
+                           GROUP BY h.name";
                     $stmt9 = $pdo->prepare($query9);
                     $stmt9->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
                     $stmt9->execute();
@@ -572,47 +585,60 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $counter = 0;
                     while ($counter < 13) {
                         $f2 = $stmt9->fetch(PDO::FETCH_ASSOC);
-                        if ($f2 === false) break; // Break if there are no more rows
-                         $res .= "\nName Server: ".$f2['name'];
-                         $counter++;
+                        if ($f2 === false) break;
+                        $res .= "\nName Server: ".$f2['name'];
+                        if (!empty($f2['ips'])) {
+                            $res .= " (".$f2['ips'].")";
+                        }
+                        $counter++;
                     }
 
-                    $query_dnssec = "SELECT EXISTS(SELECT 1 FROM secdns WHERE domain_id = :domain_id)";
-                    $stmt_dnssec = $pdo->prepare($query_dnssec);
-                    $stmt_dnssec->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
-                    $stmt_dnssec->execute();
+                    if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                        $query_dnssec = "SELECT EXISTS(SELECT 1 FROM secdns WHERE domain_id = :domain_id)";
+                        $stmt_dnssec = $pdo->prepare($query_dnssec);
+                        $stmt_dnssec->bindParam(':domain_id', $f['id'], PDO::PARAM_INT);
+                        $stmt_dnssec->execute();
 
-                    $dnssec_exists = $stmt_dnssec->fetchColumn();
+                        $dnssec_exists = $stmt_dnssec->fetchColumn();
 
-                    if ($dnssec_exists) {
-                        $res .= "\nDNSSEC: signedDelegation";
+                        if ($dnssec_exists) {
+                            $res .= "\nDNSSEC: signedDelegation";
+                        } else {
+                            $res .= "\nDNSSEC: unsigned";
+                        }
+                        $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
+
+
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
+                        $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
+                        $res .= "\n\n";
+                        $res .= "Access to {$tld['tld']} WHOIS information is provided to assist persons in"
+                        ."\ndetermining the contents of a domain name registration record in the"
+                        ."\nDomain Name Registry registry database. The data in this record is provided by"
+                        ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
+                        ."\nguarantee its accuracy.  This service is intended only for query-based"
+                        ."\naccess. You agree that you will use this data only for lawful purposes"
+                        ."\nand that, under no circumstances will you use this data to: (a) allow,"
+                        ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
+                        ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
+                        ."\nto entities other than the data recipient's own existing customers; or"
+                        ."\n(b) enable high volume, automated, electronic processes that send"
+                        ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
+                        ."\nNIC except as reasonably necessary to register domain names or"
+                        ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
+                        ."\nthe right to modify these terms at any time. By submitting this query,"
+                        ."\nyou agree to abide by this policy."
+                        ."\n";
                     } else {
-                        $res .= "\nDNSSEC: unsigned";
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
                     }
-                    $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                    $currentDateTime = new DateTime();
-                    $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
-                    $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
-                    $res .= "\n";
-                    $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
-                    $res .= "\n\n";
-                    $res .= "Access to {$tld['tld']} WHOIS information is provided to assist persons in"
-                    ."\ndetermining the contents of a domain name registration record in the"
-                    ."\nDomain Name Registry registry database. The data in this record is provided by"
-                    ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
-                    ."\nguarantee its accuracy.  This service is intended only for query-based"
-                    ."\naccess. You agree that you will use this data only for lawful purposes"
-                    ."\nand that, under no circumstances will you use this data to: (a) allow,"
-                    ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
-                    ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
-                    ."\nto entities other than the data recipient's own existing customers; or"
-                    ."\n(b) enable high volume, automated, electronic processes that send"
-                    ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
-                    ."\nNIC except as reasonably necessary to register domain names or"
-                    ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
-                    ."\nthe right to modify these terms at any time. By submitting this query,"
-                    ."\nyou agree to abide by this policy."
-                    ."\n";
+
                     $server->send($fd, $res . "");
                     
                     $clientInfo = $server->getClientInfo($fd);
@@ -674,46 +700,54 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                 if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $res = "Server Name: ".$f['name'];
                         
-                    // Fetch the registrar details for this registrar using the id
                     $regQuery = "SELECT id,name,iana_id,whois_server,url,abuse_email,abuse_phone FROM registrar WHERE id = :clid";
                     $regStmt = $pdo->prepare($regQuery);
                     $regStmt->bindParam(':clid', $f['clid'], PDO::PARAM_INT);
                     $regStmt->execute();
 
                     if ($registrar = $regStmt->fetch(PDO::FETCH_ASSOC)) {
-                        // Append the registrar details to the response
                         $res .= "\nRegistrar Name: ".$registrar['name'];
-                        $res .= "\nRegistrar WHOIS Server: ".$registrar['whois_server'];
-                        $res .= "\nRegistrar URL: ".$registrar['url'];
-                        $res .= "\nRegistrar IANA ID: ".$registrar['iana_id'];
-                        $res .= "\nRegistrar Abuse Contact Email: ".$registrar['abuse_email'];
-                        $res .= "\nRegistrar Abuse Contact Phone: ".$registrar['abuse_phone'];
+                        if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                            $res .= "\nRegistrar WHOIS Server: ".$registrar['whois_server'];
+                            $res .= "\nRegistrar URL: ".$registrar['url'];
+                            $res .= "\nRegistrar IANA ID: ".$registrar['iana_id'];
+                            $res .= "\nRegistrar Abuse Contact Email: ".$registrar['abuse_email'];
+                            $res .= "\nRegistrar Abuse Contact Phone: ".$registrar['abuse_phone'];
+                        }
                     }
-                        
-                    $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                    $currentDateTime = new DateTime();
-                    $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
-                    $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
-                    $res .= "\n";
-                    $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
-                    $res .= "\n\n";
-                    $res .= "Access to WHOIS information is provided to assist persons in"
-                    ."\ndetermining the contents of a domain name registration record in the"
-                    ."\nDomain Name Registry registry database. The data in this record is provided by"
-                    ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
-                    ."\nguarantee its accuracy.  This service is intended only for query-based"
-                    ."\naccess. You agree that you will use this data only for lawful purposes"
-                    ."\nand that, under no circumstances will you use this data to: (a) allow,"
-                    ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
-                    ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
-                    ."\nto entities other than the data recipient's own existing customers; or"
-                    ."\n(b) enable high volume, automated, electronic processes that send"
-                    ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
-                    ."\nNIC except as reasonably necessary to register domain names or"
-                    ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
-                    ."\nthe right to modify these terms at any time. By submitting this query,"
-                    ."\nyou agree to abide by this policy."
-                    ."\n";
+
+                    if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                        $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
+                        $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
+                        $res .= "\n\n";
+                        $res .= "Access to WHOIS information is provided to assist persons in"
+                        ."\ndetermining the contents of a domain name registration record in the"
+                        ."\nDomain Name Registry registry database. The data in this record is provided by"
+                        ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
+                        ."\nguarantee its accuracy.  This service is intended only for query-based"
+                        ."\naccess. You agree that you will use this data only for lawful purposes"
+                        ."\nand that, under no circumstances will you use this data to: (a) allow,"
+                        ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
+                        ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
+                        ."\nto entities other than the data recipient's own existing customers; or"
+                        ."\n(b) enable high volume, automated, electronic processes that send"
+                        ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
+                        ."\nNIC except as reasonably necessary to register domain names or"
+                        ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
+                        ."\nthe right to modify these terms at any time. By submitting this query,"
+                        ."\nyou agree to abide by this policy."
+                        ."\n";
+                    } else {
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
+                    }
+
                     $server->send($fd, $res . "");
                         
                     $clientInfo = $server->getClientInfo($fd);
@@ -762,54 +796,61 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                 $stmt->execute();
 
                 if ($f = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $res = "Registrar: ".$f['name']
-                        ."\nRegistrar WHOIS Server: ".$f['whois_server']
-                        ."\nRegistrar URL: ".$f['url']
-                        ."\nRegistrar IANA ID: ".$f['iana_id']
-                        ."\nRegistrar Abuse Contact Email: ".$f['abuse_email']
-                        ."\nRegistrar Abuse Contact Phone: ".$f['abuse_phone'];
-                        
-                // Fetch the contact details for this registrar using the id
-                $contactQuery = "SELECT * FROM registrar_contact WHERE id = :registrar_id";
-                $contactStmt = $pdo->prepare($contactQuery);
-                $contactStmt->bindParam(':registrar_id', $f['id'], PDO::PARAM_INT);
-                $contactStmt->execute();
+                    if (empty($c['limited_whois']) || !$c['limited_whois']) {
+                        $res = "Registrar: ".$f['name']
+                            ."\nRegistrar WHOIS Server: ".$f['whois_server']
+                            ."\nRegistrar URL: ".$f['url']
+                            ."\nRegistrar IANA ID: ".$f['iana_id']
+                            ."\nRegistrar Abuse Contact Email: ".$f['abuse_email']
+                            ."\nRegistrar Abuse Contact Phone: ".$f['abuse_phone'];
+                            
+                        $contactQuery = "SELECT * FROM registrar_contact WHERE id = :registrar_id";
+                        $contactStmt = $pdo->prepare($contactQuery);
+                        $contactStmt->bindParam(':registrar_id', $f['id'], PDO::PARAM_INT);
+                        $contactStmt->execute();
 
-                if ($contact = $contactStmt->fetch(PDO::FETCH_ASSOC)) {
-                    // Append the contact details to the response
-                    $res .= "\nStreet: " . $contact['street1'];
-                    $res .= "\nCity: " . $contact['city'];
-                    $res .= "\nPostal Code: " . $contact['pc'];
-                    $res .= "\nCountry: " . $contact['cc'];
-                    $res .= "\nPhone: " . $contact['voice'];
-                    $res .= "\nFax: " . $contact['fax'];
-                    $res .= "\nPublic Email: " . $contact['email'];
-                }
-                        
-                    $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
-                    $currentDateTime = new DateTime();
-                    $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
-                    $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
-                    $res .= "\n";
-                    $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
-                    $res .= "\n\n";
-                    $res .= "Access to WHOIS information is provided to assist persons in"
-                    ."\ndetermining the contents of a domain name registration record in the"
-                    ."\nDomain Name Registry registry database. The data in this record is provided by"
-                    ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
-                    ."\nguarantee its accuracy.  This service is intended only for query-based"
-                    ."\naccess. You agree that you will use this data only for lawful purposes"
-                    ."\nand that, under no circumstances will you use this data to: (a) allow,"
-                    ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
-                    ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
-                    ."\nto entities other than the data recipient's own existing customers; or"
-                    ."\n(b) enable high volume, automated, electronic processes that send"
-                    ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
-                    ."\nNIC except as reasonably necessary to register domain names or"
-                    ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
-                    ."\nthe right to modify these terms at any time. By submitting this query,"
-                    ."\nyou agree to abide by this policy."
-                    ."\n";
+                        if ($contact = $contactStmt->fetch(PDO::FETCH_ASSOC)) {
+                            $res .= "\nStreet: " . $contact['street1'];
+                            $res .= "\nCity: " . $contact['city'];
+                            $res .= "\nPostal Code: " . $contact['pc'];
+                            $res .= "\nCountry: " . $contact['cc'];
+                            $res .= "\nPhone: " . $contact['voice'];
+                            $res .= "\nFax: " . $contact['fax'];
+                            $res .= "\nPublic Email: " . $contact['email'];
+                        }
+                            
+                        $res .= "\nURL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/";
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
+                        $res .= "\nFor more information on Whois status codes, please visit https://icann.org/epp";
+                        $res .= "\n\n";
+                        $res .= "Access to WHOIS information is provided to assist persons in"
+                        ."\ndetermining the contents of a domain name registration record in the"
+                        ."\nDomain Name Registry registry database. The data in this record is provided by"
+                        ."\nDomain Name Registry for informational purposes only, and Domain Name Registry does not"
+                        ."\nguarantee its accuracy.  This service is intended only for query-based"
+                        ."\naccess. You agree that you will use this data only for lawful purposes"
+                        ."\nand that, under no circumstances will you use this data to: (a) allow,"
+                        ."\nenable, or otherwise support the transmission by e-mail, telephone, or"
+                        ."\nfacsimile of mass unsolicited, commercial advertising or solicitations"
+                        ."\nto entities other than the data recipient's own existing customers; or"
+                        ."\n(b) enable high volume, automated, electronic processes that send"
+                        ."\nqueries or data to the systems of Registry Operator, a Registrar, or"
+                        ."\nNIC except as reasonably necessary to register domain names or"
+                        ."\nmodify existing registrations. All rights reserved. Domain Name Registry reserves"
+                        ."\nthe right to modify these terms at any time. By submitting this query,"
+                        ."\nyou agree to abide by this policy."
+                        ."\n";
+                    } else {
+                        $res = "Registrar: ".$f['name'];
+                        $currentDateTime = new DateTime();
+                        $currentTimestamp = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
+                        $res .= "\n>>> Last update of WHOIS database: {$currentTimestamp} <<<";
+                        $res .= "\n";
+                    }
+
                     $server->send($fd, $res . "");
                     
                     $clientInfo = $server->getClientInfo($fd);

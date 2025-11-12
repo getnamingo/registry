@@ -11,6 +11,7 @@ return [
     'whois_ipv6' => '::', // Set to false if no IPv6 support
     'privacy' => false,
     'minimum_data' => false,
+    'limited_whois' => false,
     'roid' => 'XX',
     'rately' => false,
     'limit' => 25,
