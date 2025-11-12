@@ -926,10 +926,27 @@ class ContactsController extends Controller
                     }
                 }
 
-                $history = $db_audit->select(
-                    'SELECT * FROM contact WHERE identifier = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
-                    [$args]
+                $history_contact = $db_audit->select(
+                    'SELECT * FROM contact WHERE identifier = ?', [$args]
                 );
+                $history_postal = $db_audit->select(
+                    'SELECT * FROM contact_postalInfo WHERE id = ?', [$contact['id']]
+                );
+
+                $history = array_merge((array)$history_contact, (array)$history_postal);
+                usort($history, fn($a, $b) => strcmp($b['audit_timestamp'], $a['audit_timestamp']));
+                $users = $db->select('SELECT id, username FROM users');
+
+                $userMap = array_column($users, 'username', 'id');
+
+                if (!empty($history)) {
+                    foreach ($history as &$row) {
+                        if (isset($userMap[$row['audit_usr_id']])) {
+                            $row['audit_usr_id'] = $userMap[$row['audit_usr_id']];
+                        }
+                    }
+                    unset($row);
+                }
 
                 return view($response,'admin/contacts/historyContact.twig', [
                     'contact' => $contact,

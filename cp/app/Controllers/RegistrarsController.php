@@ -489,6 +489,18 @@ class RegistrarsController extends Controller
                     'SELECT * FROM registrar WHERE clid = ? ORDER BY audit_timestamp DESC, audit_rownum ASC LIMIT 200',
                     [$args]
                 );
+                $users = $db->select('SELECT id, username FROM users');
+
+                $userMap = array_column($users, 'username', 'id');
+
+                if (!empty($history)) {
+                    foreach ($history as &$row) {
+                        if (isset($userMap[$row['audit_usr_id']])) {
+                            $row['audit_usr_id'] = $userMap[$row['audit_usr_id']];
+                        }
+                    }
+                    unset($row);
+                }
 
                 return view($response,'admin/registrars/historyRegistrar.twig', [
                     'registrar' => $registrar,

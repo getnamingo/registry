@@ -1188,6 +1188,18 @@ class DomainsController extends Controller
                     'SELECT * FROM domain WHERE name = ? ORDER BY audit_timestamp DESC, audit_rownum ASC',
                     [$args]
                 );
+                $users = $db->select('SELECT id, username FROM users');
+
+                $userMap = array_column($users, 'username', 'id');
+
+                if (!empty($history)) {
+                    foreach ($history as &$row) {
+                        if (isset($userMap[$row['audit_usr_id']])) {
+                            $row['audit_usr_id'] = $userMap[$row['audit_usr_id']];
+                        }
+                    }
+                    unset($row);
+                }
 
                 if (strpos($domain['name'], 'xn--') === 0) {
                     $domain['name_o'] = $domain['name'];
