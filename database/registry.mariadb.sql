@@ -465,7 +465,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`secdns` (
     `keytag` smallint(5) unsigned NOT NULL,
     `alg` tinyint(3) unsigned NOT NULL default '5',
     `digesttype` tinyint(3) unsigned NOT NULL default '1',
-    `digest` varchar(64) NOT NULL,
+    `digest` varchar(96) NOT NULL,
     `flags` smallint(5) unsigned default NULL,
     `protocol` smallint(5) unsigned default NULL,
     `keydata_alg` tinyint(3) unsigned default NULL,
