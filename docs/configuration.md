@@ -28,6 +28,8 @@ systemctl status das
 
 Before launching the EPP server, edit `/opt/registry/epp/config.php` to set the paths to your certificates and configure other options as needed. Add `'disable_60days' => true,` if you wish to disable the 60-day transfer lock.
 
+You can set `'ssl_cert' => '/opt/registry/epp/epp.crt'` and `'ssl_key' => '/opt/registry/epp/epp.key'` to enable automatic TLS certificate generation and reload.
+
 Once configured, you can launch the EPP server in the same way as the others:
 
 ```bash
