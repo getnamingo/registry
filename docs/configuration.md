@@ -746,6 +746,8 @@ Key features include:
 
 ## 3. Security Hardening
 
+After completing the steps below, it’s recommended to audit your VPS using [vernu/vps-audit](https://github.com/vernu/vps-audit) to verify that your server configuration meets common security best practices.
+
 ### 3.1. Create the namingo user
 
 ```bash
