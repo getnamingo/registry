@@ -104,6 +104,10 @@
             "audit": true,
             "skip": null
         },
+        "registrar_price_group": {
+            "audit": true,
+            "skip": null
+        },
         "poll": {
             "audit": true,
             "skip": null

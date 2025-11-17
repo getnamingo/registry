@@ -46,7 +46,7 @@ php /opt/registry/tests/clean-test-details.php
 
 ---
 
-## Step 4: Add Top-Level Domains (TLDs)
+## Step 4: Create Top-Level Domains (TLDs)
 
 1. Navigate to `Registry → TLDs → Create New TLD`.
 
@@ -71,24 +71,42 @@ php /opt/registry/tests/clean-test-details.php
 
 ---
 
-## Step 5: Add Registrars
+## Step 5: Create Registrars
 
-1. Go to `Registrars → Create Registrar`.
+1. Go to **Registrars → Create Registrar**.
 2. Fill in the following details:
    - **Registrar Name**
-   - **IANA ID** or internal registry identifier
-   - **Admin and Technical Contact Info**
+   - **IANA ID** or internal registry identifier  
+   - **Owner, Billing, Technical & Abuse Contact Information**
    - **WHOIS Server / RDAP Base URL** (if applicable)
    - **Notification Emails**
 
-3. After creation, you can:
-   - **Manage Registrar**: Edit status, credentials, and settings
-   - **Registrar Details**: View all saved information
-   - **Manage Custom Pricing**: Override default TLD pricing  
-     *(Note: Manual config required before version 1.0.19 — see [custom-registrar-pricing.md](custom-registrar-pricing.md))*
-   - **Impersonate**: Log in as the registrar for testing purposes
+3. After creating a registrar, you can access several management options:
 
-> Use impersonation only for internal testing or support – all actions are logged.
+### **Manage Registrar**
+Edit registrar status, EPP credentials, allowed IP addresses, contacts, and operational settings.
+
+### **Registrar Details**
+View all information, including contacts, roles, history, and configuration.
+
+### **Manage Custom Pricing**
+Custom pricing allows you to **override the default TLD pricing for a specific registrar**.  
+This is used when a registrar should have special fees that differ from the global TLD pricing.
+
+> **Important:** Registrar-specific custom pricing always takes precedence over global TLD prices.
+
+### **Pricing Groups**
+Pricing Groups let you assign multiple registrars to a shared pricing tier (e.g., "Domestic Registrars", "Foreign Registrars", "VIP Partners").  
+Applying a price group updates the pricing for **all registrars in that group** at once, without editing them individually.
+
+This is useful when you maintain different fee structures based on geography, accreditation status, or business rules.
+
+> **Note:** If a registrar belongs to multiple groups, this is allowed.  
+> When applying pricing, the **last applied group price wins** and overwrites previous values.
+
+### **Impersonate Registrar**
+Allows you to log in as the registrar to test integration, debug issues, or provide support.  
+All impersonation actions are fully logged for auditing and accountability.
 
 ---
 

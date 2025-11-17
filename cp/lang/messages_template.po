@@ -1746,3 +1746,66 @@ msgstr ""
 
 msgid "Delete Token"
 msgstr ""
+
+msgid "Apply Group Prices"
+msgstr ""
+
+msgid "Price Groups"
+msgstr ""
+
+msgid "Price Group"
+msgstr ""
+
+msgid "-- Select group --"
+msgstr ""
+
+msgid "-- Select TLD --"
+msgstr ""
+
+msgid "Prices to apply"
+msgstr ""
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr ""
+
+msgid "Setup fee"
+msgstr ""
+
+msgid "Optional"
+msgstr ""
+
+msgid "year"
+msgstr ""
+
+msgid "Apply to all registrars in group"
+msgstr ""
+
+msgid "Back"
+msgstr ""
+
+msgid "Edit Price Group"
+msgstr ""
+
+msgid "New Price Group"
+msgstr ""
+
+msgid "Registrars in this group"
+msgstr ""
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "New Group"
+msgstr ""
+
+msgid "Edit Group"
+msgstr ""
+
+msgid "No groups yet."
+msgstr ""

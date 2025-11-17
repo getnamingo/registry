@@ -1743,3 +1743,66 @@ msgstr "تحديث الرمز"
 
 msgid "Delete Token"
 msgstr "حذف الرمز"
+
+msgid "Apply Group Prices"
+msgstr "تطبيق أسعار المجموعة"
+
+msgid "Price Groups"
+msgstr "مجموعات الأسعار"
+
+msgid "Price Group"
+msgstr "مجموعة الأسعار"
+
+msgid "-- Select group --"
+msgstr "-- اختر مجموعة --"
+
+msgid "-- Select TLD --"
+msgstr "-- اختر نطاق TLD --"
+
+msgid "Prices to apply"
+msgstr "الأسعار المطلوب تطبيقها"
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr "جميع أسعار السنوات مطلوبة. رسم الإعداد (M0) اختياري. يجب أن تحتوي جميع السنوات على قيمة."
+
+msgid "Setup fee"
+msgstr "رسوم الإعداد"
+
+msgid "Optional"
+msgstr "اختياري"
+
+msgid "year"
+msgstr "سنة"
+
+msgid "Apply to all registrars in group"
+msgstr "تطبيق على جميع الأمناء في المجموعة"
+
+msgid "Back"
+msgstr "رجوع"
+
+msgid "Edit Price Group"
+msgstr "تعديل مجموعة الأسعار"
+
+msgid "New Price Group"
+msgstr "مجموعة أسعار جديدة"
+
+msgid "Registrars in this group"
+msgstr "الأمناء في هذه المجموعة"
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr "اضغط Ctrl / Cmd لاختيار عناصر متعددة."
+
+msgid "Save"
+msgstr "حفظ"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "New Group"
+msgstr "مجموعة جديدة"
+
+msgid "Edit Group"
+msgstr "تعديل المجموعة"
+
+msgid "No groups yet."
+msgstr "لا توجد مجموعات بعد."

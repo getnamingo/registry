@@ -1,0 +1,99 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ __('Price Groups') }}{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <div class="mb-1">
+                  <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                      <a href="{{route('home')}}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><polyline points="5 12 3 12 12 3 21 12 19 12" /><path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-8" /><rect x="10" y="12" width="4" height="4" /></svg></a>
+                    </li>
+                    <li class="breadcrumb-item">
+                      <a href="{{route('registrars')}}">{{ __('Registrars') }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                      {{ __('Price Groups') }}
+                    </li>
+                  </ol>
+                </div>
+                <h2 class="page-title">
+                  {{ __('Price Groups') }}
+                </h2>
+              </div>
+              <!-- Page title actions -->
+              <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                  <a href="{{route('createGroup')}}" class="btn btn-outline-primary d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    {{ __('New Group') }}
+                  </a>
+                  <a href="{{route('createGroup')}}" class="btn btn-outline-primary d-sm-none btn-icon" aria-label="{{ __('New Group') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  </a>
+                  <a href="{{route('applyGroup')}}" class="btn btn-success d-none d-sm-inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                    {{ __('Apply Group Prices') }}
+                  </a>
+                  <a href="{{route('applyGroup')}}" class="btn btn-success d-sm-none btn-icon" aria-label="{{ __('Apply Group Prices') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                  <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>{{ __('ID') }}</th>
+                        <th>{{ __('Name') }}</th>
+                        <th>{{ __('Description') }}</th>
+                        <th>{{ __('Registrars') }}</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for g in groups %}
+                        <tr>
+                            <td>{{ g.id }}</td>
+                            <td><strong>{{ g.name }}</strong></td>
+                            <td>{{ g.description }}</td>
+                            <td>
+                                {% if g.registrar_names %}
+                                    {{ g.registrar_names|join(', ') }}
+                                {% else %}
+                                    <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="btn btn-outline-primary btn-icon update-btn" href="/registrars/price-groups/{{ g.id }}" title="{{ __('Edit Group') }}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"></path><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"></path><path d="M16 5l3 3"></path></svg></a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4">{{ __('No groups yet.') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

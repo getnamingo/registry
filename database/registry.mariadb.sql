@@ -169,6 +169,14 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar_ote` (
     UNIQUE KEY `test` (`registrar_id`,`command`,`result`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='automated registrar OTE';
 
+CREATE TABLE IF NOT EXISTS `registry`.`registrar_price_group` (
+    `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(64) NOT NULL,
+    `description` TEXT NULL,
+    `registrar_ids` TEXT NOT NULL COMMENT 'Comma-separated registrar IDs: e.g. 1,5,7',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `registrar_id` int(10) unsigned NOT NULL,

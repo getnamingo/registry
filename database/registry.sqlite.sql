@@ -175,6 +175,14 @@ CREATE TABLE IF NOT EXISTS registrar_ote (
     UNIQUE (registrar_id, command, result)
 );
 
+-- registrar_price_group
+CREATE TABLE IF NOT EXISTS registrar_price_group (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    registrar_ids TEXT NOT NULL
+);
+
 -- poll
 CREATE TABLE IF NOT EXISTS poll (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1746,3 +1746,66 @@ msgstr "Actualizar Token"
 
 msgid "Delete Token"
 msgstr "Eliminar Token"
+
+msgid "Apply Group Prices"
+msgstr "Aplicar precios del grupo"
+
+msgid "Price Groups"
+msgstr "Grupos de precios"
+
+msgid "Price Group"
+msgstr "Grupo de precios"
+
+msgid "-- Select group --"
+msgstr "-- Seleccionar grupo --"
+
+msgid "-- Select TLD --"
+msgstr "-- Seleccionar TLD --"
+
+msgid "Prices to apply"
+msgstr "Precios a aplicar"
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr "Todos los precios por año son obligatorios. La tarifa de instalación (M0) es opcional. Todos los años deben tener un valor."
+
+msgid "Setup fee"
+msgstr "Tarifa de instalación"
+
+msgid "Optional"
+msgstr "Opcional"
+
+msgid "year"
+msgstr "año"
+
+msgid "Apply to all registrars in group"
+msgstr "Aplicar a todos los registradores del grupo"
+
+msgid "Back"
+msgstr "Volver"
+
+msgid "Edit Price Group"
+msgstr "Editar grupo de precios"
+
+msgid "New Price Group"
+msgstr "Nuevo grupo de precios"
+
+msgid "Registrars in this group"
+msgstr "Registradores en este grupo"
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr "Mantén Ctrl / Cmd para seleccionar varios."
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "New Group"
+msgstr "Nuevo grupo"
+
+msgid "Edit Group"
+msgstr "Editar grupo"
+
+msgid "No groups yet."
+msgstr "Aún no hay grupos."

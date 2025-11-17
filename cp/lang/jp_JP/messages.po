@@ -1746,3 +1746,66 @@ msgstr "トークンを更新"
 
 msgid "Delete Token"
 msgstr "トークンを削除"
+
+msgid "Apply Group Prices"
+msgstr "グループ価格を適用"
+
+msgid "Price Groups"
+msgstr "価格グループ"
+
+msgid "Price Group"
+msgstr "価格グループ"
+
+msgid "-- Select group --"
+msgstr "-- グループを選択 --"
+
+msgid "-- Select TLD --"
+msgstr "-- TLD を選択 --"
+
+msgid "Prices to apply"
+msgstr "適用する価格"
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr "年ごとの価格はすべて必須です。セットアップ料金（M0）は任意です。すべての年に値を入力する必要があります。”
+
+msgid "Setup fee"
+msgstr "セットアップ料金"
+
+msgid "Optional"
+msgstr "任意"
+
+msgid "year"
+msgstr "年"
+
+msgid "Apply to all registrars in group"
+msgstr "グループ内のすべてのレジストラに適用"
+
+msgid "Back"
+msgstr "戻る"
+
+msgid "Edit Price Group"
+msgstr "価格グループを編集"
+
+msgid "New Price Group"
+msgstr "新規価格グループ"
+
+msgid "Registrars in this group"
+msgstr "このグループのレジストラ"
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr "複数選択するには Ctrl / Cmd を押しながらクリックしてください。"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgid "New Group"
+msgstr "新規グループ"
+
+msgid "Edit Group"
+msgstr "グループを編集"
+
+msgid "No groups yet."
+msgstr "グループはまだありません。"

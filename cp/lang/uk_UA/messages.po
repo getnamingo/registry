@@ -1746,3 +1746,66 @@ msgstr "Оновити токен"
 
 msgid "Delete Token"
 msgstr "Видалити токен"
+
+msgid "Apply Group Prices"
+msgstr "Застосувати ціни групи"
+
+msgid "Price Groups"
+msgstr "Цінові групи"
+
+msgid "Price Group"
+msgstr "Цінова група"
+
+msgid "-- Select group --"
+msgstr "-- Виберіть групу --"
+
+msgid "-- Select TLD --"
+msgstr "-- Виберіть TLD --"
+
+msgid "Prices to apply"
+msgstr "Ціни для застосування"
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr "Усі річні ціни є обов’язковими. Плата за налаштування (M0) є необов’язковою. Кожен рік повинен мати значення."
+
+msgid "Setup fee"
+msgstr "Плата за налаштування"
+
+msgid "Optional"
+msgstr "Необов’язково"
+
+msgid "year"
+msgstr "рік"
+
+msgid "Apply to all registrars in group"
+msgstr "Застосувати до всіх реєстраторів у групі"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Edit Price Group"
+msgstr "Редагувати цінову групу"
+
+msgid "New Price Group"
+msgstr "Нова цінова група"
+
+msgid "Registrars in this group"
+msgstr "Реєстратори в цій групі"
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr "Утримуйте Ctrl / Cmd, щоб вибрати кілька."
+
+msgid "Save"
+msgstr "Зберегти"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "New Group"
+msgstr "Нова група"
+
+msgid "Edit Group"
+msgstr "Редагувати групу"
+
+msgid "No groups yet."
+msgstr "Поки що немає груп."

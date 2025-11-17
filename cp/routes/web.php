@@ -9,6 +9,7 @@ use App\Controllers\ContactsController;
 use App\Controllers\HostsController;
 use App\Controllers\LogsController;
 use App\Controllers\RegistrarsController;
+use App\Controllers\RegistrarPriceGroupController;
 use App\Controllers\UsersController;
 use App\Controllers\FinancialsController;
 use App\Controllers\ReportsController;
@@ -109,6 +110,13 @@ $app->group('', function ($route) {
     $route->get('/registrar/impersonate/{registrar}', RegistrarsController::class . ':impersonateRegistrar')->setName('impersonateRegistrar');
     $route->get('/leave_impersonation', RegistrarsController::class . ':leave_impersonation')->setName('leave_impersonation');
     $route->map(['GET', 'POST'], '/registrars/notify', RegistrarsController::class .':notifyRegistrars')->setName('notifyRegistrars');
+
+    $route->get('/registrars/price-groups',        [RegistrarPriceGroupController::class, 'index'])->setName('listGroups');
+    $route->get('/registrars/price-groups/new',    [RegistrarPriceGroupController::class, 'create'])->setName('createGroup');
+    $route->get('/registrars/price-groups/apply',  [RegistrarPriceGroupController::class, 'showApplyForm'])->setName('applyGroup');
+    $route->post('/registrars/price-groups/apply', [RegistrarPriceGroupController::class, 'apply']);
+    $route->get('/registrars/price-groups/{id}',   [RegistrarPriceGroupController::class, 'edit']);
+    $route->post('/registrars/price-groups/save',  [RegistrarPriceGroupController::class, 'save']);
 
     $route->get('/users', UsersController::class .':listUsers')->setName('listUsers');
     $route->map(['GET', 'POST'], '/user/create', UsersController::class . ':createUser')->setName('createUser');

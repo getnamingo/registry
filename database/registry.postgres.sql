@@ -171,6 +171,13 @@ CREATE TABLE registrar_ote (
      CONSTRAINT test UNIQUE ("registrar_id", "command", "result")
 );
 
+CREATE TABLE registrar_price_group (
+     "id" SERIAL PRIMARY KEY,
+     "name" VARCHAR(64) NOT NULL,
+     "description" TEXT NULL,
+     "registrar_ids" TEXT NOT NULL  -- comma-separated registrar IDs: e.g. 1,5,7
+);
+
 CREATE TABLE poll (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,

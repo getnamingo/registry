@@ -1,0 +1,102 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}
+    {% if group %}
+        {{ __('Edit Price Group') }} #{{ group.id }}
+    {% else %}
+        {{ __('New Price Group') }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+      <div class="page-wrapper">
+        <!-- Page header -->
+        <div class="page-header d-print-none">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <div class="mb-1">
+                  <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                      <a href="{{route('home')}}"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><polyline points="5 12 3 12 12 3 21 12 19 12" /><path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-8" /><rect x="10" y="12" width="4" height="4" /></svg></a>
+                    </li>
+                    <li class="breadcrumb-item">
+                      <a href="{{route('registrars')}}">{{ __('Registrars') }}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                      <a href="{{route('listGroups')}}">{{ __('Price Groups') }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                      {% if group %}
+                        {{ __('Edit Price Group') }} #{{ group.id }}
+                      {% else %}
+                        {{ __('New Price Group') }}
+                      {% endif %}
+                    </li>
+                  </ol>
+                </div>
+                <h2 class="page-title">
+                  {% if group %}
+                    {{ __('Edit Price Group') }} #{{ group.id }}
+                  {% else %}
+                    {{ __('New Price Group') }}
+                  {% endif %}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Page body -->
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="col-12">
+            {% include 'partials/flash.twig' %}
+              <div class="card">
+                <div class="card-body border-bottom py-3">
+                    <form method="post" action="/registrars/price-groups/save">
+                    {{ csrf.field | raw }}
+                        {% if group %}
+                            <input type="hidden" name="id" value="{{ group.id }}">
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="form-label required">{{ __('Name') }}</label>
+                            <input type="text" name="name" class="form-control"
+                                   value="{{ group ? group.name : '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label required">{{ __('Description') }}</label>
+                            <textarea name="description" class="form-control" rows="3">{{ group ? group.description : '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label required">{{ __('Registrars in this group') }}</label>
+                            <select name="registrar_ids[]" class="form-select" multiple size="10">
+                                {% for r in registrars %}
+                                    <option value="{{ r.id }}"
+                                        {% if r.id in selected %}selected{% endif %}>
+                                        {{ r.name }} (ID {{ r.id }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                {{ __('Hold Ctrl / Cmd to select multiple.') }}
+                            </div>
+                        </div>
+                </div>
+                <div class="card-footer">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+                      <a href="/registrars/price-groups" class="btn btn-secondary">{{ __('Cancel') }}</a>
+                    </div></form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% include 'partials/footer.twig' %}
+      </div>
+{% endblock %}

@@ -1746,3 +1746,66 @@ msgstr "Mettre à jour le jeton"
 
 msgid "Delete Token"
 msgstr "Supprimer le jeton"
+
+msgid "Apply Group Prices"
+msgstr "Appliquer les prix du groupe"
+
+msgid "Price Groups"
+msgstr "Groupes de prix"
+
+msgid "Price Group"
+msgstr "Groupe de prix"
+
+msgid "-- Select group --"
+msgstr "-- Sélectionner un groupe --"
+
+msgid "-- Select TLD --"
+msgstr "-- Sélectionner un TLD --"
+
+msgid "Prices to apply"
+msgstr "Prix à appliquer"
+
+msgid "All year-based prices are required. Setup fee (M0) is optional. All years must have a value."
+msgstr "Tous les prix par année sont obligatoires. Les frais d’installation (M0) sont optionnels. Chaque année doit avoir une valeur."
+
+msgid "Setup fee"
+msgstr "Frais d’installation"
+
+msgid "Optional"
+msgstr "Optionnel"
+
+msgid "year"
+msgstr "année"
+
+msgid "Apply to all registrars in group"
+msgstr "Appliquer à tous les bureaux d’enregistrement du groupe"
+
+msgid "Back"
+msgstr "Retour"
+
+msgid "Edit Price Group"
+msgstr "Modifier le groupe de prix"
+
+msgid "New Price Group"
+msgstr "Nouveau groupe de prix"
+
+msgid "Registrars in this group"
+msgstr "Bureaux d’enregistrement dans ce groupe"
+
+msgid "Hold Ctrl / Cmd to select multiple."
+msgstr "Maintenez Ctrl / Cmd pour sélectionner plusieurs éléments."
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "New Group"
+msgstr "Nouveau groupe"
+
+msgid "Edit Group"
+msgstr "Modifier le groupe"
+
+msgid "No groups yet."
+msgstr "Aucun groupe pour le moment."
