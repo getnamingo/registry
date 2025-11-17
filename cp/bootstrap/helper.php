@@ -456,15 +456,15 @@ function extractDomainAndTLD($urlString) {
 }
 
 function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'USD') {
-    $redis = new Redis();
-    $redis->connect('127.0.0.1', 6379);
+    global $container;
+    $redis = $container->get('redis');
 
     $cacheKey = "domain_price_{$domain_name}_{$tld_id}_{$date_add}_{$command}_{$registrar_id}_{$currency}";
 
     // Try fetching from cache
     $cached = $redis->get($cacheKey);
     if ($cached !== false) {
-        return json_decode($cached, true); // Redis stores as string, so decode
+        return json_decode($cached, true);
     }
 
     $exchangeRates = getExchangeRates();
@@ -473,7 +473,7 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
 
     // Check for premium pricing
     $premiumPrice = $redis->get("premium_price_{$domain_name}_{$tld_id}");
-    if ($premiumPrice === null || $premiumPrice == "0") {
+    if ($premiumPrice === null || $premiumPrice === false) {
         $premiumPrice = $db->selectValue(
             'SELECT c.category_price 
              FROM premium_domain_pricing p
@@ -518,7 +518,7 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
     // Get regular price from DB
     $priceColumn = "m" . (int) $date_add;
     $regularPrice = json_decode($redis->get("regular_price_{$tld_id}_{$command}_{$date_add}_{$registrar_id}"), true);
-    if ($regularPrice === null || $regularPrice == 0) {
+    if ($regularPrice === null || $regularPrice === false) {
         $regularPrice = $db->selectValue(
             "SELECT $priceColumn 
              FROM domain_price 
@@ -565,8 +565,8 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
 }
 
 function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = 'USD') {
-    $redis = new Redis();
-    $redis->connect('127.0.0.1', 6379);
+    global $container;
+    $redis = $container->get('redis');
 
     $cacheKey = "domain_restore_price_{$tld_id}_{$registrar_id}_{$currency}";
 
@@ -611,8 +611,8 @@ function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = '
  * Load exchange rates from JSON file with APCu caching.
  */
 function getExchangeRates() {
-    $redis = new Redis();
-    $redis->connect('127.0.0.1', 6379);
+    global $container;
+    $redis = $container->get('redis');
 
     $cacheKey = 'exchange_rates';
 

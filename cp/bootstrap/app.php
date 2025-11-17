@@ -34,9 +34,9 @@ try {
 }
 
 // Enable error display in details when APP_ENV=local
-if(envi('APP_ENV')=='local') {
+if (envi('APP_ENV')=='local') {
     Logger::systemLogs(true);
-}else{
+} else{
     Logger::systemLogs(false);
     ini_set('session.cookie_secure', '1');
 }
@@ -72,6 +72,12 @@ $container->set('db_audit', function () use ($db_audit) {
 
 $container->set('pdo_audit', function () use ($pdo_audit) {
     return $pdo_audit;
+});
+
+$container->set('redis', function () {
+    $redis = new Redis();
+    $redis->connect('127.0.0.1', 6379, 0.5);
+    return $redis;
 });
 
 $container->set('auth', function() {
