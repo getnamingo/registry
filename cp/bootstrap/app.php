@@ -17,12 +17,9 @@ use Punic\Language;
 //     session_start();
 // }
 
-ini_set('session.cookie_secure', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Strict');
 ini_set('session.cookie_lifetime', '0');
-ini_set('session.hash_function', 'sha256');
-ini_set('session.entropy_length', '32');
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';
@@ -30,19 +27,22 @@ require __DIR__ . '/helper.php';
 try {
     Dotenv\Dotenv::createImmutable(__DIR__. '/../')->load();
 } catch (\Dotenv\Exception\InvalidPathException $e) {
-    //
+    header('Content-Type: text/plain; charset=utf-8', true, 500);
+    echo "Configuration error: .env file not found.\n";
+    echo "Path: " . realpath(__DIR__ . '/../') . "\n";
+    exit;
 }
-//Enable error display in details when APP_ENV=local
+
+// Enable error display in details when APP_ENV=local
 if(envi('APP_ENV')=='local') {
     Logger::systemLogs(true);
 }else{
     Logger::systemLogs(false);
+    ini_set('session.cookie_secure', '1');
 }
 
 $container = new Container();
-// Set container to create App with on AppFactory
 AppFactory::setContainer($container);
-
 $app = AppFactory::create();
 
 $responseFactory = $app->getResponseFactory();
@@ -79,7 +79,7 @@ $container->set('auth', function() {
     //$response = $responseFactory->createResponse();
     //$autoLogout = new \Pinga\Auth\AutoLogout();
     //$autoLogout->watch(900, '/', null, 301, $response);
-    
+
     return new \App\Auth\Auth;
 });
 
@@ -140,7 +140,7 @@ $container->set('view', function ($container) {
     $view->getEnvironment()->addGlobal('_lang', substr($desiredLanguage, 0, 2));
     $view->getEnvironment()->addGlobal('flash', $container->get('flash'));
 
-    $staticDir = '/var/www/cp/public/static';
+    $staticDir = realpath(__DIR__ . '/../public/static');
     if (file_exists($staticDir . '/logo.svg')) {
         $logoPath = '/static/logo.svg';
     } elseif (file_exists($staticDir . '/logo.png')) {
@@ -150,21 +150,13 @@ $container->set('view', function ($container) {
     }
     $view->getEnvironment()->addGlobal('logoPath', $logoPath);
 
-    if (isset($_SESSION['_screen_mode'])) {
-        $view->getEnvironment()->addGlobal('screen_mode', $_SESSION['_screen_mode']);
-    } else {
-        $view->getEnvironment()->addGlobal('screen_mode', 'light');
-    }
-    if (isset($_SESSION['_theme'])) {
-        $view->getEnvironment()->addGlobal('theme', $_SESSION['_theme']);
-    } else {
-        $view->getEnvironment()->addGlobal('theme', 'blue');
-    }
-    if (envi('MINIMUM_DATA') === 'true') {
-        $view->getEnvironment()->addGlobal('minimum_data', 'true');
-    } else {
-        $view->getEnvironment()->addGlobal('minimum_data', 'false');
-    }
+    $view->getEnvironment()->addGlobal('screen_mode', $_SESSION['_screen_mode'] ?? 'light');
+    $view->getEnvironment()->addGlobal('theme', $_SESSION['_theme'] ?? 'blue');
+    $view->getEnvironment()->addGlobal(
+        'minimum_data',
+        envi('MINIMUM_DATA') === 'true' ? 'true' : 'false'
+    );
+
     if (isset($_SESSION['auth_roles'])) {
         $view->getEnvironment()->addGlobal('roles', $_SESSION['auth_roles']);
     }
@@ -178,89 +170,63 @@ $container->set('view', function ($container) {
     }));
 
     // Fetch registrar currency and registry default currency
-    $db = $container->get('db');
-    $user_data = "SELECT 
-                      ru.registrar_id, 
-                      r.currency AS registrar_currency, 
-                      (SELECT value FROM settings WHERE name = 'currency') AS registry_currency
-                  FROM registrar_users ru
-                  LEFT JOIN registrar r ON ru.registrar_id = r.id
-                  WHERE ru.user_id = ? 
-                  LIMIT 1"; // Ensure we get only one row for optimization
+    if (isset($_SESSION['auth_user_id']) && !isset($_SESSION['_currency'])) {
+        $db = $container->get('db');
+        $user_data = "SELECT 
+                          ru.registrar_id, 
+                          r.currency AS registrar_currency, 
+                          (SELECT value FROM settings WHERE name = 'currency') AS registry_currency
+                      FROM registrar_users ru
+                      LEFT JOIN registrar r ON ru.registrar_id = r.id
+                      WHERE ru.user_id = ? 
+                      LIMIT 1";
 
-    if (isset($_SESSION['auth_user_id'])) {
         $result = $db->select($user_data, [$_SESSION['auth_user_id']]);
 
-        $_SESSION['auth_registrar_id'] = null; // Default to null
-        $_SESSION['_currency'] = null; // Ensure it's explicitly handled
-        $_SESSION['registry_currency'] = null;
-
         if (!empty($result)) {
-            $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'];
-            $_SESSION['registry_currency'] = $result[0]['registry_currency']; // Registry currency (if available)
+            $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'] ?? null;
+            $_SESSION['registry_currency'] = $result[0]['registry_currency'] ?? null;
         }
 
-        // Ensure registry currency is always set
         if (empty($_SESSION['registry_currency'])) {
-            // Only fetch settings currency separately if needed
             $default_currency = $db->select("SELECT value FROM settings WHERE name = 'currency'");
             $_SESSION['registry_currency'] = $default_currency[0]['value'] ?? 'USD';
         }
 
-        // Apply currency logic
         if (!empty($_SESSION['auth_roles']) && $_SESSION['auth_roles'] != 0) {
-            // Use registrar's currency if set, else fallback to registry currency
             $_SESSION['_currency'] = $result[0]['registrar_currency'] ?? $_SESSION['registry_currency'];
         } else {
-            // If auth_roles == 0 (admin), force registry currency
             $_SESSION['_currency'] = $_SESSION['registry_currency'];
         }
     }
 
-    // Ensure currency is set (last fallback to 'USD')
     $currency = $_SESSION['_currency'] ?? 'USD';
-
-    // Make it accessible in templates
     $view->getEnvironment()->addGlobal('currency', $currency);
 
-    // Check if the user is impersonated from the admin, otherwise default to false
-    $isAdminImpersonation = isset($_SESSION['impersonator']) ? $_SESSION['impersonator'] : false;
+    $isAdminImpersonation = $_SESSION['impersonator'] ?? false;
     $view->getEnvironment()->addGlobal('isAdminImpersonation', $isAdminImpersonation);
 
-    $translateFunction = new TwigFunction('__', function ($text) use ($translations) {
-        // Find the translation
+    $view->getEnvironment()->addFunction(new TwigFunction('__', function ($text) use ($translations) {
         $translation = $translations->find(null, $text);
-        if ($translation) {
-            return $translation->getTranslation();
-        }
-        // Return the original text if translation not found
-        return $text;
-    });
-    $view->getEnvironment()->addFunction($translateFunction);
+        return $translation ? $translation->getTranslation() : $text;
+    }));
 
-    //route
-    $route = new TwigFunction('route', function ($name) {
+    // Route
+    $view->getEnvironment()->addFunction(new TwigFunction('route', function ($name) {
         return route($name);
-    });
-    $view->getEnvironment()->addFunction($route);
-    
+    }));
+
     // Define the route_is function
     $routeIs = new \Twig\TwigFunction('route_is', function ($routeName) {
         return strpos($_SERVER['REQUEST_URI'], $routeName) !== false;
     });
     $view->getEnvironment()->addFunction($routeIs);
 
-    //assets
+    // Assets
     $assets = new TwigFunction('assets', function ($location) {
         return assets($location);
     });
     $view->getEnvironment()->addFunction($assets);
-
-    //Pagination
-    $pagination = new TwigFunction("links", function ($object) {
-
-    });
-    $view->getEnvironment()->addFunction($pagination);
 
     return $view;
 });
@@ -282,8 +248,6 @@ $app->add(new \App\Middleware\CsrfViewMiddleware($container));
 $csrfMiddleware = function ($request, $handler) use ($container) {
     $uri = $request->getUri();
     $path = $uri->getPath();
-
-    // Get the CSRF Guard instance from the container
     $csrf = $container->get('csrf');
 
     // Skip CSRF for the specific path
