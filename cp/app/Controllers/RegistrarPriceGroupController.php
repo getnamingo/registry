@@ -22,7 +22,7 @@ class RegistrarPriceGroupController extends Controller
 
         $db = $this->container->get('db');
         $uri = $request->getUri()->getPath();
-        $groups = $db->select('SELECT * FROM registrar_price_group ORDER BY name');
+        $groups = $db->select('SELECT * FROM registrar_price_group ORDER BY name') ?? [];
 
         $registrarMap = $this->getRegistrarMap();
 
@@ -37,7 +37,7 @@ class RegistrarPriceGroupController extends Controller
                 }
             }
 
-            $g['registrar_names'] = $names; // <-- NEW field for Twig
+            $g['registrar_names'] = $names;
         }
 
         // Default view for GET requests or if POST data is not set
