@@ -1,8 +1,10 @@
 # Namingo Update Guide
 
-## v1.0.0 to v1.0.21
+## v1.0.0 to v1.0.22
 
 To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.18 and the latest is v1.0.20, first update to v1.0.19, then to v1.0.20.
+
+- v1.0.21 to v1.0.22 - download and run the [update1022.sh](update1022.sh) script.
 
 - v1.0.20 to v1.0.21 - download and run the [update1021.sh](update1021.sh) script.
 
