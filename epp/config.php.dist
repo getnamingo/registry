@@ -19,5 +19,6 @@ return [
     'limit' => 1000,
     'period' => 60,
     'minimum_data' => false,
+    'epp_max_frame' => 4 * 1024 * 1024, // 4 MB
     // 'disable_60days' => true, // Disable 60-day transfer lock for domains and contacts
 ];
