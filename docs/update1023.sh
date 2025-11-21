@@ -145,6 +145,10 @@ systemctl restart ${PHP_VERSION}-fpm
 
 wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 
+# Reload cache
+echo "Reloading cache..."
+php /var/www/cp/bin/file_cache.php
+
 # Start services
 echo "Starting services..."
 systemctl start epp

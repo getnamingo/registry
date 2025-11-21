@@ -1408,10 +1408,9 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                 sendEppResponse($conn, $xml);
             }
-        }
-    } elseif ($trstatus === 'pending') {
-        sendEppError($conn, $db, 2300, 'Command failed as the domain is pending transfer', $clTRID, $trans);
-        return;
+        } elseif ($trstatus === 'pending') {
+            sendEppError($conn, $db, 2300, 'Command failed as the domain is pending transfer', $clTRID, $trans);
+            return;
         }
     }
     else {

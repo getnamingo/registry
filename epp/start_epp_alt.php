@@ -112,10 +112,12 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
-updatePermittedIPs($pool, $permittedIPsTable);
-if (count($permittedIPsTable) === 0) {
-    $log->warning('Permitted IPs table is empty after initial load; no EPP clients will be able to connect.');
-}
+Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
+    updatePermittedIPs($pool, $permittedIPsTable);
+    if (count($permittedIPsTable) === 0) {
+        $log->warning('Permitted IPs table is empty after initial load; no EPP clients will be able to connect.');
+    }
+});
 
 $server->on('Connect', function(\Swoole\Server $serv, int $fd) use ($log, $eppExtensionsTable) {
     $conn = new class($serv, $fd) {
