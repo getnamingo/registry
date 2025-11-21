@@ -58,17 +58,24 @@ $server->on('connect', function ($server, $fd) use ($log) {
 
 // Register a callback to handle incoming requests
 $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool, $log, $rateLimiter) {
-    // Get a PDO connection from the pool
+    $pdo = null;
+
     try {
         $pdo = $pool->get();
         if (!$pdo) {
-            throw new PDOException("Failed to retrieve a connection from Swoole PDOPool.");
+            throw new PDOException("Failed to retrieve a connection from database pool.");
         }
     } catch (PDOException $e) {
         $log->alert("Swoole PDO Pool failed: " . $e->getMessage());
         $server->send($fd, "Database failure. Please try again later");
+    } catch (Throwable $e) {
+        $log->error('Error: ' . $e->getMessage());
+        $server->send($fd, "Error");
+    } finally {
+        if ($pdo instanceof PDO) {
+            $pool->put($pdo);
+        }
         $server->close($fd);
-        return;
     }
     $privacy = $c['privacy'];
     $minimum_data = $c['minimum_data'];
@@ -884,15 +891,14 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         // Handle database exceptions
         $log->error('Database error: ' . $e->getMessage());
         $server->send($fd, "Error connecting to the whois database");
-        $server->close($fd);
     } catch (Throwable $e) {
         // Catch any other exceptions or errors
         $log->error('Error: ' . $e->getMessage());
         $server->send($fd, "Error");
-        $server->close($fd);
     } finally {
-        // Return the connection to the pool
-        $pool->put($pdo);
+        if ($pdo instanceof PDO) {
+            $pool->put($pdo);
+        }
         $server->close($fd);
     }
 });
