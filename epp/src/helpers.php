@@ -150,6 +150,7 @@ function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
         'human_readable_message' => $msg,
         'clTRID' => $clTRID,
         'svTRID' => $svTRID,
+        'lang' => 'en-US',
     ];
 
     $epp = new EPP\EppWriter();
@@ -286,7 +287,11 @@ function validate_label($domain, $pdo) {
     }
 
     // Extract domain and TLD
-    $parts = extractDomainAndTLD($domain);
+    try {
+        $parts = extractDomainAndTLD($domain);
+    } catch (\Exception $e) {
+        return 'Invalid domain structure, unable to parse domain name';
+    }
     if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
         return 'Invalid domain structure, unable to parse domain name';
     }
@@ -348,10 +353,16 @@ function extractDomainAndTLD($urlString) {
     $cachedFile = $cache->getItem($cacheKey);
     $fileContent = $cachedFile->get();
 
-    // Check if fileContent is not null
     if (null === $fileContent) {
-        // Handle the error gracefully
-        throw new \Exception("The TLDs cache file is missing or unreadable");
+        // fallback: treat everything after the last dot as TLD
+        $hostParts = explode('.', $host);
+        if (count($hostParts) < 2) {
+            throw new \Exception("Invalid domain format");
+        }
+
+        $tld  = array_pop($hostParts);
+        $sld  = array_pop($hostParts);
+        return ['domain' => $sld, 'tld' => $tld];
     }
 
     // Load a list of test TLDs used in your QA environment
@@ -774,8 +785,6 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     }
 
     if (!is_null($regularPrice) && $regularPrice !== false) {
-        $redis->setex("regular_price_{$tld_id}_{$command}_{$registrar_id}", 1800, json_encode($regularPrice));
-
         $finalPrice = $regularPrice * 100; // Convert DB float to cents
         if ($promo) {
             if ($finalPrice > 0) {
@@ -1054,7 +1063,7 @@ function validateHostName(string $hostName): bool
 
     // Optional: regex for stricter validation (on Punycode format)
     return preg_match(
-        '/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/',
+        '/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z0-9-]{2,}$/',
         $asciiHostName
     );
 }

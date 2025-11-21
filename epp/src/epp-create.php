@@ -298,6 +298,10 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
     foreach ($contact_disclose as $node_disclose) {
         $flag = (string)$node_disclose['flag'];
+        if ($flag !== '0' && $flag !== '1') {
+            sendEppError($conn, $db, 2005, 'Invalid disclose flag, must be 0 or 1', $clTRID, $trans);
+            return;
+        }
 
         if ($node_disclose->xpath('contact:voice')) {
             $disclose_voice = $flag;
@@ -328,6 +332,8 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
     }
 
+    $nin = null;
+    $nin_type = null;
     $identicaCreate = $xml->xpath('//identica:create') ?? null;
 
     if ($identicaCreate) {
@@ -345,6 +351,8 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
     
     try {
+        $db->beginTransaction();
+
         $stmt = $db->prepare("INSERT INTO contact (identifier,voice,voice_x,fax,fax_x,email,nin,nin_type,clid,crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate,disclose_voice,disclose_fax,disclose_email) VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(3),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?,?,?)");
 
         $stmt->execute([
@@ -389,7 +397,11 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         $identifier = $row['identifier'] ?? null;
         $crdate = $row['crdate'] ?? null;
 
+        $db->commit();
     } catch (PDOException $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         sendEppError($conn, $db, 2400, 'Contact could not be created due to database error', $clTRID, $trans);
         return;
     }
@@ -413,23 +425,27 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 }
 
 function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
-    $hostName = $xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create->name;
+    $hostName = (string) $xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
-    if (validateHostName($hostName)) {
-        $host_id_already_exist = $db->query("SELECT id FROM host WHERE name = '$hostName' LIMIT 1")->fetchColumn();
-        if ($host_id_already_exist) {
-            sendEppError($conn, $db, 2302, 'host:name already exists', $clTRID, $trans);
-            return;
-        }
-    } else {
+    if (!validateHostName($hostName)) {
         sendEppError($conn, $db, 2005, 'Invalid host:name', $clTRID, $trans);
+        return;
+    }
+
+    $stmt = $db->prepare("SELECT id FROM host WHERE name = :name LIMIT 1");
+    $stmt->execute([':name' => $hostName]);
+    $host_id_already_exist = $stmt->fetchColumn();
+    $stmt->closeCursor();
+
+    if ($host_id_already_exist) {
+        sendEppError($conn, $db, 2302, 'host:name already exists', $clTRID, $trans);
         return;
     }
 
     $hostName = strtolower($hostName);
 
-    $host_addr_list = $xml->xpath('//host:addr');
+    $host_addr_list = $xml->xpath('//host:addr') ?: [];
     if (count($host_addr_list) > 13) {
         sendEppError($conn, $db, 2306, 'No more than 13 host:addr are allowed', $clTRID, $trans);
         return;
@@ -516,35 +532,47 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP(3))");
-        $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
-        $host_id = $db->lastInsertId();
-        
-        $host_addr_list = $xml->xpath('//host:addr');
-        
-        foreach ($host_addr_list as $node) {
-            $addr = (string) $node;
+        try {
+            $db->beginTransaction();
 
-            if (empty($addr)) {
-                sendEppError($conn, $db, 2303, 'Error: Address is empty', $clTRID, $trans);
-                return;
-            }
+            $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP(3))");
+            $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
+            $host_id = $db->lastInsertId();
+            
+            $host_addr_list = $xml->xpath('//host:addr') ?: [];
+            
+            foreach ($host_addr_list as $node) {
+                $addr = (string) $node;
 
-            $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
-            
-            if ($addr_type == 'v6') {
-                $addr = normalize_v6_address($addr);
-            } else {
-                $addr = normalize_v4_address($addr);
+                if (empty($addr)) {
+                    sendEppError($conn, $db, 2303, 'Error: Address is empty', $clTRID, $trans);
+                    return;
+                }
+
+                $addr_type = isset($node['ip']) ? (string) $node['ip'] : 'v4';
+                
+                if ($addr_type == 'v6') {
+                    $addr = normalize_v6_address($addr);
+                } else {
+                    $addr = normalize_v4_address($addr);
+                }
+                
+                $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
+                $stmt->execute([$host_id, $addr, $addr_type]);
             }
             
-            $stmt = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?,?,?)");
-            $stmt->execute([$host_id, $addr, $addr_type]);
+            $host_status = 'ok';
+            $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
+            $stmt->execute([$host_id, $host_status]);
+
+            $db->commit();
+        } catch (PDOException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            sendEppError($conn, $db, 2400, 'Host could not be created due to database error', $clTRID, $trans);
+            return;
         }
-        
-        $host_status = 'ok';
-        $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
-        $stmt->execute([$host_id, $host_status]);
 
         $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$hostName]);
@@ -569,15 +597,27 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppResponse($conn, $xml);
 
     } else {
-        $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
-        $stmt->execute([$hostName, $clid, $clid]);
-        
-        $host_id = $db->lastInsertId();
-        
-        $host_status = 'ok';
-        $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
-        $stmt->execute([$host_id, $host_status]);
-        
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
+            $stmt->execute([$hostName, $clid, $clid]);
+
+            $host_id = $db->lastInsertId();
+
+            $host_status = 'ok';
+            $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
+            $stmt->execute([$host_id, $host_status]);
+
+            $db->commit();
+        } catch (PDOException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            sendEppError($conn, $db, 2400, 'Host could not be created due to database error', $clTRID, $trans);
+            return;
+        }
+
         $stmt = $db->prepare("SELECT crdate FROM host WHERE name = ? LIMIT 1");
         $stmt->execute([$hostName]);
         $crdate = $stmt->fetchColumn();
@@ -609,12 +649,29 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
     $domainName = strtolower($domainName);
 
+    $fee_create = null;
+    $launch_create = null;
+    $allocation_token = null;
+    $launch_extension_enabled = false;
+    $launch_phase = null;
+    $launch_phase_name = null;
+    $smd_encodedSignedMark = null;
+
+    $noticeid = null;
+    $notafter = null;
+    $accepted = null;
+
     $extensionNode = $xml->command->extension;
     $launch_create = null;
     if (isset($extensionNode)) {
-        $fee_create = $xml->xpath('//fee:create')[0] ?? null;
-        $launch_create = $xml->xpath('//launch:create')[0] ?? null;
-        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
+        $tmp = $xml->xpath('//fee:create');
+        $fee_create = $tmp[0] ?? null;
+
+        $tmp = $xml->xpath('//launch:create');
+        $launch_create = $tmp[0] ?? null;
+
+        $tmp = $xml->xpath('//allocationToken:allocationToken');
+        $allocation_token = $tmp[0] ?? null;
 
         // Check if launch extension is enabled in database settings
         $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
@@ -634,15 +691,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $label = $parts['domain'];
     $domain_extension = '.' . strtoupper($parts['tld']);
 
-    $noticeid = null;
-    $notafter = null;
-    $accepted = null;
-
     if ($launch_extension_enabled && isset($launch_create)) {
         $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
         $xml->registerXPathNamespace('signedMark', 'urn:ietf:params:xml:ns:signedMark-1.0');
 
-        $launch_phase_node = $launch_create->xpath('launch:phase')[0] ?? null;
+        $tmp = $launch_create->xpath('launch:phase');
+        $launch_phase_node = $tmp[0] ?? null;
         $launch_phase = $launch_phase_node ? (string)$launch_phase_node : null;
         $launch_phase_name = $launch_phase_node ? (string)$launch_phase_node['name'] : null;
         
@@ -652,9 +706,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
         $launch_notice_exists = $xml->xpath('//launch:notice');
         if (!empty($launch_notice_exists)) {
-            $launch_noticeID = (string) ($xml->xpath('//launch:noticeID')[0] ?? '');
-            $launch_notAfter = (string) ($xml->xpath('//launch:notAfter')[0] ?? '');
-            $launch_acceptedDate = (string) ($xml->xpath('//launch:acceptedDate')[0] ?? '');
+            $tmp = $xml->xpath('//launch:noticeID');
+            $launch_noticeID = isset($tmp[0]) ? (string)$tmp[0] : '';
+
+            $tmp = $xml->xpath('//launch:notAfter');
+            $launch_notAfter = isset($tmp[0]) ? (string)$tmp[0] : '';
+
+            $tmp = $xml->xpath('//launch:acceptedDate');
+            $launch_acceptedDate = isset($tmp[0]) ? (string)$tmp[0] : '';
         } else {
             $launch_noticeID = $launch_notAfter = $launch_acceptedDate = null;
         }
@@ -1235,23 +1294,18 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
     // Registrant
     $registrant = $xml->xpath('//domain:registrant[1]');
-    $registrant_id = null; // Default to null
+    $registrant_id = null;
 
     if ($registrant && count($registrant) > 0) {
         $registrant_id = (string)$registrant[0][0];
     }
 
-    // Check $minimum_data and handle registrant_id accordingly
     if ($minimum_data) {
-        // In minimal data mode, registrant_id should always be null
         if ($registrant_id !== null) {
-            // If registrant_id is submitted, give an error
-            sendEppError($conn, $db, 2306, 'domain:registrant field is not supported in minimal data mode', $clTRID);
-            $conn->close();
+            sendEppError($conn, $db, 2306, 'domain:registrant field is not supported in minimal data mode', $clTRID, $trans);
             return;
         }
     } else {
-        // Non-minimal data mode: registrant_id must not be null
         if ($registrant_id === null) {
             sendEppError($conn, $db, 2303, 'domain:registrant is required and does not exist', $clTRID, $trans);
             return;
@@ -1264,7 +1318,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $registrant_id = $registrantStmt->fetchColumn();
         $registrantStmt->closeCursor();
 
-        // Set registrant_id to null if it returns false
         if ($registrant_id === false) {
             sendEppError($conn, $db, 2303, 'domain:registrant does not exist', $clTRID, $trans);
             return;
@@ -1291,6 +1344,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     foreach (['admin', 'billing', 'tech'] as $type) {
         $contactList = $xml->xpath("//domain:contact[@type='{$type}']");
         $size = count($contactList);
+
+        if ($minimum_data && $size > 0) {
+            sendEppError($conn, $db, 2306, "domain:contact type={$type} is not supported in minimal data mode", $clTRID, $trans);
+            return;
+        }
 
         // Max five contacts per domain name for each type
         if ($size > 5) {
@@ -1320,7 +1378,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         }
     }
     
-    $authInfo_pw = (string) $xml->xpath('//domain:authInfo/domain:pw[1]')[0] ?? null;
+    $tmp = $xml->xpath('//domain:authInfo/domain:pw[1]');
+    $authInfo_pw = isset($tmp[0]) ? (string)$tmp[0] : null;
 
     if (!$authInfo_pw) {
         sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);
@@ -1553,10 +1612,12 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
             $db->commit();
         } catch (Exception $e) {
-            $db->rollBack();
-
-            sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            sendEppError($conn, $db, 2400, 'Application could not be created due to database error', $clTRID, $trans);
         }
+
         $svTRID = generateSvTRID();
         $response['command'] = 'create_domain';
         $response['resultCode'] = 1000;
@@ -1632,10 +1693,18 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             if ($secDNSDataSet) {
                 foreach ($secDNSDataSet as $secDNSData) {
                     // Extract dsData elements
-                    $keyTag = (int) $secDNSData->xpath('secDNS:keyTag')[0] ?? null;
-                    $alg = (int) $secDNSData->xpath('secDNS:alg')[0] ?? null;
-                    $digestType = (int) $secDNSData->xpath('secDNS:digestType')[0] ?? null;
-                    $digest = (string) $secDNSData->xpath('secDNS:digest')[0] ?? null;
+                    $tmp = $secDNSData->xpath('secDNS:keyTag');
+                    $keyTag = isset($tmp[0]) ? (int)$tmp[0] : null;
+
+                    $tmp = $secDNSData->xpath('secDNS:alg');
+                    $alg = isset($tmp[0]) ? (int)$tmp[0] : null;
+
+                    $tmp = $secDNSData->xpath('secDNS:digestType');
+                    $digestType = isset($tmp[0]) ? (int)$tmp[0] : null;
+
+                    $tmp = $secDNSData->xpath('secDNS:digest');
+                    $digest = isset($tmp[0]) ? (string)$tmp[0] : null;
+
                     $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                     // Data sanity checks
@@ -1709,7 +1778,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         }
 
                         // Validate algKeyData
-                        if (isset($algKeyData)) {
+                        $validAlgorithms = [8, 13, 14, 15, 16];
+                        if (!in_array($algKeyData, $validAlgorithms, true)) {
                             $db->rollBack();
                             sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
                             return;
@@ -1940,9 +2010,10 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
             $db->commit();
         } catch (Exception $e) {
-            $db->rollBack();
-
-            sendEppError($conn, $db, 2400, "Database failure: " . $e->getMessage(), $clTRID, $trans);
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            sendEppError($conn, $db, 2400, 'Domain could not be created due to database error', $clTRID, $trans);
         }
         $svTRID = generateSvTRID();
         $response['command'] = 'create_domain';

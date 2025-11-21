@@ -4,13 +4,36 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
     // $config['db_type'] for future
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
     $clTRID = (string) $xml->command->clTRID;
-    $op = (string) $xml->xpath('//@op')[0] ?? null;
-    $obj = $xml->xpath('//contact:transfer')[0] ?? null;
+    $opNode = $xml->xpath('//@op');
+    $op = isset($opNode[0]) ? (string)$opNode[0] : null;
 
-    $authInfo_pw = (string)$obj->xpath('//contact:authInfo/contact:pw[1]')[0];
+    $objList = $xml->xpath('//contact:transfer');
+    $obj = isset($objList[0]) ? $objList[0] : null;
+
+    // authInfo is OPTIONAL for most ops, REQUIRED for request
+    $authInfo_pw = null;
+    if ($obj) {
+        $authNode = $obj->xpath('contact:authInfo/contact:pw[1]');
+        if ($authNode && isset($authNode[0])) {
+            $authInfo_pw = trim((string)$authNode[0]);
+        }
+    }
+
+    // Validate op value early
+    $validOps = ['approve', 'cancel', 'query', 'reject', 'request'];
+    if (!$op || !in_array($op, $validOps, true)) {
+        sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
+        return;
+    }
 
     if (!$contactID) {
         sendEppError($conn, $db, 2003, 'Contact ID was not provided', $clTRID, $trans);
+        return;
+    }
+
+    $invalid_identifier = validate_identifier($contactID);
+    if ($invalid_identifier) {
+        sendEppError($conn, $db, 2005, 'Invalid contact ID', $clTRID, $trans);
         return;
     }
 
@@ -299,6 +322,11 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
             return;
         }
     } elseif ($op == 'request') {
+        if (!$authInfo_pw) {
+            sendEppError($conn, $db, 2003, 'Missing contact authInfo pw for transfer request', $clTRID, $trans);
+            return;
+        }
+
         if (!($config['disable_60days'] ?? false)) {
             // Check if contact is within 60 days of its initial registration
             $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
@@ -336,17 +364,17 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
             return;
         }
 
-        // Check if the contact name is subject to any special locks or holds
         $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :contact_id");
         $stmt->execute([':contact_id' => $contact_id]);
+        $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->closeCursor();
 
-        while ($status = $stmt->fetchColumn()) {
-            if (preg_match("/.*(TransferProhibited)$/", $status) || preg_match("/^pending/", $status)) {
-            sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID, $trans);
-            return;
+        foreach ($statuses as $status) {
+            if (preg_match('/TransferProhibited$/', $status) || preg_match('/^pending/', $status)) {
+                sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer, first change the status', $clTRID, $trans);
+                return;
             }
         }
-        $stmt->closeCursor();
 
         if ($clid == $registrar_id_contact) {
             sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the contact sponsoring client', $clTRID, $trans);
@@ -360,6 +388,9 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
         $trstatus = $result['trstatus'];
 
         if (!$trstatus || $trstatus != 'pending') {
+            try {
+                $db->beginTransaction();
+
                 $waiting_period = 5; // days
                 $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY) WHERE id = :contact_id");
                 $stmt->execute([
@@ -368,49 +399,53 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     ':contact_id' => $contact_id
                 ]);
 
-                if ($stmt->errorCode() != '00000') {
-                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
-                    $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
-                    $stmt->execute([':contact_id' => $contact_id]);
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $stmt->closeCursor();
+                $stmt = $db->prepare("SELECT crid,crdate,upid,lastupdate,trdate,trstatus,reid,redate,acid,acdate FROM contact WHERE id = :contact_id LIMIT 1");
+                $stmt->execute([':contact_id' => $contact_id]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
 
-                    $reid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['reid']}' LIMIT 1")->fetchColumn();
-                    $acid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['acid']}' LIMIT 1")->fetchColumn();
+                $reid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['reid']}' LIMIT 1")->fetchColumn();
+                $acid_identifier = $db->query("SELECT clid FROM registrar WHERE id = '{$result['acid']}' LIMIT 1")->fetchColumn();
 
-                    $db->prepare("INSERT INTO poll (registrar_id,qdate,msg,msg_type,obj_name_or_id,obj_trStatus,obj_reID,obj_reDate,obj_acID,obj_acDate,obj_exDate) VALUES(:registrar_id_contact, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'contactTransfer', :identifier, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)")
-                        ->execute([
-                            ':registrar_id_contact' => $registrar_id_contact,
-                            ':identifier' => $identifier,
-                            ':reid_identifier' => $reid_identifier,
-                            ':redate' => $result['redate'],
-                            ':acid_identifier' => $acid_identifier,
-                            ':acdate' => $result['acdate']
-                        ]);
-                        
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_contact',
-                        'resultCode' => 1000,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully',
-                        'id' => $identifier,
-                        'trStatus' => $result['trstatus'],
-                        'reID' => $reid_identifier,
-                        'reDate' => $result['redate'],
-                        'acID' => $acid_identifier,
-                        'acDate' => $result['acdate'],
-                        'clTRID' => $clTRID,
-                        'svTRID' => $svTRID,
-                    ];
+                $db->prepare("INSERT INTO poll (registrar_id,qdate,msg,msg_type,obj_name_or_id,obj_trStatus,obj_reID,obj_reDate,obj_acID,obj_acDate,obj_exDate) VALUES(:registrar_id_contact, CURRENT_TIMESTAMP(3), 'Transfer requested.', 'contactTransfer', :identifier, 'pending', :reid_identifier, :redate, :acid_identifier, :acdate, NULL)")
+                    ->execute([
+                        ':registrar_id_contact' => $registrar_id_contact,
+                        ':identifier' => $identifier,
+                        ':reid_identifier' => $reid_identifier,
+                        ':redate' => $result['redate'],
+                        ':acid_identifier' => $acid_identifier,
+                        ':acdate' => $result['acdate']
+                    ]);
 
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
                 }
+                sendEppError($conn, $db, 2400, 'Database error during contact transfer request', $clTRID, $trans);
+                return;
+            }
+
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'transfer_contact',
+                'resultCode' => 1000,
+                'lang' => 'en-US',
+                'message' => 'Command completed successfully',
+                'id' => $identifier,
+                'trStatus' => $result['trstatus'],
+                'reID' => $reid_identifier,
+                'reDate' => $result['redate'],
+                'acID' => $acid_identifier,
+                'acDate' => $result['acdate'],
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+            ];
+
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'contact', $identifier, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
         } else {
             sendEppError($conn, $db, 2300, 'Command failed because the contact is pending transfer', $clTRID, $trans);
             return;
@@ -424,9 +459,18 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
     // $config['db_type'] for future
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
+    $opNode = $xml->xpath('//@op');
+    $op = isset($opNode[0]) ? (string)$opNode[0] : null;
+
     $clTRID = (string) $xml->command->clTRID;
-    $op = (string) $xml->xpath('//@op')[0] ?? null;
-    
+
+    // Validate op early
+    $validOps = ['approve', 'cancel', 'query', 'reject', 'request'];
+    if (!$op || !in_array($op, $validOps, true)) {
+        sendEppError($conn, $db, 2005, 'Only op: approve|cancel|query|reject|request are accepted', $clTRID, $trans);
+        return;
+    }
+
     $extensionNode = $xml->command->extension;
     if (isset($extensionNode)) {
         $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
@@ -438,6 +482,19 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
     if (!$domainName) {
         sendEppError($conn, $db, 2003, 'Please provide the domain name', $clTRID, $trans);
+        return;
+    }
+
+    // Validate domain syntax (same rules as info/renew)
+    $invalid_label = validate_label($domainName, $db);
+    if ($invalid_label || !filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
+        sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
+        return;
+    }
+
+    // For all ops except "query", authInfo MUST be present
+    if ($op !== 'query' && (!$authInfo_pw || $authInfo_pw === '')) {
+        sendEppError($conn, $db, 2003, 'Missing domain authInfo pw for this transfer op', $clTRID, $trans);
         return;
     }
 
@@ -482,191 +539,188 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         $stmt->closeCursor();
 
         if ($row && $row["trstatus"] === 'pending') {
-            $date_add = 0;
-            $price = 0;
+            try {
+                $db->beginTransaction();
 
-            $stmt = $db->prepare("SELECT accountBalance,creditLimit FROM registrar WHERE id = ? LIMIT 1");
-            $stmt->execute([$row["reid"]]);
-            list($registrar_balance, $creditLimit) = $stmt->fetch(PDO::FETCH_NUM);
-            $stmt->closeCursor();
+                $date_add = 0;
+                $price = 0;
 
-            if ($row["transfer_exdate"]) {
-                $stmt = $db->prepare("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1");
-                $stmt->execute([$domainName]);
-                $date_add = $stmt->fetchColumn();
+                $stmt = $db->prepare("SELECT accountBalance,creditLimit FROM registrar WHERE id = ? LIMIT 1");
+                $stmt->execute([$row["reid"]]);
+                list($registrar_balance, $creditLimit) = $stmt->fetch(PDO::FETCH_NUM);
                 $stmt->closeCursor();
 
-                $stmt = $db->prepare("SELECT currency FROM registrar WHERE id = :registrar_id LIMIT 1");
-                $stmt->execute([':registrar_id' => $clid]);
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $stmt->closeCursor();
-                $currency = $result["currency"];
+                if ($row["transfer_exdate"]) {
+                    $stmt = $db->prepare("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1");
+                    $stmt->execute([$domainName]);
+                    $date_add = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
-                $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
-                $price = $returnValue['price'];
-                
-                if (($registrar_balance + $creditLimit) < $price) {
-                    sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
-                    return;
+                    $stmt = $db->prepare("SELECT currency FROM registrar WHERE id = :registrar_id LIMIT 1");
+                    $stmt->execute([':registrar_id' => $clid]);
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor();
+                    $currency = $result["currency"];
+
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
+                    $price = $returnValue['price'] ?? null;
+
+                    if (!isset($price)) {
+                        sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
+                        return;
+                    }
+
+                    if (($registrar_balance + $creditLimit) < $price) {
+                        sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
+                        return;
+                    }
                 }
-            }
-            
-            // Fetch contact map
-            $stmt = $db->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
-            $stmt->execute([$domain_id]);
-            $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stmt->closeCursor();
+                
+                // Fetch contact map
+                $stmt = $db->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
+                $stmt->execute([$domain_id]);
+                $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
 
-            // Prepare an array to hold new contact IDs to prevent duplicating contacts
-            $newContactIds = [];
+                // Prepare an array to hold new contact IDs to prevent duplicating contacts
+                $newContactIds = [];
 
-            // Copy registrant data
-            $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
-            $stmt->execute([$row['registrant']]);
-            $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stmt->closeCursor();
-            unset($registrantData['id']);
-            $registrantData['identifier'] = generateAuthInfo();
-            $registrantData['clid'] = $row['reid'];
+                // Copy registrant data
+                $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
+                $stmt->execute([$row['registrant']]);
+                $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
+                unset($registrantData['id']);
+                $registrantData['identifier'] = generateAuthInfo();
+                $registrantData['clid'] = $row['reid'];
 
-            $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
-            foreach ($registrantData as $key => $value) {
-                $stmt->bindValue(':' . $key, $value);
-            }
-            $stmt->execute();
-            $newRegistrantId = $db->lastInsertId();
-            $newContactIds[$row['registrant']] = $newRegistrantId;
-
-            // Copy postal info for the registrant
-            $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-            $stmt->execute([$row['registrant']]);
-            $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stmt->closeCursor();
-
-            foreach ($postalInfos as $postalInfo) {
-                unset($postalInfo['id']);
-                $postalInfo['contact_id'] = $newRegistrantId;
-                $columns = array_keys($postalInfo);
-                $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-                foreach ($postalInfo as $key => $value) {
+                $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
+                foreach ($registrantData as $key => $value) {
                     $stmt->bindValue(':' . $key, $value);
                 }
                 $stmt->execute();
-            }
+                $newRegistrantId = $db->lastInsertId();
+                $newContactIds[$row['registrant']] = $newRegistrantId;
 
-            // Insert auth info and status for the new registrant
-            $new_authinfo = generateAuthInfo();
-            $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
-            $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
+                // Copy postal info for the registrant
+                $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+                $stmt->execute([$row['registrant']]);
+                $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
 
-            // Process each contact in the contact map
-            foreach ($contactMap as $contact) {
-                if (!array_key_exists($contact['contact_id'], $newContactIds)) {
-                    $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
-                    $stmt->execute([$contact['contact_id']]);
-                    $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $stmt->closeCursor();
-                    unset($contactData['id']);
-                    $contactData['identifier'] = generateAuthInfo();
-                    $contactData['clid'] = $row["reid"];
-
-                    $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
-                    foreach ($contactData as $key => $value) {
+                foreach ($postalInfos as $postalInfo) {
+                    unset($postalInfo['id']);
+                    $postalInfo['contact_id'] = $newRegistrantId;
+                    $columns = array_keys($postalInfo);
+                    $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                    foreach ($postalInfo as $key => $value) {
                         $stmt->bindValue(':' . $key, $value);
                     }
                     $stmt->execute();
-                    $newContactId = $db->lastInsertId();
-                    $newContactIds[$contact['contact_id']] = $newContactId;
+                }
 
-                    // Repeat postal info and auth info/status insertion for each new contact
-                    $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-                    $stmt->execute([$contact['contact_id']]);
-                    $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    $stmt->closeCursor();
+                // Insert auth info and status for the new registrant
+                $new_authinfo = generateAuthInfo();
+                $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
 
-                    foreach ($postalInfos as $postalInfo) {
-                        unset($postalInfo['id']);
-                        $postalInfo['contact_id'] = $newContactId;
-                        $columns = array_keys($postalInfo);
-                        $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-                        foreach ($postalInfo as $key => $value) {
+                // Process each contact in the contact map
+                foreach ($contactMap as $contact) {
+                    if (!array_key_exists($contact['contact_id'], $newContactIds)) {
+                        $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
+                        $stmt->execute([$contact['contact_id']]);
+                        $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $stmt->closeCursor();
+                        unset($contactData['id']);
+                        $contactData['identifier'] = generateAuthInfo();
+                        $contactData['clid'] = $row["reid"];
+
+                        $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
+                        foreach ($contactData as $key => $value) {
                             $stmt->bindValue(':' . $key, $value);
                         }
                         $stmt->execute();
+                        $newContactId = $db->lastInsertId();
+                        $newContactIds[$contact['contact_id']] = $newContactId;
+
+                        // Repeat postal info and auth info/status insertion for each new contact
+                        $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+                        $stmt->execute([$contact['contact_id']]);
+                        $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        $stmt->closeCursor();
+
+                        foreach ($postalInfos as $postalInfo) {
+                            unset($postalInfo['id']);
+                            $postalInfo['contact_id'] = $newContactId;
+                            $columns = array_keys($postalInfo);
+                            $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                            foreach ($postalInfo as $key => $value) {
+                                $stmt->bindValue(':' . $key, $value);
+                            }
+                            $stmt->execute();
+                        }
+
+                        $new_authinfo = generateAuthInfo();
+                        $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                        $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
                     }
-
-                    $new_authinfo = generateAuthInfo();
-                    $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
-                    $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
                 }
-            }
 
-            $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
-            $stmt->execute(['domain_id' => $domain_id]);
-            $from = $stmt->fetchColumn();
-            $stmt->closeCursor();
+                $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
+                $stmt->execute(['domain_id' => $domain_id]);
+                $from = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
-            $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
+                $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
+                $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
-            $reid = $row['reid'];
-            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt_log->execute([
-                'manual_transfer',
-                250,
-                'NOTICE',
-                "Domain transfer manually approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
-                json_encode(['domain_id' => $domain_id, 'new_registrant' => $newRegistrantId, 'registrar' => $reid]),
-                json_encode([
-                    'received_on' => date('Y-m-d H:i:s'),
-                    'read_on' => null,
-                    'is_read' => false,
-                    'message_type' => 'manual_transfer_approval',
-                    'performed_by' => $clid
-                ])
-            ]);
+                $reid = $row['reid'];
+                $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt_log->execute([
+                    'manual_transfer',
+                    250,
+                    'NOTICE',
+                    "Domain transfer manually approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
+                    json_encode(['domain_id' => $domain_id, 'new_registrant' => $newRegistrantId, 'registrar' => $reid]),
+                    json_encode([
+                        'received_on' => date('Y-m-d H:i:s'),
+                        'read_on' => null,
+                        'is_read' => false,
+                        'message_type' => 'manual_transfer_approval',
+                        'performed_by' => $clid
+                    ])
+                ]);
 
-            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
-            $stmt->execute([$domain_id, 'pendingTransfer']);
-            $existingStatus = $stmt->fetchColumn();
-            $stmt->closeCursor();
+                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                $stmt->execute([$domain_id, 'pendingTransfer']);
+                $existingStatus = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if ($existingStatus === 'pendingTransfer') {
-                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
-                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
-            }
+                if ($existingStatus === 'pendingTransfer') {
+                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                    $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+                }
 
-            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
-            $insertStmt->execute([$domain_id, 'ok']);
+                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                $insertStmt->execute([$domain_id, 'ok']);
 
-            $new_authinfo = generateAuthInfo();
-            $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
-            $stmt->execute([$new_authinfo, $domain_id]);
-            
-            foreach ($contactMap as $contact) {
-                // Construct the SQL update query
-                $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
+                $new_authinfo = generateAuthInfo();
+                $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
+                $stmt->execute([$new_authinfo, $domain_id]);
                 
-                // Prepare the SQL statement
-                $stmt = $db->prepare($sql);
-                
-                // Bind the values to the placeholders
-                $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
-                $stmt->bindValue(':domain_id', $domain_id);
-                $stmt->bindValue(':type', $contact['type']);
-                $stmt->bindValue(':contact_id', $contact['contact_id']);
-                
-                // Execute the update statement
-                $stmt->execute();
-            }
+                foreach ($contactMap as $contact) {
+                    $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
+                    $stmt = $db->prepare($sql);
+                    $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
+                    $stmt->bindValue(':domain_id', $domain_id);
+                    $stmt->bindValue(':type', $contact['type']);
+                    $stmt->bindValue(':contact_id', $contact['contact_id']);
+                    $stmt->execute();
+                }
 
-            $stmt = $db->prepare("UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?");
-            $stmt->execute([$row["reid"], $clid, $domain_id]);
+                $stmt = $db->prepare("UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?");
+                $stmt->execute([$row["reid"], $clid, $domain_id]);
 
-            if ($stmt->errorCode() !== PDO::ERR_NONE) {
-                sendEppError($conn, $db, 2400, 'The transfer was not successful, something is wrong', $clTRID, $trans);
-                return;
-            } else {
                 $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :reid");
                 $stmt->execute(['price' => $price, 'reid' => $row['reid']]);
 
@@ -710,32 +764,40 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
                 $stmt = $db->prepare("UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()");
                 $stmt->execute();
-                
-                $svTRID = generateSvTRID();
-                $response = [
-                    'command' => 'transfer_domain',
-                    'resultCode' => 1000,
-                    'lang' => 'en-US',
-                    'message' => 'Command completed successfully',
-                    'name' => $domainName,
-                    'trStatus' => $trstatus,
-                    'reID' => $reid_identifier,
-                    'reDate' => $redate,
-                    'acID' => $acid_identifier,
-                    'acDate' => $acdate,
-                    'clTRID' => $clTRID,
-                    'svTRID' => $svTRID,
-                ];
-                
-                if ($transfer_exdate) {
-                    $response["exDate"] = $transfer_exdate;
+    
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
                 }
-
-                $epp = new EPP\EppWriter();
-                $xml = $epp->epp_writer($response);
-                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                sendEppResponse($conn, $xml);
+                sendEppError($conn, $db, 2400, 'Database error during domain transfer approve', $clTRID, $trans);
+                return;
             }
+            
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'transfer_domain',
+                'resultCode' => 1000,
+                'lang' => 'en-US',
+                'message' => 'Command completed successfully',
+                'name' => $domainName,
+                'trStatus' => $trstatus,
+                'reID' => $reid_identifier,
+                'reDate' => $redate,
+                'acID' => $acid_identifier,
+                'acDate' => $acdate,
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+            ];
+                
+            if ($transfer_exdate) {
+                $response["exDate"] = $transfer_exdate;
+            }
+
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
         } else {
             sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
@@ -767,42 +829,41 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         extract($row);
 
         if ($trstatus === 'pending') {
-            $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
-            $stmt->execute(['domain_id' => $domain_id]);
+            try {
+                $db->beginTransaction();
+        
+                $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
+                $stmt->execute(['domain_id' => $domain_id]);
 
-            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt_log->execute([
-                'manual_transfer',
-                250,
-                'NOTICE',
-                "Domain transfer manually canceled: $domainName (Registrar: $reid)",
-                json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
-                json_encode([
-                    'received_on' => date('Y-m-d H:i:s'),
-                    'read_on' => null,
-                    'is_read' => false,
-                    'message_type' => 'manual_transfer_cancellation',
-                    'performed_by' => $clid
-                ])
-            ]);
+                $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt_log->execute([
+                    'manual_transfer',
+                    250,
+                    'NOTICE',
+                    "Domain transfer manually canceled: $domainName (Registrar: $reid)",
+                    json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
+                    json_encode([
+                        'received_on' => date('Y-m-d H:i:s'),
+                        'read_on' => null,
+                        'is_read' => false,
+                        'message_type' => 'manual_transfer_cancellation',
+                        'performed_by' => $clid
+                    ])
+                ]);
 
-            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
-            $stmt->execute([$domain_id, 'pendingTransfer']);
-            $existingStatus = $stmt->fetchColumn();
-            $stmt->closeCursor();
+                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                $stmt->execute([$domain_id, 'pendingTransfer']);
+                $existingStatus = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if ($existingStatus === 'pendingTransfer') {
-                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
-                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
-            }
+                if ($existingStatus === 'pendingTransfer') {
+                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                    $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+                }
 
-            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
-            $insertStmt->execute([$domain_id, 'ok']);
-            
-            if ($stmt->errorCode() !== '00000') {
-                sendEppError($conn, $db, 2400, 'The transfer was not canceled successfully, something is wrong', $clTRID, $trans);
-                return;
-            } else {
+                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                $insertStmt->execute([$domain_id, 'ok']);
+
                 $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                 $stmt->execute(['name' => $domainName]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -819,31 +880,40 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $acid_identifier = $stmt->fetchColumn();
                 $stmt->closeCursor();
                 
-                $svTRID = generateSvTRID();
-                $response = [
-                    'command' => 'transfer_domain',
-                    'resultCode' => 1000,
-                    'lang' => 'en-US',
-                    'message' => 'Command completed successfully',
-                    'name' => $domainName,
-                    'trStatus' => $trstatus,
-                    'reID' => $reid_identifier,
-                    'reDate' => $redate,
-                    'acID' => $acid_identifier,
-                    'acDate' => $acdate,
-                    'clTRID' => $clTRID,
-                    'svTRID' => $svTRID,
-                ];
-                
-                if ($transfer_exdate) {
-                    $response["exDate"] = $transfer_exdate;
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
                 }
-
-                $epp = new EPP\EppWriter();
-                $xml = $epp->epp_writer($response);
-                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                sendEppResponse($conn, $xml);
+                sendEppError($conn, $db, 2400, 'Database error during domain transfer cancel', $clTRID, $trans);
+                return;
             }
+                
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'transfer_domain',
+                'resultCode' => 1000,
+                'lang' => 'en-US',
+                'message' => 'Command completed successfully',
+                'name' => $domainName,
+                'trStatus' => $trstatus,
+                'reID' => $reid_identifier,
+                'reDate' => $redate,
+                'acID' => $acid_identifier,
+                'acDate' => $acdate,
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+            ];
+                
+            if ($transfer_exdate) {
+                $response["exDate"] = $transfer_exdate;
+            }
+
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
+
         } else {
             sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
@@ -851,7 +921,6 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
     }
 
     elseif ($op === 'query') {
-
         $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
         $stmt->execute(['name' => $domainName]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -859,7 +928,6 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         extract($result);
 
         if ($trstatus === 'pending') {
-
             $stmtReID = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
             $stmtReID->execute(['reid' => $reid]);
             $reid_identifier = $stmtReID->fetchColumn();
@@ -900,7 +968,6 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
     }
     elseif ($op === 'reject') {
-
         if ($clid !== $registrar_id_domain) {
             sendEppError($conn, $db, 2201, 'Only LOSING REGISTRAR can reject', $clTRID, $trans);
             return;
@@ -925,42 +992,41 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         extract($result);
 
         if ($trstatus === 'pending') {
-            $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
-            $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
+            try {
+                $db->beginTransaction();
 
-            $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt_log->execute([
-                'manual_transfer',
-                250,
-                'NOTICE',
-                "Domain transfer manually rejected: $domainName (Registrar: $reid)",
-                json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
-                json_encode([
-                    'received_on' => date('Y-m-d H:i:s'),
-                    'read_on' => null,
-                    'is_read' => false,
-                    'message_type' => 'manual_transfer_rejection',
-                    'performed_by' => $clid
-                ])
-            ]);
+                $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
+                $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
 
-            $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
-            $stmt->execute([$domain_id, 'pendingTransfer']);
-            $existingStatus = $stmt->fetchColumn();
-            $stmt->closeCursor();
+                $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt_log->execute([
+                    'manual_transfer',
+                    250,
+                    'NOTICE',
+                    "Domain transfer manually rejected: $domainName (Registrar: $reid)",
+                    json_encode(['domain_id' => $domain_id, 'registrar' => $reid]),
+                    json_encode([
+                        'received_on' => date('Y-m-d H:i:s'),
+                        'read_on' => null,
+                        'is_read' => false,
+                        'message_type' => 'manual_transfer_rejection',
+                        'performed_by' => $clid
+                    ])
+                ]);
 
-            if ($existingStatus === 'pendingTransfer') {
-                $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
-                $deleteStmt->execute([$domain_id, 'pendingTransfer']);
-            }
+                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                $stmt->execute([$domain_id, 'pendingTransfer']);
+                $existingStatus = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
-            $insertStmt->execute([$domain_id, 'ok']);
+                if ($existingStatus === 'pendingTransfer') {
+                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                    $deleteStmt->execute([$domain_id, 'pendingTransfer']);
+                }
 
-            if (!$success || $stmtUpdate->errorCode() !== '00000') {
-                sendEppError($conn, $db, 2400, 'The transfer was not successfully rejected, something is wrong', $clTRID, $trans);
-                return;
-            } else {
+                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                $insertStmt->execute([$domain_id, 'ok']);
+
                 $stmtReID = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
                 $stmtReID->execute(['reid' => $reid]);
                 $reid_identifier = $stmtReID->fetchColumn();
@@ -970,32 +1036,40 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $stmtAcID->execute(['acid' => $acid]);
                 $acid_identifier = $stmtAcID->fetchColumn();
                 $stmtAcID->closeCursor();
-                
-                $svTRID = generateSvTRID();
-                $response = [
-                    'command' => 'transfer_domain',
-                    'resultCode' => 1000,
-                    'lang' => 'en-US',
-                    'message' => 'Command completed successfully',
-                    'name' => $domainName,
-                    'trStatus' => $trstatus,
-                    'reID' => $reid_identifier,
-                    'reDate' => $redate,
-                    'acID' => $acid_identifier,
-                    'acDate' => $acdate,
-                    'clTRID' => $clTRID,
-                    'svTRID' => $svTRID,
-                ];
-                    
-                if ($transfer_exdate) {
-                    $response["exDate"] = $transfer_exdate;
-                }
 
-                $epp = new EPP\EppWriter();
-                $xml = $epp->epp_writer($response);
-                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                sendEppResponse($conn, $xml);
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                sendEppError($conn, $db, 2400, 'Database error during domain transfer reject', $clTRID, $trans);
+                return;
             }
+
+            $svTRID = generateSvTRID();
+            $response = [
+                'command' => 'transfer_domain',
+                'resultCode' => 1000,
+                'lang' => 'en-US',
+                'message' => 'Command completed successfully',
+                'name' => $domainName,
+                'trStatus' => $trstatus,
+                'reID' => $reid_identifier,
+                'reDate' => $redate,
+                'acID' => $acid_identifier,
+                'acDate' => $acdate,
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+            ];
+                    
+            if ($transfer_exdate) {
+                $response["exDate"] = $transfer_exdate;
+            }
+
+            $epp = new EPP\EppWriter();
+            $xml = $epp->epp_writer($response);
+            updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+            sendEppResponse($conn, $xml);
         } else {
             sendEppError($conn, $db, 2301, 'The domain is NOT pending transfer', $clTRID, $trans);
             return;
@@ -1072,13 +1146,15 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         // Check domain status
         $stmt = $db->prepare("SELECT status FROM domain_status WHERE domain_id = :domain_id");
         $stmt->execute(['domain_id' => $domain_id]);
-        while ($status = $stmt->fetchColumn()) {
-            if (preg_match('/.*(TransferProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+        $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->closeCursor();
+
+        foreach ($statuses as $status) {
+            if (preg_match('/TransferProhibited$/', $status) || preg_match('/^pending/', $status)) {
                 sendEppError($conn, $db, 2304, 'It has a status that does not allow the transfer', $clTRID, $trans);
                 return;
             }
         }
-        $stmt->closeCursor();
 
         if ($clid == $registrar_id_domain) {
             sendEppError($conn, $db, 2106, 'Destination client of the transfer operation is the domain sponsoring client', $clTRID, $trans);
@@ -1145,37 +1221,40 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $registrar_balance = $result["accountBalance"];
                 $creditLimit = $result["creditLimit"];
                 $currency = $result["currency"];
-                
+
                 $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
-                $price = $returnValue['price'];
+                $price = $returnValue['price'] ?? null;
+
+                if (!isset($price)) {
+                    sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
+                    return;
+                }
 
                 if (($registrar_balance + $creditLimit) < $price) {
                     sendEppError($conn, $db, 2104, 'The registrar who wants to take over this domain has no money', $clTRID, $trans);
                     return;
                 }
 
-                $waiting_period = 5; 
-                $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH) WHERE id = :domain_id");
-                $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
+                try {
+                    $db->beginTransaction();
 
-                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
-                $stmt->execute([$domain_id, 'ok']);
-                $existingStatus = $stmt->fetchColumn();
-                $stmt->closeCursor();
+                    $waiting_period = 5; 
+                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH) WHERE id = :domain_id");
+                    $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
 
-                if ($existingStatus === 'ok') {
-                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
-                    $deleteStmt->execute([$domain_id, 'ok']);
-                }
+                    $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                    $stmt->execute([$domain_id, 'ok']);
+                    $existingStatus = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
-                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
-                $insertStmt->execute([$domain_id, 'pendingTransfer']);
+                    if ($existingStatus === 'ok') {
+                        $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                        $deleteStmt->execute([$domain_id, 'ok']);
+                    }
 
-                if ($stmt->errorCode() !== '00000') {
-                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
-                    // Get the domain details
+                    $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                    $insertStmt->execute([$domain_id, 'pendingTransfer']);
+
                     $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                     $stmt->execute([':name' => $domainName]);
                     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1204,61 +1283,67 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         ':acdate' => $acdate,
                         ':transfer_exdate' => $transfer_exdate
                     ]);
-                    
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_domain',
-                        'resultCode' => 1001,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully; action pending',
-                        'name' => $domainName,
-                        'trStatus' => $trstatus,
-                        'reID' => $reid_identifier,
-                        'reDate' => $redate,
-                        'acID' => $acid_identifier,
-                        'acDate' => $acdate,
-                        'clTRID' => $clTRID,
-                        'svTRID' => $svTRID,
-                    ];
-                        
-                    if ($transfer_exdate) {
-                        $response["exDate"] = $transfer_exdate;
-                    }
 
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
+                    $db->commit();
+                } catch (Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
+                    sendEppError($conn, $db, 2400, 'Database error during domain transfer request', $clTRID, $trans);
+                    return;
                 }
+
+                $svTRID = generateSvTRID();
+                $response = [
+                    'command' => 'transfer_domain',
+                    'resultCode' => 1001,
+                    'lang' => 'en-US',
+                    'message' => 'Command completed successfully; action pending',
+                    'name' => $domainName,
+                    'trStatus' => $trstatus,
+                    'reID' => $reid_identifier,
+                    'reDate' => $redate,
+                    'acID' => $acid_identifier,
+                    'acDate' => $acdate,
+                    'clTRID' => $clTRID,
+                    'svTRID' => $svTRID,
+                ];
+                        
+                if ($transfer_exdate) {
+                    $response["exDate"] = $transfer_exdate;
+                }
+
+                $epp = new EPP\EppWriter();
+                $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+                sendEppResponse($conn, $xml);
             } else {
                 // No expiration date is inserted after the transfer procedure
-                $waiting_period = 5; // days
+                try {
+                    $db->beginTransaction();
+                    $waiting_period = 5; // days
 
-                $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :waiting_period DAY), transfer_exdate = NULL WHERE id = :domain_id");
-                $stmt->execute([
-                    ':registrar_id' => $clid,
-                    ':registrar_id_domain' => $registrar_id_domain,
-                    ':waiting_period' => $waiting_period,
-                    ':domain_id' => $domain_id
-                ]);
+                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :waiting_period DAY), transfer_exdate = NULL WHERE id = :domain_id");
+                    $stmt->execute([
+                        ':registrar_id' => $clid,
+                        ':registrar_id_domain' => $registrar_id_domain,
+                        ':waiting_period' => $waiting_period,
+                        ':domain_id' => $domain_id
+                    ]);
 
-                $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
-                $stmt->execute([$domain_id, 'ok']);
-                $existingStatus = $stmt->fetchColumn();
-                $stmt->closeCursor();
+                    $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
+                    $stmt->execute([$domain_id, 'ok']);
+                    $existingStatus = $stmt->fetchColumn();
+                    $stmt->closeCursor();
 
-                if ($existingStatus === 'ok') {
-                    $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
-                    $deleteStmt->execute([$domain_id, 'ok']);
-                }
+                    if ($existingStatus === 'ok') {
+                        $deleteStmt = $db->prepare('DELETE FROM domain_status WHERE domain_id = ? AND status = ?');
+                        $deleteStmt->execute([$domain_id, 'ok']);
+                    }
 
-                $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
-                $insertStmt->execute([$domain_id, 'pendingTransfer']);
+                    $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
+                    $insertStmt->execute([$domain_id, 'pendingTransfer']);
 
-                if ($stmt->errorCode() !== '00000') {
-                    sendEppError($conn, $db, 2400, 'The transfer was not initiated successfully, something is wrong', $clTRID, $trans);
-                    return;
-                } else {
                     // Get the domain details
                     $stmt = $db->prepare("SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate FROM domain WHERE name = :name LIMIT 1");
                     $stmt->execute([':name' => $domainName]);
@@ -1287,32 +1372,42 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         ':acid_identifier' => $acid_identifier,
                         ':acdate' => $acdate
                     ]);
-                    
-                    $svTRID = generateSvTRID();
-                    $response = [
-                        'command' => 'transfer_domain',
-                        'resultCode' => 1001,
-                        'lang' => 'en-US',
-                        'message' => 'Command completed successfully; action pending',
-                        'name' => $domainName,
-                        'trStatus' => $trstatus,
-                        'reID' => $reid_identifier,
-                        'reDate' => $redate,
-                        'acID' => $acid_identifier,
-                        'acDate' => $acdate,
-                        'clTRID' => $clTRID,
-                        'svTRID' => generateSvTRID(),
-                    ];
-                        
-                    if ($transfer_exdate) {
-                        $response["exDate"] = $transfer_exdate;
+
+                    $db->commit();
+                } catch (Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
                     }
 
-                    $epp = new EPP\EppWriter();
-                    $xml = $epp->epp_writer($response);
-                    updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-                    sendEppResponse($conn, $xml);
+                    sendEppError($conn, $db, 2400, 'Database error during domain transfer request', $clTRID, $trans);
+                    return;
                 }
+
+                $svTRID = generateSvTRID();
+                $response = [
+                    'command' => 'transfer_domain',
+                    'resultCode' => 1001,
+                    'lang' => 'en-US',
+                    'message' => 'Command completed successfully; action pending',
+                    'name' => $domainName,
+                    'trStatus' => $trstatus,
+                    'reID' => $reid_identifier,
+                    'reDate' => $redate,
+                    'acID' => $acid_identifier,
+                    'acDate' => $acdate,
+                    'clTRID' => $clTRID,
+                    'svTRID' => generateSvTRID(),
+                ];
+                        
+                if ($transfer_exdate) {
+                    $response["exDate"] = $transfer_exdate;
+                }
+
+                $epp = new EPP\EppWriter();
+                $xml = $epp->epp_writer($response);
+                updateTransaction($db, 'transfer', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+                sendEppResponse($conn, $xml);
+            }
         }
     } elseif ($trstatus === 'pending') {
         sendEppError($conn, $db, 2300, 'Command failed as the domain is pending transfer', $clTRID, $trans);

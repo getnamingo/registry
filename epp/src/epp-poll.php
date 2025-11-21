@@ -3,44 +3,54 @@
 function processPoll($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
-    $op = (string) $node->attributes()->op;
+
     $response = [];
-    $clid = getClid($db, $clid);
+    $result = null;
+    $id = null;
     $next_msg_id = null;
 
+    $opAttr = $node->attributes()->op ?? null;
+    $op = $opAttr !== null ? (string) $opAttr : '';
+
+    $clid = getClid($db, $clid);
+
+    if ($op === '') {
+        sendEppError($conn, $db, 2003, 'Missing poll op attribute', $clTRID, $trans);
+        return;
+    }
+    if ($op !== 'ack' && $op !== 'req') {
+        sendEppError($conn, $db, 2005, 'Invalid poll op attribute', $clTRID, $trans);
+        return;
+    }
+
     if ($op === 'ack') {
-        $id = (string) $node->attributes()->msgID;
+        $msgIdAttr = $node->attributes()->msgID ?? null;
+        $id = $msgIdAttr !== null ? (string) $msgIdAttr : '';
+
+        if ($id === '') {
+            sendEppError($conn, $db, 2003, 'Missing poll msgID for ack', $clTRID, $trans);
+            return;
+        }
+
         $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id AND id = :id LIMIT 1");
         $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
         $ack_id = $stmt->fetchColumn();
         $stmt->closeCursor();
 
         if (!$ack_id) {
-            $response['resultCode'] = 2303; // Object does not exist
-        } else {
-            // Delete acknowledged message
-            $stmt = $db->prepare("DELETE FROM poll WHERE registrar_id = :registrar_id AND id = :id");
-            $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
-
-            // Find the next available poll message
-            $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
-            $stmt->execute([':registrar_id' => $clid]);
-            $next_msg_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
-
-            if ($next_msg_id) {
-                // Messages remain, return 1000 with next message ID
-                $stmt = $db->prepare("SELECT COUNT(*) FROM poll WHERE registrar_id = :registrar_id");
-                $stmt->execute([':registrar_id' => $clid]);
-                $remaining = $stmt->fetchColumn();
-                $stmt->closeCursor();
-
-                $response['resultCode'] = 1000; // Command completed successfully
-            } else {
-                // No more messages remaining
-                $response['resultCode'] = 1300; // No messages remaining
-            }
+            sendEppError($conn, $db, 2303, 'Poll message does not exist', $clTRID, $trans);
+            return;
         }
+
+        $stmt = $db->prepare("DELETE FROM poll WHERE registrar_id = :registrar_id AND id = :id");
+        $stmt->execute([':registrar_id' => $clid, ':id' => $id]);
+
+        $stmt = $db->prepare("SELECT id FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
+        $stmt->execute([':registrar_id' => $clid]);
+        $next_msg_id = $stmt->fetchColumn();
+        $stmt->closeCursor();
+
+        $response['resultCode'] = $next_msg_id ? 1000 : 1300;
     } else {
         // $op === 'req'
         $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");

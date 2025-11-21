@@ -16,7 +16,6 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
     }
 
     try {
-        // Optimized single query
         $stmt = $db->prepare("
             SELECT c.id, c.identifier, c.voice, c.fax, c.email, c.clid, c.crid, c.crdate, c.upid, c.lastupdate,
                 c.disclose_voice, c.disclose_fax, c.disclose_email, c.nin, c.nin_type, c.validation, c.validation_stamp, c.validation_log,
@@ -38,13 +37,12 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             return;
         }
 
-        $clid = getClid($db, $clid);
-        if ($clid !== $contact[0]['clid']) {
+        $clidNumeric = getClid($db, $clid);
+        if ($clidNumeric !== (int)$contact[0]['clid']) {
             sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
             return;
         }
 
-        // Extract the first row for contact data
         $contactRow = $contact[0];
 
         // Extract Postal Info
@@ -64,7 +62,6 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             }
         }
 
-        // Fetch statuses separately (since multiple statuses exist)
         $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :id");
         $stmt->execute(['id' => $contactRow['id']]);
         $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -172,17 +169,20 @@ function processHostInfo($conn, $db, $xml, $trans) {
         sendEppError($conn, $db, 2003, 'Specify your host name', $clTRID, $trans);
         return;
     }
-    
-    // Validation for host name
+
     if (!validateHostName($hostName)) {
         sendEppError($conn, $db, 2005, 'Invalid host name', $clTRID, $trans);
         return;
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM host WHERE name = :name");
+        $stmt = $db->prepare("
+            SELECT id, name, clid, crid, upid, crdate, lastupdate, trdate
+            FROM host
+            WHERE name = :name
+            LIMIT 1
+        ");
         $stmt->execute(['name' => $hostName]);
-
         $host = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
 
@@ -191,8 +191,7 @@ function processHostInfo($conn, $db, $xml, $trans) {
             return;
         }
         
-        // Fetch addresses
-        $stmt3 = $db->prepare("SELECT `addr`, `ip` FROM `host_addr` WHERE `host_id` = :id");
+        $stmt3 = $db->prepare("SELECT addr, ip FROM host_addr WHERE host_id = :id");
         $stmt3->execute(['id' => $host['id']]);
         $addresses = $stmt3->fetchAll(PDO::FETCH_ASSOC);
         $stmt3->closeCursor();
@@ -202,18 +201,16 @@ function processHostInfo($conn, $db, $xml, $trans) {
             $addrArray[] = [$addr['ip'] === 'v4' ? 4 : 6, $addr['addr']];
         }
         
-        // Fetch status
-        $stmt = $db->prepare("SELECT * FROM host_status WHERE host_id = :id");
+        $stmt = $db->prepare("SELECT status FROM host_status WHERE host_id = :id");
         $stmt->execute(['id' => $host['id']]);
-        $statuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $stmt->closeCursor();
-        
+
         $statusArray = [];
-        foreach($statuses as $status) {
-            $statusArray[] = [$status['status']];
+        foreach ($statuses as $status) {
+            $statusArray[] = [$status];
         }
-        
-        // Check for 'linked' status
+
         $stmt2 = $db->prepare("SELECT domain_id FROM domain_host_map WHERE host_id = :id LIMIT 1");
         $stmt2->execute(['id' => $host['id']]);
         $domainData = $stmt2->fetch(PDO::FETCH_ASSOC);
@@ -264,31 +261,36 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
         return;
     }
 
-    $extensionNode = $xml->command->extension;
+    $extensionNode   = $xml->command->extension;
+    $launch_info     = null;
+    $allocation_token = null;
+
     if (isset($extensionNode)) {
-        $launch_info = $xml->xpath('//launch:info')[0] ?? null;
-        $allocation_token = $xml->xpath('//allocationToken:info')[0] ?? null;
+        $launch_nodes = $xml->xpath('//launch:info');
+        if (!empty($launch_nodes)) {
+            $launch_info = $launch_nodes[0];
+        }
+
+        $alloc_nodes = $xml->xpath('//allocationToken:info');
+        if (!empty($alloc_nodes)) {
+            $allocation_token = $alloc_nodes[0];
+        }
     }
 
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
-    if (!empty($result)) {
-        $authInfo_pw = (string)$result[0];
-    } else {
-        $authInfo_pw = null;
-    }
-    
-    // Validation for domain name
+    $authInfo_pw = !empty($result) ? (string)$result[0] : null;
+
     $invalid_label = validate_label($domainName, $db);
     if ($invalid_label) {
         sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
-    
+
     if (!filter_var($domainName, FILTER_VALIDATE_DOMAIN)) {
         sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
         return;
     }
-    
+
     if (isset($launch_info)) {
         $phaseType = (string) $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->phase;
             
@@ -430,6 +432,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 return;
             }
             
+            $domain_authinfo_id = null;
             if ($authInfo_pw) {
                 $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
                 $stmt->execute([$domain['id'], $authInfo_pw]);
@@ -634,21 +637,25 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     try {
-        $stmt = $db->prepare("SELECT accountBalance, creditLimit, creditThreshold, thresholdType, currency FROM registrar WHERE clid = :id");
+        $stmt = $db->prepare("
+            SELECT accountBalance, creditLimit, creditThreshold, thresholdType, currency
+            FROM registrar
+            WHERE clid = :id
+            LIMIT 1
+        ");
         $stmt->execute(['id' => $clid]);
-
         $funds = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
-        
-        $creditBalance = ($funds['accountBalance'] < 0) ? -$funds['accountBalance'] : 0;
-        $availableCredit = $funds['creditLimit'] - $creditBalance;
-        $availableCredit = number_format($availableCredit, 2, '.', '');
 
         if (!$funds) {
             sendEppError($conn, $db, 2303, 'Registrar does not exist', $clTRID, $trans);
             return;
         }
-        
+
+        $creditBalance = ($funds['accountBalance'] < 0) ? -$funds['accountBalance'] : 0;
+        $availableCredit = $funds['creditLimit'] - $creditBalance;
+        $availableCredit = number_format($availableCredit, 2, '.', '');
+
         $svTRID = generateSvTRID();
         $response = [
             'command' => 'info_funds',
@@ -664,11 +671,10 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
             'thresholdType' => $funds['thresholdType']
         ];
 
-    $epp = new EPP\EppWriter();
-    $xml = $epp->epp_writer($response);
-    updateTransaction($db, 'info', null, $funds['accountBalance'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
-    sendEppResponse($conn, $xml);
-
+        $epp = new EPP\EppWriter();
+        $xml = $epp->epp_writer($response);
+        updateTransaction($db, 'info', null, $funds['accountBalance'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        sendEppResponse($conn, $xml);
     } catch (PDOException $e) {
         sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
     }

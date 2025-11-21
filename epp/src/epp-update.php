@@ -389,31 +389,31 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         foreach ($xml->xpath('//contact:disclose') as $node_disclose) {
             $flag = (string)$node_disclose['flag'];
 
-            if ($node_disclose->xpath('//contact:voice')) {
+            if ($node_disclose->xpath('contact:voice')) {
                 $disclose['voice'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:fax')) {
+            if ($node_disclose->xpath('contact:fax')) {
                 $disclose['fax'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:email')) {
+            if ($node_disclose->xpath('contact:email')) {
                 $disclose['email'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:name[@type="int"]')) {
+            if ($node_disclose->xpath('contact:name[@type="int"]')) {
                 $disclose['name_int'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:name[@type="loc"]')) {
+            if ($node_disclose->xpath('contact:name[@type="loc"]')) {
                 $disclose['name_loc'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:org[@type="int"]')) {
+            if ($node_disclose->xpath('contact:org[@type="int"]')) {
                 $disclose['org_int'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:org[@type="loc"]')) {
+            if ($node_disclose->xpath('contact:org[@type="loc"]')) {
                 $disclose['org_loc'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:addr[@type="int"]')) {
+            if ($node_disclose->xpath('contact:addr[@type="int"]')) {
                 $disclose['addr_int'] = $flag;
             }
-            if ($node_disclose->xpath('//contact:addr[@type="loc"]')) {
+            if ($node_disclose->xpath('contact:addr[@type="loc"]')) {
                 $disclose['addr_loc'] = $flag;
             }
         }
@@ -685,7 +685,7 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 isset($disclose['org_loc']) ? $disclose['org_loc'] : $disclose_org_loc,     // Same logic for org
                 isset($disclose['addr_loc']) ? $disclose['addr_loc'] : $disclose_addr_loc,  // Same logic for address
                 $contact_id,
-                'int'
+                'loc'
             ]);
         }
 
@@ -938,7 +938,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $host_id = $hostRow['id'];
 
         $tlds_scan = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-        $chg_domain = extractDomainFromHost($chg_name, $tlds_scan);
+        $chg_domain = extractDomainFromHost($chg_name);
 
         $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
         $stmt->execute([$chg_domain]);

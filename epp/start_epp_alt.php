@@ -1,5 +1,13 @@
 <?php
 
+use Swoole\Table;
+use Swoole\Timer;
+use Swoole\Server;
+use Namingo\Rately\Rately;
+use Selective\XmlDSig\PublicKeyStore;
+use Selective\XmlDSig\CryptoVerifier;
+use Selective\XmlDSig\XmlSignatureVerifier;
+
 global $c;
 $c = require_once 'config.php';
 require_once 'src/EppWriter.php';
@@ -15,14 +23,6 @@ require_once 'src/epp-delete.php';
 
 $logFilePath = '/var/log/namingo/epp.log';
 $log = setupLogger($logFilePath, 'EPP');
-
-use Swoole\Table;
-use Swoole\Timer;
-use Swoole\Server;
-use Namingo\Rately\Rately;
-use Selective\XmlDSig\PublicKeyStore;
-use Selective\XmlDSig\CryptoVerifier;
-use Selective\XmlDSig\XmlSignatureVerifier;
 
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
@@ -112,6 +112,10 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
+updatePermittedIPs($pool, $permittedIPsTable);
+if (count($permittedIPsTable) === 0) {
+    $log->warning('Permitted IPs table is empty after initial load; no EPP clients will be able to connect.');
+}
 
 $server->on('Connect', function(\Swoole\Server $serv, int $fd) use ($log, $eppExtensionsTable) {
     $conn = new class($serv, $fd) {
@@ -174,6 +178,7 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
     $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
 
     try {
+        $pdo = null;
         $pdo = $pool->get();
         if (!$pdo) {
             $conn->close();
@@ -189,10 +194,12 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
     try {
         $connId = $fd;
         $buffer =& $buffers[$fd];
+        $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
 
         while (strlen($buffer) >= 4) {
             $len = unpack('N', substr($buffer, 0, 4))[1];
-            if ($len < 5) {
+            if ($len < 5 || $len > $maxFrameLen) {
+                $log->warning("Invalid EPP frame length $len from $clientIP");
                 sendEppError($conn, $pdo, 2000, 'Invalid frame length');
                 $conn->close();
                 unset($buffers[$fd]);
@@ -212,7 +219,7 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
             libxml_disable_entity_loader(true);
             libxml_use_internal_errors(true);
 
-            $xml = simplexml_load_string($xmlData);
+            $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
             if ($xml === false) {
                 sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
                 return;
@@ -303,7 +310,9 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                                 $stmt->bindParam(':clID', $clID);
                                 $stmt->execute();
                             } catch (PDOException $e) {
+                                $log->error('Password change DB error for ' . $clID . ': ' . $e->getMessage());
                                 sendEppError($conn, $pdo, 2400, 'Password could not be changed', $clTRID);
+                                break;
                             }
 
                             $svTRID = generateSvTRID();
@@ -348,9 +357,15 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 case isset($xml->command->logout):
                 {
                     $data = $table->get($connId);
-                    $clid = getClid($pdo, $data['clid']);
-                    $table->del($connId);
                     $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clID = $data['clid'];
+                    $clid = getClid($pdo, $clID);
+                    $table->del($connId);
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     $svTRID = generateSvTRID();
@@ -381,13 +396,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processPoll($conn, $pdo, $xml, $data['clid'], $trans);
                     return;
                 }
@@ -396,16 +412,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactCheck($conn, $pdo, $xml, $trans);
                     return;
@@ -415,16 +433,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -434,16 +454,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
                     return;
@@ -453,16 +475,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -472,16 +496,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -491,16 +517,18 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
                         $conn->close();
+                        break;
                     }
                     processContactTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
                     return;
@@ -510,13 +538,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
                     return;
                 }
@@ -525,13 +554,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
@@ -540,13 +570,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
@@ -555,13 +586,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data']);
                     return;
                 }
@@ -570,13 +602,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
@@ -585,13 +618,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
                     return;
                 }
@@ -600,13 +634,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCheck($conn, $pdo, $xml, $trans);
                     return;
                 }
@@ -615,13 +650,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
@@ -630,13 +666,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostInfo($conn, $pdo, $xml, $trans);
                     return;
                 }
@@ -645,13 +682,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
@@ -660,13 +698,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
@@ -675,13 +714,14 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
                     return;
                 }
@@ -690,60 +730,61 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
-                    $clid = getClid($pdo, $data['clid']);
-                    $xmlString = $xml->asXML();
-                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if (!$data || $data['logged_in'] !== 1) {
                         sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
+                        break;
                     }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainRenew($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
                 }
               
                 default:
                 {
-                    sendEppError($conn, $pdo, 2000, 'Unrecognized command');
+                    sendEppError($conn, $pdo, 2101, 'Unimplemented command');
                     $conn->close();
                     return;
                 }
             }
         }
     } catch (PDOException $e) {
-        // Handle database exceptions
         $log->alert('Database error: ' . $e->getMessage());
 
-        // Here we only retry if it's a *connection* failure.
-        // Common MySQL connection error codes: 2002 (Can't connect), 2006 (Gone away), 2013 (Lost connection).
         if (in_array($e->getCode(), [2002, 2006, 2013])) {
             try {
                 // Attempt a reconnect
                 $pdo = $pool->get();
                 $log->info('Reconnected successfully to the DB');
                 sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
+                $conn->close();
                 return;
             } catch (Throwable $e2) {
                 // If reconnect also fails, log and close
                 $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
                 sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
                 $conn->close();
+                $pdo = null;
                 return;
             }
         } else {
-            // Non-connection errors (e.g. syntax error, constraint violation) => no reconnect attempt
-            sendEppError($conn, $pdo, 2500, 'DB error: ' . $e->getMessage());
+            $log->alert('Database error: ' . $e->getMessage());
+            sendEppError($conn, $pdo, 2500, 'Internal database error');
             $conn->close();
             return;
         }
     } catch (Throwable $e) {
         // Catch any other exceptions or errors
         $log->error('General Error: ' . $e->getMessage());
-        sendEppError($conn, $pdo, 2500, 'General error');
+        sendEppError($conn, $pdo instanceof PDO ? $pdo : null, 2500, 'General error');
         $conn->close();
         return;
     } finally {
-        // Return the connection to the pool
-        $pool->put($pdo);
+        if ($pdo instanceof PDO) {
+            $pool->put($pdo);
+        }
     }
 
 });

@@ -19,25 +19,44 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2003, 'Please provide domain name', $clTRID, $trans);
         return;
     }
+    if (!$curExpDate) {
+        sendEppError($conn, $db, 2003, 'Missing curExpDate', $clTRID, $trans);
+        return;
+    }
 
-    if ($period) {
+    $invalid_label = validate_label($domainName, $db);
+    if ($invalid_label || !filter_var($domainName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+        sendEppError($conn, $db, 2005, 'Invalid domain name', $clTRID, $trans);
+        return;
+    }
+
+    $curExpDateObj = DateTime::createFromFormat('Y-m-d', $curExpDate);
+    $curExpDateErrors = DateTime::getLastErrors();
+    if (!$curExpDateObj || $curExpDateErrors['warning_count'] > 0 || $curExpDateErrors['error_count'] > 0) {
+        sendEppError($conn, $db, 2005, 'Invalid curExpDate format, expected YYYY-MM-DD', $clTRID, $trans);
+        return;
+    }
+    $curExpDate = $curExpDateObj->format('Y-m-d');
+
+    if ($period !== null) {
         if ($period < 1 || $period > 99) {
-            sendEppError($conn, $db, 2004, "domain:period minLength value='1', maxLength value='99'");
+            sendEppError($conn, $db, 2004, "domain:period minLength value='1', maxLength value='99'", $clTRID, $trans);
             return;
         }
-    } elseif (!$period) {
+    } else {
         $period = 1;
     }
 
-    if ($periodUnit) {
+    if ($periodUnit !== null && $periodUnit !== '') {
         if (!preg_match('/^(m|y)$/i', $periodUnit)) {
-            sendEppError($conn, $db, 2004, "domain:period unit m|y");
+            sendEppError($conn, $db, 2004, "domain:period unit m|y", $clTRID, $trans);
             return;
         }
-    } elseif (!$periodUnit) {
-        $period = 'y';
+    } else {
+        $periodUnit = 'y';
     }
-    
+    $periodUnit = strtolower($periodUnit);
+
     $clid = getClid($db, $clid);
 
     $stmt = $db->prepare("SELECT id, name, tldid, exdate, clid FROM domain WHERE name = :domainName LIMIT 1");
@@ -55,23 +74,21 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         sendEppError($conn, $db, 2201, 'It belongs to another registrar', $clTRID, $trans);
         return;
     }
-    
-    // The domain name must not be subject to clientRenewProhibited, serverRenewProhibited.
+
     $stmt = $db->prepare("SELECT status FROM domain_status WHERE domain_id = :domainId");
     $stmt->bindParam(':domainId', $domainData['id'], PDO::PARAM_INT);
     $stmt->execute();
+    $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt->closeCursor();
 
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $status = $row['status'];
-        if (preg_match('/.*(RenewProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+    foreach ($statuses as $status) {
+        if (preg_match('/RenewProhibited$/', $status) || preg_match('/^pending/', $status)) {
             sendEppError($conn, $db, 2304, 'It has a status that does not allow renew, first change the status', $clTRID, $trans);
             return;
         }
     }
-    $stmt->closeCursor();
 
-    $expiration_date = explode(" ", $domainData['exdate'])[0];  // remove time, keep only date
-
+    $expiration_date = explode(" ", $domainData['exdate'])[0];
     if ($curExpDate !== $expiration_date) {
         sendEppError($conn, $db, 2306, 'The expiration date does not match', $clTRID, $trans);
         return;
@@ -79,13 +96,12 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
 
     $date_add = 0;
     if ($periodUnit === 'y') {
-        $date_add = ($period * 12);
+        $date_add = $period * 12;
     } elseif ($periodUnit === 'm') {
         $date_add = $period;
     }
 
     if ($date_add > 0) {
-        // The number of units available MAY be subject to limits imposed by the server.
         if (!in_array($date_add, [12, 24, 36, 48, 60, 72, 84, 96, 108, 120])) {
             sendEppError($conn, $db, 2306, 'Not less than 1 year and not more than 10', $clTRID, $trans);
             return;
@@ -116,13 +132,18 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $currency = $row['currency'];
 
         $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid, $currency);
-        $price = $returnValue['price'];
+        $price = $returnValue['price'] ?? null;
+
+        if (!isset($price)) {
+            sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
+            return;
+        }
 
         if (($registrar_balance + $creditLimit) < $price) {
             sendEppError($conn, $db, 2104, 'There is no money on the account to renew', $clTRID, $trans);
             return;
         }
-        
+
         $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
         $stmt->execute();
@@ -146,7 +167,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         } else {
             // Update registrar's account balance:
             $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $stmt->bindParam(':price', $price, PDO::PARAM_INT);
+            $stmt->bindParam(':price', $price);
             $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
             $stmt->execute();
 
@@ -156,7 +177,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)");
             $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
             $stmt->bindParam(':description', $description, PDO::PARAM_STR);
-            $stmt->bindParam(':amount', $negative_price, PDO::PARAM_INT);
+            $stmt->bindParam(':amount', $negative_price);
             $stmt->execute();
 
             // Fetch exdate:

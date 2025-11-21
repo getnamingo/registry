@@ -46,11 +46,14 @@ class EppWriter {
         $writer->writeAttribute('xmlns', 'urn:ietf:params:xml:ns:epp-1.0');
         $writer->writeAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
         $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd');
-        
+
         // Dynamic method call based on the command
-        $handler = $this->command_handler_map[$resp['command']];
+        $handler = $this->command_handler_map[$resp['command']] ?? '_common';
+        if (!method_exists($this, $handler)) {
+            $handler = '_common';
+        }
         $this->$handler($writer, $resp);
-        
+
         $writer->endElement();  // Ending the 'epp' tag
         $writer->endDocument();
         return $writer->outputMemory();
@@ -355,10 +358,13 @@ class EppWriter {
 
             $msg = $this->epp_result_totext($code, $lang);
             if (isset($resp['human_readable_message'])) {
-                $msg = $this->epp_result_totext($code, $lang) . ' : ' . $resp['human_readable_message'];
+                $msg .= ' : ' . $resp['human_readable_message'];
             }
 
-            $writer->writeElement('msg', $msg);
+            $writer->startElement('msg');
+            $writer->writeAttribute('lang', $lang);
+            $writer->text($msg);
+            $writer->endElement(); // msg
 
             if (isset($resp['optionalValue'])) {
                 $writer->startElement('value');
@@ -507,7 +513,11 @@ class EppWriter {
                 if (isset($resp['status']) && is_array($resp['status'])) {
                     foreach ($resp['status'] as $s) {
                         if (isset($s[1]) && isset($s[2])) {
-                            $writer->writeElement('contact:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
+                            $writer->startElement('contact:status');
+                            $writer->writeAttribute('s', $s[0]);
+                            $writer->writeAttribute('lang', $s[1]);
+                            $writer->text($s[2]);
+                            $writer->endElement();
                         } else {
                             $writer->startElement('contact:status');
                             $writer->writeAttribute('s', $s[0]);
@@ -515,7 +525,7 @@ class EppWriter {
                         }
                     }
                 }
-                
+
                 // Handle 'contact:postalInfo'
                 foreach ($resp['postal'] as $t => $postalData) {
                     $writer->startElement('contact:postalInfo');
@@ -539,21 +549,27 @@ class EppWriter {
                     $writer->endElement();  // End of 'contact:addr'
                     $writer->endElement();  // End of 'contact:postalInfo'
                 }
-                
-                // Handling 'contact:voice' and its optional attribute
-                if (isset($resp['voice_x'])) {
-                    $writer->writeElement('contact:voice', $resp['voice'], ['x' => $resp['voice_x']]);
+
+                // contact:voice
+                if (isset($resp['voice_x']) && $resp['voice'] !== null) {
+                    $writer->startElement('contact:voice');
+                    $writer->writeAttribute('x', $resp['voice_x']);
+                    $writer->text($resp['voice']);
+                    $writer->endElement();
                 } else {
                     $writer->writeElement('contact:voice', $resp['voice']);
                 }
-                
-                // Handling 'contact:fax' and its optional attribute
-                if (isset($resp['fax_x'])) {
-                    $writer->writeElement('contact:fax', $resp['fax'], ['x' => $resp['fax_x']]);
+
+                // contact:fax
+                if (isset($resp['fax_x']) && $resp['fax'] !== null) {
+                    $writer->startElement('contact:fax');
+                    $writer->writeAttribute('x', $resp['fax_x']);
+                    $writer->text($resp['fax']);
+                    $writer->endElement();
                 } else {
                     $writer->writeElement('contact:fax', $resp['fax']);
                 }
-                
+
                 $writer->writeElement('contact:email', $resp['email']);
                 $writer->writeElement('contact:clID', $resp['clID']);
                 $writer->writeElement('contact:crID', $resp['crID']);
@@ -830,26 +846,24 @@ class EppWriter {
                 $writer->endElement();  // End of 'domain:creData'
             $writer->endElement();  // End of 'resData'
             
-                if (isset($resp['fee_include']) && $resp['fee_include'] == true) {
-                    $writer->startElement('extension');
+            if (isset($resp['fee_include']) && $resp['fee_include'] == true) {
+                $writer->startElement('extension');
                     
-                    $writer->startElement('fee:creData');
-                    $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
+                $writer->startElement('fee:creData');
+                $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                     
-                    $writer->writeElement('fee:currency', 'USD');
-                    $writer->startElement('fee:fee');
-                        $writer->writeAttribute('refundable', 1);
-                        $writer->writeAttribute('grace-period', 'P5D');
-                        $writer->text($resp['fee_price']);
-                    $writer->endElement();  // End of 'fee:fee'                    
-                    $writer->writeElement('fee:balance', $resp['fee_balance']);
-                    $writer->writeElement('fee:creditLimit', $resp['fee_creditLimit']);
+                $writer->writeElement('fee:currency', 'USD');
+                $writer->startElement('fee:fee');
+                    $writer->writeAttribute('refundable', 1);
+                    $writer->writeAttribute('grace-period', 'P5D');
+                    $writer->text($resp['fee_price']);
+                $writer->endElement();  // End of 'fee:fee'                    
+                $writer->writeElement('fee:balance', $resp['fee_balance']);
+                $writer->writeElement('fee:creditLimit', $resp['fee_creditLimit']);
                     
-                    $writer->endElement();  // End of 'fee:creData'
-                    $writer->endElement();  // End of 'extension'
-                }
-            
-            
+                $writer->endElement();  // End of 'fee:creData'
+                $writer->endElement();  // End of 'extension'
+            }
         }
 
         $this->_postamble($writer, $resp);
@@ -868,7 +882,11 @@ class EppWriter {
                 if (is_array($resp['status'])) {
                     foreach ($resp['status'] as $s) {
                         if (isset($s[1]) && isset($s[2])) {
-                            $writer->writeElement('domain:status', $s[2], ['s' => $s[0], 'lang' => $s[1]]);
+                            $writer->startElement('domain:status');
+                            $writer->writeAttribute('s', $s[0]);
+                            $writer->writeAttribute('lang', $s[1]);
+                            $writer->text($s[2]);
+                            $writer->endElement();
                         } else {
                             $writer->startElement('domain:status');
                             $writer->writeAttribute('s', $s[0]);
@@ -880,7 +898,7 @@ class EppWriter {
                     $writer->writeAttribute('s', $resp['status']);
                     $writer->endElement();
                 }
-                
+
                 if (isset($resp['registrant'])) {
                     $writer->writeElement('domain:registrant', $resp['registrant']);
                 }

@@ -10,6 +10,11 @@ function processContactCheck($conn, $db, $xml, $trans) {
         return;
     }
 
+    if (count($contactIDs) > 10) {
+        sendEppError($conn, $db, 2004, "Too many contact IDs in <check>, max 10", $clTRID, $trans);
+        return;
+    }
+
     $ids = [];
 
     foreach ($contactIDs as $contactID) {
@@ -65,6 +70,11 @@ function processHostCheck($conn, $db, $xml, $trans) {
     // Check if hosts is null or empty
     if ($hosts === null || count($hosts) == 0) {
         sendEppError($conn, $db, 2003, 'host name', $clTRID, $trans);
+        return;
+    }
+
+    if (count($hosts) > 10) {
+        sendEppError($conn, $db, 2004, "Too many hosts in <check>, max 10", $clTRID, $trans);
         return;
     }
 
@@ -128,10 +138,18 @@ function processHostCheck($conn, $db, $xml, $trans) {
 function processDomainCheck($conn, $db, $xml, $trans, $clid) {
     $domains = $xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check->name;
     $clTRID = (string) $xml->command->clTRID;
+    $launch_check = null;
+    $fee_check = null;
+    $allocation_token = null;
 
     // Check if domains is null or empty
     if ($domains === null || count($domains) == 0) {
         sendEppError($conn, $db, 2003, 'domain name', $clTRID, $trans);
+        return;
+    }
+
+    if (count($domains) > 10) {
+        sendEppError($conn, $db, 2004, "Too many domains in <check>, max 10", $clTRID, $trans);
         return;
     }
 
@@ -144,19 +162,24 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         }
     }
 
-    $extensionNode = $xml->command->extension;
-    if (isset($extensionNode)) {
-        $launch_check = $xml->xpath('//launch:check')[0] ?? null;
-        $fee_check = $xml->xpath('//fee:check')[0] ?? null;
-        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
+    $extensionNode = $xml->command->extension ?? null;
+    if ($extensionNode !== null) {
+        $tmp = $xml->xpath('//launch:check');
+        $launch_check = $tmp[0] ?? null;
+
+        $tmp = $xml->xpath('//fee:check');
+        $fee_check = $tmp[0] ?? null;
+
+        $tmp = $xml->xpath('//allocationToken:allocationToken');
+        $allocation_token = $tmp[0] ?? null;
     }
 
     if (isset($launch_check)) {
-        // Extract the 'type' attribute from <launch:check>
-        $launchCheckType = (string) $xml->xpath('//launch:check/@type')[0];
+        $tmp = $xml->xpath('//launch:check/@type');
+        $launchCheckType = isset($tmp[0]) ? (string)$tmp[0] : '';
 
-        // Extract <launch:phase>
-        $launchPhaseText = (string) $xml->xpath('//launch:phase')[0];
+        $tmp = $xml->xpath('//launch:phase');
+        $launchPhaseText = isset($tmp[0]) ? (string)$tmp[0] : '';
         
         if ($launchCheckType === 'claims' || $launchCheckType === 'trademark') {
             // Check if the domain has claims
@@ -262,6 +285,10 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                     'svTRID' => $svTRID,
                 ];
             }
+        } else {
+            // Unsupported launch check type/phase
+            sendEppError($conn, $db, 2101, 'Unsupported launch check type or phase', $clTRID, $trans);
+            return;
         }
     } else {
         $names = [];
@@ -326,7 +353,8 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                 $feeResponses = [];
                 foreach ($commands as $command) {
                     $commandName = (string) $command->attributes()->name;
-                    $periodElement = $command->xpath('.//fee:period')[0] ?? null;
+                    $tmp = $command->xpath('.//fee:period');
+                    $periodElement = $tmp[0] ?? null;
 
                     if ($periodElement !== null) {
                         $period = (int) $periodElement;
@@ -406,10 +434,10 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                         $feeResponses[] = [
                             'command' => $commandName,
                             'avail' => $domainEntry[1],
-                            'reason' => $domainEntry[2],
+                            'reason' => $domainEntry[2] ?? null,
                             'name' => $domainName,
                         ];
-                        continue; // Skip to the next iteration
+                        continue;
                     }
                 }
                 $fees[] = $feeResponses;
