@@ -1204,3 +1204,39 @@ function validateTcnId(string $domain, string $noticeId, string $notAfterUtc): b
     // Compare
     return hash_equals($tcnChecksum, $crc32Hex);
 }
+
+function getKeyStatus(string $keyBlock): string
+{
+    $keyBlock = preg_replace('/[ \t]+/', ' ', $keyBlock);
+
+    $isSigning    = (bool) preg_match('/key signing:\s+yes/i', $keyBlock);
+    $isPublished  = (bool) preg_match('/KSK published:\s+yes/i', $keyBlock);
+
+    $hasRolloverDue  = str_contains($keyBlock, 'Rollover is due since');
+    $hasNextRollover = str_contains($keyBlock, 'Next rollover scheduled on');
+
+    $goalHidden    = str_contains($keyBlock, 'goal: hidden');
+    $dsUnretentive = str_contains($keyBlock, 'ds: unretentive');
+
+    // 1) Retiring (old KSK, rollover due / goal hidden / ds unretentive)
+    if ($isSigning && ($hasRolloverDue || $goalHidden || $dsUnretentive)) {
+        return 'Retiring';
+    }
+
+    // 2) Active (signing now, not clearly in retirement)
+    if ($isSigning) {
+        // Optional: ensure we recognise healthy active state
+        if ($hasNextRollover) {
+            return 'Active';
+        }
+        return 'Active'; // still active even if date missing
+    }
+
+    // 3) Pending rollover (published but not yet signing)
+    if ($isPublished) {
+        return 'Pending rollover';
+    }
+
+    // 4) Fallback
+    return 'Inactive';
+}

@@ -1024,7 +1024,7 @@ class SystemController extends Controller
                                 }
 
                                 // Determine key status accurately
-                                $keyStatus = strpos($keyBlock, 'key signing:    yes') !== false ? 'Active' : 'Pending Rollover';
+                                $keyStatus = getKeyStatus($keyBlock);
 
                                 // Extract next rollover date
                                 preg_match('/Next rollover scheduled on ([^\\n]+)/', $keyBlock, $rolloverMatch);

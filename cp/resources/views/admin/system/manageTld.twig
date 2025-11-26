@@ -133,25 +133,33 @@
                                             <td>
                                                 {% if key.status == 'Active' %}
                                                     <span class="badge bg-success text-success-fg">{{ __('Active') }}</span>
-                                                {% elseif key.status == 'Pending Rollover' %}
-                                                    <span class="badge bg-warning text-warning-fg">{{ __('Pending Rollover') }}</span>
+                                                {% elseif key.status == 'Pending rollover' %}
+                                                    <span class="badge bg-info text-info-fg">{{ __('Pending Rollover') }}</span>
+                                                {% elseif key.status == 'Retiring' %}
+                                                    <span class="badge bg-red text-red-fg">{{ __('Retiring') }}</span>
+                                                {% elseif key.status == 'Inactive' %}
+                                                    <span class="badge">{{ __('Inactive') }}</span>
                                                 {% else %}
                                                     <span class="badge bg-secondary text-secondary-fg">{{ __('Unknown') }}</span>
                                                 {% endif %}
                                             </td>
                                             <td>{{ key.published_date }}</td>
-                                            <td>{{ key.next_rollover }}</td>
+                                            <td>{{ key.next_rollover ?: 'Retiring (no more rollovers)' }}</td>
                                             <td>
                                               {% if key.ds_status == 'omnipresent' %}
                                                 <span class="status-indicator status-green" title="DS record submitted and active at parent zone">
                                                   <span class="status-indicator-circle"></span>
                                                 </span>
                                               {% elseif key.ds_status == 'rumoured' %}
-                                                <span class="status-indicator status-orange status-indicator-animated" title="DS record needs submission to parent zone">
+                                                <span class="status-indicator status-yellow status-indicator-animated" title="DS record needs submission to parent zone">
+                                                  <span class="status-indicator-circle"></span>
+                                                </span>
+                                              {% elseif key.ds_status == 'unretentive' %}
+                                                <span class="status-indicator status-red status-indicator-animated" title="This KSK is being retired. Submit the new DS to avoid DNSSEC failures">
                                                   <span class="status-indicator-circle"></span>
                                                 </span>
                                               {% else %}
-                                                <span class="status-indicator status-gray" title="DS record status unknown or unavailable">
+                                                <span class="status-indicator status-red status-indicator-animated" title="DS record status unknown or unavailable">
                                                   <span class="status-indicator-circle"></span>
                                                 </span>
                                               {% endif %}
