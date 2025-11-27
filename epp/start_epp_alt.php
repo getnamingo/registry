@@ -112,14 +112,8 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
-Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
-    updatePermittedIPs($pool, $permittedIPsTable);
-    if (count($permittedIPsTable) === 0) {
-        $log->warning('Permitted IPs table is empty after initial load; no EPP clients will be able to connect.');
-    }
-});
 
-$server->on('Connect', function(\Swoole\Server $serv, int $fd) use ($log, $eppExtensionsTable) {
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable) {
     $conn = new class($serv, $fd) {
         private $serv, $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -134,7 +128,21 @@ $server->on('Connect', function(\Swoole\Server $serv, int $fd) use ($log, $eppEx
     $log->info("client #{$fd} connected from {$info['remote_ip']}");
 });
 
-$server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
+$server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $log) {
+
+    Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
+        updatePermittedIPs($pool, $permittedIPsTable);
+        if (count($permittedIPsTable) === 0) {
+            $log->warning('Permitted IPs table is empty after initial load.');
+        }
+    });
+
+    Timer::tick(300000, function() use ($pool, $permittedIPsTable) {
+        updatePermittedIPs($pool, $permittedIPsTable);
+    });
+});
+
+$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
     $conn = new class($serv, $fd) {
         private $serv; private $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -791,13 +799,9 @@ $server->on('Receive', function(\Swoole\Server $serv, int $fd, int $reactorId, s
 
 });
 
-$server->on('Close', function(\Swoole\Server $serv, int $fd) use ($log, $table) {
+$server->on('Close', function(Server $serv, int $fd) use ($log, $table) {
     $table->del($fd);
     $log->info("client #{$fd} disconnected");
-});
-
-Timer::tick(300000, function() use ($pool, $permittedIPsTable) {
-    updatePermittedIPs($pool, $permittedIPsTable);
 });
 
 $server->start();

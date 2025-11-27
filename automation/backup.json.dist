@@ -14,7 +14,10 @@
         "options": {
           "databases": "registry,registryAudit,registryTransaction",
           "user": "your_username",
-          "password": "your_password"
+          "password": "your_password",
+          "quick": true,
+          "singleTransaction": true,
+          "lockTables": false
         }
       },
       "target": {
