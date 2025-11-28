@@ -215,11 +215,9 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                 sendEppError($conn, $pdo, 2000, 'Invalid frame length');
                 $conn->close();
                 unset($buffers[$fd]);
-                $pool->put($pdo);
                 return;
             }
             if (strlen($buffer) < $len) {
-                // not a full message yet
                 break;
             }
 
