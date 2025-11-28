@@ -73,7 +73,7 @@ $pool = new Swoole\Database\PDOPool(
         ->withCharset('utf8mb4')
 );
 
-Swoole\Runtime::enableCoroutine();
+//Swoole\Runtime::enableCoroutine();
 $server = new Server($c['epp_host'], $c['epp_port'], SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
 $server->addListener($c['epp_host_ipv6'], $c['epp_port'], SWOOLE_SOCK_TCP6 | SWOOLE_SSL);
 $server->set([
@@ -81,10 +81,12 @@ $server->set([
     'hook_flags' => SWOOLE_HOOK_ALL,
     'log_file' => '/var/log/namingo/epp_application.log',
     'log_level' => SWOOLE_LOG_INFO,
-    'worker_num' => swoole_cpu_num() * 4,
+    'worker_num' => max(2, swoole_cpu_num()),
     'pid_file' => $c['epp_pid'],
     'max_request' => 1000,
     'max_conn' => 1024,
+    'reload_async' => true,
+    'max_wait_time' => 60,
     'open_tcp_nodelay' => true,
     'open_tcp_keepalive' => true,
     'tcp_keepidle' => 30,
@@ -112,6 +114,7 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
+$buffers = [];
 
 $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable) {
     $conn = new class($serv, $fd) {
@@ -142,7 +145,7 @@ $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $
     });
 });
 
-$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
+$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter, &$buffers) {
     $conn = new class($serv, $fd) {
         private $serv; private $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -184,7 +187,6 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         return;
     }
 
-    static $buffers = [];
     $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
 
     try {
@@ -799,8 +801,13 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
 
 });
 
-$server->on('Close', function(Server $serv, int $fd) use ($log, $table) {
+$server->on('WorkerError', function (Server $server, int $workerId, int $workerPid, int $exitCode, int $signal) use ($log) {
+    $log->error("WorkerError: id=$workerId pid=$workerPid exitCode=$exitCode signal=$signal");
+});
+
+$server->on('Close', function(Server $serv, int $fd) use ($log, $table, &$buffers) {
     $table->del($fd);
+    unset($buffers[$fd]);
     $log->info("client #{$fd} disconnected");
 });
 
