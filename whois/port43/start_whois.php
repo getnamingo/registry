@@ -71,11 +71,6 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $server->send($fd, "Error");
-    } finally {
-        if ($pdo instanceof PDO) {
-            $pool->put($pdo);
-        }
-        $server->close($fd);
     }
     $privacy = $c['privacy'];
     $minimum_data = $c['minimum_data'];
