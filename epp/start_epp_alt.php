@@ -132,16 +132,23 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
 });
 
 $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $log) {
-
     Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
-        updatePermittedIPs($pool, $permittedIPsTable);
-        if (count($permittedIPsTable) === 0) {
-            $log->warning('Permitted IPs table is empty after initial load.');
+        try {
+            updatePermittedIPs($pool, $permittedIPsTable);
+            if (count($permittedIPsTable) === 0) {
+                $log->warning('Permitted IPs table is empty after initial load.');
+            }
+        } catch (\Throwable $e) {
+            $log->error('updatePermittedIPs (initial) failed: ' . $e->getMessage());
         }
     });
 
-    Timer::tick(300000, function() use ($pool, $permittedIPsTable) {
-        updatePermittedIPs($pool, $permittedIPsTable);
+    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $log) {
+        try {
+            updatePermittedIPs($pool, $permittedIPsTable);
+        } catch (\Throwable $e) {
+            $log->error('updatePermittedIPs (timer) failed: ' . $e->getMessage());
+        }
     });
 });
 
@@ -807,6 +814,10 @@ $server->on('Close', function(Server $serv, int $fd) use ($log, $table, &$buffer
     $table->del($fd);
     unset($buffers[$fd]);
     $log->info("client #{$fd} disconnected");
+});
+
+$server->on('Shutdown', function(Server $server) use ($log) {
+    $log->info('EPP server is shutting down');
 });
 
 $server->start();
