@@ -196,23 +196,18 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
     }
 
     $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
+    $pdo = null;
 
     try {
-        $pdo = null;
         $pdo = $pool->get();
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
         if (!$pdo) {
+            $log->alert("PDOPool->get() returned null/false for fd={$fd} ip={$clientIP}");
             $conn->close();
             unset($buffers[$fd]);
             return;
         }
-    } catch (\Throwable $e) {
-        $conn->close();
-        unset($buffers[$fd]);
-        return;
-    }
 
-    try {
         $connId = $fd;
         $buffer =& $buffers[$fd];
         $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
@@ -224,6 +219,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                 sendEppError($conn, $pdo, 2000, 'Invalid frame length');
                 $conn->close();
                 unset($buffers[$fd]);
+                $pool->put($pdo);
                 return;
             }
             if (strlen($buffer) < $len) {
@@ -794,7 +790,6 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             try {
                 // Attempt a reconnect
                 $pdo = $pool->get();
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 $log->info('Reconnected successfully to the DB');
                 sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
                 $conn->close();

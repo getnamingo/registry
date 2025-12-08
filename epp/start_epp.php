@@ -160,7 +160,6 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
 
         try {
             $pdo = $pool->get();
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             if (!$pdo) {
                 $conn->close();
                 break;
@@ -732,7 +731,6 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                 try {
                     // Attempt a reconnect
                     $pdo = $pool->get();
-                    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     $log->info('Reconnected successfully to the DB');
                     sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
                     $conn->close();
