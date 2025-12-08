@@ -148,7 +148,34 @@ apt install -y mariadb-client mariadb-server php8.3-mysql
 mysql_secure_installation
 ```
 
-[Tune your MariaDB](https://github.com/major/MySQLTuner-perl)
+[Tune your MariaDB](https://github.com/major/MySQLTuner-perl) or run `ulimit -n 65535` and also use the recommended settings below in `/etc/mysql/mariadb.conf.d/50-server.cnf`:
+
+```bash
+[mysqld]
+# Core InnoDB tuning
+innodb_buffer_pool_size = 8G       # ~50–70% of RAM on a dedicated DB server
+innodb_buffer_pool_instances = 4   # 1 instance per GB is a good rule of thumb
+innodb_log_file_size = 2G
+innodb_flush_log_at_trx_commit = 1
+innodb_flush_method = O_DIRECT
+
+# Connections & threads
+# Must be higher than Swoole max_conn * worker_num + overhead
+max_connections = 300
+# Timeout idle connections faster to free up slots
+wait_timeout = 600
+interactive_timeout = 600
+thread_cache_size = 64
+
+# Table / metadata cache
+table_open_cache = 4000
+table_definition_cache = 2000
+
+log_error = /var/log/mysql/mariadb-error.log
+
+# Disable DNS lookups for faster connections
+skip-name-resolve
+```
 
 ### 2b. Install and configure PostgreSQL: (beta!)
 
