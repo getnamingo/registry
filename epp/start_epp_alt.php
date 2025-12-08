@@ -54,7 +54,8 @@ if (is_array($data)) {
         'urn:ietf:params:xml:ns:idn-1.0',
         'urn:ietf:params:xml:ns:epp:fee-1.0',
         'urn:ietf:params:xml:ns:mark-1.0',
-        'urn:ietf:params:xml:ns:allocationToken-1.0'
+        'urn:ietf:params:xml:ns:allocationToken-1.0',
+        'urn:ietf:params:xml:ns:epp:loginSec-1.0'
     ];
     foreach ($fallback as $urn) {
         $eppExtensionsTable->set($urn, ['extension' => 1]);
@@ -288,6 +289,17 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $pw = $loginSecPw;
                     }
 
+                    if (!$loginSec && strlen($pw) > 16) {
+                        sendEppError(
+                            $conn,
+                            $pdo,
+                            2306,
+                            'Password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
+                            $clTRID
+                        );
+                        break;
+                    }
+
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
 
@@ -312,6 +324,16 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                             $newPW = (string) $xml->command->login->newPW;
                             if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
                                 $newPW = $loginSecNewPw;
+                            }
+                            if (!$loginSec && strlen($newPW) > 16) {
+                                sendEppError(
+                                    $conn,
+                                    $pdo,
+                                    2306,
+                                    'New password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
+                                    $clTRID
+                                );
+                                break;
                             }
                             $options = [
                                 'memory_cost' => 1024 * 128,
