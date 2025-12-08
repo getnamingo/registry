@@ -199,6 +199,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
     try {
         $pdo = null;
         $pdo = $pool->get();
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         if (!$pdo) {
             $conn->close();
             unset($buffers[$fd]);
@@ -232,10 +233,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             $xmlData = substr($buffer, 4, $len - 4);
             $buffer  = substr($buffer, $len);
 
-            // If you're using PHP < 8.0
-            libxml_disable_entity_loader(true);
             libxml_use_internal_errors(true);
-
             $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
             if ($xml === false) {
                 sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
@@ -774,6 +772,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             try {
                 // Attempt a reconnect
                 $pdo = $pool->get();
+                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 $log->info('Reconnected successfully to the DB');
                 sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
                 $conn->close();
