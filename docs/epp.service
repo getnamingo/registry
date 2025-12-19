@@ -3,7 +3,7 @@ Description=EPP Server
 After=network.target
 
 [Service]
-Type=simple
+Type=exec
 User=root
 Group=root
 WorkingDirectory=/opt/registry/epp
@@ -11,12 +11,12 @@ WorkingDirectory=/opt/registry/epp
 ExecStart=/usr/bin/php /opt/registry/epp/start_epp.php
 
 KillSignal=SIGTERM
-KillMode=control-group
-TimeoutStopSec=5
+KillMode=mixed
+TimeoutStopSec=30
 SendSIGKILL=yes
 
 Restart=always
-RestartSec=2
+RestartSec=3
 
 StandardOutput=journal
 StandardError=journal
