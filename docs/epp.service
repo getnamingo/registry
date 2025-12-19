@@ -9,11 +9,11 @@ Group=root
 WorkingDirectory=/opt/registry/epp
 
 ExecStart=/usr/bin/php /opt/registry/epp/start_epp.php
-ExecStop=/bin/kill -SIGTERM $MAINPID
 
 KillSignal=SIGTERM
-KillMode=process
+KillMode=control-group
 TimeoutStopSec=5
+SendSIGKILL=yes
 
 Restart=always
 RestartSec=2
