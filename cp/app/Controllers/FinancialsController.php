@@ -112,7 +112,7 @@ class FinancialsController extends Controller
         }
         unset($r);
 
-        $allTransactions = array_merge($statement, $refunds);
+        $allTransactions = array_merge((array) $statement, (array) $refunds);
         usort($allTransactions, fn($a, $b) => strtotime($a['date']) <=> strtotime($b['date']));
 
         $vatCalculator = new VatCalculator();
