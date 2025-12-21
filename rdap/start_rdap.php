@@ -783,7 +783,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
     }
     
     // Check for prohibited patterns in RDAP entity handle
-    if (!preg_match("/^[A-Za-z0-9]+$/", $entity)) {
+    if (!preg_match('/^[A-Za-z0-9-]+$/', $entity)) {
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Entity handle invalid format']));
@@ -792,8 +792,7 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
 
     // Perform the RDAP lookup
     try {
-        // Validate $entity to ensure it is numeric and contains only digits
-        if (!is_numeric($entity)) {
+        if (!is_numeric($entity) && !preg_match('/^[A-Za-z0-9-]+$/', $entity)) {
             // Return a 404 response if $entity is not a purely numeric string
             try {
                 $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
@@ -2828,7 +2827,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
     }
     
     // Check for prohibited patterns in RDAP entity handle
-    if (!preg_match("/^[A-Za-z0-9]+$/", $entity)) {
+    if (!preg_match('/^[A-Za-z0-9-]+$/', $entity)) {
         $response->header('Content-Type', 'application/rdap+json');
         $response->status(400); // Bad Request
         $response->end(json_encode(['error' => 'Entity handle invalid format']));
@@ -2848,8 +2847,7 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
                 break;
         }
         
-        // Validate $entity to ensure it is numeric and contains only digits
-        if (!is_numeric($entity)) {
+        if (!is_numeric($entity) && !preg_match('/^[A-Za-z0-9-]+$/', $entity)) {
             // Return a 404 response if $entity is not a purely numeric string
             $response->header('Content-Type', 'application/rdap+json');
             $response->status(404);
