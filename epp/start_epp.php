@@ -747,7 +747,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
             if (in_array((int)($e->errorInfo[1] ?? 0), [2002, 2003, 2006, 2013, 1047, 1053], true) || str_starts_with((string)($e->errorInfo[0] ?? $e->getCode()), '08')) {
                 try {
                     $pdo = null;
-                    $pdo = $pool->get();
+                    $pdo = $pool->get(1.0);
                     if (!$pdo) {
                         throw new RuntimeException('PDOPool->get() returned null during reconnect');
                     }
@@ -773,12 +773,13 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
         } catch (Throwable $e) {
             // Catch any other exceptions or errors
             $log->error('General Error: ' . $e->getMessage());
-            sendEppError($conn, $pdo instanceof PDO ? $pdo : null, 2500, 'General error');
+            sendEppError($conn, $pdo ?: null, 2500, 'General error');
             $conn->close();
             break;
         } finally {
-            if ($pdo instanceof PDO) {
+            if ($pdo) {
                 $pool->put($pdo);
+                $pdo = null;
             }
         }
     }

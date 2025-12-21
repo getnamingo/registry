@@ -256,8 +256,8 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
     $pdo = null;
 
     try {
-        $pdo = $pool->get();
-        
+        $pdo = $pool->get(1.0);
+
         if (!$pdo) {
             $log->alert("PDOPool->get() returned null/false for fd={$fd} ip={$clientIP}");
             $conn->close();
@@ -864,12 +864,13 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
     } catch (Throwable $e) {
         // Catch any other exceptions or errors
         $log->error('General Error: ' . $e->getMessage());
-        sendEppError($conn, $pdo instanceof PDO ? $pdo : null, 2500, 'General error');
+        sendEppError($conn, $pdo ?: null, 2500, 'General error');
         $conn->close();
         return;
     } finally {
-        if ($pdo instanceof PDO) {
+        if ($pdo) {
             $pool->put($pdo);
+            $pdo = null;
         }
     }
 
