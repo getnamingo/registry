@@ -839,38 +839,14 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             ' | sqlstate=' . $sqlState .
             ' | driverCode=' . $driverCode .
             ' | file=' . $e->getFile() . ':' . $e->getLine());
-
-        if (in_array((int)($e->errorInfo[1] ?? 0), [2002, 2003, 2006, 2013, 1047, 1053], true) || str_starts_with((string)($e->errorInfo[0] ?? $e->getCode()), '08')) {
-            try {
-                $pdo = null;
-                $pdo = $pool->get();
-                if (!$pdo) {
-                    throw new RuntimeException('PDOPool->get() returned null during reconnect');
-                }
-                $pdo->query('SELECT 1');
-                $log->info('Reconnected successfully to the DB');
-                sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
-                $conn->close();
-                return;
-            } catch (Throwable $e2) {
-                // If reconnect also fails, log and close
-                $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
-                sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
-                $conn->close();
-                $pdo = null;
-                return;
-            }
-        } else {
-            $log->alert('Database error: ' . $e->getMessage());
-            sendEppError($conn, $pdo, 2500, 'Internal database error');
-            $conn->close();
-            return;
-        }
+        $log->warning('DB error; closing EPP connection so client can retry.');
+        try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
+        unset($buffers[$fd]);
+        return;
     } catch (Throwable $e) {
-        // Catch any other exceptions or errors
         $log->error('General Error: ' . $e->getMessage());
-        sendEppError($conn, $pdo ?: null, 2500, 'General error');
-        $conn->close();
+        try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
+        unset($buffers[$fd]);
         return;
     } finally {
         if ($pdo) {
