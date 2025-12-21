@@ -355,6 +355,13 @@ function extractDomainAndTLD($urlString) {
 
     if (null === $fileContent) {
         // fallback: treat everything after the last dot as TLD
+        $parts = parse_url($urlString);
+        $host = $parts['host'] ?? $urlString;
+
+        if (!preg_match('/\./', $urlString)) {
+            throw new \Exception("Invalid domain format");
+        }
+
         $hostParts = explode('.', $host);
         if (count($hostParts) < 2) {
             throw new \Exception("Invalid domain format");
