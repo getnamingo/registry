@@ -45,6 +45,7 @@ register_shutdown_function(function () use ($log) {
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
+$table->column('allowed', Table::TYPE_INT, 1);
 $table->create();
 
 $permittedIPsTable = new Table(1024);
@@ -139,9 +140,14 @@ $server->set([
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
 
-$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable) {
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable, $table) {
     // Get the client information
     $clientInfo = $serv->getClientInfo($fd);
+    if (!$clientInfo || empty($clientInfo['remote_ip'])) {
+        $log->warning("getClientInfo failed (fd=$fd) - closing");
+        $serv->close($fd);
+        return;
+    }
     $clientIP = isset($clientInfo['remote_ip'])
         ? (strpos($clientInfo['remote_ip'], '::ffff:') === 0
             ? substr($clientInfo['remote_ip'], 7)
@@ -162,10 +168,11 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
         }
         if (!$allowed) {
             $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
-            $serv->close();
+            $serv->close($fd);
             return;
         }
     }
+    $table->set((string)$fd, ['allowed' => 1, 'logged_in' => 0, 'clid' => '']);
     
     $conn = new class($serv, $fd) {
         private $serv, $fd;
@@ -211,8 +218,15 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         public function exportSocket() { return $this->serv->getClientInfo($this->fd); }
     };
 
+    $connId = (string)$fd;
+
     // Get the client information
     $clientInfo = $serv->getClientInfo($fd);
+    if (!$clientInfo || empty($clientInfo['remote_ip'])) {
+        $log->warning("getClientInfo failed (fd=$fd) - closing");
+        $serv->close($fd);
+        return;
+    }
     $clientIP = isset($clientInfo['remote_ip'])
         ? (strpos($clientInfo['remote_ip'], '::ffff:') === 0
             ? substr($clientInfo['remote_ip'], 7)
@@ -222,13 +236,19 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         $clientIP = expandIPv6($clientIP);
     }
 
+    $state = $table->get($connId);
+    if (!$state || (int)($state['allowed'] ?? 0) !== 1) {
+        $log->warning("Receive from non-allowed or unknown fd=$fd ip=$clientIP - closing");
+        $serv->close($fd);
+        return;
+    }
+
     if (($c['rately'] == true) && ($rateLimiter->isRateLimited('epp', $clientIP, $c['limit'], $c['period']))) {
         $log->error('rate limit exceeded for ' . $clientIP);
         $conn->close();
         return;
     }
 
-    $connId = $fd;
     $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
 
     if (strlen($data) < 4) {
@@ -263,7 +283,12 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         }
 
             libxml_use_internal_errors(true);
-            $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
+            libxml_clear_errors();
+            $xml = simplexml_load_string(
+                $xmlData,
+                'SimpleXMLElement',
+                LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING
+            );
             if ($xml === false) {
                 sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
                 return;
@@ -398,7 +423,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                             return;
                         }
                         
-                        $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                        $table->set($connId, ['allowed' => 1, 'clid' => $clID, 'logged_in' => 1]);
                         $svTRID = generateSvTRID();
                         $response = [
                             'command' => 'login',
@@ -870,7 +895,7 @@ $server->on('WorkerError', function (Server $server, int $workerId, int $workerP
 });
 
 $server->on('Close', function(Server $serv, int $fd) use ($log, $table) {
-    $table->del($fd);
+    $table->del((string)$fd);
     $log->info("client #{$fd} disconnected");
 });
 
