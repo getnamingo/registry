@@ -22,7 +22,7 @@ function processContactCheck($conn, $db, $xml, $trans) {
 
         $invalid_identifier = validate_identifier($contactID);
         if ($invalid_identifier) {
-            sendEppError($conn, $db, 2306, $invalid_identifier, $clTRID, $trans);
+            sendEppError($conn, $db, 2005, $invalid_identifier, $clTRID, $trans);
             return;
         }
 
@@ -88,7 +88,7 @@ function processHostCheck($conn, $db, $xml, $trans) {
             preg_match('/^-/', $host) ||                            // Starts with dash
             preg_match('/[^\w.-]/', $host)                          // Invalid characters
         ) {
-            sendEppError($conn, $db, 2306, 'Host name must be fully qualified (FQDN)', $clTRID, $trans);
+            sendEppError($conn, $db, 2005, 'Host name must be fully qualified (FQDN)', $clTRID, $trans);
             return;
         }
 
@@ -157,7 +157,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         $domainName = (string) $domain;
         $invalid_label = validate_label($domainName, $db);
         if ($invalid_label) {
-            sendEppError($conn, $db, 2306, ucfirst($invalid_label), $clTRID, $trans);
+            sendEppError($conn, $db, 2005, ucfirst($invalid_label), $clTRID, $trans);
             return;
         }
     }
