@@ -72,7 +72,7 @@ $pool = new Swoole\Database\PDOPool(
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
         ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
+        ->withCharset('utf8mb4'), 16
 );
 
 Swoole\Runtime::enableCoroutine();
@@ -156,39 +156,48 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
     $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
 
     while (true) {
-        $pdo = null;
+        $chunk = $conn->recv();
+        if ($chunk === '' || $chunk === false) {
+            $conn->close();
+            break;
+        }
+        $buffer .= $chunk;
 
+        $frames = [];
+        while (strlen($buffer) >= 4) {
+            $len = unpack('N', substr($buffer, 0, 4))[1];
+
+            if ($len < 5 || $len > $maxFrameLen) {
+                $log->warning("Invalid EPP frame length $len from $clientIP");
+                $conn->close();
+                break 2;
+            }
+
+            if (strlen($buffer) < $len) {
+                break; // wait for more bytes
+            }
+
+            $frames[] = substr($buffer, 4, $len - 4);
+            $buffer   = substr($buffer, $len);
+        }
+
+        if (!$frames) {
+            continue;
+        }
+
+        $pdo = null;
         try {
             $pdo = $pool->get();
             if (!$pdo) {
                 $conn->close();
                 break;
             }
+
             $connId = spl_object_id($conn);
 
-            $chunk = $conn->recv();
-            if ($chunk === '' || $chunk === false) {
-                $conn->close();
-                break;
-            }
-            $buffer .= $chunk;
-
-            while (strlen($buffer) >= 4) {
-                $len = unpack('N', substr($buffer, 0, 4))[1];
-                if ($len < 5 || $len > $maxFrameLen) {
-                    $log->warning("Invalid EPP frame length $len from $clientIP");
-                    sendEppError($conn, $pdo, 2000, 'Invalid frame length');
-                    $conn->close();
-                    break 2;
-                }
-                if (strlen($buffer) < $len) {
-                    break;
-                }
-
-                $xmlData = substr($buffer, 4, $len - 4);
-                $buffer  = substr($buffer, $len);
-
+            foreach ($frames as $xmlData) {
                 libxml_use_internal_errors(true);
+
                 $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
                 if ($xml === false) {
                     sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
@@ -725,12 +734,24 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                 }
             }
         } catch (PDOException $e) {
-            $log->alert('Database error: ' . $e->getMessage());
+            $errorInfo = $e->errorInfo ?? [];
+            $sqlState  = $errorInfo[0] ?? 'n/a';
+            $driverCode = $errorInfo[1] ?? 'n/a';
 
-            if (in_array($e->getCode(), [2002, 2006, 2013])) {
+            $log->alert('Database error: ' . $e->getMessage() .
+                ' | code=' . $e->getCode() .
+                ' | sqlstate=' . $sqlState .
+                ' | driverCode=' . $driverCode .
+                ' | file=' . $e->getFile() . ':' . $e->getLine());
+
+            if (in_array((int)($e->errorInfo[1] ?? 0), [2002, 2003, 2006, 2013, 1047, 1053], true) || str_starts_with((string)($e->errorInfo[0] ?? $e->getCode()), '08')) {
                 try {
-                    // Attempt a reconnect
+                    $pdo = null;
                     $pdo = $pool->get();
+                    if (!$pdo) {
+                        throw new RuntimeException('PDOPool->get() returned null during reconnect');
+                    }
+                    $pdo->query('SELECT 1');
                     $log->info('Reconnected successfully to the DB');
                     sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
                     $conn->close();
