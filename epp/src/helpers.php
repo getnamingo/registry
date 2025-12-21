@@ -1110,6 +1110,10 @@ function normalizeDatetime($input) {
         return $input->format('Y-m-d H:i:s.v');
     }
 
+    if ($input === null) {
+        return null;
+    }
+
     $dt = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $input);
     return $dt ? $dt->format('Y-m-d H:i:s.v') : null;
 }
