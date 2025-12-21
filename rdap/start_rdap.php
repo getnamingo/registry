@@ -23,7 +23,7 @@ $pool = new Swoole\Database\PDOPool(
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
         ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
+        ->withCharset('utf8mb4'), 16
 );
 
 // Create a Swoole HTTP server
@@ -71,12 +71,57 @@ $http->on('request', function ($request, $response) use ($c, $pool, $log, $rateL
             $response->header('Content-Type', 'application/rdap+json');
             $response->status(429);
             $response->end(json_encode(['error' => 'Rate limit exceeded. Please try again later.']));
+            return;
         }
     }
 
     try {
         // Extract the request path
         $requestPath = $request->server['request_uri'];
+        
+        $method = strtoupper($request->server['request_method'] ?? 'GET');
+
+        if ($method === 'HEAD') {
+            $response->header('Access-Control-Allow-Origin', '*');
+            $response->header('Content-Type', 'application/rdap+json');
+
+            if (preg_match('#^/domain/([^/?]+)#', $requestPath, $m)) {
+                $domainName = $m[1];
+
+                $stmt = $pdo->prepare('SELECT 1 FROM domain WHERE name = ? LIMIT 1');
+                $stmt->execute([$domainName]);
+
+                $response->status($stmt->fetchColumn() ? 200 : 404);
+                $response->end('');
+                return;
+            }
+
+            if (preg_match('#^/entity/([^/?]+)#', $requestPath, $m)) {
+                $handle = $m[1];
+
+                $stmt = $pdo->prepare('SELECT 1 FROM registrar WHERE iana_id = ? LIMIT 1');
+                $stmt->execute([$handle]);
+
+                $response->status($stmt->fetchColumn() ? 200 : 404);
+                $response->end('');
+                return;
+            }
+
+            if (preg_match('#^/nameserver/([^/?]+)#', $requestPath, $m)) {
+                $ns = $m[1];
+
+                $stmt = $pdo->prepare('SELECT 1 FROM host WHERE name = ? LIMIT 1');
+                $stmt->execute([$ns]);
+
+                $response->status($stmt->fetchColumn() ? 200 : 404);
+                $response->end('');
+                return;
+            }
+
+            $response->status(404);
+            $response->end('');
+            return;
+        }
 
         // Handle domain query
         if (preg_match('#^/domain/([^/?]+)#', $requestPath, $matches)) {
@@ -538,6 +583,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         
         $abuseContactName = ($registrarAbuseDetails) ? $registrarAbuseDetails['first_name'] . ' ' . $registrarAbuseDetails['last_name'] : '';
         $rdapClean = rtrim(preg_replace('#^.*?//#', '', $registrarDetails['rdap_server'] ?? ''), '/');
+        $rdapClean = rtrim($rdapClean, '/') . '/';
 
         $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'handle'");
         $roid = $stmt->fetchColumn();
@@ -583,7 +629,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
                         [
                             "href" => 'https://' . $rdapClean,
                             "value" => 'https://' . $rdapClean,
-                            "rel" => "service",
+                            "rel" => "about",
                             "type" => "application/rdap+json"
                         ]
                     ],
