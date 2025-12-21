@@ -93,9 +93,12 @@ $pool = new Swoole\Database\PDOPool(
         ->withCharset('utf8mb4'), 16
 );
 
-//Swoole\Runtime::enableCoroutine();
-$server = new Server($c['epp_host'], $c['epp_port'], SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
-$server->addListener($c['epp_host_ipv6'], $c['epp_port'], SWOOLE_SOCK_TCP6 | SWOOLE_SSL);
+$server = new Server(
+    $c['epp_host'],
+    $c['epp_port'],
+    SWOOLE_PROCESS,
+    (($c['epp_host'] === '::') ? SWOOLE_SOCK_TCP6 : SWOOLE_SOCK_TCP) | SWOOLE_SSL
+);
 $server->set([
     'enable_coroutine' => true,
     'hook_flags' => SWOOLE_HOOK_ALL,
