@@ -2,8 +2,7 @@
 
 use Swoole\Table;
 use Swoole\Timer;
-use Swoole\Coroutine\Server;
-use Swoole\Coroutine\Server\Connection;
+use Swoole\Server;
 use Namingo\Rately\Rately;
 use Selective\XmlDSig\PublicKeyStore;
 use Selective\XmlDSig\CryptoVerifier;
@@ -25,6 +24,24 @@ require_once 'src/epp-delete.php';
 $logFilePath = '/var/log/namingo/epp.log';
 $log = setupLogger($logFilePath, 'EPP');
 
+set_error_handler(function ($severity, $message, $file, $line) use ($log) {
+    $log->error("PHP error [{$severity}] {$message} in {$file}:{$line}");
+    return false;
+});
+
+set_exception_handler(function ($e) use ($log) {
+    $log->error('Uncaught exception: ' . get_class($e) . ' | ' . $e->getMessage() .
+        ' in ' . $e->getFile() . ':' . $e->getLine() .
+        ' | trace: ' . $e->getTraceAsString());
+});
+
+register_shutdown_function(function () use ($log) {
+    $error = error_get_last();
+    if ($error !== null) {
+        $log->error('PHP shutdown error: ' . print_r($error, true));
+    }
+});
+
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
@@ -34,8 +51,8 @@ $permittedIPsTable = new Table(1024);
 $permittedIPsTable->column('addr', Table::TYPE_STRING, 64);
 $permittedIPsTable->create();
 
-$eppExtensionsTable = new Swoole\Table(64); // adjust size as needed
-$eppExtensionsTable->column('extension', Swoole\Table::TYPE_INT, 1); // Column name just for compliance
+$eppExtensionsTable = new Table(64);
+$eppExtensionsTable->column('extension', Table::TYPE_INT, 1);
 $eppExtensionsTable->create();
 $data = json_decode(@file_get_contents('/opt/registry/epp/extensions.json'), true);
 if (is_array($data)) {
@@ -75,16 +92,23 @@ $pool = new Swoole\Database\PDOPool(
         ->withCharset('utf8mb4'), 16
 );
 
-Swoole\Runtime::enableCoroutine();
-$server = new Server($c['epp_host'], $c['epp_port']);
+$server = new Server(
+    $c['epp_host'],
+    $c['epp_port'],
+    SWOOLE_PROCESS,
+    (($c['epp_host'] === '::') ? SWOOLE_SOCK_TCP6 : SWOOLE_SOCK_TCP) | SWOOLE_SSL
+);
 $server->set([
     'enable_coroutine' => true,
+    'hook_flags' => SWOOLE_HOOK_ALL,
     'log_file' => '/var/log/namingo/epp_application.log',
     'log_level' => SWOOLE_LOG_INFO,
-    'worker_num' => swoole_cpu_num() * 4,
+    'worker_num' => max(2, swoole_cpu_num()),
     'pid_file' => $c['epp_pid'],
     'max_request' => 1000,
     'max_conn' => 1024,
+    'reload_async' => true,
+    'max_wait_time' => 60,
     'open_tcp_nodelay' => true,
     'open_tcp_keepalive' => true,
     'tcp_keepidle' => 30,
@@ -93,13 +117,13 @@ $server->set([
     'tcp_defer_accept' => true,
     'tcp_fastopen' => true,
     'tcp_user_timeout' => 30000,
-    'ssl_handshake_timeout' => 15,
+    //'ssl_handshake_timeout' => 15,
     'heartbeat_check_interval' => 60,
     'heartbeat_idle_time' => 120,
     'buffer_output_size' => 2 * 1024 * 1024,
     'send_yield' => true,
-    'open_ssl' => true,
-    'ssl_client_cert_depth' => 1,
+    //'open_ssl' => true,
+    //'ssl_client_cert_depth' => 1,
     'ssl_cert_file' => $c['ssl_cert'],
     'ssl_key_file' => $c['ssl_key'],
     'ssl_verify_peer' => false,
@@ -107,22 +131,73 @@ $server->set([
     'ssl_client_cert_file' => '/etc/ssl/certs/ca-certificates.crt',
     'ssl_allow_self_signed' => false,
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
-    'ssl_ciphers' => 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE+AESGCM:ECDHE+AES256:ECDHE+AES128:DHE+AES256:DHE+AES128:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK',
+    'ssl_ciphers' => 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE+AESGCM:ECDHE+AES256:ECDHE+AES128:DHE+AES256:DHE+AES128:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK',
 ]);
 
 $rateLimiter = new Rately();
-$log->info('Namingo EPP server started');
-Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
-    updatePermittedIPs($pool, $permittedIPsTable);
-    if (count($permittedIPsTable) === 0) {
-        $log->warning('Permitted IPs table is empty after initial load; no EPP clients will be able to connect.');
+$log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
+$buffers = [];
+
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable) {
+    $conn = new class($serv, $fd) {
+        private $serv, $fd;
+        public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
+        public function send($data) { return $this->serv->send($this->fd, $data); }
+        public function close()     { return $this->serv->close($this->fd); }
+        public function exportSocket() { return $this->serv->getClientInfo($this->fd); }
+    };
+
+    sendGreeting($conn, $eppExtensionsTable);
+    
+    $info = $serv->getClientInfo($fd);
+    $clientIP = isset($info['remote_ip'])
+        ? (strpos($info['remote_ip'], '::ffff:') === 0
+            ? substr($info['remote_ip'], 7)
+            : $info['remote_ip'])
+        : '';
+    if (isIPv6($clientIP)) {
+        $clientIP = expandIPv6($clientIP);
     }
+    $log->info("client #{$fd} connected from {$clientIP}");
 });
 
-$server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter) {
+$server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $log) {
+    Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
+        try {
+            updatePermittedIPs($pool, $permittedIPsTable);
+            if (count($permittedIPsTable) === 0) {
+                $log->warning('Permitted IPs table is empty after initial load.');
+            }
+        } catch (\Throwable $e) {
+            $log->error('updatePermittedIPs (initial) failed: ' . $e->getMessage());
+        }
+    });
+
+    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $log) {
+        try {
+            updatePermittedIPs($pool, $permittedIPsTable);
+        } catch (\Throwable $e) {
+            $log->error('updatePermittedIPs (timer) failed: ' . $e->getMessage());
+        }
+    });
+});
+
+$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter, &$buffers) {
+    $conn = new class($serv, $fd) {
+        private $serv; private $fd;
+        public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
+        public function send($data) { return $this->serv->send($this->fd, $data); }
+        public function close() { return $this->serv->close($this->fd); }
+        public function exportSocket() { return $this->serv->getClientInfo($this->fd); }
+    };
+
     // Get the client information
-    $clientInfo = $conn->exportSocket()->getpeername();
-    $clientIP = isset($clientInfo['address']) ? (strpos($clientInfo['address'], '::ffff:') === 0 ? substr($clientInfo['address'], 7) : $clientInfo['address']) : '';
+    $clientInfo = $serv->getClientInfo($fd);
+    $clientIP = isset($clientInfo['remote_ip'])
+        ? (strpos($clientInfo['remote_ip'], '::ffff:') === 0
+            ? substr($clientInfo['remote_ip'], 7)
+            : $clientInfo['remote_ip'])
+        : '';
     if (isIPv6($clientIP)) {
         $clientIP = expandIPv6($clientIP);
     }
@@ -149,175 +224,171 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
         return;
     }
 
-    $log->info('new client from ' . $clientIP . ' connected');
-    sendGreeting($conn, $eppExtensionsTable);
+    $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
 
-    $buffer = '';
+    $connId = $fd;
+    $buffer =& $buffers[$fd];
     $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
 
-    while (true) {
-        $chunk = $conn->recv();
-        if ($chunk === '' || $chunk === false) {
+    $frames = [];
+    while (strlen($buffer) >= 4) {
+        $len = unpack('N', substr($buffer, 0, 4))[1];
+
+        if ($len < 5 || $len > $maxFrameLen) {
+            $log->warning("Invalid EPP frame length $len from $clientIP (fd=$fd)");
             $conn->close();
+            unset($buffers[$fd]);
+            return;
+        }
+
+        if (strlen($buffer) < $len) {
             break;
         }
-        $buffer .= $chunk;
 
-        $frames = [];
-        while (strlen($buffer) >= 4) {
-            $len = unpack('N', substr($buffer, 0, 4))[1];
+        $frames[] = substr($buffer, 4, $len - 4);
+        $buffer   = substr($buffer, $len);
+    }
 
-            if ($len < 5 || $len > $maxFrameLen) {
-                $log->warning("Invalid EPP frame length $len from $clientIP");
-                $conn->close();
-                break 2;
-            }
+    if (!$frames) {
+        return;
+    }
 
-            if (strlen($buffer) < $len) {
-                break; // wait for more bytes
-            }
+    $pdo = null;
 
-            $frames[] = substr($buffer, 4, $len - 4);
-            $buffer   = substr($buffer, $len);
+    try {
+        $pdo = $pool->get(1.0);
+
+        if (!$pdo) {
+            $log->alert("PDOPool->get() returned null/false for fd={$fd} ip={$clientIP}");
+            $conn->close();
+            unset($buffers[$fd]);
+            return;
         }
 
-        if (!$frames) {
-            continue;
-        }
-
-        $pdo = null;
-        try {
-            $pdo = $pool->get();
-            if (!$pdo) {
-                $conn->close();
-                break;
+        foreach ($frames as $xmlData) {
+            libxml_use_internal_errors(true);
+            libxml_clear_errors();
+            $xml = simplexml_load_string(
+                $xmlData,
+                'SimpleXMLElement',
+                LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING
+            );
+            if ($xml === false) {
+                sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
+                return;
             }
 
-            $connId = spl_object_id($conn);
+            $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
+            $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+            $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
+            $xml->registerXPathNamespace('contact', 'urn:ietf:params:xml:ns:contact-1.0');
+            $xml->registerXPathNamespace('host', 'urn:ietf:params:xml:ns:host-1.0');
+            $xml->registerXPathNamespace('rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
+            $xml->registerXPathNamespace('secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
+            $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
+            $xml->registerXPathNamespace('fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
+            $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+            $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
+            $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
+            $xml->registerXPathNamespace('identica', 'https://namingo.org/epp/identica-1.0');
 
-            foreach ($frames as $xmlData) {
-                libxml_use_internal_errors(true);
+            if ($xml->getName() != 'epp') {
+                sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
+                return;
+            }
 
-                $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
-                if ($xml === false) {
-                    sendEppError($conn, $pdo, 2001, 'Invalid XML syntax');
-                    continue;
-                }
+            switch (true) {
+                case isset($xml->command->login):
+                {
+                    $clID = (string) $xml->command->login->clID;
+                    $pw = (string) $xml->command->login->pw;
+                    $clTRID = (string) $xml->command->clTRID;
+                    $clid = getClid($pdo, $clID);
+                    if (!$clid) {
+                        sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
+                        return;
+                    }
+                    $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
 
-                $xml->registerXPathNamespace('e', 'urn:ietf:params:xml:ns:epp-1.0');
-                $xml->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
-                $xml->registerXPathNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
-                $xml->registerXPathNamespace('contact', 'urn:ietf:params:xml:ns:contact-1.0');
-                $xml->registerXPathNamespace('host', 'urn:ietf:params:xml:ns:host-1.0');
-                $xml->registerXPathNamespace('rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
-                $xml->registerXPathNamespace('secDNS', 'urn:ietf:params:xml:ns:secDNS-1.1');
-                $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
-                $xml->registerXPathNamespace('fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
-                $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
-                $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
-                $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
-                $xml->registerXPathNamespace('identica', 'https://namingo.org/epp/identica-1.0');
+                    $loginSecPw = null;
+                    $loginSecNewPw = null;
 
-                if ($xml->getName() != 'epp') {
-                    sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
-                    continue;
-                }
-
-                switch (true) {
-                    case isset($xml->command->login):
-                    {
-                        $clID = (string) $xml->command->login->clID;
-                        $pw = (string) $xml->command->login->pw;
-                        $clTRID = (string) $xml->command->clTRID;
-                        $clid = getClid($pdo, $clID);
-                        if (!$clid) {
-                            sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
-                            break;
+                    if ($loginSec) {
+                        if (isset($loginSec->pw)) {
+                            $loginSecPw = (string) $loginSec->pw;
                         }
-                        $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
+                        if (isset($loginSec->newPW)) {
+                            $loginSecNewPw = (string) $loginSec->newPW;
+                        }
+                    }
 
-                        $loginSecPw = null;
-                        $loginSecNewPw = null;
+                    if ($pw === '[LOGIN-SECURITY]' && $loginSecPw) {
+                        $pw = $loginSecPw;
+                    }
 
-                        if ($loginSec) {
-                            if (isset($loginSec->pw)) {
-                                $loginSecPw = (string) $loginSec->pw;
+                    if (!$loginSec && strlen($pw) > 16) {
+                        sendEppError(
+                            $conn,
+                            $pdo,
+                            2306,
+                            'Password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
+                            $clTRID
+                        );
+                        break;
+                    }
+
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+
+                    if (!empty($c['mandatory_client_ssl'])) {
+                        $fingerprint = getClientFingerprint($serv, $fd);
+
+                        if (!$fingerprint) {
+                            sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: no certificate provided', $clTRID);
+                            return;
+                        }
+
+                        $storedFingerprint = getFingerprint($pdo, $clid);
+
+                        if (!$storedFingerprint || strcasecmp($fingerprint, $storedFingerprint) !== 0) {
+                            sendEppError($conn, $pdo, 2201, 'Client certificate authentication failed: incorrect certificate', $clTRID);
+                            return;
+                        }
+                    }
+
+                    if (checkLogin($pdo, $clID, $pw)) {
+                        if (isset($xml->command->login->newPW)) {
+                            $newPW = (string) $xml->command->login->newPW;
+                            if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
+                                $newPW = $loginSecNewPw;
                             }
-                            if (isset($loginSec->newPW)) {
-                                $loginSecNewPw = (string) $loginSec->newPW;
-                            }
-                        }
-                        
-                        if ($pw === '[LOGIN-SECURITY]' && $loginSecPw) {
-                            $pw = $loginSecPw;
-                        }
-
-                        if (!$loginSec && strlen($pw) > 16) {
-                            sendEppError(
-                                $conn,
-                                $pdo,
-                                2306,
-                                'Password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
-                                $clTRID
-                            );
-                            break;
-                        }
-
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-
-                        if (checkLogin($pdo, $clID, $pw)) {
-                            if (isset($xml->command->login->newPW)) {
-                                $newPW = (string) $xml->command->login->newPW;
-                                if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
-                                    $newPW = $loginSecNewPw;
-                                }
-                                if (!$loginSec && strlen($newPW) > 16) {
-                                    sendEppError(
-                                        $conn,
-                                        $pdo,
-                                        2306,
-                                        'New password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
-                                        $clTRID
-                                    );
-                                    break;
-                                }
-                                $options = [
-                                    'memory_cost' => 1024 * 128,
-                                    'time_cost'   => 6,
-                                    'threads'     => 4,
-                                ];
-                                $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
-                                try {
-                                    $stmt = $pdo->prepare("UPDATE registrar SET pw = :newPW WHERE clid = :clID");
-                                    $stmt->bindParam(':newPW', $hashedPassword);
-                                    $stmt->bindParam(':clID', $clID);
-                                    $stmt->execute();
-                                } catch (PDOException $e) {
-                                    $log->error('Password change DB error for ' . $clID . ': ' . $e->getMessage());
-                                    sendEppError($conn, $pdo, 2400, 'Password could not be changed', $clTRID);
-                                    break;
-                                }
-
-                                $svTRID = generateSvTRID();
-                                $response = [
-                                    'command' => 'login',
-                                    'resultCode' => 1000,
-                                    'lang' => 'en-US',
-                                    'clTRID' => $clTRID,
-                                    'svTRID' => $svTRID,
-                                    'msg' => 'Password changed successfully. Session will be terminated'
-                                ];
-
-                                $epp = new EPP\EppWriter();
-                                $xml = $epp->epp_writer($response);
-                                updateTransaction($pdo, 'login', null, null, 1000, 'Password changed successfully. Session will be terminated', $svTRID, $xml, $trans);
-                                sendEppResponse($conn, $xml);
-                                $conn->close();
+                            if (!$loginSec && strlen($newPW) > 16) {
+                                sendEppError(
+                                    $conn,
+                                    $pdo,
+                                    2306,
+                                    'New password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
+                                    $clTRID
+                                );
                                 break;
                             }
-                            
-                            $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                            $options = [
+                                'memory_cost' => 1024 * 128,
+                                'time_cost'   => 6,
+                                'threads'     => 4,
+                            ];
+                            $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
+                            try {
+                                $stmt = $pdo->prepare("UPDATE registrar SET pw = :newPW WHERE clid = :clID");
+                                $stmt->bindParam(':newPW', $hashedPassword);
+                                $stmt->bindParam(':clID', $clID);
+                                $stmt->execute();
+                            } catch (PDOException $e) {
+                                $log->error('Password change DB error for ' . $clID . ': ' . $e->getMessage());
+                                sendEppError($conn, $pdo, 2400, 'Password could not be changed', $clTRID);
+                                break;
+                            }
+
                             $svTRID = generateSvTRID();
                             $response = [
                                 'command' => 'login',
@@ -325,37 +396,22 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                                 'lang' => 'en-US',
                                 'clTRID' => $clTRID,
                                 'svTRID' => $svTRID,
+                                'msg' => 'Password changed successfully. Session will be terminated'
                             ];
 
                             $epp = new EPP\EppWriter();
                             $xml = $epp->epp_writer($response);
-                            $log->info('registrar ' . $clID . ' logged in');
-                            updateTransaction($pdo, 'login', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+                            updateTransaction($pdo, 'login', null, null, 1000, 'Password changed successfully. Session will be terminated', $svTRID, $xml, $trans);
                             sendEppResponse($conn, $xml);
-                        } else {
-                            sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
-                        }
-                        break;
-                    }
-
-                    case isset($xml->command->logout):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                             $conn->close();
-                            break;
+                            return;
                         }
-                        $clID = $data['clid'];
-                        $clid = getClid($pdo, $clID);
-                        $table->del($connId);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                        
+                        $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
                         $svTRID = generateSvTRID();
                         $response = [
-                            'command' => 'logout',
-                            'resultCode' => 1500,
+                            'command' => 'login',
+                            'resultCode' => 1000,
                             'lang' => 'en-US',
                             'clTRID' => $clTRID,
                             'svTRID' => $svTRID,
@@ -363,435 +419,484 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
 
                         $epp = new EPP\EppWriter();
                         $xml = $epp->epp_writer($response);
-                        $log->info('registrar ' . $clID . ' logged out');
-                        updateTransaction($pdo, 'logout', null, null, 1500, 'Command completed successfully; ending session', $svTRID, $xml, $trans);
+                        $log->info("registrar {$clID} logged in (clTRID={$clTRID})");
+                        updateTransaction($pdo, 'login', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
                         sendEppResponse($conn, $xml);
+                    } else {
+                        sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
+                    }
+                    return;
+                }
+
+                case isset($xml->command->logout):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
                         $conn->close();
                         break;
                     }
-                    
-                    case isset($xml->hello):
-                    {
-                        sendGreeting($conn, $eppExtensionsTable);
-                        break;
-                    }
-                    
-                    case isset($xml->command->poll):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processPoll($conn, $pdo, $xml, $data['clid'], $trans);
-                        break;
-                    }
-              
-                    case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactCheck($conn, $pdo, $xml, $trans);
-                        break;
-                    }
-              
-                    case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-              
-                    case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:contact-1.0')->update):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        if ($c['minimum_data']) {
-                            sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        processContactTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
-                        break;
-                    }
-                
-                    case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
-                        break;
-                    }
+                    $clID = $data['clid'];
+                    $clid = getClid($pdo, $clID);
+                    $table->del($connId);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    $svTRID = generateSvTRID();
+                    $response = [
+                        'command' => 'logout',
+                        'resultCode' => 1500,
+                        'lang' => 'en-US',
+                        'clTRID' => $clTRID,
+                        'svTRID' => $svTRID,
+                    ];
 
-                    case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainInfo($conn, $pdo, $xml, $clid, $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
-                        break;
-                    }
-                    
-                    case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processHostCheck($conn, $pdo, $xml, $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processHostCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processHostInfo($conn, $pdo, $xml, $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processHostUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processHostDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
-                        break;
-                    }
-                    
-                    case isset($xml->command->renew) && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew):
-                    {
-                        $data = $table->get($connId);
-                        $clTRID = (string) $xml->command->clTRID;
-                        if (!$data || $data['logged_in'] !== 1) {
-                            sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
-                            $conn->close();
-                            break;
-                        }
-                        $clid = getClid($pdo, $data['clid']);
-                        $xmlString = $xml->asXML();
-                        $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainRenew($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
-                        break;
-                    }
-              
-                    default:
-                    {
-                        sendEppError($conn, $pdo, 2101, 'Unimplemented command');
-                        break;
-                    }
-                }
-            }
-        } catch (PDOException $e) {
-            $errorInfo = $e->errorInfo ?? [];
-            $sqlState  = $errorInfo[0] ?? 'n/a';
-            $driverCode = $errorInfo[1] ?? 'n/a';
-
-            $log->alert('Database error: ' . $e->getMessage() .
-                ' | code=' . $e->getCode() .
-                ' | sqlstate=' . $sqlState .
-                ' | driverCode=' . $driverCode .
-                ' | file=' . $e->getFile() . ':' . $e->getLine());
-
-            if (in_array((int)($e->errorInfo[1] ?? 0), [2002, 2003, 2006, 2013, 1047, 1053], true) || str_starts_with((string)($e->errorInfo[0] ?? $e->getCode()), '08')) {
-                try {
-                    $pdo = null;
-                    $pdo = $pool->get(1.0);
-                    if (!$pdo) {
-                        throw new RuntimeException('PDOPool->get() returned null during reconnect');
-                    }
-                    $pdo->query('SELECT 1');
-                    $log->info('Reconnected successfully to the DB');
-                    sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
+                    $epp = new EPP\EppWriter();
+                    $xml = $epp->epp_writer($response);
+                    $log->info("registrar {$data['clid']} logged out (clTRID={$clTRID})");
+                    updateTransaction($pdo, 'logout', null, null, 1500, 'Command completed successfully; ending session', $svTRID, $xml, $trans);
+                    sendEppResponse($conn, $xml);
                     $conn->close();
                     return;
-                } catch (Throwable $e2) {
-                    // If reconnect also fails, log and close
-                    $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
-                    sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
-                    $conn->close();
-                    $pdo = null;
-                    break;
                 }
-            } else {
-                $log->alert('Database error: ' . $e->getMessage());
-                sendEppError($conn, $pdo, 2500, 'Internal database error');
-                $conn->close();
-                break;
+                    
+                case isset($xml->hello):
+                {
+                    sendGreeting($conn, $eppExtensionsTable);
+                    return;
+                }
+                    
+                case isset($xml->command->poll):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processPoll($conn, $pdo, $xml, $data['clid'], $trans);
+                    return;
+                }
+              
+                case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:contact-1.0')->check):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactCheck($conn, $pdo, $xml, $trans);
+                    return;
+                }
+              
+                case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:contact-1.0')->create):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+              
+                case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:contact-1.0')->update):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:contact-1.0')->delete):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    if ($c['minimum_data']) {
+                        sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    processContactTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
+                    return;
+                }
+                
+                case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
+                    return;
+                }
+
+                case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainInfo($conn, $pdo, $xml, $clid, $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
+                    return;
+                }
+                    
+                case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:domain-1.0')->delete):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:host-1.0')->check):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processHostCheck($conn, $pdo, $xml, $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:host-1.0')->create):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processHostCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processHostInfo($conn, $pdo, $xml, $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->update) && isset($xml->command->update->children('urn:ietf:params:xml:ns:host-1.0')->update):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processHostUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->delete) && isset($xml->command->delete->children('urn:ietf:params:xml:ns:host-1.0')->delete):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processHostDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
+                    return;
+                }
+                    
+                case isset($xml->command->renew) && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = getClid($pdo, $data['clid']);
+                    $xmlString = $xml->asXML();
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    processDomainRenew($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    return;
+                }
+              
+                default:
+                {
+                    sendEppError($conn, $pdo, 2101, 'Unimplemented command');
+                    $conn->close();
+                    return;
+                }
             }
-        } catch (Throwable $e) {
-            // Catch any other exceptions or errors
-            $log->error('General Error: ' . $e->getMessage());
-            sendEppError($conn, $pdo ?: null, 2500, 'General error');
-            $conn->close();
-            break;
-        } finally {
-            if ($pdo) {
-                $pool->put($pdo);
+        }
+    } catch (PDOException $e) {
+        $errorInfo = $e->errorInfo ?? [];
+        $sqlState  = $errorInfo[0] ?? 'n/a';
+        $driverCode = $errorInfo[1] ?? 'n/a';
+
+        $log->alert('Database error: ' . $e->getMessage() .
+            ' | code=' . $e->getCode() .
+            ' | sqlstate=' . $sqlState .
+            ' | driverCode=' . $driverCode .
+            ' | file=' . $e->getFile() . ':' . $e->getLine());
+
+        if (in_array((int)($e->errorInfo[1] ?? 0), [2002, 2003, 2006, 2013, 1047, 1053], true) || str_starts_with((string)($e->errorInfo[0] ?? $e->getCode()), '08')) {
+            try {
                 $pdo = null;
+                $pdo = $pool->get();
+                if (!$pdo) {
+                    throw new RuntimeException('PDOPool->get() returned null during reconnect');
+                }
+                $pdo->query('SELECT 1');
+                $log->info('Reconnected successfully to the DB');
+                sendEppError($conn, $pdo, 2400, 'Temporary DB error: please retry this command shortly');
+                $conn->close();
+                return;
+            } catch (Throwable $e2) {
+                // If reconnect also fails, log and close
+                $log->error('Failed to reconnect to DB: ' . $e2->getMessage());
+                sendEppError($conn, null, 2500, 'Error connecting to the EPP database');
+                $conn->close();
+                $pdo = null;
+                return;
             }
+        } else {
+            $log->alert('Database error: ' . $e->getMessage());
+            sendEppError($conn, $pdo, 2500, 'Internal database error');
+            $conn->close();
+            return;
+        }
+    } catch (Throwable $e) {
+        // Catch any other exceptions or errors
+        $log->error('General Error: ' . $e->getMessage());
+        sendEppError($conn, $pdo ?: null, 2500, 'General error');
+        $conn->close();
+        return;
+    } finally {
+        if ($pdo) {
+            $pool->put($pdo);
+            $pdo = null;
         }
     }
 
-    $log->info('client from ' . $clientIP . ' disconnected');
-    $conn->close();
 });
 
-Swoole\Coroutine::create(function () use ($server) {
-    $server->start();
+$server->on('WorkerError', function (Server $server, int $workerId, int $workerPid, int $exitCode, int $signal) use ($log) {
+    $log->error("WorkerError: id=$workerId pid=$workerPid exitCode=$exitCode signal=$signal");
 });
 
-Timer::tick(300000, function() use ($pool, $permittedIPsTable) {
-    updatePermittedIPs($pool, $permittedIPsTable);
+$server->on('Close', function(Server $serv, int $fd) use ($log, $table, &$buffers) {
+    $table->del($fd);
+    unset($buffers[$fd]);
+    $log->info("client #{$fd} disconnected");
 });
+
+$server->on('Shutdown', function(Server $server) use ($log) {
+    $log->info('EPP server is shutting down');
+});
+
+$server->on('Start', function (Server $server) use ($log) {
+    $log->info('EPP server started');
+
+    Swoole\Process::signal(SIGINT, function() use ($server, $log) {
+        $log->info('SIGINT received, shutting down...');
+        $server->shutdown();
+    });
+});
+
+$server->start();

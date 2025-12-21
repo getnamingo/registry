@@ -359,44 +359,9 @@ php icann_mosapi.php
 
 ## 11. ICANN RST
 
-### 11.1. EPP Server Startup
+### 11.1. EPP Server Configuration
 
-Two launch variants are available:
-
-- **start_epp.php**  
-  The default EPP server using `Swoole\Coroutine\Server`. Currently recommended for default installation.
-
-- **start_epp_alt.php**  
-  An alternate server implementation using `Swoole\Server` (non-coroutine listener with coroutine workers). This version is fully compatible with ICANN RST and may become the default in future releases.
-
-  If you wish to use this version in place of the current one:
-
-  1. Move the existing `start_epp.php` to a backup location:
-     ```bash
-     mv start_epp.php start_epp.php.bak
-     ```
-  2. Rename `start_epp_alt.php` to become the main entry point:
-     ```bash
-     mv start_epp_alt.php start_epp.php
-     ```
-  3. In your `config.php`, ensure the following are set correctly:
-     ```php
-     'epp_host' => 'your IPv4 address',
-     'epp_host_ipv6' => 'your IPv6 address',
-     ```
-  4. Restart the EPP server service:
-     ```bash
-     service epp stop
-     service epp start
-     ```
-
-  After this, your server will be running the RST-compatible implementation under the default name.
-
-Both versions share the same logic and configuration. Choose based on your integration requirements.
-
-### 11.2. EPP Server Configuration
-
-#### 11.2.1. Modify `/opt/registry/epp/extensions.json`
+#### 11.1.1. Modify `/opt/registry/epp/extensions.json`
 
 Ensure the following EPP extensions are **disabled** (i.e., `"enabled": false`) or **enabled** where noted:
 
@@ -424,13 +389,15 @@ Ensure the following EPP extensions are **disabled** (i.e., `"enabled": false`) 
 }
 ```
 
-#### 11.2.2. Modify `/opt/registry/epp/config.php`
+#### 11.1.2. Modify `/opt/registry/epp/config.php`
 
-Ensure the following configuration options are present and set to `true`. If the keys do not exist, add them:
+Ensure the following configuration options are present and set as indicated below. If the keys do not exist, add them:
 
 ```php
 <?php
 ...
+    'ns_mode' => 'hostObj', // 'hostObj' | 'hostAttr'
+
     // Enforce TLS client certificate validation
     'mandatory_client_ssl' => true,
 
