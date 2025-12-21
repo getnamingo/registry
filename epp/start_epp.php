@@ -173,11 +173,16 @@ $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $
         }
     });
 
-    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $log) {
+    $refreshing = false;
+    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $log, &$refreshing) {
+        if ($refreshing) return;
+        $refreshing = true;
         try {
             updatePermittedIPs($pool, $permittedIPsTable);
         } catch (\Throwable $e) {
             $log->error('updatePermittedIPs (timer) failed: ' . $e->getMessage());
+        } finally {
+            $refreshing = false;
         }
     });
 });

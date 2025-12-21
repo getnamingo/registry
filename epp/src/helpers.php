@@ -685,15 +685,26 @@ function dnssec_key2ds($owner, $flags, $protocol, $algorithm, $publickey) {
 }
 
 // Function to update the permitted IPs from the database
-function updatePermittedIPs($pool, $permittedIPsTable) {
-    $pdo = $pool->get();
-    $query = "SELECT addr FROM registrar_whitelist";
-    $stmt = $pdo->query($query);
-    $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-    $stmt->closeCursor();
-    $pool->put($pdo);
+function updatePermittedIPs($pool, $permittedIPsTable): void {
+    $pdo = null;
 
-    // Manually clear the table by removing each entry
+    try {
+        $pdo = $pool->get(1.0);
+        if (!$pdo) {
+            throw new RuntimeException('PDOPool->get() returned null in updatePermittedIPs');
+        }
+
+        $stmt = $pdo->query("SELECT addr FROM registrar_whitelist");
+        $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        $stmt->closeCursor();
+    } finally {
+        if ($pdo) {
+            $pool->put($pdo);
+            $pdo = null;
+        }
+    }
+
+    // Clear table
     foreach ($permittedIPsTable as $key => $value) {
         $permittedIPsTable->del($key);
     }
