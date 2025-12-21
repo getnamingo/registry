@@ -119,11 +119,16 @@ composer_update "/opt/registry/epp"
 EPP_CONFIG="/opt/registry/epp/config.php"
 
 echo "Patching EPP config..."
-if ! grep -q "epp_max_frame" "$EPP_CONFIG"; then
-    sed -i "/'minimum_data' *=> */a\    'epp_max_frame' => 4 * 1024 * 1024, // 4 MB" "$EPP_CONFIG"
+if ! grep -q "'ns_mode'" "$EPP_CONFIG"; then
+    sed -i "/'minimum_data' *=> */a\    'ns_mode' => 'hostObj', // 'hostObj' | 'hostAttr'" "$EPP_CONFIG"
 fi
 
 echo "EPP config updated successfully."
+
+cp -f /opt/registry/docs/epp.service /etc/systemd/system/epp.service
+
+systemctl daemon-reload
+systemctl enable --now epp.service
 
 # Check the Linux distribution and version
 if [[ -e /etc/os-release ]]; then
@@ -151,7 +156,7 @@ php /var/www/cp/bin/file_cache.php
 
 # Start services
 echo "Starting services..."
-systemctl start epp
+#systemctl start epp
 systemctl start whois
 systemctl start rdap
 systemctl start das
