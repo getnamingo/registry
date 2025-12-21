@@ -96,7 +96,10 @@ After installation, be sure to review all the guides in the Documentation sectio
 ### Updating
 
 To update, you **must run the update scripts sequentially** without skipping versions.  
-For example, if you're on **v1.0.21** and the latest is **v1.0.23**, first update to **v1.0.22**, then to **v1.0.23**.
+For example, if you're on **v1.0.22** and the latest is **v1.0.24**, first update to **v1.0.23**, then to **v1.0.24**.
+
+- **v1.0.23 → v1.0.24**  
+  Download and run the [`update1024.sh`](docs/update1024.sh) script.
 
 - **v1.0.22 → v1.0.23**  
   Download and run the [`update1023sh`](docs/update1023sh.sh) script.
@@ -104,9 +107,6 @@ For example, if you're on **v1.0.21** and the latest is **v1.0.23**, first updat
 - **v1.0.21 → v1.0.22**  
   Download and run the [`update1022.sh`](docs/update1022.sh) script.
   
-- **v1.0.20 → v1.0.21**  
-  Download and run the [`update1021.sh`](docs/update1021.sh) script.
-
 For **older versions**, please refer to [`update.md`](docs/update.md).
 
 ### [Configuration Guide](docs/configuration.md) [Required]

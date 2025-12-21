@@ -177,7 +177,7 @@ ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
 # --- Clone registry source code ---
 echo "Cloning registry source code..."
-git clone --branch v1.0.23 --single-branch https://github.com/getnamingo/registry /opt/registry
+git clone --branch v1.0.24 --single-branch https://github.com/getnamingo/registry /opt/registry
 
 # --- Firewall configuration using ufw ---
 echo "Configuring firewall rules..."

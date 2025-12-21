@@ -1,8 +1,10 @@
 # Namingo Update Guide
 
-## v1.0.0 to v1.0.23
+## v1.0.0 to v1.0.24
 
-To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.21 and the latest is v1.0.23, first update to v1.0.22, then to v1.0.23.
+To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.22 and the latest is v1.0.24, first update to v1.0.23, then to v1.0.24.
+
+- v1.0.23 to v1.0.24 - download and run the [update1024.sh](update1024.sh) script.
 
 - v1.0.22 to v1.0.23 - download and run the [update1023.sh](update1023.sh) script.
 
