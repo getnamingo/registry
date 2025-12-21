@@ -1148,33 +1148,42 @@ function validateTcnId(string $domain, string $noticeId, string $notAfterUtc): b
     return hash_equals($tcnChecksum, $crc32Hex);
 }
 
-function extractDomainFromHost(string $hostname, array $tlds): ?string {
+function extractDomainFromHost(string $hostname, array $tlds): ?string
+{
     $hostname = strtolower(trim($hostname, " .\t\n\r\0\x0B"));
-    $labels   = explode('.', $hostname);
-
+    $labels = array_values(array_filter(explode('.', $hostname), fn($x) => $x !== ''));
     if (count($labels) < 2) {
         return null;
     }
 
+    $best = null;
+    $bestTldLabels = -1;
+
     foreach ($tlds as $tld) {
-        $tld = strtolower(ltrim($tld, '.'));
+        $tld = strtolower(ltrim(trim($tld), '.'));
+        if ($tld === '') continue;
 
-        // hostname must end with .tld
-        if (str_ends_with($hostname, '.' . $tld)) {
-            $hostLabels = explode('.', $hostname);
-            $tldLabels  = explode('.', $tld);
+        $tldLabels = explode('.', $tld);
+        $k = count($tldLabels);                 // labels in TLD
+        $need = $k + 1;                         // registrable domain = 1 label + TLD labels
 
-            // need at least one label above the TLD
-            if (count($hostLabels) <= count($tldLabels)) {
-                return null;
+        if (count($labels) < $need) {
+            continue;
+        }
+
+        // Does hostname end with this TLD?
+        $suffix = array_slice($labels, -$k);
+        if ($suffix === $tldLabels) {
+            // candidate superordinate = last (k+1) labels
+            $candidate = implode('.', array_slice($labels, -$need));
+
+            // pick the most specific TLD (largest k)
+            if ($k > $bestTldLabels) {
+                $bestTldLabels = $k;
+                $best = $candidate;
             }
-
-            // remove first label (host name)
-            array_shift($hostLabels);
-
-            return implode('.', $hostLabels);
         }
     }
 
-    return null;
+    return $best; // null if not under our TLD list
 }

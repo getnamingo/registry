@@ -952,6 +952,11 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
         $chg_clid = null;
         if ($is_in_bailiwick) {
+            if ($chg_domain === null || $chg_domain === '') {
+                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
+                return;
+            }
+
             $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
             $stmt->execute([$chg_domain]);
             $chg_clid = $stmt->fetchColumn();
@@ -962,7 +967,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 return;
             }
 
-            if ($chg_clid !== $clid) {
+            if ((int)$chg_clid !== (int)$clid) {
                 sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
                 return;
             }
@@ -974,7 +979,9 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $domain_name = $stmt->fetchColumn();
             $stmt->closeCursor();
 
-            if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
+            $new_is_subordinate_of_old_domain = preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name));
+
+            if (!$is_in_bailiwick || !$new_is_subordinate_of_old_domain) {
                 $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
                 $stmt->execute([$host_id]);
             }
@@ -987,7 +994,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->closeCursor();
 
         if ($chg_name_id && (int)$chg_name_id !== (int)$host_id) {
-            sendEppError($conn, $db, 2306, 'If it already exists, then we can\'t change it', $clTRID, $trans);
+            sendEppError($conn, $db, 2302, 'Host name already exists', $clTRID, $trans);
             return;
         }
 
@@ -997,7 +1004,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             INNER JOIN domain AS d ON (d.id = dhm.domain_id AND d.clid != h.clid)
             WHERE h.id = ? AND h.domain_id IS NULL
             LIMIT 1");
-        $stmt->execute([$hostId]);
+        $stmt->execute([$host_id]);
         $domain_host_map_id = $stmt->fetchColumn();
         $stmt->closeCursor();
 
