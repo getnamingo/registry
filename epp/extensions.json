@@ -11,9 +11,6 @@
   "urn:ietf:params:xml:ns:epp:fee-1.0": {
     "enabled": true
   },
-  "urn:ietf:params:xml:ns:secDNS-1.1": {
-    "enabled": true
-  },
   "urn:ietf:params:xml:ns:allocationToken-1.0": {
     "enabled": true
   },
