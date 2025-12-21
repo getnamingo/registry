@@ -24,6 +24,24 @@ require_once 'src/epp-delete.php';
 $logFilePath = '/var/log/namingo/epp.log';
 $log = setupLogger($logFilePath, 'EPP');
 
+set_error_handler(function ($severity, $message, $file, $line) use ($log) {
+    $log->error("PHP error [{$severity}] {$message} in {$file}:{$line}");
+    return false;
+});
+
+set_exception_handler(function ($e) use ($log) {
+    $log->error('Uncaught exception: ' . get_class($e) . ' | ' . $e->getMessage() .
+        ' in ' . $e->getFile() . ':' . $e->getLine() .
+        ' | trace: ' . $e->getTraceAsString());
+});
+
+register_shutdown_function(function () use ($log) {
+    $error = error_get_last();
+    if ($error !== null) {
+        $log->error('PHP shutdown error: ' . print_r($error, true));
+    }
+});
+
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('logged_in', Table::TYPE_INT, 1);
@@ -101,6 +119,11 @@ $server->set([
     'heartbeat_idle_time' => 120,
     'buffer_output_size' => 2 * 1024 * 1024,
     'send_yield' => true,
+    'open_length_check'     => true,
+    'package_length_type'   => 'N',
+    'package_length_offset' => 0,
+    'package_body_offset'   => 0,
+    'package_max_length'    => $c['epp_max_frame'] ?? (4 * 1024 * 1024),
     //'open_ssl' => true,
     //'ssl_client_cert_depth' => 1,
     'ssl_cert_file' => $c['ssl_cert'],
@@ -115,9 +138,35 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
-$buffers = [];
 
-$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable) {
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable) {
+    // Get the client information
+    $clientInfo = $serv->getClientInfo($fd);
+    $clientIP = isset($clientInfo['remote_ip'])
+        ? (strpos($clientInfo['remote_ip'], '::ffff:') === 0
+            ? substr($clientInfo['remote_ip'], 7)
+            : $clientInfo['remote_ip'])
+        : '';
+    if (isIPv6($clientIP)) {
+        $clientIP = expandIPv6($clientIP);
+    }
+
+    // Check if the IP is in the permitted list
+    if (!$permittedIPsTable->exist($clientIP)) {
+        $allowed = false;
+        foreach ($permittedIPsTable as $row) {
+            if (strpos($row['addr'], '/') !== false && ipMatches($clientIP, $row['addr'])) {
+                $allowed = true;
+                break;
+            }
+        }
+        if (!$allowed) {
+            $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
+            $serv->close();
+            return;
+        }
+    }
+    
     $conn = new class($serv, $fd) {
         private $serv, $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -153,7 +202,7 @@ $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $
     });
 });
 
-$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter, &$buffers) {
+$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $rateLimiter) {
     $conn = new class($serv, $fd) {
         private $serv; private $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -173,70 +222,46 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         $clientIP = expandIPv6($clientIP);
     }
 
-    // Check if the IP is in the permitted list
-    if (!$permittedIPsTable->exist($clientIP)) {
-        $allowed = false;
-        foreach ($permittedIPsTable as $row) {
-            if (strpos($row['addr'], '/') !== false && ipMatches($clientIP, $row['addr'])) {
-                $allowed = true;
-                break;
-            }
-        }
-        if (!$allowed) {
-            $log->warning('Access denied. The IP address ' . $clientIP . ' is not authorized for this service.');
-            $conn->close();
-            return;
-        }
-    }
-
     if (($c['rately'] == true) && ($rateLimiter->isRateLimited('epp', $clientIP, $c['limit'], $c['period']))) {
         $log->error('rate limit exceeded for ' . $clientIP);
         $conn->close();
         return;
     }
 
-    $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
-
     $connId = $fd;
-    $buffer =& $buffers[$fd];
     $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
 
-    $frames = [];
-    while (strlen($buffer) >= 4) {
-        $len = unpack('N', substr($buffer, 0, 4))[1];
-
-        if ($len < 5 || $len > $maxFrameLen) {
-            $log->warning("Invalid EPP frame length $len from $clientIP (fd=$fd)");
-            $conn->close();
-            unset($buffers[$fd]);
-            return;
-        }
-
-        if (strlen($buffer) < $len) {
-            break;
-        }
-
-        $frames[] = substr($buffer, 4, $len - 4);
-        $buffer   = substr($buffer, $len);
-    }
-
-    if (!$frames) {
+    if (strlen($data) < 4) {
+        $log->warning("Received too-short packet from $clientIP (fd=$fd) bytes=" . strlen($data));
+        $conn->close();
         return;
     }
 
-    $pdo = null;
+    $len = unpack('N', substr($data, 0, 4))[1];
+    if ($len < 5 || $len > $maxFrameLen) {
+        $log->warning("Invalid EPP frame length $len from $clientIP (fd=$fd) actual=" . strlen($data));
+        $conn->close();
+        return;
+    }
 
+    if ($len !== strlen($data)) {
+        $log->warning("EPP packet length mismatch from $clientIP (fd=$fd): hdr=$len actual=" . strlen($data));
+        $conn->close();
+        return;
+    }
+
+    $xmlData = substr($data, 4, $len - 4);
+
+    $pdo = null;
     try {
         $pdo = $pool->get();
         
         if (!$pdo) {
             $log->alert("PDOPool->get() returned null/false for fd={$fd} ip={$clientIP}");
             $conn->close();
-            unset($buffers[$fd]);
             return;
         }
 
-        foreach ($frames as $xmlData) {
             libxml_use_internal_errors(true);
             $xml = simplexml_load_string($xmlData, 'SimpleXMLElement', LIBXML_NONET);
             if ($xml === false) {
@@ -789,7 +814,6 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     return;
                 }
             }
-        }
     } catch (PDOException $e) {
         $errorInfo = $e->errorInfo ?? [];
         $sqlState  = $errorInfo[0] ?? 'n/a';
@@ -845,14 +869,22 @@ $server->on('WorkerError', function (Server $server, int $workerId, int $workerP
     $log->error("WorkerError: id=$workerId pid=$workerPid exitCode=$exitCode signal=$signal");
 });
 
-$server->on('Close', function(Server $serv, int $fd) use ($log, $table, &$buffers) {
+$server->on('Close', function(Server $serv, int $fd) use ($log, $table) {
     $table->del($fd);
-    unset($buffers[$fd]);
     $log->info("client #{$fd} disconnected");
 });
 
 $server->on('Shutdown', function(Server $server) use ($log) {
     $log->info('EPP server is shutting down');
+});
+
+$server->on('Start', function (Server $server) use ($log) {
+    $log->info('EPP server started');
+
+    Swoole\Process::signal(SIGINT, function() use ($server, $log) {
+        $log->info('SIGINT received, shutting down...');
+        $server->shutdown();
+    });
 });
 
 $server->start();
