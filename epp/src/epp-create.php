@@ -643,7 +643,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
 }
 
-function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data) {
+function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data, $ns_mode) {
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -1080,6 +1080,19 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     if (isset($ns)) {
         $hostObj_list = $ns->xpath('//domain:hostObj');
         $hostAttr_list = $ns->xpath('//domain:hostAttr');
+    }
+
+    $ns_mode = $ns_mode ?? 'hostObj';
+    $hostObj_count  = is_array($hostObj_list)  ? count($hostObj_list)  : 0;
+    $hostAttr_count = is_array($hostAttr_list) ? count($hostAttr_list) : 0;
+
+    if ($ns_mode === 'hostObj' && $hostAttr_count > 0) {
+        sendEppError($conn, $db, 2306, 'Host attributes (domain:hostAttr) are not supported; use domain:hostObj', $clTRID, $trans);
+        return;
+    }
+    if ($ns_mode === 'hostAttr' && $hostObj_count > 0) {
+        sendEppError($conn, $db, 2306, 'Host objects (domain:hostObj) are not supported; use domain:hostAttr', $clTRID, $trans);
+        return;
     }
 
     if (

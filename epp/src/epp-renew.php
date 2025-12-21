@@ -31,7 +31,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     $curExpDateObj = DateTime::createFromFormat('Y-m-d', $curExpDate);
-    $curExpDateErrors = DateTime::getLastErrors();
+    $curExpDateErrors = DateTime::getLastErrors() ?: ['warning_count'=>0,'error_count'=>0];
     if (!$curExpDateObj || $curExpDateErrors['warning_count'] > 0 || $curExpDateErrors['error_count'] > 0) {
         sendEppError($conn, $db, 2005, 'Invalid curExpDate format, expected YYYY-MM-DD', $clTRID, $trans);
         return;

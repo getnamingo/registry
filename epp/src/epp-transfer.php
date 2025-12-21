@@ -492,8 +492,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         return;
     }
 
-    // For all ops except "query", authInfo MUST be present
-    if ($op !== 'query' && (!$authInfo_pw || $authInfo_pw === '')) {
+    if ($op === 'request' && (!$authInfo_pw || $authInfo_pw === '')) {
         sendEppError($conn, $db, 2003, 'Missing domain authInfo pw for this transfer op', $clTRID, $trans);
         return;
     }

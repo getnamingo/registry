@@ -578,7 +578,7 @@ $server->handle(function (Connection $conn) use ($table, $eppExtensionsTable, $p
                         $clid = getClid($pdo, $data['clid']);
                         $xmlString = $xml->asXML();
                         $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                        processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data']);
+                        processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
                         break;
                     }
                     

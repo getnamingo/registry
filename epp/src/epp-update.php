@@ -938,21 +938,34 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $host_id = $hostRow['id'];
 
         $tlds_scan = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-        $chg_domain = extractDomainFromHost($chg_name);
+        $chg_domain = extractDomainFromHost($chg_name, $tlds_scan);
 
-        $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
-        $stmt->execute([$chg_domain]);
-        $chg_clid = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if ($chg_clid === false) {
-            sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
-            return;
+        $chg_name_lc = strtolower($chg_name);
+        $is_in_bailiwick = false;
+        foreach ($tlds_scan as $tld) {
+            $tld_lc = strtolower(ltrim($tld, '.'));
+            if (str_ends_with($chg_name_lc, '.' . $tld_lc)) {
+                $is_in_bailiwick = true;
+                break;
+            }
         }
 
-        if ($chg_clid !== $clid) {
-            sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
-            return;
+        $chg_clid = null;
+        if ($is_in_bailiwick) {
+            $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$chg_domain]);
+            $chg_clid = $stmt->fetchColumn();
+            $stmt->closeCursor();
+
+            if ($chg_clid === false) {
+                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
+                return;
+            }
+
+            if ($chg_clid !== $clid) {
+                sendEppError($conn, $db, 2304, 'Host rename denied: domain owned by another registrar', $clTRID, $trans);
+                return;
+            }
         }
 
         if ($domain_id !== null) {
@@ -960,11 +973,6 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute([$domain_id]);
             $domain_name = $stmt->fetchColumn();
             $stmt->closeCursor();
-
-            if ($chg_domain !== null && $chg_clid === false) {
-                sendEppError($conn, $db, 2303, 'Superordinate domain does not exist: ' . $chg_domain, $clTRID, $trans);
-                return;
-            }
 
             if (!preg_match('/\.' . preg_quote($domain_name, '/') . '$/i', strtolower($chg_name))) {
                 $stmt = $db->prepare("DELETE FROM host_addr WHERE host_id = ?");
@@ -978,7 +986,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $chg_name_id = $stmt->fetchColumn();
         $stmt->closeCursor();
 
-        if ($chg_name_id) {
+        if ($chg_name_id && (int)$chg_name_id !== (int)$host_id) {
             sendEppError($conn, $db, 2306, 'If it already exists, then we can\'t change it', $clTRID, $trans);
             return;
         }

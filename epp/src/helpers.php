@@ -1148,17 +1148,33 @@ function validateTcnId(string $domain, string $noticeId, string $notAfterUtc): b
     return hash_equals($tcnChecksum, $crc32Hex);
 }
 
-function extractDomainFromHost(string $hostname): ?string {
-    // normalize: lowercase, trim any leading/trailing dots or spaces
+function extractDomainFromHost(string $hostname, array $tlds): ?string {
     $hostname = strtolower(trim($hostname, " .\t\n\r\0\x0B"));
     $labels   = explode('.', $hostname);
-    
-    // need at least two labels (e.g. foo.com)
+
     if (count($labels) < 2) {
         return null;
     }
-    
-    // take the last two labels and join them
-    $last = array_slice($labels, -2);
-    return implode('.', $last);
+
+    foreach ($tlds as $tld) {
+        $tld = strtolower(ltrim($tld, '.'));
+
+        // hostname must end with .tld
+        if (str_ends_with($hostname, '.' . $tld)) {
+            $hostLabels = explode('.', $hostname);
+            $tldLabels  = explode('.', $tld);
+
+            // need at least one label above the TLD
+            if (count($hostLabels) <= count($tldLabels)) {
+                return null;
+            }
+
+            // remove first label (host name)
+            array_shift($hostLabels);
+
+            return implode('.', $hostLabels);
+        }
+    }
+
+    return null;
 }
