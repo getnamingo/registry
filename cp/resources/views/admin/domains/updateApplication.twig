@@ -40,7 +40,7 @@
                 <div class="card mb-3">
                   <div class="card-header">
                     <h3 class="card-title">
-                        {{ __('Domain') }} {{ domain.name }}&nbsp;
+                        {{ __('Application for') }} {{ domain.name }}&nbsp;
                         {% if domainStatus %}
                             {% if domainStatus is iterable %}
                                 {% for status in domainStatus %}
@@ -52,7 +52,7 @@
                                 {% endif %}
                             {% endif %}
                         {% else %}
-                            <span class="status status-info" title="Status">{{ domainStatus.status }}</span>
+                            <span class="status status-info" title="Status">ok</span>
                         {% endif %}
                     </h3>
                   </div>
