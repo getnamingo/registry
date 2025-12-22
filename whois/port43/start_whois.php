@@ -891,8 +891,9 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
         $log->error('Error: ' . $e->getMessage());
         $server->send($fd, "Error");
     } finally {
-        if ($pdo instanceof PDO) {
+        if ($pdo) {
             $pool->put($pdo);
+            $pdo = null;
         }
         $server->close($fd);
     }
