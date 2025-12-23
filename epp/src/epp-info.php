@@ -508,36 +508,60 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->closeCursor();
 
             $transformedSecDnsRecords = [];
+
             if ($secDnsRecords) {
                 foreach ($secDnsRecords as $record) {
+
+                    // keyData mode: return keyData
+                    if (($record['interface'] ?? null) === 'keyData') {
+                        $tmpRecord = [
+                            'keyData' => [
+                                'flags'    => (int)$record['flags'],
+                                'protocol' => (int)$record['protocol'],
+                                'alg'      => (int)$record['keydata_alg'],
+                                'pubKey'   => (string)$record['pubkey'],
+                            ],
+                        ];
+
+                        if ($record['maxsiglife'] !== null) {
+                            $tmpRecord['maxSigLife'] = (int)$record['maxsiglife'];
+                        }
+
+                        $transformedSecDnsRecords[] = $tmpRecord;
+                        continue;
+                    }
+
+                    // dsData mode
                     $tmpRecord = [
-                        'keyTag' => $record['keytag'],
-                        'alg' => $record['alg'],
-                        'digestType' => $record['digesttype'],
-                        'digest' => $record['digest']
+                        'keyTag'     => (int)$record['keytag'],
+                        'alg'        => (int)$record['alg'],
+                        'digestType' => (int)$record['digesttype'],
+                        'digest'     => (string)$record['digest'],
                     ];
 
-                    // Add optional fields if they are not null
-                    if (!is_null($record['maxsiglife'])) {
-                        $tmpRecord['maxSigLife'] = $record['maxsiglife'];
+                    if ($record['maxsiglife'] !== null) {
+                        $tmpRecord['maxSigLife'] = (int)$record['maxsiglife'];
                     }
-                    if (!is_null($record['flags'])) {
-                        $tmpRecord['keyData']['flags'] = $record['flags'];
+
+                    // optional embedded keyData (only if all present)
+                    if ($record['flags'] !== null && $record['protocol'] !== null && $record['keydata_alg'] !== null && $record['pubkey'] !== null) {
+                        $tmpRecord['keyData'] = [
+                            'flags'    => (int)$record['flags'],
+                            'protocol' => (int)$record['protocol'],
+                            'alg'      => (int)$record['keydata_alg'],
+                            'pubKey'   => (string)$record['pubkey'],
+                        ];
                     }
-                    if (!is_null($record['protocol'])) {
-                        $tmpRecord['keyData']['protocol'] = $record['protocol'];
-                    }
-                    if (!is_null($record['keydata_alg'])) {
-                        $tmpRecord['keyData']['alg'] = $record['keydata_alg'];
-                    }
-                    if (!is_null($record['pubkey'])) {
-                        $tmpRecord['keyData']['pubKey'] = $record['pubkey'];
-                    }
-            
+
                     $transformedSecDnsRecords[] = $tmpRecord;
                 }
 
-                usort($transformedSecDnsRecords, fn($a, $b) => $a['keyTag'] <=> $b['keyTag']);
+                // sort: if keyData-only records exist, sort by keytag when available
+                usort($transformedSecDnsRecords, function ($a, $b) {
+                    $ka = $a['keyTag'] ?? -1;
+                    $kb = $b['keyTag'] ?? -1;
+                    return $ka <=> $kb;
+                });
             }
 
             // Fetch RGP status

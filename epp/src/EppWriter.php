@@ -1012,6 +1012,13 @@ class EppWriter {
                             }
 
                             $writer->endElement();  // End of 'secDNS:dsData'
+                        } elseif (isset($secData['keyData']) && is_array($secData['keyData'])) {
+                            $writer->startElement('secDNS:keyData');
+                            $writer->writeElement('secDNS:flags', $secData['keyData']['flags']);
+                            $writer->writeElement('secDNS:protocol', $secData['keyData']['protocol']);
+                            $writer->writeElement('secDNS:alg', $secData['keyData']['alg']);
+                            $writer->writeElement('secDNS:pubKey', $secData['keyData']['pubKey']);
+                            $writer->endElement();
                         }
                     }
 

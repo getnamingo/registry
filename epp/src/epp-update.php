@@ -2121,6 +2121,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
                 $keyDataToRemove = $secdnsRem->xpath('./secDNS:keyData');
 
+                if (!empty($dsDataToRemove) && !empty($keyDataToRemove)) {
+                    sendEppError($conn, $db, 2005, 'Provide either dsData or keyData, not both', $clTRID, $trans);
+                    return;
+                }
+
                 if ($dsDataToRemove) {
                     foreach ($dsDataToRemove as $ds) {
                         $keyTag = (int)$ds->xpath('secDNS:keyTag')[0];
@@ -2198,35 +2203,45 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
                 if ($keyDataToRemove) {
                     foreach ($keyDataToRemove as $keyData) {
-                        $flags = (int) $keyData->xpath('secDNS:flags')[0];
-                        $protocol = (int) $keyData->xpath('secDNS:protocol')[0];
-                        $algKeyData = (int) $keyData->xpath('secDNS:alg')[0];
-                        $pubKey = (string) $keyData->xpath('secDNS:pubKey')[0];
+                        $flagsNode    = $keyData->xpath('secDNS:flags')[0] ?? null;
+                        $protocolNode = $keyData->xpath('secDNS:protocol')[0] ?? null;
+                        $algNode      = $keyData->xpath('secDNS:alg')[0] ?? null;
+                        $pubKeyNode   = $keyData->xpath('secDNS:pubKey')[0] ?? null;
 
-                        // Data sanity checks for keyData
-                        // Validate flags
-                        $validFlags = [256, 257];
-                        if (!isset($flags) && !in_array($flags, $validFlags)) {
-                            sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans);
-                            return;
+                        $flagsStr    = trim((string)$flagsNode);
+                        $protocolStr = trim((string)$protocolNode);
+                        $algStr      = trim((string)$algNode);
+                        $pubKey      = trim((string)$pubKeyNode);
+
+                        if ($flagsStr === '' || !ctype_digit($flagsStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans); return;
+                        }
+                        if ($protocolStr === '' || !ctype_digit($protocolStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid protocol', $clTRID, $trans); return;
+                        }
+                        if ($algStr === '' || !ctype_digit($algStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid algorithm', $clTRID, $trans); return;
                         }
 
-                        // Validate protocol
-                        if (!isset($protocol) && $protocol != 3) {
-                            sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
-                            return;
+                        $flags    = (int)$flagsStr;
+                        $protocol = (int)$protocolStr;
+                        $algKeyData = (int)$algStr;
+
+                        if ($flags !== 257) {
+                            sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans); return;
+                        }
+                        if ($protocol !== 3) {
+                            sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans); return;
                         }
 
-                        // Validate algKeyData
-                        if (!isset($algKeyData)) {
-                            sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
-                            return;
+                        $validKeyAlgs = [8, 13, 14, 15, 16];
+                        if (!in_array($algKeyData, $validKeyAlgs, true)) {
+                            sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans); return;
                         }
 
-                        // Validate pubKey
-                        if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
-                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
-                            return;
+                        $pubBin = base64_decode($pubKey, true);
+                        if ($pubKey === '' || $pubBin === false) {
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans); return;
                         }
 
                         // Check if keyData exists before attempting to delete
@@ -2244,7 +2259,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
 
                         try {
-                            $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND flags = :flags AND protocol = :protocol AND algKeyData = :algKeyData AND pubKey = :pubKey");
+                            $stmt = $db->prepare("DELETE FROM secdns WHERE domain_id = :domain_id AND flags = :flags AND protocol = :protocol AND keydata_alg = :algKeyData AND pubkey = :pubKey");
                             $stmt->execute([
                                 ':domain_id' => $domain_id,
                                 ':flags' => $flags,
@@ -2268,6 +2283,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             foreach ($secdnsAdds as $secdnsAdd) {
                 $secDNSDataSet = $secdnsAdd->xpath('./secDNS:dsData');
                 $keyDataSet = $secdnsAdd->xpath('./secDNS:keyData');
+
+                if (!empty($secDNSDataSet) && !empty($keyDataSet)) {
+                    sendEppError($conn, $db, 2005, 'Provide either dsData or keyData, not both', $clTRID, $trans);
+                    return;
+                }
 
                 if ($secDNSDataSet) {
                     foreach ($secDNSDataSet as $secDNSData) {
@@ -2359,35 +2379,45 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                         $pubKey = null;
 
                         if ($secDNSData->xpath('secDNS:keyData')) {
-                            $flags = (int) $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0];
-                            $protocol = (int) $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0];
-                            $algKeyData = (int) $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0];
-                            $pubKey = (string) $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0];
+                            $flagsNode    = $secDNSData->xpath('secDNS:keyData/secDNS:flags')[0] ?? null;
+                            $protocolNode = $secDNSData->xpath('secDNS:keyData/secDNS:protocol')[0] ?? null;
+                            $algNode      = $secDNSData->xpath('secDNS:keyData/secDNS:alg')[0] ?? null;
+                            $pubKeyNode   = $secDNSData->xpath('secDNS:keyData/secDNS:pubKey')[0] ?? null;
 
-                            // Data sanity checks for keyData
-                            // Validate flags
-                            $validFlags = [256, 257];
-                            if (!isset($flags) && !in_array($flags, $validFlags)) {
-                                sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans);
-                                return;
+                            $flagsStr    = trim((string)$flagsNode);
+                            $protocolStr = trim((string)$protocolNode);
+                            $algStr      = trim((string)$algNode);
+                            $pubKey      = trim((string)$pubKeyNode);
+
+                            if ($flagsStr === '' || !ctype_digit($flagsStr)) {
+                                sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans); return;
+                            }
+                            if ($protocolStr === '' || !ctype_digit($protocolStr)) {
+                                sendEppError($conn, $db, 2005, 'Invalid protocol', $clTRID, $trans); return;
+                            }
+                            if ($algStr === '' || !ctype_digit($algStr)) {
+                                sendEppError($conn, $db, 2005, 'Invalid algorithm', $clTRID, $trans); return;
                             }
 
-                            // Validate protocol
-                            if (!isset($protocol) && $protocol != 3) {
-                                sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
-                                return;
+                            $flags    = (int)$flagsStr;
+                            $protocol = (int)$protocolStr;
+                            $algKeyData = (int)$algStr;
+
+                            if ($flags !== 257) {
+                                sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans); return;
+                            }
+                            if ($protocol !== 3) {
+                                sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans); return;
                             }
 
-                            // Validate algKeyData
-                            if (!isset($algKeyData)) {
-                                sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
-                                return;
+                            $validKeyAlgs = [8, 13, 14, 15, 16];
+                            if (!in_array($algKeyData, $validKeyAlgs, true)) {
+                                sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans); return;
                             }
 
-                            // Validate pubKey
-                            if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
-                                sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
-                                return;
+                            $pubBin = base64_decode($pubKey, true);
+                            if ($pubKey === '' || $pubBin === false) {
+                                sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans); return;
                             }
                         }
 
@@ -2424,39 +2454,64 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 }
                 if ($keyDataSet) {
                     foreach ($keyDataSet as $keyDataData) {
-                        $flags = (int) $keyDataData->xpath('secDNS:flags')[0];
-                        $protocol = (int) $keyDataData->xpath('secDNS:protocol')[0];
-                        $algKeyData = (int) $keyDataData->xpath('secDNS:alg')[0];
-                        $pubKey = (string) $keyDataData->xpath('secDNS:pubKey')[0];
                         $maxSigLife = $xml->xpath('//secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                         // Data sanity checks for keyData
-                        // Validate flags
-                        $validFlags = [256, 257];
-                        if (!isset($flags) && !in_array($flags, $validFlags)) {
-                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans);
-                            return;
+                        $flagsNode    = $keyDataData->xpath('secDNS:flags')[0] ?? null;
+                        $protocolNode = $keyDataData->xpath('secDNS:protocol')[0] ?? null;
+                        $algNode      = $keyDataData->xpath('secDNS:alg')[0] ?? null;
+                        $pubKeyNode   = $keyDataData->xpath('secDNS:pubKey')[0] ?? null;
+
+                        $flagsStr    = trim((string)$flagsNode);
+                        $protocolStr = trim((string)$protocolNode);
+                        $algStr      = trim((string)$algNode);
+                        $pubKey      = trim((string)$pubKeyNode);
+
+                        if ($flagsStr === '' || !ctype_digit($flagsStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid flags', $clTRID, $trans); return;
+                        }
+                        if ($protocolStr === '' || !ctype_digit($protocolStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid protocol', $clTRID, $trans); return;
+                        }
+                        if ($algStr === '' || !ctype_digit($algStr)) {
+                            sendEppError($conn, $db, 2005, 'Invalid algorithm', $clTRID, $trans); return;
                         }
 
-                        // Validate protocol
-                        if (!isset($protocol) && $protocol != 3) {
-                            sendEppError($conn, $db, 2006, 'Invalid protocol', $clTRID, $trans);
-                            return;
+                        $flags    = (int)$flagsStr;
+                        $protocol = (int)$protocolStr;
+                        $algKeyData = (int)$algStr;
+
+                        if ($flags !== 257) {
+                            sendEppError($conn, $db, 2004, 'Invalid flags', $clTRID, $trans); return;
+                        }
+                        if ($protocol !== 3) {
+                            sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans); return;
                         }
 
-                        // Validate algKeyData
-                        if (!isset($algKeyData)) {
-                            sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
-                            return;
+                        $validKeyAlgs = [8, 13, 14, 15, 16];
+                        if (!in_array($algKeyData, $validKeyAlgs, true)) {
+                            sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans); return;
                         }
 
-                        // Validate pubKey
-                        if (!isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        $pubBin = base64_decode($pubKey, true);
+                        if ($pubKey === '' || $pubBin === false) {
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans); return;
+                        }
+
+                        $ownerWire = dns_name_to_wire($domainName . '.');
+                        $pubBin = base64_decode($pubKey, true);
+                        if ($pubBin === false) {
                             sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
                             return;
                         }
-                        
-                        $dsres = dnssec_key2ds($domainName.'.', $flags, $protocol, $algKeyData, $pubKey);
+
+                        $dnskeyRdata = pack('nCC', $flags, $protocol, $algKeyData) . $pubBin;
+
+                        $keytag = dnskey_rdata_keytag($dnskeyRdata);
+
+                        // choose digest type (2=SHA-256, 4=SHA-384). Keep 2 for most registries:
+                        $digestType = 2;
+                        $digest = strtoupper(hash('sha256', $ownerWire . $dnskeyRdata));
 
                         try {
                             $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey) VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
@@ -2464,11 +2519,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             $stmt->execute([
                                 ':domain_id' => $domain_id,
                                 ':maxsiglife' => $maxSigLife,
-                                ':interface' => 'dsData',
-                                ':keytag' => $dsres['keytag'],
-                                ':alg' => $dsres['algorithm'],
-                                ':digesttype' => $dsres['digest'][1]['type'],
-                                ':digest' => $dsres['digest'][1]['hash'],
+                                ':interface' => 'keyData',
+                                ':keytag' => $keytag,
+                                ':alg' => $algKeyData,      // DS "alg" is DNSKEY algorithm
+                                ':digesttype' => $digestType,
+                                ':digest' => $digest,
                                 ':flags' => $flags ?? null,
                                 ':protocol' => $protocol ?? null,
                                 ':keydata_alg' => $algKeyData ?? null,

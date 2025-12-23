@@ -1198,3 +1198,33 @@ function extractDomainFromHost(string $hostname, array $tlds): ?string
 
     return $best; // null if not under our TLD list
 }
+
+function dns_name_to_wire(string $fqdn): string
+{
+    $fqdn = strtolower($fqdn);
+    if ($fqdn === '.') return "\x00";
+    if (substr($fqdn, -1) !== '.') $fqdn .= '.';
+
+    $labels = explode('.', rtrim($fqdn, '.'));
+    $wire = '';
+    foreach ($labels as $label) {
+        $len = strlen($label);
+        if ($len < 1 || $len > 63) {
+            throw new InvalidArgumentException('Invalid owner name label length.');
+        }
+        $wire .= chr($len) . $label;
+    }
+    return $wire . "\x00";
+}
+
+function dnskey_rdata_keytag(string $dnskeyRdata): int
+{
+    $ac = 0;
+    $len = strlen($dnskeyRdata);
+    for ($i = 0; $i < $len; $i++) {
+        $b = ord($dnskeyRdata[$i]);
+        $ac += ($i & 1) ? $b : ($b << 8);
+    }
+    $ac += ($ac >> 16) & 0xFFFF;
+    return $ac & 0xFFFF;
+}

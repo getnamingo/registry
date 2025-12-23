@@ -575,94 +575,98 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     }
                 }
                 
-                // Fetch contact map
-                $stmt = $db->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
-                $stmt->execute([$domain_id]);
-                $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                $stmt->closeCursor();
+                if (!($config['minimum_data'] ?? false)) {
+                    // Fetch contact map
+                    $stmt = $db->prepare('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?');
+                    $stmt->execute([$domain_id]);
+                    $contactMap = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor();
 
-                // Prepare an array to hold new contact IDs to prevent duplicating contacts
-                $newContactIds = [];
+                    // Prepare an array to hold new contact IDs to prevent duplicating contacts
+                    $newContactIds = [];
 
-                // Copy registrant data
-                $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
-                $stmt->execute([$row['registrant']]);
-                $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
-                $stmt->closeCursor();
-                unset($registrantData['id']);
-                $registrantData['identifier'] = generateAuthInfo();
-                $registrantData['clid'] = $row['reid'];
+                    // Copy registrant data
+                    $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
+                    $stmt->execute([$row['registrant']]);
+                    $registrantData = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor();
+                    unset($registrantData['id']);
+                    $registrantData['identifier'] = generateAuthInfo();
+                    $registrantData['clid'] = $row['reid'];
 
-                $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
-                foreach ($registrantData as $key => $value) {
-                    $stmt->bindValue(':' . $key, $value);
-                }
-                $stmt->execute();
-                $newRegistrantId = $db->lastInsertId();
-                $newContactIds[$row['registrant']] = $newRegistrantId;
-
-                // Copy postal info for the registrant
-                $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-                $stmt->execute([$row['registrant']]);
-                $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                $stmt->closeCursor();
-
-                foreach ($postalInfos as $postalInfo) {
-                    unset($postalInfo['id']);
-                    $postalInfo['contact_id'] = $newRegistrantId;
-                    $columns = array_keys($postalInfo);
-                    $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-                    foreach ($postalInfo as $key => $value) {
+                    $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($registrantData)) . ') VALUES (:' . implode(', :', array_keys($registrantData)) . ')');
+                    foreach ($registrantData as $key => $value) {
                         $stmt->bindValue(':' . $key, $value);
                     }
                     $stmt->execute();
-                }
+                    $newRegistrantId = $db->lastInsertId();
+                    $newContactIds[$row['registrant']] = $newRegistrantId;
 
-                // Insert auth info and status for the new registrant
-                $new_authinfo = generateAuthInfo();
-                $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
-                $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
+                    // Copy postal info for the registrant
+                    $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+                    $stmt->execute([$row['registrant']]);
+                    $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $stmt->closeCursor();
 
-                // Process each contact in the contact map
-                foreach ($contactMap as $contact) {
-                    if (!array_key_exists($contact['contact_id'], $newContactIds)) {
-                        $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
-                        $stmt->execute([$contact['contact_id']]);
-                        $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
-                        $stmt->closeCursor();
-                        unset($contactData['id']);
-                        $contactData['identifier'] = generateAuthInfo();
-                        $contactData['clid'] = $row["reid"];
-
-                        $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
-                        foreach ($contactData as $key => $value) {
+                    foreach ($postalInfos as $postalInfo) {
+                        unset($postalInfo['id']);
+                        $postalInfo['contact_id'] = $newRegistrantId;
+                        $columns = array_keys($postalInfo);
+                        $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                        foreach ($postalInfo as $key => $value) {
                             $stmt->bindValue(':' . $key, $value);
                         }
                         $stmt->execute();
-                        $newContactId = $db->lastInsertId();
-                        $newContactIds[$contact['contact_id']] = $newContactId;
+                    }
 
-                        // Repeat postal info and auth info/status insertion for each new contact
-                        $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
-                        $stmt->execute([$contact['contact_id']]);
-                        $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                        $stmt->closeCursor();
+                    // Insert auth info and status for the new registrant
+                    $new_authinfo = generateAuthInfo();
+                    $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                    $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
 
-                        foreach ($postalInfos as $postalInfo) {
-                            unset($postalInfo['id']);
-                            $postalInfo['contact_id'] = $newContactId;
-                            $columns = array_keys($postalInfo);
-                            $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
-                            foreach ($postalInfo as $key => $value) {
+                    // Process each contact in the contact map
+                    foreach ($contactMap as $contact) {
+                        if (!array_key_exists($contact['contact_id'], $newContactIds)) {
+                            $stmt = $db->prepare('SELECT * FROM contact WHERE id = ?');
+                            $stmt->execute([$contact['contact_id']]);
+                            $contactData = $stmt->fetch(PDO::FETCH_ASSOC);
+                            $stmt->closeCursor();
+                            unset($contactData['id']);
+                            $contactData['identifier'] = generateAuthInfo();
+                            $contactData['clid'] = $row["reid"];
+
+                            $stmt = $db->prepare('INSERT INTO contact (' . implode(', ', array_keys($contactData)) . ') VALUES (:' . implode(', :', array_keys($contactData)) . ')');
+                            foreach ($contactData as $key => $value) {
                                 $stmt->bindValue(':' . $key, $value);
                             }
                             $stmt->execute();
-                        }
+                            $newContactId = $db->lastInsertId();
+                            $newContactIds[$contact['contact_id']] = $newContactId;
 
-                        $new_authinfo = generateAuthInfo();
-                        $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
-                        $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
+                            // Repeat postal info and auth info/status insertion for each new contact
+                            $stmt = $db->prepare('SELECT * FROM contact_postalInfo WHERE contact_id = ?');
+                            $stmt->execute([$contact['contact_id']]);
+                            $postalInfos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            $stmt->closeCursor();
+
+                            foreach ($postalInfos as $postalInfo) {
+                                unset($postalInfo['id']);
+                                $postalInfo['contact_id'] = $newContactId;
+                                $columns = array_keys($postalInfo);
+                                $stmt = $db->prepare('INSERT INTO contact_postalInfo (' . implode(', ', $columns) . ') VALUES (:' . implode(', :', $columns) . ')');
+                                foreach ($postalInfo as $key => $value) {
+                                    $stmt->bindValue(':' . $key, $value);
+                                }
+                                $stmt->execute();
+                            }
+
+                            $new_authinfo = generateAuthInfo();
+                            $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                            $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
+                        }
                     }
+                } else {
+                    $newRegistrantId = null;
                 }
 
                 $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
@@ -674,12 +678,13 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
                 $reid = $row['reid'];
+                $logRegistrantText = $newRegistrantId === null ? '[NULL]' : $newRegistrantId;
                 $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt_log->execute([
                     'manual_transfer',
                     250,
                     'NOTICE',
-                    "Domain transfer manually approved: $domainName (New registrant: $newRegistrantId, Registrar: $reid)",
+                    "Domain transfer manually approved: $domainName (New registrant: $logRegistrantText, Registrar: $reid)",
                     json_encode(['domain_id' => $domain_id, 'new_registrant' => $newRegistrantId, 'registrar' => $reid]),
                     json_encode([
                         'received_on' => date('Y-m-d H:i:s'),
@@ -707,14 +712,16 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
                 $stmt->execute([$new_authinfo, $domain_id]);
                 
-                foreach ($contactMap as $contact) {
-                    $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
-                    $stmt = $db->prepare($sql);
-                    $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
-                    $stmt->bindValue(':domain_id', $domain_id);
-                    $stmt->bindValue(':type', $contact['type']);
-                    $stmt->bindValue(':contact_id', $contact['contact_id']);
-                    $stmt->execute();
+                if (!($config['minimum_data'] ?? false)) {
+                    foreach ($contactMap as $contact) {
+                        $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
+                        $stmt = $db->prepare($sql);
+                        $stmt->bindValue(':new_contact_id', $newContactIds[$contact['contact_id']]);
+                        $stmt->bindValue(':domain_id', $domain_id);
+                        $stmt->bindValue(':type', $contact['type']);
+                        $stmt->bindValue(':contact_id', $contact['contact_id']);
+                        $stmt->execute();
+                    }
                 }
 
                 $stmt = $db->prepare("UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?");

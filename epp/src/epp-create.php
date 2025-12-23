@@ -1701,7 +1701,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':authInfo_pw' => $authInfo_pw
             ]);
             
-            $secDNSDataSet = $xml->xpath('//secDNS:dsData');
+            $secDNSDataSet = $xml->xpath('//secDNS:dsData') ?? [];
+            $keyDataSet    = $xml->xpath('//secDNS:keyData') ?? [];
+
+            if (!empty($secDNSDataSet) && !empty($keyDataSet)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2005, 'Provide either dsData or keyData, not both', $clTRID, $trans);
+                return;
+            }
 
             if ($secDNSDataSet) {
                 foreach ($secDNSDataSet as $secDNSData) {
@@ -1820,6 +1827,79 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         ':protocol' => $protocol ?? null,
                         ':keydata_alg' => $algKeyData ?? null,
                         ':pubkey' => $pubKey ?? null
+                    ]);
+                }
+            } elseif (!empty($keyDataSet)) {
+                foreach ($keyDataSet as $keyData) {
+
+                    $flagsStr    = trim((string)($keyData->xpath('secDNS:flags')[0] ?? ''));
+                    $protocolStr = trim((string)($keyData->xpath('secDNS:protocol')[0] ?? ''));
+                    $algStr      = trim((string)($keyData->xpath('secDNS:alg')[0] ?? ''));
+                    $pubKey      = trim((string)($keyData->xpath('secDNS:pubKey')[0] ?? ''));
+
+                    $maxSigLife = isset($keyData) && $keyData->xpath('secDNS:maxSigLife') ? (int)$keyData->xpath('secDNS:maxSigLife')[0] : null;
+
+                    if ($flagsStr === '' || !ctype_digit($flagsStr) ||
+                        $protocolStr === '' || !ctype_digit($protocolStr) ||
+                        $algStr === '' || !ctype_digit($algStr) ||
+                        $pubKey === '') {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2005, 'Invalid keyData', $clTRID, $trans);
+                        return;
+                    }
+
+                    $flags    = (int)$flagsStr;
+                    $protocol = (int)$protocolStr;
+                    $algKeyData = (int)$algStr;
+
+                    // RST / DS-derivation policy: KSK only
+                    if ($flags !== 257) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2004, 'Invalid flags for keyData (KSK required)', $clTRID, $trans);
+                        return;
+                    }
+                    if ($protocol !== 3) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
+                        return;
+                    }
+                    $validKeyAlgs = [8, 13, 14, 15, 16];
+                    if (!in_array($algKeyData, $validKeyAlgs, true)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
+                        return;
+                    }
+
+                    $pubBin = base64_decode($pubKey, true);
+                    if ($pubBin === false) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                        return;
+                    }
+
+                    // --- compute DS from keyData
+                    $ownerWire = dns_name_to_wire($domainName . '.');
+                    $dnskeyRdata = pack('nCC', $flags, $protocol, $algKeyData) . $pubBin;
+                    $keyTag = dnskey_rdata_keytag($dnskeyRdata);
+
+                    $digestType = 2; // SHA-256
+                    $digest = strtoupper(hash('sha256', $ownerWire . $dnskeyRdata));
+
+                    $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey)
+                                          VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");
+
+                    $stmt->execute([
+                        ':domain_id'   => $domain_id,
+                        ':maxsiglife'  => $maxSigLife,
+                        ':interface'   => 'keyData',
+                        ':keytag'      => $keyTag,
+                        ':alg'         => $algKeyData,
+                        ':digesttype'  => $digestType,
+                        ':digest'      => $digest,
+                        ':flags'       => $flags,
+                        ':protocol'    => $protocol,
+                        ':keydata_alg' => $algKeyData,
+                        ':pubkey'      => $pubKey
                     ]);
                 }
             }

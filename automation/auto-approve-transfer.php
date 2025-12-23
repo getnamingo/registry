@@ -178,11 +178,9 @@ try {
                 ':domain_id'       => $domain_id,
             ]);
 
-            if (!$minimum_data) {
-                $new_authinfo = generateAuthInfo();
-                $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
-                $stmt_update_auth->execute();
-            }
+            $new_authinfo = generateAuthInfo();
+            $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
+            $stmt_update_auth->execute();
 
             // Remove "pendingTransfer" status
             $stmt_remove_pending = $dbh->prepare("DELETE FROM domain_status WHERE domain_id = :domain_id AND status = 'pendingTransfer'");
