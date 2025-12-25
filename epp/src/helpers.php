@@ -711,7 +711,22 @@ function updatePermittedIPs($pool, $permittedIPsTable): void {
 
     // Insert new values
     foreach ($permittedIPs as $ip) {
-        $permittedIPsTable->set($ip, ['addr' => $ip]);
+        $key = $ip;
+
+        // normalize IPv6
+        $plain = $ip;
+        if (strpos($plain, '/') !== false) {
+            // CIDR entry: keep as-is in addr, but normalize only the base part if it's IPv6
+            [$base, $mask] = explode('/', $plain, 2);
+            if (isIPv6($base)) $base = expandIPv6($base);
+            $key = $base . '/' . $mask; // key for CIDR rows
+            $plain = $key;
+        } else {
+            if (isIPv6($plain)) $plain = expandIPv6($plain);
+            $key = $plain;
+        }
+
+        $permittedIPsTable->set($key, ['addr' => $ip]);
     }
 }
 
