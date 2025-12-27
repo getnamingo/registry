@@ -1026,6 +1026,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         $addr_list = $xml->xpath('//host:rem/host:addr');
+        $addr_add_list = $xml->xpath('//host:add/host:addr');
         $status_list = $xml->xpath('//host:rem/host:status/@s');
 
         if (!empty($addr_list) && !isset($hostChg)) {
@@ -1036,7 +1037,9 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $currentCount = $stmt->fetchColumn();
             $stmt->closeCursor();
 
-            if ($currentCount - $removingCount <= 0) {
+            $addingCount = !empty($addr_add_list) ? count($addr_add_list) : 0;
+
+            if ( ((int)$currentCount - $removingCount + $addingCount) <= 0 ) {
                 sendEppError($conn, $db, 2306, 'Host must have at least one IP address', $clTRID, $trans);
                 return;
             }
