@@ -593,3 +593,49 @@ function getIdentifier(PDO $db, int $contact_id): ?string {
 
     return $result ? (string)$result['identifier'] : null;
 }
+
+/**
+ * Guess IDN script from a TLD string (".xn--..." or ".пример").
+ */
+function guessIdnScriptName(string $tld): string
+{
+    $tld = trim($tld);
+
+    // strip leading dot
+    if (str_starts_with($tld, '.')) {
+        $tld = substr($tld, 1);
+    }
+
+    // If it's punycode and intl is available, decode to Unicode
+    if (str_starts_with($tld, 'xn--') && function_exists('idn_to_utf8')) {
+        $decoded = idn_to_utf8($tld, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if (is_string($decoded) && $decoded !== '') {
+            $tld = $decoded;
+        }
+    }
+
+    // Remove any dots if someone passes "foo.bar"
+    $label = explode('.', $tld)[0];
+
+    // Quick range-based checks
+    if (preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}]/u', $label)) {
+        return 'Arab';
+    }
+
+    if (preg_match('/[\x{AC00}-\x{D7AF}]/u', $label)) {
+        return 'Kore';
+    }
+
+    // Japanese: Hiragana, Katakana, CJK Unified Ideographs, iteration mark
+    if (preg_match('/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3005}]/u', $label)) {
+        return 'Jpan';
+    }
+
+    // Cyrillic blocks (basic + supplements/extended)
+    if (preg_match('/[\x{0400}-\x{04FF}\x{0500}-\x{052F}\x{2DE0}-\x{2DFF}\x{A640}-\x{A69F}]/u', $label)) {
+        return 'Cyrl';
+    }
+
+    // Default fallback
+    return 'Latn';
+}

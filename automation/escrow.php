@@ -200,7 +200,8 @@ try {
             $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
             $xml->writeElement('rdeDomain:uName', $domain['name']);
             if (!isIDN($dbh, $tld['id'])) {
-                $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+                $script = guessIdnScriptName($tld['tld']);
+                $xml->writeElement('rdeDomain:idnTableId', $script);
             }
 
             // Fetch domain status
@@ -392,9 +393,11 @@ try {
         }
 
         if (!isIDN($dbh, $tld['id'])) {
+            $script = guessIdnScriptName($tld['tld']);
+
             // Writing the idnTableRef section
             $xml->startElement('rdeIDN:idnTableRef');
-            $xml->writeAttribute('id', 'Latn');
+            $xml->writeAttribute('id', $script);
             $xml->writeElement('rdeIDN:url', 'https://namingo.org');
             $xml->writeElement('rdeIDN:urlPolicy', 'https://namingo.org');
             $xml->endElement();  // Closing rdeIDN:idnTableRef
@@ -774,7 +777,8 @@ try {
                 $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
                 $xml->writeElement('rdeDomain:uName', $domain['name']);
                 if (!isIDN($dbh, $tld['id'])) {
-                    $xml->writeElement('rdeDomain:idnTableId', 'Latn');
+                    $script = guessIdnScriptName($tld['tld']);
+                    $xml->writeElement('rdeDomain:idnTableId', $script);
                 }
 
                 // Fetch domain status
