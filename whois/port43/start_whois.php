@@ -68,9 +68,13 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
     } catch (PDOException $e) {
         $log->alert("Swoole PDO Pool failed: " . $e->getMessage());
         $server->send($fd, "Database failure. Please try again later");
+        $server->close($fd);
+        return;
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
         $server->send($fd, "Error");
+        $server->close($fd);
+        return;
     }
     $privacy = $c['privacy'];
     $minimum_data = $c['minimum_data'];
@@ -147,17 +151,6 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     return;
                 }
                 
-                // Check if domain is reserved
-                $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
-                $stmtReserved->execute([$parts[0]]);
-                $domain_already_reserved = $stmtReserved->fetchColumn();
-
-                if ($domain_already_reserved) {
-                    $server->send($fd, "Domain name is reserved or restricted");
-                    $server->close($fd);
-                    return;
-                }
-
                 // Fetch the IDN regex for the given TLD
                 $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
                 $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
@@ -652,13 +645,33 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
                 } else {
+                    // Check if domain is reserved
+                    $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+                    $stmtReserved->execute([$label]);
+                    $domain_already_reserved = $stmtReserved->fetchColumn();
+
+                    if ($domain_already_reserved) {
+                        $server->send($fd, "Domain name is reserved or restricted");
+
+                        $clientInfo = $server->getClientInfo($fd);
+                        $remoteAddr = $clientInfo['remote_ip'];
+                        $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | RESERVED');
+
+                        $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                        $settingName = 'whois-43-queries';
+                        $stmt->bindParam(':name', $settingName);
+                        $stmt->execute();
+
+                        return;
+                    }
+
                     //NOT FOUND or No match for;
                     $server->send($fd, "NOT FOUND");
-                    
+
                     $clientInfo = $server->getClientInfo($fd);
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | NOT FOUND');
-                    
+
                     $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
