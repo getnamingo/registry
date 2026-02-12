@@ -318,19 +318,7 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
         $response->end(json_encode($errorData));
         return;
     }
-
-    // Check if domain is reserved
-    $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
-    $stmtReserved->execute([$parts[0]]);
-    $domain_already_reserved = $stmtReserved->fetchColumn();
-
-    if ($domain_already_reserved) {
-        $response->header('Content-Type', 'application/rdap+json');
-        $response->status(400); // Bad Request
-        $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
-        return;
-    }
-    
+  
     // Fetch the IDN regex for the given TLD
     $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
     $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
@@ -367,6 +355,18 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
 
         // Check if the domain exists
         if (!$domainDetails) {
+            // Check if domain is reserved
+            $stmtReserved = $pdo->prepare("SELECT id FROM reserved_domain_names WHERE name = ? LIMIT 1");
+            $stmtReserved->execute([$label]);
+            $domain_already_reserved = $stmtReserved->fetchColumn();
+
+            if ($domain_already_reserved) {
+                $response->header('Content-Type', 'application/rdap+json');
+                $response->status(404);
+                $response->end(json_encode(['error' => 'Domain name is reserved or restricted']));
+                return;
+            }
+
             // Domain not found, respond with a 404 error
             try {
                 $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
