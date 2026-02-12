@@ -217,7 +217,25 @@ class ApplicationsController extends Controller
                     $certPem = "-----BEGIN CERTIFICATE-----\n" .
                                chunk_split($certBase64, 64, "\n") .
                                "-----END CERTIFICATE-----\n";
-                               
+
+                    $tmchRoot = '/etc/ssl/certs/tmch.pem';
+                    if (!is_readable($tmchRoot)) {
+                        $this->container->get('flash')->addMessage('error', 'TMCH root certificate is missing on server.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $certRes = openssl_x509_read($certPem);
+                    if ($certRes === false) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid SMD certificate format.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $ok = openssl_x509_checkpurpose($certRes, X509_PURPOSE_ANY, [$tmchRoot]);
+                    if ($ok !== true && $ok !== 1) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: SMD certificate is not issued by the trusted TMCH root.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     // Load the SMD certificate
                     $x509 = new \phpseclib3\File\X509();
                     $cert = $x509->loadX509($certPem);

@@ -896,7 +896,25 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $certPem = "-----BEGIN CERTIFICATE-----\n" .
                            chunk_split($certBase64, 64, "\n") .
                            "-----END CERTIFICATE-----\n";
-                           
+
+                $tmchRoot = '/etc/ssl/certs/tmch.pem';
+                if (!is_readable($tmchRoot)) {
+                    sendEppError($conn, $db, 2400, 'Error creating domain: TMCH root certificate is missing on server.', $clTRID, $trans);
+                    return;
+                }
+
+                $certRes = openssl_x509_read($certPem);
+                if ($certRes === false) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: Invalid SMD certificate format.', $clTRID, $trans);
+                    return;
+                }
+
+                $ok = openssl_x509_checkpurpose($certRes, X509_PURPOSE_ANY, [$tmchRoot]);
+                if ($ok !== true && $ok !== 1) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD certificate is not issued by the trusted TMCH root.', $clTRID, $trans);
+                    return;
+                }
+
                 // Load the SMD certificate
                 $x509 = new \phpseclib3\File\X509();
                 $cert = $x509->loadX509($certPem);
