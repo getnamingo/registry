@@ -84,8 +84,6 @@ class DomainLifecycleManager {
     private function processAutoRenewal() {
         $this->log->info('Starting Auto-Renewal Phase.');
 
-        $minimum_data = $this->config['minimum_data'];
-
         // Fetch domains eligible for auto-renewal
         $sth = $this->dbh->prepare("
             SELECT id, name, tldid, exdate, clid 
@@ -156,23 +154,33 @@ class DomainLifecycleManager {
     }
 
     private function renewDomain($domain_id, $name, $exdate, $clid, $price) {
-        // Update domain and registrar records
-        $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
-        $sth->execute([$domain_id]);
+        $this->dbh->beginTransaction();
 
-        $sth = $this->dbh->prepare("UPDATE registrar SET accountBalance = (accountBalance - ?) WHERE id = ?");
-        $sth->execute([$price, $clid]);
+        try {
+            $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
+            $sth->execute([$domain_id]);
 
-        $sth = $this->dbh->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
-        $description = "autoRenew domain $name for period 12 MONTH";
-        $sth->execute([$clid, $description, -$price]);
+            $sth = $this->dbh->prepare("UPDATE registrar SET accountBalance = (accountBalance - ?) WHERE id = ?");
+            $sth->execute([$price, $clid]);
 
-        list($to) = $this->dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetch(PDO::FETCH_NUM);
-        $sthStatement = $this->dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
-        $sthStatement->execute([$clid, 'autoRenew', $name, '12', $exdate, $to, $price]);
+            $sth = $this->dbh->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
+            $description = "autoRenew domain $name for period 12 MONTH";
+            $sth->execute([$clid, $description, -$price]);
 
-        // Update statistics
-        $this->updateStatistics('renewed_domains');
+            $sth = $this->dbh->prepare("SELECT exdate FROM domain WHERE id = ? LIMIT 1");
+            $sth->execute([$domain_id]);
+            list($to) = $sth->fetch(PDO::FETCH_NUM);
+
+            $sthStatement = $this->dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
+            $sthStatement->execute([$clid, 'autoRenew', $name, '12', $exdate, $to, $price]);
+
+            $this->updateStatistics('renewed_domains');
+
+            $this->dbh->commit();
+        } catch (Exception $e) {
+            $this->dbh->rollBack();
+            $this->log->error("Failed to auto-renew $name (ID $domain_id): " . $e->getMessage());
+        }
     }
 
     private function moveToRedemptionPeriod($domain_id, $exdate) {
