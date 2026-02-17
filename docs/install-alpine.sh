@@ -338,7 +338,8 @@ echo "Updating control panel configuration..."
 sed -i "s|https://cp.example.com|https://cp.${REGISTRY_DOMAIN}|g" /var/www/cp/.env
 sed -i "s|example.com|${REGISTRY_DOMAIN}|g" /var/www/cp/.env
 sed -i "s/DB_USERNAME=root/DB_USERNAME=${DB_USER}/g" /var/www/cp/.env
-sed -i "s/DB_PASSWORD=/DB_PASSWORD=${DB_PASSWORD}/g" /var/www/cp/.env
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&\\/]/\\&/g')
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD_ESCAPED|" /var/www/cp/.env
 
 # --- Install Composer ---
 echo "Installing Composer..."
@@ -382,7 +383,8 @@ cd /opt/registry/whois/port43
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/whois/port43/config.php
 create_openrc_service "whois" "/opt/registry/whois/port43/start_whois.php"
 
 echo "Installing RDAP Server..."
@@ -390,7 +392,8 @@ cd /opt/registry/rdap
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/rdap/config.php
 create_openrc_service "rdap" "/opt/registry/rdap/start_rdap.php"
 
 echo "Installing EPP Server..."
@@ -398,7 +401,8 @@ cd /opt/registry/epp
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/epp/config.php
 create_openrc_service "epp" "/opt/registry/epp/start_epp.php"
 
 echo "Installing DAS Server..."
@@ -406,7 +410,8 @@ cd /opt/registry/das
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/das/config.php
 create_openrc_service "das" "/opt/registry/das/start_das.php"
 
 echo "Installing Automation Scripts..."
@@ -414,7 +419,8 @@ cd /opt/registry/automation
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/automation/config.php
 
 create_openrc_service "msg_producer" "/opt/registry/automation/msg_producer.php"
 create_openrc_service "msg_worker" "/opt/registry/automation/msg_worker.php"

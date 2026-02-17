@@ -418,7 +418,8 @@ EOF
     sed -i "s|https://cp.example.com|https://cp.$REGISTRY_DOMAIN|g" /var/www/cp/.env
     sed -i "s|example.com|$REGISTRY_DOMAIN|g" /var/www/cp/.env
     sed -i "s/DB_USERNAME=root/DB_USERNAME=$DB_USER/g" /var/www/cp/.env
-    sed -i "s/DB_PASSWORD=/DB_PASSWORD=$DB_PASSWORD/g" /var/www/cp/.env
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&\\/]/\\&/g')
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD_ESCAPED|" /var/www/cp/.env
     
     curl -sS https://getcomposer.org/installer -o composer-setup.php
     EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
@@ -460,7 +461,8 @@ EOF
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
-    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&\\/]/\\&/g')
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/whois/port43/config.php
     sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
     sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
     cp /opt/registry/docs/whois.service /etc/systemd/system/
@@ -472,7 +474,8 @@ EOF
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
-    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&\\/]/\\&/g')
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/rdap/config.php
     sed -i "s/User=root/User=$current_user/" /opt/registry/docs/rdap.service
     sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/rdap.service
     cp /opt/registry/docs/rdap.service /etc/systemd/system/
@@ -484,7 +487,8 @@ EOF
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
-    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/epp/config.php
     sed -i "s/User=root/User=$current_user/" /opt/registry/docs/epp.service
     sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/epp.service
     cp /opt/registry/docs/epp.service /etc/systemd/system/
@@ -496,14 +500,16 @@ EOF
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
-    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/automation/config.php
 
     echo "Installing DAS Server."
     cd /opt/registry/das
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
     sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
-    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
+    DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/das/config.php
     sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
     sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
     cp /opt/registry/docs/das.service /etc/systemd/system/
