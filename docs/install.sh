@@ -70,7 +70,7 @@ fi
 echo "System meets the minimum requirements. Proceeding with installation..."
 
 # Proceed if it's Ubuntu or Debian
-if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" == "24.04") || ("$OS" == "Debian GNU/Linux" && "$VER" == "12") ]]; then
+if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" == "24.04") || ("$OS" == "Debian GNU/Linux" && ( "$VER" == "12" || "$VER" == "13" )) ]]; then
     # Prompt for details
     REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
     YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
@@ -112,6 +112,13 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
         PHP_VERSION="php8.3"
         DB_COMMAND="mariadb"
         SECURE_INSTALL_CMD="mariadb-secure-installation"
+    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "13" ]]; then
+        apt install -y ca-certificates cron gnupg lsb-release
+        curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+        echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+        PHP_VERSION="php8.3"
+        DB_COMMAND="mariadb"
+        SECURE_INSTALL_CMD="mariadb-secure-installation"
     else
         apt install -y ca-certificates cron gnupg lsb-release
         curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
@@ -136,6 +143,9 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
 
     # Determine PHP configuration files based on OS and version
     if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
+        phpIniCli='/etc/php/8.3/cli/php.ini'
+        phpIniFpm='/etc/php/8.3/fpm/php.ini'
+    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "13" ]]; then
         phpIniCli='/etc/php/8.3/cli/php.ini'
         phpIniFpm='/etc/php/8.3/fpm/php.ini'
     else
@@ -213,7 +223,7 @@ X-Repolib-Name: MariaDB
 Types: deb
 # URIs: https://deb.mariadb.org/11/ubuntu
 URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/debian
-Suites: bookworm
+Suites: $(lsb_release -sc)
 Components: main
 Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF

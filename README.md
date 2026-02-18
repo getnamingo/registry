@@ -78,7 +78,7 @@ Our documentation provides comprehensive guidance on installation, configuration
 
 ### Installation
 
-**Minimum requirement:** a fresh VPS running Ubuntu 22.04/24.04 or Debian 12, with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
+**Minimum requirement:** a fresh VPS running Ubuntu 22.04/24.04 or Debian 12/13, with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
 **Recommended:** 4 CPU cores, 8 GB RAM, and 50 GB hard drive space.
 
 To get started, copy the command below and paste it into your server terminal (root access required):
