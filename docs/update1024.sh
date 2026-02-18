@@ -156,7 +156,7 @@ php /var/www/cp/bin/file_cache.php
 
 # Start services
 echo "Starting services..."
-#systemctl start epp
+systemctl start epp
 systemctl start whois
 systemctl start rdap
 systemctl start das
