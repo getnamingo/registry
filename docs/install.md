@@ -145,7 +145,7 @@ Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 ```bash
 apt-get update
 apt install -y mariadb-client mariadb-server php8.3-mysql
-mysql_secure_installation
+mariadb-secure-installation
 ```
 
 [Tune your MariaDB](https://github.com/major/MySQLTuner-perl) or run `ulimit -n 65535` and also use the recommended settings below in `/etc/mysql/mariadb.conf.d/50-server.cnf`:

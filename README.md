@@ -58,7 +58,7 @@ Namingo is equipped with a comprehensive suite of features to meet the diverse n
 
 - **DNS Interface**: Zone file generator with native DNSSEC signing for BIND 9 and Knot DNS, including NSEC3 support (RFC 9276-compliant). Also supports OpenDNSSEC and NSD via external signing.
 
-- **Database Compatibility**: Fully supports MySQL/MariaDB and offers beta support for PostgreSQL, providing flexibility to match users' technical needs and infrastructure for seamless integration and peak performance.
+- **Database Compatibility**: Fully supports MariaDB and offers beta support for PostgreSQL, providing flexibility to match users' technical needs and infrastructure for seamless integration and peak performance.
 
 - **GDPR & NIS2 Compliance**: Namingo supports both GDPR and NIS2 requirements, including contact validation and encrypted data storage. For implementation details, see our [Encryption Guide](docs/encryption.md).
 
@@ -98,18 +98,15 @@ After installation, be sure to review all the guides in the Documentation sectio
 To update, you **must run the update scripts sequentially** without skipping versions.  
 For example, if you're on **v1.0.22** and the latest is **v1.0.24**, first update to **v1.0.23**, then to **v1.0.24**.
 
+- **v1.0.24.1 → v1.0.25**  
+  Download and run the [`update1025.sh`](docs/update1025.sh) script.
+
 - **v1.0.24 → v1.0.24.1**  
   Download and run the [`update1024-1.sh`](docs/update1024-1.sh) script. Update needed only if you use Namingo for gTLD.
 
 - **v1.0.23 → v1.0.24**  
   Download and run the [`update1024.sh`](docs/update1024.sh) script.
 
-- **v1.0.22 → v1.0.23**  
-  Download and run the [`update1023sh`](docs/update1023sh.sh) script.
-
-- **v1.0.21 → v1.0.22**  
-  Download and run the [`update1022.sh`](docs/update1022.sh) script.
-  
 For **older versions**, please refer to [`update.md`](docs/update.md).
 
 ### [Configuration Guide](docs/configuration.md) [Required]
