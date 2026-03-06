@@ -197,27 +197,34 @@
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Recent Domains') }}</h3>
                       </div>
-                      <div class="table-responsive">
-                        <table class="table table-vcenter card-table table-striped">
-                          <thead>
-                            <tr>
-                              <th>{{ __('Name') }}</th>
-                              <th>{{ __('Creation Date') }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                          {% if latest_domains|length > 0 %}
-                            {% for domain in latest_domains %}
-                              <tr>
-                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
-                                <td class="text-secondary">{{ domain.crdate }}</td>
-                              </tr>
-                            {% endfor %}
-                          {% else %}
-                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
-                          {% endif %}
-                          </tbody>
-                        </table>
+                      <div class="list-group list-group-flush">
+                        {% if latest_domains|length > 0 %}
+                          {% for domain in latest_domains %}
+                            <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2 text-truncate">
+                                  <span class="status-dot status-green"></span>
+                                  <span class="fw-bold">
+                                    {{ domain.name }}
+                                  </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                  <div class="text-secondary small text-end">
+                                    <div class="text-muted small">{{ __('Registered On') }}</div>
+                                    <div class="text-secondary fw-semibold">{{ domain.crdate|split('.')[0] }}</div>
+                                  </div>
+                                  <span class="text-muted">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                                  </span>
+                                </div>
+                              </div>
+                            </a>
+                           {% endfor %}
+                        {% else %}
+                          <div class="list-group-item text-secondary">
+                            {{ __('No Data') }}
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
@@ -226,27 +233,34 @@
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Expiring Domains') }}</h3>
                       </div>
-                      <div class="table-responsive">
-                        <table class="table table-vcenter card-table table-striped">
-                          <thead>
-                            <tr>
-                              <th>{{ __('Name') }}</th>
-                              <th>{{ __('Expiration Date') }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                          {% if expiring_domains|length > 0 %}
-                            {% for domain in expiring_domains %}
-                              <tr>
-                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
-                                <td class="text-secondary">{{ domain.exdate }}</td>
-                              </tr>
-                            {% endfor %}
-                          {% else %}
-                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
-                          {% endif %}
-                          </tbody>
-                        </table>
+                      <div class="list-group list-group-flush">
+                        {% if expiring_domains|length > 0 %}
+                          {% for domain in expiring_domains %}
+                            <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2 text-truncate">
+                                  <span class="status-dot status-orange"></span>
+                                  <span class="fw-bold">
+                                    {{ domain.name }}
+                                  </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                  <div class="text-secondary small text-end">
+                                    <div class="text-muted small">{{ __('Expiration Date') }}</div>
+                                    <div class="text-secondary fw-semibold">{{ domain.exdate|split('.')[0] }}</div>
+                                  </div>
+                                  <span class="text-muted">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                                  </span>
+                                </div>
+                              </div>
+                            </a>
+                          {% endfor %}
+                        {% else %}
+                          <div class="list-group-item text-secondary">
+                            {{ __('No Data') }}
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
@@ -255,27 +269,34 @@
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Expired Domains') }}</h3>
                       </div>
-                      <div class="table-responsive">
-                        <table class="table table-vcenter card-table table-striped">
-                          <thead>
-                            <tr>
-                              <th>{{ __('Name') }}</th>
-                              <th>{{ __('Expiration Date') }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                          {% if expired_domains|length > 0 %}
-                            {% for domain in expired_domains %}
-                              <tr>
-                                <td><a href="/domain/view/{{ domain.name }}">{{ domain.name }}</a></td>
-                                <td class="text-secondary">{{ domain.exdate }}</td>
-                              </tr>
-                            {% endfor %}
-                          {% else %}
-                            <tr><td colspan="2">{{ __('No Data') }}</td></tr>
-                          {% endif %}
-                          </tbody>
-                        </table>
+                      <div class="list-group list-group-flush">
+                        {% if expired_domains|length > 0 %}
+                          {% for domain in expired_domains %}
+                            <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2 text-truncate">
+                                  <span class="status-dot status-red"></span>
+                                  <span class="fw-bold">
+                                    {{ domain.name }}
+                                  </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                  <div class="text-secondary small text-end">
+                                    <div class="text-muted small">{{ __('Expired On') }}</div>
+                                    <div class="text-secondary fw-semibold">{{ domain.exdate|split('.')[0] }}</div>
+                                  </div>
+                                  <span class="text-muted">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                                  </span>
+                                </div>
+                              </div>
+                            </a>
+                          {% endfor %}
+                        {% else %}
+                          <div class="list-group-item text-secondary">
+                            {{ __('No Data') }}
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
@@ -284,29 +305,46 @@
                       <div class="card-header">
                         <h3 class="card-title">{{ __('Recent Support Tickets') }}</h3>
                       </div>
-                      <div class="table-responsive">
-                        <table class="table table-vcenter card-table table-striped">
-                          <thead>
-                            <tr>
-                              <th>{{ __('Subject') }}</th>
-                              <th>{{ __('Status') }}</th>
-                              <th>{{ __('Priority') }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                          {% if tickets|length > 0 %}
-                            {% for ticket in tickets %}
-                              <tr>
-                                <td><a href="/ticket/{{ ticket.id }}">{{ ticket.subject|length > 30 ? (ticket.subject|slice(0, 30) ~ '…') : ticket.subject }}</a></td>
-                                <td class="text-secondary">{{ __(ticket.status) }}</td>
-                                <td class="text-secondary">{{ __(ticket.priority) }}</td>
-                              </tr>
-                            {% endfor %}
-                          {% else %}
-                            <tr><td colspan="3">{{ __('No Data') }}</td></tr>
-                          {% endif %}
-                          </tbody>
-                        </table>
+                      <div class="list-group list-group-flush">
+                        {% if tickets|length > 0 %}
+                          {% for ticket in tickets %}
+                            <a href="/ticket/{{ ticket.id }}" class="list-group-item py-3 list-group-item-action text-reset">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-truncate">
+                                  <span class="fw-bold d-block">
+                                    {{ ticket.subject|length > 50 ? (ticket.subject|slice(0, 50) ~ '…') : ticket.subject }}
+                                  </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                  <div class="text-secondary small text-end">
+                                    <div class="text-muted small">{{ __('Created On') }}</div>
+                                    <div class="text-secondary fw-semibold">{{ ticket.date_created|split('.')[0] }}</div>
+                                  </div>
+                                  <span class="badge
+                                    {% if ticket.status|lower == 'open' %}bg-green text-green-fg
+                                    {% elseif ticket.status|lower == 'answered' %}bg-blue text-blue-fg
+                                    {% elseif ticket.status|lower == 'closed' %}bg-secondary text-secondary-fg
+                                    {% else %}bg-azure text-azure-fg
+                                    {% endif %}">
+                                    {{ __(ticket.status) }}
+                                  </span>
+                                  {% if ticket.priority|lower == 'high' %}
+                                    <span class="badge bg-red text-red-fg">
+                                      {{ __('High') }}
+                                    </span>
+                                  {% endif %}
+                                  <span class="text-muted">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                                  </span>
+                                </div>
+                              </div>
+                            </a>
+                          {% endfor %}
+                        {% else %}
+                          <div class="list-group-item text-secondary">
+                            {{ __('No Data') }}
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>

@@ -51,7 +51,7 @@ class HomeController extends Controller
             $latest_domains = $db->select('SELECT name, crdate FROM domain WHERE clid = ? ORDER BY crdate DESC LIMIT 5', [$clid]);
             $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;', [$clid]);
             $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;', [$clid]);
-            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 5', [$clid]);
+            $tickets = $db->select('SELECT id, subject, status, priority, date_created FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 5', [$clid]);
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
             
@@ -169,7 +169,7 @@ class HomeController extends Controller
             $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 5');
             $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;');
             $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;');
-            $tickets = $db->select('SELECT id, subject, status, priority FROM support_tickets ORDER BY date_created DESC LIMIT 5');
+            $tickets = $db->select('SELECT id, subject, status, priority, date_created FROM support_tickets ORDER BY date_created DESC LIMIT 5');
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host');
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact');
             $registrars = $db->selectValue('SELECT count(id) as registrars FROM registrar');
