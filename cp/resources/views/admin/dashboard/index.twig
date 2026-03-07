@@ -4,58 +4,23 @@
 
 {% block content %}
       <div class="page-wrapper">
-        <!-- Page header -->
-        <div class="page-header d-print-none">
-          <div class="container-xl">
-            <div class="row g-2 align-items-center">
-              <div class="col">
-                <!-- Page pre-title -->
-                <div class="page-pretitle">
-                  {{ __('Overview') }}
-                </div>
-                <h2 class="page-title">
-                  {{ __('Dashboard') }}
-                </h2>
-              </div>
-              <!-- Page title actions -->
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  {% if roles == 0 %}<span class="d-none d-sm-inline">
-                    <a href="{{route('reports')}}" class="btn btn-outline-secondary">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h5.697" /><path d="M18 14v4h4" /><path d="M18 11v-4a2 2 0 0 0 -2 -2h-2" /><path d="M8 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M18 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M8 11h4" /><path d="M8 15h3" /></svg>
-                      {{ __('View Reports') }}
-                    </a>
-                  </span>{% endif %}
-                  <a href="{{route('createDomain')}}" class="btn btn-primary d-none d-sm-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    {{ __('Create new domain') }}
-                  </a>
-                  <a href="{{route('createDomain')}}" class="btn btn-primary d-sm-none btn-icon" aria-label="{{ __('Create new domain') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Page body -->
         <div class="page-body">
           <div class="container-xl">
               <div class="col-12">
               {% include 'partials/flash.twig' %}
                 <div class="row row-cards">
                   {% if registrars %}
-                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
-                    <a class="card card-link" href="{{route('listDomains')}}">
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %} d-flex">
+                    <a class="card card-link h-100 w-100" href="{{route('listDomains')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
                           <div class="col-auto">
-                            <span class="bg-primary text-white avatar avatar-lg">
+                            <span class="bg-blue-lt text-blue avatar avatar-md">
                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M3.6 9h16.8" /><path d="M3.6 15h16.8" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a17 17 0 0 1 0 18" /></svg>
                             </span>
                           </div>
                           <div class="col">
-                            <div class="h1 mt-3">
+                            <div class="{{ domains > 9999 ? 'h2' : 'h1' }} mt-3">
                               {{ domains }} {{ __('Domains') }}
                             </div>
                           </div>
@@ -63,12 +28,12 @@
                       </div>
                     </a>
                   </div>{% if minimum_data == 'false' %}
-                  <div class="col-sm-6 col-lg-3">
-                    <a class="card card-link" href="{{route('listContacts')}}">
+                  <div class="col-sm-6 col-lg-3 d-flex">
+                    <a class="card card-link h-100 w-100" href="{{route('listContacts')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
                           <div class="col-auto">
-                            <span class="bg-secondary text-white avatar avatar-lg"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 6v12a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2z"></path><path d="M10 16h6"></path><path d="M13 11m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M4 8h3"></path><path d="M4 12h3"></path><path d="M4 16h3"></path></svg>
+                            <span class="bg-secondary-lt text-secondary avatar avatar-md"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 6v12a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2z"></path><path d="M10 16h6"></path><path d="M13 11m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M4 8h3"></path><path d="M4 12h3"></path><path d="M4 16h3"></path></svg>
                             </span>
                           </div>
                           <div class="col">
@@ -80,12 +45,12 @@
                       </div>
                     </a>
                   </div>{% endif %}
-                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
-                    <a class="card card-link" href="{{route('listHosts')}}">
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %} d-flex">
+                    <a class="card card-link h-100 w-100" href="{{route('listHosts')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
                           <div class="col-auto">
-                            <span class="bg-green text-white avatar avatar-lg">
+                            <span class="bg-green-lt text-green avatar avatar-md">
                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 7a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-2" /><path d="M3 15a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3l0 -2" /><path d="M7 8l0 .01" /><path d="M7 16l0 .01" /><path d="M11 8h6" /><path d="M11 16h6" /></svg>
                             </span>
                           </div>
@@ -98,12 +63,12 @@
                       </div>
                     </a>
                   </div>
-                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %}">
-                    <a class="card card-link" href="{{route('registrars')}}">
+                  <div class="{% if minimum_data == 'false' %}col-sm-6 col-lg-3{% else %}col-sm-4 col-lg-4{% endif %} d-flex">
+                    <a class="card card-link h-100 w-100" href="{{route('registrars')}}">
                       <div class="card-body">
                         <div class="row align-items-center">
                           <div class="col-auto">
-                            <span class="bg-azure text-white avatar avatar-lg"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 13a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z"></path><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"></path><path d="M6 20.05v-.05a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v.05"></path></svg>
+                            <span class="bg-azure-lt text-azure avatar avatar-md"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 13a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z"></path><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"></path><path d="M6 20.05v-.05a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v.05"></path></svg>
                             </span>
                           </div>
                           <div class="col">
@@ -195,7 +160,7 @@
                   <div class="col-12 col-md-6">
                     <div class="card">
                       <div class="card-header">
-                        <h3 class="card-title">{{ __('Recent Domains') }}</h3>
+                        <h3 class="card-title"><span class="status-dot status-green"></span> {{ __('Recent Domains') }}</h3>
                       </div>
                       <div class="list-group list-group-flush">
                         {% if latest_domains|length > 0 %}
@@ -203,7 +168,6 @@
                             <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
                               <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center gap-2 text-truncate">
-                                  <span class="status-dot status-green"></span>
                                   <span class="fw-bold">
                                     {{ domain.name }}
                                   </span>
@@ -231,7 +195,7 @@
                   <div class="col-12 col-md-6">
                     <div class="card">
                       <div class="card-header">
-                        <h3 class="card-title">{{ __('Expiring Domains') }}</h3>
+                        <h3 class="card-title"><span class="status-dot status-orange"></span> {{ __('Expiring Domains') }}</h3>
                       </div>
                       <div class="list-group list-group-flush">
                         {% if expiring_domains|length > 0 %}
@@ -239,7 +203,6 @@
                             <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
                               <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center gap-2 text-truncate">
-                                  <span class="status-dot status-orange"></span>
                                   <span class="fw-bold">
                                     {{ domain.name }}
                                   </span>
@@ -267,7 +230,7 @@
                   <div class="col-12 col-md-6">
                     <div class="card">
                       <div class="card-header">
-                        <h3 class="card-title">{{ __('Expired Domains') }}</h3>
+                        <h3 class="card-title"><span class="status-dot status-red"></span> {{ __('Expired Domains') }}</h3>
                       </div>
                       <div class="list-group list-group-flush">
                         {% if expired_domains|length > 0 %}
@@ -275,7 +238,6 @@
                             <a href="/domain/view/{{ domain.name }}" class="list-group-item py-3 list-group-item-action text-reset">
                               <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center gap-2 text-truncate">
-                                  <span class="status-dot status-red"></span>
                                   <span class="fw-bold">
                                     {{ domain.name }}
                                   </span>
@@ -310,8 +272,8 @@
                           {% for ticket in tickets %}
                             <a href="/ticket/{{ ticket.id }}" class="list-group-item py-3 list-group-item-action text-reset">
                               <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-truncate">
-                                  <span class="fw-bold d-block">
+                                <div class="d-flex align-items-center gap-2 text-truncate">
+                                  <span class="fw-bold{% if ticket.priority|lower == 'high' %} text-red{% endif %}">
                                     {{ ticket.subject|length > 50 ? (ticket.subject|slice(0, 50) ~ '…') : ticket.subject }}
                                   </span>
                                 </div>
@@ -328,11 +290,6 @@
                                     {% endif %}">
                                     {{ __(ticket.status) }}
                                   </span>
-                                  {% if ticket.priority|lower == 'high' %}
-                                    <span class="badge bg-red text-red-fg">
-                                      {{ __('High') }}
-                                    </span>
-                                  {% endif %}
                                   <span class="text-muted">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
                                   </span>
