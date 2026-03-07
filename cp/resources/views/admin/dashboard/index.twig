@@ -20,8 +20,19 @@
                             </span>
                           </div>
                           <div class="col">
-                            <div class="{{ domains > 9999 ? 'h2' : 'h1' }} mt-3">
-                              {{ domains }} {{ __('Domains') }}
+                            <div class="mt-3">
+                              {% if domains > 9999 and registrars %}
+                                <div class="h1 d-md-none">
+                                  {{ domains }} {{ __('Domains') }}
+                                </div>
+                                <div class="h2 d-none d-md-block">
+                                  {{ domains }} {{ __('Domains') }}
+                                </div>
+                              {% else %}
+                                <div class="h1">
+                                  {{ domains }} {{ __('Domains') }}
+                                </div>
+                              {% endif %}
                             </div>
                           </div>
                         </div>
