@@ -95,7 +95,7 @@ class FinancialsController extends Controller
             $lastDayPrevMonth
         ]);
 
-        foreach ($refunds as &$r) {
+        foreach (($refunds ?? []) as &$r) {
             $r['domain_name'] = '(refund)';
             $r['command'] = 'REFUND';
             $r['type'] = 'credit';
