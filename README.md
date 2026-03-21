@@ -8,7 +8,7 @@ Open-source domain registry platform. Revolutionizing ccTLD and gTLD management 
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2025, it adheres to the latest standards, ensuring a cutting-edge experience. 
+Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2026, it adheres to the latest standards, ensuring a cutting-edge experience. 
 
 Namingo is optimally designed for the 2026 ICANN new gTLD application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
@@ -139,8 +139,6 @@ Your feedback and inquiries are invaluable to Namingo's evolutionary journey. If
   
 - **GitHub Issues**: For bug reports or feature requests, please use the [Issues](https://github.com/getnamingo/registry/issues) section of our GitHub repository.
 
-- **GitHub Discussions**: For general discussions, ideas, or to connect with our community, visit the [Discussion](https://github.com/getnamingo/registry/discussions) page on our GitHub project.
-
 We appreciate your involvement and patience as Namingo continues to grow and adapt.
 
 ## Acknowledgements
@@ -153,7 +151,7 @@ Additionally, we extend our gratitude to:
 - [Tabler](https://tabler.io/), whose elegant and intuitive interface design has greatly influenced the user experience of Namingo.
 - [ActiveCampaign/postmark-templates](https://github.com/ActiveCampaign/postmark-templates) and [leemunroe/responsive-html-email-template](https://github.com/leemunroe/responsive-html-email-template), for providing great email templates.
 
-## 💖 Support This Project
+## Support This Project
 
 If you find Namingo Registry useful, consider donating:
 
