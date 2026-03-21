@@ -6,14 +6,7 @@ This guide outlines the additional configuration steps required for registries o
 
 ## 1. Enable gTLD Mode
 
-Open the file `/opt/registry/automation/cron_config.php` and set both `gtld_mode` and `spec11` to `true`.
-
-Change these lines:
-
-- `'gtld_mode' => true`
-- `'spec11' => true`
-
-> ✅ This enables gTLD-specific features and ICANN Spec 11 abuse checks required for compliance.
+Open the file `/opt/registry/automation/config.php` and set both `cron_gtld_mode` and `cron_spec11` to `true`. This enables gTLD-specific features and ICANN Spec 11 abuse checks required for compliance.
 
 ---
 
@@ -320,7 +313,7 @@ If a domain is flagged:
 - A ticket is created in the affected registrar’s account
 - An abuse report is sent automatically to the registrar via email
 
-To use this feature, ensure `spec11` is set to `true` in `/opt/registry/automation/cron_config.php`.
+To use this feature, ensure `cron_spec11` is set to `true` in `/opt/registry/automation/config.php`.
 
 > ⚠️ This functionality helps maintain registry compliance with Specification 11 and supports proactive registrar communication.
 

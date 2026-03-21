@@ -182,7 +182,7 @@ The default backup system in Namingo is based on `phpbu`, which is well-suited f
 
 2. Edit both files to include the correct database and other required details. If using SFTP for uploads with just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
 
-3. Enable the backup functionality in `cron.php` or `cron_config.php`.
+3. Enable the backup functionality in `cron.php`.
 
 4. Follow the instructions in section **1.4.8. Running the Automation System** to activate the automation system on your server.
 
@@ -220,7 +220,7 @@ return [
 
 2. Enable Exchange Rate Generation
 
-Ensure your `cron.php` or `cron_config.php` executes the exchange rate update script by setting `exchange_rates` to `true`.
+Ensure your `cron.php` executes the exchange rate update script by setting `cron_exchange_rates` to `true`.
 
 If this is not enabled, you will need to manually edit `/var/www/cp/resources/exchange_rates.json` to provide exchange rates.
 
@@ -272,24 +272,9 @@ Some registries may wish to use these scripts and run them automatically. Each s
 
 #### 1.4.8. Running the Automation System
 
-1. After successfully configuring all the components of the automation system as outlined in the previous sections, you can proceed to initiate the system.
+1. After successfully configuring all the components of the automation system as outlined in the previous sections, and setting the automation configuration options in `/opt/registry/config.php`, you can proceed to initiate the system.
 
-2. Create the configuration file at `/opt/registry/automation/cron_config.php` with the specified structure, and adjust the values to suit your requirements.
-
-```php
-<?php
-return [
-    'accounting' => false,  // Enable or disable accounting
-    'backup' => false,      // Enable or disable backup
-    'backup_upload' => false, // Enable or disable backup upload
-    'gtld_mode' => false,   // Enable or disable gTLD mode
-    'spec11' => false,      // Enable or disable Spec 11 checks
-    'exchange_rates' => false,     // Enable or disable exchange rate download
-    'cds_scanner' => false,     // Enable or disable CDS/CDNSKEY scanning and DS publishing to the zone
-];
-```
-
-3. Add the following cron job to the system crontab using ```crontab -e```:
+2. Add the following cron job to the system crontab using ```crontab -e```:
 
 ```bash
 * * * * * /usr/bin/php /opt/registry/automation/cron.php 1>> /dev/null 2>&1
