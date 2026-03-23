@@ -808,7 +808,7 @@ function parseDigAnswerLine(string $line): ?array {
                 'keytag' => (int)$rdata[0],
                 'alg' => (int)$rdata[1],
                 'digesttype' => (int)$rdata[2],
-                'digest' => strtolower(trim($rdata[3])),
+                'digest' => strtolower(implode('', array_slice($rdata, 3))),
             ],
         ];
     }
