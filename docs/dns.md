@@ -374,6 +374,12 @@ To confirm that your zone has been loaded successfully, run `grep named /var/log
 
 > ✅ You should see something like: `zone test/IN: loaded serial 2025041901` indicating success.
 
+> 🧪 Optional: validate signed zones periodically:
+> 
+> `validns test. /var/cache/bind/test.zone`
+>
+> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+
 ### 1.2. Knot DNS (with native DNSSEC)
 
 #### 1.2.1. Installation
@@ -482,13 +488,24 @@ php /opt/registry/automation/write-zone.php
 
 > ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
-### 1.4. NSD (Advanced)
+#### 1.2.5. Optional: Post-Signing Validation
+
+Validate the signed zone:
+
+```bash
+kzonecheck -v test.
+validns test. /etc/knot/zones/test.zone
+```
+
+> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+
+### 1.3. NSD (Advanced)
 
 NSD is a high-performance, authoritative-only name server with no support for dynamic updates, inline signing, or native DNSSEC key management. It is suitable for production environments that prioritize speed and simplicity, but it **requires external zone signing**.
 
 > ⚠️ **Important:** NSD does **not** support DNSSEC signing or key management internally. You must handle all DNSSEC operations — such as key generation, zone signing, rollover, and DS management — using external tools like `ldns-signzone`, `dnssec-signzone`, or OpenDNSSEC.
 
-#### 1.4.1. Prerequisites
+#### 1.3.1. Prerequisites
 
 You’ll need a separate process or automation to:
 
@@ -506,13 +523,13 @@ ldns-signzone test.zone Ktest.+* Ztest.+*
 
 This will output a signed zone file, typically named `test.zone.signed`.
 
-#### 1.4.2. Installation
+#### 1.3.2. Installation
 
 ```bash
 apt install nsd ldnsutils
 ```
 
-#### 1.4.3. Configure NSD to Load Signed Zone
+#### 1.3.3. Configure NSD to Load Signed Zone
 
 Edit `/etc/nsd/nsd.conf` and define the zone:
 
@@ -528,7 +545,7 @@ Make sure the signed zone file is placed in `/etc/nsd/` or the directory you def
 systemctl restart nsd
 ```
 
-#### 1.4.4. Automating Zone Signing
+#### 1.3.4. Automating Zone Signing
 
 Because NSD does not sign zones automatically, you must:
 
@@ -548,11 +565,16 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
+Before reloading NSD, validate the signed zone:
+
+```bash
+validns test. /etc/nsd/test.zone.signed || exit 1
+nsd-checkzone test. /etc/nsd/test.zone.signed || exit 1
+```
+
 > 🧠 **Tip:** For easier DNSSEC lifecycle management, consider using **OpenDNSSEC** as the signer and **NSD** only for serving the signed zones.
 
-### 1.5. Other Options
-
-You may integrate with PowerDNS, YADIFA, or other servers, but this requires custom adaptation.
+> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
 ## 2. Setting Up a Public Secondary DNS Using BIND
 
