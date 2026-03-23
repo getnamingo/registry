@@ -1809,3 +1809,15 @@ msgstr "Editar grupo"
 
 msgid "No groups yet."
 msgstr "Aún no hay grupos."
+
+msgid "Auto-generated ID for the contact"
+msgstr "ID generado automáticamente para el contacto"
+
+msgid "Used for most extensions"
+msgstr "Utilizado para la mayoría de las extensiones"
+
+msgid "Localized Contact"
+msgstr "Contacto localizado"
+
+msgid "Optional. Used for some national extensions"
+msgstr "Opcional. Utilizado para algunas extensiones nacionales"

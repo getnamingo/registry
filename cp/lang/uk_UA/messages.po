@@ -1809,3 +1809,15 @@ msgstr "Редагувати групу"
 
 msgid "No groups yet."
 msgstr "Поки що немає груп."
+
+msgid "Auto-generated ID for the contact"
+msgstr "Автоматично згенерований ідентифікатор контакту"
+
+msgid "Used for most extensions"
+msgstr "Використовується для більшості доменних зон"
+
+msgid "Localized Contact"
+msgstr "Локалізований контакт"
+
+msgid "Optional. Used for some national extensions"
+msgstr "Необов’язково. Використовується для деяких національних доменних зон"

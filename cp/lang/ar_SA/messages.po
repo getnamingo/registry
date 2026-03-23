@@ -1806,3 +1806,15 @@ msgstr "تعديل المجموعة"
 
 msgid "No groups yet."
 msgstr "لا توجد مجموعات بعد."
+
+msgid "Auto-generated ID for the contact"
+msgstr "معرّف يتم إنشاؤه تلقائيًا لجهة الاتصال"
+
+msgid "Used for most extensions"
+msgstr "يُستخدم لمعظم الامتدادات"
+
+msgid "Localized Contact"
+msgstr "جهة اتصال محلية"
+
+msgid "Optional. Used for some national extensions"
+msgstr "اختياري. يُستخدم لبعض الامتدادات الوطنية"
