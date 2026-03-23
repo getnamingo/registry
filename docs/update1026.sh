@@ -138,6 +138,22 @@ wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 
 apt install -y bind9-dnsutils
 
+CONFIG_FILE="/opt/registry/automation/config.php"
+
+if ! grep -q "'cron_accounting'" "$CONFIG_FILE"; then
+  sed -i "/'exchange_rate_currencies'/a\\
+\\
+    // Cron / Automation Configuration\\
+    'cron_accounting' => false,       // Enable or disable accounting (invoice generation)\\
+    'cron_backup' => false,           // Enable or disable backups\\
+    'cron_backup_upload' => false,    // Enable or disable backup upload to remote storage\\
+    'cron_gtld_mode' => false,        // Enable or disable gTLD-related automation (TMCH, LORDN, URS, escrow, reporting)\\
+    'cron_spec11' => false,           // Enable or disable ICANN Spec 11 abuse monitoring and reporting\\
+    'cron_spec11_iq' => false,        // Enable or disable ICANN Spec 11 abuse monitoring and reporting (iq.global)\\
+    'cron_exchange_rates' => false,   // Enable or disable exchange rate updates\\
+    'cron_cds_scanner' => false,      // Enable or disable CDS/CDNSKEY scanning and DS publishing" "$CONFIG_FILE"
+fi
+
 # Reload cache
 echo "Reloading cache..."
 php /var/www/cp/bin/file_cache.php
@@ -161,3 +177,4 @@ else
 fi
 
 echo "Upgrade to v1.0.26 completed successfully."
+echo "Post-update: cron_config.php is deprecated. Review /opt/registry/automation/config.php and move existing settings from /opt/registry/automation/cron_config.php into this main config file."
