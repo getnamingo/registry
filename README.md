@@ -96,16 +96,16 @@ After installation, be sure to review all the guides in the Documentation sectio
 ### Updating
 
 To update, you **must run the update scripts sequentially** without skipping versions.  
-For example, if you're on **v1.0.22** and the latest is **v1.0.24**, first update to **v1.0.23**, then to **v1.0.24**.
+For example, if you're on **v1.0.24.1** and the latest is **v1.0.26**, first update to **v1.0.25**, then to **v1.0.26**.
 
+- **v1.0.25 → v1.0.26**  
+  Download and run the [`update1026.sh`](docs/update1026.sh) script.
+  
 - **v1.0.24.1 → v1.0.25**  
   Download and run the [`update1025.sh`](docs/update1025.sh) script.
 
 - **v1.0.24 → v1.0.24.1**  
   Download and run the [`update1024-1.sh`](docs/update1024-1.sh) script. Update needed only if you use Namingo for gTLD.
-
-- **v1.0.23 → v1.0.24**  
-  Download and run the [`update1024.sh`](docs/update1024.sh) script.
 
 For **older versions**, please refer to [`update.md`](docs/update.md).
 

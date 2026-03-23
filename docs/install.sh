@@ -97,7 +97,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     apt update -y
 
     # Install common packages for all versions
-    apt install -y apt-transport-https curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 caddy gettext git gnupg2 net-tools pv redis unzip wget whois
+    apt install -y apt-transport-https bind9-dnsutils curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 caddy gettext git gnupg2 net-tools pv redis unzip wget whois
 
     # PHP version and repository setup based on the OS version
     if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
@@ -269,7 +269,7 @@ EOF
     wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
     ln -s /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
-    git clone --branch v1.0.25 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.26 --single-branch https://github.com/getnamingo/registry /opt/registry
     
     echo "Setting up firewall rules..."
     ufw allow 22/tcp

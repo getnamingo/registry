@@ -101,7 +101,7 @@ apk update
 
 # Install common packages. (readline gnupg missing)
 apk add \
-  bash curl caddy gettext icu-data-full git php83-phar gnupg net-tools pv redis unzip wget whois ufw tzdata \
+  bash bind-tools curl caddy gettext icu-data-full git php83-phar gnupg net-tools pv redis unzip wget whois ufw tzdata \
   php83 php83-fpm php83-common php83-curl php83-fileinfo php83-pdo php83-pdo_mysql php83-ctype nano php83-iconv php83-dom php83-gd php83-ftp php83-gmp php83-bcmath php83-mysqli \
   php83-pecl-igbinary php83-imap php83-intl php83-mbstring php83-opcache php83-pecl-redis \
   php83-soap php83-xml \
@@ -177,7 +177,7 @@ ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
 # --- Clone registry source code ---
 echo "Cloning registry source code..."
-git clone --branch v1.0.25 --single-branch https://github.com/getnamingo/registry /opt/registry
+git clone --branch v1.0.26 --single-branch https://github.com/getnamingo/registry /opt/registry
 
 # --- Firewall configuration using ufw ---
 echo "Configuring firewall rules..."
