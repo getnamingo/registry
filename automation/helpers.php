@@ -639,3 +639,96 @@ function guessIdnScriptName(string $tld): string
     // Default fallback
     return 'Latn';
 }
+
+function runCommand(string $command): array
+{
+    $output = [];
+    $returnVar = 0;
+    exec($command . ' 2>&1', $output, $returnVar);
+
+    return [
+        'success' => $returnVar === 0,
+        'output' => $output,
+        'code' => $returnVar,
+    ];
+}
+
+function validateZoneFile(string $dnsServer, string $zoneName, string $zonePath, $log): bool
+{
+    $zoneName = rtrim($zoneName, '.') . '.';
+    $escapedZone = escapeshellarg($zoneName);
+    $escapedPath = escapeshellarg($zonePath);
+
+    switch ($dnsServer) {
+        case 'bind':
+        case 'opendnssec':
+        default:
+            $result = runCommand("named-checkzone {$escapedZone} {$escapedPath}");
+            break;
+
+        case 'nsd':
+            $result = runCommand("nsd-checkzone {$escapedZone} {$escapedPath}");
+            break;
+
+        case 'knot':
+            $result = runCommand("kzonecheck -o {$escapedZone} {$escapedPath}");
+            break;
+    }
+
+    if (!$result['success']) {
+        $log->error(
+            "Zone validation failed for {$zoneName} using {$dnsServer}. Output: " .
+            implode(' ', $result['output']) . " Code: " . $result['code']
+        );
+        return false;
+    }
+
+    $log->info("Zone validation passed for {$zoneName}.");
+    return true;
+}
+
+function isValidnsAvailable(): bool
+{
+    static $available = null;
+
+    if ($available !== null) {
+        return $available;
+    }
+
+    $output = [];
+    $returnVar = 0;
+    exec('command -v validns 2>/dev/null', $output, $returnVar);
+
+    $available = ($returnVar === 0 && !empty($output));
+    return $available;
+}
+
+function runValidnsIfAvailable(string $zoneName, string $zonePath, $log): bool
+{
+    if (!isValidnsAvailable()) {
+        $log->info("validns not installed, skipping validation for {$zoneName}.");
+        return true; // IMPORTANT: do not block pipeline
+    }
+
+    $zoneName = rtrim($zoneName, '.') . '.';
+    $escapedZone = escapeshellarg($zoneName);
+    $escapedPath = escapeshellarg($zonePath);
+
+    $output = [];
+    $returnVar = 0;
+
+    exec("validns {$escapedZone} {$escapedPath} 2>&1", $output, $returnVar);
+
+    if ($returnVar !== 0) {
+        $log->warning(
+            "validns reported issues for {$zoneName}. Output: " .
+            implode(" ", $output) . " Code: " . $returnVar
+        );
+
+        // do NOT fail hard initially (safer rollout)
+        return true;
+    }
+
+    $log->info("validns validation passed for {$zoneName}.");
+    return true;
+}

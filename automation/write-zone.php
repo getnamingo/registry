@@ -182,6 +182,13 @@ Coroutine::create(function () use ($pool, $log, $c) {
 
             file_put_contents($tmpPath, $completed_zone);
 
+            // Validate generated zone before publishing it
+            if (!validateZoneFile($c['dns_server'] ?? 'bind', $cleanedTld, $tmpPath, $log)) {
+                unlink($tmpPath);
+                $log->error("Skipping publication for {$cleanedTld} because validation failed.");
+                continue;
+            }
+
             if (!file_exists($finalPath) || md5_file($tmpPath) !== md5_file($finalPath)) {
                 rename($tmpPath, $finalPath);
                 $tlds[] = $cleanedTld;
@@ -190,8 +197,6 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 unlink($tmpPath);
                 $log->info("Zone file unchanged for {$cleanedTld}, skipping reload.");
             }
-
-            $tlds[] = $cleanedTld;
         }
 
         foreach ($tlds as $cleanedTld) {
@@ -227,9 +232,40 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 exec("ods-signer sign {$cleanedTld} 2>&1", $output, $return_var);
                 if ($return_var != 0) {
                     $log->error("Failed to sign zone with OpenDNSSEC for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
+                    continue;
                 }
-                sleep(1);
-                copy("/var/lib/opendnssec/signed/{$cleanedTld}", "/var/lib/bind/{$cleanedTld}.zone.signed");
+
+                $signedSourcePath = "/var/lib/opendnssec/signed/{$cleanedTld}";
+                $signedTargetPath = "/var/lib/bind/{$cleanedTld}.zone.signed";
+
+                $maxWaitSeconds = 10;
+                $waitedSeconds = 0;
+
+                while (
+                    (!file_exists($signedSourcePath) || filesize($signedSourcePath) === 0) &&
+                    $waitedSeconds < $maxWaitSeconds
+                ) {
+                    sleep(1);
+                    clearstatcache(true, $signedSourcePath);
+                    $waitedSeconds++;
+                }
+
+                if (!file_exists($signedSourcePath) || filesize($signedSourcePath) === 0) {
+                    $log->error("Signed zone file not ready for {$cleanedTld} after {$maxWaitSeconds} seconds at {$signedSourcePath}.");
+                    continue;
+                }
+
+                if (!validateZoneFile('bind', $cleanedTld, $signedSourcePath, $log)) {
+                    $log->error("Skipping signed zone publication for {$cleanedTld} because signed validation failed.");
+                    continue;
+                }
+
+                runValidnsIfAvailable($cleanedTld, $signedSourcePath, $log);
+
+                if (!copy($signedSourcePath, $signedTargetPath)) {
+                    $log->error("Failed to copy signed zone for {$cleanedTld} from {$signedSourcePath} to {$signedTargetPath}.");
+                    continue;
+                }
 
                 exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
