@@ -80,7 +80,6 @@ Co\run(function () use ($pool, $log) {
                 $host_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
                 if (empty($host_ids)) {
-                    $log->warning("No NS records mapped for {$domain['name']}");
                     $pool->put($pdo);
                     return;
                 }
@@ -97,7 +96,6 @@ Co\run(function () use ($pool, $log) {
                 }
 
                 if (empty($nsList)) {
-                    $log->warning("No usable NS hostnames found for {$domain['name']}");
                     $pool->put($pdo);
                     return;
                 }
@@ -298,8 +296,8 @@ function getDsSignalSet(string $domain, string $ns, array &$failedDomains): arra
 {
     $defaultMode = 'cds'; // or 'cdnskey'
 
-    $cdsSet = delvValidatedRrset($domain, $ns, 'CDS', $failedDomains);
-    $cdnskeySet = delvValidatedRrset($domain, $ns, 'CDNSKEY', $failedDomains);
+    $cdsSet = queryAuthoritativeBootstrapRrset($domain, $ns, 'CDS', $failedDomains);
+    $cdnskeySet = queryAuthoritativeBootstrapRrset($domain, $ns, 'CDNSKEY', $failedDomains);
 
     $cdsValid = false;
     $cdsDs = [];
@@ -843,11 +841,8 @@ function delvValidatedRrset(string $domain, ?string $ns, string $type, array &$f
 {
     static $logged = [];
 
-    $serverArg = ($ns !== null && $ns !== '') ? '@' . $ns . ' ' : '';
-
     $cmd = sprintf(
-        'delv %s%s %s 2>&1',
-        $serverArg,
+        'delv -4 %s %s 2>&1',
         escapeshellarg($domain),
         escapeshellarg($type)
     );
@@ -855,10 +850,10 @@ function delvValidatedRrset(string $domain, ?string $ns, string $type, array &$f
     $output = shell_exec($cmd);
 
     if (!is_string($output) || trim($output) === '') {
-        $key = "$domain|$type|$ns";
+        $key = "$domain|$type|resolver";
         if (!isset($logged[$key])) {
             $logged[$key] = true;
-            $failedDomains[] = "$domain ($type) via $ns - empty delv response";
+            $failedDomains[] = "$domain ($type) via resolver - empty delv response";
         }
 
         return [
@@ -875,10 +870,10 @@ function delvValidatedRrset(string $domain, ?string $ns, string $type, array &$f
     if (
         preg_match('/\b(fail|failed|broken trust chain|no valid signature|resolution failed|network unreachable|timed out|servfail|refused|no valid\s+rrsig|insecurity proof failed)\b/i', $raw)
     ) {
-        $key = "$domain|$type|$ns";
+        $key = "$domain|$type|resolver";
         if (!isset($logged[$key])) {
             $logged[$key] = true;
-            $failedDomains[] = "$domain ($type) via $ns - delv validation/query failure";
+            $failedDomains[] = "$domain ($type) via resolver - delv validation/query failure";
         }
 
         return [
@@ -915,7 +910,7 @@ function delvValidatedRrset(string $domain, ?string $ns, string $type, array &$f
 
     // Fallback: if data exists and no explicit failure appeared, accept only if validation marker was seen
     return [
-        'ok' => $validated && !empty($records),
+        'ok' => $validated,
         'validated' => $validated,
         'records' => $records,
         'raw' => $raw,
@@ -1025,7 +1020,7 @@ function queryAuthoritativeBootstrapRrset(string $domain, string $ns, string $ty
     static $logged = [];
 
     $cmd = sprintf(
-        'dig @%s %s %s +norecurse +noall +answer 2>&1',
+        'dig -4 @%s %s %s +norecurse +noall +answer 2>&1',
         escapeshellarg($ns),
         escapeshellarg($domain),
         escapeshellarg($type)
