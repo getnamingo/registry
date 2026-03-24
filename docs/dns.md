@@ -633,16 +633,7 @@ zone "test." {
 
 Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
 
-### 2.3. Adjusting Permissions and Ownership
-
-Ensure BIND has permission to write to the zone file and that the files are owned by the BIND user:
-
-```bash
-chown bind:bind /var/cache/bind/zones
-chmod 755 /var/cache/bind/zones
-```
-
-### 2.4. Enabling Logs
+### 2.3. Enabling Logs
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -711,6 +702,17 @@ logging {
     category "xfer-in" { "xfer"; };
     category "xfer-out" { "xfer"; };
 };
+```
+
+### 2.4. Adjusting Permissions and Ownership
+
+Ensure BIND has permission to write to the zone file, the logs directory and that the files are owned by the BIND user:
+
+```bash
+chown bind:bind /var/cache/bind/zones
+chmod 755 /var/cache/bind/zones
+chown bind:bind /var/log/named
+chmod 755 /var/log/named
 ```
 
 ### 2.5. Validate and Apply Configuration
