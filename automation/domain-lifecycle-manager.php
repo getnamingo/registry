@@ -187,7 +187,7 @@ class DomainLifecycleManager {
         $this->dbh->beginTransaction();
         try {
             $this->dbh->prepare("DELETE FROM domain_status WHERE domain_id = ?")->execute([$domain_id]);
-            $this->dbh->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?")->execute([$exdate, $domain_id]);
+            $this->dbh->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(?, INTERVAL " . (int)$this->config['gracePeriodDays'] . " DAY) WHERE id = ?")->execute([$exdate, $domain_id]);
             $this->dbh->prepare("INSERT INTO domain_status (domain_id, status) VALUES(?, 'pendingDelete')")->execute([$domain_id]);
 
             $this->dbh->commit();

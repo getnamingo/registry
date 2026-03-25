@@ -2,7 +2,7 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
-$config = require '/opt/registry/config.php';
+$config = require '/opt/registry/automation/config.php';
 
 $cronJobConfig = [
     'accounting' => $config['cron_accounting'] ?? false,
