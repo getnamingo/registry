@@ -101,14 +101,12 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
 
     # PHP version and repository setup based on the OS version
     if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
-        gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
-        echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
+        add-apt-repository -y ppa:ondrej/php
         PHP_VERSION="php8.2"
         DB_COMMAND="mysql"
         SECURE_INSTALL_CMD="mysql_secure_installation"
     elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        gpg --no-default-keyring --keyring /usr/share/keyrings/ondrej-php.gpg --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
-        echo "deb [signed-by=/usr/share/keyrings/ondrej-php.gpg] http://ppa.launchpad.net/ondrej/php/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/ondrej-php.list
+        add-apt-repository -y ppa:ondrej/php
         PHP_VERSION="php8.3"
         DB_COMMAND="mariadb"
         SECURE_INSTALL_CMD="mariadb-secure-installation"
@@ -129,7 +127,7 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     fi
 
     echo "Updating package lists..."
-    apt update -y
+    apt update -y || exit 1
 
     echo "Installing PHP and required extensions..."
     apt install -y ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-opcache ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
