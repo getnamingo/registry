@@ -94,37 +94,25 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
     
     echo "Updating package lists..."
-    apt update -y
+    apt update -y || exit 1
 
     # Install common packages for all versions
     apt install -y apt-transport-https bind9-dnsutils curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 caddy gettext git gnupg2 net-tools pv redis unzip wget whois
 
-    # PHP version and repository setup based on the OS version
-    if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
+    # PHP setup
+    if [[ "$OS" == "Ubuntu" && ( "$VER" == "22.04" || "$VER" == "24.04" ) ]]; then
         add-apt-repository -y ppa:ondrej/php
-        PHP_VERSION="php8.2"
-        DB_COMMAND="mysql"
-        SECURE_INSTALL_CMD="mysql_secure_installation"
-    elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        add-apt-repository -y ppa:ondrej/php
-        PHP_VERSION="php8.3"
-        DB_COMMAND="mariadb"
-        SECURE_INSTALL_CMD="mariadb-secure-installation"
-    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "13" ]]; then
+    elif [[ "$OS" == "Debian GNU/Linux" && ( "$VER" == "12" || "$VER" == "13" ) ]]; then
         apt install -y ca-certificates cron gnupg lsb-release
         curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-        echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
-        PHP_VERSION="php8.3"
-        DB_COMMAND="mariadb"
-        SECURE_INSTALL_CMD="mariadb-secure-installation"
+        echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+            > /etc/apt/sources.list.d/php.list
     else
-        apt install -y ca-certificates cron gnupg lsb-release
-        curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-        echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
-        PHP_VERSION="php8.2"
-        DB_COMMAND="mysql"
-        SECURE_INSTALL_CMD="mysql_secure_installation"
+        echo "Unsupported OS"
+        exit 1
     fi
+
+    PHP_VERSION="php8.3"
 
     echo "Updating package lists..."
     apt update -y || exit 1
@@ -139,17 +127,8 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
         timedatectl set-timezone UTC
     fi
 
-    # Determine PHP configuration files based on OS and version
-    if [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-        phpIniCli='/etc/php/8.3/cli/php.ini'
-        phpIniFpm='/etc/php/8.3/fpm/php.ini'
-    elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "13" ]]; then
-        phpIniCli='/etc/php/8.3/cli/php.ini'
-        phpIniFpm='/etc/php/8.3/fpm/php.ini'
-    else
-        phpIniCli='/etc/php/8.2/cli/php.ini'
-        phpIniFpm='/etc/php/8.2/fpm/php.ini'
-    fi
+    phpIniCli="/etc/php/8.3/cli/php.ini"
+    phpIniFpm="/etc/php/8.3/fpm/php.ini"
 
     # Update php.ini files
     set_php_ini_value "$phpIniCli" "opcache.enable" "1"
@@ -188,61 +167,52 @@ if [[ ("$OS" == "Ubuntu" && "$VER" == "22.04") || ("$OS" == "Ubuntu" && "$VER" =
         echo "Setting up MariaDB..."
         curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
 
-        # Check for Ubuntu 22.04
         if [[ "$OS" == "Ubuntu" && "$VER" == "22.04" ]]; then
-cat > /etc/apt/sources.list.d/mariadb.sources << EOF
-# MariaDB 11 Rolling repository list - created 2025-04-08 06:39 UTC
-# https://mariadb.org/download/
-X-Repolib-Name: MariaDB
-Types: deb
-# URIs: https://deb.mariadb.org/11/ubuntu
-URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/ubuntu
-Suites: jammy
-Components: main main/debug
-Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-EOF
+            MARIADB_DISTRO="ubuntu"
+            MARIADB_SUITE="jammy"
+            MARIADB_COMPONENTS="main main/debug"
         elif [[ "$OS" == "Ubuntu" && "$VER" == "24.04" ]]; then
-cat > /etc/apt/sources.list.d/mariadb.sources << EOF
-# MariaDB 11 Rolling repository list - created 2025-04-08 06:40 UTC
-# https://mariadb.org/download/
-X-Repolib-Name: MariaDB
-Types: deb
-# URIs: https://deb.mariadb.org/11/ubuntu
-URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/ubuntu
-Suites: noble
-Components: main main/debug
-Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-EOF
+            MARIADB_DISTRO="ubuntu"
+            MARIADB_SUITE="noble"
+            MARIADB_COMPONENTS="main main/debug"
+        elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "12" ]]; then
+            MARIADB_DISTRO="debian"
+            MARIADB_SUITE="bookworm"
+            MARIADB_COMPONENTS="main"
+        elif [[ "$OS" == "Debian GNU/Linux" && "$VER" == "13" ]]; then
+            MARIADB_DISTRO="debian"
+            MARIADB_SUITE="trixie"
+            MARIADB_COMPONENTS="main"
         else
-cat > /etc/apt/sources.list.d/mariadb.sources << EOF
-# MariaDB 11 Rolling repository list - created 2025-04-08 06:40 UTC
-# https://mariadb.org/download/
-X-Repolib-Name: MariaDB
-Types: deb
-# URIs: https://deb.mariadb.org/11/ubuntu
-URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/debian
-Suites: $(lsb_release -sc)
-Components: main
-Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-EOF
+            echo "Unsupported OS/version: $OS $VER"
+            exit 1
         fi
 
-        apt update
+cat > /etc/apt/sources.list.d/mariadb.sources <<EOF
+X-Repolib-Name: MariaDB
+Types: deb
+URIs: https://distrohub.kyiv.ua/mariadb/repo/11.rolling/${MARIADB_DISTRO}
+Suites: ${MARIADB_SUITE}
+Components: ${MARIADB_COMPONENTS}
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+EOF
+
+        apt update -y || exit 1
 
         # Install MariaDB and PHP MySQL module
         apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
 
         # Secure installation of MariaDB
         echo "Please follow the prompts for secure installation of MariaDB."
-        $SECURE_INSTALL_CMD
+        mariadb-secure-installation
 
         # Create user and grant privileges
         echo "Creating user $DB_USER and setting privileges..."
-        ${DB_COMMAND} -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
-        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
-        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
-        ${DB_COMMAND} -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
-        ${DB_COMMAND} -u root -e "FLUSH PRIVILEGES;"
+        mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
+        mariadb -u root -e "FLUSH PRIVILEGES;"
 
     #elif [ "$DB_TYPE" == "PostgreSQL" ]; then
     #    echo "Setting up PostgreSQL..."
@@ -451,7 +421,7 @@ EOF
 
     # Importing the database
     echo "Importing database."
-    $DB_COMMAND -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+    mariadb -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
     echo "SQL import completed."
 
     echo "Installing Web WHOIS."
