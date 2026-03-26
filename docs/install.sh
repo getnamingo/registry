@@ -222,8 +222,6 @@ Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
 EOF
 
 apt update -y
-
-# Install MariaDB and PHP MySQL module
 apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
 
 echo "Applying MariaDB hardening..."
