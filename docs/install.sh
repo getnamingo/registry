@@ -135,35 +135,44 @@ PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
 echo ""  # Add a newline after the password input
 current_user=$(whoami)
 
-# Step 1 - Components Installation
+# Install required packages
 echo "Installing required packages..."
-    
-# Common Caddy setup
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
-gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
-    
-echo "Updating package lists..."
 apt update -y
 
-# Install common packages for all versions
-apt install -y apt-transport-https bind9-dnsutils curl debian-archive-keyring debian-keyring software-properties-common ufw bzip2 caddy gettext git gnupg2 net-tools pv redis unzip wget whois
+# Install common packages
+apt install -y apt-transport-https bind9-dnsutils bzip2 ca-certificates cron curl debian-archive-keyring debian-keyring gettext git gnupg ufw net-tools pv redis unzip wget whois
 
 # PHP setup
 if [[ "$PHP_REPO_TYPE" == "ondrej" ]]; then
+    apt install -y software-properties-common    
     add-apt-repository -y ppa:ondrej/php
 elif [[ "$PHP_REPO_TYPE" == "sury" ]]; then
-    apt install -y ca-certificates cron gnupg
     curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
     echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ ${DISTRO_CODENAME} main" \
         > /etc/apt/sources.list.d/php.list
 fi
 
+# Common Caddy setup
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' -o caddy-stable.gpg.key
+gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg caddy-stable.gpg.key
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
+
+# Common MariaDB setup
+curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
+cat > /etc/apt/sources.list.d/mariadb.sources <<EOF
+X-Repolib-Name: MariaDB
+Types: deb
+URIs: https://deb.mariadb.org/11.8/${MARIADB_DISTRO}
+Suites: ${MARIADB_SUITE}
+Components: ${MARIADB_COMPONENTS}
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+EOF
+
 echo "Updating package lists..."
 apt update -y
 
-echo "Installing PHP and required extensions..."
-apt install -y ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-opcache ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
+echo "Installing packages..."
+apt install -y caddy mariadb-client mariadb-server ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-mysql ${PHP_VERSION}-opcache ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
     
 # Set timezone to UTC if it's not already
 currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
@@ -208,22 +217,6 @@ echo "Restarting PHP FPM service..."
 systemctl restart ${PHP_VERSION}-fpm
 echo "PHP configuration update complete!"
 
-#if [ "$DB_TYPE" == "MariaDB" ]; then
-echo "Setting up MariaDB..."
-curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
-
-cat > /etc/apt/sources.list.d/mariadb.sources <<EOF
-X-Repolib-Name: MariaDB
-Types: deb
-URIs: https://deb.mariadb.org/11.8/${MARIADB_DISTRO}
-Suites: ${MARIADB_SUITE}
-Components: ${MARIADB_COMPONENTS}
-Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
-EOF
-
-apt update -y
-apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
-
 echo "Applying MariaDB hardening..."
 mariadb -u root -e "DELETE FROM mysql.user WHERE User='';"
 mariadb -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
@@ -238,25 +231,6 @@ mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost'
 mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
 mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
 mariadb -u root -e "FLUSH PRIVILEGES;"
-
-#elif [ "$DB_TYPE" == "PostgreSQL" ]; then
-#echo "Setting up PostgreSQL..."
-#sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-#wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
-#apt update
-#apt install -y postgresql postgresql-client php8.2-pgsql
-#psql --version
-#echo "Configuring PostgreSQL..."
-#sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
-#sudo -u postgres psql -c "CREATE DATABASE registry;"
-#sudo -u postgres psql -c "CREATE DATABASE registryTransaction;"
-#sudo -u postgres psql -c "CREATE DATABASE registryAudit;"
-
-#echo "Importing SQL files into PostgreSQL..."
-#sudo -u postgres psql -U postgres -d registry -f /opt/registry/database/registry.postgres.sql
-#sudo -u postgres psql -U postgres -d registrytransaction -f /opt/registry/database/registryTransaction.postgres.sql
-#echo "SQL import completed."
-#fi
 
 mkdir -p /usr/share/adminer
 wget "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
