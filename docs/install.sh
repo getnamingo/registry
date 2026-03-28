@@ -16,6 +16,14 @@ prompt_for_password() {
     echo "$password"
 }
 
+generate_db_username() {
+    printf 'nmg_%s' "$(openssl rand -hex 4)"
+}
+
+generate_password() {
+    openssl rand -base64 24 | tr -d '\n' | tr '+/' '-_'
+}
+
 # Function to ensure a setting is present, uncommented, and correctly set
 set_php_ini_value() {
     local ini_file=$1
@@ -124,15 +132,17 @@ REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
 YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
 YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
-#DB_TYPE=$(prompt_for_input "Enter preferred database type (MariaDB/PostgreSQL)")
-DB_USER=$(prompt_for_input "Enter database user")
-DB_PASSWORD=$(prompt_for_password "Enter database password")
-DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/[&\\/']/\\\\&/g")
-DB_PASSWORD_SQL_ESCAPED=$(printf "%s" "$DB_PASSWORD" | sed "s/'/''/g")
-echo ""  # Add a newline after the password input
+DB_USER=$(generate_db_username)
+DB_PASSWORD=$(generate_password)
+DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&|]/\\&/g')
+DB_PASSWORD_SQL_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
+
+echo "Generated database username: $DB_USER"
+echo "Generated database password: $DB_PASSWORD"
+echo ""
 PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
 PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
-echo ""  # Add a newline after the password input
+echo ""
 current_user=$(whoami)
 
 # Install required packages
@@ -433,7 +443,7 @@ cd /opt/registry/whois/port43
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/whois/port43/config.php
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
 sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
 sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
 cp /opt/registry/docs/whois.service /etc/systemd/system/
@@ -445,7 +455,7 @@ cd /opt/registry/rdap
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/rdap/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/rdap/config.php
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/rdap/config.php
 sed -i "s/User=root/User=$current_user/" /opt/registry/docs/rdap.service
 sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/rdap.service
 cp /opt/registry/docs/rdap.service /etc/systemd/system/
@@ -457,7 +467,7 @@ cd /opt/registry/epp
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/epp/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/epp/config.php
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/epp/config.php
 sed -i "s/User=root/User=$current_user/" /opt/registry/docs/epp.service
 sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/epp.service
 cp /opt/registry/docs/epp.service /etc/systemd/system/
@@ -469,14 +479,14 @@ cd /opt/registry/automation
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/automation/config.php
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
 
 echo "Installing DAS Server."
 cd /opt/registry/das
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD_ESCAPED'|g" /opt/registry/das/config.php
+sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
 sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
 sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
 cp /opt/registry/docs/das.service /etc/systemd/system/
@@ -518,7 +528,8 @@ systemctl start redis-server
 
 echo "Configuring control panel admin."
 sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
-sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD';|g" /var/www/cp/bin/create_admin_user.php
+PANEL_PASSWORD_PHP_ESCAPED=$(printf '%s' "$PANEL_PASSWORD" | sed "s/[&|]/\\&/g; s/'/'\\\\''/g")
+sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD_PHP_ESCAPED';|g" /var/www/cp/bin/create_admin_user.php
 php /var/www/cp/bin/create_admin_user.php
 
 echo "Downloading initial data."
