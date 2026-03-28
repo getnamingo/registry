@@ -24,6 +24,14 @@ generate_password() {
     openssl rand -base64 24 | tr -d '\n' | tr '+/' '-_'
 }
 
+escape_sed_replacement() {
+    printf '%s' "$1" | sed 's/[&|]/\\&/g'
+}
+
+escape_php_single_quoted() {
+    printf '%s' "$1" | sed "s/'/'\\\\''/g"
+}
+
 # Function to ensure a setting is present, uncommented, and correctly set
 set_php_ini_value() {
     local ini_file=$1
@@ -131,7 +139,6 @@ echo "System meets the minimum requirements. Proceeding with installation..."
 REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
 YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
-YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
 DB_USER=$(generate_db_username)
 DB_PASSWORD=$(generate_password)
 DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&|]/\\&/g')
@@ -284,7 +291,7 @@ cat > /etc/caddy/Caddyfile << EOF
         reverse_proxy localhost:7500
         encode zstd gzip
         file_server
-        tls $YOUR_EMAIL
+        tls $PANEL_EMAIL
         header -Server
         log {
             output file /var/log/namingo/web-rdap.log {
@@ -315,7 +322,7 @@ cat > /etc/caddy/Caddyfile << EOF
         encode zstd gzip
         php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         file_server
-        tls $YOUR_EMAIL
+        tls $PANEL_EMAIL
         header -Server
         log {
             output file /var/log/namingo/web-whois.log {
@@ -342,7 +349,7 @@ cat > /etc/caddy/Caddyfile << EOF
         php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         encode zstd gzip
         file_server
-        tls $YOUR_EMAIL
+        tls $PANEL_EMAIL
         header -Server
         log {
             output file /var/log/namingo/web-cp.log {
@@ -527,9 +534,11 @@ systemctl enable redis-server
 systemctl start redis-server
 
 echo "Configuring control panel admin."
-sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL';|g" /var/www/cp/bin/create_admin_user.php
-PANEL_PASSWORD_PHP_ESCAPED=$(printf '%s' "$PANEL_PASSWORD" | sed "s/[&|]/\\&/g; s/'/'\\\\''/g")
-sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD_PHP_ESCAPED';|g" /var/www/cp/bin/create_admin_user.php
+PANEL_EMAIL_SED=$(escape_sed_replacement "$PANEL_EMAIL")
+PANEL_PASSWORD_PHP=$(escape_php_single_quoted "$PANEL_PASSWORD")
+PANEL_PASSWORD_PHP_SED=$(escape_sed_replacement "$PANEL_PASSWORD_PHP")
+sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL_SED';|g" /var/www/cp/bin/create_admin_user.php
+sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD_PHP_SED';|g" /var/www/cp/bin/create_admin_user.php
 php /var/www/cp/bin/create_admin_user.php
 
 echo "Downloading initial data."
