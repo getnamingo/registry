@@ -20,6 +20,7 @@ use Punic\Language;
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Strict');
 ini_set('session.cookie_lifetime', '0');
+ini_set('session.cookie_secure', '1');
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';
@@ -38,7 +39,6 @@ if (envi('APP_ENV')=='local') {
     Logger::systemLogs(true);
 } else{
     Logger::systemLogs(false);
-    ini_set('session.cookie_secure', '1');
 }
 
 $container = new Container();
@@ -176,37 +176,53 @@ $container->set('view', function ($container) {
     }));
 
     // Fetch registrar currency and registry default currency
-    if (isset($_SESSION['auth_user_id']) && !isset($_SESSION['_currency'])) {
-        $db = $container->get('db');
-        $user_data = "SELECT 
-                          ru.registrar_id, 
-                          r.currency AS registrar_currency, 
-                          (SELECT value FROM settings WHERE name = 'currency') AS registry_currency
-                      FROM registrar_users ru
-                      LEFT JOIN registrar r ON ru.registrar_id = r.id
-                      WHERE ru.user_id = ? 
-                      LIMIT 1";
+    $currency = 'USD';
 
-        $result = $db->select($user_data, [$_SESSION['auth_user_id']]);
+    if (isset($_SESSION['auth_user_id'])) {
+        $db = $container->get('db');
+
+        $userDataSql = "SELECT 
+                            ru.registrar_id,
+                            r.currency AS registrar_currency,
+                            (SELECT value FROM settings WHERE name = 'currency' LIMIT 1) AS registry_currency
+                        FROM registrar_users ru
+                        LEFT JOIN registrar r ON ru.registrar_id = r.id
+                        WHERE ru.user_id = ?
+                        LIMIT 1";
+
+        $result = $db->select($userDataSql, [$_SESSION['auth_user_id']]);
+
+        $registrarId = null;
+        $registrarCurrency = null;
+        $registryCurrency = null;
 
         if (!empty($result)) {
-            $_SESSION['auth_registrar_id'] = $result[0]['registrar_id'] ?? null;
-            $_SESSION['registry_currency'] = $result[0]['registry_currency'] ?? null;
+            $registrarId = $result[0]['registrar_id'] ?? null;
+            $registrarCurrency = $result[0]['registrar_currency'] ?? null;
+            $registryCurrency = $result[0]['registry_currency'] ?? null;
         }
 
-        if (empty($_SESSION['registry_currency'])) {
-            $default_currency = $db->select("SELECT value FROM settings WHERE name = 'currency'");
-            $_SESSION['registry_currency'] = $default_currency[0]['value'] ?? 'USD';
+        if (empty($registryCurrency)) {
+            $defaultCurrency = $db->select("SELECT value FROM settings WHERE name = 'currency' LIMIT 1");
+            $registryCurrency = $defaultCurrency[0]['value'] ?? 'USD';
         }
 
-        if (!empty($_SESSION['auth_roles']) && $_SESSION['auth_roles'] != 0) {
-            $_SESSION['_currency'] = $result[0]['registrar_currency'] ?? $_SESSION['registry_currency'];
+        $_SESSION['auth_registrar_id'] = $registrarId;
+        $_SESSION['registry_currency'] = $registryCurrency;
+
+        if (!empty($_SESSION['auth_roles']) && (int) $_SESSION['auth_roles'] !== 0) {
+            $currency = $registrarCurrency ?: $registryCurrency;
         } else {
-            $_SESSION['_currency'] = $_SESSION['registry_currency'];
+            $currency = $registryCurrency;
         }
+
+        $_SESSION['_currency'] = $currency;
+    } else {
+        unset($_SESSION['auth_registrar_id'], $_SESSION['_currency']);
+        $_SESSION['registry_currency'] = $_SESSION['registry_currency'] ?? 'USD';
+        $currency = $_SESSION['registry_currency'];
     }
 
-    $currency = $_SESSION['_currency'] ?? 'USD';
     $view->getEnvironment()->addGlobal('currency', $currency);
 
     $isAdminImpersonation = $_SESSION['impersonator'] ?? false;
