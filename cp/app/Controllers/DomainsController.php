@@ -1373,7 +1373,7 @@ class DomainsController extends Controller
             $results = $db->select(
                 'SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain_id ]
-            );
+            ) ?? [];
 
             foreach ($results as $row) {
                 $status = $row['status'];
@@ -2012,10 +2012,11 @@ class DomainsController extends Controller
             if ($domain_clid != $clid) {
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             }
+
             $results = $db->select(
                 'SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain_id ]
-            );
+            ) ?? [];
 
             foreach ($results as $row) {
                 $status = $row['status'];
@@ -2268,15 +2269,13 @@ class DomainsController extends Controller
                 $results = $db->select(
                     'SELECT status FROM domain_status WHERE domain_id = ?',
                     [ $domain_id ]
-                );
+                ) ?? [];
 
-                if (is_array($results) && !empty($results)) {
-                    foreach ($results as $row) {
-                        $status = $row['status'];
-                        if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
-                            $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
-                            return $response->withHeader('Location', '/domains')->withStatus(302);
-                        }
+                foreach ($results as $row) {
+                    $status = $row['status'];
+                    if (preg_match('/.*(UpdateProhibited|DeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+                        $this->container->get('flash')->addMessage('error', 'It has a status that does not allow deletion, first change the status');
+                        return $response->withHeader('Location', '/domains')->withStatus(302);
                     }
                 }
 
@@ -2654,7 +2653,8 @@ class DomainsController extends Controller
             $results = $db->select(
                 'SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain_id ]
-            );
+            ) ?? [];
+
             foreach ($results as $row) {
                 $status = $row['status'];
                 if (preg_match('/.*(TransferProhibited)$/', $status) || preg_match('/^pending/', $status)) {

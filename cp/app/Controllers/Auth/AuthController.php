@@ -61,8 +61,17 @@ class AuthController extends Controller
         global $container;
         $data = $request->getParsedBody();
         $db = $container->get('db');
-        $is2FAEnabled = $db->selectValue('SELECT tfa_enabled FROM users WHERE email = ?', [$data['email']]);
-        $isWebaEnabled = $db->selectValue('SELECT auth_method FROM users WHERE email = ?', [$data['email']]);
+        $email = $data['email'] ?? $_SESSION['2fa_email'] ?? null;
+        $password = $data['password'] ?? $_SESSION['2fa_password'] ?? null;
+
+        if ($email === null || $password === null) {
+            $container->get('flash')->addMessage('error', 'Please log in again');
+            unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $is2FAEnabled = $db->selectValue('SELECT tfa_enabled FROM users WHERE email = ?', [$email]);
+        $isWebaEnabled = $db->selectValue('SELECT auth_method FROM users WHERE email = ?', [$email]);
 
         if ($isWebaEnabled == 'webauthn') {
             $container->get('flash')->addMessage('error', 'WebAuthn enabled for this account');
@@ -76,8 +85,6 @@ class AuthController extends Controller
             $_SESSION['is2FAEnabled'] = true;
             return $response->withHeader('Location', '/login/verify')->withStatus(302);
         } else {
-            $email = $data['email'];
-            $password = $data['password'];
             $_SESSION['is2FAEnabled'] = false;
         }
 
@@ -85,12 +92,13 @@ class AuthController extends Controller
         if (isset($data['code']) && isset($_SESSION['2fa_email']) && isset($_SESSION['2fa_password'])) {
             $email = $_SESSION['2fa_email'];
             $password = $_SESSION['2fa_password'];
-            // Clear the session variables immediately after use
-            unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
         }
 
-        $login = Auth::login($email, $password, $data['remember'] ?? null, $data['code'] ?? null);
-        unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
+        try {
+            $login = Auth::login($email, $password, $data['remember'] ?? null, $data['code'] ?? null);
+        } finally {
+            unset($_SESSION['2fa_email'], $_SESSION['2fa_password'], $_SESSION['is2FAEnabled']);
+        }
 
         if ($login===true) {
             $db = $container->get('db');
