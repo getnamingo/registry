@@ -253,7 +253,7 @@ wget "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
 if [[ ! -d /opt/registry/.git ]]; then
-    git clone --branch v1.0.26 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.27 --single-branch https://github.com/getnamingo/registry /opt/registry
 fi
 
 echo "Setting up firewall rules..."
