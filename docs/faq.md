@@ -9,7 +9,7 @@ Welcome to the FAQ for Namingo. This document is intended as a resource for regi
 
 ## Tools and Modules
 
-- **EPP Client**: We provide a PHP [EPP Client](https://github.com/getnamingo/epp-client).
+- **EPP Client**: We provide a [PHP EPP Client](https://github.com/getnamingo/epp-client). You can also use the third-party [Node.js EPP Client](https://github.com/namewiz/epp-client).
 - **WHMCS Module**: For integration with WHMCS, use our module available at [WHMCS EPP Registrar](https://github.com/getnamingo/whmcs-epp-registrar).
 - **FOSSBilling Module**: For FOSSBilling integration, refer to [FOSSBilling EPP Registrar](https://github.com/getnamingo/fossbilling-epp-registrar).
 - **Compatibility**: All other EPP clients that support RFC-compliant EPP will also work with our system.
