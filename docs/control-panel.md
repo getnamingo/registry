@@ -94,7 +94,7 @@ The **Domains** section of the Namingo Control Panel provides a centralized inte
 | **Registrant** | Shows the unique identifier or handle of the registrant contact associated with the domain. |
 | **Creation Date** | Timestamp of when the domain was first registered. Uses millisecond precision for registry auditing. |
 | **Expiration Date** | Timestamp indicating when the domain will expire unless renewed. |
-| **Status** | A tag-style visual showing the domain’s current EPP status (e.g., `ok`, `pendingDelete`, `clientUpdateProhibited`, etc.). Multiple statuses may be displayed depending on the domain state. |
+| **Status** | A tag-style visual showing the domain’s current EPP status (e.g., `ok`, `pendingDelete`, `clientUpdateProhibited`, etc.). Multiple statuses may be displayed depending on the domain state. See [EPP Status Codes – What Do They Mean, and Why Should I Know?](https://www.icann.org/resources/pages/epp-status-codes-2014-06-16-en). |
 
 ## Domain Statuses
 
