@@ -5,6 +5,7 @@ $c = require_once 'config.php';
 $c['registry_name'] = isset($c['registry_name']) ? $c['registry_name'] : 'Domain Registry LLC';
 $c['registry_url'] = isset($c['registry_url']) ? $c['registry_url'] : 'https://example.com';
 $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
+$c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -202,8 +203,10 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                 </div>
                 <?php } ?>
                 <div class="buttons">
-                    <button id="whoisButton">WHOIS</button>
-                    <button id="rdapButton">RDAP</button>
+                    <?php if (!$c['disable_whois']) { ?>
+                        <button id="whoisButton">WHOIS</button>
+                    <?php } ?>
+                    <button id="rdapButton"><?php echo $c['disable_whois'] ? 'Lookup' : 'RDAP'; ?></button>
                 </div>
             </div>
             <div id="bottom">
@@ -239,7 +242,11 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
             document.getElementById('domainInput').addEventListener('keypress', function(event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    document.getElementById('whoisButton').click();
+                    <?php if (!$c['disable_whois']) { ?>
+                        document.getElementById('whoisButton').click();
+                    <?php } else { ?>
+                        document.getElementById('rdapButton').click();
+                    <?php } ?>
                 }
             });
 
@@ -248,11 +255,16 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                 captchaInput.addEventListener('keypress', function(event) {
                     if (event.key === 'Enter' && !captchaInput.disabled) {
                         event.preventDefault();
-                        document.getElementById('whoisButton').click();
+                        <?php if (!$c['disable_whois']) { ?>
+                            document.getElementById('whoisButton').click();
+                        <?php } else { ?>
+                            document.getElementById('rdapButton').click();
+                        <?php } ?>
                     }
                 });
             }
 
+            <?php if (!$c['disable_whois']) { ?>
             document.getElementById('whoisButton').addEventListener('click', function() {
                 if (!validateInput()) return;
                 var domain = document.getElementById('domainInput').value.trim();
@@ -290,6 +302,7 @@ $c['branding'] = isset($c['branding']) ? $c['branding'] : false;
                     document.getElementById('result').innerText = 'Error: ' + error.message; // Display the error message on the page
                 });
             });
+            <?php } ?>
 
             document.getElementById('rdapButton').addEventListener('click', function() {
                 if (!validateInput()) return;

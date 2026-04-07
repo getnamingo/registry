@@ -8,4 +8,5 @@ return [
     'registry_url' => 'https://example.com',
     'branding' => false,
     'ignore_case_captcha' => false,
+    'disable_whois' => false,
 ];
