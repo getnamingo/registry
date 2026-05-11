@@ -1335,7 +1335,7 @@ class ApplicationsController extends Controller
                     $host_map_id = $db->select(
                         'SELECT host_id FROM application_host_map WHERE domain_id = ?',
                         [$application_id]
-                    );
+                    ) ?? [];
 
                     foreach ($host_map_id as $item) {
                         // Insert into domain_host_map for each host_id
@@ -1351,8 +1351,8 @@ class ApplicationsController extends Controller
                     $contact_map_id = $db->select(
                         'SELECT contact_id, type FROM application_contact_map WHERE domain_id = ?',
                         [$application_id]
-                    );
-                    
+                    ) ?? [];
+
                     foreach ($contact_map_id as $item) {
                         // Insert into domain_contact_map for each contact_id
                         $db->insert(
