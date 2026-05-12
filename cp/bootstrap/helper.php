@@ -718,9 +718,14 @@ function get_client_ip() {
 
 function get_client_location() {
     $PublicIP = get_client_ip();
-    $json     = file_get_contents("http://ipinfo.io/$PublicIP/geo");
+    $json     = @file_get_contents("https://ipinfo.io/$PublicIP/geo");
+
+    if ($json === false) {
+        return 'AQ';
+    }
+
     $json     = json_decode($json, true);
-    $country  = $json['country'];
+    $country  = $json['country'] ?? 'AQ';
 
     return $country;
 }
