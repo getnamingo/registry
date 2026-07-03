@@ -48,6 +48,7 @@ return [
     'dns_soa' => 'hostmaster.example.com',
     'dns_serial' => 1, // change to 2 for YYYYMMDDXX format, and 3 for Cloudflare-like serial
     'zone_mode' => 'default', // nice is also available
+    'dns_reload' => true,
 
     // URS Configuration
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX',

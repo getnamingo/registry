@@ -40,6 +40,8 @@ Coroutine::create(function () use ($pool, $log, $c) {
         $sth->execute();
         $serial = generateSerial($c['dns_serial'] ?? 1);
 
+        $dnsReload = filter_var($c['dns_reload'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
         $tlds = [];
 
         while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
@@ -200,6 +202,11 @@ Coroutine::create(function () use ($pool, $log, $c) {
         }
 
         foreach ($tlds as $cleanedTld) {
+            if (!$dnsReload) {
+                $log->info("DNS reload disabled by configuration; skipping reload/notify for {$cleanedTld}.");
+                continue;
+            }
+
             if ($c['dns_server'] == 'bind') {
                 exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
                 if ($return_var != 0) {
