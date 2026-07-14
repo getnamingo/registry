@@ -108,14 +108,6 @@ composer_update() {
     fi
 }
 
-# Update composer in relevant directories
-composer_update "/opt/registry/automation"
-composer_update "/var/www/cp"
-composer_update "/opt/registry/das"
-composer_update "/opt/registry/whois/port43"
-composer_update "/opt/registry/rdap"
-composer_update "/opt/registry/epp"
-
 # Check the Linux distribution and version
 if [[ -e /etc/os-release ]]; then
     . /etc/os-release
@@ -130,11 +122,21 @@ else
     PHP_VERSION="php8.2"
 fi
 
+apt install -y ${PHP_VERSION}-protobuf
+
 # Restart PHP-FPM service
 echo "Restarting PHP FPM service..."
 systemctl restart ${PHP_VERSION}-fpm
 
 wget "http://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
+
+# Update composer in relevant directories
+composer_update "/opt/registry/automation"
+composer_update "/var/www/cp"
+composer_update "/opt/registry/das"
+composer_update "/opt/registry/whois/port43"
+composer_update "/opt/registry/rdap"
+composer_update "/opt/registry/epp"
 
 # Reload cache
 echo "Reloading cache..."

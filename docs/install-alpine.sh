@@ -102,7 +102,7 @@ apk update
 # Install common packages. (readline gnupg missing)
 apk add \
   bash bind-tools curl caddy gettext icu-data-full git php83-phar gnupg net-tools pv redis unzip wget whois ufw tzdata \
-  php83 php83-fpm php83-common php83-curl php83-fileinfo php83-pdo php83-pdo_mysql php83-ctype nano php83-iconv php83-dom php83-gd php83-ftp php83-gmp php83-bcmath php83-mysqli \
+  php83 php83-fpm php83-common php83-curl php83-fileinfo php83-pdo php83-protobuf php83-pdo_mysql php83-ctype nano php83-iconv php83-dom php83-gd php83-ftp php83-gmp php83-bcmath php83-mysqli \
   php83-pecl-igbinary php83-imap php83-intl php83-mbstring php83-opcache php83-pecl-redis \
   php83-soap php83-xml \
   php83-pecl-ds php83-pecl-swoole php83-pecl-uuid \
