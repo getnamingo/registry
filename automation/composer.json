@@ -1,19 +1,22 @@
 {
     "require": {
+        "php": "^8.3",
+        "ext-pdo": "*",
+        "ext-swoole": "*",
         "badcow/dns": "^4.3",
-        "phpseclib/phpseclib": "^3.0.43",
-        "phpbu/phpbu": "^6.0.29",
-        "setbased/php-audit": "^1.10.0",
-        "monolog/monolog": "^3.8.1",
-        "league/flysystem": "^3.28",
-        "league/flysystem-sftp-v3": "^3.28",
+        "phpseclib/phpseclib": "^3.0.55",
+        "phpbu/phpbu": "^6.0.33",
+        "setbased/php-audit": "^1.11.0",
+        "monolog/monolog": "^3.10.0",
+        "filips123/monolog-phpmailer": "^2.0",
+        "league/flysystem": "^3.35.2",
+        "league/flysystem-sftp-v3": "^3.33",
+        "league/flysystem-ftp": "^3.31.0",
         "peppeocchi/php-cron-scheduler": "^4.0",
-        "guzzlehttp/guzzle": "^7.9",
-        "league/flysystem-ftp": "^3.29",
-        "phpmailer/phpmailer": "^6.9",
+        "guzzlehttp/guzzle": "^7.14.1",
         "league/plates": "^3.6",
-        "moneyphp/money": "^4.6",
-        "utopia-php/messaging": "^0.9.1",
-        "filips123/monolog-phpmailer": "^2.0"
+        "moneyphp/money": "^4.9.0",
+        "phpmailer/phpmailer": "^7.1.1",
+        "utopia-php/messaging": "^2.0.1"
     }
 }
