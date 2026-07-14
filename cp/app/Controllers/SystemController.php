@@ -11,6 +11,17 @@ use Ramsey\Uuid\Uuid;
 
 class SystemController extends Controller
 {
+    public function settings(Request $request, Response $response)
+    {
+        if ($_SESSION["auth_roles"] != 0) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+        
+        $db = $this->container->get('db');
+
+        return view($response,'admin/system/settings.twig');
+    }
+
     public function registry(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
@@ -36,7 +47,7 @@ class SystemController extends Controller
             // Display error messages if any
             if (!empty($error)) {
                 $this->container->get('flash')->addMessage('error', $error);
-                return $response->withHeader('Location', '/registry')->withStatus(302);
+                return $response->withHeader('Location', '/settings/general')->withStatus(302);
             }
             
             try {
@@ -44,153 +55,55 @@ class SystemController extends Controller
                 
                 $currentDateTime = new \DateTime();
                 $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['registryOperator']
-                    ],
-                    [
-                        'name' => "company_name"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['registryOperatorVat']
-                    ],
-                    [
-                        'name' => "vat_number"
-                    ]
-                );
 
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['contactAddress']
-                    ],
-                    [
-                        'name' => "address"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['contactAddress2']
-                    ],
-                    [
-                        'name' => "address2"
-                    ]
-                );
+                $settingsMap = [
+                    'registryOperator'    => 'company_name',
+                    'registryOperatorVat' => 'vat_number',
+                    'contactAddress'      => 'address',
+                    'contactAddress2'     => 'address2',
+                    'contactCc'     => 'cc',
+                    'contactEmail'        => 'email',
+                    'contactPhone'        => 'phone',
+                    'registryHandle'      => 'handle',
+                    'launchPhases'        => 'launch_phases',
+                    'verifyPhone'         => 'verifyPhone',
+                    'verifyEmail'         => 'verifyEmail',
+                    'verifyPostal'        => 'verifyPostal',
+                    'whoisServer'         => 'whois_server',
+                    'rdapServer'          => 'rdap_server',
+                    'currency'            => 'currency',
+                ];
 
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['contactEmail']
-                    ],
-                    [
-                        'name' => "email"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['contactPhone']
-                    ],
-                    [
-                        'name' => "phone"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['registryHandle']
-                    ],
-                    [
-                        'name' => "handle"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['launchPhases']
-                    ],
-                    [
-                        'name' => "launch_phases"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['verifyPhone']
-                    ],
-                    [
-                        'name' => "verifyPhone"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['verifyEmail']
-                    ],
-                    [
-                        'name' => "verifyEmail"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['verifyPostal']
-                    ],
-                    [
-                        'name' => "verifyPostal"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['whoisServer']
-                    ],
-                    [
-                        'name' => "whois_server"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['rdapServer']
-                    ],
-                    [
-                        'name' => "rdap_server"
-                    ]
-                );
-                
-                $db->update(
-                    'settings',
-                    [
-                        'value' => $data['currency']
-                    ],
-                    [
-                        'name' => "currency"
-                    ]
-                );
+                $defaults = [
+                    'launchPhases' => '0',
+                    'verifyPhone'  => '0',
+                    'verifyEmail'  => '0',
+                    'verifyPostal' => '0',
+                ];
+
+                foreach ($settingsMap as $formField => $settingName) {
+                    if (array_key_exists($formField, $data)) {
+                        $value = $data[$formField];
+                    } elseif (array_key_exists($formField, $defaults)) {
+                        $value = $defaults[$formField];
+                    } else {
+                        // Do not overwrite the existing setting when the field was not submitted.
+                        continue;
+                    }
+
+                    $db->update(
+                        'settings',
+                        ['value' => $value],
+                        ['name' => $settingName]
+                    );
+                }
 
                 $db->commit();
                 $_SESSION['_currency'] = $data['currency'];
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                return $response->withHeader('Location', '/registry')->withStatus(302);
+                return $response->withHeader('Location', '/settings/general')->withStatus(302);
             }
 
             $currentDateTime = new \DateTime();
@@ -210,7 +123,7 @@ class SystemController extends Controller
             );
 
             $this->container->get('flash')->addMessage('success', 'Registry details have been updated successfully');
-            return $response->withHeader('Location', '/registry')->withStatus(302);
+            return $response->withHeader('Location', '/settings/general')->withStatus(302);
             
         }
 
@@ -221,6 +134,7 @@ class SystemController extends Controller
         $vat_number = $db->selectValue("SELECT value FROM settings WHERE name = 'vat_number'");
         $address = $db->selectValue("SELECT value FROM settings WHERE name = 'address'");
         $address2 = $db->selectValue("SELECT value FROM settings WHERE name = 'address2'");
+        $cc = $db->selectValue("SELECT value FROM settings WHERE name = 'cc'");
         $phone = $db->selectValue("SELECT value FROM settings WHERE name = 'phone'");
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
         $handle = $db->selectValue("SELECT value FROM settings WHERE name = 'handle'");
@@ -247,6 +161,7 @@ class SystemController extends Controller
             'vat_number' => $vat_number,
             'address' => $address,
             'address2' => $address2,
+            'cc' => $cc,
             'phone' => $phone,
             'email' => $email,
             'handle' => $handle,
@@ -1239,7 +1154,7 @@ class SystemController extends Controller
 
                 // Organize existing names by type
                 $existingByType = [];
-                foreach ($existingDomains as $domain) {
+                foreach ($existingDomains ?? [] as $domain) {
                     $existingByType[$domain['type']][] = $domain['name'];
                 }
 

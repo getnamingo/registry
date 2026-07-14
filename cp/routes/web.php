@@ -124,13 +124,13 @@ $app->group('', function ($route) {
     $route->post('/user/update', UsersController::class . ':updateUserProcess')->setName('updateUserProcess');
     $route->get('/user/impersonate/{user}', UsersController::class . ':impersonateUser')->setName('impersonateUser');
 
-    $route->get('/epphistory', LogsController::class .':view')->setName('epphistory');
+    $route->get('/settings/epp-activity', LogsController::class .':view')->setName('epp-activity');
     $route->get('/poll', LogsController::class .':poll')->setName('poll');
     $route->get('/log', LogsController::class .':log')->setName('log');
 
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
     $route->get('/export', ReportsController::class .':exportDomains')->setName('exportDomains');
-    $route->get('/server', ReportsController::class .':serverHealth')->setName('serverHealth');
+    $route->get('/settings/system-health', ReportsController::class .':serverHealth')->setName('serverHealth');
     $route->post('/clear-cache', ReportsController::class .':clearCache')->setName('clearCache');
 
     $route->get('/invoices', FinancialsController::class .':invoices')->setName('invoices');
@@ -148,7 +148,8 @@ $app->group('', function ($route) {
     $route->get('/transactions', FinancialsController::class .':transactions')->setName('transactions');
     $route->get('/overview', FinancialsController::class .':overview')->setName('overview');
 
-    $route->map(['GET', 'POST'], '/registry', SystemController::class .':registry')->setName('registry');
+    $route->get('/settings', SystemController::class .':settings')->setName('settings');
+    $route->map(['GET', 'POST'], '/settings/general', SystemController::class .':registry')->setName('registry');
     $route->map(['GET', 'POST'], '/registry/tld/create', SystemController::class .':createTld')->setName('createTld');
     $route->map(['GET', 'POST'], '/registry/tld/{tld}', SystemController::class . ':manageTld')->setName('manageTld');
     $route->get('/registry/tlds', SystemController::class .':listTlds')->setName('listTlds');
