@@ -1,8 +1,12 @@
 # Namingo Update Guide
 
-## v1.0.0 to v1.0.26
+## v1.0.0 to v1.0.28
 
-To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.24.1 and the latest is v1.0.26, first update to v1.0.25, then to v1.0.26.
+To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.26 and the latest is v1.0.28, first update to v1.0.27, then to v1.0.28.
+
+- v1.0.27 to v1.0.28 - download and run the [update1028.sh](update1028.sh) script.
+
+- v1.0.26 to v1.0.27 - download and run the [update1027.sh](update1027.sh) script.
 
 - v1.0.25 to v1.0.26 - download and run the [update1026.sh](update1026.sh) script.
 

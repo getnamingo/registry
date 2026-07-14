@@ -93,21 +93,23 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 **Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
 
-### Updating
+### Upgrade
 
-To update, you **must run the update scripts sequentially** without skipping versions.  
-For example, if you're on **v1.0.25** and the latest is **v1.0.27**, first update to **v1.0.26**, then to **v1.0.27**.
+> [!IMPORTANT]
+> Upgrade scripts **must be run sequentially** without skipping versions.
+>
+> For example, to upgrade from **v1.0.26** to **v1.0.28**, first run the **v1.0.27** upgrade, then the **v1.0.28** upgrade.
 
+- **v1.0.27 → v1.0.28**  
+  Download and run the [`update1028.sh`](docs/update1028.sh) script.
+  
 - **v1.0.26 → v1.0.27**  
   Download and run the [`update1027.sh`](docs/update1027.sh) script.
   
 - **v1.0.25 → v1.0.26**  
   Download and run the [`update1026.sh`](docs/update1026.sh) script.
-  
-- **v1.0.24.1 → v1.0.25**  
-  Download and run the [`update1025.sh`](docs/update1025.sh) script.
 
-For **older versions**, please refer to [`update.md`](docs/update.md).
+For **older versions**, please refer to [`upgrade.md`](docs/upgrade.md).
 
 ### [Configuration Guide](docs/configuration.md) [Required]
 
