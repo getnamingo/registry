@@ -534,11 +534,10 @@ systemctl enable redis-server
 systemctl start redis-server
 
 echo "Configuring control panel admin."
-PANEL_EMAIL_SED=$(escape_sed_replacement "$PANEL_EMAIL")
-PANEL_PASSWORD_PHP=$(escape_php_single_quoted "$PANEL_PASSWORD")
-PANEL_PASSWORD_PHP_SED=$(escape_sed_replacement "$PANEL_PASSWORD_PHP")
-sed -i "s|\$email = 'admin@example.com';|\$email = '$PANEL_EMAIL_SED';|g" /var/www/cp/bin/create_admin_user.php
-sed -i "s|\$newPW = 'admin_password';|\$newPW = '$PANEL_PASSWORD_PHP_SED';|g" /var/www/cp/bin/create_admin_user.php
+
+PANEL_EMAIL="$PANEL_EMAIL" \
+PANEL_PASSWORD="$PANEL_PASSWORD" \
+PANEL_USERNAME="admin" \
 php /var/www/cp/bin/create_admin_user.php
 
 echo "Downloading initial data."

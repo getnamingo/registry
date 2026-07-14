@@ -12,10 +12,22 @@ $dbName = $_ENV['DB_DATABASE'];
 $dbUser = $_ENV['DB_USERNAME'];
 $dbPass = $_ENV['DB_PASSWORD'];
 
-// User details (replace these with actual user data)
-$email = 'admin@example.com'; // Replace with admin email
-$newPW = 'admin_password';    // Replace with admin password
-$username = 'admin';          // Replace with admin username
+// Retrieve admin details from environment variables
+$email = getenv('PANEL_EMAIL');
+$newPW = getenv('PANEL_PASSWORD');
+$username = getenv('PANEL_USERNAME') ?: 'admin';
+
+if ($email === false || $email === '') {
+    die("PANEL_EMAIL is required." . PHP_EOL);
+}
+
+if ($newPW === false || $newPW === '') {
+    die("PANEL_PASSWORD is required." . PHP_EOL);
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    die("Invalid admin email address." . PHP_EOL);
+}
 
 // Hash the password
 $options = [
