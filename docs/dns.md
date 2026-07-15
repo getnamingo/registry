@@ -2,13 +2,15 @@
 
 This guide walks you through configuring the core DNS setup for your Namingo-powered registry. It includes creating a hidden master DNS server, which acts as the authoritative source for all zone data. Your TLD DNS servers (public-facing) will be configured to receive updates from this hidden master.
 
-> ⚠️ This setup is [Required] for proper zone publication and delegation of domains under your TLDs.
+> [!WARNING]
+> This setup is [Required] for proper zone publication and delegation of domains under your TLDs.
 
 ## 1. Hidden Master DNS Server Setup
 
 This section covers how to set up your hidden master — the central source Namingo updates with zone changes. Public-facing DNS servers (e.g., slaves or Anycast nodes) will pull zones from it and serve them to the world.
 
-> ⚠️ Choose only **one** of the following DNS backends based on your environment and preferences. Do **not** install all of them.
+> [!WARNING]
+> Choose only **one** of the following DNS backends based on your environment and preferences. Do **not** install all of them.
 
 ### 1.1. BIND9 (with native DNSSEC, OpenDNSSEC, or Unsigned Zones)
 
@@ -40,7 +42,8 @@ key "test.key" {
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/bind/named.conf.local```)
 
-> ⚠️ **Choose one configuration from the following section that fits your setup. Do not combine them.**
+> [!WARNING]
+> Choose one configuration from the following section that fits your setup. Do not combine them.
 
 #### 1.1.3a. Native DNSSEC – Signed by BIND
 
@@ -84,7 +87,8 @@ zone "test." {
 
 Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
 
-> 🔒 **Security Tip:** DNSSEC private keys must be properly secured.
+> [!TIP]
+> DNSSEC private keys must be properly secured.
 
 Set correct ownership and permissions, then restart BIND9 to apply changes:
 
@@ -100,7 +104,8 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+> [!IMPORTANT]
+> In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
 ##### 1.1.3a.1. Optional: Configure BIND with PKCS#11 Support
 
@@ -188,7 +193,8 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+> [!IMPORTANT]
+> In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
 #### 1.1.3b. External DNSSEC – Signed by OpenDNSSEC
 
@@ -260,7 +266,8 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+> [!IMPORTANT]
+> In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
 #### 1.1.3c. Unsigned Zone
 
@@ -486,7 +493,8 @@ Configure the `Zone Writer` in Registry Automation and run it manually the first
 php /opt/registry/automation/write-zone.php
 ```
 
-> ⚠️ **Important:** In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
+> [!IMPORTANT]
+> In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
 
 #### 1.2.5. Optional: Post-Signing Validation
 
@@ -503,7 +511,8 @@ validns test. /etc/knot/zones/test.zone
 
 NSD is a high-performance, authoritative-only name server with no support for dynamic updates, inline signing, or native DNSSEC key management. It is suitable for production environments that prioritize speed and simplicity, but it **requires external zone signing**.
 
-> ⚠️ **Important:** NSD does **not** support DNSSEC signing or key management internally. You must handle all DNSSEC operations — such as key generation, zone signing, rollover, and DS management — using external tools like `ldns-signzone`, `dnssec-signzone`, or OpenDNSSEC.
+> [!IMPORTANT]
+> NSD does **not** support DNSSEC signing or key management internally. You must handle all DNSSEC operations — such as key generation, zone signing, rollover, and DS management — using external tools like `ldns-signzone`, `dnssec-signzone`, or OpenDNSSEC.
 
 #### 1.3.1. Prerequisites
 
