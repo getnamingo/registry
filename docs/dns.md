@@ -507,7 +507,8 @@ kzonecheck -v test.
 validns test. /etc/knot/zones/test.zone
 ```
 
-> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+> [!TIP]
+> Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
 ### 1.3. NSD (Advanced)
 
