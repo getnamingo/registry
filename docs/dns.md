@@ -379,13 +379,15 @@ After completing your configuration, check for syntax errors using `named-checkc
 
 To confirm that your zone has been loaded successfully, run `grep named /var/log/syslog` and look for a log entry indicating the zone was loaded without errors.
 
-> ✅ You should see something like: `zone test/IN: loaded serial 2025041901` indicating success.
+You should see something like: `zone test/IN: loaded serial 2025041901` indicating success.
 
-> 🧪 Optional: validate signed zones periodically:
+> [!NOTE]
+> validate signed zones periodically:
 > 
 > `validns test. /var/cache/bind/test.zone`
->
-> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+
+> [!TIP]
+> Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
 ### 1.2. Knot DNS (with native DNSSEC)
 
@@ -581,9 +583,10 @@ validns test. /etc/nsd/test.zone.signed || exit 1
 nsd-checkzone test. /etc/nsd/test.zone.signed || exit 1
 ```
 
-> 🧠 **Tip:** For easier DNSSEC lifecycle management, consider using **OpenDNSSEC** as the signer and **NSD** only for serving the signed zones.
-
-> ℹ️ Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+> [!TIP]
+> For easier DNSSEC lifecycle management, consider using **OpenDNSSEC** as the signer and **NSD** only for serving the signed zones.
+>
+> Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
 ## 2. Setting Up a Public Secondary DNS Using BIND
 
