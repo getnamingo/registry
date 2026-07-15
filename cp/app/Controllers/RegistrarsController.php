@@ -1152,7 +1152,7 @@ class RegistrarsController extends Controller
             try {
                 $currentDateTime = new \DateTime();
                 $update = $currentDateTime->format('Y-m-d H:i:s.v');
-                $currency = $_SESSION['_currency'] ?? 'USD';
+                $currency = $_SESSION['_currency'] ?? 'EUR';
                 
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;

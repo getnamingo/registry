@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `creditLimit` decimal(12,2) NOT NULL default '0.00',
     `creditThreshold` decimal(12,2) NOT NULL default '0.00',
     `thresholdType` enum('fixed','percent') NOT NULL default 'fixed',
-    `currency` varchar(5) NOT NULL default 'USD',
+    `currency` varchar(5) NOT NULL default 'EUR',
     `companyNumber` varchar(30) DEFAULT NULL,
     `vatNumber` varchar(30) DEFAULT NULL,
     `ssl_fingerprint` CHAR(64) DEFAULT NULL,
@@ -943,7 +943,7 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('launch_phases',    NULL),
 ('whois_server',    'whois.example.com'),
 ('rdap_server',    'https://rdap.example.com'),
-('currency',    'USD');
+('currency',    'EUR');
 
 CREATE INDEX idx_domain_crdate ON registry.domain (crdate DESC);
 CREATE INDEX idx_domain_exdate ON registry.domain (exdate);

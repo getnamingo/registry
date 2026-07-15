@@ -764,7 +764,7 @@ class DapiController extends Controller
         $domain_name = $params['domain_name'] ?? '';
         $date_add = (int) ($params['date_add'] ?? 12);
         $command = $params['command'] ?? 'create';
-        $currency = $params['currency'] ?? 'USD';
+        $currency = $params['currency'] ?? 'EUR';
         $registrar_id = !empty($params['registrar_id']) ? $params['registrar_id'] : ($_SESSION['auth_registrar_id'] ?? null);
 
         $parts = extractDomainAndTLD($domain_name);

@@ -1,8 +1,8 @@
 {
-    "base_currency": "USD",
+    "base_currency": "EUR",
     "rates": {
-        "EUR": 0.91,
-        "GBP": 0.78
+        "USD": 1.14248,
+        "GBP": 0.852815
     },
-    "last_updated": "2025-02-12T12:00:00Z"
+    "last_updated": "2026-07-15T08:23:00Z"
 }

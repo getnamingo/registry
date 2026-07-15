@@ -1033,18 +1033,18 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
             if (!empty($_SESSION['auth_registrar_id'])) {
                 $currency = $db->selectValue(
                     'SELECT currency FROM registrar WHERE id = ?',
                     [$_SESSION['auth_registrar_id']]
-                ) ?? 'USD'; // Default to USD if no result
+                ) ?? 'EUR'; // Default to EUR if no result
             }
         } else {
             $registrar = null;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
         }
-        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
+        $registry_currency = $_SESSION['registry_currency'] ?? 'EUR';
 
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
 
@@ -2115,18 +2115,18 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
             if (!empty($_SESSION['auth_registrar_id'])) {
                 $currency = $db->selectValue(
                     'SELECT currency FROM registrar WHERE id = ?',
                     [$_SESSION['auth_registrar_id']]
-                ) ?? 'USD'; // Default to USD if no result
+                ) ?? 'EUR'; // Default to EUR if no result
             }
         } else {
             $registrar = null;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
         }
-        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
+        $registry_currency = $_SESSION['registry_currency'] ?? 'EUR';
 
         $uri = $request->getUri()->getPath();
 
@@ -2882,18 +2882,18 @@ class DomainsController extends Controller
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
             $registrar = true;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
             if (!empty($_SESSION['auth_registrar_id'])) {
                 $currency = $db->selectValue(
                     'SELECT currency FROM registrar WHERE id = ?',
                     [$_SESSION['auth_registrar_id']]
-                ) ?? 'USD'; // Default to USD if no result
+                ) ?? 'EUR'; // Default to EUR if no result
             }
         } else {
             $registrar = null;
-            $currency = $_SESSION['_currency'] ?? 'USD';
+            $currency = $_SESSION['_currency'] ?? 'EUR';
         }
-        $registry_currency = $_SESSION['registry_currency'] ?? 'USD';
+        $registry_currency = $_SESSION['registry_currency'] ?? 'EUR';
 
         $locale = (isset($_SESSION['_lang']) && !empty($_SESSION['_lang'])) ? $_SESSION['_lang'] : 'en_US';
 

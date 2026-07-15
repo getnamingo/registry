@@ -1768,7 +1768,7 @@ Each command section below includes real-world XML request and response samples 
          xmlns:funds="https://namingo.org/epp/funds-1.0"
          xsi:schemaLocation="https://namingo.org/epp/funds-1.0 funds-1.0.xsd">
           <funds:balance>100000.00</funds:balance>
-          <funds:currency>USD</funds:currency>
+          <funds:currency>EUR</funds:currency>
           <funds:availableCredit>100000.00</funds:availableCredit>
           <funds:creditLimit>100000.00</funds:creditLimit>
           <funds:creditThreshold>

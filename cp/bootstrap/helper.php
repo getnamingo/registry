@@ -455,7 +455,7 @@ function extractDomainAndTLD($urlString) {
     return ['domain' => $sld, 'tld' => $tld];
 }
 
-function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'USD') {
+function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'EUR') {
     global $container;
     $redis = $container->get('redis');
 
@@ -468,7 +468,7 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
     }
 
     $exchangeRates = getExchangeRates();
-    $baseCurrency = $exchangeRates['base_currency'] ?? 'USD';
+    $baseCurrency = $exchangeRates['base_currency'] ?? 'EUR';
     $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
 
     // Check for premium pricing
@@ -564,7 +564,7 @@ function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = '
     return ['type' => 'not_found', 'price' => formatMoney(new Money(0, new Currency($currency)))];
 }
 
-function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = 'USD') {
+function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = 'EUR') {
     global $container;
     $redis = $container->get('redis');
 
@@ -578,7 +578,7 @@ function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = '
 
     // Fetch exchange rates
     $exchangeRates = getExchangeRates();
-    $baseCurrency = $exchangeRates['base_currency'] ?? 'USD';
+    $baseCurrency = $exchangeRates['base_currency'] ?? 'EUR';
     $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
 
     // Fetch restore price from DB
@@ -623,9 +623,9 @@ function getExchangeRates() {
 
     $filePath = "/var/www/cp/resources/exchange_rates.json";
     $defaultRates = [
-        'base_currency' => 'USD',
+        'base_currency' => 'EUR',
         'rates' => [
-            'USD' => 1.0  // Ensure USD always exists
+            'EUR' => 1.0  // Ensure EUR always exists
         ],
         'last_updated' => date('c') // ISO 8601 timestamp
     ];

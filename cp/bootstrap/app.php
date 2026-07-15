@@ -176,7 +176,7 @@ $container->set('view', function ($container) {
     }));
 
     // Fetch registrar currency and registry default currency
-    $currency = 'USD';
+    $currency = 'EUR';
 
     if (isset($_SESSION['auth_user_id'])) {
         $db = $container->get('db');
@@ -204,7 +204,7 @@ $container->set('view', function ($container) {
 
         if (empty($registryCurrency)) {
             $defaultCurrency = $db->select("SELECT value FROM settings WHERE name = 'currency' LIMIT 1");
-            $registryCurrency = $defaultCurrency[0]['value'] ?? 'USD';
+            $registryCurrency = $defaultCurrency[0]['value'] ?? 'EUR';
         }
 
         $_SESSION['auth_registrar_id'] = $registrarId;
@@ -219,7 +219,7 @@ $container->set('view', function ($container) {
         $_SESSION['_currency'] = $currency;
     } else {
         unset($_SESSION['auth_registrar_id'], $_SESSION['_currency']);
-        $_SESSION['registry_currency'] = $_SESSION['registry_currency'] ?? 'USD';
+        $_SESSION['registry_currency'] = $_SESSION['registry_currency'] ?? 'EUR';
         $currency = $_SESSION['registry_currency'];
     }
 

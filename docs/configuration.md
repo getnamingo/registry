@@ -212,8 +212,8 @@ To enable exchange rate updates, follow these steps:
 return [
     // Exchange Rate Configuration
     'exchange_rate_api_key' => "", // Your exchangerate.host API key
-    'exchange_rate_base_currency' => "USD", // Base currency
-    'exchange_rate_currencies' => ["EUR", "GBP", "JPY", "CAD", "AUD"], // Target currencies
+    'exchange_rate_base_currency' => "EUR", // Base currency
+    'exchange_rate_currencies' => ["USD", "GBP", "JPY", "CAD", "AUD", "CHF"], // Target currencies
 ];
 
 ```
@@ -1010,8 +1010,8 @@ return [
 
     // Exchange Rate Configuration
     'exchange_rate_api_key' => "", // Your exchangerate.host API key
-    'exchange_rate_base_currency' => "USD",
-    'exchange_rate_currencies' => ["EUR", "GBP", "JPY", "CAD", "AUD"], // Configurable list
+    'exchange_rate_base_currency' => "EUR",
+    'exchange_rate_currencies' => ["USD", "GBP", "JPY", "CAD", "AUD", "CHF"], // Configurable list
 ];
 ```
 

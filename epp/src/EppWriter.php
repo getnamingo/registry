@@ -780,7 +780,7 @@ class EppWriter {
                     $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                     
                     // fee:currency
-                    $writer->writeElement('fee:currency', 'USD');
+                    $writer->writeElement('fee:currency', 'EUR');
                                             
                     foreach ($resp['fees'] as $fees) {
                         if ($fees[0]['avail'] == 1) {
@@ -852,7 +852,7 @@ class EppWriter {
                 $writer->startElement('fee:creData');
                 $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                     
-                $writer->writeElement('fee:currency', 'USD');
+                $writer->writeElement('fee:currency', 'EUR');
                 $writer->startElement('fee:fee');
                     $writer->writeAttribute('refundable', 1);
                     $writer->writeAttribute('grace-period', 'P5D');

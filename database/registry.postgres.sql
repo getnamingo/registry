@@ -113,7 +113,7 @@ CREATE TABLE registrar (
      "creditlimit"   decimal(12,2) NOT NULL default '0.00',
      "creditthreshold"   decimal(12,2) NOT NULL default '0.00',
      "thresholdtype" varchar CHECK ("thresholdtype" IN ( 'fixed','percent' )) NOT NULL default 'fixed',
-     "currency"   varchar(5) NOT NULL default 'USD',
+     "currency"   varchar(5) NOT NULL default 'EUR',
      "companyNumber" VARCHAR(30) DEFAULT NULL,
      "vatNumber" VARCHAR(30) DEFAULT NULL,
      "ssl_fingerprint" CHAR(64) DEFAULT NULL,
@@ -869,7 +869,7 @@ INSERT INTO settings (name, value) VALUES
 ('launch_phases', NULL),
 ('whois_server', 'whois.example.com'),
 ('rdap_server', 'https://rdap.example.com'),
-('currency', 'USD');
+('currency', 'EUR');
  
 ALTER TABLE domain_tld ADD FOREIGN KEY (launch_phase_id) REFERENCES launch_phases(id);
 ALTER TABLE launch_phases ADD FOREIGN KEY (tld_id) REFERENCES domain_tld(id);

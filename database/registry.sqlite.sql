@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS registrar (
     creditLimit DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     creditThreshold DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     thresholdType VARCHAR(10) NOT NULL DEFAULT 'fixed' CHECK(thresholdType IN ('fixed','percent')),
-    currency VARCHAR(5) NOT NULL DEFAULT 'USD',
+    currency VARCHAR(5) NOT NULL DEFAULT 'EUR',
     companyNumber VARCHAR(30) DEFAULT NULL,
     vatNumber VARCHAR(30) DEFAULT NULL,
     ssl_fingerprint CHAR(64) DEFAULT NULL,

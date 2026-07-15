@@ -73,9 +73,9 @@ if (!isset($data['quotes'])) {
 // Filter only configured currencies, keeping old values for missing ones
 $filteredRates = $existingRates['rates']; // Start with existing rates
 foreach ($currencies as $currency) {
-    $usdKey = "USD" . $currency;
-    if (isset($data['quotes'][$usdKey])) {
-        $filteredRates[$currency] = $data['quotes'][$usdKey]; // Update with new rate
+    $eurKey = "EUR" . $currency;
+    if (isset($data['quotes'][$eurKey])) {
+        $filteredRates[$currency] = $data['quotes'][$eurKey]; // Update with new rate
     }
 }
 
