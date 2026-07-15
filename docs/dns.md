@@ -3,7 +3,7 @@
 This guide walks you through configuring the core DNS setup for your Namingo-powered registry. It includes creating a hidden master DNS server, which acts as the authoritative source for all zone data. Your TLD DNS servers (public-facing) will be configured to receive updates from this hidden master.
 
 > [!WARNING]
-> This setup is **Required** for proper zone publication and delegation of domains under your TLDs.
+> This setup is **required** for proper zone publication and delegation of domains under your TLDs.
 
 ## 1. Hidden Master DNS Server Setup
 
@@ -511,7 +511,7 @@ validns test. /etc/knot/zones/test.zone
 
 NSD is a high-performance, authoritative-only name server with no support for dynamic updates, inline signing, or native DNSSEC key management. It is suitable for production environments that prioritize speed and simplicity, but it **requires external zone signing**.
 
-> [!IMPORTANT]
+> [!CAUTION]
 > NSD does **not** support DNSSEC signing or key management internally. You must handle all DNSSEC operations — such as key generation, zone signing, rollover, and DS management — using external tools like `ldns-signzone`, `dnssec-signzone`, or OpenDNSSEC.
 
 #### 1.3.1. Prerequisites
