@@ -1821,3 +1821,36 @@ msgstr "Localized Contact"
 
 msgid "Optional. Used for some national extensions"
 msgstr "Optional. Used for some national extensions"
+
+msgid "The country of the registry."
+msgstr "The country of the registry."
+
+msgid "General"
+msgstr "General"
+
+msgid "General Settings"
+msgstr "General Settings"
+
+msgid "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+msgstr "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+
+msgid "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+msgstr "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+
+msgid "Maintain blocked, reserved, protected, and specially allocated domain labels."
+msgstr "Maintain blocked, reserved, protected, and specially allocated domain labels."
+
+msgid "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+msgstr "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+
+msgid "EPP Activity"
+msgstr "EPP Activity"
+
+msgid "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+msgstr "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+
+msgid "System Health"
+msgstr "System Health"
+
+msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
+msgstr "Inspect registry services, database status, cache state, storage, queues, and server health."

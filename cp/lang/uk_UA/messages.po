@@ -1821,3 +1821,36 @@ msgstr "Локалізований контакт"
 
 msgid "Optional. Used for some national extensions"
 msgstr "Необов’язково. Використовується для деяких національних доменних зон"
+
+msgid "The country of the registry."
+msgstr "Країна реєстру."
+
+msgid "General"
+msgstr "Загальні"
+
+msgid "General Settings"
+msgstr "Загальні налаштування"
+
+msgid "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+msgstr "Налаштуйте оператора реєстру, контактні дані, адреси служб, валюту та параметри перевірки за замовчуванням."
+
+msgid "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+msgstr "Керуйте доменними зонами, цінами, періодами життєвого циклу, етапами запуску, параметрами IDN і налаштуваннями окремих зон."
+
+msgid "Maintain blocked, reserved, protected, and specially allocated domain labels."
+msgstr "Керуйте заблокованими, зарезервованими, захищеними та спеціально виділеними доменними мітками."
+
+msgid "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+msgstr "Керуйте токенами для реєстрації або трансферу зарезервованих, преміум, аукціонних чи спеціальних доменів."
+
+msgid "EPP Activity"
+msgstr "Активність EPP"
+
+msgid "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+msgstr "Переглядайте команди й відповіді EPP, активність реєстраторів та дані для діагностики протоколу."
+
+msgid "System Health"
+msgstr "Стан системи"
+
+msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
+msgstr "Перевіряйте служби реєстру, стан бази даних, кешу, сховища, черг і сервера."

@@ -1818,3 +1818,36 @@ msgstr "جهة اتصال محلية"
 
 msgid "Optional. Used for some national extensions"
 msgstr "اختياري. يُستخدم لبعض الامتدادات الوطنية"
+
+msgid "The country of the registry."
+msgstr "بلد السجل."
+
+msgid "General"
+msgstr "عام"
+
+msgid "General Settings"
+msgstr "الإعدادات العامة"
+
+msgid "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+msgstr "قم بإعداد مشغّل السجل، ومعلومات الاتصال، ونقاط نهاية الخدمات، والعملة، وإعدادات التحقق الافتراضية."
+
+msgid "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+msgstr "أدِر نطاقات المستوى الأعلى، والأسعار، وفترات دورة الحياة، ومراحل الإطلاق، وخيارات IDN، وسلوك كل منطقة."
+
+msgid "Maintain blocked, reserved, protected, and specially allocated domain labels."
+msgstr "أدِر تسميات النطاق المحظورة والمحجوزة والمحمية والمخصصة بشكل خاص."
+
+msgid "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+msgstr "أدِر الرموز المستخدمة لتسجيل أو نقل النطاقات المحجوزة أو المميزة أو المعروضة في المزادات أو الخاصة."
+
+msgid "EPP Activity"
+msgstr "نشاط EPP"
+
+msgid "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+msgstr "راجع أوامر EPP واستجاباته، ونشاط المسجّلين، ومعلومات استكشاف أخطاء البروتوكول وإصلاحها."
+
+msgid "System Health"
+msgstr "حالة النظام"
+
+msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
+msgstr "تحقق من خدمات السجل، وحالة قاعدة البيانات، وذاكرة التخزين المؤقت، والتخزين، وقوائم الانتظار، وحالة الخادم."

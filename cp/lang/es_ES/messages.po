@@ -1821,3 +1821,36 @@ msgstr "Contacto localizado"
 
 msgid "Optional. Used for some national extensions"
 msgstr "Opcional. Utilizado para algunas extensiones nacionales"
+
+msgid "The country of the registry."
+msgstr "El país del registro."
+
+msgid "General"
+msgstr "General"
+
+msgid "General Settings"
+msgstr "Configuración general"
+
+msgid "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+msgstr "Configure el operador del registro, la información de contacto, los puntos de conexión de los servicios, la moneda y los valores predeterminados de verificación."
+
+msgid "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+msgstr "Gestione los TLD, los precios, los periodos del ciclo de vida, las fases de lanzamiento, las opciones de IDN y el comportamiento de cada zona."
+
+msgid "Maintain blocked, reserved, protected, and specially allocated domain labels."
+msgstr "Gestione las etiquetas de dominio bloqueadas, reservadas, protegidas y asignadas de forma especial."
+
+msgid "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+msgstr "Gestione los tokens para el registro o la transferencia de dominios reservados, premium, subastados o especiales."
+
+msgid "EPP Activity"
+msgstr "Actividad EPP"
+
+msgid "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+msgstr "Revise los comandos y las respuestas EPP, la actividad de los registradores y la información de diagnóstico del protocolo."
+
+msgid "System Health"
+msgstr "Estado del sistema"
+
+msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
+msgstr "Compruebe los servicios del registro, el estado de la base de datos, la caché, el almacenamiento, las colas y el servidor."

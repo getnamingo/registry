@@ -1821,3 +1821,36 @@ msgstr "ローカライズされた連絡先"
 
 msgid "Optional. Used for some national extensions"
 msgstr "任意。一部の国別ドメインで使用されます"
+
+msgid "The country of the registry."
+msgstr "レジストリの国。"
+
+msgid "General"
+msgstr "一般"
+
+msgid "General Settings"
+msgstr "一般設定"
+
+msgid "Configure the registry operator, contact information, service endpoints, currency, and verification defaults."
+msgstr "レジストリ運営者、連絡先情報、サービスエンドポイント、通貨、検証のデフォルト設定を構成します。"
+
+msgid "Manage TLDs, pricing, lifecycle periods, launch phases, IDN options, and per-zone behaviour."
+msgstr "TLD、料金、ライフサイクル期間、ローンチフェーズ、IDNオプション、ゾーンごとの動作を管理します。"
+
+msgid "Maintain blocked, reserved, protected, and specially allocated domain labels."
+msgstr "ブロック済み、予約済み、保護対象、および特別に割り当てられたドメインラベルを管理します。"
+
+msgid "Manage tokens for registration or transfer of reserved, premium, auctioned, or special domains."
+msgstr "予約、プレミアム、オークション対象、または特別なドメインの登録や移管に使用するトークンを管理します。"
+
+msgid "EPP Activity"
+msgstr "EPPアクティビティ"
+
+msgid "Review EPP commands, responses, registrar activity, and protocol troubleshooting information."
+msgstr "EPPコマンドとレスポンス、レジストラのアクティビティ、プロトコルのトラブルシューティング情報を確認します。"
+
+msgid "System Health"
+msgstr "システム状態"
+
+msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
+msgstr "レジストリサービス、データベース、キャッシュ、ストレージ、キュー、サーバーの状態を確認します。"
