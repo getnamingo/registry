@@ -3,7 +3,7 @@
 This guide walks you through configuring the core DNS setup for your Namingo-powered registry. It includes creating a hidden master DNS server, which acts as the authoritative source for all zone data. Your TLD DNS servers (public-facing) will be configured to receive updates from this hidden master.
 
 > [!WARNING]
-> This setup is [Required] for proper zone publication and delegation of domains under your TLDs.
+> This setup is **Required** for proper zone publication and delegation of domains under your TLDs.
 
 ## 1. Hidden Master DNS Server Setup
 
