@@ -1075,6 +1075,9 @@ msgstr ""
 msgid "Manage Promotions"
 msgstr ""
 
+msgid "Promotions"
+msgstr ""
+
 msgid "Promotion Name"
 msgstr ""
 
@@ -1142,6 +1145,9 @@ msgid "Update Promotions"
 msgstr ""
 
 msgid "Manage Launch Phases"
+msgstr ""
+
+msgid "Launch Phases"
 msgstr ""
 
 msgid "Phase Category"

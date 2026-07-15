@@ -1075,6 +1075,9 @@ msgstr "Оновити TLD"
 msgid "Manage Promotions"
 msgstr "Керування акціями"
 
+msgid "Promotions"
+msgstr "Акції"
+
 msgid "Promotion Name"
 msgstr "Назва акції"
 
@@ -1142,7 +1145,10 @@ msgid "Update Promotions"
 msgstr "Оновити промо-акції"
 
 msgid "Manage Launch Phases"
-msgstr "Вимагати стартові фази"
+msgstr "Керування фазами запуску"
+
+msgid "Launch Phases"
+msgstr "Фази запуску"
 
 msgid "Phase Category"
 msgstr "Фазова категорія"

@@ -1072,6 +1072,9 @@ msgstr "تحديث نطاق المستوى العلوي"
 msgid "Manage Promotions"
 msgstr "إدارة الترقيات"
 
+msgid "Promotions"
+msgstr "العروض الترويجية"
+
 msgid "Promotion Name"
 msgstr "اسم الترويج"
 
@@ -1140,6 +1143,9 @@ msgstr "تحديث الترقيات"
 
 msgid "Manage Launch Phases"
 msgstr "إدارة مراحل الإطلاق"
+
+msgid "Launch Phases"
+msgstr "مراحل الإطلاق"
 
 msgid "Phase Category"
 msgstr "فئة المرحلة"

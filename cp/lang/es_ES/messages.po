@@ -1075,6 +1075,9 @@ msgstr "Actualizar TLD"
 msgid "Manage Promotions"
 msgstr "Administrar promociones"
 
+msgid "Promotions"
+msgstr "Promociones"
+
 msgid "Promotion Name"
 msgstr "Nombre de la promoción"
 
@@ -1143,6 +1146,9 @@ msgstr "Actualizar promociones"
 
 msgid "Manage Launch Phases"
 msgstr "Administrar fases de lanzamiento"
+
+msgid "Launch Phases"
+msgstr "Fases de lanzamiento"
 
 msgid "Phase Category"
 msgstr "Categoría de fase"

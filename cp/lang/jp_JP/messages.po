@@ -1075,6 +1075,9 @@ msgstr "TLDを更新"
 msgid "Manage Promotions"
 msgstr "プロモーションを管理"
 
+msgid "Promotions"
+msgstr "プロモーション"
+
 msgid "Promotion Name"
 msgstr "プロモーション名"
 
@@ -1143,6 +1146,9 @@ msgstr "プロモーションを更新"
 
 msgid "Manage Launch Phases"
 msgstr "ランチフェーズを管理"
+
+msgid "Launch Phases"
+msgstr "ローンチフェーズ"
 
 msgid "Phase Category"
 msgstr "フェーズカテゴリ"
