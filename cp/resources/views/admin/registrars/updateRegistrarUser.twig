@@ -38,51 +38,57 @@
                   <div class="card-body">
                     <h5 class="card-title">{{ __('Registrar Details') }}</h5>
                       <div class="row">
-                        <!-- First Column -->
                         <div class="col-md-6">
-                          <div class="mb-3">
-                            <label for="name" class="form-label required">{{ __('Name') }}</label>
-                            <input type="text" class="form-control" id="name" name="name" required value="{{ registrar.name }}" autocomplete="off">
-                            <small class="text-muted">{{ __('The official name of the registrar.') }}</small>
+                          <div class="row g-3 mb-3">
+                              <div class="col-md-6">
+                                <label for="name" class="form-label required">{{ __('Name') }}</label>
+                                <input type="text" class="form-control" id="name" name="name" required value="{{ registrar.name }}" autocomplete="off">
+                                <small class="text-muted">{{ __('The official name of the registrar.') }}</small>
+                              </div>
+                              <div class="col-md-6">
+                                <label for="ianaId" class="form-label">IANA ID</label>
+                                <input type="number" class="form-control" id="ianaId" name="ianaId" value="{{ registrar.iana_id }}">
+                                <small class="text-muted">{{ __('Unique identifier assigned by IANA.') }}</small>
+                              </div>
                           </div>
-                          <div class="mb-3">
-                            <label for="ianaId" class="form-label">IANA ID</label>
-                            <input type="number" class="form-control" id="ianaId" name="ianaId" value="{{ registrar.iana_id }}">
-                            <small class="text-muted">{{ __('Unique identifier assigned by IANA.') }}</small>
-                          </div>
-                          <div class="mb-3">
-                            <label for="email" class="form-label required">{{ __('Email') }}</label>
-                            <input type="text" class="form-control" id="email" name="email" required autocapitalize="none" value="{{ registrar.email }}" autocomplete="off">
-                            <small class="text-muted">{{ __('Primary contact email of the registrar.') }}</small>
-                          </div>
-                          <div class="mb-3">
-                            <label for="url" class="form-label required">{{ __('URL') }}</label>
-                            <input type="text" class="form-control" id="url" name="url" required autocapitalize="none" value="{{ registrar.url }}">
-                            <small class="text-muted">{{ __('Registrar\'s official website URL.') }}</small>
+                          <div class="row g-3 mb-3">
+                              <div class="col-md-6">
+                                <label for="email" class="form-label required">{{ __('Email') }}</label>
+                                <input type="text" class="form-control" id="email" name="email" required autocapitalize="none" value="{{ registrar.email }}" autocomplete="off">
+                                <small class="text-muted">{{ __('Primary contact email of the registrar.') }}</small>
+                              </div>
+                              <div class="col-md-6">
+                                <label for="url" class="form-label required">{{ __('URL') }}</label>
+                                <input type="text" class="form-control" id="url" name="url" required autocapitalize="none" value="{{ registrar.url }}">
+                                <small class="text-muted">{{ __('Registrar\'s official website URL.') }}</small>
+                              </div>
                           </div>
                         </div>
 
-                        <!-- Second Column -->
                         <div class="col-md-6">
-                          <div class="mb-3">
-                            <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
-                            <input type="text" class="form-control" id="whoisServer" name="whoisServer" required autocapitalize="none" value="{{ registrar.whois_server }}">
-                            <small class="text-muted">{{ __('Address of the registrar\'s WHOIS server.') }}</small>
+                          <div class="row g-3 mb-3">
+                              <div class="col-md-6">
+                                <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
+                                <input type="text" class="form-control" id="rdapServer" name="rdapServer" required autocapitalize="none" value="{{ registrar.rdap_server }}">
+                                <small class="text-muted">{{ __('Address of the registrar\'s RDAP server.') }}</small>
+                              </div>
+                              <div class="col-md-6">
+                                <label for="whoisServer" class="form-label required">{{ __('WHOIS Server') }}</label>
+                                <input type="text" class="form-control" id="whoisServer" name="whoisServer" required autocapitalize="none" value="{{ registrar.whois_server }}">
+                                <small class="text-muted">{{ __('Address of the registrar\'s WHOIS server.') }}</small>
+                              </div>
                           </div>
-                          <div class="mb-3">
-                            <label for="rdapServer" class="form-label required">{{ __('RDAP Server') }}</label>
-                            <input type="text" class="form-control" id="rdapServer" name="rdapServer" required autocapitalize="none" value="{{ registrar.rdap_server }}">
-                            <small class="text-muted">{{ __('Address of the registrar\'s RDAP server.') }}</small>
-                          </div>
-                          <div class="mb-3">
-                            <label for="abuseMainEmail" class="form-label required">{{ __('Abuse Email') }}</label>
-                            <input type="text" class="form-control" id="abuseMainEmail" name="abuseEmail" required autocapitalize="none" value="{{ registrar.abuse_email }}">
-                            <small class="text-muted">{{ __('Email address for reporting abuse.') }}</small>
-                          </div>
-                          <div class="mb-3">
-                            <label for="abusePhone" class="form-label required">{{ __('Abuse Phone') }}</label>
-                            <input type="tel" class="form-control" id="abusePhone" name="abusePhone" required value="{{ registrar.abuse_phone }}">
-                            <small class="text-muted">{{ __('Phone number for reporting abuse.') }}</small>
+                          <div class="row g-3 mb-3">
+                              <div class="col-md-6">
+                                <label for="abuseEmail" class="form-label required">{{ __('Abuse Email') }}</label>
+                                <input type="text" class="form-control" id="abuseEmail" name="abuseEmail" required autocapitalize="none" value="{{ registrar.abuse_email }}">
+                                <small class="text-muted">{{ __('Email address for reporting abuse.') }}</small>
+                              </div>
+                              <div class="col-md-6">
+                                <label for="abusePhone" class="form-label required">{{ __('Abuse Phone') }}</label>
+                                <input type="tel" class="form-control" id="abusePhone" name="abusePhone" required value="{{ registrar.abuse_phone }}">
+                                <small class="text-muted">{{ __('Phone number for reporting abuse.') }}</small>
+                              </div>
                           </div>
                         </div>
                       </div>
@@ -174,13 +180,15 @@
                           {% if contact.type == 'owner' %}
                             <!-- First Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="ownerFirstName" class="form-label required">{{ __('First Name') }}</label>
-                                <input type="text" class="form-control" id="ownerFirstName" name="owner[first_name]" value="{{ contact.first_name }}" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="ownerLastName" class="form-label required">{{ __('Last Name') }}</label>
-                                <input type="text" class="form-control" id="ownerLastName" name="owner[last_name]" value="{{ contact.last_name }}" required>
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="ownerFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                    <input type="text" class="form-control" id="ownerFirstName" name="owner[first_name]" value="{{ contact.first_name }}" required>
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="ownerLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                    <input type="text" class="form-control" id="ownerLastName" name="owner[last_name]" value="{{ contact.last_name }}" required>
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="ownerOrg" class="form-label">{{ __('Organization') }}</label>
@@ -190,21 +198,23 @@
                                 <label for="ownerStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="ownerStreet1" name="owner[street1]" value="{{ contact.street1 }}">
                               </div>
-                              <div class="mb-3">
-                                <label for="ownerCity" class="form-label required">{{ __('City') }}</label>
-                                <input type="text" class="form-control" id="ownerCity" name="owner[city]" value="{{ contact.city }}" required>
-                              </div>
                             </div>
 
                             <!-- Second Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="ownerSp" class="form-label">{{ __('State/Province') }}</label>
-                                <input type="text" class="form-control" id="ownerSp" name="owner[sp]" value="{{ contact.sp }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="ownerPc" class="form-label">{{ __('Postal Code') }}</label>
-                                <input type="text" class="form-control" id="ownerPc" name="owner[pc]" value="{{ contact.pc }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-4">
+                                    <label for="ownerCity" class="form-label required">{{ __('City') }}</label>
+                                    <input type="text" class="form-control" id="ownerCity" name="owner[city]" required value="{{ contact.city }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="ownerSp" class="form-label">{{ __('State/Province') }}</label>
+                                    <input type="text" class="form-control" id="ownerSp" name="owner[sp]" value="{{ contact.sp }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="ownerPc" class="form-label">{{ __('Postal Code') }}</label>
+                                    <input type="text" class="form-control" id="ownerPc" name="owner[pc]" value="{{ contact.pc }}">
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="ownerCc" class="form-label required">{{ __('Country') }}</label>
@@ -214,13 +224,15 @@
                                   {% endfor %}
                                 </select>
                               </div>
-                              <div class="mb-3">
-                                <label for="ownerVoice" class="form-label">{{ __('Phone') }}</label>
-                                <input type="tel" class="form-control" id="ownerVoice" name="owner[voice]" value="{{ contact.voice }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="ownerEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="text" class="form-control" id="ownerEmail" name="owner[email]" required autocapitalize="none" value="{{ contact.email }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="ownerVoice" class="form-label">{{ __('Phone') }}</label>
+                                    <input type="tel" class="form-control" id="ownerVoice" name="owner[voice]" value="{{ contact.voice }}">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="ownerEmail" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="ownerEmail" name="owner[email]" required autocapitalize="none" value="{{ contact.email }}">
+                                  </div>
                               </div>
                             </div>
                             {% endif %}
@@ -237,13 +249,15 @@
                           {% if contact.type == 'billing' %}
                             <!-- First Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
-                                <input type="text" class="form-control" id="billingFirstName" name="billing[first_name]" value="{{ contact.first_name }}" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
-                                <input type="text" class="form-control" id="billingLastName" name="billing[last_name]" value="{{ contact.last_name }}"required>
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                    <input type="text" class="form-control" id="billingFirstName" name="billing[first_name]" value="{{ contact.first_name }}" required>
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                    <input type="text" class="form-control" id="billingLastName" name="billing[last_name]" value="{{ contact.last_name }}" required>
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
@@ -253,21 +267,23 @@
                                 <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="billingStreet1" name="billing[street1]" value="{{ contact.street1 }}">
                               </div>
-                              <div class="mb-3">
-                                <label for="billingCity" class="form-label required">{{ __('City') }}</label>
-                                <input type="text" class="form-control" id="billingCity" name="billing[city]" value="{{ contact.city }}" required>
-                              </div>
                             </div>
 
                             <!-- Second Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
-                                <input type="text" class="form-control" id="billingSp" name="billing[sp]" value="{{ contact.sp }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
-                                <input type="text" class="form-control" id="billingPc" name="billing[pc]" value="{{ contact.pc }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-4">
+                                    <label for="billingCity" class="form-label required">{{ __('City') }}</label>
+                                    <input type="text" class="form-control" id="billingCity" name="billing[city]" required value="{{ contact.city }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
+                                    <input type="text" class="form-control" id="billingSp" name="billing[sp]" value="{{ contact.sp }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
+                                    <input type="text" class="form-control" id="billingPc" name="billing[pc]" value="{{ contact.pc }}">
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="billingCc" class="form-label required">{{ __('Country') }}</label>
@@ -277,13 +293,15 @@
                                   {% endfor %}
                                 </select>
                               </div>
-                              <div class="mb-3">
-                                <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
-                                <input type="tel" class="form-control" id="billingVoice" name="billing[voice]" value="{{ contact.voice }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="text" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none" value="{{ contact.email }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
+                                    <input type="tel" class="form-control" id="billingVoice" name="billing[voice]" value="{{ contact.voice }}">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="billingEmail" name="billing[email]" required autocapitalize="none" value="{{ contact.email }}">
+                                  </div>
                               </div>
                             </div>
                             {% endif %}
@@ -300,13 +318,15 @@
                           {% if contact.type == 'tech' %}
                             <!-- First Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
-                                <input type="text" class="form-control" id="billingFirstName" name="tech[first_name]" value="{{ contact.first_name }}" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
-                                <input type="text" class="form-control" id="billingLastName" name="tech[last_name]" value="{{ contact.last_name }}"required>
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                    <input type="text" class="form-control" id="billingFirstName" name="tech[first_name]" value="{{ contact.first_name }}" required>
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                    <input type="text" class="form-control" id="billingLastName" name="tech[last_name]" value="{{ contact.last_name }}" required>
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
@@ -316,21 +336,23 @@
                                 <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="billingStreet1" name="tech[street1]" value="{{ contact.street1 }}">
                               </div>
-                              <div class="mb-3">
-                                <label for="billingCity" class="form-label required">{{ __('City') }}</label>
-                                <input type="text" class="form-control" id="billingCity" name="tech[city]" value="{{ contact.city }}" required>
-                              </div>
                             </div>
 
                             <!-- Second Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
-                                <input type="text" class="form-control" id="billingSp" name="tech[sp]" value="{{ contact.sp }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
-                                <input type="text" class="form-control" id="billingPc" name="tech[pc]" value="{{ contact.pc }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-4">
+                                    <label for="billingCity" class="form-label required">{{ __('City') }}</label>
+                                    <input type="text" class="form-control" id="billingCity" name="tech[city]" required value="{{ contact.city }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
+                                    <input type="text" class="form-control" id="billingSp" name="tech[sp]" value="{{ contact.sp }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
+                                    <input type="text" class="form-control" id="billingPc" name="tech[pc]" value="{{ contact.pc }}">
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="billingCc" class="form-label required">{{ __('Country') }}</label>
@@ -340,13 +362,15 @@
                                   {% endfor %}
                                 </select>
                               </div>
-                              <div class="mb-3">
-                                <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
-                                <input type="tel" class="form-control" id="billingVoice" name="tech[voice]" value="{{ contact.voice }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="text" class="form-control" id="billingEmail" name="tech[email]" required autocapitalize="none" value="{{ contact.email }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
+                                    <input type="tel" class="form-control" id="billingVoice" name="tech[voice]" value="{{ contact.voice }}">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="billingEmail" name="tech[email]" required autocapitalize="none" value="{{ contact.email }}">
+                                  </div>
                               </div>
                             </div>
                             {% endif %}
@@ -363,13 +387,15 @@
                           {% if contact.type == 'abuse' %}
                             <!-- First Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="abuseFirstName" class="form-label required">{{ __('First Name') }}</label>
-                                <input type="text" class="form-control" id="abuseFirstName" name="abuse[first_name]" value="{{ contact.first_name }}" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="abuseLastName" class="form-label required">{{ __('Last Name') }}</label>
-                                <input type="text" class="form-control" id="abuseLastName" name="abuse[last_name]" value="{{ contact.last_name }}" required>
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="abuseFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                    <input type="text" class="form-control" id="abuseFirstName" name="abuse[first_name]" value="{{ contact.first_name }}" required>
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="abuseLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                    <input type="text" class="form-control" id="abuseLastName" name="abuse[last_name]" value="{{ contact.last_name }}" required>
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="abuseOrg" class="form-label">{{ __('Organization') }}</label>
@@ -379,21 +405,23 @@
                                 <label for="abuseStreet1" class="form-label">{{ __('Street Address') }}</label>
                                 <input type="text" class="form-control" id="abuseStreet1" name="abuse[street1]" value="{{ contact.street1 }}">
                               </div>
-                              <div class="mb-3">
-                                <label for="abuseCity" class="form-label required">{{ __('City') }}</label>
-                                <input type="text" class="form-control" id="abuseCity" name="abuse[city]" required value="{{ contact.city }}">
-                              </div>
                             </div>
 
                             <!-- Second Column -->
                             <div class="col-md-6">
-                              <div class="mb-3">
-                                <label for="abuseSp" class="form-label">{{ __('State/Province') }}</label>
-                                <input type="text" class="form-control" id="abuseSp" name="abuse[sp]" value="{{ contact.sp }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="abusePc" class="form-label">{{ __('Postal Code') }}</label>
-                                <input type="text" class="form-control" id="abusePc" name="abuse[pc]" value="{{ contact.pc }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-4">
+                                    <label for="abuseCity" class="form-label required">{{ __('City') }}</label>
+                                    <input type="text" class="form-control" id="abuseCity" name="abuse[city]" required value="{{ contact.city }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="abuseSp" class="form-label">{{ __('State/Province') }}</label>
+                                    <input type="text" class="form-control" id="abuseSp" name="abuse[sp]" value="{{ contact.sp }}">
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label for="abusePc" class="form-label">{{ __('Postal Code') }}</label>
+                                    <input type="text" class="form-control" id="abusePc" name="abuse[pc]" value="{{ contact.pc }}">
+                                  </div>
                               </div>
                               <div class="mb-3">
                                 <label for="abuseCc" class="form-label required">{{ __('Country') }}</label>
@@ -403,13 +431,15 @@
                                   {% endfor %}
                                 </select>
                               </div>
-                              <div class="mb-3">
-                                <label for="abuseVoice" class="form-label">{{ __('Phone') }}</label>
-                                <input type="tel" class="form-control" id="abuseVoice" name="abuse[voice]" value="{{ contact.voice }}">
-                              </div>
-                              <div class="mb-3">
-                                <label for="abuseEmail" class="form-label required">{{ __('Email') }}</label>
-                                <input type="text" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none" value="{{ contact.email }}">
+                              <div class="row g-3 mb-3">
+                                  <div class="col-md-6">
+                                    <label for="abuseVoice" class="form-label">{{ __('Phone') }}</label>
+                                    <input type="tel" class="form-control" id="abuseVoice" name="abuse[voice]" value="{{ contact.voice }}">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="abuseEmail" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none" value="{{ contact.email }}">
+                                  </div>
                               </div>
                             </div>
                             {% endif %}
