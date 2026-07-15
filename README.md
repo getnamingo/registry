@@ -12,7 +12,8 @@ Namingo is a state-of-the-art open-source domain registry platform, diligently c
 
 Namingo is optimally designed for the 2026 ICANN new gTLD application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
 
-> ✅ **Namingo passes ICANN OT&E RST for the `MainRSPEvaluationTest` profile**, demonstrating compliance with required operational standards.
+> [!NOTE]
+> Namingo **passes** ICANN OT&E RST for the `MainRSPEvaluationTest` profile, demonstrating compliance with required operational standards.
 
 ### Want to pass your own RST?
 
@@ -42,35 +43,35 @@ Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM
 
 ## Features
 
-Namingo is equipped with a comprehensive suite of features to meet the diverse needs of modern domain registries:
+- **ICANN Standards Support**: Supports the technical and operational requirements of both ccTLD and gTLD registries, including ICANN-related reporting, data escrow, abuse monitoring, and registration data services.
 
-- **ICANN Compliant**: Robust support for both ccTLDs and gTLDs in line with ICANN requirements.
-
-- **Control Panel**: A sleek, user-friendly interface for effortless domain management and TLD administration, enhanced with advanced security measures (2FA, WebAuthn), Stripe/Adyen/Crypto payment options for registrars, and multilingual support, ensuring global accessibility. Seamlessly integrated with a robust API for direct access to the registry database.
+- **Control Panel**: A modern, multilingual interface for registrar and registry administration, with two-factor authentication, WebAuthn support, registrar billing, and Stripe, Adyen, and cryptocurrency payment integrations. A comprehensive API is also available for automated access to registry functions.
   
-- **EPP Server**: Enables secure and robust communication for domain registration and management.
-  
-- **WHOIS Service**: Offers both port 43 access and web access, ensuring transparency in domain information retrieval.
-  
-- **RDAP Server**: Next-generation registration data access protocol server to provide public access to domain data. Also offers web RDAP client.
+- **EPP Server**: Provides secure, standards-based communication for domain, contact, and host registration and management.
 
-- **DAS Server**: Efficient Domain Availability Service to quickly check domain availability.
+- **WHOIS Service**: Provides public domain registration data through both the traditional port 43 protocol and a web-based WHOIS interface.
 
-- **DNS Interface**: Zone file generator with native DNSSEC signing for BIND 9 and Knot DNS, including NSEC3 support (RFC 9276-compliant). Also supports OpenDNSSEC and NSD via external signing.
+- **RDAP Server**: Provides standards-based access to domain registration data through RDAP, together with an integrated web RDAP client.
 
-- **Database Compatibility**: Fully supports MariaDB and offers beta support for PostgreSQL, providing flexibility to match users' technical needs and infrastructure for seamless integration and peak performance.
+- **DAS Server**: Offers a lightweight Domain Availability Service for fast and efficient domain availability checks.
 
-- **GDPR & NIS2 Compliance**: Namingo supports both GDPR and NIS2 requirements, including contact validation and encrypted data storage. For implementation details, see our [Encryption Guide](docs/encryption.md).
+- **DNS Interface**: Zone file generation with native DNSSEC signing for BIND 9 and Knot DNS, including RFC 9276-compliant NSEC3 support and optional offline KSK signing. OpenDNSSEC and NSD are supported through external signing workflows. See [Upgrading to BIND 9.20 and enabling offline KSK signing](docs/dns.md#3-upgrading-to-bind-920-and-enabling-offline-ksk-signing).
 
-- **Automation Scripts**: Ensures the continuous and smooth operation of the registry by performing routine checks and operations. Included scripts for spec 11 abuse monitoring; automated approval of domain transfers; contact and host cleanup; backup processing and upload; domain lifetime status change; generation and upload of RDE deposits, LORDN file, ICANN's monthly reports, invoices; email dispatcher system; statistics generation; TMCH and URS processing; zone generator and signing.
+- **Database Compatibility**: Fully supports MariaDB and includes beta support for PostgreSQL, allowing operators to select the database platform that best matches their infrastructure.
 
-### Optional components
+- **GDPR and NIS2 Support**: Includes features designed to support GDPR and NIS2 requirements, such as contact validation, encrypted data storage, access controls, and security-focused operational processes. See the [Encryption Guide](docs/encryption.md) for implementation details.
 
-- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding) - New registrars can join by filling up a form, signing the agreement online and even paying the application fee online. Then their account is activated after check by registry staff. No more emails, Word or PDF forms or copy-paste between systems.
+- **Operational Automation**: Includes automation for routine registry operations such as Specification 11 abuse monitoring, transfer approval, contact and host cleanup, backups and remote uploads, domain lifecycle processing, invoice generation, email dispatch, statistics collection, TMCH and URS processing, and zone generation and signing.
 
-- [**Domain Registry API**](https://github.com/getnamingo/registry-api) - Provides REST API access to domain availability checks and to the domain droplist.
+- **Registry Reporting and Data Escrow**: Automates the generation and delivery of RDE deposits, LORDN files, ICANN monthly reports, invoices, and other operational registry reports.
 
-- [**ntfy.sh Error Notifier**](https://github.com/getnamingo/registry-ntfy) - Checks for new high-severity errors and sends real-time push notifications via ntfy.sh.
+### Optional Components
+
+- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding) – Provides a complete self-service onboarding workflow for new registrars, including application forms, electronic agreement signing, and online payment of application fees. Applications can then be reviewed and approved by registry staff before account activation, eliminating manual email exchanges, document handling, and duplicate data entry.
+
+- [**Domain Registry API**](https://github.com/getnamingo/registry-api) – Provides REST API access to domain availability checks and registry droplist data for integration with external systems and services.
+
+- [**ntfy.sh Error Notifier**](https://github.com/getnamingo/registry-ntfy) – Monitors the registry for newly reported high-severity errors and delivers real-time push notifications through ntfy.sh.
 
 ## Documentation
 
