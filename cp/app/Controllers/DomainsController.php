@@ -1176,12 +1176,6 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/domains')->withStatus(302);
             }
 
-            try {
-                $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
-            } catch (\PDOException $e) {
-                throw new \RuntimeException('Audit table is empty or not configured');
-            }
-
             $domain = $db->selectRow('SELECT id, name, clid FROM domain WHERE name = ?',
             [ $args ]);
 
@@ -1200,6 +1194,30 @@ class DomainsController extends Controller
                         // Redirect to the domains view if the user is not authorized for this contact
                         return $response->withHeader('Location', '/domains')->withStatus(302);
                     }
+                }
+
+                $auditEnabled = (int) $db_audit->selectValue(
+                    "SELECT COUNT(*)
+                     FROM information_schema.tables
+                     WHERE table_schema = DATABASE()
+                       AND table_name = 'domain'"
+                ) > 0;
+
+                if (!$auditEnabled) {
+                    $this->container->get('flash')->addMessage(
+                        'error',
+                        'Audit database is not configured. See the documentation to enable it.'
+                    );
+
+                    return $response
+                        ->withHeader('Location', '/domain/view/'.$domain['name'])
+                        ->withStatus(302);
+                }
+
+                try {
+                    $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
+                } catch (\PDOException $e) {
+                    throw new \RuntimeException('Audit table is empty or not configured');
                 }
 
                 $history = $db_audit->select(

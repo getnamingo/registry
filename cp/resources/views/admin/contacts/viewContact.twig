@@ -52,6 +52,7 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+            {% include 'partials/flash.twig' %}
               <div class="card mb-3">
                 <div class="card-header">
                   <h3 class="card-title">{{ __('Contact') }} {{ contact.identifier }}&nbsp;<span class="status status-info">{{ contactStatus.status }}</span>{% if contactLinked is not null %}&nbsp;<span class="status status-green">{{ __('linked') }}</span>{% endif %}

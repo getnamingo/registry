@@ -899,6 +899,24 @@ class ContactsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
+            
+            $auditEnabled = (int) $db_audit->selectValue(
+                "SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'domain'"
+            ) > 0;
+
+            if (!$auditEnabled) {
+                $this->container->get('flash')->addMessage(
+                    'error',
+                    'Audit database is not configured. See the documentation to enable it.'
+                );
+
+                return $response
+                    ->withHeader('Location', '/contact/view/'.$args)
+                    ->withStatus(302);
+            }
 
             try {
                 $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');

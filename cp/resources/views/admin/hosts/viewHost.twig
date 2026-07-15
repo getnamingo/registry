@@ -52,6 +52,7 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
+            {% include 'partials/flash.twig' %}
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">{{ __('Host') }} {{ host.name }}&nbsp;<span class="status status-info">{{ hostStatus.status|default(__('ok')) }}</span>{% if hostLinked is not null %}&nbsp;<span class="status status-green">{{ __('linked') }}</span>{% endif %}</h3>

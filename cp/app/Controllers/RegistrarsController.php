@@ -479,6 +479,24 @@ class RegistrarsController extends Controller
                     }
                 }
 
+                $auditEnabled = (int) $db_audit->selectValue(
+                    "SELECT COUNT(*)
+                     FROM information_schema.tables
+                     WHERE table_schema = DATABASE()
+                       AND table_name = 'domain'"
+                ) > 0;
+
+                if (!$auditEnabled) {
+                    $this->container->get('flash')->addMessage(
+                        'error',
+                        'Audit database is not configured. See the documentation to enable it.'
+                    );
+
+                    return $response
+                        ->withHeader('Location', '/registrar/view/'.$registrar['name'])
+                        ->withStatus(302);
+                }
+
                 try {
                     $exists = $db_audit->selectValue('SELECT 1 FROM domain LIMIT 1');
                 } catch (\PDOException $e) {
