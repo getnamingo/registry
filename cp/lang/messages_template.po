@@ -1402,13 +1402,22 @@ msgstr ""
 msgid "Signed"
 msgstr ""
 
-msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
+msgid "Reserved names may have special regulations, eligibility requirements, or additional documentation requirements."
 msgstr ""
 
 msgid "Enter each"
 msgstr ""
 
-msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
+msgid "Enter each name on a new line, without the extension. For example, use \"example\" instead of \"example.com\"."
+msgstr ""
+
+msgid "line"
+msgstr ""
+
+msgid "lines"
+msgstr ""
+
+msgid "Restricted Names"
 msgstr ""
 
 msgid "View Ticket"

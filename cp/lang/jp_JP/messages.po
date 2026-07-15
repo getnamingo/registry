@@ -1402,14 +1402,23 @@ msgstr "未署名"
 msgid "Signed"
 msgstr "署名済み"
 
-msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "これらのドメイン名は、特別な規制または登録要件の対象となります。登録可能ですが、資格の証明や追加の文書など、特定の条件の下でのみです。"
+msgid "Reserved names may have special regulations, eligibility requirements, or additional documentation requirements."
+msgstr "予約名には、特別な規則、登録資格要件、または追加書類の提出要件が適用される場合があります。"
 
 msgid "Enter each"
-msgstr "各項目を入力"
+msgstr "それぞれ入力してください"
 
-msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "拡張子を除いた名前を新しい行に入力してください。たとえば、「example.com」の代わりに「example」を使用します。"
+msgid "Enter each name on a new line, without the extension. For example, use \"example\" instead of \"example.com\"."
+msgstr "各名称を拡張子なしで1行ずつ入力してください。たとえば、"example.com" の代わりに "example" と入力します。"
+
+msgid "line"
+msgstr "行"
+
+msgid "lines"
+msgstr "行"
+
+msgid "Restricted Names"
+msgstr "制限付き名称"
 
 msgid "View Ticket"
 msgstr "チケットを見る"

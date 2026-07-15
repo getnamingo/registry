@@ -1399,14 +1399,23 @@ msgstr "غير موقّع"
 msgid "Signed"
 msgstr "تم التوقيع"
 
-msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "تخضع أسماء النطاقات لأنظمة خاصة أو لمتطلبات التسجيل. وقد تكون متاحة للتسجيل ولكن بشروط محددة، مثل إثبات الأهلية أو وثائق إضافية."
+msgid "Reserved names may have special regulations, eligibility requirements, or additional documentation requirements."
+msgstr "قد تخضع الأسماء المحجوزة للوائح خاصة أو لمتطلبات تتعلق بالأهلية أو بتقديم مستندات إضافية."
 
 msgid "Enter each"
-msgstr "أدخل كل واحدة"
+msgstr "أدخل كل"
 
-msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "الاسم على سطر جديد، بدون الامتداد. على سبيل المثال، استخدم \"مثال\" بدلاً من \"example.com\"."
+msgid "Enter each name on a new line, without the extension. For example, use \"example\" instead of \"example.com\"."
+msgstr "أدخل كل اسم في سطر جديد، من دون الامتداد. على سبيل المثال، استخدم "example" بدلاً من "example.com"."
+
+msgid "line"
+msgstr "سطر"
+
+msgid "lines"
+msgstr "أسطر"
+
+msgid "Restricted Names"
+msgstr "الأسماء المقيّدة"
 
 msgid "View Ticket"
 msgstr "عرض البلاغ"

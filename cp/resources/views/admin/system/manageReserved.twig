@@ -38,33 +38,60 @@
                <form action="/registry/reserved" method="post">
                {{ csrf.field | raw }}
                 <div class="card-body">
-                {% for type, names in categories %}
-                    <div class="card mb-3">
-                        <div class="card-header">
-                          <h3 class="card-title">{{ type|capitalize }} Names <span class="card-subtitle"><span class="line-count">0</span> {{ __('lines') }}</span></h3>
-                        </div>
-                        <div class="card-body">
-                            {% if names is not empty %}
-                                <textarea class="form-control countable" name="domains_{{ type }}" rows="4" placeholder="Enter domain names, one per line">{{ names|join('\n') }}</textarea>
-                            {% else %}
-                                <textarea class="form-control countable" name="domains_{{ type }}" rows="4" placeholder="No {{ type|lower }} names. Enter new names, one per line"></textarea>
-                            {% endif %}
-                            <small class="form-hint">
-                                <strong>{{ type|capitalize }} Names:</strong> {{ __('These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation. ') }}
-                                <br><em>{{ __('Enter each') }} {{ type }} {{ __('name on a new line, without the extension. For instance, use "example" in place of "example.com".') }}</em>
-                            </small>
-                        </div>
+                    <div class="alert alert-info py-2 mb-3">
+                      {{ __('Reserved names may have special regulations, eligibility requirements, or additional documentation requirements.') }}
                     </div>
-                {% endfor %}
+                    <div class="row row-cards">
+                      {% for type, names in categories %}
+                        <div class="col-12 col-lg-6">
+                          <div class="card h-100">
+                            <div class="card-header">
+                              <h3 class="card-title">
+                                {% set categoryLabels = {
+                                    'reserved': __('Reserved Names'),
+                                    'restricted': __('Restricted Names')
+                                } %}
+
+                                {% set fallbackLabel = (
+                                    type|replace({'_': ' ', '-': ' '})|title
+                                ) ~ ' Names' %}
+
+                                {{ categoryLabels[type] ?? __(fallbackLabel) }}
+                              </h3>
+
+                              <div class="card-actions">
+                                <span class="badge bg-secondary-lt">
+                                  <span class="line-count">0</span>
+                                  <span class="line-label">{{ __('lines') }}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div class="card-body">
+                              <textarea
+                                class="form-control countable"
+                                name="domains_{{ type }}"
+                                rows="6"
+                                placeholder="{{ __('Enter names, one per line') }}"
+                              >{{ names|join('\n') }}</textarea>
+
+                              <div class="form-hint mt-2">
+                                {{ __('Enter each name on a new line, without the extension. For example, use "example" instead of "example.com".') }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
                 </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
                     <div class="col-auto">
-                      <button type="submit" class="btn btn-primary">{{ __('Update') }}</button>
+                      <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
                     </div>
                   </div>
-                 </form>
                 </div>
+                </form>
               </div>
             </div>
           </div>
@@ -73,31 +100,34 @@
       </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  // Function to count lines in a textarea
-  function countLines(text) {
-    return text.trim().split(/\r\n|\r|\n/).filter(line => line.trim() !== "").length;
-  }
+    function countLines(text) {
+      return text.trim().split(/\r\n|\r|\n/).filter(line => line.trim() !== "").length;
+    }
 
-  // Update the count for all textareas with class "countable"
-  function updateLineCounts() {
+    function updateLineCounts() {
+      document.querySelectorAll('.countable').forEach(function (textarea) {
+        const lineCount = countLines(textarea.value);
+        const card = textarea.closest('.card');
+        const countElement = card.querySelector('.line-count');
+        const labelElement = card.querySelector('.line-label');
+
+        if (countElement) {
+          countElement.textContent = lineCount;
+        }
+
+        if (labelElement) {
+          labelElement.textContent = lineCount === 1
+            ? '{{ __("line") }}'
+            : '{{ __("lines") }}';
+        }
+      });
+    }
+
     document.querySelectorAll('.countable').forEach(function (textarea) {
-      const lineCount = countLines(textarea.value);
-
-      // Locate the 'line-count' in the card-header
-      const cardHeader = textarea.closest('.card').querySelector('.card-header .line-count');
-      if (cardHeader) {
-        cardHeader.textContent = lineCount;
-      }
+      textarea.addEventListener('input', updateLineCounts);
     });
-  }
 
-  // Attach event listeners to dynamically update the counts
-  document.querySelectorAll('.countable').forEach(function (textarea) {
-    textarea.addEventListener('input', updateLineCounts);
-  });
-
-  // Initial count update
-  updateLineCounts();
+    updateLineCounts();
 });
 </script>
 {% endblock %}

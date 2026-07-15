@@ -1402,14 +1402,23 @@ msgstr "No firmado"
 msgid "Signed"
 msgstr "Firmado"
 
-msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "Estos nombres de dominio están sujetos a regulaciones especiales o requisitos de registro. Pueden estar disponibles para su registro, pero bajo condiciones específicas, como prueba de elegibilidad o documentación adicional."
+msgid "Reserved names may have special regulations, eligibility requirements, or additional documentation requirements."
+msgstr "Los nombres reservados pueden estar sujetos a normativas especiales, requisitos de elegibilidad o requisitos de documentación adicional."
 
 msgid "Enter each"
-msgstr "Introducir cada"
+msgstr "Introduzca cada"
 
-msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "nombre en una nueva línea, sin la extensión. Por ejemplo, use \"ejemplo\" en lugar de \"ejemplo.com\"."
+msgid "Enter each name on a new line, without the extension. For example, use \"example\" instead of \"example.com\"."
+msgstr "Introduzca cada nombre en una línea nueva, sin la extensión. Por ejemplo, utilice "example" en lugar de "example.com"."
+
+msgid "line"
+msgstr "línea"
+
+msgid "lines"
+msgstr "líneas"
+
+msgid "Restricted Names"
+msgstr "Nombres restringidos"
 
 msgid "View Ticket"
 msgstr "Ver boleto"

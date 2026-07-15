@@ -1402,14 +1402,23 @@ msgstr "Не підписано"
 msgid "Signed"
 msgstr "Підписано"
 
-msgid "These domain names are subject to special regulations or registration requirements. They might be available for registration but under specific conditions, such as proof of eligibility or additional documentation."
-msgstr "Ці доменні імена підлягають спеціальним правилам або реєстраційним вимогам. Вони можуть бути доступні для реєстрації, але у конкретних умовах, таких як підтвердження прийнятності або додаткової документації."
+msgid "Reserved names may have special regulations, eligibility requirements, or additional documentation requirements."
+msgstr "Для зарезервованих імен можуть діяти особливі правила, вимоги щодо права на реєстрацію або вимоги щодо надання додаткових документів."
 
 msgid "Enter each"
-msgstr "Введіть кожен"
+msgstr "Введіть кожне"
 
-msgid "name on a new line, without the extension. For instance, use \"example\" in place of \"example.com\"."
-msgstr "у новому рядку, без розширення. Наприклад, використовуйте \"example\" замість \"example\" на сторінці \"example.com\"."
+msgid "Enter each name on a new line, without the extension. For example, use \"example\" instead of \"example.com\"."
+msgstr "Введіть кожне ім’я з нового рядка, без розширення. Наприклад, замість \"example.com\" введіть \"example\"."
+
+msgid "line"
+msgstr "рядок"
+
+msgid "lines"
+msgstr "рядки"
+
+msgid "Restricted Names"
+msgstr "Обмежені імена"
 
 msgid "View Ticket"
 msgstr "Переглянути тікет"
