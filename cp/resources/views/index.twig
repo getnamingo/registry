@@ -1,82 +1,137 @@
 <!doctype html>
-<html lang="en" class="h-100">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<html lang="{{ _lang ?: 'en' }}" dir="{{ _lang in ['ar', 'ar_SA'] ? 'rtl' : 'ltr' }}"{% if screen_mode == 'dark' %} data-bs-theme="dark"{% endif %}{% if theme is not defined or theme is empty %} data-bs-theme-primary="blue"{% else %} data-bs-theme-primary="{{ theme }}"{% endif %}>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <meta name="description" content="Namingo Registry Panel - a powerful solution for managing domains, registrars, and registry operations seamlessly.">
     <meta name="author" content="Namingo Team">
     <meta name="keywords" content="Namingo, Registry Panel, Domain Management, Registrar Tools, Namingo Software, ICANN, Domain Registrar">
+    <title>Registry Panel | Namingo</title>
     <meta name="theme-color" content="#066fd1">
-    <title>Registry Panel</title>
     {% include 'partials/css.twig' %}
-    <style>
-      @import url('/assets/fonts/inter/inter.css');
-      :root {
-          --tblr-font-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-      }
-      @supports (font-variation-settings: normal) {
-          :root {
-              --tblr-font-sans-serif: "InterVariable", -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-              font-optical-sizing: auto;
-          }
-      }
-    </style>
-</head>
-<body class="d-flex flex-column min-vh-100 bg-light">
-    <header>
-        <nav class="navbar navbar-expand-lg h-100 navbar-light bg-white border-bottom shadow-sm">
-            <div class="container">
-                <a class="navbar-brand" href="."><img src="{{ logoPath }}" style="height: 35px; width: auto;" /></a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbar">
-                    <ul class="navbar-nav">
+  </head>
+  <body>
+    <div class="page">
+      <header class="navbar navbar-expand-md d-print-none">
+        <div class="container-xl">
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbar-menu"
+            aria-controls="navbar-menu"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+            <a href="." aria-label="Namingo"><img src="{{ logoPath }}" class="navbar-brand-image responsive-logo" /></a>
+          </div>
+          <div class="navbar-nav flex-row order-md-last">
+            <div class="d-none d-md-inline-flex gap-2 align-items-center">
+              {% if auth.isLogin %}
+              <a href="{{route('logout')}}" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 12h12l-3 -3" /><path d="M18 15l3 -3" /></svg>
+                Logout
+              </a>
+              {% else %}
+              <a href="{{route('login')}}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                  <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+                  <path d="M20 12h-13l3 -3m0 6l-3 -3"></path>
+                </svg>
+                Login
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </header>
+      <header class="navbar-expand-md">
+        <div class="collapse navbar-collapse" id="navbar-menu">
+          <div class="navbar">
+            <div class="container-xl">
+              <div class="row flex-column flex-md-row flex-fill align-items-center">
+                <div class="col">
+                  <ul class="navbar-nav">
+                    <li class="nav-item active">
+                      <a class="nav-link" href="./">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
+                        </span>
+                        <span class="nav-link-title">Home</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="https://{{ whois_server }}" target="_blank">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M21 12a9 9 0 1 0 -9 9" /><path d="M3.6 9h16.8" /><path d="M3.6 15h7.9" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a16.984 16.984 0 0 1 2.574 8.62" /><path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M20.2 20.2l1.8 1.8" /></svg>
+                        </span>
+                        <span class="nav-link-title">WHOIS</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{{ rdap_server }}" target="_blank">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M7 4a2 2 0 0 0 -2 2v3a2 3 0 0 1 -2 3a2 3 0 0 1 2 3v3a2 2 0 0 0 2 2" /><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3a2 3 0 0 0 -2 3v3a2 2 0 0 1 -2 2" /></svg>
+                        </span>
+                        <span class="nav-link-title">RDAP</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="mailto:{{ email }}">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M15 15l3.35 3.35" /><path d="M9 15l-3.35 3.35" /><path d="M5.65 5.65l3.35 3.35" /><path d="M18.35 5.65l-3.35 3.35" /></svg>
+                        </span>
+                        <span class="nav-link-title">Support Team</span>
+                      </a>
+                    </li>
+                    <li class="nav-item d-md-none mt-3 pt-3 px-3 pb-3 border-top w-100">
+                      <div class="d-flex gap-2 w-100">
                         {% if auth.isLogin %}
-                        <li class="nav-item">
-                            <a {{ is_current_url('home') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('home')}}">
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a {{ is_current_url('logout') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('logout')}}">
-                                Logout
-                            </a>
-                        </li>
+                        <a href="{{route('logout')}}" class="btn btn-outline-secondary flex-fill">
+                          <span class="nav-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 12h12l-3 -3" /><path d="M18 15l3 -3" /></svg>
+                          </span>
+                          Logout
+                        </a>
                         {% else %}
-                        <li class="nav-item">
-                            <a {{ is_current_url('login') ? 'class="nav-link active" aria-current="page"' : 'class="nav-link"' }} href="{{route('login')}}">
-                                Login
-                            </a>
-                        </li>
+                        <a href="{{route('login')}}" class="btn btn-outline-primary flex-fill">
+                          <span class="nav-link-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                              <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+                              <path d="M20 12h-13l3 -3m0 6l-3 -3"></path>
+                            </svg>
+                          </span>
+                          Login
+                        </a>
                         {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="https://{{ whois_server }}" target="_blank">
-                                WHOIS
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ rdap_server }}" target="_blank">
-                                RDAP
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="mailto:{{ email }}">
-                                Support Team
-                            </a>
-                        </li>
-                    </ul>
+                      </div>
+                    </li>
+                  </ul>
                 </div>
+              </div>
             </div>
-        </nav>
-    </header>
-    <main class="flex-grow-1">
-        <div class="container-fluid p-5 rounded-3 bg-light text-center">
-            <div class="text-center my-5">
-                <h1 class="fw-bold">Registry Panel</h1>
+          </div>
+        </div>
+      </header>
+      <div class="page-wrapper">
+        <div class="page-header d-print-none" aria-label="Page header">
+          <div class="container-xl">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <h2 class="page-title">Registry Panel</h2>
+              </div>
             </div>
-
-            <div class="row row-cols-1 row-cols-md-2 g-4 mt-6">
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="container-xl">
+            <div class="row row-cols-1 row-cols-md-2 g-4">
                 <div class="col">
                     <div class="card">
                         <div class="card-body text-center">
@@ -89,9 +144,9 @@
                                 {% endif %}
                             </p>
                             {% if auth.isLogin %}
-                            <a href="{{route('home')}}" class="btn btn-primary">Dashboard</a>
+                            <a href="{{route('home')}}" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /><path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /><path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /><path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /></svg> Dashboard</a>
                             {% else %}
-                            <a href="{{route('login')}}" class="btn btn-primary">Log in</a>
+                            <a href="{{route('login')}}" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path><path d="M20 12h-13l3 -3m0 6l-3 -3"></path></svg> Login</a>
                             {% endif %}
                         </div>
                     </div>
@@ -101,8 +156,8 @@
                         <div class="card-body text-center">
                             <h5 class="card-title">WHOIS & RDAP</h5>
                             <p class="card-text">Access domain information with our WHOIS and RDAP services.</p>
-                            <a href="https://{{ whois_server }}" target="_blank" class="btn btn-secondary me-2">WHOIS</a>
-                            <a href="{{ rdap_server }}" target="_blank" class="btn btn-secondary">RDAP</a>
+                            <a href="https://{{ whois_server }}" target="_blank" class="btn btn-secondary me-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M21 12a9 9 0 1 0 -9 9" /><path d="M3.6 9h16.8" /><path d="M3.6 15h7.9" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a16.984 16.984 0 0 1 2.574 8.62" /><path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M20.2 20.2l1.8 1.8" /></svg> WHOIS</a>
+                            <a href="{{ rdap_server }}" target="_blank" class="btn btn-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M7 4a2 2 0 0 0 -2 2v3a2 3 0 0 1 -2 3a2 3 0 0 1 2 3v3a2 2 0 0 0 2 2" /><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3a2 3 0 0 0 -2 3v3a2 2 0 0 1 -2 2" /></svg> RDAP</a>
                         </div>
                     </div>
                 </div>
@@ -111,7 +166,7 @@
                         <div class="card-body text-center">
                             <h5 class="card-title">Support Team</h5>
                             <p class="card-text">Get assistance, guidance, FAQs, and support for your needs.</p>
-                            <a href="mailto:{{ email }}" class="btn btn-success">Contact Support</a>
+                            <a href="mailto:{{ email }}" class="btn btn-success"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M15 15l3.35 3.35" /><path d="M9 15l-3.35 3.35" /><path d="M5.65 5.65l3.35 3.35" /><path d="M18.35 5.65l-3.35 3.35" /></svg> Contact Support</a>
                         </div>
                     </div>
                 </div>
@@ -120,7 +175,7 @@
                         <div class="card-body text-center">
                             <h5 class="card-title">Become a Registrar</h5>
                             <p class="card-text">Interested in partnering with us? Apply to become an official registrar.</p>
-                            <a href="#" class="btn btn-warning">Apply Now</a>
+                            <a href="#" class="btn btn-warning"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M13 17.5v4.5l2 -1.5l2 1.5v-4.5" /><path d="M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73" /><path d="M6 9l12 0" /><path d="M6 12l3 0" /><path d="M6 15l2 0" /></svg> Apply Now</a>
                         </div>
                     </div>
                 </div>
@@ -136,13 +191,23 @@
                 <h4 class="alert-title">To customize this page, copy <code>index.twig</code> from <code>/var/www/cp/resources/views</code> to <code>index.custom.twig</code> and edit the file as required.</h4>
                 <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
             </div>
+          </div>
         </div>
-    </main>
-    <footer class="footer bg-white border-top shadow-sm py-3">
-        <div class="container">
-            <span class="text-muted">&copy; {{ 'now' | date('Y') }} <strong>{{ company_name }}</strong>. All rights reserved.</span>
-        </div>
-    </footer>
+        <footer class="footer footer-transparent d-print-none">
+          <div class="container-xl">
+            <div class="row text-center align-items-center">
+              <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <ul class="list-inline list-inline-dots mb-0">
+                  <li class="list-inline-item">
+                    &copy; {{ 'now' | date('Y') }} <strong>{{ company_name }}</strong>. All rights reserved.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
     {% include 'partials/js.twig' %}
-</body>
+  </body>
 </html>
