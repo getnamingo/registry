@@ -152,7 +152,7 @@ class AuthController extends Controller
             ]
         );
         Auth::logout();
-        redirect()->route('login');
+        redirect()->route('/');
     }
     
     public function getLoginChallenge(Request $request, Response $response)
