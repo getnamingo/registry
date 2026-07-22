@@ -9,7 +9,7 @@ This guide walks you through configuring the core DNS setup for your Namingo-pow
 >
 > Choose **exactly one** of the DNS backends below based on your environment and operational requirements. Do **not** install or configure multiple backends for the same Namingo Registry instance.
 
-## 1.BIND 9
+## 1. BIND 9
 
 ### Overview
 
@@ -139,7 +139,8 @@ logging {
 
 #### Zone Configuration
 
-Choose **one** of the following BIND 9 configurations.
+> [!IMPORTANT]
+> Choose **one** of the following BIND 9 configurations.
 
 ##### Option 1: BIND 9 Without DNSSEC Signing
 
@@ -288,7 +289,7 @@ Confirm that BIND loaded the zone successfully:
 rndc zonestatus test.
 ```
 
-## Knot DNS
+## 2. Knot DNS
 
 ### Installation
 
