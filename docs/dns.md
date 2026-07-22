@@ -403,18 +403,18 @@ php /opt/registry/automation/write-zone.php
 >
 > Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
-## 2. Setting Up a Public Secondary DNS Using BIND
+## 3. Setting Up a Public Secondary DNS Using BIND
 
 This section describes how to configure a regular public-facing DNS server using BIND to act as a secondary for your hidden master. It will receive zone transfers (AXFR/IXFR) and serve as the authoritative DNS for your TLDs.
 
-### 2.1. Installation
+### Installation
 
 ```bash
 apt update
 apt install bind9 bind9-utils bind9-doc
 ```
 
-### 2.2. Add the TSIG key to the BIND Configuration
+### Add the TSIG key to the BIND Configuration
 
 Copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
 
@@ -460,7 +460,7 @@ zone "test." {
 
 Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
 
-### 2.3. Enabling Logs
+### Enabling Logs
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
@@ -531,7 +531,7 @@ logging {
 };
 ```
 
-### 2.4. Adjusting Permissions and Ownership
+### Adjusting Permissions and Ownership
 
 Ensure BIND has permission to write to the zone file, the logs directory and that the files are owned by the BIND user:
 
@@ -542,21 +542,13 @@ chown bind:bind /var/log/named
 chmod 755 /var/log/named
 ```
 
-### 2.5. Validate and Apply Configuration
+### Validate and Apply Configuration
 
 After completing your secondary zone setup, check for syntax errors using `named-checkconf`, then restart BIND9 using `systemctl restart bind9` to apply the changes.
 
 To verify that the zone was successfully transferred from the hidden master, check your logs with `grep 'transfer of "test."' /var/log/syslog`. You should see a log entry confirming the successful zone transfer.
 
-## 3. Upgrading to BIND 9.20 and Enabling Offline KSK Signing
-
-This section applies to Namingo Registry installations using BIND as the hidden
-primary DNS server. It covers:
-
-- upgrading Ubuntu 22.04 or Ubuntu 24.04 to BIND 9.20;
-- upgrading Debian 12 or Debian 13 to BIND 9.20; and
-- converting existing DNSSEC-enabled Namingo zones to the BIND 9.20 Offline KSK
-  workflow.
+## 4. Upgrading to BIND 9.20 and Enabling Offline KSK Signing
 
 > [!IMPORTANT]
 > BIND's **Offline KSK** feature is not fully offline zone signing. The Zone
@@ -567,190 +559,6 @@ primary DNS server. It covers:
 >
 > Offline KSK support requires BIND 9.20.2 or newer. Install the latest available
 > BIND 9.20.x package rather than pinning an old patch release.
-
-### 3.1 Before upgrading
-
-Perform the upgrade on one DNS server at a time. Ensure that another
-authoritative server remains available while the package is being upgraded.
-
-Check the current version and configuration:
-
-```bash
-sudo named -V | head -n 1
-sudo named-checkconf
-sudo named-checkconf -z
-sudo rndc status
-```
-
-Create a protected backup of the BIND configuration, zone files, journals,
-managed DNSSEC state, and keys:
-
-```bash
-sudo -i
-
-BACKUP="/root/bind-before-9.20-$(date +%Y%m%d-%H%M%S).tar.gz"
-
-tar -czpf "$BACKUP" \
-    /etc/bind \
-    /var/lib/bind
-
-chmod 0600 "$BACKUP"
-echo "Backup created: $BACKUP"
-
-exit
-```
-
-The archive contains private DNSSEC keys. Move it to protected storage and do
-not leave unnecessary copies on the DNS server.
-
-For a virtual machine, also create a snapshot before changing the package
-repository. Restoring a snapshot is safer than downgrading BIND after the newer
-version has updated DNSSEC state files.
-
-### 3.2 Ubuntu 22.04 and Ubuntu 24.04
-
-The standard Ubuntu repositories provide an older BIND branch. Add the ISC
-stable BIND PPA, which provides BIND 9.20 packages for Ubuntu 22.04 and 24.04:
-
-```bash
-sudo apt update
-sudo apt install -y software-properties-common ca-certificates
-
-sudo add-apt-repository -y ppa:isc/bind
-sudo apt update
-```
-
-Confirm that the candidate package is from the BIND 9.20 branch:
-
-```bash
-apt-cache policy bind9
-```
-
-Install or upgrade BIND and its tools:
-
-```bash
-sudo apt install -y \
-    bind9 \
-    bind9-utils \
-    bind9-dnsutils \
-    bind9-doc
-```
-
-Validate the configuration and restart BIND:
-
-```bash
-sudo named-checkconf
-sudo named-checkconf -z
-sudo systemctl restart named
-sudo systemctl --no-pager --full status named
-```
-
-Confirm the installed version:
-
-```bash
-named -V | head -n 1
-dnssec-ksr -V
-```
-
-Both commands must report BIND 9.20.x, with `dnssec-ksr` available.
-
-### 3.3 Debian 12 and Debian 13
-
-Install the repository prerequisites and the archive keyring:
-
-```bash
-sudo apt-get update
-sudo apt-get -y install lsb-release ca-certificates curl
-
-curl -sSLo /tmp/debsuryorg-archive-keyring.deb \
-    https://packages.sury.org/debsuryorg-archive-keyring.deb
-
-sudo dpkg -i /tmp/debsuryorg-archive-keyring.deb
-rm -f /tmp/debsuryorg-archive-keyring.deb
-```
-
-Add the BIND package repository. The distribution codename is detected
-automatically as `bookworm` on Debian 12 or `trixie` on Debian 13:
-
-```bash
-echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/bind/ $(lsb_release -sc) main" \
-    | sudo tee /etc/apt/sources.list.d/bind.list >/dev/null
-
-sudo apt-get update
-```
-
-Confirm that the candidate package is from the BIND 9.20 branch:
-
-```bash
-apt-cache policy bind9
-```
-
-Install or upgrade BIND and its tools:
-
-```bash
-sudo apt-get install -y \
-    bind9 \
-    bind9-utils \
-    bind9-dnsutils \
-    bind9-doc
-```
-
-Validate the configuration and restart BIND:
-
-```bash
-sudo named-checkconf
-sudo named-checkconf -z
-sudo systemctl restart named
-sudo systemctl --no-pager --full status named
-```
-
-Confirm the installed version:
-
-```bash
-named -V | head -n 1
-dnssec-ksr -V
-```
-
-### 3.4 Post-upgrade checks
-
-Check that the hidden primary loads the existing zones and still answers
-authoritatively:
-
-```bash
-sudo rndc status
-sudo rndc zonestatus example.
-dig @127.0.0.1 example. SOA +norecurse
-dig @127.0.0.1 example. DNSKEY +dnssec +multiline
-```
-
-Replace `example.` with the actual TLD zone.
-
-Review the service log for errors:
-
-```bash
-sudo journalctl -u named -n 100 --no-pager
-```
-
-Run the Namingo zone generator once and confirm that the generated zone can be reloaded:
-
-```bash
-cd /opt/registry
-php /opt/registry/automation/write-zone.php
-
-sudo rndc reload example.
-sudo rndc notify example.
-```
-
-Namingo continues writing the unsigned source zone to:
-
-```text
-/var/lib/bind/example.zone
-```
-
-Keep the existing zone `file` setting. Do not change it to a manually generated
-`.signed` file. BIND continues to maintain the inline-signed version.
-
-### 3.5 Offline KSK architecture
 
 The recommended layout is:
 
@@ -771,54 +579,10 @@ A KSR contains public ZSK information and can be transported to the offline
 system. The resulting SKR contains public records and signatures and can be
 returned to the hidden primary.
 
-### 3.6 DNSSEC policy
-
 The existing Namingo DNS manual uses separate KSK and ZSK definitions, which is
 required for Offline KSK. A Combined Signing Key (CSK) cannot be used.
 
-The active policy should ultimately contain `offline-ksk yes;`:
-
-```conf
-dnssec-policy "namingo-policy" {
-    keys {
-        ksk lifetime P1Y algorithm ed25519;
-        zsk lifetime P2M algorithm ed25519;
-    };
-
-    offline-ksk yes;
-
-    nsec3param iterations 0 optout false salt-length 0;
-    publish-safety 7d;
-    max-zone-ttl 86400;
-    dnskey-ttl 3600;
-    zone-propagation-delay 3600;
-    parent-propagation-delay 7200;
-    parent-ds-ttl 86400;
-};
-```
-
-The zone definition remains otherwise unchanged:
-
-```conf
-zone "example." {
-    type master;
-    file "/var/lib/bind/example.zone";
-
-    dnssec-policy "namingo-policy";
-    key-directory "/var/lib/bind";
-    inline-signing yes;
-
-    allow-transfer {
-        key "example.key";
-    };
-
-    also-notify {
-        <secondary-server-IP>;
-    };
-};
-```
-
-Do **not** enable `offline-ksk yes;` on the live server until the first SKR has
+The active policy should ultimately contain `offline-ksk yes;`. Do **not** enable `offline-ksk yes;` on the live server until the first SKR has
 been created and is ready to import. Once Offline KSK is enabled, BIND stops
 creating KSK signatures and rollover keys itself and expects the required data
 to be present in the imported SKR.
