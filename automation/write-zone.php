@@ -8,6 +8,7 @@ use Badcow\DNS\ResourceRecord;
 use Badcow\DNS\Classes;
 use Badcow\DNS\ZoneBuilder;
 use Badcow\DNS\AlignedBuilder;
+use Swoole\Coroutine;
 
 $c = require_once 'config.php';
 require_once 'helpers.php';
@@ -16,9 +17,6 @@ $logFilePath = '/var/log/namingo/write_zone.log';
 $log = setupLogger($logFilePath, 'Zone_Generator');
 $log->info('job started.');
 
-use Swoole\Coroutine;
-
-// Initialize the PDO connection pool
 $pool = new Swoole\Database\PDOPool(
     (new Swoole\Database\PDOConfig())
         ->withDriver($c['db_type'])
@@ -31,21 +29,18 @@ $pool = new Swoole\Database\PDOPool(
 );
 
 Swoole\Runtime::enableCoroutine();
-
-// Creating first coroutine
 Coroutine::create(function () use ($pool, $log, $c) {
     try {
         $pdo = $pool->get();
         $sth = $pdo->prepare('SELECT id, tld FROM domain_tld');
         $sth->execute();
-        $serial = generateSerial($c['dns_serial'] ?? 1);
 
+        $serial = generateSerial($c['dns_serial'] ?? 1);
         $dnsReload = filter_var($c['dns_reload'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $dnsServer = strtolower(trim((string) ($c['dns_server'] ?? '')));
 
         $tlds = [];
-
         while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
-            $tldRE = preg_quote($tld, '/');
             $cleanedTld = ltrim(strtolower($tld), '.');
             $zone = new Zone($cleanedTld.'.');
             $zone->setDefaultTtl(3600);
@@ -92,30 +87,27 @@ Coroutine::create(function () use ($pool, $log, $c) {
                 }
             }
 
-            // Fetch domains for this TLD
-            $sthDomains = $pdo->prepare('SELECT DISTINCT domain.id, domain.name FROM domain WHERE tldid = :id AND (exdate > CURRENT_TIMESTAMP OR rgpstatus = \'pendingRestore\') ORDER BY domain.name');
-
-            $domainIds = [];
-            $sthDomains->execute([':id' => $id]);
-            while ($row = $sthDomains->fetch(PDO::FETCH_ASSOC)) {
-                $domainIds[] = $row['id'];
-            }
-
-            $statuses = [];
-            if (count($domainIds) > 0) {
-                $placeholders = implode(',', array_fill(0, count($domainIds), '?'));
-                $sthStatus = $pdo->prepare("SELECT domain_id, id FROM domain_status WHERE domain_id IN ($placeholders) AND status LIKE '%Hold'");
-                $sthStatus->execute($domainIds);
-                while ($row = $sthStatus->fetch(PDO::FETCH_ASSOC)) {
-                    $statuses[$row['domain_id']] = $row['id'];
-                }
-            }
+            // Fetch publishable domains for this TLD
+            $sthDomains = $pdo->prepare(
+                "SELECT domain.id, domain.name
+                 FROM domain
+                 WHERE domain.tldid = :id
+                   AND (
+                       domain.exdate > CURRENT_TIMESTAMP
+                       OR domain.rgpstatus = 'pendingRestore'
+                   )
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM domain_status
+                       WHERE domain_status.domain_id = domain.id
+                         AND domain_status.status IN ('clientHold', 'serverHold')
+                   )
+                 ORDER BY domain.name"
+            );
 
             $sthDomains->execute([':id' => $id]);
 
             while (list($did, $dname) = $sthDomains->fetch(PDO::FETCH_NUM)) {
-                if (isset($statuses[$did])) continue;
-
                 $dname_clean = $dname;
                 $dname_clean = ($dname_clean == "$tld.") ? '@' : $dname_clean;
 
@@ -168,133 +160,89 @@ Coroutine::create(function () use ($pool, $log, $c) {
             }
             $completed_zone = $builder->build($zone);
 
-            if ($c['dns_server'] == 'bind') {
-                $basePath = '/var/lib/bind';
-            } elseif ($c['dns_server'] == 'nsd') {
-                $basePath = '/etc/nsd';
-            } elseif ($c['dns_server'] == 'knot') {
-                $basePath = '/etc/knot/zones';
-            } else {
-                // Default path
-                $basePath = '/var/lib/bind';
+            $basePath = match ($dnsServer) {
+                'bind'    => '/var/lib/bind',
+                'knot'    => '/var/lib/knot',
+                'cascade' => '/var/lib/cascade/zones',
+                default   => null,
+            };
+
+            if ($basePath === null) {
+                $configuredServer = $dnsServer !== '' ? $dnsServer : '(not set)';
+
+                $log->error("Unsupported DNS server '{$configuredServer}'. Supported values: bind, knot, cascade.");
+                continue;
             }
 
-            $tmpPath = "/tmp/{$cleanedTld}.zone.new";
+            $tmpPath = "{$basePath}/.{$cleanedTld}.zone.new";
             $finalPath = "{$basePath}/{$cleanedTld}.zone";
 
-            file_put_contents($tmpPath, $completed_zone);
+            if (file_put_contents($tmpPath, $completed_zone, LOCK_EX) === false) {
+                $log->error("Failed to write temporary zone file for {$cleanedTld}.");
+                continue;
+            }
+
+            if (!chmod($tmpPath, 0644)) {
+                unlink($tmpPath);
+                $log->error("Failed to set permissions on zone file for {$cleanedTld}.");
+                continue;
+            }
 
             // Validate generated zone before publishing it
-            if (!validateZoneFile($c['dns_server'] ?? 'bind', $cleanedTld, $tmpPath, $log)) {
+            if (file_exists($finalPath)    && filesize($tmpPath) === filesize($finalPath) && md5_file($tmpPath) === md5_file($finalPath)) {
+                unlink($tmpPath);
+                $log->info("Zone file unchanged for {$cleanedTld}, skipping validation and reload.");
+                continue;
+            }
+
+            if (!validateZoneFile($dnsServer, $cleanedTld, $tmpPath, $log)) {
                 unlink($tmpPath);
                 $log->error("Skipping publication for {$cleanedTld} because validation failed.");
                 continue;
             }
 
-            if (!file_exists($finalPath) || md5_file($tmpPath) !== md5_file($finalPath)) {
-                rename($tmpPath, $finalPath);
-                $tlds[] = $cleanedTld;
-                $log->info("Zone file updated for {$cleanedTld}.");
-            } else {
+            if (!rename($tmpPath, $finalPath)) {
                 unlink($tmpPath);
-                $log->info("Zone file unchanged for {$cleanedTld}, skipping reload.");
+                $log->error("Failed to publish zone file for {$cleanedTld}.");
+                continue;
             }
+
+            $tlds[] = $cleanedTld;
+            $log->info("Zone file updated for {$cleanedTld}.");
         }
 
         foreach ($tlds as $cleanedTld) {
             if (!$dnsReload) {
-                $log->info("DNS reload disabled by configuration; skipping reload/notify for {$cleanedTld}.");
+                $log->info("DNS reload disabled by configuration; skipping reload for {$cleanedTld}.");
                 continue;
             }
 
-            if ($c['dns_server'] == 'bind') {
-                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
+            $reload = match ($dnsServer) {
+                'bind'    => ['BIND', 'rndc reload ' . escapeshellarg($cleanedTld . '.')],
+                'knot'    => ['Knot DNS', 'knotc zone-reload ' . escapeshellarg($cleanedTld . '.')],
+                'cascade' => ['Cascade', 'cascade zone reload ' . escapeshellarg($cleanedTld)],
+                default   => null,
+            };
 
-                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-            } elseif ($c['dns_server'] == 'nsd') {
-                exec("nsd-control reload 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to reload NSD. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-            } elseif ($c['dns_server'] == 'knot') {
-                exec("knotc reload 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to reload Knot DNS. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-
-                exec("knotc zone-notify {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-            } elseif ($c['dns_server'] == 'opendnssec') {
-                chown("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
-                chgrp("{$basePath}/{$cleanedTld}.zone", 'opendnssec');
-
-                exec("ods-signer sign {$cleanedTld} 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to sign zone with OpenDNSSEC for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                    continue;
-                }
-
-                $signedSourcePath = "/var/lib/opendnssec/signed/{$cleanedTld}";
-                $signedTargetPath = "/var/lib/bind/{$cleanedTld}.zone.signed";
-
-                $maxWaitSeconds = 10;
-                $waitedSeconds = 0;
-
-                while (
-                    (!file_exists($signedSourcePath) || filesize($signedSourcePath) === 0) &&
-                    $waitedSeconds < $maxWaitSeconds
-                ) {
-                    sleep(1);
-                    clearstatcache(true, $signedSourcePath);
-                    $waitedSeconds++;
-                }
-
-                if (!file_exists($signedSourcePath) || filesize($signedSourcePath) === 0) {
-                    $log->error("Signed zone file not ready for {$cleanedTld} after {$maxWaitSeconds} seconds at {$signedSourcePath}.");
-                    continue;
-                }
-
-                if (!validateZoneFile('bind', $cleanedTld, $signedSourcePath, $log)) {
-                    $log->error("Skipping signed zone publication for {$cleanedTld} because signed validation failed.");
-                    continue;
-                }
-
-                runValidnsIfAvailable($cleanedTld, $signedSourcePath, $log);
-
-                if (!copy($signedSourcePath, $signedTargetPath)) {
-                    $log->error("Failed to copy signed zone for {$cleanedTld} from {$signedSourcePath} to {$signedTargetPath}.");
-                    continue;
-                }
-
-                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-
-                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-            } else {
-                // Default
-                exec("rndc reload {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to reload BIND for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
-
-                exec("rndc notify {$cleanedTld}. 2>&1", $output, $return_var);
-                if ($return_var != 0) {
-                    $log->error("Failed to notify secondary servers for {$cleanedTld}. Output: " . implode(" ", $output) . " Code: " . $return_var);
-                }
+            if ($reload === null) {
+                $configuredServer = $dnsServer !== '' ? $dnsServer : '(not set)';
+                $log->error("Unsupported DNS server '{$configuredServer}'. Supported values: bind, knot, cascade.");
+                continue;
             }
+
+            [$serverName, $command] = $reload;
+
+            $output = [];
+            $returnVar = 0;
+
+            exec($command . ' 2>&1', $output, $returnVar);
+
+            if ($returnVar !== 0) {
+                $log->error("Failed to reload {$serverName} for {$cleanedTld}. Output: " . implode(' ', $output) . " Code: {$returnVar}");
+                continue;
+            }
+
+            $log->info("{$serverName} successfully reloaded zone {$cleanedTld}.");
         }
 
         $log->info('job finished successfully.');
@@ -303,7 +251,6 @@ Coroutine::create(function () use ($pool, $log, $c) {
     } catch (Throwable $e) {
         $log->error('Error: ' . $e->getMessage());
     } finally {
-        // Return the connection to the pool
         $pool->put($pdo);
     }
 });

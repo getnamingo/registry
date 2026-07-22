@@ -661,18 +661,17 @@ function validateZoneFile(string $dnsServer, string $zoneName, string $zonePath,
 
     switch ($dnsServer) {
         case 'bind':
-        case 'opendnssec':
-        default:
+        case 'cascade':
             $result = runCommand("named-checkzone {$escapedZone} {$escapedPath}");
-            break;
-
-        case 'nsd':
-            $result = runCommand("nsd-checkzone {$escapedZone} {$escapedPath}");
             break;
 
         case 'knot':
             $result = runCommand("kzonecheck -o {$escapedZone} {$escapedPath}");
             break;
+
+        default:
+            $log->error("Unsupported DNS server '{$dnsServer}' for zone validation.");
+            return false;
     }
 
     if (!$result['success']) {
