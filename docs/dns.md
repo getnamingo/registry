@@ -9,7 +9,7 @@ This guide walks you through configuring the core DNS setup for your Namingo-pow
 >
 > Choose **exactly one** of the DNS backends below based on your environment and operational requirements. Do **not** install or configure multiple backends for the same Namingo Registry instance.
 
-## Option 1: BIND 9
+## 1.BIND 9
 
 ### Overview
 
@@ -288,17 +288,17 @@ Confirm that BIND loaded the zone successfully:
 rndc zonestatus test.
 ```
 
-## Option 2: Knot DNS
+## Knot DNS
 
-#### 1.2.1. Installation
+### Installation
 
 ```bash
 apt install knot knot-dnsutils
 ```
 
-#### 1.2.2. Generate a TSIG key
+### Configuration
 
-Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers. **Note: replace ```test``` with your TLD.**
+Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers.
 
 ```bash
 cd /etc/knot
@@ -316,12 +316,22 @@ key:
 
 Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
 
-#### 1.2.3. Configure DNSSEC Policy
+#### Zone Configuration
 
-Add the DNSSEC policy to `/etc/knot/knot.conf`:
+Edit `/etc/knot/knot.conf` and add the following zone definition:
 
 ```bash
-nano /etc/knot/knot.conf
+zone:
+  - domain: "test."
+    file: "/etc/knot/zones/test.zone"
+    dnssec-policy: "namingo-policy"
+    key-directory: "/etc/knot/keys"
+    storage: "/etc/knot/zones"
+    notify: <secondary-server-IP>
+    acl:
+      - id: "test.key"
+        address: <secondary-server-IP>
+        key: "test.key"
 ```
 
 Add the following DNSSEC policy:
@@ -342,25 +352,8 @@ policy:
     nsec3-salt-length: 0
 ```
 
-#### 1.2.4. Add your zone
-
-Add the zone to `/etc/knot/knot.conf`:
-
-```bash
-zone:
-  - domain: "test."
-    file: "/etc/knot/zones/test.zone"
-    dnssec-policy: "namingo-policy"
-    key-directory: "/etc/knot/keys"
-    storage: "/etc/knot/zones"
-    notify: <slave-server-IP>
-    acl:
-      - id: "test.key"
-        address: <slave-server-IP>
-        key: "test.key"
-```
-
-Replace ```<slave-server-IP>``` with the actual IP address of your slave server. Replace ```test``` with your TLD.
+> [!NOTE]
+> Replace `<secondary-server-IP>` with the IP address of your authoritative secondary server, and replace `test` with your TLD name without the leading dot.
 
 Generate the necessary DNSSEC keys for your zone using keymgr:
 
@@ -388,25 +381,25 @@ Generate the DS record for the parent zone using `keymgr`:
 keymgr ds test.
 ```
 
-Configure the `Zone Writer` in Registry Automation and run it manually the first time.
+Configure the `Zone Writer` in Registry Automation, then run it manually once to generate and publish the initial zone file:
 
 ```bash
 php /opt/registry/automation/write-zone.php
 ```
 
 > [!IMPORTANT]
-> In the **Control Panel → TLD Management**, click the **Enable DNSSEC** button. After the keys are created, the **DS Record** will appear on the same page and should be submitted to **IANA** or the parent registry.
-
-#### 1.2.5. Optional: Post-Signing Validation
-
-Validate the signed zone:
-
-```bash
-kzonecheck -v test.
-validns test. /etc/knot/zones/test.zone
-```
+> **When DNSSEC signing is enabled**, protect all DNSSEC private keys and restrict access to authorized services and administrators only.
+>
+> In **Control Panel → TLD Management**, click **Enable DNSSEC**. After the keys are created, the corresponding **DS record** will appear on the same page. Submit that DS record to **IANA** or to the parent registry to complete the chain of trust.
 
 > [!TIP]
+> Post-Signing Validation
+>
+> ```bash
+> kzonecheck -v test.
+> validns test. /etc/knot/zones/test.zone
+> ```
+>
 > Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
 
 ## 2. Setting Up a Public Secondary DNS Using BIND
@@ -737,8 +730,7 @@ Review the service log for errors:
 sudo journalctl -u named -n 100 --no-pager
 ```
 
-Run the Namingo zone generator once and confirm that the generated zone can be
-reloaded:
+Run the Namingo zone generator once and confirm that the generated zone can be reloaded:
 
 ```bash
 cd /opt/registry
