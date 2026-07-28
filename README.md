@@ -55,7 +55,7 @@ Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM
 
 - **DAS Server**: Offers a lightweight Domain Availability Service for fast and efficient domain availability checks.
 
-- **DNS Interface**: Zone file generation with native DNSSEC signing for BIND 9 and Knot DNS, including RFC 9276-compliant NSEC3 support and optional offline KSK signing. OpenDNSSEC and NSD are supported through external signing workflows. See [Upgrading to BIND 9.20 and enabling offline KSK signing](docs/dns.md#3-upgrading-to-bind-920-and-enabling-offline-ksk-signing).
+- **DNS Interface**: Zone file generation with native DNSSEC signing for BIND 9.20 and Knot DNS 3.5, including RFC 9276-compliant NSEC3 support and optional offline KSK signing. OpenDNSSEC and NSD are supported through external signing workflows.
 
 - **Database Compatibility**: Fully supports MariaDB and includes beta support for PostgreSQL, allowing operators to select the database platform that best matches their infrastructure.
 
