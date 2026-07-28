@@ -1,8 +1,6 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/sweetalert2.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/jspdf.umd.min.js" defer></script>
-<script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
     document.addEventListener("DOMContentLoaded", function(){
@@ -139,12 +137,5 @@
  
     function downloadCSV() {
         table.download("csv", "tokens.csv");
-    }
-
-    function downloadPDF() {
-        table.download("pdf", "tokens.pdf", {
-            orientation:"portrait",
-            title:"My Tokens"
-        });
     }
 </script>

@@ -1,7 +1,5 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/jspdf.umd.min.js" defer></script>
-<script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
 
@@ -62,12 +60,5 @@
    
     function downloadCSV() {
         table.download("csv", "reports.csv");
-    }
-
-    function downloadPDF() {
-        table.download("pdf", "reports.pdf", {
-            orientation:"portrait",
-            title:"My Reports"
-        });
     }
 </script>

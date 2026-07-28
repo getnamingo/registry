@@ -1,7 +1,5 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/jspdf.umd.min.js" defer></script>
-<script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     var table;
     document.addEventListener("DOMContentLoaded", function(){
@@ -109,12 +107,5 @@
    
     function downloadCSV() {
         table.download("csv", "transactions.csv");
-    }
-
-    function downloadPDF() {
-        table.download("pdf", "transactions.pdf", {
-            orientation:"portrait",
-            title:"My Transactions"
-        });
     }
 </script>

@@ -1,7 +1,5 @@
 <script src="/assets/js/tabulator.min.js" defer></script>
 <script src="/assets/js/tabler.min.js" defer></script>
-<script src="/assets/js/jspdf.umd.min.js" defer></script>
-<script src="/assets/js/jspdf.plugin.autotable.min.js" defer></script>
 <script>
     function fetchAndCacheRegistrars() {
         fetch('/api/records/registrar')
@@ -159,12 +157,5 @@
    
     function downloadCSV() {
         table.download("csv", "logs.csv");
-    }
-
-    function downloadPDF() {
-        table.download("pdf", "logs.pdf", {
-            orientation:"portrait",
-            title:"My EPP Log"
-        });
     }
 </script>
