@@ -513,6 +513,9 @@ ls -l /var/cache/bind/zones/test.zone
 > /var/cache/bind/zones/test.zone
 > ```
 
+> [!NOTE]
+> Skip next section if configuring secondary DNS server.
+
 #### Final Steps
 
 > [!IMPORTANT]
