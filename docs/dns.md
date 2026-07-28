@@ -415,7 +415,106 @@ pkcs11-tool \
 
 The command will prompt for the token user PIN.
 
----
+##### Option 4: Public Authoritative Secondary
+
+Create a directory for transferred secondary-zone files:
+
+```bash
+install -d -o bind -g bind -m 0750 /var/cache/bind/zones
+```
+
+Create a separate file for the TSIG key:
+
+```bash
+install -o root -g bind -m 0640 /dev/null /etc/bind/test.key
+nano /etc/bind/test.key
+```
+
+Add the TSIG key shared with the hidden primary:
+
+```bash
+key "test.key" {
+    algorithm hmac-sha256;
+    secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
+};
+```
+
+Edit `/etc/bind/named.conf.local`:
+
+```bash
+nano /etc/bind/named.conf.local
+```
+
+Include the TSIG key file near the top:
+
+```conf
+include "/etc/bind/test.key";
+```
+
+Add the secondary-zone definition:
+
+```bash
+zone "test." {
+    type secondary;
+    file "/var/cache/bind/zones/test.zone";
+    primaries { 192.0.2.1 key "test.key"; }; // IP of the hidden primary and TSIG key reference
+    allow-query { any; }; // Allow queries from all IPs
+    allow-transfer { none; }; // Disable zone transfers (AXFR) to others
+};
+```
+
+Check the BIND configuration: 
+
+```bash 
+named-checkconf
+```
+
+Restart BIND:
+
+```bash
+systemctl restart bind9
+``` 
+
+Check that the service started successfully:
+
+```bash
+systemctl status bind9 --no-pager
+journalctl -u bind9 -n 100 --no-pager
+```
+
+Check the secondary-zone status:
+
+```bash
+rndc zonestatus test.
+```
+
+Verify that the secondary is serving the zone:
+
+```bash
+dig @127.0.0.1 test. SOA +norecurse
+dig @127.0.0.1 test. NS +norecurse
+```
+
+Verify that the transferred zone file was created:
+
+```bash
+ls -l /var/cache/bind/zones/test.zone
+```
+
+> [!NOTE]
+> BIND may store the transferred zone in raw binary format rather than plain text. This is normal. Use `named-compilezone` when a readable text representation is required:
+>
+> ```bash 
+> named-compilezone \
+> -f raw \
+> -F text \
+> -o - \
+> test. \
+> /var/cache/bind/zones/test.zone
+>
+```
+
+#### Final Steps
 
 > [!IMPORTANT]
 > **When DNSSEC signing is enabled**, protect all DNSSEC private keys and restrict access to authorized services and administrators only.
@@ -564,676 +663,3 @@ php /opt/registry/automation/write-zone.php
 > ```
 >
 > Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
-
-## 3. Setting Up a Public Secondary DNS Using BIND
-
-This section describes how to configure a regular public-facing DNS server using BIND to act as a secondary for your hidden master. It will receive zone transfers (AXFR/IXFR) and serve as the authoritative DNS for your TLDs.
-
-### Installation
-
-```bash
-apt update
-apt install bind9 bind9-utils bind9-doc
-```
-
-### Add the TSIG key to the BIND Configuration
-
-Copy the TSIG key from your hidden master server. The TSIG key configuration should look like this:
-
-```bash
-key "test.key" {
-    algorithm hmac-sha256;
-    secret "base64-encoded-secret==";
-};
-```
-
-Create a directory to store zone files:
-
-```bash
-mkdir /var/cache/bind/zones
-```
-
-Edit the `named.conf.local` file:
-
-```bash
-nano /etc/bind/named.conf.local
-```
-
-First, define the TSIG key at the top of the file:
-
-```bash
-key "test.key" {
-    algorithm hmac-sha256;
-    secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
-};
-```
-
-Then, add the slave zone configuration:
-
-```bash
-zone "test." {
-    type slave;
-    file "/var/cache/bind/zones/test.zone";
-    masters { 192.0.2.1 key "test.key"; }; // IP of the hidden master and TSIG key reference
-    allow-query { any; }; // Allow queries from all IPs
-    allow-transfer { none; }; // Disable zone transfers (AXFR) to others
-};
-```
-
-Make sure to replace `192.0.2.1` with the IP address of your hidden master server and `base64-encoded-secret==` with the actual secret from your TSIG key.
-
-### Enabling Logs
-
-Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
-
-```bash
-logging {
-    // General logs (startup, shutdown, errors)
-    channel "misc" {
-        file "/var/log/named/misc.log" versions 10 size 10m;
-        print-time YES;
-        print-severity YES;
-        print-category YES;
-    };
-
-    // Query logs (log every DNS query)
-    channel "query" {
-        file "/var/log/named/query.log" versions 20 size 5m;
-        print-time YES;
-        print-severity NO;
-        print-category NO;
-    };
-
-    // Lame server logs (misconfigured DNS servers)
-    channel "lame" {
-        file "/var/log/named/lamers.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-        severity info;
-    };
-
-    // Security logs (e.g., unauthorized query attempts)
-    channel "security" {
-        file "/var/log/named/security.log" versions 5 size 10m;
-        print-time YES;
-        print-severity YES;
-        severity dynamic;
-    };
-
-    // DNS updates (useful for dynamic zones)
-    channel "update" {
-        file "/var/log/named/update.log" versions 3 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Resolver logs (useful for debugging recursive queries)
-    channel "resolver" {
-        file "/var/log/named/resolver.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Zone transfer logs (incoming & outgoing transfers)
-    channel "xfer" {
-        file "/var/log/named/xfer.log" versions 5 size 5m;
-        print-time YES;
-        print-severity YES;
-    };
-
-    // Assign categories to log files
-    category "default" { "misc"; };
-    category "queries" { "query"; };
-    category "lame-servers" { "lame"; };
-    category "security" { "security"; };
-    category "update" { "update"; };
-    category "resolver" { "resolver"; };
-    category "xfer-in" { "xfer"; };
-    category "xfer-out" { "xfer"; };
-};
-```
-
-### Adjusting Permissions and Ownership
-
-Ensure BIND has permission to write to the zone file, the logs directory and that the files are owned by the BIND user:
-
-```bash
-chown bind:bind /var/cache/bind/zones
-chmod 755 /var/cache/bind/zones
-chown bind:bind /var/log/named
-chmod 755 /var/log/named
-```
-
-### Validate and Apply Configuration
-
-After completing your secondary zone setup, check for syntax errors using `named-checkconf`, then restart BIND9 using `systemctl restart bind9` to apply the changes.
-
-To verify that the zone was successfully transferred from the hidden master, check your logs with `grep 'transfer of "test."' /var/log/syslog`. You should see a log entry confirming the successful zone transfer.
-
-## 4. Upgrading to BIND 9.20 and Enabling Offline KSK Signing
-
-> [!IMPORTANT]
-> BIND's **Offline KSK** feature is not fully offline zone signing. The Zone
-> Signing Key (ZSK) remains on the hidden primary and continues signing ordinary
-> zone data. Only the Key Signing Key (KSK) is kept offline. The offline system
-> creates a Signed Key Response (SKR) containing the pre-signed DNSKEY, CDS, and
-> CDNSKEY RRsets.
->
-> Offline KSK support requires BIND 9.20.2 or newer. Install the latest available
-> BIND 9.20.x package rather than pinning an old patch release.
-
-The recommended layout is:
-
-| System | Material stored on it | Purpose |
-|---|---|---|
-| Hidden primary | unsigned Namingo zone, ZSK private keys, imported SKR | Generates and signs normal zone changes |
-| Offline KSK system | KSK private keys and matching policy | Signs KSR files and creates SKR files |
-| Public secondary servers | transferred signed zone only | Answer public authoritative queries |
-
-The offline KSK system must not receive:
-
-- the registry database;
-- the complete zone file;
-- ZSK private keys; or
-- network access during signing.
-
-A KSR contains public ZSK information and can be transported to the offline
-system. The resulting SKR contains public records and signatures and can be
-returned to the hidden primary.
-
-The existing Namingo DNS manual uses separate KSK and ZSK definitions, which is
-required for Offline KSK. A Combined Signing Key (CSK) cannot be used.
-
-The active policy should ultimately contain `offline-ksk yes;`. Do **not** enable `offline-ksk yes;` on the live server until the first SKR has
-been created and is ready to import. Once Offline KSK is enabled, BIND stops
-creating KSK signatures and rollover keys itself and expects the required data
-to be present in the imported SKR.
-
-### 3.7 Prepare a matching policy file
-
-Create a temporary policy file for `dnssec-ksr`. This lets the SKR be prepared
-before changing the live BIND configuration:
-
-```bash
-sudo install -d -m 0700 /root/namingo-offline-ksk
-sudo editor /root/namingo-offline-ksk/policy.conf
-```
-
-Add:
-
-```conf
-dnssec-policy "namingo-policy" {
-    keys {
-        ksk lifetime P1Y algorithm ed25519;
-        zsk lifetime P2M algorithm ed25519;
-    };
-
-    offline-ksk yes;
-
-    nsec3param iterations 0 optout false salt-length 0;
-    publish-safety 7d;
-    max-zone-ttl 86400;
-    dnskey-ttl 3600;
-    zone-propagation-delay 3600;
-    parent-propagation-delay 7200;
-    parent-ds-ttl 86400;
-};
-```
-
-The policy name, algorithms, key lifetimes, TTLs, and rollover parameters must
-match the policy that will be used by the live zone.
-
-### 3.8 Convert an existing signed zone
-
-The following example converts the existing zone `example.`.
-
-The initial conversion reuses the current active KSK. This avoids an immediate
-DS change in the parent zone. Because that KSK previously existed on the online
-server, moving it offline does not remove any historical exposure. After the
-migration is stable, schedule a normal rollover to a new KSK generated only on
-the offline system.
-
-#### 3.8.1 Inspect the current zone
-
-```bash
-sudo rndc dnssec -status example.
-sudo rndc signing -list example.
-sudo rndc zonestatus example.
-
-dig @127.0.0.1 example. DNSKEY +dnssec +multiline
-dig example. DS +dnssec +multiline
-```
-
-Save the output with the migration records.
-
-Identify the current KSK. A KSK DNSKEY has flag `257`:
-
-```bash
-sudo grep -lE 'DNSKEY[[:space:]]+257[[:space:]]+3[[:space:]]+' \
-    /var/lib/bind/Kexample.+*.key
-```
-
-The command should identify the active KSK public key file, for example:
-
-```text
-/var/lib/bind/Kexample.+015+12345.key
-```
-
-Set its basename without the extension:
-
-```bash
-KSK_BASE="/var/lib/bind/Kexample.+015+12345"
-```
-
-Confirm its timing metadata:
-
-```bash
-sudo dnssec-settime -K /var/lib/bind -p all "$KSK_BASE"
-```
-
-Do not continue if the KSK cannot be identified unambiguously.
-
-#### 3.8.2 Export the current KSK to protected offline storage
-
-Create a temporary export directory:
-
-```bash
-sudo install -d -m 0700 /root/namingo-offline-ksk/example
-```
-
-Copy the public and private key files:
-
-```bash
-sudo cp -a \
-    "${KSK_BASE}.key" \
-    "${KSK_BASE}.private" \
-    /root/namingo-offline-ksk/example/
-```
-
-Copy the state file when present:
-
-```bash
-if sudo test -f "${KSK_BASE}.state"; then
-    sudo cp -a "${KSK_BASE}.state" \
-        /root/namingo-offline-ksk/example/
-fi
-```
-
-Create checksums:
-
-```bash
-sudo sh -c \
-    'cd /root/namingo-offline-ksk/example && sha256sum Kexample.* > SHA256SUMS'
-```
-
-Transfer this directory and `policy.conf` using encrypted removable media to
-the offline KSK system. Verify the checksums there.
-
-Do not delete the online KSK private file yet. It is removed only after the SKR
-has been imported and the zone has been verified.
-
-#### 3.8.3 Pregenerate online ZSKs
-
-On the hidden primary, create a working directory:
-
-```bash
-sudo install -d -m 0700 /root/namingo-offline-ksk/example-work
-```
-
-Pregenerate the ZSK schedule. The example creates two years of material:
-
-```bash
-sudo dnssec-ksr \
-    -K /var/lib/bind \
-    -i now \
-    -e +2y \
-    -k namingo-policy \
-    -l /root/namingo-offline-ksk/policy.conf \
-    keygen example.
-```
-
-Existing keys in `/var/lib/bind` are taken into account. Running the command
-again for the same interval should not create another duplicate schedule.
-
-Generate the KSR:
-
-```bash
-sudo sh -c '
-dnssec-ksr \
-    -K /var/lib/bind \
-    -i now \
-    -e +2y \
-    -k namingo-policy \
-    -l /root/namingo-offline-ksk/policy.conf \
-    request example. \
-    > /root/namingo-offline-ksk/example-work/example.ksr
-'
-```
-
-Create a checksum:
-
-```bash
-sudo sh -c '
-cd /root/namingo-offline-ksk/example-work
-sha256sum example.ksr > example.ksr.sha256
-'
-```
-
-Copy `example.ksr` and its checksum to encrypted removable media. The KSR may
-be transported to the offline system; the ZSK private files must remain on the
-hidden primary.
-
-#### 3.8.4 Create the SKR on the offline KSK system
-
-Install BIND 9.20 utilities on the offline system using the appropriate
-repository steps from this section:
-
-```bash
-sudo apt install -y bind9-utils
-dnssec-ksr -V
-```
-
-The offline system does not need to run the `named` service.
-
-Use a protected directory:
-
-```bash
-sudo install -d -m 0700 /secure/namingo-ksk/example
-sudo install -d -m 0700 /secure/namingo-ksk/requests
-sudo install -d -m 0700 /secure/namingo-ksk/responses
-```
-
-Copy the existing KSK files into `/secure/namingo-ksk/example`, copy the KSR
-into `/secure/namingo-ksk/requests`, and copy the matching policy to
-`/secure/namingo-ksk/policy.conf`.
-
-Verify the checksums before signing.
-
-Pregenerate any future KSKs required for the requested period:
-
-```bash
-sudo dnssec-ksr \
-    -K /secure/namingo-ksk/example \
-    -i now \
-    -e +2y \
-    -o \
-    -k namingo-policy \
-    -l /secure/namingo-ksk/policy.conf \
-    keygen example.
-```
-
-The `-o` option generates KSKs instead of ZSKs. The existing KSK is considered
-when the future KSK schedule is calculated.
-
-Sign the KSR and create the SKR:
-
-```bash
-sudo sh -c '
-umask 077
-
-dnssec-ksr \
-    -K /secure/namingo-ksk/example \
-    -i now \
-    -e +2y \
-    -k namingo-policy \
-    -l /secure/namingo-ksk/policy.conf \
-    -f /secure/namingo-ksk/requests/example.ksr \
-    sign example. \
-    > /secure/namingo-ksk/responses/example.skr
-'
-```
-
-Confirm that the file is non-empty and contains Signed Key Response bundles:
-
-```bash
-sudo test -s /secure/namingo-ksk/responses/example.skr
-sudo grep -m 1 'SignedKeyResponse' \
-    /secure/namingo-ksk/responses/example.skr
-```
-
-Create a checksum:
-
-```bash
-sudo sh -c '
-cd /secure/namingo-ksk/responses
-sha256sum example.skr > example.skr.sha256
-'
-```
-
-Return only the SKR and its checksum to the hidden primary. Keep all KSK private
-files on the offline system.
-
-#### 3.8.5 Import the SKR on the hidden primary
-
-Copy the returned files to the hidden primary and verify the checksum:
-
-```bash
-cd /tmp
-sha256sum -c example.skr.sha256
-```
-
-Install the SKR where BIND can read it:
-
-```bash
-sudo install -o root -g bind -m 0640 \
-    /tmp/example.skr \
-    /var/lib/bind/example.skr
-```
-
-Now add the following line to the existing `namingo-policy` in the live BIND
-configuration:
-
-```conf
-offline-ksk yes;
-```
-
-Validate and apply the configuration:
-
-```bash
-sudo named-checkconf
-sudo rndc reconfig
-```
-
-Immediately import the SKR:
-
-```bash
-sudo rndc skr -import /var/lib/bind/example.skr example.
-```
-
-Review the DNSSEC state and the service log:
-
-```bash
-sudo rndc dnssec -status example.
-sudo rndc signing -list example.
-sudo rndc zonestatus example.
-sudo journalctl -u named -n 100 --no-pager
-```
-
-Reload and notify the secondaries:
-
-```bash
-sudo rndc reload example.
-sudo rndc notify example.
-```
-
-#### 3.8.6 Verify the migrated zone
-
-Query the hidden primary directly:
-
-```bash
-dig @127.0.0.1 example. SOA +dnssec
-dig @127.0.0.1 example. DNSKEY +dnssec +multiline
-dig @127.0.0.1 example. CDS +dnssec +multiline
-dig @127.0.0.1 example. CDNSKEY +dnssec +multiline
-```
-
-Query every public authoritative server:
-
-```bash
-dig @<primary-public-IP> example. SOA +dnssec
-dig @<secondary-public-IP> example. SOA +dnssec
-dig @<secondary-public-IP> example. DNSKEY +dnssec +multiline
-```
-
-Check validation through the normal DNS path:
-
-```bash
-delv example. SOA
-```
-
-Confirm that:
-
-- the zone answers authoritatively;
-- the DNSKEY RRset has a valid RRSIG;
-- ordinary zone records continue to be signed by the ZSK;
-- the DS visible in the parent still matches the active KSK;
-- all secondaries receive the current signed serial; and
-- no `offline-ksk`, `SKR`, missing-key, or expired-signature errors appear in
-  the BIND log.
-
-Do not remove the current KSK private key from the online server until all
-checks pass.
-
-#### 3.8.7 Remove the KSK private material from the online server
-
-After successful verification, copy the final protected KSK archive to its
-permanent offline backup and verify it again.
-
-Remove only the KSK private file from the hidden primary:
-
-```bash
-sudo rm -f "${KSK_BASE}.private"
-```
-
-Leave the public `.key` file and any BIND `.state` file in place unless a
-documented rollover procedure explicitly says otherwise.
-
-Remove temporary online exports containing the KSK private key:
-
-```bash
-sudo rm -rf /root/namingo-offline-ksk/example
-```
-
-Do not keep a second copy in `/root`, `/tmp`, an administrator home directory,
-a cloud-synchronised directory, or an ordinary server backup.
-
-Recheck the service after the private key is removed:
-
-```bash
-sudo rndc dnssec -status example.
-sudo rndc signing -list example.
-dig @127.0.0.1 example. DNSKEY +dnssec +multiline
-sudo journalctl -u named -n 100 --no-pager
-```
-
-### 3.9 Future KSK rollovers
-
-The initial migration can retain the existing parent DS because it reuses the
-current KSK. Future KSKs generated on the offline system still require a normal
-KSK rollover.
-
-Before a new KSK becomes active:
-
-1. inspect the future DNSKEY, CDS, and CDNSKEY data in the SKR;
-2. submit the new DS to the parent according to the parent registry's
-   procedure;
-3. wait until the new DS is visible from all parent authoritative servers;
-4. confirm the DS publication to BIND when required; and
-5. remove the old DS only after the policy's rollover conditions are satisfied.
-
-For a manually managed parent, BIND can be informed that the DS is published:
-
-```bash
-sudo rndc dnssec -checkds -key <new-key-tag> published example.
-```
-
-After the old DS has been removed from the parent and the required propagation
-time has passed:
-
-```bash
-sudo rndc dnssec -checkds -key <old-key-tag> withdrawn example.
-```
-
-Never guess these timings and never remove the old DS merely because a new key
-appears in the DNSKEY RRset. Follow the state shown by:
-
-```bash
-sudo rndc dnssec -status example.
-```
-
-### 3.10 Renew the SKR before it expires
-
-An SKR covers only the interval supplied to `dnssec-ksr`. BIND cannot create
-replacement KSK signatures after the imported material ends.
-
-Repeat the workflow before the current SKR approaches its final response
-bundle:
-
-1. pregenerate the next online ZSK interval;
-2. generate a new KSR;
-3. sign it on the offline KSK system;
-4. return the new SKR;
-5. import it with `rndc skr -import`; and
-6. verify the zone and parent DS state.
-
-Use overlapping intervals. Do not wait until the final DNSKEY signature is
-close to expiration.
-
-Record at least the following for every signing ceremony:
-
-- zone name;
-- KSR start and end times;
-- KSR SHA-256 checksum;
-- SKR SHA-256 checksum;
-- current and future KSK key tags;
-- operator names;
-- signing date;
-- offline media identifier;
-- parent DS state; and
-- SKR import and verification results.
-
-### 3.11 Adding Offline KSK to additional existing zones
-
-Repeat Sections 3.8 through 3.10 separately for every TLD zone.
-
-Do not copy one zone's KSR, SKR, or KSK files into another zone's directory.
-Each zone must have:
-
-- its own KSK material;
-- its own KSR;
-- its own SKR;
-- its own parent DS verification; and
-- its own signing and rollover records.
-
-The same `namingo-policy` may be shared by multiple zones only when all of those
-zones intentionally use identical algorithms, lifetimes, TTLs, and rollover
-parameters.
-
-### 3.12 Failure handling
-
-If `dnssec-ksr` fails, do not enable Offline KSK.
-
-If `rndc skr -import` fails:
-
-1. keep the current KSK private file on the hidden primary;
-2. inspect the BIND log;
-3. confirm that the policy name and parameters match;
-4. confirm that the KSR and SKR use the exact zone name, including its trailing
-   dot;
-5. confirm that the SKR interval includes the current time;
-6. recreate the SKR on the offline system; and
-7. retry the import.
-
-If the zone begins returning `SERVFAIL`, restore the previous live
-configuration, retain the current online KSK, reload BIND, and investigate
-before attempting the migration again:
-
-```bash
-sudo named-checkconf
-sudo rndc reconfig
-sudo rndc reload example.
-sudo journalctl -u named -n 200 --no-pager
-```
-
-Do not delete keys, state files, journals, or parent DS records as an emergency
-shortcut.
