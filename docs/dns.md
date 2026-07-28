@@ -511,8 +511,7 @@ ls -l /var/cache/bind/zones/test.zone
 > -o - \
 > test. \
 > /var/cache/bind/zones/test.zone
->
-```
+> ```
 
 #### Final Steps
 
