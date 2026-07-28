@@ -5,9 +5,12 @@ This guide walks you through configuring the core DNS setup for your Namingo-pow
 > [!IMPORTANT]
 > This setup is **required** for correct zone publication and domain delegation under your TLD.
 >
+> Choose **exactly one** of the DNS backends below based on your environment and operational requirements. Do **not** install or configure multiple backends for the same Namingo Registry instance.
+
+> [!NOTE]
 > Replace every occurrence of `test` in the examples below with your actual TLD, without the leading dot. For example, use `example` for `.example`.
 >
-> Choose **exactly one** of the DNS backends below based on your environment and operational requirements. Do **not** install or configure multiple backends for the same Namingo Registry instance.
+> Replace every occurrence of `<secondary-server-IP>` with the IP address of your authoritative secondary server.
 
 ## 1. BIND 9
 
@@ -256,9 +259,6 @@ pkcs11-tool --list-objects --login --token-label YourTokenLabel
 
 ---
 
-> [!NOTE]
-> Replace `<secondary-server-IP>` with the IP address of your authoritative secondary server, and replace `test` with your TLD name without the leading dot.
-
 > [!IMPORTANT]
 > **When DNSSEC signing is enabled**, protect all DNSSEC private keys and restrict access to authorized services and administrators only.
 >
@@ -352,9 +352,6 @@ policy:
     nsec3-iterations: 0
     nsec3-salt-length: 0
 ```
-
-> [!NOTE]
-> Replace `<secondary-server-IP>` with the IP address of your authoritative secondary server, and replace `test` with your TLD name without the leading dot.
 
 Generate the necessary DNSSEC keys for your zone using keymgr:
 
