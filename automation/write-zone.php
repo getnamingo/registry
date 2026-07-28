@@ -162,7 +162,7 @@ Coroutine::create(function () use ($pool, $log, $c) {
 
             $basePath = match ($dnsServer) {
                 'bind'    => '/var/lib/bind',
-                'knot'    => '/var/lib/knot',
+                'knot'    => '/var/lib/knot/zones',
                 'cascade' => '/var/lib/cascade/zones',
                 default   => null,
             };

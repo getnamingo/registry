@@ -981,55 +981,78 @@ class SystemController extends Controller
                             }
                         }
                     } elseif (file_exists('/usr/sbin/knotc')) {
-                        $zone = strtolower(ltrim($tld['tld'], '.'));
-                        $keyDir = '/etc/knot/keys';
+                        $zone = rtrim(strtolower(ltrim($tld['tld'], '.')), '.') . '.';
 
-                        // Use knotc to get key statuses
-                        $keyListOutput = shell_exec("sudo knotc zone-key list " . escapeshellarg($zone) . " 2>&1");
+                        // Check that Knot DNS has keys for this zone.
+                        $keyListOutput = shell_exec(
+                            'sudo -n keymgr ' . escapeshellarg($zone) . ' list 2>/dev/null'
+                        );
 
                         if (!$keyListOutput) {
-                            $dnssecData = ['error' => "Unable to fetch DNSSEC status for $zone (Knot DNS)."];
+                            $dnssecData = [
+                                'error' => "Unable to fetch DNSSEC status for {$zone} (Knot DNS).",
+                            ];
                         } else {
-                            preg_match_all('/([0-9]+)\s+KSK\s+(\w+)\s+(\w+)\s+(\w+)\s+([0-9T:-]+)/', $keyListOutput, $matches, PREG_SET_ORDER);
+                            // Generate DS records for all KSKs in the zone.
+                            $dsOutput = shell_exec(
+                                'sudo -n keymgr ' . escapeshellarg($zone) . ' ds 2>/dev/null'
+                            );
 
                             $dnssecData = [
-                                'zoneName' => '.' . $zone,
+                                'zoneName' => '.' . rtrim($zone, '.'),
                                 'timestamp' => date('Y-m-d H:i:s'),
                                 'keys' => [],
                             ];
 
-                            foreach ($matches as $match) {
-                                $keyId = $match[1];
-                                $algorithm = 'ED25519'; // Knot uses policy-defined algorithm
-                                $keyStatus = ($match[2] === 'active') ? 'Active' : 'Pending Rollover';
-                                $publishedDate = $match[5] ?? null;
-
-                                // Extract DS record from keymgr
-                                $dsRecord = shell_exec("keymgr ds " . escapeshellarg($zone) . " 2>/dev/null");
-                                $dsRecord = $dsRecord ? trim($dsRecord) : 'N/A';
-
-                                // Since Knot DNS doesn't explicitly show rollover in this output, set as null
-                                $nextRollover = null;
-                                $retirementDate = null;
-
-                                // DS Status isn't directly shown; you might manually track submission
-                                $dsStatus = null;
-
-                                $dnssecData['keys'][] = [
-                                    'key_id' => $match[1],
-                                    'algorithm' => 'ED25519',
-                                    'ds_record' => $dsRecord,
-                                    'status' => (strpos($match[0], 'active') !== false ? 'Active' : 'Pending Rollover'),
-                                    'timestamp' => date('Y-m-d H:i:s'),
-                                    'next_rollover' => $nextRollover,
-                                    'retirement_date' => null,
-                                    'published_date' => $publishedDate,
-                                    'ds_status' => null,
+                            if ($dsOutput) {
+                                $algorithmNames = [
+                                    5  => 'RSASHA1',
+                                    7  => 'RSASHA1-NSEC3-SHA1',
+                                    8  => 'RSASHA256',
+                                    10 => 'RSASHA512',
+                                    13 => 'ECDSAP256SHA256',
+                                    14 => 'ECDSAP384SHA384',
+                                    15 => 'ED25519',
+                                    16 => 'ED448',
                                 ];
+
+                                foreach (preg_split('/\R/', trim($dsOutput)) as $dsRecord) {
+                                    $dsRecord = trim($dsRecord);
+
+                                    if ($dsRecord === '') {
+                                        continue;
+                                    }
+
+                                    if (!preg_match(
+                                        '/\bDS\s+(\d+)\s+(\d+)\s+(\d+)\s+([A-Fa-f0-9]+)\s*$/',
+                                        $dsRecord,
+                                        $match
+                                    )) {
+                                        continue;
+                                    }
+
+                                    $keyTag = $match[1];
+                                    $algorithmNumber = (int) $match[2];
+
+                                    $dnssecData['keys'][] = [
+                                        'key_id' => $keyTag,
+                                        'algorithm' => $algorithmNames[$algorithmNumber]
+                                            ?? (string) $algorithmNumber,
+                                        'ds_record' => $dsRecord,
+                                        'status' => 'Active',
+                                        'timestamp' => date('Y-m-d H:i:s'),
+                                        'next_rollover' => null,
+                                        'retirement_date' => null,
+                                        'published_date' => null,
+                                        'ds_status' => null,
+                                    ];
+                                }
                             }
 
                             if (empty($dnssecData['keys'])) {
-                                $dnssecData = ['error' => "No DNSSEC keys found for $zone using Knot DNS."];
+                                $dnssecData = [
+                                    'error' => "No DNSSEC KSK or DS record found for {$zone} using Knot DNS.",
+                                ];
                             }
                         }
                     } elseif (file_exists('/usr/sbin/ods-ksmutil')) {

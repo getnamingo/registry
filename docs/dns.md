@@ -83,29 +83,55 @@ apt install -y softhsm2 opensc pkcs11-provider
 
 ### Configuration
 
+#### TSIG Key
+
 Generate a TSIG key which will be used to authenticate DNS updates between the primary and secondary servers.
 
 ```bash
 cd /etc/bind
-tsig-keygen -a HMAC-SHA256 test.key
+tsig-keygen -a HMAC-SHA256 test.key > /etc/bind/test.key
+chown root:bind /etc/bind/test.key
+chmod 0640 /etc/bind/test.key
+cat /etc/bind/test.key
 ```
 
-The output will be in the format that can be directly included in your BIND configuration files. It looks something like this:
+The output looks something like this:
 
-```bash
+```conf
 key "test.key" {
     algorithm hmac-sha256;
     secret "base64-encoded-secret==";
 };
 ```
 
-Copy this output for use in the configuration files of both the primary and secondary DNS servers. (```/etc/bind/named.conf.local```)
+#### Directory Configuration
 
-#### Main BIND Configuration
+Ensure that the BIND directories exist and are accessible to the `bind` service account:
+
+```bash
+install -d -o bind -g bind -m 0750 /var/lib/bind
+install -d -o bind -g bind -m 0750 /var/lib/bind/keys
+```
+
+#### Optional File-Based Logging
+
+> [!WARNING]
+> Query logging records every DNS query and can generate large volumes of data.
+> Enable it only when required for troubleshooting or a defined operational purpose.
+
+Create the directory:
+
+```bash
+install -d -o bind -g bind -m 0750 /var/log/named
+```
 
 Place the contents below at `/etc/bind/named.conf.default-logging` and include the file in `/etc/bind/named.conf`:
 
-```bash
+```conf
+include "/etc/bind/named.conf.default-logging";
+```
+
+```conf
 logging {
     // General logs (startup, shutdown, errors)
     channel "misc" {
@@ -172,52 +198,58 @@ logging {
 };
 ```
 
-Ensure that the BIND directories exist and are accessible to the `bind` service account:
-
-```bash
-install -d -o bind -g bind -m 0750 /var/lib/bind
-install -d -o bind -g bind -m 0750 /var/lib/bind/keys
-```
-
 #### Zone Configuration
 
 > [!IMPORTANT]
-> Choose **one** of the following BIND 9 configurations.
+> Choose exactly **one** hidden-primary configuration from Options 1–3.
+> Configure Option 4 separately on each public authoritative secondary server.
 
-##### Option 1: BIND 9 Without DNSSEC Signing
+##### Option 1: Hidden Primary Without DNSSEC Signing
+
+Disable recursion by adding the following inside the existing `options` block in `/etc/bind/named.conf.options`:
+
+```conf
+options {
+    // Existing options...
+    recursion no;
+};
+```
 
 Edit `/etc/bind/named.conf.local` and add the following zone definition:
 
-```bash
+```conf
 zone "test." {
     type primary;
     file "/var/lib/bind/test.zone";
     allow-transfer { key "test.key"; };
-    also-notify { <secondary-server-IP>; };
+    also-notify {
+        <secondary-server-IP> key "test.key";
+    };
 };
 ```
 
-##### Option 2: BIND 9 With Automatic DNSSEC Signing
+Include the TSIG key file near the top:
+
+```conf
+include "/etc/bind/test.key";
+```
+
+##### Option 2: Hidden Primary With Automatic DNSSEC Signing
 
 Use this configuration when BIND should sign the Namingo-generated zone and manage DNSSEC keys and rollovers automatically.
 
-Edit `/etc/bind/named.conf.local` and add the following zone definition:
+Disable recursion by adding the following inside the existing `options` block in `/etc/bind/named.conf.options`:
 
-```bash
-zone "test." {
-    type primary;
-    file "/var/lib/bind/test.zone";
-    dnssec-policy "namingo-policy";
-    key-directory "/var/lib/bind";
-    inline-signing yes;
-    allow-transfer { key "test.key"; };
-    also-notify { <secondary-server-IP>; };
+```conf
+options {
+    // Existing options...
+    recursion no;
 };
 ```
 
-Add the following DNSSEC policy:
+Edit `/etc/bind/named.conf.local` and add the following DNSSEC policy and zone definition:
 
-```bash
+```conf
 dnssec-policy "namingo-policy" {
     keys {
         ksk lifetime P1Y algorithm ed25519;
@@ -231,9 +263,89 @@ dnssec-policy "namingo-policy" {
     parent-propagation-delay 7200;
     parent-ds-ttl 86400;
 };
+
+zone "test." {
+    type primary;
+    file "/var/lib/bind/test.zone";
+    dnssec-policy "namingo-policy";
+    key-directory "/var/lib/bind/keys";
+    inline-signing yes;
+    allow-transfer { key "test.key"; };
+    also-notify {
+        <secondary-server-IP> key "test.key";
+    };
+};
 ```
 
-##### Option 3: BIND 9 With DNSSEC Keys Stored in an HSM
+Include the TSIG key file near the top:
+
+```conf
+include "/etc/bind/test.key";
+```
+
+##### Optional Offline KSK Signing
+
+> [!CAUTION]
+> Offline KSK signing requires a separate offline signing environment and periodic KSR/SKR exchanges. Use it only when an established DNSSEC key ceremony and monitoring process is available.
+
+To keep the KSK offline while BIND continues using online ZSKs, add the following to the DNSSEC policy:
+
+```conf
+dnssec-policy "namingo-policy" {
+    offline-ksk yes;
+
+    keys {
+        ksk lifetime P1Y algorithm ed25519;
+        zsk lifetime P2M algorithm ed25519;
+    };
+
+    // Existing policy settings...
+};
+```
+
+Before enabling the policy, generate the future ZSK material and create a Key Signing Request:
+
+```bash
+dnssec-ksr \
+    -i now \
+    -e +1y \
+    -k namingo-policy \
+    -l /etc/bind/named.conf.local \
+    keygen test.
+
+dnssec-ksr \
+    -i now \
+    -e +1y \
+    -k namingo-policy \
+    -l /etc/bind/named.conf.local \
+    request test. > test.ksr
+```
+
+Transfer `test.ksr` to the offline KSK system, sign it there, and return the resulting Signed Key Response file.
+
+On the offline KSK system, create the SKR:
+
+```bash
+dnssec-ksr \
+    -i now \
+    -e +1y \
+    -k namingo-policy \
+    -l /etc/bind/named.conf.local \
+    sign test.ksr > test.skr
+```
+
+Import the SKR on the online BIND server:
+
+```bash
+rndc skr -import test. test.skr
+```
+
+Repeat the KSR/SKR procedure before the imported signing period expires and whenever the KSK is rolled over.
+
+> [!NOTE]
+> Namingo Zone Writer requires no changes. It continues generating the unsigned source zone while BIND applies DNSSEC signatures.
+
+##### Option 3: Hidden Primary With HSM-Backed DNSSEC Signing
 
 Initialize a SoftHSM token:
 
@@ -319,6 +431,8 @@ activate = 1
 > ```bash
 > dpkg -L pkcs11-provider | grep 'pkcs11\.so$'
 > ```
+>
+> Do not create a duplicate `[openssl_init]` section if one already exists.
 
 Test that OpenSSL can load the provider:
 
@@ -357,7 +471,7 @@ systemctl daemon-reload
 
 Add the following top-level key store and DNSSEC policy to `/etc/bind/named.conf.local`:
 
-```bash
+```conf
 key-store "namingo-hsm" {
     directory "/var/lib/bind/keys";
     pkcs11-uri "pkcs11:token=NamingoHSM";
@@ -385,7 +499,7 @@ dnssec-policy "hsm-policy" {
 
 Edit `/etc/bind/named.conf.local` and add the following zone definition:
 
-```bash
+```conf
 zone "test." {
     type primary;
     file "/var/lib/bind/test.zone";
@@ -396,9 +510,15 @@ zone "test." {
     };
 
     also-notify {
-        <secondary-server-IP>;
+        <secondary-server-IP> key "test.key";
     };
 };
+```
+
+Include the TSIG key file near the top:
+
+```conf
+include "/etc/bind/test.key";
 ```
 
 BIND will automatically generate the KSK and ZSK inside the configured PKCS#11 token and create the corresponding BIND key metadata files under `/var/lib/bind/keys`.
@@ -432,7 +552,7 @@ nano /etc/bind/test.key
 
 Add the TSIG key shared with the hidden primary:
 
-```bash
+```conf
 key "test.key" {
     algorithm hmac-sha256;
     secret "base64-encoded-secret=="; // Replace with your actual base64-encoded key
@@ -453,7 +573,7 @@ include "/etc/bind/test.key";
 
 Add the secondary-zone definition:
 
-```bash
+```conf
 zone "test." {
     type secondary;
     file "/var/cache/bind/zones/test.zone";
@@ -513,9 +633,6 @@ ls -l /var/cache/bind/zones/test.zone
 > /var/cache/bind/zones/test.zone
 > ```
 
-> [!NOTE]
-> Skip next section if configuring secondary DNS server.
-
 #### Final Steps
 
 > [!IMPORTANT]
@@ -523,11 +640,22 @@ ls -l /var/cache/bind/zones/test.zone
 >
 > In **Control Panel → TLD Management**, click **Enable DNSSEC**. After the keys are created, the corresponding **DS record** will appear on the same page. Submit that DS record to **IANA** or to the parent registry to complete the chain of trust.
 
-Check the complete BIND configuration before restarting the service:
+> [!NOTE]
+> The following final steps apply only to the hidden primary.
+> On a public secondary, verify the incoming transfer using rndc zonestatus
+> and dig instead.
+
+Configure the `Zone Writer` in Registry Automation, then run it manually once to generate and publish the initial zone file:
 
 ```bash
-named-checkconf
+php /opt/registry/automation/write-zone.php
+```
+
+Check the complete BIND configuration:
+
+```bash
 named-checkzone test. /var/lib/bind/test.zone
+named-checkconf
 ```
 
 Restart BIND:
@@ -543,12 +671,6 @@ systemctl status bind9 --no-pager
 journalctl -u bind9 -n 100 --no-pager
 ```
 
-Configure the `Zone Writer` in Registry Automation, then run it manually once to generate and publish the initial zone file:
-
-```bash
-php /opt/registry/automation/write-zone.php
-```
-
 Confirm that BIND loaded the zone successfully:
 
 ```bash
@@ -557,98 +679,309 @@ rndc zonestatus test.
 
 ## 2. Knot DNS
 
+### Overview
+
+Knot DNS is an authoritative-only DNS server developed by CZ.NIC. It can serve Namingo-generated zone files, sign zones automatically with DNSSEC, manage key rollovers, and transfer zones to public authoritative secondary servers.
+
+### Knot DNS Package Repository
+
+Install the repository prerequisites:
+
+```bash
+apt update
+apt install -y ca-certificates wget
+```
+
+Add the CZ.NIC Labs signing key:
+
+```bash
+wget -O /usr/share/keyrings/cznic-labs-pkg.gpg \
+    https://pkg.labs.nic.cz/gpg
+```
+
+Read the operating-system codename and add the official Knot DNS repository:
+
+```bash
+. /etc/os-release
+
+echo "deb [signed-by=/usr/share/keyrings/cznic-labs-pkg.gpg] https://pkg.labs.nic.cz/knot-dns ${VERSION_CODENAME} main" \
+    > /etc/apt/sources.list.d/cznic-labs-knot-dns.list
+```
+
+Update the package index and verify the available Knot DNS version:
+
+```bash
+apt update
+apt-cache policy knot
+```
+
 ### Installation
 
+Install Knot DNS and its utilities:
+
 ```bash
-apt install knot knot-dnsutils
+apt install -y knot knot-dnsutils knot-dnssecutils
 ```
 
-### Configuration
-
-Generate a TSIG key which will be used to authenticate DNS updates between the master and slave servers.
+Verify the installed version:
 
 ```bash
-cd /etc/knot
-knotc conf-gen-key test.key hmac-sha256
+knotd -V
 ```
 
-The output will be in the format that can be directly included in your configuration files. It looks something like this:
+### Directory Preparation
+
+Create directories for Namingo-generated zones and Knot DNS state:
 
 ```bash
+install -d -o knot -g knot -m 0750 /var/lib/knot/zones
+install -d -o knot -g knot -m 0750 /var/lib/knot/slave
+```
+
+> [!NOTE]
+> Namingo writes the unsigned source zone to `/var/lib/knot/zones/test.zone`.
+>
+> Knot DNS stores DNSSEC keys and rollover metadata in its KASP database.
+
+### TSIG Key
+
+Generate a TSIG key for authenticating NOTIFY messages and AXFR/IXFR transfers between the hidden primary and public secondary:
+
+```bash
+keymgr -t test.key hmac-sha256
+```
+
+The command prints a configuration block similar to:
+
+```yaml
 key:
-  - id: "test.key"
+  - id: test.key
     algorithm: hmac-sha256
     secret: "base64-encoded-secret=="
 ```
 
-Copy this output for use in the configuration files of both the master and slave DNS servers. (```/etc/knot/knot.conf```)
+Copy the same key block to `/etc/knot/knot.conf` on the hidden primary and the corresponding public secondary.
 
-#### Zone Configuration
+> [!IMPORTANT]
+> Protect the TSIG secret and restrict `/etc/knot/knot.conf` to authorized administrators and the Knot DNS service.
 
-Edit `/etc/knot/knot.conf` and add the following zone definition:
+Set secure ownership and permissions:
 
 ```bash
-zone:
-  - domain: "test."
-    file: "/etc/knot/zones/test.zone"
-    dnssec-policy: "namingo-policy"
-    key-directory: "/etc/knot/keys"
-    storage: "/etc/knot/zones"
-    notify: <secondary-server-IP>
-    acl:
-      - id: "test.key"
-        address: <secondary-server-IP>
-        key: "test.key"
+chown root:knot /etc/knot/knot.conf
+chmod 0640 /etc/knot/knot.conf
 ```
 
-Add the following DNSSEC policy:
+### Hidden Primary With Automatic DNSSEC Signing
+
+Use this configuration when Knot DNS should read the Namingo-generated zone, automatically generate and roll the DNSSEC keys, sign the zone, and transfer it to a public authoritative secondary.
+
+Edit `/etc/knot/knot.conf`:
 
 ```bash
+nano /etc/knot/knot.conf
+```
+
+Add the following configuration:
+
+```yaml
+server:
+  listen:
+    - 0.0.0.0@53
+    - ::@53
+
+log:
+  - target: syslog
+    any: info
+
+key:
+  - id: test.key
+    algorithm: hmac-sha256
+    secret: "base64-encoded-secret=="
+
+remote:
+  - id: test-secondary
+    address:
+      - <secondary-server-IP>@53
+    key: test.key
+
+acl:
+  - id: transfer-to-test-secondary
+    address:
+      - <secondary-server-IP>
+    key: test.key
+    action:
+      - transfer
+
 policy:
-  - id: "namingo-policy"
-    description: "Default DNSSEC policy for TLD"
+  - id: namingo-policy
     algorithm: ed25519
     ksk-lifetime: 1y
     zsk-lifetime: 2m
-    max-zone-ttl: 86400
+    dnskey-ttl: 1h
+    zone-max-ttl: 1d
     rrsig-lifetime: 14d
     rrsig-refresh: 7d
-    dnskey-ttl: 3600
-    nsec3: true
+    nsec3: on
     nsec3-iterations: 0
+    nsec3-opt-out: off
     nsec3-salt-length: 0
+
+zone:
+  - domain: test.
+    storage: /var/lib/knot/zones
+    file: test.zone
+    semantic-checks: on
+    dnssec-signing: on
+    dnssec-policy: namingo-policy
+    notify:
+      - test-secondary
+    acl:
+      - transfer-to-test-secondary
 ```
 
-Generate the necessary DNSSEC keys for your zone using keymgr:
+Replace:
+
+- `base64-encoded-secret==` with the generated TSIG secret;
+
+#### Optional Offline KSK Signing
+
+> [!CAUTION]
+> Offline KSK signing requires a separate offline Knot DNS environment and periodic KSR/SKR exchanges. Use it only when an established DNSSEC key ceremony and monitoring process is available.
+
+On the online hidden primary, add the following settings to the existing DNSSEC policy:
+
+```yaml
+policy:
+  - id: namingo-policy
+    manual: on
+    offline-ksk: on
+    algorithm: ed25519
+    zsk-lifetime: 2m
+    dnskey-ttl: 1h
+    zone-max-ttl: 1d
+    rrsig-lifetime: 14d
+    rrsig-refresh: 7d
+```
+
+Pregenerate ZSKs and create a Key Signing Request for the required period:
 
 ```bash
-keymgr policy:generate test.
+keymgr test. pregenerate +1y
+keymgr test. generate-ksr +0 +1y > test.ksr
 ```
 
-This will create the required keys in `/etc/knot/keys`. Ensure the directory permissions are secure:
+Transfer `test.ksr` to the offline KSK system and sign it:
 
 ```bash
-chown -R knot:knot /etc/knot/keys
-chmod -R 700 /etc/knot/keys
+keymgr -c /path/to/offline-knot.conf \
+    test. sign-ksr test.ksr > test.skr
 ```
 
-Reload Knot DNS and enable DNSSEC signing for the zone:
+Transfer `test.skr` back to the online hidden primary and import it:
 
 ```bash
-knotc reload
-knotc signzone test.
+keymgr test. import-skr test.skr
+knotc zone-keys-load test.
 ```
 
-Generate the DS record for the parent zone using `keymgr`:
+Repeat the KSR/SKR procedure before the imported signing period expires and whenever the KSK configuration changes.
 
-```bash
-keymgr ds test.
-```
+> [!NOTE]
+> Namingo Zone Writer requires no changes. It continues generating the unsigned source zone while Knot DNS applies DNSSEC signatures.
 
-Configure the `Zone Writer` in Registry Automation, then run it manually once to generate and publish the initial zone file:
+### Generate the Initial Zone
+
+Configure the `Zone Writer` in Registry Automation, then run it manually once to generate the initial zone file:
 
 ```bash
 php /opt/registry/automation/write-zone.php
+```
+
+Set the resulting zone file ownership so Knot DNS can read it:
+
+```bash
+chown knot:knot /var/lib/knot/zones/test.zone
+chmod 0640 /var/lib/knot/zones/test.zone
+```
+
+Check the source zone file:
+
+```bash
+kzonecheck -v test. /var/lib/knot/zones/test.zone
+```
+
+Check the Knot DNS configuration:
+
+```bash
+knotc conf-check
+```
+
+Enable and restart Knot DNS:
+
+```bash
+systemctl enable --now knot
+systemctl restart knot
+```
+
+Check the service and logs:
+
+```bash
+systemctl status knot --no-pager
+journalctl -u knot -n 100 --no-pager
+```
+
+Check that Knot DNS can load the zone:
+
+```bash
+knotc zone-check test.
+```
+
+Reload the zone after the Zone Writer changes it:
+
+```bash
+knotc -b zone-reload test.
+```
+
+Check the zone state:
+
+```bash
+knotc zone-status test.
+```
+
+Knot DNS automatically creates the DNSSEC keys and signs the zone. A manual signing command is not required during normal operation.
+
+To force an immediate re-sign for troubleshooting, use:
+
+```bash
+knotc -b zone-sign test.
+```
+
+### DNSSEC Verification and DS Record
+
+List the automatically managed DNSSEC keys:
+
+```bash
+keymgr test. list
+```
+
+Print the DS record for the active KSK:
+
+```bash
+keymgr test. ds
+```
+
+Verify that Knot DNS serves DNSKEY and RRSIG records:
+
+```bash
+kdig @127.0.0.1 test. DNSKEY +dnssec
+kdig @127.0.0.1 test. SOA +dnssec
+```
+
+Validate the signed zone as loaded by the running server:
+
+```bash
+knotc -b zone-validate test.
 ```
 
 > [!IMPORTANT]
@@ -661,7 +994,7 @@ php /opt/registry/automation/write-zone.php
 >
 > ```bash
 > kzonecheck -v test.
-> validns test. /etc/knot/zones/test.zone
+> validns test. /var/lib/knot/zones/test.zone
 > ```
 >
 > Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
