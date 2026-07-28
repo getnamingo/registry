@@ -1,6 +1,6 @@
 # Namingo Registry: DNS Setup Guide
 
-This guide walks you through configuring the core DNS setup for your Namingo-powered registry. It includes creating a hidden master DNS server, which acts as the authoritative source for all zone data. Your TLD DNS servers (public-facing) will be configured to receive updates from this hidden master.
+This guide walks you through configuring the core DNS setup for your Namingo-powered registry. It includes creating a hidden primary DNS server, which acts as the authoritative source for all zone data. Your TLD DNS servers (public-facing) will be configured to receive updates from this hidden primary.
 
 > [!IMPORTANT]
 > This setup is **required** for correct zone publication and domain delegation under your TLD.
@@ -28,26 +28,58 @@ The hidden primary is not listed in the public TLD delegation and does not norma
 
 #### Public Authoritative Secondary
 
-In this model, BIND 9 is listed as one of the public authoritative nameservers and receives the zone through AXFR or IXFR from a primary server.
+In this model, BIND 9 is listed as one of the public authoritative nameservers and receives the zone through AXFR or IXFR from a primary server. Namingo Registry does not write zone files directly to this secondary server.
 
-The primary may be another BIND 9 server, Knot DNS, or Cascade. Namingo Registry does not write zone files directly to this secondary server.
+### BIND 9.20 Package Repository
+
+#### Ubuntu 22.04 or 24.04
+
+Add the official ISC stable BIND PPA:
+
+```bash
+apt update
+apt install -y software-properties-common ca-certificates
+add-apt-repository -y ppa:isc/bind
+apt update
+```
+
+#### Debian 12 or 13
+
+Install the repository prerequisites and ISC repository signing key:
+
+```bash
+apt update
+apt install -y lsb-release ca-certificates curl
+curl -sSLo /tmp/debsuryorg-archive-keyring.deb \
+    https://packages.sury.org/debsuryorg-archive-keyring.deb
+dpkg -i /tmp/debsuryorg-archive-keyring.deb
+```
+
+Add the ISC-maintained stable BIND repository:
+
+```bash
+echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/bind/ $(lsb_release -sc) main" \
+    > /etc/apt/sources.list.d/bind.list
+
+apt update
+```
+
+> [!CAUTION]
+> Do not use Ubuntu PPAs on Debian, and do not add the Debian repository to Ubuntu. Use only the repository matching the installed operating system.
 
 ### Installation
 
 Install the required BIND 9 packages:
 
 ```bash
-apt update
-apt install bind9 bind9-utils bind9-dnsutils
+apt install -y bind9 bind9-utils bind9-dnsutils
 ```
 
 If you will use HSM key storage, also install:
 
 ```bash
-apt install softhsm2 opensc libengine-pkcs11-openssl
+apt install -y softhsm2 opensc pkcs11-provider
 ```
-
-### Directory and File Layout
 
 ### Configuration
 
@@ -140,6 +172,13 @@ logging {
 };
 ```
 
+Ensure that the BIND directories exist and are accessible to the `bind` service account:
+
+```bash
+install -d -o bind -g bind -m 0750 /var/lib/bind
+install -d -o bind -g bind -m 0750 /var/lib/bind/keys
+```
+
 #### Zone Configuration
 
 > [!IMPORTANT]
@@ -151,7 +190,7 @@ Edit `/etc/bind/named.conf.local` and add the following zone definition:
 
 ```bash
 zone "test." {
-    type master;
+    type primary;
     file "/var/lib/bind/test.zone";
     allow-transfer { key "test.key"; };
     also-notify { <secondary-server-IP>; };
@@ -166,7 +205,7 @@ Edit `/etc/bind/named.conf.local` and add the following zone definition:
 
 ```bash
 zone "test." {
-    type master;
+    type primary;
     file "/var/lib/bind/test.zone";
     dnssec-policy "namingo-policy";
     key-directory "/var/lib/bind";
@@ -196,36 +235,146 @@ dnssec-policy "namingo-policy" {
 
 ##### Option 3: BIND 9 With DNSSEC Keys Stored in an HSM
 
-Edit `/etc/bind/named.conf.options` and add the following configuration:
+Initialize a SoftHSM token:
 
 ```bash
-options {
-    // Existing options...
-    dnssec-policy "hsm-policy";
-};
+softhsm2-util --init-token --free --label NamingoHSM
 ```
 
-Edit `/etc/bind/named.conf.local` and add the following zone definition:
+You will be prompted to set:
+
+- an SO PIN, used for token administration;
+- a user PIN, used by BIND to access the token.
+
+Store the **user PIN** in a protected file:
 
 ```bash
-zone "test." {
-    type master;
-    file "/var/lib/bind/test.zone";
-    dnssec-policy "hsm-policy";
-    inline-signing yes;
-    allow-transfer { key "test.key"; };
-    also-notify { <secondary-server-IP>; };
-};
+install -o root -g bind -m 0640 /dev/null /etc/bind/softhsm-pin
+printf '%s\n' '<HSM-user-PIN>' > /etc/bind/softhsm-pin
 ```
 
-Add the following DNSSEC policy:
+Replace `<HSM-user-PIN>` with the user PIN assigned during token initialization.
+
+Allow the `bind` service account to access SoftHSM:
 
 ```bash
+usermod -aG softhsm bind
+```
+
+Locate the SoftHSM PKCS#11 module:
+
+```bash
+dpkg -L libsofthsm2 | grep 'libsofthsm2\.so$'
+```
+
+The usual path on Debian and Ubuntu is:
+
+```text
+/usr/lib/softhsm/libsofthsm2.so
+```
+
+Locate the OpenSSL PKCS#11 provider module:
+
+```bash
+dpkg -L pkcs11-provider | grep 'pkcs11\.so$'
+```
+
+Create a dedicated OpenSSL configuration for BIND:
+
+```bash
+cp /etc/ssl/openssl.cnf /etc/bind/openssl-pkcs11.cnf
+```
+
+Ensure that the following line appears near the beginning of `/etc/bind/openssl-pkcs11.cnf`, before any section declarations:
+
+```ini
+openssl_conf = openssl_init
+```
+
+Add the following sections at the end of the file:
+
+```ini
+[openssl_init]
+providers = provider_init
+
+[provider_init]
+default = default_init
+pkcs11 = pkcs11_init
+
+[default_init]
+activate = 1
+
+[pkcs11_init]
+module = /usr/lib/x86_64-linux-gnu/ossl-modules/pkcs11.so
+pkcs11-module-path = /usr/lib/softhsm/libsofthsm2.so
+pkcs11-module-load-behavior = early
+pkcs11-module-quirks = no-deinit
+pkcs11-module-token-pin = file:/etc/bind/softhsm-pin
+activate = 1
+```
+
+> [!NOTE]
+> The provider module path may differ by distribution and architecture. Use the path returned by:
+>
+> ```bash
+> dpkg -L pkcs11-provider | grep 'pkcs11\.so$'
+> ```
+
+Test that OpenSSL can load the provider:
+
+```bash
+OPENSSL_CONF=/etc/bind/openssl-pkcs11.cnf openssl list -providers
+```
+
+The output should include both `default` and `pkcs11`.
+
+Verify that the `bind` service account can access the token:
+
+```bash
+sudo -u bind pkcs11-tool \
+    --module /usr/lib/softhsm/libsofthsm2.so \
+    --list-token-slots
+```
+
+Create a persistent systemd override for BIND:
+
+```bash
+systemctl edit bind9
+```
+
+Add:
+
+```ini
+[Service]
+Environment="OPENSSL_CONF=/etc/bind/openssl-pkcs11.cnf"
+```
+
+Reload systemd:
+
+```bash
+systemctl daemon-reload
+```
+
+Add the following top-level key store and DNSSEC policy to `/etc/bind/named.conf.local`:
+
+```bash
+key-store "namingo-hsm" {
+    directory "/var/lib/bind/keys";
+    pkcs11-uri "pkcs11:token=NamingoHSM";
+};
+
 dnssec-policy "hsm-policy" {
     keys {
-        ksk lifetime P1Y algorithm ecdsap256sha256;
-        zsk lifetime P2M algorithm ecdsap256sha256;
+        ksk key-store "namingo-hsm"
+            lifetime P1Y
+            algorithm ecdsap256sha256;
+
+        zsk key-store "namingo-hsm"
+            lifetime P2M
+            algorithm ecdsap256sha256;
     };
+    nsec3param iterations 0 optout false salt-length 0;
+    publish-safety 7d;
     max-zone-ttl 86400;
     dnskey-ttl 3600;
     zone-propagation-delay 3600;
@@ -234,28 +383,37 @@ dnssec-policy "hsm-policy" {
 };
 ```
 
-Execute the following steps as well:
+Edit `/etc/bind/named.conf.local` and add the following zone definition:
 
 ```bash
-softhsm2-util --init-token --slot 0 --label YourTokenLabel
-export PKCS11_PROVIDER=/usr/lib/softhsm/libsofthsm2.so
-systemctl restart bind9
+zone "test." {
+    type primary;
+    file "/var/lib/bind/test.zone";
+    dnssec-policy "hsm-policy";
+
+    allow-transfer {
+        key "test.key";
+    };
+
+    also-notify {
+        <secondary-server-IP>;
+    };
+};
 ```
 
-BIND will automatically generate keys within the device when configured correctly:
+BIND will automatically generate the KSK and ZSK inside the configured PKCS#11 token and create the corresponding BIND key metadata files under `/var/lib/bind/keys`.
+
+List the objects stored in SoftHSM:
 
 ```bash
-rndc loadkeys your.tld
-rndc signing -list your.tld
+pkcs11-tool \
+    --module /usr/lib/softhsm/libsofthsm2.so \
+    --login \
+    --token-label NamingoHSM \
+    --list-objects
 ```
 
-You can verify the keys with tools provided by your HSM vendor or via standard PKCS#11 utilities:
-
-```bash
-softhsm2-util --show-slots
-or
-pkcs11-tool --list-objects --login --token-label YourTokenLabel
-```
+The command will prompt for the token user PIN.
 
 ---
 
@@ -264,17 +422,24 @@ pkcs11-tool --list-objects --login --token-label YourTokenLabel
 >
 > In **Control Panel → TLD Management**, click **Enable DNSSEC**. After the keys are created, the corresponding **DS record** will appear on the same page. Submit that DS record to **IANA** or to the parent registry to complete the chain of trust.
 
-Ensure that the BIND zone directory exists and is accessible to the `bind` service:
-
-```bash
-install -d -o bind -g bind -m 0750 /var/lib/bind
-```
-
-Validate the BIND configuration and load the new zone definition:
+Check the complete BIND configuration before restarting the service:
 
 ```bash
 named-checkconf
-rndc reconfig
+named-checkzone test. /var/lib/bind/test.zone
+```
+
+Restart BIND:
+
+```bash
+systemctl restart bind9
+```
+
+Check the service and recent log entries:
+
+```bash
+systemctl status bind9 --no-pager
+journalctl -u bind9 -n 100 --no-pager
 ```
 
 Configure the `Zone Writer` in Registry Automation, then run it manually once to generate and publish the initial zone file:
