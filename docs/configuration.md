@@ -64,21 +64,32 @@ To apply your changes, save the file, refresh the control panel, and clear the c
 
 #### 1.3.3. WebAuthn Authentication
 
-To enable WebAuthn authentication in the Control Panel, follow these steps:
+1. Generate a secure secret and copy the resulting value:
 
-1. Edit the environment configuration file located at: `/var/www/cp/.env`
+   ```bash
+   php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
+   ```
 
-2. Find or add the following line:
+2. Edit the control panel configuration file:
 
-```bash
-WEB_AUTHN_ENABLED=true
-```
+   ```bash
+   nano /var/www/cp/.env
+   ```
 
-3. Save the changes and reload the server (Caddy) using the following command:
+3. Add the following lines, replacing `generated-secret` with the value generated in step 1:
 
-```bash
-sudo systemctl reload caddy
-```
+   ```env
+   WEB_AUTHN_ENABLED=true
+   WEBAUTHN_DUMMY_SECRET='generated-secret'
+   ```
+
+4. Save the changes and clear the application cache:
+
+   ```bash
+   php /var/www/cp/bin/clear_cache.php
+   ```
+
+WebAuthn requires HTTPS and the configured `APP_URL` and `APP_DOMAIN` values must match the public control panel address.
 
 #### 1.3.4. Password Policy Documentation
 
@@ -116,7 +127,7 @@ Add usernames separated by commas. These accounts will **not be subject to passw
 
 **How to Apply Changes**
 - Edit the `.env` file located at `/var/www/cp/.env`
-- Save the file and restart Caddy if necessary.
+- Save the file and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php`
 
 #### 1.3.5. Setting Up Redis Session Storage
 

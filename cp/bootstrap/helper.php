@@ -75,6 +75,29 @@ function envi($var, $default=null)
     return $default;
 }
 
+function validateWebAuthnClientData(string $encodedClientData): string
+{
+    $clientDataJSON = base64_decode($encodedClientData, true);
+    if ($clientDataJSON === false) {
+        throw new \InvalidArgumentException('Invalid WebAuthn client data.');
+    }
+
+    $clientData = json_decode($clientDataJSON, true, 512, JSON_THROW_ON_ERROR);
+    $expectedOrigin = rtrim((string) envi('APP_URL'), '/');
+
+    if (
+        !is_array($clientData)
+        || !isset($clientData['origin'])
+        || !hash_equals($expectedOrigin, $clientData['origin'])
+        || ($clientData['crossOrigin'] ?? false) !== false
+        || isset($clientData['topOrigin'])
+    ) {
+        throw new \InvalidArgumentException('Invalid WebAuthn origin.');
+    }
+
+    return $clientDataJSON;
+}
+
 /**
  * Start session
  */

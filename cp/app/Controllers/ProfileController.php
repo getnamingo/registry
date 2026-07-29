@@ -14,9 +14,10 @@ class ProfileController extends Controller
     private $webAuthn;
 
     public function __construct() {
-        $rpName = 'Namingo';
-        $rpId = envi('APP_DOMAIN');
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['android-key', 'android-safetynet', 'apple', 'fido-u2f', 'packed', 'tpm']);
+        $this->webAuthn = null;
+        if (envi('WEB_AUTHN_ENABLED') === 'true') {
+            $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn('Namingo', envi('APP_DOMAIN'));
+        }
     }
 
     public function profile(Request $request, Response $response)
@@ -72,9 +73,9 @@ class ProfileController extends Controller
         $isWebAuthnEnabled = (envi('WEB_AUTHN_ENABLED') === 'true') ? true : false;
 
         if ($is_2fa_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'isWebaEnabled' => false]);
         } else if ($is_weba_activated) {
-            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated]);
+            return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'weba' => $is_weba_activated, 'isWebaEnabled' => $isWebAuthnEnabled]);
         } else {
             return view($response,'admin/profile/profile.twig',['email' => $email, 'username' => $username, 'status' => $status, 'role' => $role, 'qrcodeDataUri' => $qrcodeDataUri, 'secret' => $secret, 'csrf_name' => $csrfName, 'csrf_value' => $csrfValue, 'isWebaEnabled' => $isWebAuthnEnabled]);
         }
@@ -153,40 +154,87 @@ class ProfileController extends Controller
 
     public function getRegistrationChallenge(Request $request, Response $response)
     {
+        global $container;
+
+        if ($this->webAuthn === null) {
+            $response->getBody()->write(json_encode(['success' => false, 'msg' => 'WebAuthn is disabled.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
         $userName = $_SESSION['auth_username'];
         $userEmail = $_SESSION['auth_email'];
         $userId = $_SESSION['auth_user_id'];
+        $registrations = $container->get('db')->select(
+            'SELECT credential_id FROM users_webauthn WHERE user_id = ?',
+            [$userId]
+        ) ?: [];
+        $credentialIds = [];
+        foreach ($registrations as $registration) {
+            $credentialId = base64_decode($registration['credential_id'], true);
+            if ($credentialId !== false) {
+                $credentialIds[] = $credentialId;
+            }
+        }
+
         $hexUserId = dechex($userId);
         // Ensure even length for the hexadecimal string
         if(strlen($hexUserId) % 2 != 0){
             $hexUserId = '0' . $hexUserId;
         }
-        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*4, false, 'discouraged', null);
+        $createArgs = $this->webAuthn->getCreateArgs(\hex2bin($hexUserId), $userEmail, $userName, 60*5, 'preferred', 'required', null, $credentialIds);
 
         $response->getBody()->write(json_encode($createArgs));
-        $_SESSION["challenge"] = ($this->webAuthn->getChallenge())->getBinaryString();
+        $_SESSION['webauthn_registration'] = [
+            'challenge' => ($this->webAuthn->getChallenge())->getBinaryString(),
+            'user_id' => $userId,
+            'expires_at' => time() + 300
+        ];
         
-        return $response->withHeader('Content-Type', 'application/json');
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Cache-Control', 'no-store');
     }
     
     public function verifyRegistration(Request $request, Response $response)
     {
         global $container;
-        $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
-        $userName = $_SESSION['auth_username'];
-        $userEmail = $_SESSION['auth_email'];
-        $userId = $_SESSION['auth_user_id'];
 
         try {
+            if ($this->webAuthn === null) {
+                throw new \RuntimeException('WebAuthn is disabled.');
+            }
+
+            $ceremony = $_SESSION['webauthn_registration'] ?? null;
+            unset($_SESSION['webauthn_registration']);
+
+            $userName = $_SESSION['auth_username'];
+            $userEmail = $_SESSION['auth_email'];
+            $userId = $_SESSION['auth_user_id'];
+            if (
+                !is_array($ceremony)
+                || (int) ($ceremony['user_id'] ?? 0) !== (int) $userId
+                || (int) ($ceremony['expires_at'] ?? 0) < time()
+            ) {
+                throw new \RuntimeException('WebAuthn registration challenge is invalid or expired.');
+            }
+
+            $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
+
             // Decode the incoming data
-            $clientDataJSON = base64_decode($data->clientDataJSON);
-            $attestationObject = base64_decode($data->attestationObject);
+            $clientDataJSON = validateWebAuthnClientData((string) ($data->clientDataJSON ?? ''));
+            $attestationObject = base64_decode((string) ($data->attestationObject ?? ''), true);
+            if ($attestationObject === false) {
+                throw new \InvalidArgumentException('Invalid WebAuthn attestation data.');
+            }
 
             // Retrieve the challenge from the session
-            $challenge = $_SESSION['challenge'];
+            $challenge = $ceremony['challenge'];
 
             // Process the WebAuthn response
-            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, 'discouraged', true, false);
+            $credential = $this->webAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, true, true, false);
+            if (strlen($credential->credentialId) > 1023) {
+                throw new \RuntimeException('WebAuthn credential ID is too long.');
+            }
 
             // add user infos
             $credential->userId = $userId;
@@ -196,26 +244,38 @@ class ProfileController extends Controller
             // Store the credential data in the database
             $db = $container->get('db');
             $counter = is_null($credential->signatureCounter) ? 0 : $credential->signatureCounter;
-            $db->insert(
-                'users_webauthn',
-                [
-                    'user_id' => $userId,
-                    'credential_id' => base64_encode($credential->credentialId),
-                    'public_key' => $credential->credentialPublicKey,
-                    'attestation_object' => base64_encode($attestationObject),
-                    'user_agent' => $_SERVER['HTTP_USER_AGENT'],
-                    'sign_count' => $counter
-                ]
-            );
-            $db->update(
-                'users',
-                [
-                    'auth_method' => 'webauthn'
-                ],
-                [
-                    'id' => $userId
-                ]
-            );
+            $credentialId = base64_encode($credential->credentialId);
+            if ($db->selectValue('SELECT id FROM users_webauthn WHERE credential_id = ? LIMIT 1', [$credentialId])) {
+                throw new \RuntimeException('This WebAuthn credential is already registered.');
+            }
+
+            $db->beginTransaction();
+            try {
+                $db->insert(
+                    'users_webauthn',
+                    [
+                        'user_id' => $userId,
+                        'credential_id' => $credentialId,
+                        'public_key' => $credential->credentialPublicKey,
+                        'attestation_object' => base64_encode($attestationObject),
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                        'sign_count' => $counter
+                    ]
+                );
+                $db->update(
+                    'users',
+                    [
+                        'auth_method' => 'webauthn'
+                    ],
+                    [
+                        'id' => $userId
+                    ]
+                );
+                $db->commit();
+            } catch (\Throwable $e) {
+                $db->rollBack();
+                throw $e;
+            }
 
             $msg = 'Registration success.';
             if ($credential->rootValid === false) {
@@ -229,9 +289,9 @@ class ProfileController extends Controller
             // Send success response
             $response->getBody()->write(json_encode($return));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Handle error, return an appropriate response
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            $response->getBody()->write(json_encode(['success' => false, 'msg' => $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
     }

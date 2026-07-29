@@ -21,8 +21,8 @@
             const createArgs = await rep.json();
 
             // error handling
-            if (createArgs.success === false) {
-                throw new Error(createArgs.msg || 'unknown error occured');
+            if (!rep.ok || createArgs.success === false) {
+                throw new Error(createArgs.msg || 'Unknown error occurred');
             }
 
             // replace binary base64 data with ArrayBuffer. a other way to do this
@@ -42,6 +42,7 @@
             // check auth on server side
             rep = await window.fetch('/webauthn/register/verify', {
                 method  : 'POST',
+                headers : {'Content-Type': 'application/json'},
                 body    : JSON.stringify(authenticatorAttestationResponse),
                 cache   : 'no-cache'
             });
@@ -61,20 +62,14 @@
                     }
                 });
             } else {
-                throw new Error(authenticatorAttestationServerResponse.msg);
+                throw new Error(authenticatorAttestationServerResponse.msg || 'Registration failed');
             }
 
         } catch (err) {
             Swal.fire({
               title: 'WebAuthn Passkey',
-              text: err.message || 'Unknown error occured',
+              text: err.message || 'Unknown error occurred',
               icon: "error"
-            }).then((result) => {
-                // Checks if the result is successful (user clicked "OK")
-                if (result.value) {
-                    // Reload the page
-                    location.reload();
-                }
             });
         }
 

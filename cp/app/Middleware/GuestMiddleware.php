@@ -11,12 +11,15 @@ use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
  */
 class GuestMiddleware extends Middleware
 {
-	public function __invoke(Request $request, RequestHandler $handler)
-	{
+    public function __invoke(Request $request, RequestHandler $handler)
+    {
         $response = $handler->handle($request);
-		if($this->container->get('auth')->isLogin()) {
-		    return redirect()->route('home');
-		}
+        if (
+            $this->container->get('auth')->isLogin()
+            && $request->getUri()->getPath() !== '/webauthn/login/verify'
+        ) {
+            return redirect()->route('home');
+        }
         return $response;
-	}
+    }
 }

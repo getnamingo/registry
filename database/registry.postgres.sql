@@ -607,7 +607,7 @@ CREATE INDEX IF NOT EXISTS "expires_at" ON users_throttling ("expires_at");
 CREATE TABLE IF NOT EXISTS users_webauthn (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL,
-    "credential_id" BYTEA NOT NULL,
+    "credential_id" BYTEA NOT NULL UNIQUE,
     "public_key" TEXT NOT NULL,
     "attestation_object" BYTEA,
     "sign_count" BIGINT NOT NULL,

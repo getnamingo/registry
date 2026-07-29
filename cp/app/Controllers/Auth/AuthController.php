@@ -19,9 +19,10 @@ class AuthController extends Controller
     private $webAuthn;
 
     public function __construct() {
-        $rpName = 'Namingo';
-        $rpId = envi('APP_DOMAIN');
-        $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn($rpName, $rpId, ['android-key', 'android-safetynet', 'apple', 'fido-u2f', 'packed', 'tpm']);
+        $this->webAuthn = null;
+        if (envi('WEB_AUTHN_ENABLED') === 'true') {
+            $this->webAuthn = new \lbuchs\WebAuthn\WebAuthn('Namingo', envi('APP_DOMAIN'));
+        }
     }
 
     /**
@@ -159,91 +160,201 @@ class AuthController extends Controller
     {
         global $container;
 
-        $ids = [];
-        $rawData = $request->getBody();
-        $data = json_decode($rawData, true);
-
         try {
-            $db = $container->get('db');
-            $userId = $db->selectValue('SELECT id FROM users WHERE email = ?', [$data['email']]);
-
-            if ($userId) {
-                // User found, get the user ID
-                $registrations = $db->select('SELECT id, credential_id FROM users_webauthn WHERE user_id = ?', [$userId]);
-            
-                if ($registrations) {
-                    foreach ($registrations as $reg) {
-                        $ids[] = base64_decode($reg['credential_id']);
-                    }
-                }
-
-                if (count($ids) === 0) {
-                    $response->getBody()->write(json_encode(['error' => 'no registrations in session for userId ' . $userId]));
-                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-                }
-            } else {
-                $response->getBody()->write(json_encode(['error' => 'No user found with the provided email.']));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            if ($this->webAuthn === null) {
+                throw new \RuntimeException('WebAuthn is disabled.');
             }
-        } catch (PDOException $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+
+            $data = json_decode($request->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            $email = trim((string) ($data['email'] ?? ''));
+            if ($email === '') {
+                throw new \InvalidArgumentException('Enter your email address first.');
+            }
+
+            $db = $container->get('db');
+            $userId = $db->selectValue(
+                'SELECT id FROM users WHERE email = ? AND status = 0 AND verified = 1 AND auth_method = ?',
+                [$email, 'webauthn']
+            );
+
+            $registrations = $userId
+                ? ($db->select(
+                    'SELECT credential_id FROM users_webauthn WHERE user_id = ?',
+                    [$userId]
+                ) ?: [])
+                : [];
+
+            $ids = [];
+            $encodedIds = [];
+
+            foreach ($registrations as $registration) {
+                $id = base64_decode($registration['credential_id'], true);
+
+                if ($id !== false && strlen($id) <= 1023) {
+                    $ids[] = $id;
+                    $encodedIds[] = $registration['credential_id'];
+                }
+            }
+
+            /*
+             * Return a plausible imaginary credential when the account or its
+             * WebAuthn registration does not exist.
+             */
+            if (count($ids) === 0) {
+                $dummySecret = (string) envi('WEBAUTHN_DUMMY_SECRET');
+
+                if (strlen($dummySecret) < 32) {
+                    throw new \RuntimeException('WebAuthn dummy secret is not configured.');
+                }
+
+                $dummyId = hash_hmac(
+                    'sha512',
+                    strtolower($email) . "\0" . envi('APP_DOMAIN'),
+                    $dummySecret,
+                    true
+                );
+
+                $ids = [$dummyId];
+                $encodedIds = [base64_encode($dummyId)];
+                $userId = 0;
+            }
+
+            $getArgs = $this->webAuthn->getGetArgs($ids, 60*5, true, true, true, true, true, 'required');
+
+            $_SESSION['webauthn_login'] = [
+                'challenge' => ($this->webAuthn->getChallenge())->getBinaryString(),
+                'user_id' => $userId,
+                'credential_ids' => $encodedIds,
+                'expires_at' => time() + 300
+            ];
+
+            $response->getBody()->write(json_encode($getArgs));
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Cache-Control', 'no-store');
+        } catch (\Throwable $e) {
+            error_log('WebAuthn challenge failed: ' . $e->getMessage());
+
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'msg' => 'Unable to start WebAuthn login.'
+            ]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
-
-        $getArgs = $this->webAuthn->getGetArgs($ids[0], 60*4, true, true, true, true, true, 'discouraged');
-
-        $response->getBody()->write(json_encode($getArgs));
-        $_SESSION['challenge'] = ($this->webAuthn->getChallenge())->getBinaryString();
-
-        return $response->withHeader('Content-Type', 'application/json');
     }
-    
+
     public function verifyLogin(Request $request, Response $response)
     {
         global $container;
-        
-        $challenge = $_SESSION['challenge'];
-        $credentialPublicKey = null;
-        
-        $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
 
         try {
+            if ($this->webAuthn === null) {
+                throw new \RuntimeException('WebAuthn is disabled.');
+            }
+
+            $ceremony = $_SESSION['webauthn_login'] ?? null;
+            unset($_SESSION['webauthn_login']);
+            if (
+                !is_array($ceremony)
+                || empty($ceremony['challenge'])
+                || (int) ($ceremony['expires_at'] ?? 0) < time()
+            ) {
+                throw new \RuntimeException('WebAuthn login challenge is invalid or expired.');
+            }
+
+            $data = json_decode($request->getBody()->getContents(), null, 512, JSON_THROW_ON_ERROR);
+
             // Decode the incoming data
-            $clientDataJSON = base64_decode($data->clientDataJSON);
-            $authenticatorData = base64_decode($data->authenticatorData);
-            $signature = base64_decode($data->signature);
-            $userHandle = base64_decode($data->userHandle);
-            $id = $data->id;
+            $clientDataJSON = validateWebAuthnClientData((string) ($data->clientDataJSON ?? ''));
+            $authenticatorData = base64_decode((string) ($data->authenticatorData ?? ''), true);
+            $signature = base64_decode((string) ($data->signature ?? ''), true);
+            $id = (string) ($data->id ?? '');
+            $rawId = base64_decode($id, true);
+            if ($authenticatorData === false || $signature === false || $rawId === false || strlen($rawId) > 1023) {
+                throw new \InvalidArgumentException('Invalid WebAuthn assertion data.');
+            }
+            if (!in_array($id, $ceremony['credential_ids'] ?? [], true)) {
+                throw new \RuntimeException('Credential was not allowed for this login.');
+            }
 
             $db = $container->get('db');
-            $credentials = $db->select('SELECT * FROM users_webauthn WHERE credential_id = ?', [$id]);
+            $credential = $db->selectRow(
+                'SELECT * FROM users_webauthn WHERE credential_id = ? AND user_id = ?',
+                [$id, $ceremony['user_id']]
+            );
+            if (!$credential) {
+                throw new \RuntimeException('Public key for credential ID not found.');
+            }
 
-            if ($credentials) {
-                foreach ($credentials as $reg) {
-                    if ($reg['credential_id'] === $id) {
-                        $credentialPublicKey = $reg['public_key'];
-                        $user_id = $reg['user_id'];
-                        break;
-                    }
+            if (isset($data->userHandle) && $data->userHandle !== null) {
+                $userHandle = base64_decode((string) $data->userHandle, true);
+                $hexUserId = dechex((int) $ceremony['user_id']);
+                if (strlen($hexUserId) % 2 !== 0) {
+                    $hexUserId = '0' . $hexUserId;
+                }
+                if ($userHandle === false || !hash_equals(hex2bin($hexUserId), $userHandle)) {
+                    throw new \RuntimeException('WebAuthn user handle does not match.');
                 }
             }
 
-            if ($credentialPublicKey === null) {
-                throw new \Exception('Public Key for credential ID not found!');
-            }
-
             // process the get request. throws WebAuthnException if it fails
-            $this->webAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, 'discouraged');       
+            $this->webAuthn->processGet(
+                $clientDataJSON,
+                $authenticatorData,
+                $signature,
+                $credential['public_key'],
+                $ceremony['challenge'],
+                (int) $credential['sign_count'],
+                true
+            );
 
             $return = array();
             $return['success'] = true;
             $return['msg'] = "Authentication successful.";
+            $return['redirect'] = '/dashboard';
 
             if($return['success']===true) {
                 // Send success response
-                $user = $db->selectRow('SELECT * FROM users WHERE id = ?', [$user_id]);
+                $user = $db->selectRow(
+                    'SELECT * FROM users WHERE id = ? AND status = 0 AND verified = 1 AND auth_method = ?',
+                    [$ceremony['user_id'], 'webauthn']
+                );
+                if (!$user) {
+                    throw new \RuntimeException('WebAuthn is unavailable for this account.');
+                }
 
-                session_regenerate_id();
+                $currentDateTime = new \DateTime();
+                $currentDate = $currentDateTime->format('Y-m-d H:i:s.v');
+                $credentialUpdate = ['last_used_at' => $currentDate];
+                $signatureCounter = $this->webAuthn->getSignatureCounter();
+                if ($signatureCounter !== null) {
+                    $credentialUpdate['sign_count'] = $signatureCounter;
+                }
+
+                $db->beginTransaction();
+                try {
+                    $db->update('users_webauthn', $credentialUpdate, ['id' => $credential['id']]);
+                    $db->update('users', ['last_login' => time()], ['id' => $user['id']]);
+                    $db->insert(
+                        'users_audit',
+                        [
+                            'user_id' => $user['id'],
+                            'user_event' => 'user.login.webauthn',
+                            'user_resource' => 'control.panel',
+                            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                            'user_ip' => get_client_ip(),
+                            'user_location' => get_client_location(),
+                            'event_time' => $currentDate,
+                            'user_data' => null
+                        ]
+                    );
+                    $db->commit();
+                } catch (\Throwable $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
+
+                session_regenerate_id(true);
                 $_SESSION['auth_logged_in'] = true;
                 $_SESSION['auth_user_id'] = $user['id'];
                 $_SESSION['auth_email'] = $user['email'];
@@ -254,35 +365,19 @@ class AuthController extends Controller
                 $_SESSION['auth_remembered'] = 0;
                 $_SESSION['auth_last_resync'] = \time();
 
-                $db = $container->get('db');
-                $currentDateTime = new \DateTime();
-                $currentDate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
-                $db->insert(
-                    'users_audit',
-                    [
-                        'user_id' => $_SESSION['auth_user_id'],
-                        'user_event' => 'user.login.webauthn',
-                        'user_resource' => 'control.panel',
-                        'user_agent' => $_SERVER['HTTP_USER_AGENT'],
-                        'user_ip' => get_client_ip(),
-                        'user_location' => get_client_location(),
-                        'event_time' => $currentDate,
-                        'user_data' => null
-                    ]
-                );
                 $response->getBody()->write(json_encode($return));
                 return $response->withHeader('Content-Type', 'application/json');
             } else {
                 $response->getBody()->write(json_encode($return));
                 return $response->withHeader('Content-Type', 'application/json');
             }
-        } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['msg' => $e->getMessage()]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        } catch (WebAuthnException $e) {
-            $return = array();
-            $return['success'] = false;
-            $response->getBody()->write(json_encode(['msg' => "Authentication failed: " . $e->getMessage()]));
+        } catch (\Throwable $e) {
+            error_log('WebAuthn authentication failed: ' . $e->getMessage());
+
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'msg' => 'Authentication failed.'
+            ]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
     }

@@ -708,7 +708,7 @@ CREATE INDEX IF NOT EXISTS idx_users_throttling_expires_at ON users_throttling(e
 CREATE TABLE IF NOT EXISTS users_webauthn (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    credential_id BLOB NOT NULL,
+    credential_id BLOB NOT NULL UNIQUE,
     public_key TEXT NOT NULL,
     attestation_object BLOB,
     sign_count INTEGER NOT NULL,

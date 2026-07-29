@@ -261,7 +261,9 @@
                                 <p class="text-muted mb-2">{{ __('WebAuthn is currently') }} <strong>{{ __('enabled') }}</strong> {{ __('for your account. If you encounter any issues or need to disable WebAuthn, please contact our support team for assistance.') }}</p>
                               </div>
                             </div>
-                            <button type="button" class="btn btn-primary mt-4" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
+                            {% if isWebaEnabled %}
+                              <button type="button" class="btn btn-primary mt-4" id="connectWebAuthnButton">{{ __('Connect WebAuthn Device') }}</button>
+                            {% endif %}
                             <div class="table-responsive mt-4">
                               <table class="table table-striped">
                                 <thead>

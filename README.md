@@ -99,7 +99,10 @@ After installation, be sure to review all the guides in the Documentation sectio
 > [!IMPORTANT]
 > Upgrade scripts **must be run sequentially** without skipping versions.
 >
-> For example, to upgrade from **v1.0.26** to **v1.0.28**, first run the **v1.0.27** upgrade, then the **v1.0.28** upgrade.
+> For example, to upgrade from **v1.0.27** to **v1.0.29**, first run the **v1.0.28** upgrade, then the **v1.0.29** upgrade.
+
+- **v1.0.28 → v1.0.29**  
+  Download and run the [`update1029.sh`](docs/update1029.sh) script.
 
 - **v1.0.27 → v1.0.28**  
   Download and run the [`update1028.sh`](docs/update1028.sh) script.
@@ -107,9 +110,6 @@ After installation, be sure to review all the guides in the Documentation sectio
 - **v1.0.26 → v1.0.27**  
   Download and run the [`update1027.sh`](docs/update1027.sh) script.
   
-- **v1.0.25 → v1.0.26**  
-  Download and run the [`update1026.sh`](docs/update1026.sh) script.
-
 For **older versions**, please refer to [`upgrade.md`](docs/upgrade.md).
 
 ### [Configuration Guide](docs/configuration.md) [Required]

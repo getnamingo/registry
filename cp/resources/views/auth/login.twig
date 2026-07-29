@@ -16,7 +16,7 @@
             {{ csrf.field | raw }}
               <div class="mb-3">
                 <label class="form-label">Email address</label>
-                <input name="email" type="text" class="form-control" placeholder="your@email.com" autocomplete="off" autocapitalize="none">
+                <input name="email" type="text" class="form-control" placeholder="your@email.com" autocomplete="username" autocapitalize="none">
               </div>
               <div class="mb-3">
                 <label class="form-label">
@@ -70,8 +70,11 @@ document.addEventListener('DOMContentLoaded', function() {
 {% if isWebaEnabled %}
     loginButton.addEventListener('click', async function() {
         try {
-            if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
+            if (!window.fetch || !navigator.credentials || !navigator.credentials.get) {
                 throw new Error('Browser not supported.');
+            }
+            if (!emailInput.value.trim()) {
+                throw new Error('Enter your email address first.');
             }
 
             // get check args
@@ -86,8 +89,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const getArgs = await rep.json();
 
             // error handling
-            if (getArgs.success === false) {
-                throw new Error(getArgs.msg);
+            if (!rep.ok || getArgs.success === false) {
+                throw new Error(getArgs.msg || 'Unable to start WebAuthn login');
             }
 
             // replace binary base64 data with ArrayBuffer. a other way to do this
@@ -109,42 +112,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // send to server
             rep = await window.fetch('/webauthn/login/verify', {
                 method:'POST',
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(authenticatorAttestationResponse),
                 cache:'no-cache'
             });
             
-            // Check the Content-Type of the response
-            const contentType = rep.headers.get('Content-Type');
-
-            if (contentType && contentType.includes('application/json')) {
-                // If the response is JSON, proceed with parsing
-                const authenticatorAttestationServerResponse = await rep.json();
-
-                // check server response
-                if (authenticatorAttestationServerResponse.success) {
-                    Swal.fire({
-                      title: 'WebAuthn Login',
-                      text: authenticatorAttestationServerResponse.msg || 'Login success',
-                      icon: "success"
-                    });
-                } else {
-                    Swal.fire({
-                      title: 'WebAuthn Login',
-                      text: authenticatorAttestationServerResponse.msg,
-                      icon: "error"
-                    });
-                }
-            } else if (contentType && (contentType.includes('text/html') || contentType.includes('application/xhtml+xml'))) {
-                // If the response is HTML, redirect to /dashboard
-                window.location.href = '/dashboard';
-            } else {
-                // Handle other content types or unexpected responses
-                console.error('Unexpected response type:', contentType);
+            const authenticatorAttestationServerResponse = await rep.json();
+            if (!rep.ok || !authenticatorAttestationServerResponse.success) {
+                throw new Error(authenticatorAttestationServerResponse.msg || 'Authentication failed');
             }
+            window.location.href = authenticatorAttestationServerResponse.redirect || '/dashboard';
         } catch (err) {
             Swal.fire({
               title: 'WebAuthn Login',
-              text: err.message || 'Unknown error occured',
+              text: err.message || 'Unknown error occurred',
               icon: "error"
             });
         }
