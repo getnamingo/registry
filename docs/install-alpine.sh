@@ -85,7 +85,6 @@ echo "System meets the minimum requirements. Proceeding with installation..."
 REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
 YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
-YOUR_EMAIL=$(prompt_for_input "Enter your email for TLS")
 DB_USER=$(prompt_for_input "Enter database user")
 DB_PASSWORD=$(prompt_for_password "Enter database password")
 echo ""  # newline after password input
@@ -219,7 +218,6 @@ rdap.${REGISTRY_DOMAIN} {
     reverse_proxy localhost:7500
     encode zstd gzip
     file_server
-    tls ${YOUR_EMAIL}
     header -Server
     log {
         output file /var/log/namingo/web-rdap.log {
@@ -250,7 +248,6 @@ whois.${REGISTRY_DOMAIN} {
     encode zstd gzip
     php_fastcgi 127.0.0.1:9000
     file_server
-    tls ${YOUR_EMAIL}
     header -Server
     log {
         output file /var/log/namingo/web-whois.log {
@@ -277,7 +274,6 @@ cp.${REGISTRY_DOMAIN} {
     php_fastcgi 127.0.0.1:9000
     encode zstd gzip
     file_server
-    tls ${YOUR_EMAIL}
     header -Server
     log {
         output file /var/log/namingo/web-cp.log {
@@ -297,7 +293,7 @@ cp.${REGISTRY_DOMAIN} {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         X-XSS-Protection "1; mode=block"
-        Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://rsms.me; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/; form-action 'self'; worker-src 'none'; frame-src 'none';"
+        Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; connect-src 'self'; img-src https: data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; form-action 'self'; worker-src 'none'; frame-src 'none';"
         Feature-Policy "accelerometer 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'self'; usb 'none';"
         Permissions-Policy "accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=()"
     }
