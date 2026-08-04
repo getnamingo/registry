@@ -61,9 +61,6 @@ else
     exit 1
 fi
 
-PHP_VERSION="php8.3"
-PHP_SHORT="8.3"
-
 case "${OS_ID}:${VER}" in
     ubuntu:22.04)
         OS_NAME="Ubuntu"
@@ -79,6 +76,14 @@ case "${OS_ID}:${VER}" in
         PHP_REPO_TYPE="ondrej"
         MARIADB_DISTRO="ubuntu"
         MARIADB_SUITE="noble"
+        MARIADB_COMPONENTS="main main/debug"
+        ;;
+    ubuntu:26.04)
+        OS_NAME="Ubuntu"
+        DISTRO_CODENAME="resolute"
+        PHP_REPO_TYPE="sury"
+        MARIADB_DISTRO="ubuntu"
+        MARIADB_SUITE="resolute"
         MARIADB_COMPONENTS="main main/debug"
         ;;
     debian:12)
@@ -174,18 +179,22 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmo
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 
 # MariaDB setup
-curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
+mkdir -p /etc/apt/keyrings
+curl -o /etc/apt/keyrings/mariadb-keyring.asc 'https://mariadb.org/mariadb_release_signing_key.pgp'
 cat > /etc/apt/sources.list.d/mariadb.sources <<EOF
 X-Repolib-Name: MariaDB
 Types: deb
 URIs: https://deb.mariadb.org/11.8/${MARIADB_DISTRO}
 Suites: ${MARIADB_SUITE}
 Components: ${MARIADB_COMPONENTS}
-Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+Signed-By: /etc/apt/keyrings/mariadb-keyring.asc
 EOF
 
 echo "Updating package lists..."
 apt update -y
+
+PHP_VERSION="php8.5"
+PHP_SHORT="8.5"
 
 echo "Installing packages..."
 apt install -y caddy mariadb-client mariadb-server ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-mysql ${PHP_VERSION}-opcache ${PHP_VERSION}-protobuf ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
