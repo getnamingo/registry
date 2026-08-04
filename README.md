@@ -79,7 +79,7 @@ Our documentation provides comprehensive guidance on installation, configuration
 
 ### Installation
 
-**Minimum requirement:** a fresh VPS running Ubuntu 22.04/24.04 or Debian 12/13, with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
+**Minimum requirement:** a fresh VPS running Ubuntu 22.04/24.04/26.04 or Debian 12/13, with at least 1 CPU core, 2 GB RAM, and 10 GB hard drive space.
 **Recommended:** 4 CPU cores, 8 GB RAM, and 50 GB hard drive space.
 
 To get started, copy the command below and paste it into your server terminal (root access required):
@@ -88,7 +88,7 @@ To get started, copy the command below and paste it into your server terminal (r
 bash <(curl -fsSL https://namingo.org/install.sh)
 ```
 
-After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration. If anything remains unclear, you can refer to the [Legacy Installation Guide](docs/install.md).
+After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration.
 
 **Note for Systems with Partial or Misconfigured IPv6 Support:** If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
 

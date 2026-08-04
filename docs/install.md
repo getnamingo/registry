@@ -1,4 +1,10 @@
-# Namingo Registry: Manual Installation Guide
+# Namingo Registry: Legacy Manual Installation Guide
+
+> **Deprecated installation method**
+>
+> This guide describes the former manual installation process for Namingo Registry. It is retained for reference, troubleshooting, and advanced custom deployments, but it is no longer the recommended installation method.
+>
+> For new installations, use the automated installer. It configures the required repositories, packages, services, database components, and application settings with less manual work and a lower risk of configuration errors.
 
 > **⚠️ This manual installation guide for the Namingo domain registry platform is intended for advanced use cases or situations where the automated installer is not suitable or fails. For standard setups, please use the official installer at [https://namingo.org](https://namingo.org) for a faster and more reliable experience.**
 
