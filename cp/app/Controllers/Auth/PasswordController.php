@@ -1,4 +1,15 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 namespace App\Controllers\Auth;
 
@@ -8,11 +19,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Respect\Validation\Validator as v;
 
-/**
- * PasswordController
- *
- * @author    Hezekiah O. <support@hezecom.com>
- */
 class PasswordController extends Controller
 {
     /**
@@ -35,6 +41,25 @@ class PasswordController extends Controller
         global $container;
         $db = $container->get('db');
         $data = $request->getParsedBody();
+        
+        $email = trim($data['email'] ?? '');
+
+        if (empty($email)) {
+            return redirect()->route('forgot.password')->with('error', 'Email is required');
+        }
+
+        if (strpos($email, '@') !== false) {
+            [$local, $domain] = explode('@', $email, 2);
+            $asciiDomain = idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            $emailToValidate = $local . '@' . $asciiDomain;
+
+            if (!filter_var($emailToValidate, FILTER_VALIDATE_EMAIL)) {
+                return redirect()->route('forgot.password')->with('error', 'Invalid email address');
+            }
+        } else {
+            return redirect()->route('forgot.password')->with('error', 'Invalid email address');
+        }
+
         $username = $db->selectValue('SELECT username FROM users WHERE email = ?', [$data['email']]);
         Auth::forgotPassword($data['email'],$username);
     }

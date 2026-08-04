@@ -1,4 +1,15 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 namespace App\Lib;
 
@@ -17,9 +28,6 @@ use Whoops\Run;
 use Dotenv\Dotenv;
 use ZipArchive;
 
-/**
- * Namingo CP Logger
- */
 class Logger extends \Monolog\Logger
 {
     private static $loggers = [];
@@ -46,7 +54,7 @@ class Logger extends \Monolog\Logger
         }
 
         // Load Environment Variables from .env
-        $dotenv = Dotenv::createImmutable('/var/www/cp/');
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
 
         // Console Logging (For Real-Time Debugging)
@@ -139,7 +147,7 @@ class Logger extends \Monolog\Logger
                     'trace' => $e->getTraceAsString()
                 ]);
 
-                include '/var/www/cp/resources/error.html';
+                include __DIR__ . '/../../resources/error.html';
             });
 
             register_shutdown_function(function () use ($logger) {
@@ -154,7 +162,7 @@ class Logger extends \Monolog\Logger
                         'type' => $error['type']
                     ]);
 
-                    include '/var/www/cp/resources/error.html';
+                    include __DIR__ . '/../../resources/error.html';
                 }
             });
         }

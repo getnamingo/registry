@@ -1,15 +1,21 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 namespace App\Lib;
 
 use Respect\Validation\Validator as Respect;
 use Respect\Validation\Exceptions\NestedValidationException;
 
-/**
- * Validator
- *
- * @author  Hezekiah O. <support@hezecom.com>
- */
 class Validator
 {
 	protected $errors;

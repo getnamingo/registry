@@ -1,4 +1,15 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 namespace App\Auth;
 
@@ -17,11 +28,6 @@ use Pinga\Auth\UnknownIdException;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
 
-/**
- * Auth
- *
- * @author    Hezekiah O. <support@hezecom.com>
- */
 class Auth
 {
     static protected $auth;
@@ -55,7 +61,7 @@ class Auth
                 // send message
                 Mail::send($subject, $message, $from, $to);
             });
-            //$auth->admin()->addRoleForUserById($userId, Role::ADMIN);
+            $auth->admin()->addRoleForUserById($userId, \Pinga\Auth\Role::AUTHOR);
             return $userId;
         }
         catch (InvalidEmailException $e) {
@@ -65,7 +71,7 @@ class Auth
             redirect()->route('register')->with('error','Invalid password');
         }
         catch (UserAlreadyExistsException $e) {
-            redirect()->route('register')->with('error','User already exists test');
+            redirect()->route('register')->with('error','User already exists');
         }
         catch (TooManyRequestsException $e) {
             redirect()->route('register')->with('error','Too many requests, try again later');
@@ -81,7 +87,6 @@ class Auth
         $auth = self::$auth;
         try {
             $auth->confirmEmail($selector, $token);
-            //echo 'Email address has been verified';
             redirect()->route('login')->with('success','Email address has been verified');
         }
         catch (InvalidSelectorTokenPairException $e) {

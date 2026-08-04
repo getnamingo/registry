@@ -1,9 +1,18 @@
-<?php namespace App\Lib;
+<?php
 /**
- * Config
+ * Voras Foundry
  *
- * @author    Hezekiah O. <support@hezecom.com>
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
  */
+
+namespace App\Lib;
+
 class Config
 {
     private static $config;

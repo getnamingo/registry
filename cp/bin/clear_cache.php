@@ -1,4 +1,15 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 echo "[INFO] Starting cache cleanup...\n";
 
@@ -51,15 +62,15 @@ foreach ($randomFiles as $file) {
 
 echo "[INFO] Cache cleanup complete.\n";
 
-// Try to restart PHP-FPM 8.3
-echo "[INFO] Restarting PHP-FPM service (php8.3-fpm)...\n";
-exec("sudo systemctl restart php8.3-fpm 2>&1", $restartOutput, $status);
+// Try to restart PHP-FPM 8.5
+echo "[INFO] Restarting PHP-FPM service (php8.5-fpm)...\n";
+exec("sudo systemctl restart php8.5-fpm 2>&1", $restartOutput, $status);
 
 if ($status === 0) {
     echo "[OK]   PHP-FPM restarted successfully.\n";
 } else {
     echo "[WARN] Could not restart PHP-FPM automatically.\n";
-    echo "[WARN] Please run manually: sudo systemctl restart php8.3-fpm\n";
+    echo "[WARN] Please run manually: sudo systemctl restart php8.5-fpm\n";
     if (!empty($restartOutput)) {
         echo "[DEBUG] systemctl output:\n" . implode("\n", $restartOutput) . "\n";
     }

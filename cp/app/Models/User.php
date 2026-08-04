@@ -1,4 +1,15 @@
 <?php
+/**
+ * Voras Foundry
+ *
+ * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ *
+ * @package    App
+ * @author     Voras Team <help@namingo.org>
+ * @copyright  Copyright (c) 2026 Voras
+ * @license    MIT License
+ * @link       https://github.com/atriohq/foundry
+ */
 
 namespace App\Models;
 
@@ -17,7 +28,7 @@ class User
     {
         return $this->db->select('SELECT * FROM users');
     }
-	
+    
     public function getUserById($id)
     {
         return $this->db->select('SELECT * FROM users WHERE id = ?', [$id])->fetch();
@@ -25,7 +36,7 @@ class User
 
     public function createUser($username, $email, $password)
     {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
 
         $this->db->insert('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [$username, $email, $hashedPassword]);
 
@@ -34,7 +45,7 @@ class User
 
     public function updateUser($id, $username, $email, $password)
     {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
 
         $this->db->update('UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?', [$username, $email, $hashedPassword, $id]);
 
