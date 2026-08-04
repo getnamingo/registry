@@ -62,15 +62,31 @@ foreach ($randomFiles as $file) {
 
 echo "[INFO] Cache cleanup complete.\n";
 
-// Try to restart PHP-FPM 8.5
-echo "[INFO] Restarting PHP-FPM service (php8.5-fpm)...\n";
-exec("sudo systemctl restart php8.5-fpm 2>&1", $restartOutput, $status);
+// Try to restart PHP-FPM 8.5 or 8.3
+$phpVersions = ['8.5', '8.3'];
+$restarted = false;
+$restartOutput = [];
 
-if ($status === 0) {
-    echo "[OK]   PHP-FPM restarted successfully.\n";
-} else {
+foreach ($phpVersions as $version) {
+    echo "[INFO] Restarting PHP-FPM service (php{$version}-fpm)...\n";
+
+    $output = [];
+    exec("sudo systemctl restart php{$version}-fpm 2>&1", $output, $status);
+
+    if ($status === 0) {
+        echo "[OK]   PHP-FPM {$version} restarted successfully.\n";
+        $restarted = true;
+        break;
+    }
+
+    $restartOutput = array_merge($restartOutput, $output);
+}
+
+if (!$restarted) {
     echo "[WARN] Could not restart PHP-FPM automatically.\n";
     echo "[WARN] Please run manually: sudo systemctl restart php8.5-fpm\n";
+    echo "[WARN] Or: sudo systemctl restart php8.3-fpm\n";
+
     if (!empty($restartOutput)) {
         echo "[DEBUG] systemctl output:\n" . implode("\n", $restartOutput) . "\n";
     }
