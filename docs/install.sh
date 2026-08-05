@@ -344,7 +344,7 @@ cat > /etc/caddy/Caddyfile << EOF
             X-Content-Type-Options nosniff
             X-Frame-Options DENY
             X-XSS-Protection "1; mode=block"
-            Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; connect-src 'self' https:; form-action 'self'; worker-src 'none'; frame-src 'none';"
+            Content-Security-Policy "default-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; img-src https:; font-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https:; form-action 'self'; worker-src 'self' blob:; frame-src 'none';"
             Permissions-Policy "accelerometer=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), usb=()"
         }
     }
@@ -445,10 +445,12 @@ mkdir -p /var/www/whois
 cd /opt/registry/whois/web
 cp -r * /var/www/whois
 cd /var/www/whois
-COMPOSER_ALLOW_SUPERUSER=1 composer require gregwar/captcha --no-interaction --quiet
+COMPOSER_ALLOW_SUPERUSER=1 composer require altcha-org/altcha:^2.1 --no-interaction --quiet
 mv /var/www/whois/config.php.dist /var/www/whois/config.php
+ALTCHA_HMAC_SECRET="$(openssl rand -hex 32)"
 sed -i "s|'whois_url' => '.*'|'whois_url' => 'whois.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
 sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
+sed -i "s|'altcha_hmac_secret' => '.*'|'altcha_hmac_secret' => '${ALTCHA_HMAC_SECRET}'|" /var/www/whois/config.php
 
 echo "Installing WHOIS Server."
 cd /opt/registry/whois/port43

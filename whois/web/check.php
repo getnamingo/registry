@@ -1,23 +1,59 @@
 <?php
+declare(strict_types=1);
+
+use AltchaOrg\Altcha\Altcha;
+use AltchaOrg\Altcha\Algorithm\Pbkdf2;
+use AltchaOrg\Altcha\VerifySolutionOptions;
+
 session_start();
-$c = require_once 'config.php';
+
+$c = require_once __DIR__ . '/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['error' => 'Invalid request method.']);
     exit;
 }
 
-if ($c['ignore_captcha'] === false) {
-    $captchaInput = $_POST['captcha'];
-    $captchaStored = $_SESSION['captcha'];
+if (($c['ignore_captcha'] ?? true) === false) {
+    require __DIR__ . '/vendor/autoload.php';
 
-    if (!empty($c['ignore_case_captcha'])) {
-        $isValid = strcasecmp($captchaInput, $captchaStored) === 0;
-    } else {
-        $isValid = $captchaInput === $captchaStored;
+    $payload = $_POST['altcha'] ?? '';
+    $decoded = is_string($payload) ? base64_decode($payload, true) : false;
+    $payloadData = $decoded !== false ? json_decode($decoded, true) : null;
+    $signature = is_array($payloadData) ? ($payloadData['challenge']['signature'] ?? '') : '';
+    $storedSignature = $_SESSION['altcha_signature'] ?? '';
+    unset($_SESSION['altcha_signature']);
+
+    if (
+        !is_string($payload)
+        || $payload === ''
+        || !is_string($signature)
+        || !is_string($storedSignature)
+        || $storedSignature === ''
+        || !hash_equals($storedSignature, $signature)
+    ) {
+        echo json_encode(['error' => 'Captcha verification failed.']);
+        exit;
     }
 
-    if (!$isValid) {
+    $secret = (string) ($c['altcha_hmac_secret'] ?? '');
+
+    if ($secret === '') {
+        echo json_encode(['error' => 'ALTCHA is not configured.']);
+        exit;
+    }
+
+    try {
+        $result = (new Altcha($secret))->verifySolution(new VerifySolutionOptions(
+            payload: $payload,
+            algorithm: new Pbkdf2(),
+        ));
+    } catch (\InvalidArgumentException) {
+        echo json_encode(['error' => 'Captcha verification failed.']);
+        exit;
+    }
+
+    if (!$result->verified) {
         echo json_encode(['error' => 'Captcha verification failed.']);
         exit;
     }
@@ -68,7 +104,7 @@ if ($type === 'whois') {
         echo json_encode(['error' => "Error fetching WHOIS data."]);
         exit;
     }
-        
+
     fwrite($socket, $domain . "\r\n");
     while (!feof($socket)) {
         $output .= fgets($socket);

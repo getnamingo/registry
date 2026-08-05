@@ -1,20 +1,40 @@
 <?php
+declare(strict_types=1);
+
+use AltchaOrg\Altcha\Altcha;
+use AltchaOrg\Altcha\Algorithm\Pbkdf2;
+use AltchaOrg\Altcha\CreateChallengeOptions;
+
 session_start();
-use Gregwar\Captcha\CaptchaBuilder;
 
-require 'vendor/autoload.php';
+$c = require_once __DIR__ . '/config.php';
+require __DIR__ . '/vendor/autoload.php';
 
-$captcha = new CaptchaBuilder;
-//$captcha->setBackgroundColor(255, 255, 255);
-$captcha->setMaxAngle(5);
-$captcha->setMaxBehindLines(3);
-$captcha->setMaxFrontLines(0);
-$captcha->setTextColor(0, 0, 0);
-$captcha->setInterpolation(false);
-$captcha->setDistortion(false);
-$captcha->build($width = 180, $height = 50);
+header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-$_SESSION['captcha'] = $captcha->getPhrase();
+if (($c['ignore_captcha'] ?? true) !== false) {
+    http_response_code(404);
+    echo json_encode(['error' => 'Captcha is disabled.']);
+    exit;
+}
 
-header('Content-type: image/jpeg');
-$captcha->output();
+$secret = (string) ($c['altcha_hmac_secret'] ?? '');
+
+if ($secret === '') {
+    http_response_code(500);
+    echo json_encode(['error' => 'ALTCHA is not configured.']);
+    exit;
+}
+
+$altcha = new Altcha($secret);
+$challenge = $altcha->createChallenge(new CreateChallengeOptions(
+    algorithm: new Pbkdf2(),
+    cost: (int) ($c['altcha_cost'] ?? 10000),
+    expiresAt: time() + 120,
+));
+
+$data = $challenge->toArray();
+$_SESSION['altcha_signature'] = $data['signature'];
+
+echo json_encode($data, JSON_UNESCAPED_SLASHES);

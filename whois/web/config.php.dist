@@ -4,9 +4,10 @@ return [
     'whois_url' => 'whois.example.com',
     'rdap_url' => 'rdap.example.com',
     'ignore_captcha' => true,
+    'altcha_hmac_secret' => '',
+    'altcha_cost' => 10000,
     'registry_name' => 'Domain Registry LLC',
     'registry_url' => 'https://example.com',
     'branding' => false,
-    'ignore_case_captcha' => false,
     'disable_whois' => false,
 ];

@@ -13,6 +13,9 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Domain Lookup</title>
+    <?php if ($c['ignore_captcha'] === false) { ?>
+    <script async defer src="https://cdn.jsdelivr.net/npm/altcha@3.2.1/dist/main/altcha.min.js" type="module"></script>
+    <?php } ?>
     <style>
     * {
         margin: 0;
@@ -64,7 +67,7 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
         border-color: #007BFF;
         outline: none;
     }
-    
+
     a {
         color: #007BFF;
         text-decoration: none;
@@ -79,31 +82,8 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
 
     .captcha-container {
         display: flex;
-        align-items: center;
+        justify-content: center;
         margin-bottom: 20px;
-    }
-
-    #captchaImg {
-        width: 150px;
-        height: 50px;
-        margin-right: 10px;
-        border: 2px solid #ccc;
-        border-radius: 5px;
-    }
-
-    #captchaInput {
-        padding: 10px;
-        font-size: 1rem;
-        font-family: inherit;
-        border: 2px solid #ccc;
-        border-radius: 5px;
-        flex-grow: 1;
-        transition: border 0.3s ease;
-    }
-
-    #captchaInput:focus {
-        border-color: #007BFF;
-        outline: none;
     }
 
     .buttons {
@@ -152,26 +132,12 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
         font-size: 0.9rem;
         color: #777;
     }
-    
+
     #bottom {
         display: none;
     }
 
     @media (max-width: 600px) {
-        .captcha-container {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #captchaImg {
-            margin-right: 0;
-            margin-bottom: 10px;
-        }
-
-        #captchaInput {
-            width: 100%;
-        }
-
         .buttons {
             width: 100%;
             display: flex;
@@ -181,7 +147,7 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
         .buttons button {
             width: 48%;
         }
-        
+
         pre {
             font-size: 0.85rem;
         }
@@ -194,21 +160,20 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
             <h1>Domain Lookup</h1>
         </header>
         <main>
-            <div class="input-container">
+            <form id="lookupForm" class="input-container">
                 <input type="text" id="domainInput" placeholder="Enter domain name" autocapitalize="none">
                 <?php if ($c['ignore_captcha'] === false) { ?>
                 <div class="captcha-container">
-                    <img alt="Captcha" id="captchaImg" src="captcha.php" onclick="this.src='captcha.php?'+Math.random();">
-                    <input type="text" id="captchaInput" placeholder="Enter CAPTCHA" autocapitalize="none">
+                    <altcha-widget challenge="captcha.php" name="altcha"></altcha-widget>
                 </div>
                 <?php } ?>
                 <div class="buttons">
                     <?php if (!$c['disable_whois']) { ?>
-                        <button id="whoisButton">WHOIS</button>
+                        <button type="button" id="whoisButton">WHOIS</button>
                     <?php } ?>
-                    <button id="rdapButton"><?php echo $c['disable_whois'] ? 'Lookup' : 'RDAP'; ?></button>
+                    <button type="button" id="rdapButton"><?php echo $c['disable_whois'] ? 'Lookup' : 'RDAP'; ?></button>
                 </div>
-            </div>
+            </form>
             <div id="bottom">
                 <pre id="result"></pre>
             </div>
@@ -220,7 +185,8 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const domainInput = document.getElementById('domainInput');
-            const errorMessage = document.getElementById('errorMessage');
+            const lookupForm = document.getElementById('lookupForm');
+            const altchaWidget = document.querySelector('altcha-widget');
 
             function validateInput() {
                 const domain = domainInput.value.trim();
@@ -229,14 +195,24 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
 
                 if (!domain) {
                     resultContainer.innerHTML = '<span style="color: #d9534f;">Please enter a valid domain name.</span>';
-                    bottomContainer.style.display = 'block'; // Ensure the container is visible
-                    domainInput.focus(); // Focus back on the input field
+                    bottomContainer.style.display = 'block';
+                    domainInput.focus();
                     return false;
                 }
 
-                resultContainer.innerText = ''; // Clear previous messages
-                bottomContainer.style.display = 'none'; // Hide the container
+                resultContainer.innerText = '';
+                bottomContainer.style.display = 'none';
                 return true;
+            }
+
+            function getAltchaPayload() {
+                return altchaWidget ? (new FormData(lookupForm).get('altcha') || '') : '';
+            }
+
+            function resetAltcha() {
+                if (altchaWidget) {
+                    altchaWidget.reset();
+                }
             }
 
             document.getElementById('domainInput').addEventListener('keypress', function(event) {
@@ -250,56 +226,28 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
                 }
             });
 
-            const captchaInput = document.getElementById('captchaInput');
-            if (captchaInput) {
-                captchaInput.addEventListener('keypress', function(event) {
-                    if (event.key === 'Enter' && !captchaInput.disabled) {
-                        event.preventDefault();
-                        <?php if (!$c['disable_whois']) { ?>
-                            document.getElementById('whoisButton').click();
-                        <?php } else { ?>
-                            document.getElementById('rdapButton').click();
-                        <?php } ?>
-                    }
-                });
-            }
-
             <?php if (!$c['disable_whois']) { ?>
             document.getElementById('whoisButton').addEventListener('click', function() {
                 if (!validateInput()) return;
                 var domain = document.getElementById('domainInput').value.trim();
+                var altcha = getAltchaPayload();
 
-                // Get the CAPTCHA input element
-                var captchaInput = document.getElementById('captchaInput');
-
-                // Initialize captcha with an empty string
-                var captcha = '';
-
-                // Check if the CAPTCHA element exists and is not disabled
-                if (captchaInput && !captchaInput.disabled) {
-                    captcha = captchaInput.value; // Assign the value of the CAPTCHA input
-                }
-                
                 fetch('check.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: 'domain=' + encodeURIComponent(domain) + '&captcha=' + encodeURIComponent(captcha) + '&type=whois'
+                    body: 'domain=' + encodeURIComponent(domain) + '&altcha=' + encodeURIComponent(altcha) + '&type=whois'
                 })
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('result').innerText = data;
                     document.getElementById('bottom').style.display = 'block';
-                    if (captchaInput && !captchaInput.disabled) {
-                        // Reload captcha after a successful response
-                        document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
-                        captchaInput.value = '';
-                    }
+                    resetAltcha();
                 })
                 .catch(error => {
-                    console.error('Error:', error); // Log the error to the console
-                    document.getElementById('result').innerText = 'Error: ' + error.message; // Display the error message on the page
+                    console.error('Error:', error);
+                    document.getElementById('result').innerText = 'Error: ' + error.message;
                 });
             });
             <?php } ?>
@@ -307,24 +255,14 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
             document.getElementById('rdapButton').addEventListener('click', function() {
                 if (!validateInput()) return;
                 var domain = document.getElementById('domainInput').value.trim();
+                var altcha = getAltchaPayload();
 
-                // Get the CAPTCHA input element
-                var captchaInput = document.getElementById('captchaInput');
-
-                // Initialize captcha with an empty string
-                var captcha = '';
-
-                // Check if the CAPTCHA element exists and is not disabled
-                if (captchaInput && !captchaInput.disabled) {
-                    captcha = captchaInput.value; // Assign the value of the CAPTCHA input
-                }
-                
                 fetch('check.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: 'domain=' + encodeURIComponent(domain) + '&captcha=' + encodeURIComponent(captcha) + '&type=rdap'
+                    body: 'domain=' + encodeURIComponent(domain) + '&altcha=' + encodeURIComponent(altcha) + '&type=rdap'
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -333,19 +271,14 @@ $c['disable_whois'] = isset($c['disable_whois']) ? $c['disable_whois'] : false;
                         document.getElementById('result').innerText = 'Error: ' + data.error;
                         document.getElementById('bottom').style.display = 'block';
                     } else {
-                        // Parse and display RDAP data
                         let output = parseRDAP(data);
                         document.getElementById('result').innerText = output;
                         document.getElementById('bottom').style.display = 'block';
-                        if (captchaInput && !captchaInput.disabled) {
-                            // Reload captcha
-                            document.getElementById('captchaImg').src = 'captcha.php?' + Math.random();
-                            captchaInput.value = '';
-                        }
                     }
+                    resetAltcha();
                 })
                 .catch(error => {
-                    console.error('Error:', error); // Log the error to the console
+                    console.error('Error:', error);
                     document.getElementById('result').innerText = 'Error: ' + error.message;
                     document.getElementById('bottom').style.display = 'block';
                 });
