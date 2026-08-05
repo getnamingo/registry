@@ -157,7 +157,7 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
         $trstatus = $contactInfo['trstatus'] ?? '';
 
         if ($trstatus === 'pending') {
-            $stmt = $db->prepare("UPDATE contact SET trstatus = 'clientCancelled' WHERE id = :contact_id");
+            $stmt = $db->prepare("UPDATE contact SET trstatus = 'clientCancelled', acdate = CURRENT_TIMESTAMP(3) WHERE id = :contact_id");
             $stmt->execute([':contact_id' => $contact_id]);
 
             if ($stmt->errorCode() != 0) {
@@ -211,7 +211,14 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
         $stmt->closeCursor();
         $trstatus = $contactInfo['trstatus'] ?? '';
 
-        if ($trstatus === 'pending') {
+        if ((int)$clid !== (int)$registrar_id_contact
+            && (int)$clid !== (int)($contactInfo['reid'] ?? 0)
+            && (int)$clid !== (int)($contactInfo['acid'] ?? 0)) {
+            sendEppError($conn, $db, 2201, 'Client is not authorized to query this transfer', $clTRID, $trans);
+            return;
+        }
+
+        if (in_array($trstatus, ['clientApproved', 'clientCancelled', 'clientRejected', 'pending', 'serverApproved', 'serverCancelled'], true)) {
             $reid_identifier_stmt = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
             $reid_identifier_stmt->execute([':reid' => $contactInfo['reid']]);
             $reid_identifier = $reid_identifier_stmt->fetchColumn();
@@ -273,7 +280,7 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
         if ($contactInfo['trstatus'] === 'pending') {
             // The losing registrar has five days once the contact is pending to respond.
-            $updateStmt = $db->prepare("UPDATE contact SET trstatus = 'clientRejected' WHERE id = :contact_id");
+            $updateStmt = $db->prepare("UPDATE contact SET trstatus = 'clientRejected', acdate = CURRENT_TIMESTAMP(3) WHERE id = :contact_id");
             $updateStmt->execute([':contact_id' => $contact_id]);
 
             if ($updateStmt->errorCode() !== '00000') {
@@ -838,7 +845,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
             try {
                 $db->beginTransaction();
         
-                $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled' WHERE id = :domain_id");
+                $stmt = $db->prepare("UPDATE domain SET trstatus = 'clientCancelled', acdate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
                 $stmt->execute(['domain_id' => $domain_id]);
 
                 $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
@@ -931,9 +938,17 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         $stmt->execute(['name' => $domainName]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
+
+        if ((int)$clid !== (int)($result['clid'] ?? 0)
+            && (int)$clid !== (int)($result['reid'] ?? 0)
+            && (int)$clid !== (int)($result['acid'] ?? 0)) {
+            sendEppError($conn, $db, 2201, 'Client is not authorized to query this transfer', $clTRID, $trans);
+            return;
+        }
+
         extract($result);
 
-        if ($trstatus === 'pending') {
+        if (in_array($trstatus, ['clientApproved', 'clientCancelled', 'clientRejected', 'pending', 'serverApproved', 'serverCancelled'], true)) {
             $stmtReID = $db->prepare("SELECT clid FROM registrar WHERE id = :reid LIMIT 1");
             $stmtReID->execute(['reid' => $reid]);
             $reid_identifier = $stmtReID->fetchColumn();
@@ -1001,8 +1016,15 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
             try {
                 $db->beginTransaction();
 
-                $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected' WHERE id = :domain_id");
+                $stmtUpdate = $db->prepare("UPDATE domain SET trstatus = 'clientRejected', acdate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
                 $success = $stmtUpdate->execute(['domain_id' => $domain_id]);
+
+                $stmt = $db->prepare("SELECT trstatus, acdate FROM domain WHERE id = :domain_id LIMIT 1");
+                $stmt->execute(['domain_id' => $domain_id]);
+                $updatedTransfer = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
+                $trstatus = $updatedTransfer['trstatus'];
+                $acdate = $updatedTransfer['acdate'];
 
                 $stmt_log = $db->prepare("INSERT INTO error_log (channel, level, level_name, message, context, extra) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt_log->execute([
