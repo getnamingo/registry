@@ -129,7 +129,14 @@ $app->group('', function ($route) {
     $route->get('/log', LogsController::class .':log')->setName('log');
 
     $route->get('/reports', ReportsController::class .':view')->setName('reports');
-    $route->get('/export', ReportsController::class .':exportDomains')->setName('exportDomains');
+    $route->get('/domain/export', ReportsController::class .':exportDomains')->setName('exportDomains');
+    $route->get('/application/export', ReportsController::class .':exportApplications')->setName('exportApplications');
+    $route->get('/host/export', ReportsController::class .':exportHosts')->setName('exportHosts');
+    $route->get('/contact/export', ReportsController::class .':exportContacts')->setName('exportContacts');
+    $route->get('/registrars/export', ReportsController::class .':exportRegistrars')->setName('exportRegistrars');
+    $route->get('/users/export', ReportsController::class .':exportUsers')->setName('exportUsers');
+    $route->get('/epp-activity/export', ReportsController::class .':exportEppActivity')->setName('exportEppActivity');
+    $route->get('/transactions/export', ReportsController::class .':exportTransactions')->setName('exportTransactions');
     $route->get('/settings/system-health', ReportsController::class .':serverHealth')->setName('serverHealth');
     $route->post('/clear-cache', ReportsController::class .':clearCache')->setName('clearCache');
 
