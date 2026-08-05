@@ -1882,7 +1882,7 @@ class FinancialsController extends Controller
             $db->beginTransaction();
 
             $existing = $db->selectRow(
-                'SELECT registrar_id, related_entity_type, related_entity_id, type, amount, currency, status
+                'SELECT *
                  FROM payment_history
                  WHERE gateway = ? AND gateway_reference = ?
                  LIMIT 1',
@@ -1909,36 +1909,6 @@ class FinancialsController extends Controller
                 throw new \RuntimeException('Payment currency does not match the user currency.');
             }
 
-            if ($paymentType === 'invoice') {
-                $invoice = $db->selectRow(
-                    'SELECT i.id, i.payment_status, i.total_amount, c.cc AS billing_country
-                     FROM invoices i
-                     LEFT JOIN users_contact c ON c.id = i.billing_contact_id
-                     WHERE i.id = ? AND i.user_id = ?
-                     LIMIT 1',
-                    [$invoiceId, $registrarId]
-                );
-                if (!$invoice) {
-                    throw new \RuntimeException('Invoice was not found for this user.');
-                }
-                if (!in_array($invoice['payment_status'], ['unpaid', 'overdue'], true)) {
-                    throw new \RuntimeException('Invoice is already settled or cannot be paid.');
-                }
-
-                $billingCountry = strtoupper(trim((string)($invoice['billing_country'] ?? '')));
-                if (!preg_match('/^[A-Z]{2}$/', $billingCountry)) {
-                    throw new \RuntimeException('Invoice billing country is missing.');
-                }
-
-                $vatCalculator = new VatCalculator();
-                $vatCalculator->setBusinessCountryCode(strtoupper(envi('COMPANY_COUNTRY_CODE')));
-                $grossAmount = $vatCalculator->calculate((float)$invoice['total_amount'], $billingCountry);
-                $expectedAmount = number_format($grossAmount + $vatCalculator->getTaxValue(), 2, '.', '');
-                if ($expectedAmount !== $amount) {
-                    throw new \RuntimeException('Paid amount does not match the invoice total.');
-                }
-            }
-
             $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s.v');
 
             // Insert first: the unique gateway/reference pair is the idempotency lock.
@@ -1962,34 +1932,18 @@ class FinancialsController extends Controller
                     'registrar_id' => $registrarId,
                     'date' => $now,
                     'description' => 'registrar balance deposit via '.$gateway.' ('.$reference.')',
-                    'amount' => $amount
+                    'amount' => $amount,
+                    'gateway' => $gateway,
+                    'gateway_reference' => $reference
                 ]
             );
                         
-            if ($paymentType === 'invoice') {
-                $updated = $db->exec(
-                    'UPDATE invoices
-                     SET payment_status = ?, updated_at = ?
-                     WHERE id = ? AND user_id = ? AND payment_status IN (?, ?)',
-                    ['paid', $now, $invoiceId, $registrarId, 'unpaid', 'overdue']
-                );
-                if ($updated !== 1) {
-                    throw new \RuntimeException('Invoice was settled by another payment.');
-                }
-
-                $db->exec(
-                    'UPDATE orders SET paid_at = ?
-                     WHERE invoice_id = ? AND user_id = ? AND paid_at IS NULL',
-                    [$now, $invoiceId, $registrarId]
-                );
-            } else {
-                $updated = $db->exec(
-                    'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
-                    [$amount, $registrarId]
-                );
-                if ($updated !== 1) {
-                    throw new \RuntimeException('Payment balance update failed.');
-                }
+            $updated = $db->exec(
+                'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
+                [$amount, $registrarId]
+            );
+            if ($updated !== 1) {
+                throw new \RuntimeException('Payment balance update failed.');
             }
 
             $db->commit();
@@ -2000,8 +1954,8 @@ class FinancialsController extends Controller
 
             // A concurrent webhook may have won the unique-key race.
             $existing = $db->selectRow(
-                'SELECT user_id, related_entity_type, related_entity_id, type, amount, currency, status
-                 FROM transactions
+                'SELECT *
+                 FROM payment_history
                  WHERE gateway = ? AND gateway_reference = ?
                  LIMIT 1',
                 [$gateway, $reference]
