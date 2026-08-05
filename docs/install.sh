@@ -144,6 +144,12 @@ echo "System meets the minimum requirements. Proceeding with installation..."
 REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
 YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
+WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS server (TCP port 43)? [Y/n]")
+if [[ "${WHOIS_SERVER_CHOICE:-y}" =~ ^[Nn]([Oo])?$ ]]; then
+    INSTALL_WHOIS_SERVER=false
+else
+    INSTALL_WHOIS_SERVER=true
+fi
 DB_USER=$(generate_db_username)
 DB_PASSWORD=$(generate_password)
 DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&|]/\\&/g')
@@ -267,7 +273,9 @@ fi
 
 echo "Setting up firewall rules..."
 ufw allow 22/tcp
-ufw allow 43/tcp
+if $INSTALL_WHOIS_SERVER; then
+    ufw allow 43/tcp
+fi
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow 443/udp
@@ -452,17 +460,22 @@ sed -i "s|'whois_url' => '.*'|'whois_url' => 'whois.${REGISTRY_DOMAIN}'|" /var/w
 sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/whois/config.php
 sed -i "s|'altcha_hmac_secret' => '.*'|'altcha_hmac_secret' => '${ALTCHA_HMAC_SECRET}'|" /var/www/whois/config.php
 
-echo "Installing WHOIS Server."
-cd /opt/registry/whois/port43
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
-mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
-sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
-sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
-sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
-cp /opt/registry/docs/whois.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable whois.service
+if $INSTALL_WHOIS_SERVER; then
+    echo "Installing WHOIS Server."
+    cd /opt/registry/whois/port43
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
+    mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/whois/port43/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/whois/port43/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/whois.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/whois.service
+    cp /opt/registry/docs/whois.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable whois.service
+else
+    echo "Skipping WHOIS Server installation."
+    sed -i "s|'disable_whois' => false|'disable_whois' => true|" /var/www/whois/config.php
+fi
 
 echo "Installing RDAP Server."
 cd /opt/registry/rdap
@@ -563,19 +576,29 @@ echo -e "Access points:"
 echo -e " - Control Panel:     https://cp.$REGISTRY_DOMAIN"
 echo -e " - RDAP:              https://rdap.$REGISTRY_DOMAIN"
 echo -e " - WHOIS (web):       https://whois.$REGISTRY_DOMAIN"
-echo -e " - WHOIS (port 43):   whois.$REGISTRY_DOMAIN:43"
+if $INSTALL_WHOIS_SERVER; then
+    echo -e " - WHOIS (port 43):   whois.$REGISTRY_DOMAIN:43"
+else
+    echo -e " - WHOIS (port 43):   not installed (web WHOIS uses RDAP only)"
+fi
 echo -e " - EPP endpoint:  epp.$REGISTRY_DOMAIN:700\n"
 
 echo -e "Next steps:"
 echo -e "1. Review and adjust configuration files in /opt/registry as needed."
 echo -e "2. Start core services:"
-echo -e "   systemctl start whois.service"
+if $INSTALL_WHOIS_SERVER; then
+    echo -e "   systemctl start whois.service"
+fi
 echo -e "   systemctl start rdap.service"
 echo -e "   systemctl start epp.service"
 echo -e "   systemctl start das.service\n"
 
 echo -e "3. Verify services are running:"
-echo -e "   systemctl status whois rdap epp das\n"
+if $INSTALL_WHOIS_SERVER; then
+    echo -e "   systemctl status whois rdap epp das\n"
+else
+    echo -e "   systemctl status rdap epp das\n"
+fi
 
 echo -e "4. Complete any additional configuration described in the Namingo documentation.\n"
 
