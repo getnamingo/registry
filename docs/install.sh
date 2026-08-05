@@ -144,7 +144,7 @@ echo "System meets the minimum requirements. Proceeding with installation..."
 REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
 YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
-WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS server (TCP port 43)? [Y/n]")
+WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS/DAS servers (TCP ports 43/1043)? [Y/n]")
 if [[ "${WHOIS_SERVER_CHOICE:-y}" =~ ^[Nn]([Oo])?$ ]]; then
     INSTALL_WHOIS_SERVER=false
 else
@@ -268,19 +268,19 @@ wget "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
 ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
 
 if [[ ! -d /opt/registry/.git ]]; then
-    git clone --branch v1.0.29 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch v1.0.30 --single-branch https://github.com/getnamingo/registry /opt/registry
 fi
 
 echo "Setting up firewall rules..."
 ufw allow 22/tcp
 if $INSTALL_WHOIS_SERVER; then
     ufw allow 43/tcp
+    ufw allow 1043/tcp
 fi
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow 443/udp
 ufw allow 700/tcp
-ufw allow 1043/tcp
 ufw allow 53/tcp
 ufw allow 53/udp
 
@@ -472,8 +472,20 @@ if $INSTALL_WHOIS_SERVER; then
     cp /opt/registry/docs/whois.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable whois.service
+
+    echo "Installing DAS Server."
+    cd /opt/registry/das
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
+    mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
+    sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
+    sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
+    sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
+    sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
+    cp /opt/registry/docs/das.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable das.service
 else
-    echo "Skipping WHOIS Server installation."
+    echo "Skipping WHOIS/DAS Server installation."
     sed -i "s|'disable_whois' => false|'disable_whois' => true|" /var/www/whois/config.php
 fi
 
@@ -507,18 +519,6 @@ COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
 sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/automation/config.php
 sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/automation/config.php
-
-echo "Installing DAS Server."
-cd /opt/registry/das
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
-mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
-sed -i "s|'db_username' => 'your_username'|'db_username' => '$DB_USER'|g" /opt/registry/das/config.php
-sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /opt/registry/das/config.php
-sed -i "s/User=root/User=$current_user/" /opt/registry/docs/das.service
-sed -i "s/Group=root/Group=$current_user/" /opt/registry/docs/das.service
-cp /opt/registry/docs/das.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable das.service
 
 echo "Installing Message Broker."
 cp /opt/registry/docs/msg_producer.service /etc/systemd/system/
@@ -588,16 +588,16 @@ echo -e "1. Review and adjust configuration files in /opt/registry as needed."
 echo -e "2. Start core services:"
 if $INSTALL_WHOIS_SERVER; then
     echo -e "   systemctl start whois.service"
+    echo -e "   systemctl start das.service\n"
 fi
 echo -e "   systemctl start rdap.service"
 echo -e "   systemctl start epp.service"
-echo -e "   systemctl start das.service\n"
 
 echo -e "3. Verify services are running:"
 if $INSTALL_WHOIS_SERVER; then
     echo -e "   systemctl status whois rdap epp das\n"
 else
-    echo -e "   systemctl status rdap epp das\n"
+    echo -e "   systemctl status rdap epp\n"
 fi
 
 echo -e "4. Complete any additional configuration described in the Namingo documentation.\n"
