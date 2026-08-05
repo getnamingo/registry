@@ -50,6 +50,72 @@ for db_name in "${databases[@]}"; do
     rm "$sql_backup_file"
 done
 
+# Idempotent transactions gateway migration
+echo "Updating transactions schema..."
+case "$db_driver" in
+    mysql|mariadb|"")
+        db_cmd=(mariadb -u"$db_user" -p"$db_pass" -h"$db_host" "$db_name")
+
+        for definition in \
+            "gateway VARCHAR(32) DEFAULT NULL AFTER amount" \
+            "gateway_reference VARCHAR(128) DEFAULT NULL AFTER gateway"
+        do
+            column=${definition%% *}
+            exists=$("${db_cmd[@]}" -Nse \
+                "SELECT EXISTS(
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = DATABASE()
+                      AND table_name = 'payment_history'
+                      AND column_name = '$column'
+                )")
+            [[ "$exists" == "1" ]] ||
+                "${db_cmd[@]}" -e "ALTER TABLE payment_history ADD COLUMN $definition"
+        done
+
+        exists=$("${db_cmd[@]}" -Nse \
+            "SELECT EXISTS(
+                SELECT 1 FROM information_schema.statistics
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'payment_history'
+                  AND index_name = 'transactions_gateway_reference_unique'
+            )")
+        [[ "$exists" == "1" ]] ||
+            "${db_cmd[@]}" -e \
+                "ALTER TABLE payment_history ADD UNIQUE KEY transactions_gateway_reference_unique (gateway, gateway_reference)"
+        ;;
+
+    pgsql)
+        PGPASSWORD="$db_pass" psql -X -v ON_ERROR_STOP=1 \
+            -h "$db_host" -U "$db_user" -d "$db_name" -c '
+                ALTER TABLE payment_history
+                    ADD COLUMN IF NOT EXISTS gateway VARCHAR(32) DEFAULT NULL;
+                ALTER TABLE payment_history
+                    ADD COLUMN IF NOT EXISTS gateway_reference VARCHAR(128) DEFAULT NULL;
+                CREATE UNIQUE INDEX IF NOT EXISTS transactions_gateway_reference_unique
+                    ON payment_history (gateway, gateway_reference);
+            '
+        ;;
+
+    sqlite)
+        DB_FILE="$db_name" php -r '
+            $db = new PDO("sqlite:" . getenv("DB_FILE"), null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+            $columns = array_column(
+                $db->query("PRAGMA table_info(payment_history)")->fetchAll(PDO::FETCH_ASSOC),
+                "name"
+            );
+            if (!in_array("gateway", $columns, true)) {
+                $db->exec("ALTER TABLE payment_history ADD COLUMN gateway VARCHAR(32) DEFAULT NULL");
+            }
+            if (!in_array("gateway_reference", $columns, true)) {
+                $db->exec("ALTER TABLE payment_history ADD COLUMN gateway_reference VARCHAR(128) DEFAULT NULL");
+            }
+            $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS transactions_gateway_reference_unique ON payment_history (gateway, gateway_reference)");
+        '
+        ;;
+esac
+
 # Stop services
 echo "Stopping services..."
 systemctl stop caddy

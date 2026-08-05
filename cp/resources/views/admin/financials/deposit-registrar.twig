@@ -5,45 +5,34 @@
 {% block content %}
 <link href="/assets/css/sweetalert2.min.css" rel="stylesheet">
 <style>
-    .payment-provider-custom {
+    .payment-provider-nicky {
         display: inline-block;
         background-image: url('/assets/nicky.svg');
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
     }
-
-    /* Fullscreen overlay */
-    #loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.8); /* Whiteout effect */
-        z-index: 9999; /* Ensure it appears above all content */
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .payment-provider-plata {
+        display: inline-block;
+        background-image: url('/assets/plata.svg');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
     }
-
-    /* Spinner container for alignment */
-    .spinner-container {
-        text-align: center;
+    [data-bs-theme="dark"] .payment-provider-plata {
+        background-image: url('/assets/plata-dark.svg');
     }
-
-    /* Spinner size adjustment */
-    .spinner-border {
-        width: 3rem;
-        height: 3rem;
+    .payment-provider-liqpay {
+        display: inline-block;
+        background-image: url('/assets/liqpay.svg');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+    [data-bs-theme="dark"] .payment-provider-liqpay {
+        background-image: url('/assets/liqpay-dark.svg');
     }
 </style>
-<div id="loading-overlay" style="display: none;">
-    <div class="spinner-container">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="text-secondary mt-3">Processing your payment, please wait...</p>
-    </div>
-</div>
       <div class="page-wrapper">
         <!-- Page header -->
         <div class="page-header d-print-none">
@@ -83,6 +72,7 @@
                     <div class="mb-3">
                         <label class="form-label">{{ __('Payment Method') }}</label>
                         <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column">
+                            {% if 'stripe' in enabledGateways %}
                             <label class="form-selectgroup-item flex-fill">
                                 <input type="radio" name="paymentMethod" value="stripe" class="form-selectgroup-input" required>
                                 <div class="form-selectgroup-label d-flex align-items-center p-3">
@@ -95,6 +85,36 @@
                                     </div>
                                 </div>
                             </label>
+                            {% endif %}
+                            {% if 'liqpay' in enabledGateways %}
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="liqpay" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-liqpay payment-xs me-2"></span>
+                                        {{ __('LiqPay') }}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endif %}
+                            {% if 'plata' in enabledGateways %}
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="plata" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-plata payment-xs me-2"></span>
+                                        {{ __('Plata by mono') }}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endif %}
+                            {% if 'adyen' in enabledGateways %}
                             <label class="form-selectgroup-item flex-fill">
                                 <input type="radio" name="paymentMethod" value="adyen" class="form-selectgroup-input">
                                 <div class="form-selectgroup-label d-flex align-items-center p-3">
@@ -107,6 +127,8 @@
                                     </div>
                                 </div>
                             </label>
+                            {% endif %}
+                            {% if 'nicky' in enabledGateways %}
                             <label class="form-selectgroup-item flex-fill">
                                 <input type="radio" name="paymentMethod" value="nicky" class="form-selectgroup-input">
                                 <div class="form-selectgroup-label d-flex align-items-center p-3">
@@ -114,13 +136,15 @@
                                         <span class="form-selectgroup-check"></span>
                                     </div>
                                     <div>
-                                        <span class="payment payment-provider-custom payment-xs me-2"></span>
+                                        <span class="payment payment-provider-nicky payment-xs me-2"></span>
                                         {{ __('Crypto') }}: Nicky
                                     </div>
                                 </div>
                             </label>
+                            {% endif %}
+                            {% if 'now' in enabledGateways %}
                             <label class="form-selectgroup-item flex-fill">
-                                <input type="radio" name="paymentMethod" value="crypto" class="form-selectgroup-input">
+                                <input type="radio" name="paymentMethod" value="now" class="form-selectgroup-input">
                                 <div class="form-selectgroup-label d-flex align-items-center p-3">
                                     <div class="me-3">
                                         <span class="form-selectgroup-check"></span>
@@ -131,6 +155,7 @@
                                     </div>
                                 </div>
                             </label>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -149,16 +174,15 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
-<script src="https://js.stripe.com/v3/"></script>
-<script type="text/javascript">
+<script>
+const enabledGateways = {{ enabledGateways|json_encode|raw }};
+
 document.getElementById('depositForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
     const formData = new FormData(this);
     const paymentMethod = formData.get('paymentMethod');
-    const amount = document.getElementById('amount').value.trim();
-
-    // Validate the amount
+    const amount = document.getElementById('amount')?.value?.trim();
     if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
         Swal.fire({
             icon: 'warning',
@@ -168,164 +192,48 @@ document.getElementById('depositForm').addEventListener('submit', function (e) {
         return;
     }
 
-    // Route the request based on the payment method
-    if (paymentMethod === 'stripe') {
-        handleStripePayment(formData);
-    } else if (paymentMethod === 'adyen') {
-        handleAdyenPayment(formData);
-    } else if (paymentMethod === 'crypto') {
-        handleCryptoPayment(formData);
-    } else if (paymentMethod === 'nicky') {
-        handleNickyPayment(formData);
-    } else {
-        Swal.fire({
-            icon: 'error',
-            title: '{{ __("Error") }}',
-            text: '{{ __("No payment method selected.") }}'
-        });
+    if (!enabledGateways.includes(paymentMethod)) {
+        showError('{{ __("Error") }}', '{{ __("This payment method is not available.") }}');
+        return;
     }
+
+    if (paymentMethod === 'liqpay') {
+        this.action = '/payment/liqpay/create';
+        this.method = 'POST';
+        this.submit();
+        return;
+    }
+
+    sendPayment(`/payment/${encodeURIComponent(paymentMethod)}/create`, formData, (data) => {
+        window.location.href = data.url;
+    });
 });
 
-// Function to handle Stripe payment
-function handleStripePayment(formData) {
-    const stripe = Stripe('{{ stripe_key }}'); // Initialize Stripe with the correct key
-
-    fetch('/create-payment', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(session => {
-        if (session.error) {
-            console.error('Stripe Error:', session.error);
-            Swal.fire({
-                icon: 'error',
-                title: '{{ __("Payment Error") }}',
-                text: session.error
-            });
-        } else {
-            console.log('Stripe session created:', session);
-            stripe.redirectToCheckout({ sessionId: session.id });
-        }
-    })
-    .catch(error => {
-        console.error('Error in Stripe payment:', error);
-        Swal.fire({
-            icon: 'error',
-            title: '{{ __("Unexpected Error") }}',
-            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
-        });
-    });
-}
-
-// Function to handle Adyen payment
-function handleAdyenPayment(formData) {
-    fetch('/create-adyen-payment', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error('Adyen Error:', data.error);
-            Swal.fire({
-                icon: 'error',
-                title: '{{ __("Payment Error") }}',
-                text: data.error
-            });
-        } else {
-            console.log('Adyen payment success:', data);
-            window.location.href = data.url;
-        }
-    })
-    .catch(error => {
-        console.error('Error in Adyen payment:', error);
-        Swal.fire({
-            icon: 'error',
-            title: '{{ __("Unexpected Error") }}',
-            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
-        });
-    });
-}
-
-// Function to handle Crypto payment
-function handleCryptoPayment(formData) {
-    fetch('/create-crypto-payment', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error('Crypto Error:', data.error);
-            Swal.fire({
-                icon: 'error',
-                title: '{{ __("Payment Error") }}',
-                text: data.error
-            });
-        } else {
-            console.log('Crypto payment success:', data);
-            window.location.href = data.invoice_url;
-        }
-    })
-    .catch(error => {
-        console.error('Error in Crypto payment:', error);
-        Swal.fire({
-            icon: 'error',
-            title: '{{ __("Unexpected Error") }}',
-            text: '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}'
-        });
-    });
-}
-
-// Function to handle Nicky payment
-function handleNickyPayment(formData) {
-    // Show the loading overlay
-    const overlay = document.getElementById('loading-overlay');
-    overlay.style.display = 'flex';
-
-    fetch('/create-nicky-payment', {
+function sendPayment(url, formData, onSuccess) {
+    fetch(url, {
         method: 'POST',
         body: formData,
-        headers: {
-            'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
     })
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
-        // Hide the loading overlay
-        overlay.style.display = 'none';
-
         if (data.error) {
-            console.error('Nicky Error:', data.error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Payment Error',
-                text: data.error
-            });
-        } else if (data.invoice_url) {
-            console.log('Nicky payment success:', data);
-            window.location.href = data.invoice_url;
+            console.error(`${url} Error:`, data.error);
+            showError('{{ __("Payment Error") }}', data.error);
         } else {
-            console.error('Unexpected API response:', data);
-            Swal.fire({
-                icon: 'error',
-                title: 'Unexpected Response',
-                text: 'The payment gateway did not return a valid payment URL.'
-            });
+            console.log(`${url} success:`, data);
+            onSuccess(data);
         }
     })
-    .catch(error => {
-        // Hide the loading overlay
-        overlay.style.display = 'none';
-
-        console.error('Error in Nicky payment:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Unexpected Error',
-            text: 'An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.'
-        });
+    .catch(err => {
+        console.error(`Error in ${url}:`, err);
+        showError('{{ __("Unexpected Error") }}', '{{ __("An unexpected error occurred. Please try again later. Ensure the payment gateway is properly configured.") }}');
     });
 }
+
+function showError(title, text) {
+    Swal.fire({ icon: 'error', title, text });
+}
 </script>
+<script src="/assets/modules/js/sweetalert2.min.js" defer></script>
 {% endblock %}

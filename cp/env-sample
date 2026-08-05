@@ -29,8 +29,15 @@ MAIL_FROM_NAME='Example'
 MAIL_API_KEY='test-api-key'
 MAIL_API_PROVIDER='sendgrid'
 
+ENABLED_GATEWAYS=stripe,balance
+
 STRIPE_SECRET_KEY='stripe-secret-key'
 STRIPE_PUBLISHABLE_KEY='stripe-publishable-key'
+
+LIQPAY_PUBLIC_KEY='liqpay-public-key'
+LIQPAY_PRIVATE_KEY='liqpay-private-key'
+
+PLATA_TOKEN='plata-token'
 
 ADYEN_API_KEY='adyen-api-key'
 ADYEN_MERCHANT_ID='adyen-merchant-id'

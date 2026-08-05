@@ -203,8 +203,12 @@ CREATE TABLE payment_history (
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "date"   timestamp(3) without time zone NOT NULL,
      "description"   text NOT NULL,
-     "amount"   decimal(12,2) NOT NULL
+     "amount"   decimal(12,2) NOT NULL,
+     "gateway" VARCHAR(32),
+     "gateway_reference" VARCHAR(128)
 );
+
+CREATE UNIQUE INDEX transactions_gateway_reference_unique ON payment_history(gateway, gateway_reference);
 
 CREATE TABLE statement (
      "id" SERIAL PRIMARY KEY,

@@ -205,7 +205,10 @@ CREATE TABLE IF NOT EXISTS `registry`.`payment_history` (
     `date` datetime(3) NOT NULL,
     `description` text NOT NULL,
     `amount` decimal(12,2) NOT NULL,
+    `gateway` VARCHAR(32) DEFAULT NULL,
+    `gateway_reference` VARCHAR(128) DEFAULT NULL,
     PRIMARY KEY (`id`),
+    UNIQUE KEY `transactions_gateway_reference_unique` (`gateway`, `gateway_reference`),
     CONSTRAINT `payment_history_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='payment history';
 

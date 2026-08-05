@@ -212,8 +212,12 @@ CREATE TABLE IF NOT EXISTS payment_history (
     date DATETIME NOT NULL,
     description TEXT NOT NULL,
     amount DECIMAL(12,2) NOT NULL,
+    gateway TEXT DEFAULT NULL,
+    gateway_reference TEXT DEFAULT NULL,
     FOREIGN KEY (registrar_id) REFERENCES registrar(id)
 );
+
+CREATE UNIQUE INDEX transactions_gateway_reference_unique ON payment_history(gateway, gateway_reference);
 
 -- statement
 CREATE TABLE IF NOT EXISTS statement (

@@ -18,9 +18,8 @@ use Punic\Language;
 // }
 
 ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.cookie_lifetime', '0');
-ini_set('session.cookie_secure', '1');
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';
@@ -39,6 +38,7 @@ if (envi('APP_ENV')=='local') {
     Logger::systemLogs(true);
 } else{
     Logger::systemLogs(false);
+    ini_set('session.cookie_secure', '1');
 }
 
 $container = new Container();
@@ -273,6 +273,9 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
     $csrf = $container->get('csrf');
 
     // Skip CSRF for the specific path
+    if ($path && preg_match('#^/payment/[a-z0-9_-]+/(?:return|webhook)$#', $path)) {
+        return $handler->handle($request);
+    }
     if ($path && $path === '/webauthn/register/verify') {
         return $handler->handle($request);
     }
@@ -289,18 +292,6 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
         return $handler->handle($request);
     }
     if ($path && $path === '/application/deletehost') {
-        return $handler->handle($request);
-    }
-    if ($path && $path === '/webhook/adyen') {
-        return $handler->handle($request);
-    }
-    if ($path && $path === '/create-adyen-payment') {
-        return $handler->handle($request);
-    }
-    if ($path && $path === '/create-nicky-payment') {
-        return $handler->handle($request);
-    }
-    if ($path && $path === '/create-crypto-payment') {
         return $handler->handle($request);
     }
     if ($path && $path === '/clear-cache') {
