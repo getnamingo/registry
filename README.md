@@ -21,7 +21,7 @@ You can use our open-source [ICANN RST OT&E Test Script](https://github.com/getn
 
 ## Get Involved
 
-We’re finalizing support for Alpine Linux, PostgreSQL, and SQLite and are looking for contributors to help test and refine these features.
+We’re finalizing support for PostgreSQL and SQLite, and are looking for contributors to help test and refine these features.
 
 We also seek assistance from gTLD operators to test Namingo in real-world environments. If you can provide access to ICANN and other relevant infrastructure, your contributions will help improve Namingo’s compatibility and reliability for registry operations.
 
