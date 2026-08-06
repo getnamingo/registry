@@ -21,8 +21,6 @@ You can use our open-source [ICANN RST OT&E Test Script](https://github.com/getn
 
 ## Get Involved
 
-We’re finalizing support for PostgreSQL and SQLite, and are looking for contributors to help test and refine these features.
-
 We also seek assistance from gTLD operators to test Namingo in real-world environments. If you can provide access to ICANN and other relevant infrastructure, your contributions will help improve Namingo’s compatibility and reliability for registry operations.
 
 ### EPP Benchmark Summary
@@ -57,7 +55,7 @@ Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM
 
 - **DNS Interface**: Zone file generation with native DNSSEC signing for BIND 9.20 and Knot DNS 3.5, including RFC 9276-compliant NSEC3 support and optional offline KSK signing.
 
-- **Database Compatibility**: Fully supports MariaDB and includes beta support for PostgreSQL, allowing operators to select the database platform that best matches their infrastructure.
+- **Database Compatibility**: Full support for both MariaDB and PostgreSQL, giving operators the flexibility to use either database backend.
 
 - **GDPR and NIS2 Support**: Includes features designed to support GDPR and NIS2 requirements, such as contact validation, encrypted data storage, access controls, and security-focused operational processes. See the [Encryption Guide](docs/encryption.md) for implementation details.
 
