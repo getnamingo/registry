@@ -158,6 +158,20 @@ DB_PASSWORD_SQL_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
 echo "Generated database username: $DB_USER"
 echo "Generated database password: $DB_PASSWORD"
 echo ""
+DB_TYPE=$(prompt_for_input "Enter database type [M = MariaDB, P = PostgreSQL]")
+
+case "${DB_TYPE^^}" in
+    M)
+        DB_TYPE="mariadb"
+        ;;
+    P)
+        DB_TYPE="pgsql"
+        ;;
+    *)
+        echo "Invalid database type. Use M or P."
+        exit 1
+        ;;
+esac
 PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
 PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
 echo ""
@@ -184,7 +198,7 @@ fi
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 
-# MariaDB setup
+if [ "$DB_TYPE" == "mariadb" ]; then
 mkdir -p /etc/apt/keyrings
 curl -o /etc/apt/keyrings/mariadb-keyring.asc 'https://mariadb.org/mariadb_release_signing_key.pgp'
 cat > /etc/apt/sources.list.d/mariadb.sources <<EOF
@@ -195,6 +209,18 @@ Suites: ${MARIADB_SUITE}
 Components: ${MARIADB_COMPONENTS}
 Signed-By: /etc/apt/keyrings/mariadb-keyring.asc
 EOF
+elif [ "$DB_TYPE" == "pgsql" ]; then
+install -d /usr/share/postgresql-common/pgdg
+curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+cat > /etc/apt/sources.list.d/pgdg.sources <<EOF
+Types: deb deb-src
+URIs: https://apt.postgresql.org/pub/repos/apt
+Suites: ${MARIADB_SUITE}-pgdg
+Architectures: amd64
+Components: main
+Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+EOF
+fi
 
 echo "Updating package lists..."
 apt update -y
@@ -203,8 +229,15 @@ PHP_VERSION="php8.5"
 PHP_SHORT="8.5"
 
 echo "Installing packages..."
-apt install -y caddy mariadb-client mariadb-server ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-mysql ${PHP_VERSION}-protobuf ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
-    
+apt install -y caddy ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-protobuf ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
+
+if [ "$DB_TYPE" == "mariadb" ]; then
+    apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
+
+elif [ "$DB_TYPE" == "pgsql" ]; then
+    apt install -y postgresql postgresql-client ${PHP_VERSION}-pgsql
+fi
+
 # Set timezone to UTC if it's not already
 currentTimezone=$(timedatectl status | grep "Time zone" | awk '{print $3}')
 if [ "$currentTimezone" != "UTC" ]; then
@@ -248,20 +281,48 @@ echo "Restarting PHP FPM service..."
 systemctl restart ${PHP_VERSION}-fpm
 echo "PHP configuration update complete!"
 
-echo "Applying MariaDB hardening..."
-mariadb -u root -e "DELETE FROM mysql.user WHERE User='';"
-mariadb -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
-mariadb -u root -e "DROP DATABASE IF EXISTS test;"
-mariadb -u root -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
-mariadb -u root -e "FLUSH PRIVILEGES;"
+if [ "$DB_TYPE" == "mariadb" ]; then
+    echo "Applying MariaDB hardening..."
+    mariadb -u root -e "DELETE FROM mysql.user WHERE User='';"
+    mariadb -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    mariadb -u root -e "DROP DATABASE IF EXISTS test;"
+    mariadb -u root -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+    mariadb -u root -e "FLUSH PRIVILEGES;"
 
-# Create user and grant privileges
-echo "Creating user $DB_USER and setting privileges..."
-mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD_SQL_ESCAPED';"
-mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
-mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
-mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
-mariadb -u root -e "FLUSH PRIVILEGES;"
+    # Create user and grant privileges
+    echo "Creating user $DB_USER and setting privileges..."
+    mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD_SQL_ESCAPED';"
+    mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
+    mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
+    mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
+    mariadb -u root -e "FLUSH PRIVILEGES;"
+elif [ "$DB_TYPE" == "pgsql" ]; then
+    echo "Configuring PostgreSQL..."
+
+    systemctl enable --now postgresql
+
+    echo "Creating PostgreSQL user $DB_USER..."
+
+    if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
+        runuser -u postgres -- psql -c "CREATE ROLE \"$DB_USER\" LOGIN PASSWORD '$DB_PASSWORD_SQL_ESCAPED';"
+    else
+        runuser -u postgres -- psql -c "ALTER ROLE \"$DB_USER\" WITH PASSWORD '$DB_PASSWORD_SQL_ESCAPED';"
+    fi
+
+    echo "Creating PostgreSQL databases..."
+
+    if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='registry'" | grep -q 1; then
+        runuser -u postgres -- createdb -O "$DB_USER" registry
+    fi
+
+    if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='registryTransaction'" | grep -q 1; then
+        runuser -u postgres -- createdb -O "$DB_USER" registryTransaction
+    fi
+
+    if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='registryAudit'" | grep -q 1; then
+        runuser -u postgres -- createdb -O "$DB_USER" registryAudit
+    fi
+fi
 
 mkdir -p /usr/share/adminer
 wget "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
@@ -443,7 +504,12 @@ COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 
 # Importing the database
 echo "Importing database."
-mariadb -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+if [ "$DB_TYPE" == "mariadb" ]; then
+    mariadb -u "$DB_USER" -p"$DB_PASSWORD" < /opt/registry/database/registry.mariadb.sql
+elif [ "$DB_TYPE" == "pgsql" ]; then
+    PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d registry -f /opt/registry/database/registry.postgres.sql
+    PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d registryTransaction -f /opt/registry/database/registryTransaction.postgres.sql
+fi
 echo "SQL import completed."
 
 echo "Installing Web WHOIS."
