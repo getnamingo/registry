@@ -32,11 +32,6 @@ return [
             'strict' => true,
             'engine' => null,
         ],
-        'sqlite' => [
-            'driver' => 'sqlite',
-            'database' => $_ENV['DB_DATABASE'] ?? __DIR__.'/registry.db',
-            'prefix' => '',
-        ],
         'pgsql' => [
             'driver' => 'pgsql',
             'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',

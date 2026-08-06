@@ -799,9 +799,8 @@ class DapiController extends Controller
                 // MySQL/MariaDB
                 return "LIMIT {$offset}, {$size}";
             case 'pgsql':
-            case 'sqlite':
             default:
-                // PostgreSQL & SQLite
+                // PostgreSQL
                 return "LIMIT {$size} OFFSET {$offset}";
         }
     }

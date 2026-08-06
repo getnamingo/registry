@@ -46,9 +46,6 @@ try {
     } elseif ($dbDriver == 'pgsql') {
         $dsn = "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName";
         $pdo = new PDO($dsn, $dbUser, $dbPass);
-    } elseif ($dbDriver == 'sqlite') {
-        $dsn = "sqlite:/var/www/cp/registry.db";
-        $pdo = new PDO($dsn);
     }
 
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

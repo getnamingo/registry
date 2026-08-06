@@ -213,11 +213,6 @@ $app->any('/api[/{params:.*}]', function (
         $db_database = $db['pgsql']['database'];
         $db_address = $db['pgsql']['host'];
         $db_port = $db['pgsql']['port'];
-    } elseif (config('default') == 'sqlite') {
-        $db_username = null;
-        $db_password = null;
-        $db_database = null;
-        $db_address = '/var/www/cp/registry.db';
     }
     $config = new Config([
         'driver' => config('default'),
@@ -355,10 +350,6 @@ $app->any('/log-api[/{params:.*}]', function (
         $db_password = $db['pgsql']['password'];
         $db_address = $db['pgsql']['host'];
         $db_port = $db['pgsql']['port'];
-    } elseif (config('default') == 'sqlite') {
-        $db_username = null;
-        $db_password = null;
-        $db_address = '/var/www/cp/registry.db';
     }
     $config = new Config([
         'driver' => config('default'),

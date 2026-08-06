@@ -118,25 +118,6 @@ case "$db_driver" in
                     ALTER COLUMN validation_log TYPE TEXT;
             '
         ;;
-
-    sqlite)
-        DB_FILE="$db_name" php -r '
-            $db = new PDO("sqlite:" . getenv("DB_FILE"), null, null, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ]);
-            $columns = array_column(
-                $db->query("PRAGMA table_info(payment_history)")->fetchAll(PDO::FETCH_ASSOC),
-                "name"
-            );
-            if (!in_array("gateway", $columns, true)) {
-                $db->exec("ALTER TABLE payment_history ADD COLUMN gateway VARCHAR(32) DEFAULT NULL");
-            }
-            if (!in_array("gateway_reference", $columns, true)) {
-                $db->exec("ALTER TABLE payment_history ADD COLUMN gateway_reference VARCHAR(128) DEFAULT NULL");
-            }
-            $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS transactions_gateway_reference_unique ON payment_history (gateway, gateway_reference)");
-        '
-        ;;
 esac
 
 # Stop services
