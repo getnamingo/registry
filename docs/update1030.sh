@@ -131,7 +131,7 @@ systemctl stop msg_producer
 systemctl stop msg_worker
 
 # Add payment gateway configuration
-cat >> /var/www/cp/.env <<'EOF'
+grep -q '^ENABLED_GATEWAYS=' /var/www/cp/.env || cat >> /var/www/cp/.env <<'EOF'
 
 ENABLED_GATEWAYS=stripe
 
