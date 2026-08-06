@@ -29,7 +29,7 @@ MAIL_FROM_NAME='Example'
 MAIL_API_KEY='test-api-key'
 MAIL_API_PROVIDER='sendgrid'
 
-ENABLED_GATEWAYS=stripe,balance
+ENABLED_GATEWAYS=stripe
 
 STRIPE_SECRET_KEY='stripe-secret-key'
 STRIPE_PUBLISHABLE_KEY='stripe-publishable-key'

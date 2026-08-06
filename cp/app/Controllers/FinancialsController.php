@@ -14,10 +14,6 @@ use League\ISO3166\ISO3166;
 class FinancialsController extends Controller
 {
     private const PAYMENT_GATEWAYS = [
-        'balance' => [
-            'create' => 'balancePayment',
-            'verify' => null,
-        ],
         'stripe' => [
             'create' => 'createStripePayment',
             'verify' => 'verifyStripePayment',
@@ -287,143 +283,6 @@ class FinancialsController extends Controller
         return view($response,'admin/financials/deposit.twig', [
             'registrars' => $registrars
         ]);
-    }
-    
-    public function balancePayment(Request $request, Response $response)
-    {
-        $postData = $request->getParsedBody();
-        $amount = $postData['amount'] ?? null;
-        $db = $this->container->get('db');
-
-        if (!$amount && isset($_SESSION['pending_invoice_amount'])) {
-            $amount = $_SESSION['pending_invoice_amount'];
-            $paymentDescription = 'Invoice Payment #' . ($_SESSION['pending_invoice_id'] ?? '');
-            $invoiceId = $_SESSION['pending_invoice_id'] ?? '';
-            unset($_SESSION['pending_invoice_amount']);
-            unset($_SESSION['pending_invoice_id']);
-        }
-
-        if ($amount && $invoiceId) {
-            try {
-                $paymentType = 'invoice';
-                $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
-
-                if ($isPositiveNumberWithTwoDecimals) {
-                    $registrarId = $_SESSION["auth_registrar_id"] ?? $registrarId;
-
-                    $userData = $db->selectRow(
-                        'SELECT currency, account_balance, credit_limit FROM users WHERE id = ?',
-                        [ $registrarId ]
-                    );
-
-                    if (($userData['account_balance'] + $userData['credit_limit']) < $amount) {
-                        $this->container->get('flash')->addMessage('error', 'There is no money on the account to pay for the invoice');
-                        $response->getBody()->write(json_encode([
-                            'success' => false,
-                            'invoice_url' => "/invoice/{$invoiceId}"
-                        ]));
-                        return $response
-                            ->withHeader('Content-Type', 'application/json')
-                            ->withStatus(200);
-                    }
-
-                    try {
-                        $db->beginTransaction();
-                        $currentDateTime = new \DateTime();
-                        $date = $currentDateTime->format('Y-m-d H:i:s.v');
-                        
-                        $db->insert(
-                            'statement',
-                            [
-                                'registrar_id' => $registrarId,
-                                'date' => $date,
-                                'command' => 'create',
-                                'domain_name' => 'deposit',
-                                'length_in_months' => 0,
-                                'fromS' => $date,
-                                'toS' => $date,
-                                'amount' => $amount
-                            ]
-                        );
-                        
-                        $db->insert(
-                            'payment_history',
-                            [
-                                'registrar_id' => $registrarId,
-                                'date' => $date,
-                                'description' => 'registrar balance deposit via Stripe ('.$paymentIntentId.')',
-                                'amount' => $amount
-                            ]
-                        );
-
-                        $currentDateTime = new \DateTime();
-                        $updatedAt = $currentDateTime->format('Y-m-d H:i:s.v');
-
-                        $db->exec(
-                            'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
-                            [
-                                $amount,
-                                $registrarId
-                            ]
-                        );
-
-                        $db->commit();
-                    } catch (Exception $e) {
-                        $db->rollBack();
-
-                        $this->container->get('flash')->addMessage('error', 'Failure: '.$e->getMessage());
-                        $response->getBody()->write(json_encode([
-                            'success' => false,
-                            'invoice_url' => "/invoice/{$invoiceId}"
-                        ]));
-                        return $response
-                            ->withHeader('Content-Type', 'application/json')
-                            ->withStatus(200);
-                    }
-
-                    $this->container->get('flash')->addMessage('success', "Invoice payment received successfully. Your service will be processed shortly");
-                    $response->getBody()->write(json_encode([
-                        'success' => true,
-                        'invoice_url' => "/invoice/{$invoiceId}"
-                    ]));
-                    return $response
-                        ->withHeader('Content-Type', 'application/json')
-                        ->withStatus(200);
-                } else {
-                    $this->container->get('flash')->addMessage('error', 'Invalid entry: Amount must be positive. Please enter a valid amount');
-                    $response->getBody()->write(json_encode([
-                        'success' => false,
-                        'invoice_url' => "/invoice/{$invoiceId}"
-                    ]));
-                    return $response
-                        ->withHeader('Content-Type', 'application/json')
-                        ->withStatus(200);
-                }
-            } catch (\Exception $e) {
-                $currentDateTime = new \DateTime();
-                $createdAt = $currentDateTime->format('Y-m-d H:i:s.v');
-
-                $db->update('orders', ['status' => 'failed'], ['invoice_id' => $invoiceId]);
-
-                $db->insert('service_logs', [
-                    'service_id' => 0,
-                    'event' => 'payment_failed',
-                    'actor_type' => 'system',
-                    'actor_id' => $_SESSION["auth_registrar_id"],
-                    'details' => 'invoice ' . $invoiceId . '|' . $e->getMessage(),
-                    'created_at' => $createdAt
-                ]);
-
-                $this->container->get('flash')->addMessage('error', 'We encountered an issue while processing your order. Please contact our support team');
-                $response->getBody()->write(json_encode([
-                    'success' => false,
-                    'invoice_url' => "/invoice/{$invoiceId}"
-                ]));
-                return $response
-                    ->withHeader('Content-Type', 'application/json')
-                    ->withStatus(200);
-            }
-        }
     }
 
     public function createPayment(Request $request,    Response $response,    string $gateway): Response {
@@ -1931,7 +1790,7 @@ class FinancialsController extends Controller
                 [
                     'registrar_id' => $registrarId,
                     'date' => $now,
-                    'description' => 'registrar balance deposit via '.$gateway.' ('.$reference.')',
+                    'description' => 'registrar balance deposit via ' . ucfirst($gateway) . ' (' . $reference . ')',
                     'amount' => $amount,
                     'gateway' => $gateway,
                     'gateway_reference' => $reference
