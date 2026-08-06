@@ -33,74 +33,204 @@
         <div class="page-body">
           <div class="container-xl">
             <div class="col-12">
-              <div class="card mb-3">
-                <div class="card-header">
-                  <h3 class="card-title">{{ __('Contact') }} {{ contact.identifier }}&nbsp;<span class="status status-green">{{ contactStatus.status }}</span>{% if contactLinked is not null %}&nbsp;<span class="status status-info">{{ __('linked') }}</span>{% endif %}
-                  {% if validation_enabled is not null %}
-                    <span class="status {% if contact_valid == 0 %}status-warning{% elseif contact_valid == 1 %}status-success{% elseif contact_valid == 2 %}status-success{% elseif contact_valid == 3 %}status-info{% endif %}" title="{% if contact_valid == 0 %}Pending Validation{% elseif contact_valid == 1 %}Validated by Phone{% elseif contact_valid == 2 %}Validated by Email{% elseif contact_valid == 3 %}Validated by Postal Mail{% endif %}">
-                        {% if contact_valid == 0 %}
-                            {{ __('Pending Validation') }}
-                        {% elseif contact_valid == 1 %}
-                            {{ __('Validated by Phone') }}
-                        {% elseif contact_valid == 2 %}
-                            {{ __('Validated by Email') }}
-                        {% elseif contact_valid == 3 %}
-                            {{ __('Validated by Postal Mail') }}
+            {% include 'partials/flash.twig' %}
+                <div class="card mb-3">
+                    <div class="card-header py-3">
+                        <h3 class="card-title">{{ __('Contact') }} {{ contact.identifier }}</h3>&nbsp;
+                        <span class="status status-green">{{ contactStatus.status }}</span>
+                        {% if contactLinked is not null %}
+                        <span class="status status-azure">{{ __('Linked') }}</span>
                         {% endif %}
-                    </span>
-                  {% endif %}</h3>
-                    <div class="card-actions">
-                      <form action="/contact/approve" method="post">
-                      {{ csrf.field | raw }}
-                      <a href="/contact/update/{{ contact.identifier }}" class="btn btn-outline-secondary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" /></svg>
-                        {{ __('Back to Contact Update') }}
-                      </a>
-                      <button type="submit" class="btn btn-outline-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8" /><path d="M14 19l2 2l4 -4" /><path d="M9 8h4" /><path d="M9 12h2" /></svg>
-                        {{ __('Validate Contact') }}
-                      </button>
+                        {% if validation_enabled is not null %}
+                        &nbsp;<span class="status {% if contact_valid == 0 %}status-yellow{% else %}status-green{% endif %}" title="{% if contact_valid == 0 %}Pending Validation{% else %}Validated{% endif %}">
+                            {% if contact_valid == 0 %}
+                                {{ __('Pending Validation') }}
+                            {% else %}
+                                {{ __('Validated') }}
+                            {% endif %}
+                        </span>
+                        {% endif %}
+
+                      <div class="card-actions">
+                        <div class="btn-list">
+                          <a href="/contact/update/{{ contact.identifier }}" class="btn btn-outline-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                              <path d="M9 11l-4 4l4 4"/>
+                              <path d="M5 15h11a4 4 0 0 0 0 -8h-1"/>
+                            </svg>
+                            {{ __('Back') }}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card-body py-3">
+                      <div class="row g-2">
+
+                        {% if verifyPhone == 'on' %}
+                          <div class="col-12 col-md-4">
+                            <div class="border rounded-3 p-3 h-100">
+                              <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm rounded-circle {{ phoneDetails ? 'bg-green-lt text-green' : 'bg-red-lt text-red' }} me-3">
+                                  {% if phoneDetails %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M5 12l5 5l10 -10"/>
+                                    </svg>
+                                  {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M18 6l-12 12"/>
+                                      <path d="M6 6l12 12"/>
+                                    </svg>
+                                  {% endif %}
+                                </span>
+
+                                <div class="flex-fill">
+                                  <div class="fw-semibold">{{ __('Phone') }}</div>
+                                  <div class="small {{ phoneDetails ? 'text-green' : 'text-red' }}">{{ phoneDetails ? __('Format is valid') : __('Format is not valid') }}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+
+                        {% if verifyEmail == 'on' %}
+                          {% set emailValid = emailDetails == 1 %}
+
+                          <div class="col-12 col-md-4">
+                            <div class="border rounded-3 p-3 h-100">
+                              <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm rounded-circle {{ emailValid ? 'bg-green-lt text-green' : 'bg-red-lt text-red' }} me-3">
+                                  {% if emailValid %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M5 12l5 5l10 -10"/>
+                                    </svg>
+                                  {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M18 6l-12 12"/>
+                                      <path d="M6 6l12 12"/>
+                                    </svg>
+                                  {% endif %}
+                                </span>
+
+                                <div class="flex-fill">
+                                  <div class="fw-semibold">{{ __('Email') }}</div>
+                                  <div class="small {{ emailValid ? 'text-green' : 'text-red' }}">{{ emailValid ? __('Format is valid') : __('Format is not valid') }}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+
+                        {% if verifyPostal == 'on' %}
+                          {% set postalValid = postalDetails is not empty %}
+
+                          <div class="col-12 col-md-4">
+                            <div class="border rounded-3 p-3 h-100">
+                              <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm rounded-circle {{ postalValid ? 'bg-green-lt text-green' : 'bg-red-lt text-red' }} me-3">
+                                  {% if postalValid %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M5 12l5 5l10 -10"/>
+                                    </svg>
+                                  {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                      <path d="M18 6l-12 12"/>
+                                      <path d="M6 6l12 12"/>
+                                    </svg>
+                                  {% endif %}
+                                </span>
+
+                                <div class="flex-fill">
+                                  <div class="fw-semibold">{{ __('Postal Code') }}</div>
+                                  <div class="small {{ postalValid ? 'text-green' : 'text-red' }}">{{ postalValid ? __('Format is valid') : __('Format is not valid') }}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+
+                      </div>
                     </div>
                 </div>
-                <div class="card-body">
-                {% if verifyPhone == 'on' %}
-                    {# The content you want to echo if verifyPhone is 'on' #}
-                    <h4>
-                      {{ __('Phone Validation') }}
-                    </h4>
-                    <div>
-                      <pre><code>{{ phoneDetails ? 'Phone format is valid' : 'Phone format is not valid' }}</code></pre>
+              
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            {{ __('Administrative Actions') }}
+                        </h3>
                     </div>
-                    <input type="hidden" name="verify" value="1">
-                    <input type="hidden" name="v_log[]" value="{{ phoneDetails ? 'Phone format is valid' : 'Phone format is not valid' }}">
-                {% endif %}
 
-                {% if verifyEmail == 'on' %}
-                    {# The content you want to echo if verifyEmail is 'on' #}
-                    <h4>
-                      {{ __('Email Validation') }}
-                    </h4>
-                    <div>
-                      <pre><code>{{ emailDetails == 1 ? 'Email format is valid' : 'Email format is not valid' }}</code></pre>
-                    </div>
-                    <input type="hidden" name="verify" value="2">
-                    <input type="hidden" name="v_log[]" value="{{ emailDetails == 1 ? 'Email format is valid' : 'Email format is not valid' }}">
-                {% endif %}        
+                    <form method="post" action="/contact/approve">
+                        {{ csrf.field | raw }}
 
-                {% if verifyPostal == 'on' %}
-                    {# The content you want to echo if verifyPostal is 'on' #}
-                    <h4>
-                      {{ __('Postal Mail Validation') }}
-                    </h4>
-                    <div>
-                      <pre><code>{{ postalDetails is empty ? 'Postal code format is not valid' : 'Postal code format is valid' }}</code></pre>
-                    </div>
-                    <input type="hidden" name="verify" value="3">
-                    <input type="hidden" name="v_log[]" value="{{ postalDetails is empty ? 'Postal code format is not valid' : 'Postal code format is valid' }}">
-                {% endif %}
-                      </form>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="validation-note" class="form-label">{{ __('Audit Note') }}</label>
+
+                                <textarea id="validation-note" name="note" class="form-control" rows="4" maxlength="5000" placeholder="{{ __('Optional note for a status change, or enter a note and click Add Audit Note') }}"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" name="action" value="validate" class="btn btn-success">{{ __('Mark as Validated') }}</button>
+
+                                <button type="submit" name="action" value="unvalidate" class="btn btn-warning">{{ __('Mark as Unvalidated') }}</button>
+
+                                <button type="submit" name="action" value="note" class="btn btn-primary">{{ __('Add Audit Note') }}</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-              </div>
+
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">{{ __('Validation Audit Log') }}</h3>
+
+                    {% if validationLog is not empty %}
+                      <div class="card-actions">
+                        <span class="badge bg-blue-lt text-blue">{{ validationLog|length }} {{ validationLog|length == 1 ? __('entry') : __('entries') }}</span>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="card-body">
+                    {% if validationLog is not empty %}
+                      <pre class="mb-0" style="white-space: pre-wrap; overflow-wrap: anywhere;"><code>{% for entry in validationLog %}{{ entry }}{% if not loop.last %}{{ "\n" }}{% endif %}{% endfor %}</code></pre>
+                    {% else %}
+                      <div class="empty py-4">
+                        <div class="empty-icon">
+                          <span class="avatar avatar-lg bg-secondary-lt text-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M9 6l11 0" /><path d="M9 12l11 0" /><path d="M9 18l11 0" /><path d="M5 6l0 .01" /><path d="M5 12l0 .01" /><path d="M5 18l0 .01" /></svg>
+                          </span>
+                        </div>
+                        <p class="empty-title">{{ __('No audit entries') }}</p>
+                        <p class="empty-subtitle text-secondary">{{ __('Validation actions and administrative notes will appear here.') }}</p>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  {% if validationStamp %}
+                    <div class="card-footer">
+                      <div class="d-flex align-items-center text-secondary small">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                          <path d="M12 7v5l3 3"/>
+                          <path d="M12 21a9 9 0 1 0 0 -18a9 9 0 0 0 0 18"/>
+                        </svg>
+                        <span>{{ __('Last status change') }}: <strong class="text-body">{{ validationStamp }}</strong></span>
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
+
             </div>
           </div>
         </div>

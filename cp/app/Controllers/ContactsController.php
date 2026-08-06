@@ -873,14 +873,12 @@ class ContactsController extends Controller
                 // Contact does not exist, redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-
         } else {
             // Redirect to the contacts view
             return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
-
     }
-    
+
     public function historyContact(Request $request, Response $response, $args) 
     {
         if (envi('MINIMUM_DATA') === 'true') {
@@ -1072,123 +1070,129 @@ class ContactsController extends Controller
         }
         
         $db = $this->container->get('db');
+        $identifier = trim((string) $args);
+        $redirectUrl = '/contact/validate/' . rawurlencode($identifier);
         $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
         $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
         $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
                 
         if ($verifyPhone === NULL && $verifyEmail === NULL && $verifyPostal === NULL) {
-            // Redirect to the contacts view
             return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
-
-        // Get the current URI
-        $uri = $request->getUri()->getPath();
-
-        if ($args) {
-            $args = trim($args);
-
-            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $args)) {
-                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+    
+        if ($identifier === '' || !preg_match('/^[a-zA-Z0-9\-]+$/', $identifier)) {
+            $this->container->get('flash')->addMessage('error',    'Invalid contact ID format');
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+   
+        $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email, validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
+            
+        if ($_SESSION["auth_roles"] != 0) {
+            $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+            $contact_clid = $contact['clid'];
+            if ($contact_clid != $clid) {
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-            
-            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
-            [ $args ]);
-            
-            if ($_SESSION["auth_roles"] != 0) {
-                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-                $contact_clid = $contact['clid'];
-                if ($contact_clid != $clid) {
-                    return $response->withHeader('Location', '/contacts')->withStatus(302);
-                }
-            } else {
-                $clid = $contact['clid'];
-            }
-
-            if ($contact) {
-                $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
-                $iso3166 = new ISO3166();
-                $countries = $iso3166->all();
-
-                $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?',
-                [ $contact['id'] ]);
-                $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
-                [ $contact['id'] ]);
-                $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
-                [ $contact['id'] ]);
-
-                $_SESSION['contacts_to_validate'] = [$contact['identifier']];
-
-                $responseData = [
-                    'contact' => $contact,
-                    'contactStatus' => $contactStatus,
-                    'contactAuth' => $contactAuth,
-                    'contactPostal' => $contactPostal,
-                    'registrars' => $registrars,
-                    'countries' => $countries,
-                    'currentUri' => $uri
-                ];
-                
-                $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
-                $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
-                $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
-        
-                if ($verifyPhone == 'on' || $verifyEmail == 'on' || $verifyPostal == 'on') {
-                    $contact_validation = $db->selectRow('SELECT validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
-                    $responseData['contact_valid'] = $contact_validation['validation'];
-                    $responseData['validation_enabled'] = true;
-                    $responseData['verifyPhone'] = $verifyPhone;
-                    $responseData['verifyEmail'] = $verifyEmail;
-                    $responseData['verifyPostal'] = $verifyPostal;
-                }
-                
-                if ($verifyPhone == 'on') {
-                    $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
-                    try {
-                        $numberProto = $phoneUtil->parse($contact['voice'], $contactPostal[0]['cc']);
-                        $isValid = $phoneUtil->isValidNumber($numberProto);
-                        $responseData['phoneDetails'] = $isValid;
-                    } catch (\libphonenumber\NumberParseException $e) {
-                        $responseData['phoneDetails'] = $e;
-                    }
-                }
-                
-                if ($verifyEmail == 'on') {
-                    $validator = new EmailValidator();
-                    $multipleValidations = new MultipleValidationWithAnd([
-                        new RFCValidation(),
-                        new DNSCheckValidation()
-                    ]);
-                    $isValid = $validator->isValid($contact['email'], $multipleValidations);
-                    $responseData['emailDetails'] = $isValid;
-                }
-                
-                if ($verifyPostal == 'on') {
-                    $formatter = new PostcodeFormatter();
-                    try {
-                        $isValid = $formatter->format($contactPostal[0]['cc'], $contactPostal[0]['pc']);
-                        $responseData['postalDetails'] = $isValid;
-                    } catch (\Brick\Postcode\UnknownCountryException $e) {
-                        $responseData['postalDetails'] = null;
-                        $responseData['postalDetailsI'] = $e;
-                    } catch (\Brick\Postcode\InvalidPostcodeException $e) {
-                        $responseData['postalDetails'] = null;
-                        $responseData['postalDetailsI'] = $e;
-                    }
-                    
-                }
-
-                return view($response, 'admin/contacts/validateContact.twig', $responseData);
-            } else {
-                // Contact does not exist, redirect to the contacts view
-                return $response->withHeader('Location', '/contacts')->withStatus(302);
-            }
-
         } else {
-            // Redirect to the contacts view
+            $clid = $contact['clid'];
+        }
+        
+        if (!$contact) {
+            $this->container->get('flash')->addMessage('error', 'Contact not found');
             return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
 
+        $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$contact['clid']]);
+        $iso3166 = new ISO3166();
+        $countries = $iso3166->all();
+
+        $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?', [ $contact['id'] ]);
+        $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?', [ $contact['id'] ]);
+        $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?', [ $contact['id'] ]);
+
+        $_SESSION['contacts_to_validate'] = [$contact['identifier']];
+        
+        $logLines = [];
+
+        if (!empty($contact['validation_log'])) {
+            $logLines = preg_split(
+                '/\R/u',
+                trim((string) $contact['validation_log'])
+            ) ?: [];
+
+            $logLines = array_values(array_filter(
+                $logLines,
+                static fn ($line): bool => trim((string) $line) !== ''
+            ));
+
+            /*
+             * Show newest entries first without changing stored order.
+             */
+            $logLines = array_reverse($logLines);
+        }
+
+        $responseData = [
+            'contact' => $contact,
+            'contactStatus' => $contactStatus,
+            'contactAuth' => $contactAuth,
+            'contactPostal' => $contactPostal,
+            'registrars' => $registrars,
+            'countries' => $countries,
+            'isValidated' => (int) $contact['validation'] > 0,
+            'validationStamp' => $contact['validation_stamp'] ?? null,
+            'validationLog' => $logLines,
+            'currentUri' => $request->getUri()->getPath(),
+        ];
+                
+        $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+        $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+        $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+        
+        if ($verifyPhone == 'on' || $verifyEmail == 'on' || $verifyPostal == 'on') {
+            $contact_validation = $db->selectRow('SELECT validation, validation_stamp, validation_log FROM contact WHERE identifier = ?', [ $args ]);
+            $responseData['contact_valid'] = $contact_validation['validation'];
+            $responseData['validation_enabled'] = true;
+            $responseData['verifyPhone'] = $verifyPhone;
+            $responseData['verifyEmail'] = $verifyEmail;
+            $responseData['verifyPostal'] = $verifyPostal;
+        }
+                
+        if ($verifyPhone == 'on') {
+            $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+            try {
+                $numberProto = $phoneUtil->parse($contact['voice'], $contactPostal[0]['cc']);
+                $isValid = $phoneUtil->isValidNumber($numberProto);
+                $responseData['phoneDetails'] = $isValid;
+            } catch (\libphonenumber\NumberParseException $e) {
+                $responseData['phoneDetails'] = $e;
+            }
+        }
+                
+        if ($verifyEmail == 'on') {
+            $validator = new EmailValidator();
+            $multipleValidations = new MultipleValidationWithAnd([
+                new RFCValidation(),
+                new DNSCheckValidation()
+            ]);
+            $isValid = $validator->isValid($contact['email'], $multipleValidations);
+            $responseData['emailDetails'] = $isValid;
+        }
+                
+        if ($verifyPostal == 'on') {
+            $formatter = new PostcodeFormatter();
+            try {
+                $isValid = $formatter->format($contactPostal[0]['cc'], $contactPostal[0]['pc']);
+                $responseData['postalDetails'] = $isValid;
+            } catch (\Brick\Postcode\UnknownCountryException $e) {
+                $responseData['postalDetails'] = null;
+                $responseData['postalDetailsI'] = $e;
+            } catch (\Brick\Postcode\InvalidPostcodeException $e) {
+                $responseData['postalDetails'] = null;
+                $responseData['postalDetailsI'] = $e;
+            }        
+        }
+
+        return view($response, 'admin/contacts/validateContact.twig', $responseData);
     }
     
     public function approveContact(Request $request, Response $response) 
@@ -1207,25 +1211,42 @@ class ContactsController extends Controller
                 // Redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-        
+
             // Retrieve POST data
             $data = $request->getParsedBody();
+            $action = trim((string) ($data['action'] ?? ''));
+            $note = trim((string) ($data['note'] ?? ''));
             // Get the current URI
             $uri = $request->getUri()->getPath();
-            
+
             if (!empty($_SESSION['contacts_to_validate'])) {
                 $identifier = $_SESSION['contacts_to_validate'][0];
             } else {
                 $this->container->get('flash')->addMessage('error', 'No contact specified for validation');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-            
+            $identifier = trim((string) $identifier);
+            $redirectUrl = '/contact/validate/' . rawurlencode($identifier);
+
+            if (!in_array($action, ['validate', 'unvalidate', 'note'], true)) {
+                $this->container->get('flash')->addMessage('error',    'Invalid validation action');
+                return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            }
+
+            $note = preg_replace('/\s+/u', ' ', $note) ?? '';
+            $note = mb_substr($note, 0, 5000);
+
+            if ($action === 'note' && $note === '') {
+                $this->container->get('flash')->addMessage('error', 'Audit note cannot be empty');
+                return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+            }
+
             if (!preg_match('/^[a-zA-Z0-9\-]+$/', $identifier)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-            
-            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email FROM contact WHERE identifier = ?',
+
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email, validation, validation_stamp, validation_log FROM contact WHERE identifier = ?',
             [ $identifier ]);
             
             if ($_SESSION["auth_roles"] != 0) {
@@ -1237,7 +1258,7 @@ class ContactsController extends Controller
             } else {
                 $clid = $contact['clid'];
             }
-
+            
             if ($contact) {
                 if (!empty(envi('SUMSUB_TOKEN')) && !empty(envi('SUMSUB_KEY'))) {
                     $level_name = 'idv-and-phone-verification';
@@ -1290,49 +1311,101 @@ class ContactsController extends Controller
                         Mail::send($mailsubject, $message, $from, $to);
 
                         $this->container->get('flash')->addMessage('info', 'Contact validation process initiated with SumSub on ' . $stamp);
-                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
                     } catch (\GuzzleHttp\Exception\ClientException $e) {
                         $this->container->get('flash')->addMessage('error', 'Contact validation error: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
                     }
                 } else {
+                    $adminId = (int) ($_SESSION['auth_user_id'] ?? 0);
+                    $adminUsername = trim((string) $db->selectValue(
+                        'SELECT username
+                         FROM users
+                         WHERE id = ?',
+                        [$adminId]
+                    ));
+
+                    if ($adminUsername === '') {
+                        $adminUsername = 'admin';
+                    }
+
+                    $adminLabel = $adminUsername;
+
+                    if ($adminId > 0) {
+                        $adminLabel .= ' (#' . $adminId . ')';
+                    }
+
+                    $stamp = date('Y-m-d H:i:s');
+
+                    $actionText = match ($action) {
+                        'validate'   => 'Marked as validated',
+                        'unvalidate' => 'Marked as unvalidated',
+                        'note'       => 'Added audit note',
+                    };
+
+                    $logLine = sprintf(
+                        '[%s] %s by %s',
+                        $stamp,
+                        $actionText,
+                        $adminLabel
+                    );
+
+                    if ($note !== '') {
+                        $logLine .= ' | Note: ' . $note;
+                    }
+
+                    $oldLog = rtrim((string) ($contact['validation_log'] ?? ''));
+
+                    $newLog = $oldLog === ''
+                        ? $logLine
+                        : $oldLog . PHP_EOL . $logLine;
+
+                    $update = [
+                        'validation_log' => $newLog,
+                    ];
+
+                    if ($action === 'validate') {
+                        $update['validation'] = 1;
+                        $update['validation_stamp'] = $stamp;
+                        $update['lastupdate'] = $stamp;
+                    } elseif ($action === 'unvalidate') {
+                        $update['validation'] = 0;
+                        $update['validation_stamp'] = $stamp;
+                        $update['lastupdate'] = $stamp;
+                    }
+                    
                     try {
                         $db->beginTransaction();
                         $currentDateTime = new \DateTime();
                         $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
                         $db->update(
                             'contact',
-                            [
-                                'validation' => $data['verify'],
-                                'validation_stamp' => $stamp,
-                                'validation_log' => $clid . '|manual|Validated manually',
-                                'upid' => $clid,
-                                'lastupdate' => $stamp
-                            ],
-                            [
-                                'identifier' => $identifier
-                            ]
-                        );                
+                            $update,
+                            ['identifier' => $identifier]
+                        );
                         $db->commit();
                     } catch (Exception $e) {
                         $db->rollBack();
-                        $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                        $this->container->get('flash')->addMessage('error', 'Unable to update contact validation: ' . $e->getMessage());
+                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
                     }
 
+                    $successMessage = match ($action) {
+                        'validate'   => 'Contact has been marked as validated',
+                        'unvalidate' => 'Contact has been marked as unvalidated',
+                        'note'       => 'Audit note has been added',
+                    };
                     unset($_SESSION['contacts_to_validate']);
-                    $this->container->get('flash')->addMessage('success', 'Contact ' . $identifier . ' has been validated successfully on ' . $stamp);
-                    return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                    $this->container->get('flash')->addMessage('success', $successMessage);
+                    return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
                 }
             } else {
                 // Contact does not exist, redirect to the contacts view
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-
         }
-        
     }
-    
+
     public function updateContactProcess(Request $request, Response $response)
     {
         if (envi('MINIMUM_DATA') === 'true') {
