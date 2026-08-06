@@ -389,6 +389,43 @@
                 </form>
               </div>
             </div>
+
+            {% if roles == 0 and (domain.name|split('.')|last)|length == 2 %}
+              <div class="col-12 mt-3">
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">{{ __('Change Registrar') }}</h3>
+                  </div>
+
+                  <form action="{{route('changeDomainRegistrar')}}" method="post">
+                    {{ csrf.field | raw }}
+                    <input type="hidden" name="domain_id" value="{{ domain.id }}">
+
+                    <div class="card-body">
+                      <label for="registrar_id" class="form-label required">
+                        {{ __('New Registrar') }}
+                      </label>
+                      <select id="registrar_id" name="registrar_id" class="form-select" required>
+                        <option value="" selected disabled>{{ __('Select Registrar') }}</option>
+                        {% for registrarOption in registrars_list %}
+                          {% if registrarOption.id != registrar_details.id %}
+                            <option value="{{ registrarOption.id }}">
+                              {{ registrarOption.name }} ({{ registrarOption.clid }})
+                            </option>
+                          {% endif %}
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="card-footer">
+                      <button type="submit" class="btn btn-warning">
+                        {{ __('Change Registrar') }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            {% endif %}
           </div>
         </div>
         {% include 'partials/footer.twig' %}

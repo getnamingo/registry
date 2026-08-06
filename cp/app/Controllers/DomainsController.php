@@ -1364,7 +1364,38 @@ class DomainsController extends Controller
             return $response->withHeader('Location', '/domains')->withStatus(302);
         }
     }
-    
+
+    public function changeDomainRegistrar(Request $request, Response $response)
+    {
+        // Registry administrators only
+        if (!isset($_SESSION['auth_roles']) || (int) $_SESSION['auth_roles'] !== 0) {
+            $this->container->get('flash')->addMessage('error', 'Access denied');
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
+        $data = $request->getParsedBody();
+        $domainId = filter_var($data['domain_id'] ?? null, FILTER_VALIDATE_INT);
+        $newRegistrarId = filter_var($data['registrar_id'] ?? null, FILTER_VALIDATE_INT);
+        $db = $this->container->get('db');
+
+        $domain = $db->selectRow('SELECT id, name, clid FROM domain WHERE id = ?', [$domainId]);
+
+        $newRegistrar = $db->selectRow('SELECT id, name FROM registrar WHERE id = ?', [$newRegistrarId]);
+
+        if (!$domain || !$newRegistrar || (int) $domain['clid'] === (int) $newRegistrarId) {
+            $this->container->get('flash')->addMessage('error', 'Invalid registrar change');
+            return $response
+                ->withHeader('Location', $domain ? '/domain/update/'.$domain['name'] : '/domains')
+                ->withStatus(302);
+        }
+
+        $db->update('domain', ['clid' => (int) $newRegistrarId], ['id' => (int) $domainId]);
+
+        $this->container->get('flash')->addMessage('success', 'Domain ' . $domain['name'] . ' moved to ' . $newRegistrar['name']);
+
+        return $response->withHeader('Location', '/domain/update/'.$domain['name'])->withStatus(302);
+    }
+
     public function updateDomainProcess(Request $request, Response $response)
     {
         if ($request->getMethod() === 'POST') {

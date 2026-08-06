@@ -53,6 +53,7 @@ $app->group('', function ($route) {
     $route->get('/domain/history/{domain}', DomainsController::class . ':historyDomain')->setName('historyDomain');
     $route->get('/domain/update/{domain}', DomainsController::class . ':updateDomain')->setName('updateDomain');
     $route->post('/domain/update', DomainsController::class . ':updateDomainProcess')->setName('updateDomainProcess');
+    $route->post('/domain/change-registrar', DomainsController::class . ':changeDomainRegistrar')->setName('changeDomainRegistrar');
     $route->post('/domain/deletesecdns', DomainsController::class . ':domainDeleteSecdns')->setName('domainDeleteSecdns');
     $route->post('/domain/deletehost', DomainsController::class . ':domainDeleteHost')->setName('domainDeleteHost');
     $route->map(['GET', 'POST'], '/domain/renew/{domain}', DomainsController::class . ':renewDomain')->setName('renewDomain');
