@@ -48,7 +48,7 @@
               </a>
             </div>
             {% if roles != 0 %}
-            <a href="/overview" class="nav-link ps-0 pe-2 d-none d-md-flex" title="Registrar balance" aria-label="Registrar balance: {{ currency }} {{ balance }}">
+            <a href="{{route('overview')}}" class="nav-link ps-0 pe-2 d-none d-md-flex" title="Registrar balance" aria-label="Registrar balance: {{ currency }} {{ balance }}">
               <span class="fw-semibold">{{ currency }} {{ balance }}</span>
             </a>
             {% endif %}
