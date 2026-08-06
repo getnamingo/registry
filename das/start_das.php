@@ -13,16 +13,17 @@ $logFilePath = '/var/log/namingo/das.log';
 $log = setupLogger($logFilePath, 'DAS');
 
 // Initialize the PDO connection pool
-$pool = new Swoole\Database\PDOPool(
-    (new Swoole\Database\PDOConfig())
+$pdoConfig = (new Swoole\Database\PDOConfig())
         ->withDriver($c['db_type'])
         ->withHost($c['db_host'])
         ->withPort($c['db_port'])
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
-        ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
-);
+        ->withPassword($c['db_password']);
+if ($c['db_type'] === 'mysql') {
+    $pdoConfig->withCharset('utf8mb4');
+}
+$pool = new Swoole\Database\PDOPool($pdoConfig);
 
 // Create a Swoole TCP server
 $server = new Server($c['das_ipv4'], 1043);
@@ -166,7 +167,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
             return;
         }
 
-        $query = "SELECT name FROM registry.domain WHERE name = :domain";
+        $query = "SELECT name FROM domain WHERE name = :domain";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
         $stmt->execute();

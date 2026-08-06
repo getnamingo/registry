@@ -336,9 +336,9 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
         if (!($config['disable_60days'] ?? false)) {
             // Check if contact is within 60 days of its initial registration
-            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),crdate) FROM contact WHERE id = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
-            $days_from_registration = $stmt->fetchColumn();
+            $days_from_registration = (new DateTime($stmt->fetchColumn()))->diff(new DateTime())->days;
             $stmt->closeCursor();
 
             if ($days_from_registration < 60) {
@@ -347,12 +347,12 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
             }
 
             // Check if contact is within 60 days of its last transfer
-            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM contact WHERE id = :contact_id LIMIT 1");
+            $stmt = $db->prepare("SELECT trdate FROM contact WHERE id = :contact_id LIMIT 1");
             $stmt->execute([':contact_id' => $contact_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
             $last_trdate = $result['trdate'];
-            $days_from_last_transfer = $result['intval'];
+            $days_from_last_transfer = $last_trdate ? (new DateTime($last_trdate))->diff(new DateTime())->days : null;
 
             if ($last_trdate && $days_from_last_transfer < 60) {
                 sendEppError($conn, $db, 2201, 'The contact name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
@@ -399,10 +399,12 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $db->beginTransaction();
 
                 $waiting_period = 5; // days
-                $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY) WHERE id = :contact_id");
+                $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = :acdate WHERE id = :contact_id");
                 $stmt->execute([
                     ':registrar_id' => $clid,
                     ':registrar_id_contact' => $registrar_id_contact,
+                    ':acdate' => $acdate,
                     ':contact_id' => $contact_id
                 ]);
 
@@ -464,7 +466,7 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 }
 
 function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
-    // $config['db_type'] for future
+    $statementPeriodColumns = ($config['db_type'] ?? null) === 'pgsql' ? '"fromS","toS"' : 'fromS,toS';
     $domainName = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer->name;
     $opNode = $xml->xpath('//@op');
     $op = isset($opNode[0]) ? (string)$opNode[0] : null;
@@ -557,10 +559,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $stmt->closeCursor();
 
                 if ($row["transfer_exdate"]) {
-                    $stmt = $db->prepare("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1");
-                    $stmt->execute([$domainName]);
-                    $date_add = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+                    $transferDate = new DateTime($row['transfer_exdate']);
+                    $expiryDate = new DateTime($row['exdate']);
+                    $date_add = ((int) $transferDate->format('Y') - (int) $expiryDate->format('Y')) * 12
+                        + (int) $transferDate->format('m') - (int) $expiryDate->format('m');
 
                     $stmt = $db->prepare("SELECT currency FROM registrar WHERE id = :registrar_id LIMIT 1");
                     $stmt->execute([':registrar_id' => $clid]);
@@ -606,7 +608,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         $stmt->bindValue(':' . $key, $value);
                     }
                     $stmt->execute();
-                    $newRegistrantId = $db->lastInsertId();
+                    $newRegistrantId = $db->lastInsertId(($config['db_type'] ?? null) === 'pgsql' ? 'contact_id_seq' : null);
                     $newContactIds[$row['registrant']] = $newRegistrantId;
 
                     // Copy postal info for the registrant
@@ -647,7 +649,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                                 $stmt->bindValue(':' . $key, $value);
                             }
                             $stmt->execute();
-                            $newContactId = $db->lastInsertId();
+                            $newContactId = $db->lastInsertId(($config['db_type'] ?? null) === 'pgsql' ? 'contact_id_seq' : null);
                             $newContactIds[$contact['contact_id']] = $newContactId;
 
                             // Repeat postal info and auth info/status insertion for each new contact
@@ -681,8 +683,9 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $from = $stmt->fetchColumn();
                 $stmt->closeCursor();
 
-                $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
-                $stmt->execute([$date_add, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
+                $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                $stmt = $db->prepare("UPDATE domain SET exdate = ?, lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
+                $stmt->execute([$newExdate, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
                 $reid = $row['reid'];
                 $logRegistrantText = $newRegistrantId === null ? '[NULL]' : $newRegistrantId;
@@ -746,7 +749,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $to = $stmt->fetchColumn();
                 $stmt->closeCursor();
 
-                $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
+                $stmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,$statementPeriodColumns,amount) VALUES(:registrar_id, CURRENT_TIMESTAMP(3), :command, :domain_name, :length_in_months, :from, :to, :amount)");
                 $stmt->execute(['registrar_id' => $row['reid'], 'command' => 'transfer', 'domain_name' => $domainName, 'length_in_months' => $date_add, 'from' => $from, 'to' => $to, 'amount' => $price]);
 
                 $stmt = $db->prepare("SELECT id,registrant,crdate,exdate,lastupdate,clid,crid,upid,trdate,trstatus,reid,redate,acid,acdate,transfer_exdate FROM domain WHERE name = :name LIMIT 1");
@@ -765,17 +768,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $acid_identifier = $stmt->fetchColumn();
                 $stmt->closeCursor();
 
-                $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-                $stmt->execute();
-                $curdate_id = $stmt->fetchColumn();
-                $stmt->closeCursor();
+                $statisticsInsert = ($config['db_type'] ?? null) === 'pgsql'
+                    ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                    : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+                $db->exec($statisticsInsert);
 
-                if (!$curdate_id) {
-                    $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
-                    $stmt->execute();
-                }
-
-                $stmt = $db->prepare("UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()");
+                $stmt = $db->prepare("UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURRENT_DATE");
                 $stmt->execute();
     
                 $db->commit();
@@ -1125,9 +1123,9 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         
         if (!($config['disable_60days'] ?? false)) {
             // Check days from registration
-            $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = :domain_id LIMIT 1");
+            $stmt = $db->prepare("SELECT crdate FROM domain WHERE id = :domain_id LIMIT 1");
             $stmt->execute(['domain_id' => $domain_id]);
-            $days_from_registration = $stmt->fetchColumn();
+            $days_from_registration = (new DateTime($stmt->fetchColumn()))->diff(new DateTime())->days;
             $stmt->closeCursor();
 
             if ($days_from_registration < 60) {
@@ -1136,12 +1134,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
             }
 
             // Check days from last transfer
-            $stmt = $db->prepare("SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = :domain_id LIMIT 1");
+            $stmt = $db->prepare("SELECT trdate FROM domain WHERE id = :domain_id LIMIT 1");
             $stmt->execute(['domain_id' => $domain_id]);
             $result = $stmt->fetch();
             $stmt->closeCursor();
             $last_trdate = $result["trdate"];
-            $days_from_last_transfer = $result["intval"];
+            $days_from_last_transfer = $last_trdate ? (new DateTime($last_trdate))->diff(new DateTime())->days : null;
 
             if ($last_trdate && $days_from_last_transfer < 60) {
                 sendEppError($conn, $db, 2201, 'The domain name must not be within 60 days of its last transfer from another registrar', $clTRID, $trans);
@@ -1150,9 +1148,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         // Check days from expiry date
-        $stmt = $db->prepare("SELECT DATEDIFF(CURRENT_TIMESTAMP(3),exdate) FROM domain WHERE id = :domain_id LIMIT 1");
+        $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
         $stmt->execute(['domain_id' => $domain_id]);
-        $days_from_expiry_date = $stmt->fetchColumn();
+        $expiryDate = new DateTime($stmt->fetchColumn());
+        $days_from_expiry_date = $expiryDate < new DateTime() ? $expiryDate->diff(new DateTime())->days : -1;
         $stmt->closeCursor();
 
         if ($days_from_expiry_date > 30) {
@@ -1242,7 +1241,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     return;
                 }
 
-                $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrar_id LIMIT 1");
+                $stmt = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = :registrar_id LIMIT 1');
                 $stmt->execute([':registrar_id' => $clid]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $stmt->closeCursor();
@@ -1266,9 +1265,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 try {
                     $db->beginTransaction();
 
-                    $waiting_period = 5; 
-                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL $waiting_period DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL $date_add MONTH) WHERE id = :domain_id");
-                    $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':domain_id' => $domain_id]);
+                    $waiting_period = 5;
+                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                    $transferExdate = (new DateTime($expiryDate->format('Y-m-d H:i:s')))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = :acdate, transfer_exdate = :transfer_exdate WHERE id = :domain_id");
+                    $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':acdate' => $acdate, ':transfer_exdate' => $transferExdate, ':domain_id' => $domain_id]);
 
                     $stmt = $db->prepare('SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1');
                     $stmt->execute([$domain_id, 'ok']);
@@ -1351,11 +1352,12 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     $db->beginTransaction();
                     $waiting_period = 5; // days
 
-                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :waiting_period DAY), transfer_exdate = NULL WHERE id = :domain_id");
+                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                    $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = :acdate, transfer_exdate = NULL WHERE id = :domain_id");
                     $stmt->execute([
                         ':registrar_id' => $clid,
                         ':registrar_id_domain' => $registrar_id_domain,
-                        ':waiting_period' => $waiting_period,
+                        ':acdate' => $acdate,
                         ':domain_id' => $domain_id
                     ]);
 

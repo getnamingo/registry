@@ -9,7 +9,7 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 // Connect to the database
-$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -31,9 +31,19 @@ if (!file_exists($c['reporting_path'])) {
 
 try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
+    $transactionDbh = $dbh;
+    $transactionTable = 'registryTransaction.transaction_identifier';
+    if ($c['db_type'] === 'pgsql') {
+        $transactionDsn = "{$c['db_type']}:host={$c['db_host']};dbname=registryTransaction;port={$c['db_port']}";
+        $transactionDbh = new PDO($transactionDsn, $c['db_username'], $c['db_password'], $options);
+        $transactionTable = 'transaction_identifier';
+    }
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
 }
+
+$reportStart = (new DateTime('first day of last month'))->format('Y-m-01 00:00:00');
+$reportEnd = (new DateTime('first day of this month'))->format('Y-m-01 00:00:00');
 
 try {
     // Fetch all TLDs
@@ -326,7 +336,8 @@ function getDnsTcpQueriesResponded($dbh) {
 }
 
 function getSrsCommand($dbh, $cmd, $object) {
-    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = :cmd AND obj_type = :object");
+    global $transactionDbh, $transactionTable, $reportStart, $reportEnd;
+    $stmt = $transactionDbh->prepare("SELECT count(cmd) FROM $transactionTable WHERE cldate >= '$reportStart' AND cldate < '$reportEnd' AND cmd = :cmd AND obj_type = :object");
     $stmt->bindParam(':cmd', $cmd, PDO::PARAM_STR);
     $stmt->bindParam(':object', $object, PDO::PARAM_STR);
     $stmt->execute();
@@ -344,13 +355,15 @@ function getSrsDomRgpRestoreRequest($dbh) {
 }
 
 function getSrsDomTransferApprove($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientApproved' OR trstatus = 'serverApproved'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientApproved' OR trstatus = 'serverApproved')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getSrsDomTransferCancel($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientCancelled' OR trstatus = 'serverCancelled'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientCancelled' OR trstatus = 'serverCancelled')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
@@ -361,25 +374,29 @@ function getSrsDomTransferQuery($dbh) {
 }
 
 function getSrsDomTransferReject($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientRejected' OR trstatus = 'serverRejected'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientRejected' OR trstatus = 'serverRejected')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getSrsDomTransferRequest($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'pending'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND trstatus = 'pending'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getSrsContTransferApprove($dbh) {
-    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientApproved' OR trstatus = 'serverApproved'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientApproved' OR trstatus = 'serverApproved')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getSrsContTransferCancel($dbh) {
-    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientCancelled' OR trstatus = 'serverCancelled'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientCancelled' OR trstatus = 'serverCancelled')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
@@ -390,13 +407,15 @@ function getSrsContTransferQuery($dbh) {
 }
 
 function getSrsContTransferReject($dbh) {
-    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'clientRejected' OR trstatus = 'serverRejected'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND (trstatus = 'clientRejected' OR trstatus = 'serverRejected')");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getSrsContTransferRequest($dbh) {
-    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE (trdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND trstatus = 'pending'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(identifier) FROM contact WHERE trdate >= '$reportStart' AND trdate < '$reportEnd' AND trstatus = 'pending'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
@@ -414,8 +433,9 @@ function getTotalNameservers($dbh, $registrar) {
 }
 
 function getNetAddsByYear($dbh, $registrar, $years) {
+    global $reportStart, $reportEnd;
     $months = $years * 12;
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (crdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND addPeriod = :months");
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND crdate >= '$reportStart' AND crdate < '$reportEnd' AND addPeriod = :months");
     $stmt->bindParam(':months', $months, PDO::PARAM_INT);
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
@@ -423,8 +443,9 @@ function getNetAddsByYear($dbh, $registrar, $years) {
 }
 
 function getNetRenewsByYear($dbh, $registrar, $years) {
+    global $reportStart, $reportEnd;
     $months = $years * 12;
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (renewedDate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND renewPeriod = :months");
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND renewedDate >= '$reportStart' AND renewedDate < '$reportEnd' AND renewPeriod = :months");
     $stmt->bindParam(':months', $months, PDO::PARAM_INT);
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
@@ -477,28 +498,33 @@ function getDeletedDomainsNoGrace($dbh, $registrar) {
 }
 
 function getRestoredDomains($dbh, $registrar) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month))");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND resTime >= '$reportStart' AND resTime < '$reportEnd'");
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getRestoredNoReport($dbh, $registrar) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND rgpresReason IS NULL");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND resTime >= '$reportStart' AND resTime < '$reportEnd' AND rgpresReason IS NULL");
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAgpExemptionRequests($dbh, $registrar) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (agp_request BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'requested'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND agp_request >= '$reportStart' AND agp_request < '$reportEnd' AND agp_status = 'requested'");
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAgpExemptionsGranted($dbh, $registrar) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'granted'");
+    global $reportStart, $reportEnd;
+    $agpExempted = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? 'TRUE' : '1';
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE clid = :registrarId AND agp_grant >= '$reportStart' AND agp_grant < '$reportEnd' AND agp_exempted = $agpExempted");
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
     return $stmt->fetchColumn();
@@ -512,7 +538,8 @@ function getAgpExemptedDomains($dbh, $registrar) {
 }
 
 function getAttemptedAdds($dbh, $registrar) {
-    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = 'create' AND obj_type = 'domain' AND registrar_id = :registrarId");
+    global $transactionDbh, $transactionTable, $reportStart, $reportEnd;
+    $stmt = $transactionDbh->prepare("SELECT count(cmd) FROM $transactionTable WHERE cldate >= '$reportStart' AND cldate < '$reportEnd' AND cmd = 'create' AND obj_type = 'domain' AND registrar_id = :registrarId");
     $stmt->bindParam(':registrarId', $registrar['id'], PDO::PARAM_STR);
     $stmt->execute();
     return $stmt->fetchColumn();
@@ -531,16 +558,18 @@ function getTotalNameserversAllRegistrars($dbh) {
 }
 
 function getNetAddsByYearAllRegistrars($dbh, $years) {
+    global $reportStart, $reportEnd;
     $months = $years * 12;
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (crdate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND addPeriod = :months");
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE crdate >= '$reportStart' AND crdate < '$reportEnd' AND addPeriod = :months");
     $stmt->bindParam(':months', $months, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getNetRenewsByYearAllRegistrars($dbh, $years) {
+    global $reportStart, $reportEnd;
     $months = $years * 12;
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (renewedDate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND renewPeriod = :months");
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE renewedDate >= '$reportStart' AND renewedDate < '$reportEnd' AND renewPeriod = :months");
     $stmt->bindParam(':months', $months, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchColumn();
@@ -592,37 +621,44 @@ function getDeletedDomainsNoGraceAllRegistrars($dbh) {
 }
 
 function getRestoredDomainsAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month))");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE resTime >= '$reportStart' AND resTime < '$reportEnd'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getRestoredNoReportAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (resTime BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND rgpresReason IS NULL");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE resTime >= '$reportStart' AND resTime < '$reportEnd' AND rgpresReason IS NULL");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAgpExemptionRequestsAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_request BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'requested'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE agp_request >= '$reportStart' AND agp_request < '$reportEnd' AND agp_status = 'requested'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAgpExemptionsGrantedAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_status = 'granted'");
+    global $reportStart, $reportEnd;
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE agp_grant >= '$reportStart' AND agp_grant < '$reportEnd' AND agp_status = 'granted'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAgpExemptedDomainsAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE (agp_grant BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND agp_exempted = 1");
+    global $reportStart, $reportEnd;
+    $agpExempted = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? 'TRUE' : '1';
+    $stmt = $dbh->prepare("SELECT count(name) FROM domain WHERE agp_grant >= '$reportStart' AND agp_grant < '$reportEnd' AND agp_exempted = $agpExempted");
     $stmt->execute();
     return $stmt->fetchColumn();
 }
 
 function getAttemptedAddsAllRegistrars($dbh) {
-    $stmt = $dbh->prepare("SELECT count(cmd) FROM registryTransaction.transaction_identifier WHERE (cldate BETWEEN last_day(curdate() - interval 2 month) + interval 1 day AND last_day(curdate() - interval 1 month)) AND cmd = 'create' AND obj_type = 'domain'");
+    global $transactionDbh, $transactionTable, $reportStart, $reportEnd;
+    $stmt = $transactionDbh->prepare("SELECT count(cmd) FROM $transactionTable WHERE cldate >= '$reportStart' AND cldate < '$reportEnd' AND cmd = 'create' AND obj_type = 'domain'");
     $stmt->execute();
     return $stmt->fetchColumn();
 }

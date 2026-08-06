@@ -10,7 +10,7 @@ $log->info('Job started.');
 
 try {
     // Database connection
-    $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
+    $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

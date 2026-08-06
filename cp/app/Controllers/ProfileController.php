@@ -133,7 +133,7 @@ class ProfileController extends Controller
                     'users',
                     [
                         'tfa_secret' => $secret,
-                        'tfa_enabled' => 1,
+                        'tfa_enabled' => envi('DB_DRIVER') === 'pgsql' ? true : 1,
                         'auth_method' => '2fa',
                         'backup_codes' => null
                     ],

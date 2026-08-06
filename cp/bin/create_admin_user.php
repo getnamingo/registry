@@ -8,6 +8,7 @@ $dotenv->load();
 // Retrieve database connection details from environment variables
 $dbDriver = $_ENV['DB_DRIVER'];
 $dbHost = $_ENV['DB_HOST'];
+$dbPort = $_ENV['DB_PORT'];
 $dbName = $_ENV['DB_DATABASE'];
 $dbUser = $_ENV['DB_USERNAME'];
 $dbPass = $_ENV['DB_PASSWORD'];
@@ -40,10 +41,10 @@ $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
 try {
     // Create PDO instance
     if ($dbDriver == 'mysql') {
-        $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8";
+        $dsn = "mysql:host=$dbHost;port=$dbPort;dbname=$dbName;charset=utf8";
         $pdo = new PDO($dsn, $dbUser, $dbPass);
     } elseif ($dbDriver == 'pgsql') {
-        $dsn = "pgsql:host=$dbHost;dbname=$dbName";
+        $dsn = "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName";
         $pdo = new PDO($dsn, $dbUser, $dbPass);
     } elseif ($dbDriver == 'sqlite') {
         $dsn = "sqlite:/var/www/cp/registry.db";
@@ -53,8 +54,9 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // SQL query
+    $tfaEnabled = $dbDriver === 'pgsql' ? 'FALSE' : '0';
     $sql = "INSERT INTO users (email, password, username, status, verified, resettable, roles_mask, registered, last_login, force_logout, tfa_secret, tfa_enabled, auth_method, backup_codes) 
-            VALUES (:email, :password, :username, 0, 1, 1, 0, 1, NULL, 0, NULL, false, 'password', NULL)";
+            VALUES (:email, :password, :username, 0, 1, 1, 0, 1, NULL, 0, NULL, $tfaEnabled, 'password', NULL)";
 
     // Prepare and execute SQL statement
     $stmt = $pdo->prepare($sql);

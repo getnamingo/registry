@@ -127,12 +127,12 @@ class DomainLifecycleManager {
 
     private function handleAutoRenewal($domain_id, $name, $tldid, $exdate, $clid) {
         // Get registrar balance, credit limit, and currency
-        $sthRegistrar = $this->dbh->prepare("
-            SELECT accountBalance, creditLimit, currency 
+        $sthRegistrar = $this->dbh->prepare('
+            SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
             FROM registrar 
             WHERE id = ? 
             LIMIT 1
-        ");
+        ');
         $sthRegistrar->execute([$clid]);
         $registrar = $sthRegistrar->fetch(PDO::FETCH_ASSOC);
         
@@ -157,8 +157,9 @@ class DomainLifecycleManager {
         $this->dbh->beginTransaction();
 
         try {
-            $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
-            $sth->execute([$domain_id]);
+            $renewedDate = (new DateTime($exdate))->modify('+12 months')->format('Y-m-d H:i:s');
+            $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = ?, autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
+            $sth->execute([$renewedDate, $domain_id]);
 
             $sth = $this->dbh->prepare("UPDATE registrar SET accountBalance = (accountBalance - ?) WHERE id = ?");
             $sth->execute([$price, $clid]);
@@ -171,7 +172,8 @@ class DomainLifecycleManager {
             $sth->execute([$domain_id]);
             list($to) = $sth->fetch(PDO::FETCH_NUM);
 
-            $sthStatement = $this->dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
+            $statementPeriodColumns = $this->config['db_type'] === 'pgsql' ? '"fromS", "toS"' : 'fromS, toS';
+            $sthStatement = $this->dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
             $sthStatement->execute([$clid, 'autoRenew', $name, '12', $exdate, $to, $price]);
 
             $this->updateStatistics('renewed_domains');
@@ -187,7 +189,8 @@ class DomainLifecycleManager {
         $this->dbh->beginTransaction();
         try {
             $this->dbh->prepare("DELETE FROM domain_status WHERE domain_id = ?")->execute([$domain_id]);
-            $this->dbh->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(?, INTERVAL " . (int)$this->config['gracePeriodDays'] . " DAY) WHERE id = ?")->execute([$exdate, $domain_id]);
+            $deleteTime = (new DateTime($exdate))->modify('+' . (int) $this->config['gracePeriodDays'] . ' days')->format('Y-m-d H:i:s');
+            $this->dbh->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?")->execute([$deleteTime, $domain_id]);
             $this->dbh->prepare("INSERT INTO domain_status (domain_id, status) VALUES(?, 'pendingDelete')")->execute([$domain_id]);
 
             $this->dbh->commit();
@@ -206,13 +209,14 @@ class DomainLifecycleManager {
         $gracePeriodDays = $this->config['gracePeriodDays'];
 
         // Fetch domains eligible for grace period
+        $graceThreshold = (new DateTime("-$gracePeriodDays days"))->format('Y-m-d H:i:s');
         $sth = $this->dbh->prepare("
             SELECT id, name, exdate 
             FROM domain 
-            WHERE CURRENT_TIMESTAMP > DATE_ADD(exdate, INTERVAL ? DAY) 
+            WHERE exdate < ?
               AND rgpstatus IS NULL
         ");
-        $sth->execute([$gracePeriodDays]);
+        $sth->execute([$graceThreshold]);
 
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $domain_id = $row['id'];
@@ -264,8 +268,9 @@ class DomainLifecycleManager {
 
     private function cleanupPeriod($periodName, $days) {
         $column = $periodName === 'addPeriod' ? 'crdate' : ($periodName === 'renewPeriod' ? 'renewedDate' : ($periodName === 'transferPeriod' ? 'trdate' : 'exdate'));
-        $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = NULL WHERE CURRENT_TIMESTAMP > DATE_ADD($column, INTERVAL ? DAY) AND rgpstatus = ?");
-        $sth->execute([$days, $periodName]);
+        $threshold = (new DateTime("-$days days"))->format('Y-m-d H:i:s');
+        $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = NULL WHERE $column < ? AND rgpstatus = ?");
+        $sth->execute([$threshold, $periodName]);
     }
 
     // ========================
@@ -277,13 +282,14 @@ class DomainLifecycleManager {
         $redemptionPeriodDays = $this->config['redemptionPeriodDays'];
 
         // Fetch domains eligible for pending delete
+        $pendingDeleteThreshold = (new DateTime("-$redemptionPeriodDays days"))->format('Y-m-d H:i:s');
         $sth = $this->dbh->prepare("
             SELECT id, name, exdate 
             FROM domain 
-            WHERE CURRENT_TIMESTAMP > DATE_ADD(delTime, INTERVAL ? DAY) 
+            WHERE delTime < ?
               AND rgpstatus = 'redemptionPeriod'
         ");
-        $sth->execute([$redemptionPeriodDays]);
+        $sth->execute([$pendingDeleteThreshold]);
 
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $domain_id = $row['id'];
@@ -319,13 +325,14 @@ class DomainLifecycleManager {
         $this->log->info('Starting Pending Restore Phase.');
 
         // Fetch domains in pendingRestore status that have exceeded the restore period
+        $restoreThreshold = (new DateTime('-7 days'))->format('Y-m-d H:i:s');
         $sth = $this->dbh->prepare("
             SELECT id, name 
             FROM domain 
             WHERE rgpstatus = 'pendingRestore' 
-              AND CURRENT_TIMESTAMP > DATE_ADD(resTime, INTERVAL 7 DAY)
+              AND resTime < ?
         ");
-        $sth->execute();
+        $sth->execute([$restoreThreshold]);
 
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $domain_id = $row['id'];
@@ -349,13 +356,14 @@ class DomainLifecycleManager {
         $totalPendingDays = $this->config['redemptionPeriodDays'] + $this->config['pendingDeletePeriodDays'];
 
         // Fetch domains eligible for deletion
+        $deletionThreshold = (new DateTime("-$totalPendingDays days"))->format('Y-m-d H:i:s');
         $sth = $this->dbh->prepare("
-            SELECT id, name, delTime 
+            SELECT id, name, delTime AS \"delTime\"
             FROM domain 
-            WHERE CURRENT_TIMESTAMP > DATE_ADD(delTime, INTERVAL ? DAY) 
+            WHERE delTime < ?
               AND rgpstatus = 'pendingDelete'
         ");
-        $sth->execute([$totalPendingDays]);
+        $sth->execute([$deletionThreshold]);
 
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $domain_id = $row['id'];
@@ -449,13 +457,12 @@ class DomainLifecycleManager {
     // ========================
     private function updateStatistics($field) {
         // Ensure today's statistics record exists
-        $sth = $this->dbh->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-        $sth->execute();
-        if (!$sth->fetchColumn()) {
-            $this->dbh->prepare("INSERT INTO statistics (date) VALUES (CURDATE())")->execute();
-        }
+        $statisticsInsert = $this->config['db_type'] === 'pgsql'
+            ? 'INSERT INTO statistics (date) VALUES (CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+            : 'INSERT IGNORE INTO statistics (date) VALUES (CURRENT_DATE)';
+        $this->dbh->exec($statisticsInsert);
         // Update the specific field
-        $sthUpdate = $this->dbh->prepare("UPDATE statistics SET $field = $field + 1 WHERE date = CURDATE()");
+        $sthUpdate = $this->dbh->prepare("UPDATE statistics SET $field = $field + 1 WHERE date = CURRENT_DATE");
         $sthUpdate->execute();
     }
 }

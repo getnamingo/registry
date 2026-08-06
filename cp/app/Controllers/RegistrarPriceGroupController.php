@@ -168,7 +168,7 @@ class RegistrarPriceGroupController extends Controller
                     'registrar_ids' => $registrarIdsStr
                 ]
             );
-            $group_id = $db->getLastInsertId();
+            $group_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'registrar_price_group_id_seq' : null);
             $currentDateTime = new \DateTime();
             $crdate = $currentDateTime->format('Y-m-d H:i:s.v');
             $this->container->get('flash')->addMessage('success', 'Price group ' . $group_id . ' has been created successfully on ' . $crdate);
@@ -277,44 +277,24 @@ class RegistrarPriceGroupController extends Controller
             return;
         }
 
-        // 2) Build query for insert/update
+        // 2) Build data for insert/update
         $columns = array_keys($prices); // e.g. ['m0','m12',...]
-
-        // tldid, command, registrar_id + dynamic price cols
-        $insertColumns = array_merge(['tldid', 'command', 'registrar_id'], $columns);
-        $insertColumnsSql = implode(',', $insertColumns);
-
-        // ?, ?, ?, ?, ?, ...
-        $placeholders = implode(',', array_fill(0, count($insertColumns), '?'));
-
-        // m0 = VALUES(m0), m12 = VALUES(m12), ...
-        $setSql = implode(
-            ', ',
-            array_map(
-                static fn ($c) => "$c = VALUES($c)",
-                $columns
-            )
-        );
-
-        $sql = "
-            INSERT INTO domain_price ($insertColumnsSql)
-            VALUES ($placeholders)
-            ON DUPLICATE KEY UPDATE $setSql
-        ";
 
         // 3) Apply to every registrar in the group
         foreach ($ids as $registrarId) {
-            $params = [
-                $tldid,
-                $command,
-                (int) $registrarId,
-            ];
-
-            foreach ($columns as $c) {
-                $params[] = $prices[$c];
+            $priceId = $db->selectValue(
+                'SELECT id FROM domain_price WHERE tldid = ? AND command = ? AND registrar_id = ?',
+                [$tldid, $command, (int) $registrarId]
+            );
+            if ($priceId) {
+                $db->update('domain_price', $prices, ['id' => $priceId]);
+            } else {
+                $db->insert('domain_price', array_merge([
+                    'tldid' => $tldid,
+                    'command' => $command,
+                    'registrar_id' => (int) $registrarId,
+                ], $prices));
             }
-
-            $db->exec($sql, $params);
         }
     }
 

@@ -303,11 +303,11 @@ class ContactsController extends Controller
                         'disclose_email' => $disclose_email
                     ]
                 );
-                $contact_id = $db->getLastInsertId();
+                $contact_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'contact_id_seq' : null);
                 
                 if ($postalInfoIntName) {
                     $db->insert(
-                        'contact_postalInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                         [
                             'contact_id' => $contact_id,
                             'type' => 'int',
@@ -329,7 +329,7 @@ class ContactsController extends Controller
 
                 if ($postalInfoLocName) {
                     $db->insert(
-                        'contact_postalInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                         [
                             'contact_id' => $contact_id,
                             'type' => 'loc',
@@ -350,7 +350,7 @@ class ContactsController extends Controller
                 }
                 
                 $db->insert(
-                    'contact_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                     [
                         'contact_id' => $contact_id,
                         'authtype' => 'pw',
@@ -707,11 +707,11 @@ class ContactsController extends Controller
                         'disclose_email' => $disclose_email
                     ]
                 );
-                $contact_id = $db->getLastInsertId();
+                $contact_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'contact_id_seq' : null);
                 
                 if ($postalInfoIntName) {
                     $db->insert(
-                        'contact_postalInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                         [
                             'contact_id' => $contact_id,
                             'type' => 'int',
@@ -733,7 +733,7 @@ class ContactsController extends Controller
 
                 if ($postalInfoLocName) {
                     $db->insert(
-                        'contact_postalInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                         [
                             'contact_id' => $contact_id,
                             'type' => 'loc',
@@ -754,7 +754,7 @@ class ContactsController extends Controller
                 }
                 
                 $db->insert(
-                    'contact_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                     [
                         'contact_id' => $contact_id,
                         'authtype' => 'pw',
@@ -897,11 +897,12 @@ class ContactsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
                 return $response->withHeader('Location', '/contacts')->withStatus(302);
             }
-            
+
+            $auditSchema = envi('DB_DRIVER') === 'pgsql' ? "'public'" : 'DATABASE()';
             $auditEnabled = (int) $db_audit->selectValue(
                 "SELECT COUNT(*)
                  FROM information_schema.tables
-                 WHERE table_schema = DATABASE()
+                 WHERE table_schema = $auditSchema
                    AND table_name = 'domain'"
             ) > 0;
 
@@ -1673,7 +1674,7 @@ class ContactsController extends Controller
 
                 if ($postalInfoIntName) {
                     $db->update(
-                        'contact_postalInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                         [
                             'name' => $postalInfoIntName ?? null,
                             'org' => $postalInfoIntOrg ?? null,
@@ -1700,7 +1701,7 @@ class ContactsController extends Controller
                     
                     if ($does_it_exist) {
                         $db->update(
-                            'contact_postalInfo',
+                            envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                             [
                                 'name' => $postalInfoLocName ?? null,
                                 'org' => $postalInfoLocOrg ?? null,
@@ -1722,7 +1723,7 @@ class ContactsController extends Controller
                         );
                     } else {
                         $db->insert(
-                            'contact_postalInfo',
+                            envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                             [
                                 'contact_id' => $contact_id,
                                 'type' => 'loc',
@@ -1745,7 +1746,7 @@ class ContactsController extends Controller
                 }
                 
                 $db->update(
-                    'contact_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                     [
                         'authinfo' => $authInfo_pw
                     ],
@@ -1825,14 +1826,14 @@ class ContactsController extends Controller
                 }
 
                 $db->delete(
-                    'contact_postalInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo',
                     [
                         'contact_id' => $contact_id
                     ]
                 );
                     
                 $db->delete(
-                    'contact_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                     [
                         'contact_id' => $contact_id
                     ]

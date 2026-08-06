@@ -135,7 +135,7 @@ class HostsController extends Controller
                                 'crdate' => $crdate
                             ]
                         );
-                        $host_id = $db->getLastInsertId();
+                        $host_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
 
                         if (!$ipv4 && !$ipv6) {
                             $this->container->get('flash')->addMessage('error', 'Error creating host: At least one of IPv4 or IPv6 must be provided');
@@ -201,7 +201,7 @@ class HostsController extends Controller
                             'crdate' => $crdate
                         ]
                     );
-                    $host_id = $db->getLastInsertId();
+                    $host_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
                     
                     $host_status = 'ok';
                     $db->insert(
@@ -336,10 +336,11 @@ class HostsController extends Controller
                     }
                 }
 
+                $auditSchema = envi('DB_DRIVER') === 'pgsql' ? "'public'" : 'DATABASE()';
                 $auditEnabled = (int) $db_audit->selectValue(
                     "SELECT COUNT(*)
                      FROM information_schema.tables
-                     WHERE table_schema = DATABASE()
+                     WHERE table_schema = $auditSchema
                        AND table_name = 'domain'"
                 ) > 0;
 

@@ -234,9 +234,9 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($launch_delete)) {
-        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM application WHERE name = :name LIMIT 1");
+        $stmt = $db->prepare('SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM application WHERE name = :name LIMIT 1');
     } else {
-        $stmt = $db->prepare("SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = :name LIMIT 1");
+        $stmt = $db->prepare('SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM domain WHERE name = :name LIMIT 1');
     }
     $stmt->execute([':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -357,18 +357,17 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("DELETE FROM domain_status WHERE domain_id = ?");
             $stmt->execute([$domain_id]);
 
-            $stmt = $db->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY) WHERE id = ?");
-            $stmt->execute([$grace_period, $domain_id]);
+            $deleteTime = (new DateTime("+$grace_period days"))->format('Y-m-d H:i:s');
+            $stmt = $db->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?");
+            $stmt->execute([$deleteTime, $domain_id]);
 
             $stmt = $db->prepare("INSERT INTO domain_status (domain_id, status) VALUES(?, 'pendingDelete')");
             $stmt->execute([$domain_id]);
 
             if ($rgpstatus) {
                 if ($rgpstatus === 'addPeriod') {
-                    $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1");
-                    $stmt->execute([$domain_id]);
-                    $addPeriod_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+                    $graceEnd = (new DateTime($crdate))->modify('+5 days');
+                    $addPeriod_id = new DateTime() < $graceEnd ? $domain_id : false;
 
                     if ($addPeriod_id) {
                         $returnValue = getDomainPrice($db, $domainName, $tldid, $addPeriod, 'create', $clid, $currency);
@@ -416,19 +415,16 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         }
 
                         // Handle statistics
-                        $curdate_id = $db->query("SELECT id FROM statistics WHERE date = CURDATE()")->fetchColumn();
-
-                        if (!$curdate_id) {
-                            $db->exec("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
-                        }
+                        $statisticsInsert = $database_type === 'pgsql'
+                            ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                            : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+                        $db->exec($statisticsInsert);
                 
-                        $db->exec("UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()");
+                        $db->exec("UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURRENT_DATE");
                     }
                 } elseif ($rgpstatus === 'autoRenewPeriod') {
-                    $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1");
-                    $stmt->execute([$domain_id]);
-                    $autoRenewPeriod_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+                    $graceEnd = (new DateTime($renewedDate))->modify('+45 days');
+                    $autoRenewPeriod_id = new DateTime() < $graceEnd ? $domain_id : false;
 
                     if ($autoRenewPeriod_id) {
                         $returnValue = getDomainPrice($db, $domainName, $tldid, $autoRenewPeriod, 'renew', $clid, $currency);
@@ -449,10 +445,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $stmt->execute([$clid, $description, $price]);
                     }
                 } elseif ($rgpstatus === 'renewPeriod') {
-                    $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1");
-                    $stmt->execute([$domain_id]);
-                    $renewPeriod_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+                    $graceEnd = (new DateTime($renewedDate))->modify('+5 days');
+                    $renewPeriod_id = new DateTime() < $graceEnd ? $domain_id : false;
 
                     if ($renewPeriod_id) {
                         $returnValue = getDomainPrice($db, $domainName, $tldid, $renewPeriod, 'renew', $clid, $currency);
@@ -473,10 +467,8 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $stmt->execute([$clid, $description, $price]);
                     }
                 } elseif ($rgpstatus === 'transferPeriod') {
-                    $stmt = $db->prepare("SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1");
-                    $stmt->execute([$domain_id]);
-                    $transferPeriod_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+                    $graceEnd = (new DateTime($trdate))->modify('+5 days');
+                    $transferPeriod_id = new DateTime() < $graceEnd ? $domain_id : false;
 
                     if ($transferPeriod_id) {
                         // Return money if a transfer was also a renew

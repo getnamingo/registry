@@ -1,6 +1,7 @@
 <?php
 
 function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
+    $statementPeriodColumns = $database_type === 'pgsql' ? '"fromS", "toS"' : 'fromS, toS';
     $domainName = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->name;
     $curExpDate = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->curExpDate;
     $periodElements = $xml->xpath("//domain:renew/domain:period");
@@ -107,13 +108,10 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        $after_10_years = $db->query("SELECT YEAR(DATE_ADD(CURDATE(),INTERVAL 10 YEAR))")->fetchColumn();
-        $stmt = $db->prepare("SELECT YEAR(DATE_ADD(:exdate, INTERVAL :date_add MONTH))");
-        $stmt->bindParam(':exdate', $domainData['exdate'], PDO::PARAM_STR);
-        $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
-        $stmt->execute();
-        $after_renew = $stmt->fetchColumn();
-        $stmt->closeCursor();
+        $after_10_years = (int) (new DateTime('+10 years'))->format('Y');
+        $renewedDate = new DateTime($domainData['exdate']);
+        $renewedDate->modify("+$date_add months");
+        $after_renew = (int) $renewedDate->format('Y');
 
         // Domains can be renewed at any time, but the expire date cannot be more than 10 years in the future.
         if ($after_renew > $after_10_years) {
@@ -122,7 +120,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         // Check registrar account balance
-        $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrarId LIMIT 1");
+        $stmt = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = :registrarId LIMIT 1');
         $stmt->bindParam(':registrarId', $clid, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -151,8 +149,9 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $stmt->closeCursor();
 
         $rgpstatus = 'renewPeriod';
-        $stmt = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL :date_add MONTH), rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
-        $stmt->bindParam(':date_add', $date_add, PDO::PARAM_INT);
+        $stmt = $db->prepare("UPDATE domain SET exdate = :exdate, rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
+        $newExdate = $renewedDate->format('Y-m-d H:i:s');
+        $stmt->bindParam(':exdate', $newExdate, PDO::PARAM_STR);
         $stmt->bindParam(':rgpstatus', $rgpstatus, PDO::PARAM_STR);
         $stmt->bindParam(':renewPeriod', $date_add, PDO::PARAM_INT);
         $stmt->bindParam(':upid', $clid, PDO::PARAM_INT);
@@ -188,7 +187,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->closeCursor();
 
             // Insert into statement:
-            $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, fromS, toS, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$clid, 'renew', $domainName, $date_add, $from, $to, $price]);
         }
     }
@@ -200,20 +199,13 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $exdateUpdated = $stmt->fetchColumn();
     $stmt->closeCursor();
 
-    // Check for an existing entry in statistics for the current date
-    $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-    $stmt->execute();
-    $curdate_id = $stmt->fetchColumn();
-    $stmt->closeCursor();
-
-    // If there's no entry for the current date, insert one
-    if (!$curdate_id) {
-        $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
-        $stmt->execute();
-    }
+    $statisticsInsert = $database_type === 'pgsql'
+        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+    $db->exec($statisticsInsert);
 
     // Update the renewed_domains count for the current date
-    $stmt = $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()");
+    $stmt = $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE");
     $stmt->execute();
 
     $svTRID = generateSvTRID();

@@ -10,16 +10,28 @@ class RegistryTransaction
 
     public function __construct(PdoDatabase $db)
     {
-        $this->db = $db;
+        if (envi('DB_DRIVER') === 'pgsql') {
+            $config = config('connections')['pgsql'];
+            $pdo = new \PDO(
+                "{$config['driver']}:dbname=registryTransaction;host={$config['host']};port={$config['port']}",
+                $config['username'],
+                $config['password']
+            );
+            $this->db = PdoDatabase::fromPdo($pdo);
+        } else {
+            $this->db = $db;
+        }
     }
 
     public function getAllRegistryTransaction()
     {
-        return $this->db->select('SELECT * FROM registryTransaction.transaction_identifier ORDER BY cldate DESC');
+        $table = envi('DB_DRIVER') === 'pgsql' ? 'transaction_identifier' : 'registryTransaction.transaction_identifier';
+        return $this->db->select("SELECT * FROM $table ORDER BY cldate DESC");
     }
 
     public function getRegistryTransactionById($id)
     {
-        return $this->db->select('SELECT * FROM registryTransaction.transaction_identifier WHERE id = ?', [$id])->fetch();
+        $table = envi('DB_DRIVER') === 'pgsql' ? 'transaction_identifier' : 'registryTransaction.transaction_identifier';
+        return $this->db->select("SELECT * FROM $table WHERE id = ?", [$id])->fetch();
     }
 }

@@ -10,9 +10,9 @@ $config = config('connections');
 $defaultDriver = config('default') ?? 'mysql';
 
 $supportedDrivers = [
-    'mysql' => "{$config['mysql']['driver']}:dbname={$config['mysql']['database']};host={$config['mysql']['host']};charset={$config['mysql']['charset']}",
+    'mysql' => "{$config['mysql']['driver']}:dbname={$config['mysql']['database']};host={$config['mysql']['host']};port={$config['mysql']['port']};charset={$config['mysql']['charset']}",
     'sqlite' => "{$config['sqlite']['driver']}:{$config['sqlite']['database']}",
-    'pgsql' => "{$config['pgsql']['driver']}:dbname={$config['pgsql']['database']};host={$config['pgsql']['host']}"
+    'pgsql' => "{$config['pgsql']['driver']}:dbname={$config['pgsql']['database']};host={$config['pgsql']['host']};port={$config['pgsql']['port']}"
 ];
 
 $pdo = null;
@@ -37,9 +37,9 @@ try {
 // Audit DB (optional)
 try {
     $auditDriver = match ($defaultDriver) {
-        'mysql' => "{$config['mysql']['driver']}:dbname=registryAudit;host={$config['mysql']['host']};charset={$config['mysql']['charset']}",
+        'mysql' => "{$config['mysql']['driver']}:dbname=registryAudit;host={$config['mysql']['host']};port={$config['mysql']['port']};charset={$config['mysql']['charset']}",
         'sqlite' => "{$config['sqlite']['driver']}:{$config['sqlite']['audit_path']}", // assumes audit_path is set for SQLite
-        'pgsql' => "{$config['pgsql']['driver']}:dbname=registryAudit;host={$config['pgsql']['host']}",
+        'pgsql' => "{$config['pgsql']['driver']}:dbname=registryAudit;host={$config['pgsql']['host']};port={$config['pgsql']['port']}",
         default => throw new \RuntimeException('Unsupported database driver for audit'),
     };
 

@@ -36,7 +36,7 @@ try {
             $newRegistrantId = null;
 
             $stmt = $dbh->prepare("
-                SELECT accountBalance, creditLimit, currency 
+                SELECT accountBalance, creditLimit, currency
                 FROM registrar 
                 WHERE id = ? 
                 LIMIT 1
@@ -46,7 +46,10 @@ try {
             [$registrar_balance, $creditLimit, $currency] = $stmt->fetch(PDO::FETCH_NUM);
 
             if ($transfer_exdate) {
-                [$date_add] = $dbh->query("SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = '$name' LIMIT 1")->fetch(PDO::FETCH_NUM);
+                $transferDate = new DateTime($transfer_exdate);
+                $expiryDate = new DateTime($exdate);
+                $date_add = ((int) $transferDate->format('Y') - (int) $expiryDate->format('Y')) * 12
+                    + (int) $transferDate->format('m') - (int) $expiryDate->format('m');
 
                 preg_match('/^([^\.]+)\.(.+)$/', $name, $matches);
                 $domain_extension = $matches[2];
@@ -88,7 +91,7 @@ try {
                     $stmt->bindValue(':' . $key, $value);
                 }
                 $stmt->execute();
-                $newRegistrantId = $dbh->lastInsertId();
+                $newRegistrantId = $dbh->lastInsertId($c['db_type'] === 'pgsql' ? 'contact_id_seq' : null);
                 $newContactIds[$registrant] = $newRegistrantId;
 
                 // Copy postal info for the registrant
@@ -127,7 +130,7 @@ try {
                             $stmt->bindValue(':' . $key, $value);
                         }
                         $stmt->execute();
-                        $newContactId = $dbh->lastInsertId();
+                        $newContactId = $dbh->lastInsertId($c['db_type'] === 'pgsql' ? 'contact_id_seq' : null);
                         $newContactIds[$contact['contact_id']] = $newContactId;
 
                         // Repeat postal info and auth info/status insertion for each new contact
@@ -154,11 +157,12 @@ try {
             }
 
             $from = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
+            $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
 
             $stmt_update = $dbh->prepare("
                 UPDATE domain
                 SET
-                    exdate        = DATE_ADD(exdate, INTERVAL :date_add MONTH),
+                    exdate        = :exdate,
                     lastupdate    = CURRENT_TIMESTAMP,
                     clid          = :reid,
                     upid          = :clid,
@@ -171,7 +175,7 @@ try {
             ");
 
             $stmt_update->execute([
-                ':date_add'        => (int)$date_add,
+                ':exdate'          => $newExdate,
                 ':reid'            => $reid,
                 ':clid'            => $clid,
                 ':newRegistrantId' => $newRegistrantId,
@@ -214,7 +218,8 @@ try {
 
             $to = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
                 
-            $stmt_insert_statement = $dbh->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
+            $statementPeriodColumns = $c['db_type'] === 'pgsql' ? '"fromS","toS"' : 'fromS,toS';
+            $stmt_insert_statement = $dbh->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,$statementPeriodColumns,amount) VALUES(?,CURRENT_TIMESTAMP,?,?,?,?,?,?)");
             $stmt_insert_statement->execute([$reid, 'transfer', $name, $date_add, $from, $to, $price]);
 
             $stmt_select_domain = $dbh->prepare("

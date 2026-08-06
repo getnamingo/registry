@@ -371,7 +371,7 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $disclose_email
         ]);
 
-        $contact_id = $db->lastInsertId();
+        $contact_id = $db->lastInsertId($database_type === 'pgsql' ? 'contact_id_seq' : null);
 
         if ($postalInfoInt) {
             $stmt = $db->prepare("INSERT INTO contact_postalInfo (contact_id,type,name,org,street1,street2,street3,city,sp,pc,cc,disclose_name_int,disclose_name_loc,disclose_org_int,disclose_org_loc,disclose_addr_int,disclose_addr_loc) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -537,7 +537,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
             $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?,?,?,?,CURRENT_TIMESTAMP(3))");
             $stmt->execute([$hostName, $superordinate_dom, $clid, $clid]);
-            $host_id = $db->lastInsertId();
+            $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
             
             $host_addr_list = $xml->xpath('//host:addr') ?: [];
             
@@ -603,7 +603,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?,?,?,CURRENT_TIMESTAMP(3))");
             $stmt->execute([$hostName, $clid, $clid]);
 
-            $host_id = $db->lastInsertId();
+            $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
             $host_status = 'ok';
             $stmt = $db->prepare("INSERT INTO host_status (host_id,status) VALUES(?,?)");
@@ -644,6 +644,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 }
 
 function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data, $ns_mode) {
+    $statementPeriodColumns = $database_type === 'pgsql' ? '"fromS","toS"' : 'fromS,toS';
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -810,7 +811,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             FROM launch_phases 
             WHERE tld_id = ? 
             AND start_date <= ? 
-            AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+            AND (end_date >= ? OR end_date IS NULL)
             LIMIT 1
         ");
         $stmt->execute([$tld_id, $currentDate, $currentDate]);
@@ -835,7 +836,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             FROM launch_phases 
             WHERE tld_id = ? 
             AND start_date <= ? 
-            AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+            AND (end_date >= ? OR end_date IS NULL)
             LIMIT 1
         ");
         $stmt->execute([$tld_id, $currentDate, $currentDate]);
@@ -1069,7 +1070,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     
     $clid = getClid($db, $clid);
 
-    $stmt = $db->prepare("SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = :registrar_id LIMIT 1");
+    $stmt = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = :registrar_id LIMIT 1');
     $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
     $stmt->execute();
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1459,7 +1460,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':tm_phase' => $launch_phase_name ?? null,
                 ':phase_type' => $launch_phase ?? null,
             ]);
-            $domain_id = $db->lastInsertId();
+            $domain_id = $db->lastInsertId($database_type === 'pgsql' ? 'application_id_seq' : null);
             $uuid = createUuidFromId($domain_id);
 
             // Update application_id in the application table
@@ -1587,7 +1588,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         if ($internal_host) {
                             $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                             $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                            $host_id = $db->lastInsertId();
+                            $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                             $stmt = $db->prepare("INSERT INTO application_host_map (domain_id, host_id) VALUES (?, ?)");
                             $stmt->execute([$domain_id, $host_id]);
@@ -1686,12 +1687,13 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     return;
                 }
             }
-            
+
+            $exdate = (new DateTime())->modify("+$date_add months")->format('Y-m-d H:i:s');
             $domainSql = "INSERT INTO domain (
                 name, tldid, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod,
                 phase_name, tm_phase, tm_smd_id, tm_notice_id, tm_notice_accepted, tm_notice_expires
             ) VALUES (
-                :name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL :date_add MONTH), NULL, :registrar_id, :registrar_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2,
+                :name, :tld_id, :registrant_id, CURRENT_TIMESTAMP(3), :exdate, NULL, :registrar_id, :crid, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'addPeriod', :date_add2,
                 :phase_name, :tm_phase, :tm_smd_id, :tm_notice_id, :tm_notice_accepted, :tm_notice_expires
             )";
 
@@ -1700,9 +1702,10 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':name' => $domainName,
                 ':tld_id' => $tld_id,
                 ':registrant_id' => $registrant_id,
-                ':date_add' => $date_add,
+                ':exdate' => $exdate,
                 ':date_add2' => $date_add,
                 ':registrar_id' => $clid,
+                ':crid' => $clid,
                 ':phase_name' => $launch_phase_name ?? null,
                 ':tm_phase' => $launch_phase ?? 'none',
                 ':tm_smd_id' => $markId ?? null,
@@ -1711,7 +1714,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':tm_notice_expires' => normalizeDatetime($notafter) ?? null
             ]);
 
-            $domain_id = $db->lastInsertId();
+            $domain_id = $db->lastInsertId($database_type === 'pgsql' ? 'domain_id_seq' : null);
 
             $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
             $authInfoStmt->execute([
@@ -1940,7 +1943,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             [$from, $to] = $selectDomainDatesStmt->fetch(PDO::FETCH_NUM);
             $selectDomainDatesStmt->closeCursor();
 
-            $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
+            $statementStmt = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,$statementPeriodColumns,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:cmd,:name,:date_add,:from,:to,:price)");
             $statementStmt->execute([
                 ':registrar_id' => $clid,
                 ':cmd' => 'create',
@@ -1997,7 +2000,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                             if (preg_match("/\.$domainName$/i", $hostObj)) {
                                 $stmt = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                                 $stmt->execute([$hostObj, $domain_id, $clid, $clid]);
-                                $host_id = $db->lastInsertId();
+                                $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                                 $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
                                 $stmt->execute([$domain_id, $host_id]);
@@ -2005,7 +2008,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         } else {
                             $stmt = $db->prepare("INSERT INTO host (name,clid,crid,crdate) VALUES(?, ?, ?, CURRENT_TIMESTAMP(3))");
                             $stmt->execute([$hostObj, $clid, $clid]);
-                            $host_id = $db->lastInsertId();
+                            $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                             $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
                             $stmt->execute([$domain_id, $host_id]);
@@ -2054,7 +2057,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         // Insert a new host
                         $stmt = $db->prepare("INSERT INTO host (name, domain_id, clid, crid, crdate) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                         $stmt->execute([$hostName, $domain_id, $clid, $clid]);
-                        $host_id = $db->lastInsertId();
+                        $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                         // Map the new host to the domain
                         $stmt = $db->prepare("INSERT INTO domain_host_map (domain_id, host_id) VALUES (?, ?)");
@@ -2108,16 +2111,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
             $stmt->closeCursor();
 
-            $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-            $stmt->execute();
-            $curdate_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
-
-            if (!$curdate_id) {
-                $stmt = $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())");
-                $stmt->execute();
-            }
-            $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()");
+            $statisticsInsert = $database_type === 'pgsql'
+                ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+            $db->exec($statisticsInsert);
+            $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE");
 
             $db->commit();
         } catch (Exception $e) {

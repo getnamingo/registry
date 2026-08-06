@@ -4,7 +4,7 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 // Connect to the database
-$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

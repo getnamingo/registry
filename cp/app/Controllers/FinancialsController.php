@@ -83,13 +83,15 @@ class FinancialsController extends Controller
         $billing = $db->selectRow('SELECT * FROM registrar_contact WHERE id = ?',
         [ $invoice_details['billing_contact_id'] ]
         );
-        $billing_company = $db->selectValue('SELECT companyNumber FROM registrar WHERE id = ?',
+        $companyNumberColumn = envi('DB_DRIVER') === 'pgsql' ? '"companyNumber"' : 'companyNumber';
+        $vatNumberColumn = envi('DB_DRIVER') === 'pgsql' ? '"vatNumber"' : 'vatNumber';
+        $billing_company = $db->selectValue("SELECT $companyNumberColumn FROM registrar WHERE id = ?",
         [ $invoice_details['registrar_id'] ]
         );
         $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?',
         [ $invoice_details['registrar_id'] ]
         );
-        $billing_vat = $db->selectValue('SELECT vatNumber FROM registrar WHERE id = ?',
+        $billing_vat = $db->selectValue("SELECT $vatNumberColumn FROM registrar WHERE id = ?",
         [ $invoice_details['registrar_id'] ]
         );
         $company_name = $db->selectValue("SELECT value FROM settings WHERE name = 'company_name'");
@@ -198,7 +200,7 @@ class FinancialsController extends Controller
     {
         if ($_SESSION["auth_roles"] != 0) {
             $db = $this->container->get('db');
-            $balance = $db->selectRow('SELECT name, accountBalance, creditLimit FROM registrar WHERE id = ?',
+            $balance = $db->selectRow('SELECT name, accountBalance AS "accountBalance", creditLimit AS "creditLimit" FROM registrar WHERE id = ?',
             [ $_SESSION["auth_registrar_id"] ]
             );
             $currency = $_SESSION['_currency'];

@@ -40,7 +40,7 @@ class User
 
         $this->db->insert('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [$username, $email, $hashedPassword]);
 
-        return $this->db->lastInsertId();
+        return $this->db->lastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
     }
 
     public function updateUser($id, $username, $email, $password)

@@ -1140,6 +1140,7 @@ function processHostUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 }
 
 function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
+    $statementPeriodColumns = $database_type === 'pgsql' ? '"fromS","toS"' : 'fromS,toS';
     $domainName = (string) $xml->command->update->children('urn:ietf:params:xml:ns:domain-1.0')->update->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -1832,7 +1833,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     if ($internal_host) {
                         $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
                         $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);                    
-                        $host_id = $db->lastInsertId();
+                        $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                         $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
                         $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
@@ -2043,7 +2044,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             $sth->closeCursor();
 
             if ($temp_id == 1) {
-                $sth = $db->prepare("SELECT accountBalance,creditLimit,currency FROM registrar WHERE id = ?");
+                $sth = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?');
                 $sth->execute([$clid]);
                 list($registrar_balance, $creditLimit, $currency) = $sth->fetch();
                 $sth->closeCursor();
@@ -2063,9 +2064,10 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $from = $sth->fetchColumn();
                 $sth->closeCursor();
 
-                $sth = $db->prepare("UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+                $exdate = (new DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s');
+                $sth = $db->prepare("UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 
-                if (!$sth->execute([$postData, $resReason, $statementTexts[0], $statementTexts[1], $clid, $domain_id])) {
+                if (!$sth->execute([$exdate, $postData, $resReason, $statementTexts[0], $statementTexts[1], $clid, $domain_id])) {
                     sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
                     return;
                 } else {
@@ -2086,25 +2088,20 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                     $to = $stmt->fetchColumn();
                     $stmt->closeCursor();
 
-                    $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,fromS,toS,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
+                    $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,$statementPeriodColumns,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
                     $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
         
                     $sth->execute([$clid, 'renew', $domainName, 12, $from, $to, $renew_price]);
 
-                    $stmt = $db->prepare("SELECT id FROM statistics WHERE date = CURDATE()");
-                    $stmt->execute();
-                    $curdate_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
-
-                    if (!$curdate_id) {
-                        $db->prepare("INSERT IGNORE INTO statistics (date) VALUES(CURDATE())")
-                        ->execute();
-                    }
+                    $statisticsInsert = $database_type === 'pgsql'
+                        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+                    $db->exec($statisticsInsert);
                     
-                    $db->prepare("UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURDATE()")
+                    $db->prepare("UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURRENT_DATE")
                     ->execute();
 
-                    $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()")
+                    $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE")
                     ->execute();
                 }
             } else {

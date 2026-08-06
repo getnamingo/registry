@@ -205,12 +205,14 @@ $app->any('/api[/{params:.*}]', function (
         $db_username = $db['mysql']['username'];
         $db_password = $db['mysql']['password'];
         $db_database = $db['mysql']['database'];
-        $db_address = 'localhost';
+        $db_address = $db['mysql']['host'];
+        $db_port = $db['mysql']['port'];
     } elseif (config('default') == 'pgsql') {
         $db_username = $db['pgsql']['username'];
         $db_password = $db['pgsql']['password'];
         $db_database = $db['pgsql']['database'];
-        $db_address = 'localhost';
+        $db_address = $db['pgsql']['host'];
+        $db_port = $db['pgsql']['port'];
     } elseif (config('default') == 'sqlite') {
         $db_username = null;
         $db_password = null;
@@ -223,10 +225,11 @@ $app->any('/api[/{params:.*}]', function (
         'password' => $db_password,
         'database' => $db_database,
         'address' => $db_address,
+        'port' => $db_port ?? null,
         'basePath' => '/api',
         'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
-        $restrictedTables = ['contact_authInfo', 'contact_postalInfo', 'domain_authInfo', 'secdns'];
+        $restrictedTables = ['contact_authInfo', 'contact_authinfo', 'contact_postalInfo', 'contact_postalinfo', 'domain_authInfo', 'domain_authinfo', 'secdns'];
             return !in_array($tableName, $restrictedTables);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
@@ -345,11 +348,13 @@ $app->any('/log-api[/{params:.*}]', function (
     if (config('default') == 'mysql') {
         $db_username = $db['mysql']['username'];
         $db_password = $db['mysql']['password'];
-        $db_address = 'localhost';
+        $db_address = $db['mysql']['host'];
+        $db_port = $db['mysql']['port'];
     } elseif (config('default') == 'pgsql') {
         $db_username = $db['pgsql']['username'];
         $db_password = $db['pgsql']['password'];
-        $db_address = 'localhost';
+        $db_address = $db['pgsql']['host'];
+        $db_port = $db['pgsql']['port'];
     } elseif (config('default') == 'sqlite') {
         $db_username = null;
         $db_password = null;
@@ -361,6 +366,7 @@ $app->any('/log-api[/{params:.*}]', function (
         'password' => $db_password,
         'database' => 'registryTransaction',
         'address' => $db_address,
+        'port' => $db_port ?? null,
         'basePath' => '/log-api',
         'middlewares' => 'customization,dbAuth,multiTenancy',
         'customization.beforeHandler' => function ($operation, $tableName, $request, $environment) {

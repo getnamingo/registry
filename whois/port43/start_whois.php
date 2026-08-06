@@ -13,16 +13,17 @@ $logFilePath = '/var/log/namingo/whois.log';
 $log = setupLogger($logFilePath, 'WHOIS');
 
 // Initialize the PDO connection pool
-$pool = new Swoole\Database\PDOPool(
-    (new Swoole\Database\PDOConfig())
+$pdoConfig = (new Swoole\Database\PDOConfig())
         ->withDriver($c['db_type'])
         ->withHost($c['db_host'])
         ->withPort($c['db_port'])
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
-        ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
-);
+        ->withPassword($c['db_password']);
+if ($c['db_type'] === 'mysql') {
+    $pdoConfig->withCharset('utf8mb4');
+}
+$pool = new Swoole\Database\PDOPool($pdoConfig);
 
 // Create a Swoole TCP server
 $server = new Server($c['whois_ipv4'], 43);
@@ -175,7 +176,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     return;
                 }
                 
-                $query = "SELECT * FROM registry.domain WHERE name = :domain";
+                $query = "SELECT * FROM domain WHERE name = :domain";
                 $stmt = $pdo->prepare($query);
                 $stmt->bindParam(':domain', $domain, PDO::PARAM_STR);
                 $stmt->execute();
@@ -565,9 +566,12 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                             $res .= ($disclose_email ? "\nTech Email: ".$f2['email'] : "\nTech Email: Kindly refer to the RDDS server associated with the identified registrar in this output to obtain contact details for the Registrant, Admin, or Tech associated with the queried domain name.");
                         }
                     }
-                    
+
+                    $ipAggregate = $c['db_type'] === 'pgsql'
+                        ? "STRING_AGG(ha.addr, ', ' ORDER BY ha.addr)"
+                        : "GROUP_CONCAT(ha.addr ORDER BY INET6_ATON(ha.addr) SEPARATOR ', ')";
                     $query9 = "SELECT h.name, 
-                              GROUP_CONCAT(ha.addr ORDER BY INET6_ATON(ha.addr) SEPARATOR ', ') AS ips 
+                              $ipAggregate AS ips
                            FROM domain_host_map dhm
                            JOIN host h ON dhm.host_id = h.id
                            LEFT JOIN host_addr ha ON h.id = ha.host_id

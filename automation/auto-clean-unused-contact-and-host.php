@@ -22,6 +22,7 @@ try {
 try {
     $minimum_data = $c['minimum_data'];
     $dbh->beginTransaction();
+    $oneMonthAgo = (new DateTime('-1 month'))->format('Y-m-d H:i:s');
     
     // Prepare and execute the SQL statement to select unused hosts
     $stmt = $dbh->prepare("
@@ -30,9 +31,9 @@ try {
         LEFT JOIN domain_host_map AS m ON h.id = m.host_id
         WHERE m.host_id IS NULL
           AND h.domain_id IS NULL
-          AND h.crdate < (NOW() - INTERVAL 1 MONTH)
+          AND h.crdate < ?
     ");
-    $stmt->execute();
+    $stmt->execute([$oneMonthAgo]);
     $hostIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     // Delete associated records from various tables for hosts
@@ -54,9 +55,9 @@ try {
             LEFT JOIN domain AS d ON c.id = d.registrant
             WHERE m.contact_id IS NULL
               AND d.registrant IS NULL
-              AND c.crdate < (NOW() - INTERVAL 1 MONTH)
+              AND c.crdate < ?
         ");
-        $stmt->execute();
+        $stmt->execute([$oneMonthAgo]);
         $contactIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         // Delete associated records from various tables for contacts

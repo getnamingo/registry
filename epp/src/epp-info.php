@@ -661,12 +661,13 @@ function processFundsInfo($conn, $db, $xml, $clid, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     try {
-        $stmt = $db->prepare("
-            SELECT accountBalance, creditLimit, creditThreshold, thresholdType, currency
+        $stmt = $db->prepare('
+            SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit",
+                   creditThreshold AS "creditThreshold", thresholdType AS "thresholdType", currency
             FROM registrar
             WHERE clid = :id
             LIMIT 1
-        ");
+        ');
         $stmt->execute(['id' => $clid]);
         $funds = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();

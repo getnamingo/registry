@@ -44,7 +44,9 @@ if ($row) {
 }
 
 // Define the query
-$sql = "SELECT id, clid, name, accountBalance, creditThreshold, creditLimit, email, currency FROM registrar";
+$sql = 'SELECT id, clid, name, accountBalance AS "accountBalance",
+        creditThreshold AS "creditThreshold", creditLimit AS "creditLimit", email, currency
+        FROM registrar';
 
 try {
     $stmt = $pdo->query($sql);

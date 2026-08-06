@@ -115,7 +115,7 @@ class UsersController extends Controller
                                 'registered' => \time()
                             ]
                         );
-                        $user_id = $db->getLastInsertId();
+                        $user_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
 
                         $db->insert(
                             'registrar_users',
@@ -152,7 +152,7 @@ class UsersController extends Controller
                                 'registered' => \time()
                             ]
                         );
-                        $userId = $db->getlastInsertId();
+                        $userId = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
 
                         $db->commit();
                     } catch (Exception $e) {

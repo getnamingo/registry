@@ -82,26 +82,26 @@ class DapiController extends Controller
                                 if ($punyVal !== false && $punyVal !== $fVal) {
                                     // Search for both punycode and original term
                                     // (d.name LIKE '%cyrillic%' OR d.name LIKE '%punycode%')
-                                    $whereClauses[] = "($column LIKE :f_{$key}_original OR $column LIKE :f_{$key}_puny)";
+                                    $whereClauses[] = "($likeColumn LIKE :f_{$key}_original OR $likeColumn LIKE :f_{$key}_puny)";
                                     $bindParams["f_{$key}_original"] = "%$fVal%";
                                     $bindParams["f_{$key}_puny"] = "%$punyVal%";
                                 } else {
                                     // Just search normally
-                                    $whereClauses[] = "$column LIKE :f_{$key}";
+                                    $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                                     $bindParams["f_{$key}"] = "%$fVal%";
                                 }
                             } else {
                                 // Non-name field, just search as usual
-                                $whereClauses[] = "$column LIKE :f_{$key}";
+                                $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                                 $bindParams["f_{$key}"] = "%$fVal%";
                             }
                             break;
                         case 'sw':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "$fVal%";
                             break;
                         case 'ew':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal";
                             break;
                         // Add other cases if needed
@@ -153,6 +153,7 @@ class DapiController extends Controller
         $totalCount = $db->selectValue($totalSql, $bindParams);
 
         // Data query
+        $statusAggregate = envi('DB_DRIVER') === 'pgsql' ? "STRING_AGG(ds.status, ',')" : 'GROUP_CONCAT(ds.status)';
         $selectFields = "
             d.id, 
             d.name, 
@@ -160,14 +161,14 @@ class DapiController extends Controller
             d.exdate, 
             d.rgpstatus, 
             c.identifier AS registrant_identifier,
-            GROUP_CONCAT(ds.status) AS domain_status
+            $statusAggregate AS domain_status
         ";
 
         $dataSql = "
             SELECT $selectFields
             $sqlBase
             $sqlWhere
-            GROUP BY d.id
+            GROUP BY d.id, c.identifier
             ORDER BY $sortField $sortDir
             " . $this->limitClause($offset, $size) . "
         ";
@@ -274,6 +275,7 @@ class DapiController extends Controller
                         continue;
                     }
                     $column = $allowedFieldsMap[$fField];
+                    $likeColumn = envi('DB_DRIVER') === 'pgsql' ? "CAST($column AS TEXT)" : $column;
 
                     switch ($fOp) {
                         case 'eq':
@@ -288,26 +290,26 @@ class DapiController extends Controller
                                 if ($punyVal !== false && $punyVal !== $fVal) {
                                     // Search for both punycode and original term
                                     // (d.name LIKE '%cyrillic%' OR d.name LIKE '%punycode%')
-                                    $whereClauses[] = "($column LIKE :f_{$key}_original OR $column LIKE :f_{$key}_puny)";
+                                    $whereClauses[] = "($likeColumn LIKE :f_{$key}_original OR $likeColumn LIKE :f_{$key}_puny)";
                                     $bindParams["f_{$key}_original"] = "%$fVal%";
                                     $bindParams["f_{$key}_puny"] = "%$punyVal%";
                                 } else {
                                     // Just search normally
-                                    $whereClauses[] = "$column LIKE :f_{$key}";
+                                    $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                                     $bindParams["f_{$key}"] = "%$fVal%";
                                 }
                             } else {
                                 // Non-name field, just search as usual
-                                $whereClauses[] = "$column LIKE :f_{$key}";
+                                $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                                 $bindParams["f_{$key}"] = "%$fVal%";
                             }
                             break;
                         case 'sw':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "$fVal%";
                             break;
                         case 'ew':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal";
                             break;
                         // Add other cases if needed
@@ -359,6 +361,7 @@ class DapiController extends Controller
         $totalCount = $db->selectValue($totalSql, $bindParams);
 
         // Data query
+        $statusAggregate = envi('DB_DRIVER') === 'pgsql' ? "STRING_AGG(ds.status, ',')" : 'GROUP_CONCAT(ds.status)';
         $selectFields = "
             d.id, 
             d.name, 
@@ -366,14 +369,14 @@ class DapiController extends Controller
             d.exdate, 
             d.phase_type, 
             c.identifier AS registrant_identifier,
-            GROUP_CONCAT(ds.status) AS application_status
+            $statusAggregate AS application_status
         ";
 
         $dataSql = "
             SELECT $selectFields
             $sqlBase
             $sqlWhere
-            GROUP BY d.id
+            GROUP BY d.id, c.identifier
             ORDER BY $sortField $sortDir
             " . $this->limitClause($offset, $size) . "
         ";
@@ -483,6 +486,7 @@ class DapiController extends Controller
                         continue;
                     }
                     $column = $allowedFieldsMap[$fField];
+                    $likeColumn = envi('DB_DRIVER') === 'pgsql' ? "CAST($column AS TEXT)" : $column;
 
                     switch ($fOp) {
                         case 'eq':
@@ -490,15 +494,15 @@ class DapiController extends Controller
                             $bindParams["f_{$key}"] = $fVal;
                             break;
                         case 'cs':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal%";
                             break;
                         case 'sw':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "$fVal%";
                             break;
                         case 'ew':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal";
                             break;
                         // Add other cases if needed
@@ -588,6 +592,8 @@ class DapiController extends Controller
     {
         $params = $request->getQueryParams();
         $db = $this->container->get('db');
+        $fromStatementColumn = envi('DB_DRIVER') === 'pgsql' ? 'st."fromS"' : 'st.fromS';
+        $toStatementColumn = envi('DB_DRIVER') === 'pgsql' ? 'st."toS"' : 'st.toS';
 
         // Map fields to fully qualified columns for filtering/sorting
         $allowedFieldsMap = [
@@ -596,8 +602,8 @@ class DapiController extends Controller
             'command' => 'st.command',
             'domain_name' => 'st.domain_name',
             'length_in_months' => 'st.length_in_months',
-            'fromS' => 'st.fromS',
-            'toS' => 'st.toS',
+            'fromS' => $fromStatementColumn,
+            'toS' => $toStatementColumn,
             'amount' => 'st.amount',
             'registrar_name' => 'r.name',
             'currency' => 'r.currency'
@@ -651,6 +657,7 @@ class DapiController extends Controller
                         continue;
                     }
                     $column = $allowedFieldsMap[$fField];
+                    $likeColumn = envi('DB_DRIVER') === 'pgsql' ? "CAST($column AS TEXT)" : $column;
 
                     switch ($fOp) {
                         case 'eq':
@@ -658,15 +665,15 @@ class DapiController extends Controller
                             $bindParams["f_{$key}"] = $fVal;
                             break;
                         case 'cs':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal%";
                             break;
                         case 'sw':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "$fVal%";
                             break;
                         case 'ew':
-                            $whereClauses[] = "$column LIKE :f_{$key}";
+                            $whereClauses[] = "$likeColumn LIKE :f_{$key}";
                             $bindParams["f_{$key}"] = "%$fVal";
                             break;
                         // Add other cases if needed
@@ -724,8 +731,8 @@ class DapiController extends Controller
             st.command,
             st.domain_name,
             st.length_in_months,
-            st.fromS,
-            st.toS,
+            $fromStatementColumn AS \"fromS\",
+            $toStatementColumn AS \"toS\",
             st.amount,
             r.name AS registrar_name,
             r.currency

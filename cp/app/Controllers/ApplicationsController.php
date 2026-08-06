@@ -138,7 +138,7 @@ class ApplicationsController extends Controller
                  WHERE tld_id = ? 
                  AND phase_type = ?
                  AND start_date <= ? 
-                 AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+                 AND (end_date >= ? OR end_date IS NULL)
                  ",
                 [$tld_id, $phaseType, $currentDate, $currentDate]
             );
@@ -326,7 +326,7 @@ class ApplicationsController extends Controller
        
             $date_add = 0;
 
-            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
@@ -486,7 +486,7 @@ class ApplicationsController extends Controller
                     'tm_notice_accepted' => $accepted ?? null,
                     'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s') : $notafter) : null
                 ]);
-                $domain_id = $db->getlastInsertId();
+                $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'application_id_seq' : null);
                 
                 $uuid = createUuidFromId($domain_id);
                 
@@ -605,7 +605,7 @@ class ApplicationsController extends Controller
                                         'crdate' => $host_date
                                     ]
                                 );
-                                $host_id = $db->getlastInsertId();
+                                $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
                             } else {
                                 $db->insert(
                                     'host',
@@ -616,7 +616,7 @@ class ApplicationsController extends Controller
                                         'crdate' => $host_date
                                     ]
                                 );
-                                $host_id = $db->getlastInsertId();
+                                $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
                             }
 
                             $db->insert(
@@ -1052,7 +1052,7 @@ class ApplicationsController extends Controller
                                 'crdate' => $host_date
                             ]
                         );
-                        $host_id = $db->getlastInsertId();
+                        $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
 
                         $db->insert(
                             'application_host_map',
@@ -1228,7 +1228,7 @@ class ApplicationsController extends Controller
                     $clid = $registrar_id_domain;
                 }
 
-                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+                $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
 
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
@@ -1286,12 +1286,12 @@ class ApplicationsController extends Controller
                         'acid' => null,
                         'acdate' => null,
                         'rgpstatus' => 'addPeriod',
-                        'addPeriod' => $date_add
+                        'addperiod' => $date_add
                     ]);
-                    $domain_id = $db->getlastInsertId();
+                    $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_id_seq' : null);
 
                     $db->insert(
-                        'domain_authInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
                         [
                             'domain_id' => $domain_id,
                             'authtype' => 'pw',
@@ -1372,18 +1372,12 @@ class ApplicationsController extends Controller
                     $crdate = $result['crdate'];
                     $exdate = $result['exdate'];
 
-                    $curdate_id = $db->selectValue(
-                        'SELECT id FROM statistics WHERE date = CURDATE()'
-                    );
-
-                    if (!$curdate_id) {
-                        $db->exec(
-                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                        );
-                    }
+                    $db->exec(envi('DB_DRIVER') === 'pgsql'
+                        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                     $db->exec(
-                        'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()'
+                        'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE'
                     );
                     
                     $db->commit();

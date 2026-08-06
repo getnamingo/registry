@@ -15,16 +15,17 @@ use MatthiasMullie\Scrapbook\Psr6\Pool;
 use GuzzleHttp\Client;
 
 // Initialize the PDO connection pool
-$pool = new Swoole\Database\PDOPool(
-    (new Swoole\Database\PDOConfig())
+$pdoConfig = (new Swoole\Database\PDOConfig())
         ->withDriver($c['db_type'])
         ->withHost($c['db_host'])
         ->withPort($c['db_port'])
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
-        ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
-);
+        ->withPassword($c['db_password']);
+if ($c['db_type'] === 'mysql') {
+    $pdoConfig->withCharset('utf8mb4');
+}
+$pool = new Swoole\Database\PDOPool($pdoConfig);
 
 Swoole\Runtime::enableCoroutine();
 

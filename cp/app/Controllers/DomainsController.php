@@ -227,7 +227,7 @@ class DomainsController extends Controller
                  FROM launch_phases 
                  WHERE tld_id = ? 
                  AND start_date <= ? 
-                 AND (end_date >= ? OR end_date IS NULL OR end_date = '') 
+                 AND (end_date >= ? OR end_date IS NULL)
                  ",
                 [$tld_id, $currentDate, $currentDate]
             );
@@ -461,7 +461,7 @@ class DomainsController extends Controller
                 $clid = $registrar_id;
             }
             
-            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
@@ -616,7 +616,7 @@ class DomainsController extends Controller
                     'acid' => null,
                     'acdate' => null,
                     'rgpstatus' => 'addPeriod',
-                    'addPeriod' => $date_add,
+                    'addperiod' => $date_add,
                     'phase_name' => $phaseName ?? null,
                     'tm_phase' => $phaseType ?? 'none',
                     'tm_smd_id' => $markId ?? null,
@@ -624,10 +624,10 @@ class DomainsController extends Controller
                     'tm_notice_accepted' => $accepted ?? null,
                     'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s') : $notafter) : null
                 ]);
-                $domain_id = $db->getlastInsertId();
+                $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_id_seq' : null);
 
                 $db->insert(
-                    'domain_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
                     [
                         'domain_id' => $domain_id,
                         'authtype' => 'pw',
@@ -642,7 +642,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -659,7 +661,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -672,7 +676,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -894,7 +900,7 @@ class DomainsController extends Controller
                                         ]
                                     );
                                 }
-                                $host_id = $db->getlastInsertId();
+                                $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
                             } else {
                                 $db->insert(
                                     'host',
@@ -905,7 +911,7 @@ class DomainsController extends Controller
                                         'crdate' => $host_date
                                     ]
                                 );
-                                $host_id = $db->getlastInsertId();
+                                $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
                             }
 
                             $db->insert(
@@ -995,18 +1001,12 @@ class DomainsController extends Controller
                 $crdate = $result['crdate'];
                 $exdate = $result['exdate'];
 
-                $curdate_id = $db->selectValue(
-                    'SELECT id FROM statistics WHERE date = CURDATE()'
-                );
-
-                if (!$curdate_id) {
-                    $db->exec(
-                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                    );
-                }
+                $db->exec(envi('DB_DRIVER') === 'pgsql'
+                    ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                    : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                 $db->exec(
-                    'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURDATE()'
+                    'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE'
                 );
                 
                 $db->commit();
@@ -1196,10 +1196,11 @@ class DomainsController extends Controller
                     }
                 }
 
+                $auditSchema = envi('DB_DRIVER') === 'pgsql' ? "'public'" : 'DATABASE()';
                 $auditEnabled = (int) $db_audit->selectValue(
                     "SELECT COUNT(*)
                      FROM information_schema.tables
-                     WHERE table_schema = DATABASE()
+                     WHERE table_schema = $auditSchema
                        AND table_name = 'domain'"
                 ) > 0;
 
@@ -1536,7 +1537,7 @@ class DomainsController extends Controller
                 );
 
                 $db->update(
-                    'domain_authInfo',
+                    envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
                     [
                         'authinfo' => $authInfo
                     ],
@@ -1560,7 +1561,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -1584,7 +1587,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -1597,7 +1602,9 @@ class DomainsController extends Controller
                         if ($value === 'on') {
                             // Insert or update the status in the database
                             $db->exec(
-                                'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                                envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON CONFLICT (domain_id, status) DO NOTHING'
+                                    : 'INSERT INTO domain_status (domain_id, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
                                 [
                                     $domain_id,
                                     $status
@@ -1758,7 +1765,7 @@ class DomainsController extends Controller
                                 'crdate' => $host_date
                             ]
                         );
-                        $host_id = $db->getlastInsertId();
+                        $host_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'host_id_seq' : null);
 
                         $db->insert(
                             'domain_host_map',
@@ -2002,7 +2009,7 @@ class DomainsController extends Controller
             $date_add = 0;
             $date_add = ($renewalYears * 12);
             
-            $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+            $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
 
             $registrar_balance = $result['accountBalance'];
             $creditLimit = $result['creditLimit'];
@@ -2056,11 +2063,12 @@ class DomainsController extends Controller
                 );
                 $from = $row['exdate'];
                 $rgpstatus = 'renewPeriod';
-                
+
+                $renewedExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
                 $db->exec(
-                    'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                    'UPDATE domain SET exdate = ?, rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE name = ?',
                     [
-                        $date_add,
+                        $renewedExdate,
                         $rgpstatus,
                         $date_add,
                         $domainName
@@ -2103,18 +2111,12 @@ class DomainsController extends Controller
                     ]
                   );
 
-                $curdate_id = $db->selectValue(
-                    'SELECT id FROM statistics WHERE date = CURDATE()'
-                );
-
-                if (!$curdate_id) {
-                    $db->exec(
-                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                    );
-                }
+                $db->exec(envi('DB_DRIVER') === 'pgsql'
+                    ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                    : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                 $db->exec(
-                    'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()'
+                    'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE'
                 );
                  
                 $db->commit();
@@ -2241,7 +2243,7 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 }
         
-                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod FROM domain WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM domain WHERE name = ?',
                 [ $args ]);
             
                 $domainName = $domain['name'];
@@ -2305,12 +2307,13 @@ class DomainsController extends Controller
                         'domain_id' => $domain_id
                     ]
                 );
-                
+
+                $deleteTime = (new \DateTime("+$grace_period days"))->format('Y-m-d H:i:s');
                 $db->exec(
-                    'UPDATE domain SET rgpstatus = ?, delTime = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY) WHERE id = ?',
-                    ['redemptionPeriod', $grace_period, $domain_id]
++                    'UPDATE domain SET rgpstatus = ?, delTime = ? WHERE id = ?',
++                    ['redemptionPeriod', $deleteTime, $domain_id]
                 );
-                
+
                 $db->insert(
                     'domain_status',
                     [
@@ -2321,12 +2324,8 @@ class DomainsController extends Controller
                     
                 if ($rgpstatus) {
                     if ($rgpstatus === 'addPeriod') {
-                        $addPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(crdate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
+                        $graceEnd = (new \DateTime($crdate))->modify('+5 days');
+                        $addPeriod_id = new \DateTime() < $graceEnd ? $domain_id : false;
                         if ($addPeriod_id) {
                             $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create', $clid, $currency);
@@ -2396,7 +2395,7 @@ class DomainsController extends Controller
                                     ]
                                 );
                                 $db->delete(
-                                    'domain_authInfo',
+                                    envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
                                     [
                                         'domain_id' => $domain_id
                                     ]
@@ -2426,18 +2425,12 @@ class DomainsController extends Controller
                                     ]
                                 );
                                 
-                                $curdate_id = $db->selectValue(
-                                    'SELECT id FROM statistics WHERE date = CURDATE()'
-                                );
-
-                                if (!$curdate_id) {
-                                    $db->exec(
-                                        'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                                    );
-                                }
+                                $db->exec(envi('DB_DRIVER') === 'pgsql'
+                                    ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                                    : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                                 $db->exec(
-                                    'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURDATE()'
+                                    'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURRENT_DATE'
                                 );
                             
                                 $db->commit();
@@ -2449,12 +2442,8 @@ class DomainsController extends Controller
                             $isImmediateDeletion = true;
                         }
                     } elseif ($rgpstatus === 'autoRenewPeriod') {
-                        $autoRenewPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 45 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
+                        $graceEnd = (new \DateTime($renewedDate))->modify('+45 days');
+                        $autoRenewPeriod_id = new \DateTime() < $graceEnd ? $domain_id : false;
                         if ($autoRenewPeriod_id) {
                             $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew', $clid, $currency);
@@ -2477,12 +2466,8 @@ class DomainsController extends Controller
                             );
                         }
                     } elseif ($rgpstatus === 'renewPeriod') {
-                        $renewPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(renewedDate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
+                        $graceEnd = (new \DateTime($renewedDate))->modify('+5 days');
+                        $renewPeriod_id = new \DateTime() < $graceEnd ? $domain_id : false;
                         if ($renewPeriod_id) {
                             $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew', $clid, $currency);
@@ -2505,12 +2490,8 @@ class DomainsController extends Controller
                             );
                         }
                     } elseif ($rgpstatus === 'transferPeriod') {
-                        $transferPeriod_id = $db->selectValue(
-                            'SELECT id FROM domain WHERE id = ? AND (CURRENT_TIMESTAMP(3) < DATE_ADD(trdate, INTERVAL 5 DAY)) LIMIT 1',
-                            [
-                                $domain_id
-                            ]
-                        );
+                        $graceEnd = (new \DateTime($trdate))->modify('+5 days');
+                        $transferPeriod_id = new \DateTime() < $graceEnd ? $domain_id : false;
                         if ($transferPeriod_id) {
                             $currency = $db->selectValue('SELECT currency FROM registrar WHERE id = ?', [$clid]);
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew', $clid, $currency);
@@ -2597,7 +2578,7 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
             
-            $domain = $db->selectRow('SELECT id, tldid, clid FROM domain WHERE name = ? LIMIT 1',
+            $domain = $db->selectRow('SELECT id, tldid, clid, crdate, trdate, exdate FROM domain WHERE name = ? LIMIT 1',
             [ $domainName ]);
             
             $domain_id = $domain['id'];
@@ -2618,39 +2599,21 @@ class DomainsController extends Controller
                 $clid = $registrar_id;
             }
             
-            $days_from_registration = $db->selectValue(
-                 'SELECT DATEDIFF(CURRENT_TIMESTAMP(3), crdate) FROM domain WHERE id = ? LIMIT 1',
-                [
-                    $domain_id
-                ]
-            );
-            
+            $days_from_registration = (new \DateTime($domain['crdate']))->diff(new \DateTime())->days;
             if ($days_from_registration < 60) {
                 $this->container->get('flash')->addMessage('error', 'The domain name must not be within 60 days of its initial registration');
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
             
-            $last_transfer = $db->selectRow(
-                 'SELECT trdate, DATEDIFF(CURRENT_TIMESTAMP(3),trdate) AS intval FROM domain WHERE id = ? LIMIT 1',
-                [
-                    $domain_id
-                ]
-            );
-            $last_trdate = $last_transfer["trdate"];
-            $days_from_last_transfer = $last_transfer["intval"];
-            
+            $last_trdate = $domain['trdate'];
+            $days_from_last_transfer = $last_trdate ? (new \DateTime($last_trdate))->diff(new \DateTime())->days : null;        
             if ($last_trdate && $days_from_last_transfer < 60) {
                 $this->container->get('flash')->addMessage('error', 'The domain name must not be within 60 days of its last transfer from another registrar');
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
 
-            $days_from_expiry_date = $db->selectValue(
-                 'SELECT DATEDIFF(CURRENT_TIMESTAMP(3),exdate) FROM domain WHERE id = ? LIMIT 1',
-                [
-                    $domain_id
-                ]
-            );
-            
+            $expiryDate = new \DateTime($domain['exdate']);
+            $days_from_expiry_date = $expiryDate < new \DateTime() ? $expiryDate->diff(new \DateTime())->days : -1;           
             if ($days_from_expiry_date > 30) {
                 $this->container->get('flash')->addMessage('error', 'The domain name must not be more than 30 days past its expiry date');
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
@@ -2722,7 +2685,7 @@ class DomainsController extends Controller
                 $date_add = $transferYears * 12;
 
                 if ($date_add > 0) {
-                    $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+                    $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
                     $registrar_balance = $result['accountBalance'];
                     $creditLimit = $result['creditLimit'];
                     $currency = $result['currency'];
@@ -2744,9 +2707,11 @@ class DomainsController extends Controller
                         $db->beginTransaction();
                         
                         $waiting_period = 5;
+                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                        $transferExdate = (new \DateTime($domain['exdate']))->modify("+$date_add months")->format('Y-m-d H:i:s');
                         $db->exec(
-                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY), transfer_exdate = DATE_ADD(exdate, INTERVAL ? MONTH) WHERE id = ?',
-                            ['pending', $clid, $registrar_id_domain, $waiting_period, $date_add, $domain_id]
+                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = ?, transfer_exdate = ? WHERE id = ?',
+                            ['pending', $clid, $registrar_id_domain, $acdate, $transferExdate, $domain_id]
                         );
 
                         $existingStatus = $db->selectValue(
@@ -2797,12 +2762,12 @@ class DomainsController extends Controller
                             'msg' => 'Transfer requested.',
                             'msg_type' => 'domainTransfer',
                             'obj_name_or_id' => $domainName,
-                            'obj_trStatus' => 'pending',
-                            'obj_reID' => $reid_identifier,
-                            'obj_reDate' => $redate,
-                            'obj_acID' => $acid_identifier,
-                            'obj_acDate' => $acdate,
-                            'obj_exDate' => $transfer_exdate
+                            'obj_trstatus' => 'pending',
+                            'obj_reid' => $reid_identifier,
+                            'obj_redate' => $redate,
+                            'obj_acid' => $acid_identifier,
+                            'obj_acdate' => $acdate,
+                            'obj_exdate' => $transfer_exdate
                         ]);
                     
                         $db->commit();
@@ -2819,9 +2784,10 @@ class DomainsController extends Controller
                         $db->beginTransaction();
                         
                         $waiting_period = 5;
+                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
                         $db->exec(
-                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = DATE_ADD(CURRENT_TIMESTAMP(3), INTERVAL ? DAY), transfer_exdate = NULL WHERE id = ?',
-                            ['pending', $clid, $registrar_id_domain, $waiting_period, $domain_id]
+                            'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = ?, transfer_exdate = NULL WHERE id = ?',
+                            ['pending', $clid, $registrar_id_domain, $acdate, $domain_id]
                         );
 
                         $existingStatus = $db->selectValue(
@@ -2872,12 +2838,12 @@ class DomainsController extends Controller
                             'msg' => 'Transfer requested.',
                             'msg_type' => 'domainTransfer',
                             'obj_name_or_id' => $domainName,
-                            'obj_trStatus' => 'pending',
-                            'obj_reID' => $reid_identifier,
-                            'obj_reDate' => $redate,
-                            'obj_acID' => $acid_identifier,
-                            'obj_acDate' => $acdate,
-                            'obj_exDate' => $transfer_exdate
+                            'obj_trstatus' => 'pending',
+                            'obj_reid' => $reid_identifier,
+                            'obj_redate' => $redate,
+                            'obj_acid' => $acid_identifier,
+                            'obj_acdate' => $acdate,
+                            'obj_exdate' => $transfer_exdate
                         ]);
                     
                         $db->commit();
@@ -2977,7 +2943,7 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfers')->withStatus(302);
             }
         
-            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod, autoRenewPeriod, renewPeriod, renewedDate, transferPeriod, transfer_exdate FROM domain WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod", transfer_exdate FROM domain WHERE name = ?',
             [ $domainName ]);
             
             $domain_id = $domain['id'];
@@ -3005,18 +2971,16 @@ class DomainsController extends Controller
                 $date_add = 0;
                 $price = 0;
                 
-                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$reid]);
+                $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$reid]);
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
                 $currency = $result['currency'];
                 
                 if ($transfer_exdate) {
-                    $date_add = $db->selectValue(
-                         "SELECT PERIOD_DIFF(DATE_FORMAT(transfer_exdate, '%Y%m'), DATE_FORMAT(exdate, '%Y%m')) AS intval FROM domain WHERE name = ? LIMIT 1",
-                        [
-                            $domainName
-                        ]
-                    );
+                    $transferDate = new \DateTime($transfer_exdate);
+                    $expiryDate = new \DateTime($exdate);
+                    $date_add = ((int) $transferDate->format('Y') - (int) $expiryDate->format('Y')) * 12
+                        + (int) $transferDate->format('m') - (int) $expiryDate->format('m');
                     
                     $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
                     $price = $returnValue['price'];
@@ -3040,7 +3004,7 @@ class DomainsController extends Controller
                     $registrantData['identifier'] = generateAuthInfo();
                     $registrantData['clid'] = $reid;
                     $db->insert('contact', $registrantData);
-                    $newRegistrantId = $db->getlastInsertId();
+                    $newRegistrantId = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'contact_id_seq' : null);
                     $newContactIds[$registrant] = $newRegistrantId;
 
                     // Fetch associated contact_postalInfo records
@@ -3051,12 +3015,12 @@ class DomainsController extends Controller
                         $postalInfo['contact_id'] = $newRegistrantId; // Replace with new contact ID
 
                         // Insert new contact_postalInfo record
-                        $db->insert('contact_postalInfo', $postalInfo);
+                        $db->insert(envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo', $postalInfo);
                     }
                     
                     $new_authinfo = generateAuthInfo();
                     $db->insert(
-                        'contact_authInfo',
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                         [
                             'contact_id' => $newRegistrantId,
                             'authtype' => 'pw',
@@ -3079,7 +3043,7 @@ class DomainsController extends Controller
                             $contactData['identifier'] = generateAuthInfo();
                             $contactData['clid'] = $reid;
                             $db->insert('contact', $contactData);
-                            $newContactId = $db->getlastInsertId();
+                            $newContactId = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'contact_id_seq' : null);
                             $newContactIds[$contact['contact_id']] = $newContactId;
 
                             // Fetch and copy associated contact_postalInfo records
@@ -3089,12 +3053,12 @@ class DomainsController extends Controller
                                 $postalInfo['contact_id'] = $newContactId; // Assign to new contact ID
 
                                 // Insert new contact_postalInfo record
-                                $db->insert('contact_postalInfo', $postalInfo);
+                                $db->insert(envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo', $postalInfo);
                             }
                             
                             $new_authinfo = generateAuthInfo();
                             $db->insert(
-                                'contact_authInfo',
+                                envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
                                 [
                                     'contact_id' => $newContactId,
                                     'authtype' => 'pw',
@@ -3117,10 +3081,11 @@ class DomainsController extends Controller
                         [$domainName]
                     );
                     $from = $row['exdate'];
-                            
+
+                    $newExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL ? MONTH), lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
-                        [$date_add, $reid, $clid, $newRegistrantId, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
+                        'UPDATE domain SET exdate = ?, lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
+                        [$newExdate, $reid, $clid, $newRegistrantId, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
                     );
                     
                     $new_authinfo = generateAuthInfo();
@@ -3199,18 +3164,12 @@ class DomainsController extends Controller
                         ]
                       );
 
-                    $curdate_id = $db->selectValue(
-                        'SELECT id FROM statistics WHERE date = CURDATE()'
-                    );
-
-                    if (!$curdate_id) {
-                        $db->exec(
-                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                        );
-                    }
+                    $db->exec(envi('DB_DRIVER') === 'pgsql'
+                        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                     $db->exec(
-                        'UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURDATE()'
+                        'UPDATE statistics SET transfered_domains = transfered_domains + 1 WHERE date = CURRENT_DATE'
                     );
 
                     $stmt_log = $db->exec(
@@ -3537,7 +3496,7 @@ class DomainsController extends Controller
                 
                 $db->update('domain', [
                     'rgpstatus' => 'pendingRestore',
-                    'resTime' => $date,
+                    'restime' => $date,
                     'lastupdate' => $date
                 ],
                 [
@@ -3612,7 +3571,7 @@ class DomainsController extends Controller
                 [ $domainName ]);
                 $tldid = $domain['tldid'];
 
-                $result = $db->selectRow('SELECT accountBalance, creditLimit, currency FROM registrar WHERE id = ?', [$clid]);
+                $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
 
                 $registrar_balance = $result['accountBalance'];
                 $creditLimit = $result['creditLimit'];
@@ -3632,10 +3591,12 @@ class DomainsController extends Controller
                 
                 try {
                     $db->beginTransaction();
-                            
+
+                    $restoredExdate = (new \DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s');
                     $db->exec(
-                        'UPDATE domain SET exdate = DATE_ADD(exdate, INTERVAL 12 MONTH), rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                        'UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?',
                         [
+                            $restoredExdate,
                             $domainName
                         ]
                     );
@@ -3703,22 +3664,16 @@ class DomainsController extends Controller
                         ]
                       );
 
-                    $curdate_id = $db->selectValue(
-                        'SELECT id FROM statistics WHERE date = CURDATE()'
-                    );
-
-                    if (!$curdate_id) {
-                        $db->exec(
-                            'INSERT IGNORE INTO statistics (date) VALUES(CURDATE())'
-                        );
-                    }
+                    $db->exec(envi('DB_DRIVER') === 'pgsql'
+                        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)');
 
                     $db->exec(
-                        'UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURDATE()'
+                        'UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURRENT_DATE'
                     );
                     
                     $db->exec(
-                        'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURDATE()'
+                        'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE'
                     );
                      
                     $db->commit();

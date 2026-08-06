@@ -86,6 +86,12 @@
             if (response && Array.isArray(response.records) && typeof response.results === 'number') {
                 var pageSize = params.size || this.options.paginationSize;
                 var lastPage = Math.ceil(response.results / pageSize);
+                response.records.forEach(record => {
+                    record.clTRID = record.clTRID ?? record.cltrid;
+                    record.clTRIDframe = record.clTRIDframe ?? record.cltridframe;
+                    record.svTRID = record.svTRID ?? record.svtrid;
+                    record.svTRIDframe = record.svTRIDframe ?? record.svtridframe;
+                });
                 return {
                     last_page: lastPage,
                     data: response.records,

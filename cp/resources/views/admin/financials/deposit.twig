@@ -82,7 +82,7 @@ registrarSelect.addEventListener('change', function() {
         
         if (registrarData) {
             document.getElementById('registrarName').textContent = registrarData.name;
-            document.getElementById('currentFunds').textContent = `${registrarData.currency} ${parseFloat(registrarData.accountBalance).toFixed(2)}`;
+            document.getElementById('currentFunds').textContent = `${registrarData.currency} ${parseFloat(registrarData.accountBalance ?? registrarData.accountbalance).toFixed(2)}`;
         } else {
             document.getElementById('registrarName').textContent = 'N/A';
             document.getElementById('currentFunds').textContent = '0.00';

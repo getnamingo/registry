@@ -45,12 +45,16 @@ class HomeController extends Controller
                 $clid = null;
             }
         }
+        
+        $today = (new \DateTime('today'))->format('Y-m-d H:i:s');
+        $thirtyDaysAgo = (new \DateTime('today -30 days'))->format('Y-m-d H:i:s');
+        $thirtyDaysAhead = (new \DateTime('today +30 days'))->format('Y-m-d H:i:s');
 
         if ($clid !== null) {
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);
             $latest_domains = $db->select('SELECT name, crdate FROM domain WHERE clid = ? ORDER BY crdate DESC LIMIT 5', [$clid]);
-            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;', [$clid]);
-            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;', [$clid]);
+            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN ? AND ? ORDER BY exdate ASC LIMIT 5;', [$clid, $today, $thirtyDaysAhead]);
+            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE clid = ? AND exdate BETWEEN ? AND ? ORDER BY exdate DESC LIMIT 5;', [$clid, $thirtyDaysAgo, $today]);
             $tickets = $db->select('SELECT id, subject, status, priority, date_created FROM support_tickets WHERE user_id = ? ORDER BY date_created DESC LIMIT 5', [$clid]);
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host WHERE clid = ?', [$clid]);
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact WHERE clid = ?', [$clid]);
@@ -97,6 +101,7 @@ class HomeController extends Controller
                 $counts[] = 0;
             }
 
+            $ticketStartDate = (new \DateTime('-7 days'))->format('Y-m-d');
             $query = "
             SELECT 
                 r.id, 
@@ -138,7 +143,7 @@ class HomeController extends Controller
                 FROM 
                     support_tickets
                 WHERE 
-                    date_created >= CURRENT_DATE - INTERVAL 7 DAY
+                    date_created >= :ticketStartDate
                 GROUP BY 
                     DATE(date_created)
                 ORDER BY 
@@ -146,7 +151,7 @@ class HomeController extends Controller
             ";
 
             // Execute the query
-            $results = $db->select($query);
+            $results = $db->select($query, [':ticketStartDate' => $ticketStartDate]);
 
             // Prepare data for ApexCharts
             $labels3 = [];
@@ -167,8 +172,8 @@ class HomeController extends Controller
 
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain');
             $latest_domains = $db->select('SELECT name, crdate FROM domain ORDER BY crdate DESC LIMIT 5');
-            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) ORDER BY exdate ASC LIMIT 5;');
-            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE() ORDER BY exdate DESC LIMIT 5;');
+            $expiring_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN ? AND ? ORDER BY exdate ASC LIMIT 5;', [$today, $thirtyDaysAhead]);
+            $expired_domains = $db->select('SELECT name, exdate FROM domain WHERE exdate BETWEEN ? AND ? ORDER BY exdate DESC LIMIT 5;', [$thirtyDaysAgo, $today]);
             $tickets = $db->select('SELECT id, subject, status, priority, date_created FROM support_tickets ORDER BY date_created DESC LIMIT 5');
             $hosts = $db->selectValue('SELECT count(id) as hosts FROM host');
             $contacts = $db->selectValue('SELECT count(id) as contacts FROM contact');

@@ -621,8 +621,9 @@ CREATE TABLE IF NOT EXISTS users_webauthn (
 );
 
 CREATE TABLE IF NOT EXISTS registrar_users (
-     "registrar_id" int NOT NULL PRIMARY KEY,
-     "user_id" int NOT NULL
+     "registrar_id" int NOT NULL,
+     "user_id" int NOT NULL,
+     PRIMARY KEY ("registrar_id", "user_id")
 );
 
 CREATE TABLE urs_actions (

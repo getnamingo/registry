@@ -30,7 +30,7 @@ class ReportsController extends Controller
             );
 
             $earnings = $db->select(
-                'SELECT SUM(amount) as amt FROM statement WHERE registrar_id = ? AND command <> "deposit"',
+                "SELECT SUM(amount) as amt FROM statement WHERE registrar_id = ? AND command <> 'deposit'",
                 [$registrar['id']]
             );
 

@@ -59,16 +59,18 @@ try {
         $combinedStmt->execute();
         $combinedResult = $combinedStmt->fetch(PDO::FETCH_ASSOC);
 
+        $refundAggregate = $c['db_type'] === 'pgsql' ? "STRING_AGG(description, E'\\n')" : "GROUP_CONCAT(description SEPARATOR '\\n')";
         $refundStmt = $pdo->prepare("
-            SELECT  GROUP_CONCAT(description SEPARATOR '\n') AS refund_list,
+            SELECT  $refundAggregate AS refund_list,
                     SUM(amount)                        AS refund_total
             FROM    payment_history
             WHERE   registrar_id = :registrarId
-              AND   date BETWEEN :startDate AND LAST_DAY(:startDate)
+              AND   date >= :startDate AND date < :endDate
               AND   description LIKE '%provides a credit%'
         ");
         $refundStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
         $refundStmt->bindParam(':startDate', $startDate);
+        $refundStmt->bindParam(':endDate', $endDate);
         $refundStmt->execute();
         $refundRow        = $refundStmt->fetch(PDO::FETCH_ASSOC);
         $refundTotal      = $refundRow['refund_total'] ?? 0;
@@ -98,7 +100,7 @@ try {
             $insertStmt->bindParam(':createdAt', $currentDateTimeMilliseconds);
             $insertStmt->execute();
             
-            $invoiceNumber = $pdo->lastInsertId();
+            $invoiceNumber = $pdo->lastInsertId($c['db_type'] === 'pgsql' ? 'invoices_id_seq' : null);
             $currentDateFormatted = date("Ymd");
             $invoiceIdFormatted = "I" . $invoiceNumber . "-" . $currentDateFormatted;
             

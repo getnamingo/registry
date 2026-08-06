@@ -482,71 +482,98 @@ function normalize_v6_address($v6) {
 }
 
 function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
-    // Prepare the statement for insertion
-    $stmt = $db->prepare("INSERT INTO registryTransaction.transaction_identifier (registrar_id,clTRID,clTRIDframe,cldate,clmicrosecond) VALUES(?,?,?,?,?)");
+    global $c, $transactionPool;
 
-    // Get date and microsecond for cl transaction
-    $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
-    $cldate = $currentDateTime->format("Y-m-d H:i:s.v");
-    $dateForClTransaction = microtime(true);
-    $clmicrosecond = sprintf("%06d", ($dateForClTransaction - floor($dateForClTransaction)) * 1000000);
-    
-    $clTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $clTRIDframe);
-
-    if (empty($clTRID)) {
-        // If $clTRID is empty, generate a random string prefixed with "client-not-provided-"
-        $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));  // Generates a 16 character hexadecimal string
+    $transactionDb = null;
+    $table = 'registryTransaction.transaction_identifier';
+    if ($c['db_type'] === 'pgsql') {
+        $transactionDb = $transactionPool->get(1.0);
+        $db = $transactionDb;
+        $table = 'transaction_identifier';
     }
 
-    if (empty($clid)) {
-        // If $clid is empty, throw an exception
-        throw new Exception("Malformed command received.");
-    }
+    try {
+        $stmt = $db->prepare("INSERT INTO $table (registrar_id,clTRID,clTRIDframe,cldate,clmicrosecond) VALUES(?,?,?,?,?)");
 
-    // Execute the statement
-    if (!$stmt->execute([
-        $clid,
-        $clTRID,
-        $clTRIDframe,
-        $cldate,
-        $clmicrosecond
-    ])) {
-        throw new Exception("Failed to execute createTransaction: " . implode(", ", $stmt->errorInfo()));
-    }
+        // Get date and microsecond for cl transaction
+        $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
+        $cldate = $currentDateTime->format("Y-m-d H:i:s.v");
+        $dateForClTransaction = microtime(true);
+        $clmicrosecond = sprintf("%06d", ($dateForClTransaction - floor($dateForClTransaction)) * 1000000);
 
-    // Return the ID of the newly created transaction
-    return $db->lastInsertId();
+        $clTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $clTRIDframe);
+
+        if (empty($clTRID)) {
+            // If $clTRID is empty, generate a random string prefixed with "client-not-provided-"
+            $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));  // Generates a 16 character hexadecimal string
+        }
+
+        if (empty($clid)) {
+            // If $clid is empty, throw an exception
+            throw new Exception("Malformed command received.");
+        }
+
+        if (!$stmt->execute([
+            $clid,
+            $clTRID,
+            $clTRIDframe,
+            $cldate,
+            $clmicrosecond
+        ])) {
+            throw new Exception("Failed to execute createTransaction: " . implode(", ", $stmt->errorInfo()));
+        }
+
+        return $db->lastInsertId($c['db_type'] === 'pgsql' ? 'transaction_identifier_id_seq' : null);
+    } finally {
+        if ($transactionDb !== null) {
+            $transactionPool->put($transactionDb);
+        }
+    }
 }
 
 function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, $svTRIDframe, $transaction_id) {
-    // Prepare the statement
-    $stmt = $db->prepare("UPDATE registryTransaction.transaction_identifier SET cmd = ?, obj_type = ?, obj_id = ?, code = ?, msg = ?, svTRID = ?, svTRIDframe = ?, svdate = ?, svmicrosecond = ? WHERE id = ?");
+    global $c, $transactionPool;
 
-    // Get date and microsecond for sv transaction
-    $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
-    $svdate = $currentDateTime->format("Y-m-d H:i:s.v");
-    $dateForSvTransaction = microtime(true);
-    $svmicrosecond = sprintf("%06d", ($dateForSvTransaction - floor($dateForSvTransaction)) * 1000000);
-
-    $svTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $svTRIDframe);
-
-    // Execute the statement
-    if (!$stmt->execute([
-        $cmd,
-        $obj_type,
-        $obj_id,
-        $code,
-        $msg,
-        $svTRID,
-        $svTRIDframe,
-        $svdate,
-        $svmicrosecond,
-        $transaction_id
-    ])) {
-        throw new Exception("Failed to execute updateTransaction: " . implode(", ", $stmt->errorInfo()));
+    $transactionDb = null;
+    $table = 'registryTransaction.transaction_identifier';
+    if ($c['db_type'] === 'pgsql') {
+        $transactionDb = $transactionPool->get(1.0);
+        $db = $transactionDb;
+        $table = 'transaction_identifier';
     }
 
-    return true;
+    try {
+        $stmt = $db->prepare("UPDATE $table SET cmd = ?, obj_type = ?, obj_id = ?, code = ?, msg = ?, svTRID = ?, svTRIDframe = ?, svdate = ?, svmicrosecond = ? WHERE id = ?");
+
+        // Get date and microsecond for sv transaction
+        $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
+        $svdate = $currentDateTime->format("Y-m-d H:i:s.v");
+        $dateForSvTransaction = microtime(true);
+        $svmicrosecond = sprintf("%06d", ($dateForSvTransaction - floor($dateForSvTransaction)) * 1000000);
+
+        $svTRIDframe = preg_replace('/(<(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)(.*?)(<\/(?:pw|newPW|domain:pw|domain:ext|contact:pw|contact:ext)>)/iu', '${1}*****${3}', $svTRIDframe);
+
+        if (!$stmt->execute([
+            $cmd,
+            $obj_type,
+            $obj_id,
+            $code,
+            $msg,
+            $svTRID,
+            $svTRIDframe,
+            $svdate,
+            $svmicrosecond,
+            $transaction_id
+        ])) {
+            throw new Exception("Failed to execute updateTransaction: " . implode(", ", $stmt->errorInfo()));
+        }
+
+        return true;
+    } finally {
+        if ($transactionDb !== null) {
+            $transactionPool->put($transactionDb);
+        }
+    }
 }
 
 function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {

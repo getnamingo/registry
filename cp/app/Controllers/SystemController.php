@@ -359,7 +359,7 @@ class SystemController extends Controller
                     'idn_table' => $idntable,
                     'secure' => 0,
                 ]);
-                $tld_id = $db->getlastInsertId();
+                $tld_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_tld_id_seq' : null);
 
                 $db->insert(
                     'domain_price',
@@ -431,13 +431,12 @@ class SystemController extends Controller
                     $categoryPriceKey = 'categoryPrice' . $i;
 
                     if (isset($data[$categoryNameKey]) && isset($data[$categoryPriceKey]) && $data[$categoryNameKey] !== '' && $data[$categoryPriceKey] !== '') {
-                        $db->exec(
-                            'INSERT INTO premium_domain_categories (category_name, category_price) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_price = VALUES(category_price)',
-                            [
-                                $data[$categoryNameKey],
-                                $data[$categoryPriceKey]
-                            ]
-                        );
+                        $categoryId = $db->selectValue('SELECT category_id FROM premium_domain_categories WHERE category_name = ?', [$data[$categoryNameKey]]);
+                        if ($categoryId) {
+                            $db->update('premium_domain_categories', ['category_price' => $data[$categoryPriceKey]], ['category_id' => $categoryId]);
+                        } else {
+                            $db->insert('premium_domain_categories', ['category_name' => $data[$categoryNameKey], 'category_price' => $data[$categoryPriceKey]]);
+                        }
                     }
                 }
 
@@ -470,19 +469,15 @@ class SystemController extends Controller
                             $categoryName = $data[1];
 
                             // Find the category ID
-                            $categoryResult = $this->db->select("SELECT id FROM premium_domain_categories WHERE category_name = :categoryName", ['categoryName' => $categoryName]);
+                            $categoryId = $db->selectValue('SELECT category_id FROM premium_domain_categories WHERE category_name = ?', [$categoryName]);
 
-                            if ($categoryResult) {
-                                $categoryId = $categoryResult[0]['id'];
-
-                                // Insert into premium_domain_pricing
-                                $db->exec(
-                                    'INSERT INTO premium_domain_pricing (domain_name, category_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_id = VALUES(category_id)',
-                                    [
-                                        $domainName,
-                                        $categoryId
-                                    ]
-                                );
+                            if ($categoryId) {
+                                $pricingId = $db->selectValue('SELECT id FROM premium_domain_pricing WHERE domain_name = ? AND tld_id = ?', [$domainName, $tld_id]);
+                                if ($pricingId) {
+                                    $db->update('premium_domain_pricing', ['category_id' => $categoryId], ['id' => $pricingId]);
+                                } else {
+                                    $db->insert('premium_domain_pricing', ['domain_name' => $domainName, 'tld_id' => $tld_id, 'category_id' => $categoryId]);
+                                }
                             } else {
                                 $this->container->get('flash')->addMessage('error', 'Premium names category ' . $categoryName . ' not found');
                                 return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
@@ -751,13 +746,12 @@ class SystemController extends Controller
                         $categoryPriceNewKey = 'categoryPriceNew' . $i;
 
                         if (isset($data[$categoryNameNewKey]) && isset($data[$categoryPriceNewKey]) && $data[$categoryNameNewKey] !== '' && $data[$categoryPriceNewKey] !== '') {
-                            $db->exec(
-                                'INSERT INTO premium_domain_categories (category_name, category_price) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_price = VALUES(category_price)',
-                                [
-                                    $data[$categoryNameNewKey],
-                                    $data[$categoryPriceNewKey]
-                                ]
-                            );
+                            $categoryId = $db->selectValue('SELECT category_id FROM premium_domain_categories WHERE category_name = ?', [$data[$categoryNameNewKey]]);
+                            if ($categoryId) {
+                                $db->update('premium_domain_categories', ['category_price' => $data[$categoryPriceNewKey]], ['category_id' => $categoryId]);
+                            } else {
+                                $db->insert('premium_domain_categories', ['category_name' => $data[$categoryNameNewKey], 'category_price' => $data[$categoryPriceNewKey]]);
+                            }
                         }
                     }
 
@@ -790,19 +784,15 @@ class SystemController extends Controller
                                 $categoryName = $data[1];
 
                                 // Find the category ID
-                                $categoryResult = $this->db->select("SELECT id FROM premium_domain_categories WHERE category_name = :categoryName", ['categoryName' => $categoryName]);
+                                $categoryId = $db->selectValue('SELECT category_id FROM premium_domain_categories WHERE category_name = ?', [$categoryName]);
 
-                                if ($categoryResult) {
-                                    $categoryId = $categoryResult[0]['id'];
-
-                                    // Insert into premium_domain_pricing
-                                    $db->exec(
-                                        'INSERT INTO premium_domain_pricing (domain_name, category_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE category_id = VALUES(category_id)',
-                                        [
-                                            $domainName,
-                                            $categoryId
-                                        ]
-                                    );
+                                if ($categoryId) {
+                                    $pricingId = $db->selectValue('SELECT id FROM premium_domain_pricing WHERE domain_name = ? AND tld_id = ?', [$domainName, $tld_id]);
+                                    if ($pricingId) {
+                                        $db->update('premium_domain_pricing', ['category_id' => $categoryId], ['id' => $pricingId]);
+                                    } else {
+                                        $db->insert('premium_domain_pricing', ['domain_name' => $domainName, 'tld_id' => $tld_id, 'category_id' => $categoryId]);
+                                    }
                                 } else {
                                     $this->container->get('flash')->addMessage('error', 'Premium names category ' . $categoryName . ' not found');
                                     return $response->withHeader('Location', '/registry/tld/'.$tld_extension)->withStatus(302);
@@ -1148,7 +1138,9 @@ class SystemController extends Controller
                     // Insert or ignore new domains
                     foreach ($submittedDomains as $domain) {
                         $db->exec(
-                            "INSERT IGNORE INTO reserved_domain_names (name, type) VALUES (?, ?)",
+                            envi('DB_DRIVER') === 'pgsql'
+                                ? 'INSERT INTO reserved_domain_names (name, type) VALUES (?, ?) ON CONFLICT (name) DO NOTHING'
+                                : 'INSERT IGNORE INTO reserved_domain_names (name, type) VALUES (?, ?)',
                             [$domain, $type]
                         );
                     }
@@ -1289,7 +1281,8 @@ class SystemController extends Controller
                 return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
             }
 
-            $token = $db->selectRow('SELECT token, domain_name, crdate, lastupdate, tokenStatus FROM allocation_tokens WHERE token = ?', [ $args ]);
+            $tokenStatusColumn = envi('DB_DRIVER') === 'pgsql' ? '"tokenStatus"' : 'tokenStatus';
+            $token = $db->selectRow("SELECT token, domain_name, crdate, lastupdate, $tokenStatusColumn AS \"tokenStatus\" FROM allocation_tokens WHERE token = ?", [ $args ]);
             if ($token) {
                 $_SESSION['token_to_update'] = $token;
                 return view($response,'admin/system/updateToken.twig', [

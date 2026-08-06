@@ -52,7 +52,7 @@
                 queryParts.push("filter1=name,cs," + encodeURIComponent(searchTerm));
                 queryParts.push("filter2=iana_id,cs," + encodeURIComponent(searchTerm));
                 queryParts.push("filter3=email,cs," + encodeURIComponent(searchTerm));
-                queryParts.push("filter4=accountBalance,cs," + encodeURIComponent(searchTerm));
+                queryParts.push("filter4=accountbalance,cs," + encodeURIComponent(searchTerm));
             }
 
             // Handle sorting from Tabulator
@@ -96,7 +96,7 @@
             {title:"{{ __('Name') }}", field:"name", minWidth:120, resizable:false, headerSort:true, formatter: registrarLinkFormatter, responsive:0},
             {title:"IANA ID", field:"iana_id", width:300, resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Email') }}", field:"email", width:300, resizable:false, headerSort:true, responsive:2},
-            {title:"{{ __('Balance') }}", field:"accountBalance", width:300, resizable:false, headerSort:true, responsive:2, formatter:function(cell){
+            {title:"{{ __('Balance') }}", field:"accountBalance", mutator:function(value, data){ return value ?? data.accountbalance; }, width:300, resizable:false, headerSort:true, responsive:2, formatter:function(cell){
                 let data = cell.getRow().getData();
                 let currency = data.currency || "$"; // Default to $
                 return currency + " " + cell.getValue();

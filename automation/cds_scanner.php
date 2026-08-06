@@ -30,16 +30,17 @@ $logFilePath = '/var/log/namingo/cds_scanner.log';
 $log = setupLogger($logFilePath, 'CDS_Scanner');
 $log->info('job started.');
 
-$pool = new Swoole\Database\PDOPool(
-    (new Swoole\Database\PDOConfig())
+$pdoConfig = (new Swoole\Database\PDOConfig())
         ->withDriver($c['db_type'])
         ->withHost($c['db_host'])
         ->withPort($c['db_port'])
         ->withDbName($c['db_database'])
         ->withUsername($c['db_username'])
-        ->withPassword($c['db_password'])
-        ->withCharset('utf8mb4')
-);
+        ->withPassword($c['db_password']);
+if ($c['db_type'] === 'mysql') {
+    $pdoConfig->withCharset('utf8mb4');
+}
+$pool = new Swoole\Database\PDOPool($pdoConfig);
 
 Co\run(function () use ($pool, $log) {
     $concurrency = 20;
@@ -278,11 +279,15 @@ function keyTag(string $rdata): int {
 }
 
 function insertSecdnsDS(Swoole\Database\PDOProxy $pdo, int $domain_id, array $r): void {
-    $stmt = $pdo->prepare("
-        INSERT IGNORE INTO secdns
+    $insert = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        ? 'INSERT INTO secdns
+           (domain_id, interface, keytag, alg, digesttype, digest)
+           VALUES (?, \'dsData\', ?, ?, ?, ?)
+           ON CONFLICT (domain_id, digest) DO NOTHING'
+        : "INSERT IGNORE INTO secdns
         (domain_id, interface, keytag, alg, digesttype, digest)
-        VALUES (?, 'dsData', ?, ?, ?, ?)
-    ");
+        VALUES (?, 'dsData', ?, ?, ?, ?)";
+    $stmt = $pdo->prepare($insert);
     $stmt->execute([
         $domain_id,
         (int)$r['keytag'],
@@ -500,7 +505,23 @@ function deleteSecdnsDS(Swoole\Database\PDOProxy $pdo, int $domain_id, array $r)
 }
 
 function ensureDnssecAutomationStateTable(Swoole\Database\PDOProxy $pdo): void {
-    $pdo->exec("
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        $pdo->exec("
+        CREATE TABLE IF NOT EXISTS dnssec_automation_state (
+            domain_id BIGINT PRIMARY KEY,
+            enabled SMALLINT NOT NULL DEFAULT 1,
+            mode VARCHAR(20) NOT NULL DEFAULT 'cds',
+            last_signal_hash VARCHAR(64) DEFAULT NULL,
+            first_seen_at TIMESTAMP DEFAULT NULL,
+            last_seen_at TIMESTAMP DEFAULT NULL,
+            accepted_at TIMESTAMP DEFAULT NULL,
+            last_status VARCHAR(50) DEFAULT NULL,
+            last_error TEXT DEFAULT NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        ");
+    } else {
+        $pdo->exec("
         CREATE TABLE IF NOT EXISTS dnssec_automation_state (
             domain_id BIGINT PRIMARY KEY,
             enabled TINYINT(1) NOT NULL DEFAULT 1,
@@ -513,14 +534,15 @@ function ensureDnssecAutomationStateTable(Swoole\Database\PDOProxy $pdo): void {
             last_error TEXT DEFAULT NULL,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
-    ");
+        ");
+    }
 }
 
 function ensureDnssecAutomationStateRow(Swoole\Database\PDOProxy $pdo, int $domain_id): void {
-    $stmt = $pdo->prepare("
-        INSERT IGNORE INTO dnssec_automation_state (domain_id)
-        VALUES (?)
-    ");
+    $insert = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        ? 'INSERT INTO dnssec_automation_state (domain_id) VALUES (?) ON CONFLICT (domain_id) DO NOTHING'
+        : 'INSERT IGNORE INTO dnssec_automation_state (domain_id) VALUES (?)';
+    $stmt = $pdo->prepare($insert);
     $stmt->execute([$domain_id]);
 }
 
@@ -572,7 +594,8 @@ function markSignalPending(Swoole\Database\PDOProxy $pdo, int $domain_id, string
             last_seen_at = NOW(),
             accepted_at = NULL,
             last_status = 'pending',
-            last_error = NULL
+            last_error = NULL,
+            updated_at = NOW()
         WHERE domain_id = ?
     ");
     $stmt->execute([$mode, $signalHash, $signalHash, $domain_id]);
@@ -589,7 +612,8 @@ function markSignalAccepted(Swoole\Database\PDOProxy $pdo, int $domain_id, strin
             last_seen_at = NOW(),
             accepted_at = NOW(),
             last_status = 'accepted',
-            last_error = ?
+            last_error = ?,
+            updated_at = NOW()
         WHERE domain_id = ?
     ");
     $stmt->execute([$mode, $signalHash, $error, $domain_id]);
@@ -603,7 +627,8 @@ function markSignalError(Swoole\Database\PDOProxy $pdo, int $domain_id, string $
         SET mode = ?,
             last_seen_at = NOW(),
             last_status = 'error',
-            last_error = ?
+            last_error = ?,
+            updated_at = NOW()
         WHERE domain_id = ?
     ");
     $stmt->execute([$mode, $error, $domain_id]);
@@ -1085,6 +1110,7 @@ function queryAuthoritativeBootstrapRrset(string $domain, string $ns, string $ty
 }
 
 function ensureDnssecAutomationSeenTable(Swoole\Database\PDOProxy $pdo): void {
+    $seenAtType = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? 'TIMESTAMP' : 'DATETIME';
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS dnssec_automation_seen (
             domain_id BIGINT NOT NULL,
@@ -1092,7 +1118,7 @@ function ensureDnssecAutomationSeenTable(Swoole\Database\PDOProxy $pdo): void {
             rrset_hash VARCHAR(64) NOT NULL,
             soa_serial BIGINT DEFAULT NULL,
             rrsig_inception BIGINT DEFAULT NULL,
-            seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            seen_at $seenAtType NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (domain_id, source)
         )
     ");
@@ -1136,7 +1162,18 @@ function markSignalSeen(
     ?int $soaSerial,
     ?int $rrsigInception
 ): void {
-    $stmt = $pdo->prepare("
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        $stmt = $pdo->prepare("
+        INSERT INTO dnssec_automation_seen (domain_id, source, rrset_hash, soa_serial, rrsig_inception, seen_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
+        ON CONFLICT (domain_id, source) DO UPDATE SET
+            rrset_hash = EXCLUDED.rrset_hash,
+            soa_serial = EXCLUDED.soa_serial,
+            rrsig_inception = EXCLUDED.rrsig_inception,
+            seen_at = NOW()
+        ");
+    } else {
+        $stmt = $pdo->prepare("
         INSERT INTO dnssec_automation_seen (domain_id, source, rrset_hash, soa_serial, rrsig_inception, seen_at)
         VALUES (?, ?, ?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE
@@ -1144,7 +1181,8 @@ function markSignalSeen(
             soa_serial = VALUES(soa_serial),
             rrsig_inception = VALUES(rrsig_inception),
             seen_at = NOW()
-    ");
+        ");
+    }
     $stmt->execute([$domainId, $source, $hash, $soaSerial, $rrsigInception]);
 }
 

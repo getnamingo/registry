@@ -6,7 +6,7 @@ $c = require_once 'config.php';
 require_once 'helpers.php';
 
 // Connect to the database
-$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']}";
+$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -78,14 +78,14 @@ foreach ($data['data'] as $case) {
     }
 
     // Insert new support ticket
-    $insertStmt = $pdo->prepare('INSERT INTO support_tickets (
-        id, user_id, category_id, subject, message, status, priority,
+    $insertStmt = $pdo->prepare("INSERT INTO support_tickets (
+        user_id, category_id, subject, message, status, priority,
         reported_domain, nature_of_abuse, evidence, relevant_urls,
         date_of_incident, date_created, last_updated
     ) VALUES (
-        NULL, ?, 8, ?, ?, "Open", "High",
+        ?, 8, ?, ?, 'Open', 'High',
         ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)
-    )');
+    )");
     $insertStmt->execute([
         $userData['user_id'],
         "Abuse Report for $domain",

@@ -166,10 +166,10 @@ class RegistrarsController extends Controller
                         'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                         'abuse_email' => $data['abuseEmail'],
                         'abuse_phone' => $data['abusePhone'],
-                        'accountBalance' => $data['accountBalance'],
-                        'creditLimit' => $data['creditLimit'],
-                        'creditThreshold' => $data['creditThreshold'],
-                        'thresholdType' => $data['thresholdType'],
+                        'accountbalance' => $data['accountBalance'],
+                        'creditlimit' => $data['creditLimit'],
+                        'creditthreshold' => $data['creditThreshold'],
+                        'thresholdtype' => $data['thresholdType'],
                         'companyNumber' => $data['companyNumber'],
                         'vatNumber' => $data['vatNumber'],
                         'currency' => $data['currency'],
@@ -177,7 +177,7 @@ class RegistrarsController extends Controller
                         'lastupdate' => $crdate
                     ]
                 );
-                $registrar_id = $db->getLastInsertId();
+                $registrar_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'registrar_id_seq' : null);
                 $prefix = 'R' . str_pad($registrar_id, 4, '0', STR_PAD_LEFT);
 
                 $db->exec(
@@ -286,7 +286,7 @@ class RegistrarsController extends Controller
                         'password_last_updated' => date('Y-m-d H:i:s')
                     ]
                 );
-                $user_id = $db->getLastInsertId();
+                $user_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
                 
                 $db->insert(
                     'registrar_users',
@@ -367,7 +367,7 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrars')->withStatus(302);
             }
 
-            $registrar = $db->selectRow('SELECT * FROM registrar WHERE name = ?',
+            $registrar = $db->selectRow('SELECT *, accountBalance AS "accountBalance", creditLimit AS "creditLimit", creditThreshold AS "creditThreshold", thresholdType AS "thresholdType" FROM registrar WHERE name = ?',
             [ $args ]);
 
             if ($registrar) {
@@ -479,10 +479,11 @@ class RegistrarsController extends Controller
                     }
                 }
 
+                $auditSchema = envi('DB_DRIVER') === 'pgsql' ? "'public'" : 'DATABASE()';
                 $auditEnabled = (int) $db_audit->selectValue(
                     "SELECT COUNT(*)
                      FROM information_schema.tables
-                     WHERE table_schema = DATABASE()
+                     WHERE table_schema = $auditSchema
                        AND table_name = 'domain'"
                 ) > 0;
 
@@ -545,7 +546,7 @@ class RegistrarsController extends Controller
         $registrarId = $_SESSION['auth_registrar_id'];
         
         if (isset($registrarId) && $registrarId !== "") {
-            $registrar = $db->selectRow('SELECT * FROM registrar WHERE id = ?',
+            $registrar = $db->selectRow('SELECT *, accountBalance AS "accountBalance", creditLimit AS "creditLimit", creditThreshold AS "creditThreshold", thresholdType AS "thresholdType" FROM registrar WHERE id = ?',
             [ $registrarId ]);
 
             if ($registrar) {               
@@ -618,7 +619,7 @@ class RegistrarsController extends Controller
                 return $response->withHeader('Location', '/registrars')->withStatus(302);
             }
 
-            $registrar = $db->selectRow('SELECT * FROM registrar WHERE clid = ?',
+            $registrar = $db->selectRow('SELECT *, accountBalance AS "accountBalance", creditLimit AS "creditLimit", creditThreshold AS "creditThreshold", thresholdType AS "thresholdType" FROM registrar WHERE clid = ?',
             [ $args ]);
 
             if ($registrar) {
@@ -867,8 +868,8 @@ class RegistrarsController extends Controller
                     'rdap_server' => isset($data['rdapServer']) ? toUnicode($data['rdapServer']) : null,
                     'abuse_email' => $data['abuseEmail'],
                     'abuse_phone' => $data['abusePhone'],
-                    'creditLimit' => $data['creditLimit'],
-                    'creditThreshold' => $data['creditThreshold'],
+                    'creditlimit' => $data['creditLimit'],
+                    'creditthreshold' => $data['creditThreshold'],
                     'currency' => $data['currency'],
                     'lastupdate' => $update
                 ];
@@ -1349,7 +1350,7 @@ class RegistrarsController extends Controller
         $registrarId = $_SESSION['auth_registrar_id'];
 
         if (isset($registrarId) && $registrarId !== "") {       
-            $registrar = $db->selectRow('SELECT * FROM registrar WHERE id = ?',
+            $registrar = $db->selectRow('SELECT *, accountBalance AS "accountBalance", creditLimit AS "creditLimit", creditThreshold AS "creditThreshold", thresholdType AS "thresholdType" FROM registrar WHERE id = ?',
             [ $registrarId ]);
 
             if ($registrar) {
@@ -1433,7 +1434,12 @@ class RegistrarsController extends Controller
 
         if ($registrar) {
             $host = envi('DB_HOST');
-            $dsn = "mysql:host=$host;dbname=registryTransaction;charset=utf8mb4";
+            $driver = envi('DB_DRIVER');
+            $port = envi('DB_PORT');
+            $dsn = "$driver:host=$host;port=$port;dbname=registryTransaction";
+            if ($driver === 'mysql') {
+                $dsn .= ';charset=utf8mb4';
+            }
 
             $options = [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
@@ -1607,11 +1613,12 @@ class RegistrarsController extends Controller
                     return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
 
-                $db->exec('
-                    INSERT INTO domain_restore_price (tldid, registrar_id, price)
-                    VALUES (?, ?, ?)
-                    ON DUPLICATE KEY UPDATE price = VALUES(price)
-                ', [$tldId, $clid, $price]);
+                $priceId = $db->selectValue('SELECT id FROM domain_restore_price WHERE tldid = ? AND registrar_id = ?', [$tldId, $clid]);
+                if ($priceId) {
+                    $db->update('domain_restore_price', ['price' => $price], ['id' => $priceId]);
+                } else {
+                    $db->insert('domain_restore_price', ['tldid' => $tldId, 'registrar_id' => $clid, 'price' => $price]);
+                }
 
             } else {
                 $columns = [];
@@ -1629,19 +1636,15 @@ class RegistrarsController extends Controller
                     $columns['registrar_id'] = $clid;
                     $columns['command'] = $action;
 
-                    $colNames = array_keys($columns);
-                    $placeholders = array_fill(0, count($columns), '?');
-                    $values = array_values($columns);
-
-                    $updateClause = implode(', ', array_map(function ($col) {
-                        return "$col = VALUES($col)";
-                    }, $colNames));
-
-                    $sql = 'INSERT INTO domain_price (' . implode(', ', $colNames) . ')
-                            VALUES (' . implode(', ', $placeholders) . ')
-                            ON DUPLICATE KEY UPDATE ' . $updateClause;
-
-                    $db->exec($sql, $values);
+                    $priceId = $db->selectValue(
+                        'SELECT id FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ?',
+                        [$tldId, $clid, $action]
+                    );
+                    if ($priceId) {
+                        $db->update('domain_price', $columns, ['id' => $priceId]);
+                    } else {
+                        $db->insert('domain_price', $columns);
+                    }
                 }
             }
 

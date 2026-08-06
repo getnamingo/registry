@@ -184,8 +184,8 @@ sudo -u postgres psql
 postgres=#
 postgres=# ALTER USER postgres PASSWORD 'demoPassword';
 postgres=# CREATE DATABASE registry;
-postgres=# CREATE DATABASE registryTransaction;
-postgres=# CREATE DATABASE registryAudit;
+postgres=# CREATE DATABASE "registryTransaction";
+postgres=# CREATE DATABASE "registryAudit";
 postgres=# \q
 ```
 

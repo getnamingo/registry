@@ -53,7 +53,13 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
         $response['resultCode'] = $next_msg_id ? 1000 : 1300;
     } else {
         // $op === 'req'
-        $stmt = $db->prepare("SELECT id, qdate, msg, msg_type, obj_name_or_id, obj_trStatus, obj_reID, obj_reDate, obj_acID, obj_acDate, obj_exDate, registrarName, creditLimit, creditThreshold, creditThresholdType, availableCredit FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1");
+        $stmt = $db->prepare('SELECT id, qdate, msg, msg_type, obj_name_or_id,
+            obj_trStatus AS "obj_trStatus", obj_reID AS "obj_reID", obj_reDate AS "obj_reDate",
+            obj_acID AS "obj_acID", obj_acDate AS "obj_acDate", obj_exDate AS "obj_exDate",
+            registrarName AS "registrarName", creditLimit AS "creditLimit",
+            creditThreshold AS "creditThreshold", creditThresholdType AS "creditThresholdType",
+            availableCredit AS "availableCredit"
+            FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1');
         $stmt->execute([':registrar_id' => $clid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();

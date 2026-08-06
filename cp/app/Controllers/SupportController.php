@@ -83,7 +83,7 @@ class SupportController extends Controller
                         'last_updated' => null,
                     ]
                 );
-                $ticket_id = $db->getLastInsertId();
+                $ticket_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'support_tickets_id_seq' : null);
 
                 $db->commit();
                 

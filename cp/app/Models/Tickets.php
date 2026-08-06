@@ -29,7 +29,7 @@ class Tickets
 
         $this->db->insert('INSERT INTO support_tickets (id, user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES ($id, $user_id, $category_id, $subject, $message, $status, $priority, $reported_domain, $nature_of_abuse, $evidence, $relevant_urls, $date_of_incident, $date_created, $last_updated)');
         
-        return $this->db->lastInsertId();
+        return $this->db->lastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'support_tickets_id_seq' : null);
     }
 
     public function deleteTickets($id)
