@@ -85,6 +85,7 @@ return [
 
     // Domain lifecycle settings
     'autoRenewEnabled' => false,
+    'never_expire_domains' => '', // Optional comma-separated list, e.g. 'nic.example,registry.example'
 
     // Lifecycle periods (in days)
     'gracePeriodDays' => 30,

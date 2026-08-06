@@ -59,6 +59,8 @@ class DomainLifecycleManager {
     }
 
     public function processLifecycle() {
+        $this->processNeverExpireDomains();
+
         // Process lifecycle phases
         if ($this->config['enableAutoRenew']) {
             $this->processAutoRenewal();
@@ -455,6 +457,68 @@ class DomainLifecycleManager {
     // ========================
     // Helper Methods
     // ========================
+    private function processNeverExpireDomains() {
+        $raw = trim((string)($this->config['never_expire_domains'] ?? ''));
+
+        if ($raw === '' || $raw === '0') {
+            return;
+        }
+
+        $domains = array_unique(array_filter(array_map(
+            static fn($name) => strtolower(rtrim(trim($name), '.')),
+            explode(',', $raw)
+        )));
+
+        $now = new DateTimeImmutable();
+        $renewBefore = $now->modify('+31 days');
+
+        $select = $this->dbh->prepare("
+            SELECT id, name, exdate
+            FROM domain
+            WHERE name = ?
+              AND (
+                  rgpstatus IS NULL
+                  OR rgpstatus NOT IN ('redemptionPeriod', 'pendingDelete', 'pendingRestore')
+              )
+            LIMIT 1
+        ");
+
+        $update = $this->dbh->prepare("
+            UPDATE domain
+            SET exdate = ?
+            WHERE id = ?
+              AND exdate = ?
+              AND (
+                  rgpstatus IS NULL
+                  OR rgpstatus NOT IN ('redemptionPeriod', 'pendingDelete', 'pendingRestore')
+              )
+        ");
+
+        foreach ($domains as $name) {
+            $select->execute([$name]);
+            $row = $select->fetch(PDO::FETCH_ASSOC);
+            $select->closeCursor();
+
+            if (!$row) {
+                continue;
+            }
+
+            $expiry = new DateTimeImmutable($row['exdate']);
+            if ($expiry > $renewBefore) {
+                continue;
+            }
+
+            $base = $expiry > $now ? $expiry : $now;
+            $newExpiry = $base->modify('+12 months')->format('Y-m-d H:i:s');
+
+            $update->execute([$newExpiry, $row['id'], $row['exdate']]);
+
+            if ($update->rowCount() === 1) {
+                $this->log->info("{$row['name']} (ID {$row['id']}) expiry extended to $newExpiry by never-expire policy.");
+            }
+        }
+    }
+
     private function updateStatistics($field) {
         // Ensure today's statistics record exists
         $statisticsInsert = $this->config['db_type'] === 'pgsql'
