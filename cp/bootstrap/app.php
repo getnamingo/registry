@@ -181,6 +181,7 @@ $container->set('view', function ($container) {
 
     // Fetch registrar currency and registry default currency
     $currency = 'EUR';
+    $balance = null;
 
     if (isset($_SESSION['auth_user_id'])) {
         $db = $container->get('db');
