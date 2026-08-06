@@ -216,8 +216,10 @@ $container->set('view', function ($container) {
 
         if (!empty($_SESSION['auth_roles']) && (int) $_SESSION['auth_roles'] !== 0) {
             $currency = $registrarCurrency ?: $registryCurrency;
+            $balance = $db->selectValue('SELECT accountBalance FROM registrar WHERE id = ?', [ $registrarId ]);
         } else {
             $currency = $registryCurrency;
+            $balance = null;
         }
 
         $_SESSION['_currency'] = $currency;
@@ -228,7 +230,7 @@ $container->set('view', function ($container) {
     }
 
     $view->getEnvironment()->addGlobal('currency', $currency);
-
+    $view->getEnvironment()->addGlobal('balance', $balance);
     $isAdminImpersonation = $_SESSION['impersonator'] ?? false;
     $view->getEnvironment()->addGlobal('isAdminImpersonation', $isAdminImpersonation);
 
