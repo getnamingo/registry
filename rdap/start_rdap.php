@@ -370,7 +370,11 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
 
             // Domain not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -782,7 +786,11 @@ function handleDomainQuery($request, $response, $pdo, $domainName, $c, $log) {
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();
@@ -842,7 +850,11 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         if (!is_numeric($entity) && !preg_match('/^[A-Za-z0-9-]+$/', $entity)) {
             // Return a 404 response if $entity is not a purely numeric string
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -957,7 +969,11 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
         if (!$registrarDetails) {
             // Entity not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -1223,7 +1239,11 @@ function handleEntityQuery($request, $response, $pdo, $entityHandle, $c, $log) {
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+             $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();
@@ -1322,7 +1342,11 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
         if (!$hostDetails) {
             // Nameserver not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -1618,7 +1642,11 @@ function handleNameserverQuery($request, $response, $pdo, $nameserverHandle, $c,
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();
@@ -1673,7 +1701,11 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         case 'nsLdhName':
             // Search by nameserver LDH name
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -1703,7 +1735,11 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         case 'nsIp':
             // Search by nameserver IP address
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -1841,7 +1877,11 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
         if (!$domainDetails) {
             // Domain not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -2242,7 +2282,11 @@ function handleDomainSearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();
@@ -2382,7 +2426,11 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
         if (!$hostDetails) {
             // Nameserver not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -2826,7 +2874,11 @@ function handleNameserverSearchQuery($request, $response, $pdo, $searchPattern, 
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();
@@ -2927,7 +2979,11 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
         if (!$registrarDetails) {
             // Entity not found, respond with a 404 error
             try {
-                $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                $stmt = $pdo->prepare(
+                    $c['db_type'] === 'pgsql'
+                        ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                        : "UPDATE settings SET value = value + 1 WHERE name = :name"
+                );
                 $settingName = 'web-whois-queries';
                 $stmt->bindParam(':name', $settingName);
                 $stmt->execute();
@@ -3197,7 +3253,11 @@ function handleEntitySearchQuery($request, $response, $pdo, $searchPattern, $c, 
 
         // Send the RDAP response
         try {
-            $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+            $stmt = $pdo->prepare(
+                $c['db_type'] === 'pgsql'
+                    ? "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name"
+                    : "UPDATE settings SET value = value + 1 WHERE name = :name"
+            );
             $settingName = 'web-whois-queries';
             $stmt->bindParam(':name', $settingName);
             $stmt->execute();

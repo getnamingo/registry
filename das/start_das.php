@@ -114,7 +114,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
             $server->close($fd);
             return;
         }
-        $domain = strtoupper($domain);
+        $domain = strtolower($domain);
         
         // Extract TLD from the domain and prepend a dot
         $parts = explode('.', $domain);

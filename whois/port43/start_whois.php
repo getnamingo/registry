@@ -60,6 +60,9 @@ $server->on('connect', function ($server, $fd) use ($log) {
 // Register a callback to handle incoming requests
 $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool, $log, $rateLimiter) {
     $pdo = null;
+    $settingsIncrementSql = $c['db_type'] === 'pgsql'
+        ? 'UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS VARCHAR) WHERE name = :name'
+        : 'UPDATE settings SET value = value + 1 WHERE name = :name';
 
     try {
         $pdo = $pool->get();
@@ -128,8 +131,8 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $server->close($fd);
                     return;
                 }
-                $domain = strtoupper($domain);
-            
+                $domain = strtolower($domain);
+
                 // Extract TLD from the domain and prepend a dot
                 $parts = explode('.', $domain);
                 
@@ -644,7 +647,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | FOUND');
                     
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
@@ -661,7 +664,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                         $remoteAddr = $clientInfo['remote_ip'];
                         $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | RESERVED');
 
-                        $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                        $stmt = $pdo->prepare($settingsIncrementSql);
                         $settingName = 'whois-43-queries';
                         $stmt->bindParam(':name', $settingName);
                         $stmt->execute();
@@ -676,7 +679,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $domain . ' | NOT FOUND');
 
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
@@ -773,7 +776,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $nameserver . ' | FOUND');
                         
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
@@ -785,7 +788,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $nameserver . ' | NOT FOUND');
                     
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
@@ -876,7 +879,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $registrar . ' | FOUND');
                     
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
@@ -888,7 +891,7 @@ $server->on('receive', function ($server, $fd, $reactorId, $data) use ($c, $pool
                     $remoteAddr = $clientInfo['remote_ip'];
                     $log->notice('new request from ' . $remoteAddr . ' | ' . $registrar . ' | NOT FOUND');
                     
-                    $stmt = $pdo->prepare("UPDATE settings SET value = value + 1 WHERE name = :name");
+                    $stmt = $pdo->prepare($settingsIncrementSql);
                     $settingName = 'whois-43-queries';
                     $stmt->bindParam(':name', $settingName);
                     $stmt->execute();
