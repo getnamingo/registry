@@ -766,8 +766,8 @@ CREATE TABLE tmch_crl (
     "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
-INSERT INTO domain_tld VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
-INSERT INTO domain_tld VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('1','.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO domain_tld VALUES('2','.com.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 SELECT setval('domain_tld_id_seq', COALESCE((SELECT MAX(id) FROM domain_tld), 0) + 1);
 
 INSERT INTO domain_price VALUES (E'1',E'1',NULL,E'create',E'0.00',E'5.00',E'10.00',E'15.00',E'20.00',E'25.00',E'30.00',E'35.00',E'40.00',E'45.00',E'50.00');

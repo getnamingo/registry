@@ -54,17 +54,17 @@
         // Join assigned roles with separators
         return assignedRoles.length > 0 ? assignedRoles.join(', ') : '<span class="status status-secondary">Unknown Role</span>';
     }
-    
+
     function verifiedFormatter(cell) {
         var value = cell.getValue();
-        if (value === false) {
+
+        if (value === false || value === 0 || value === "0") {
             return '<span class="status status-orange">Pending</span>';
-        } else if (value === true) {
+        } else if (value === true || value === 1 || value === "1") {
             return '<span class="status status-green">ok</span>';
         } else {
             return '<span class="status status-dark">?</span>';
         }
-        return value;
     }
 
     function statusBadgeFormatter(cell) {
