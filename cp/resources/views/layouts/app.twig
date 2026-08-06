@@ -22,44 +22,44 @@
               <img src="{{ logoPath }}" alt="Namingo" class="navbar-brand-image responsive-logo">
             </a>
           </h1>
-          <div class="navbar-nav flex-row order-md-last">
-            <div class="nav-item d-md-flex me-1 me-sm-2 me-md-3">
-              <div class="btn-list">
+          <div class="navbar-nav flex-row align-items-center ms-auto order-md-last gap-2">
+            <div class="nav-item d-md-flex">
+              <div class="btn-list d-flex align-items-center">
                 <div class="dropdown small-dropdown">
-                  <a href="#" class="btn dropdown-toggle" data-bs-toggle="dropdown"><span class="flag flag-country-{{ uiLang }}"></span>&nbsp;<span class="d-none d-sm-inline">&nbsp;{{ lang }}</span></a>
+                    <a href="#" class="nav-link px-2 py-2 d-flex align-items-center justify-content-center" data-bs-toggle="dropdown" aria-label="{{ __('Change language') }}" title="{{ __('Change language') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/></svg></a>
                     <div class="dropdown-menu dropdown-menu-end">
-                      <a href="/lang?en_US" class="dropdown-item"><span class="flag flag-country-us"></span>&nbsp;English</a>
-                      <a href="/lang?uk_UA" class="dropdown-item"><span class="flag flag-country-ua"></span>&nbsp;Українська</a>
-                      <a href="/lang?fr_FR" class="dropdown-item"><span class="flag flag-country-fr"></span>&nbsp;Français</a>
-                      <a href="/lang?es_ES" class="dropdown-item"><span class="flag flag-country-es"></span>&nbsp;Español</a>
-                      <a href="/lang?pt_PT" class="dropdown-item"><span class="flag flag-country-pt"></span>&nbsp;Português</a>
-                      <a href="/lang?jp_JP" class="dropdown-item"><span class="flag flag-country-jp"></span>&nbsp;日本語</a>
-                      <a href="/lang?ar_SA" class="dropdown-item"><span class="flag flag-country-sa"></span>&nbsp;العربية</a>
+                      <a href="/lang?en_US" class="dropdown-item{% if uiLang == 'us' %} active{% endif %}"><span class="flag flag-country-us"></span>&nbsp;English</a>
+                      <a href="/lang?uk_UA" class="dropdown-item{% if uiLang == 'ua' %} active{% endif %}"><span class="flag flag-country-ua"></span>&nbsp;Українська</a>
+                      <a href="/lang?fr_FR" class="dropdown-item{% if uiLang == 'fr' %} active{% endif %}"><span class="flag flag-country-fr"></span>&nbsp;Français</a>
+                      <a href="/lang?es_ES" class="dropdown-item{% if uiLang == 'es' %} active{% endif %}"><span class="flag flag-country-es"></span>&nbsp;Español</a>
+                      <a href="/lang?pt_PT" class="dropdown-item{% if uiLang == 'pt' %} active{% endif %}"><span class="flag flag-country-pt"></span>&nbsp;Português</a>
+                      <a href="/lang?jp_JP" class="dropdown-item{% if uiLang == 'jp' %} active{% endif %}"><span class="flag flag-country-jp"></span>&nbsp;日本語</a>
+                      <a href="/lang?ar_SA" class="dropdown-item{% if uiLang == 'sa' %} active{% endif %}"><span class="flag flag-country-sa"></span>&nbsp;العربية</a>
                     </div>
                 </div>
               </div>
             </div>
-            <div class="d-flex me-1 me-sm-2 me-md-3 gap-1 gap-sm-2">
-              <a href="/mode" class="nav-link px-0 hide-theme-dark" title="{{ __('Enable dark mode') }}" data-bs-toggle="tooltip"
-           data-bs-placement="bottom">
+            <div class="d-flex align-items-center justify-content-center">
+              <a href="/mode" class="nav-link px-2 py-2 hide-theme-dark" title="{{ __('Enable dark mode') }}" aria-label="{{ __('Enable dark mode') }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>
               </a>
-              <a href="/mode" class="nav-link px-0 hide-theme-light" title="{{ __('Enable light mode') }}" data-bs-toggle="tooltip"
-           data-bs-placement="bottom">
+              <a href="/mode" class="nav-link px-2 py-2 hide-theme-light" title="{{ __('Enable light mode') }}" aria-label="{{ __('Enable light mode') }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="4" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></svg>
               </a>
             </div>
             <div class="nav-item dropdown">
               <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
                 <span class="avatar bg-{% if roles == 0 %}primary{% else %}green{% endif %}-lt">{{ auth.user.username|slice(0, 2)|upper }}</span>
-                <div class="d-none d-xl-block ps-2">
-                  <div>{{auth.user.username}}</div>
-                  <div class="mt-1 small text-muted">{{auth.user.email}}</div>
-                </div>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                <div class="dropdown-item-text lh-sm">
+                  <div>{{auth.user.username}}</div>
+                  <div class="small text-secondary">{{auth.user.email}}</div>
+                </div>
+                <div class="dropdown-divider"></div>
                 <a href="{{route('profile')}}" class="dropdown-item">{{ __('My Profile') }}</a>
                 {% if isAdminImpersonation %}<a href="{{ route('leave_impersonation') }}" class="dropdown-item">{{ __('Leave Impersonation') }}</a>{% endif %}
+                <div class="dropdown-divider"></div>
                 <a href="{{route('logout')}}" class="dropdown-item">{{ __('Logout') }}</a>
               </div>
             </div>
@@ -100,6 +100,7 @@
                     <a class="dropdown-item" href="{{route('createDomain')}}">
                       {{ __('Create Domain') }}
                     </a>
+                    {% if applicationsEnabled %}
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{route('listApplications')}}">
                       {{ __('List Applications') }}
@@ -107,6 +108,7 @@
                     <a class="dropdown-item" href="{{route('createApplication')}}">
                       {{ __('Create Application') }}
                     </a>
+                    {% endif %}
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{route('listTransfers')}}">
                       {{ __('Transfers') }}

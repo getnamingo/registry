@@ -141,6 +141,10 @@ $container->set('view', function ($container) {
     $loader = new PoLoader();
     $translations = $loader->loadFile($languageFile);
 
+    $db = $container->get('db');
+    $applicationsEnabled = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'") === 'on';
+
+    $view->getEnvironment()->addGlobal('applicationsEnabled', $applicationsEnabled);
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('_lang', substr($desiredLanguage, 0, 2));
