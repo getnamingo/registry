@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS contact (
     disclose_email VARCHAR(2) NOT NULL DEFAULT '1' CHECK(disclose_email IN ('0','1')),
     validation VARCHAR(2) DEFAULT NULL CHECK(validation IN ('0','1','2','3','4')),
     validation_stamp DATETIME DEFAULT NULL,
-    validation_log VARCHAR(255) DEFAULT NULL,
+    validation_log TEXT DEFAULT NULL,
     UNIQUE (identifier),
     FOREIGN KEY (clid) REFERENCES registrar(id),
     FOREIGN KEY (crid) REFERENCES registrar(id),

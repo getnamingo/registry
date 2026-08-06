@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Ensure the script is run as root
 if [[ $EUID -ne 0 ]]; then
@@ -29,29 +30,38 @@ tar -czf "$backup_dir/registry_backup_$(date +%F).tar.gz" -C / opt/registry
 
 # Database credentials
 config_file="/opt/registry/rdap/config.php"
+db_driver=$(grep "'db_type'" "$config_file" | awk -F "=> '" '{print $2}' | sed "s/',//")
+db_name=$(grep "'db_database'" "$config_file" | awk -F "=> '" '{print $2}' | sed "s/',//")
 db_user=$(grep "'db_username'" "$config_file" | awk -F "=> '" '{print $2}' | sed "s/',//")
 db_pass=$(grep "'db_password'" "$config_file" | awk -F "=> '" '{print $2}' | sed "s/',//")
 db_host=$(grep "'db_host'" "$config_file" | awk -F "=> '" '{print $2}' | sed "s/',//")
 
-# List of databases to back up
-databases=("registry" "registryAudit" "registryTransaction")
+# Automatic database backup is currently supported only for MariaDB/MySQL
+case "$db_driver" in
+    mysql|mariadb|"")
+        databases=("registry" "registryAudit" "registryTransaction")
 
-# Backup specific databases
-for db_name in "${databases[@]}"; do
-    echo "Backing up database $db_name..."
-    sql_backup_file="$backup_dir/db_${db_name}_backup_$(date +%F).sql"
-    mariadb-dump -u"$db_user" -p"$db_pass" -h"$db_host" "$db_name" > "$sql_backup_file"
-    
-    # Compress the SQL backup file
-    echo "Compressing database backup $db_name..."
-    tar -czf "${sql_backup_file}.tar.gz" -C "$backup_dir" "$(basename "$sql_backup_file")"
-    
-    # Remove the uncompressed SQL file
-    rm "$sql_backup_file"
-done
+        for backup_db in "${databases[@]}"; do
+            echo "Backing up database $backup_db..."
+            sql_backup_file="$backup_dir/db_${backup_db}_backup_$(date +%F).sql"
 
-# Idempotent transactions gateway migration
-echo "Updating transactions schema..."
+            mariadb-dump -u"$db_user" -p"$db_pass" -h"$db_host" "$backup_db" > "$sql_backup_file"
+
+            echo "Compressing database backup $backup_db..."
+            tar -czf "${sql_backup_file}.tar.gz" -C "$backup_dir" "$(basename "$sql_backup_file")"
+            rm "$sql_backup_file"
+        done
+        ;;
+
+    *)
+        echo "WARNING: Automatic database backup is not supported for database type '$db_driver'."
+        echo "No database backup was created by this update script."
+        ;;
+esac
+
+# Idempotent database migration
+echo "Updating database schema..."
+
 case "$db_driver" in
     mysql|mariadb|"")
         db_cmd=(mariadb -u"$db_user" -p"$db_pass" -h"$db_host" "$db_name")
@@ -82,8 +92,19 @@ case "$db_driver" in
         [[ "$exists" == "1" ]] ||
             "${db_cmd[@]}" -e \
                 "ALTER TABLE payment_history ADD UNIQUE KEY transactions_gateway_reference_unique (gateway, gateway_reference)"
-        ;;
+                
+        validation_log_type=$("${db_cmd[@]}" -Nse \
+            "SELECT DATA_TYPE
+             FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'contact'
+               AND column_name = 'validation_log'")
 
+        [[ "$validation_log_type" == "text" ]] ||
+            "${db_cmd[@]}" -e \
+                "ALTER TABLE contact MODIFY COLUMN validation_log TEXT NULL"
+        ;;
+        
     pgsql)
         PGPASSWORD="$db_pass" psql -X -v ON_ERROR_STOP=1 \
             -h "$db_host" -U "$db_user" -d "$db_name" -c '
@@ -93,6 +114,8 @@ case "$db_driver" in
                     ADD COLUMN IF NOT EXISTS gateway_reference VARCHAR(128) DEFAULT NULL;
                 CREATE UNIQUE INDEX IF NOT EXISTS transactions_gateway_reference_unique
                     ON payment_history (gateway, gateway_reference);
+                ALTER TABLE contact
+                    ALTER COLUMN validation_log TYPE TEXT;
             '
         ;;
 

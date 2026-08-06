@@ -262,7 +262,7 @@ CREATE TABLE contact (
      "disclose_email" varchar CHECK ("disclose_email" IN ( '0','1' )) NOT NULL default '1',
      "validation" varchar CHECK ("validation" IN ( '0','1','2','3','4' )) default NULL,
      "validation_stamp"   timestamp(3) without time zone default NULL,
-     "validation_log"   varchar(255) default NULL,
+     "validation_log" TEXT default NULL,
      unique ("identifier") 
 );
 

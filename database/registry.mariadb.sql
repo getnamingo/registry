@@ -268,7 +268,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`contact` (
     `disclose_email` enum('0','1') NOT NULL default '1',
     `validation` enum('0','1','2','3','4'),
     `validation_stamp` datetime(3) default NULL,
-    `validation_log` varchar(255) DEFAULT NULL,
+    `validation_log` text DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `identifier` (`identifier`),
     CONSTRAINT `contact_ibfk_1` FOREIGN KEY (`clid`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT,
