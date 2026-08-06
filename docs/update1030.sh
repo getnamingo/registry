@@ -130,6 +130,17 @@ systemctl stop rdap
 systemctl stop msg_producer
 systemctl stop msg_worker
 
+# Add payment gateway configuration
+cat >> /var/www/cp/.env <<'EOF'
+
+ENABLED_GATEWAYS=stripe
+
+LIQPAY_PUBLIC_KEY='liqpay-public-key'
+LIQPAY_PRIVATE_KEY='liqpay-private-key'
+
+PLATA_TOKEN='plata-token'
+EOF
+
 # Clear cache
 echo "Clearing cache..."
 php /var/www/cp/bin/clear_cache.php
