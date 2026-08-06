@@ -2310,8 +2310,8 @@ class DomainsController extends Controller
 
                 $deleteTime = (new \DateTime("+$grace_period days"))->format('Y-m-d H:i:s');
                 $db->exec(
-+                    'UPDATE domain SET rgpstatus = ?, delTime = ? WHERE id = ?',
-+                    ['redemptionPeriod', $deleteTime, $domain_id]
+                    'UPDATE domain SET rgpstatus = ?, delTime = ? WHERE id = ?',
+                    ['redemptionPeriod', $deleteTime, $domain_id]
                 );
 
                 $db->insert(
@@ -2321,7 +2321,8 @@ class DomainsController extends Controller
                         'status' => 'pendingDelete'
                     ]
                 );
-                    
+
+                $isImmediateDeletion = false;
                 if ($rgpstatus) {
                     if ($rgpstatus === 'addPeriod') {
                         $graceEnd = (new \DateTime($crdate))->modify('+5 days');

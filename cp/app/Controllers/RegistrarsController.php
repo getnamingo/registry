@@ -1546,17 +1546,17 @@ class RegistrarsController extends Controller
             $result = [];
 
             foreach ($tlds as $tld) {
-                $createPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'create']);
-                $renewPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'renew']);
-                $transferPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) AND command = ? ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id'], 'transfer']);
-                $tld_restore = $db->selectRow('SELECT * FROM domain_restore_price WHERE tldid = ? AND (registrar_id = ? OR registrar_id IS NULL) ORDER BY registrar_id DESC LIMIT 1', [$tld['id'], $registrar['id']]);
+                $createPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ? LIMIT 1', [$tld['id'], $registrar['id'], 'create']);
+                $renewPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ? LIMIT 1', [$tld['id'], $registrar['id'], 'renew']);
+                $transferPrices = $db->selectRow('SELECT * FROM domain_price WHERE tldid = ? AND registrar_id = ? AND command = ? LIMIT 1', [$tld['id'], $registrar['id'], 'transfer']);
+                $tld_restore = $db->selectRow('SELECT * FROM domain_restore_price WHERE tldid = ? AND registrar_id = ? LIMIT 1', [$tld['id'], $registrar['id']]);
 
                 $result[] = [
                     'tld' => $tld['tld'],
-                    'createPrices' => ($createPrices && $createPrices['registrar_id'] === $registrar['id']) ? $createPrices : null,
-                    'renewPrices' => ($renewPrices && $renewPrices['registrar_id'] === $registrar['id']) ? $renewPrices : null,
-                    'transferPrices' => ($transferPrices && $transferPrices['registrar_id'] === $registrar['id']) ? $transferPrices : null,
-                    'tld_restore' => ($tld_restore && $tld_restore['registrar_id'] === $registrar['id']) ? $tld_restore : null,
+                    'createPrices' => $createPrices ?: null,
+                    'renewPrices' => $renewPrices ?: null,
+                    'transferPrices' => $transferPrices ?: null,
+                    'tld_restore' => $tld_restore ?: null,
                 ];
             }
 

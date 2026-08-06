@@ -10,7 +10,7 @@
     {
       "name": "Database",
       "source": {
-        "type": "mysqldump",
+        "type": "mariadb-dump",
         "options": {
           "databases": "registry,registryAudit,registryTransaction",
           "user": "your_username",

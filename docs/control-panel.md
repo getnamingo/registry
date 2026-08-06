@@ -72,7 +72,6 @@ The **Domains** section of the Namingo Control Panel provides a centralized inte
 
 - **Export Buttons**
   - **CSV**: Export the visible list of domains in Comma-Separated Values format.
-  - **PDF**: Generate a print-ready PDF report of the domain list.
 
 - **Check Domain** (🔍)
   - Opens a domain availability search field.
@@ -186,7 +185,7 @@ Statuses are displayed with visual tags (color-coded) for rapid scanning.
 - Only authorized users (e.g., `registry admin`) can approve or reject applications.
 - Applications can be filtered and sorted by domain name, phase, submission date, or status.
 - Registrars may view only their own submitted applications.
-- Export buttons may be provided (CSV, PDF) for audit trail and compliance.
+- Export buttons may be provided (CSV) for audit trail and compliance.
 
 ## 3.2 Transfers List
 
@@ -269,7 +268,7 @@ This section allows registry staff and registrar users to:
 - Contacts can only be deleted if not linked to active domains.
 - The system automatically validates phone/email format and enforces uniqueness for handles.
 - Registrars can only see and manage their own contact objects.
-- Export options (CSV, PDF) are available for audit logs or compliance purposes.
+- Export options (CSV) are available for audit logs or compliance purposes.
 - Creation of contacts is done via the **Create Contact** button.
 
 ---
@@ -308,7 +307,7 @@ This section enables:
 - Host deletion checks for dependencies before allowing removal.
 - Registrars can only manage hosts under domains they control, depending on registry policy.
 - Search and sort functionality is available for fast access.
-- Hosts can be exported as CSV or PDF for operational or compliance purposes.
+- Hosts can be exported as CSV for operational or compliance purposes.
 
 ---
 
@@ -459,7 +458,7 @@ This subsection provides a chronological list of **financial events** affecting 
 
 ### Features
 
-- Fully exportable to **CSV** and **PDF** formats.
+- Fully exportable to **CSV** format.
 - Filterable by registrar or keyword via the **search** box.
 - Supports sorting by all columns.
 
@@ -483,7 +482,7 @@ The **Transactions** tab displays a detailed breakdown of **EPP commands** that 
 
 - Ideal for cross-checking domain lifecycle costs and billing events.
 - Fully searchable and sortable by command type, domain name, or registrar.
-- Export options (CSV, PDF) available for integration with accounting tools.
+- Export options (CSV) available for integration with accounting tools.
 
 ## 7.3 Invoices
 
@@ -618,7 +617,7 @@ The **Reports** section displays a daily summary of domain lifecycle events.
 
 ### Features
 
-- Export available in **CSV** and **PDF** formats.
+- Export available in **CSV** format.
 - Option to generate **Registrar-Specific Statistics**.
 - Useful for auditing, ICANN reports, and internal KPIs.
 
@@ -709,7 +708,7 @@ The **Support** section of the Namingo Control Panel provides a centralized inte
   - Write a **message** with optional file attachment.
 - **Media Kit / Documentation Links** – Quick access to registry documentation and marketing assets.
 - **Search Bar** – Filter tickets by keyword in subject or message body.
-- **CSV / PDF Export** – Download ticket list for offline tracking, reporting, or auditing.
+- **CSV Export** – Download ticket list for offline tracking, reporting, or auditing.
 
 ## Ticket Statuses
 

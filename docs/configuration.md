@@ -181,7 +181,7 @@ To create an audit trail database for Namingo, start by editing the configuratio
 
 This will initialize and configure the audit trail functionality. This process ensures that all necessary tables and structures are set up in the registryAudit database, enabling comprehensive auditing of Namingo's operations.
 
-**Currently, the audit trail setup for Namingo is supported only with MySQL or MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgAudit](https://minervadb.com/index.php/pgaudit-open-source-postgresql-audit-logging/), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
+**Currently, the audit trail setup for Namingo is supported only with MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgMemento](https://github.com/pgMemento/pgMemento), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
 
 #### 1.4.4. Setup Backup
 
@@ -199,7 +199,7 @@ The default backup system in Namingo is based on `phpbu`, which is well-suited f
 
 ##### 1.4.4.1. Using mariabackup for Large MariaDB Databases
 
-For large or high-performance MariaDB deployments, you can replace the default `mysqldump`-based backup with `mariabackup`, which performs **physical (binary) backups** without downtime.
+For large or high-performance MariaDB deployments, you can replace the default `mariadb-dump`-based backup with `mariabackup`, which performs **physical (binary) backups** without downtime.
 
 **Step-by-Step Setup:**
 
@@ -613,7 +613,7 @@ Open Grafana in your browser: http://your-server-ip:3000
 
 - Prometheus Node Exporter Full: 1860
 - Redis Exporter: 763
-- MySQL/MariaDB: 7362
+- MariaDB: 7362
 - Blackbox Exporter (TCP Probes for EPP, WHOIS, DAS, RDAP): 7587 or 13659
 - Prometheus Self-Monitoring: 3662
 - Caddy Web Server Monitoring: 13460
