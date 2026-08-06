@@ -31,6 +31,7 @@ class SystemController extends Controller
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
+            $contactValidation = !empty($data['contactValidation']) ? 'on' : '0';
             $db = $this->container->get('db');
             
             // Error message initialization
@@ -66,9 +67,6 @@ class SystemController extends Controller
                     'contactPhone'        => 'phone',
                     'registryHandle'      => 'handle',
                     'launchPhases'        => 'launch_phases',
-                    'verifyPhone'         => 'verifyPhone',
-                    'verifyEmail'         => 'verifyEmail',
-                    'verifyPostal'        => 'verifyPostal',
                     'whoisServer'         => 'whois_server',
                     'rdapServer'          => 'rdap_server',
                     'currency'            => 'currency',
@@ -76,9 +74,6 @@ class SystemController extends Controller
 
                 $defaults = [
                     'launchPhases' => '0',
-                    'verifyPhone'  => '0',
-                    'verifyEmail'  => '0',
-                    'verifyPostal' => '0',
                 ];
 
                 foreach ($settingsMap as $formField => $settingName) {
@@ -94,6 +89,14 @@ class SystemController extends Controller
                     $db->update(
                         'settings',
                         ['value' => $value],
+                        ['name' => $settingName]
+                    );
+                }
+
+                foreach (['verifyPhone', 'verifyEmail', 'verifyPostal'] as $settingName) {
+                    $db->update(
+                        'settings',
+                        ['value' => $contactValidation],
                         ['name' => $settingName]
                     );
                 }
@@ -122,7 +125,7 @@ class SystemController extends Controller
                 ]
             );
 
-            $this->container->get('flash')->addMessage('success', 'Registry details have been updated successfully');
+            $this->container->get('flash')->addMessage('success', 'Registry settings have been updated successfully');
             return $response->withHeader('Location', '/settings/general')->withStatus(302);
             
         }
