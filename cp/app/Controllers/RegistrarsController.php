@@ -550,7 +550,7 @@ class RegistrarsController extends Controller
             [ $registrarId ]);
 
             if ($registrar) {               
-                $registrarContact = $db->selectRow('SELECT * FROM registrar_contact WHERE registrar_id = ?',
+                $contacts = $db->select('SELECT * FROM registrar_contact WHERE registrar_id = ?',
                 [ $registrar['id'] ]);
                 $registrarOte = $db->select('SELECT * FROM registrar_ote WHERE registrar_id = ? ORDER by command',
                 [ $registrar['id'] ]);
@@ -585,7 +585,7 @@ class RegistrarsController extends Controller
 
                 return view($response,'admin/registrars/viewRegistrar.twig', [
                     'registrar' => $registrar,
-                    'registrarContact' => $registrarContact,
+                    'contacts' => $contacts,
                     'firstHalf' => $firstHalf,
                     'secondHalf' => $secondHalf,
                     'userEmail' => $userEmail,

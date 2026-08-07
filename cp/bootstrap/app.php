@@ -172,14 +172,28 @@ $container->set('view', function ($container) {
     if (isset($_SESSION['auth_roles'])) {
         $view->getEnvironment()->addGlobal('roles', $_SESSION['auth_roles']);
     }
-    $view->getEnvironment()->addFunction(new TwigFunction('has_any_role', function (int $userRoles, array $requiredRoles): bool {
-        foreach ($requiredRoles as $role) {
-            if (($userRoles & $role) !== 0) {
-                return true;
+    $view->getEnvironment()->addFunction(new TwigFunction(
+        'has_any_role',
+        function (int $userRoles, array $requiredRoles): bool {
+            // Special case: role 0 (admin)
+            if ($userRoles === 0) {
+                return in_array(0, $requiredRoles, true);
             }
+
+            foreach ($requiredRoles as $role) {
+                // Skip 0 because bitwise comparison cannot match it
+                if ($role === 0) {
+                    continue;
+                }
+
+                if (($userRoles & $role) !== 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
-        return false;
-    }));
+    ));
 
     // Fetch registrar currency and registry default currency
     $currency = 'EUR';

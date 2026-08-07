@@ -1268,3 +1268,33 @@ function getKeyStatus(string $keyBlock): string
     // 4) Fallback
     return 'Inactive';
 }
+
+function hasAnyRole(int $userRoles, array $requiredRoles): bool
+{
+    // Role 0 (admin) cannot be checked bitwise
+    if ($userRoles === 0) {
+        return in_array(0, $requiredRoles, true);
+    }
+
+    foreach ($requiredRoles as $role) {
+        $role = (int) $role;
+
+        if ($role === 0) {
+            continue;
+        }
+
+        if (($userRoles & $role) !== 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function currentUserHasAnyRole(array $requiredRoles): bool
+{
+    return hasAnyRole(
+        (int) ($_SESSION['auth_roles'] ?? -1),
+        $requiredRoles
+    );
+}

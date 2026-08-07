@@ -23,6 +23,7 @@
                   {{ __('Applications') }}
                 </h2>
               </div>
+              {% if has_any_role(roles, [0, 4]) %}
               <!-- Page title actions -->
               <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
@@ -35,6 +36,7 @@
                   </a>
                 </div>
               </div>
+              {% endif %}
             </div>
           </div>
         </div>
