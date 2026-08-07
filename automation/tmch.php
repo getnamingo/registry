@@ -152,7 +152,7 @@ function insertTmchData($dbh, $filePath) {
     $content = file_get_contents($filePath);
     if ($content !== false) {
         // Get the current date-time in the format accepted by both MySQL and PostgreSQL
-        $currentDateTime = (new DateTime())->format('Y-m-d H:i:s');
+        $currentDateTime = (new DateTime())->format('Y-m-d H:i:s.v');
 
         // Insert the whole content into the database
         $stmt = $dbh->prepare("INSERT INTO tmch_crl (content, url, update_timestamp) VALUES (?, ?, ?)");

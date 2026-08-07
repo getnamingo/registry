@@ -484,7 +484,7 @@ class ApplicationsController extends Controller
                     'tm_smd_id' => $markId ?? null,
                     'tm_notice_id' => $noticeid ?? null,
                     'tm_notice_accepted' => $accepted ?? null,
-                    'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s') : $notafter) : null
+                    'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s.v') : $notafter) : null
                 ]);
                 $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'application_id_seq' : null);
                 

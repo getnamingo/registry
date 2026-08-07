@@ -622,7 +622,7 @@ class DomainsController extends Controller
                     'tm_smd_id' => $markId ?? null,
                     'tm_notice_id' => $noticeid ?? null,
                     'tm_notice_accepted' => $accepted ?? null,
-                    'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s') : $notafter) : null
+                    'tm_notice_expires' => isset($notafter) ? ($notafter instanceof \DateTime ? $notafter->format('Y-m-d H:i:s.v') : $notafter) : null
                 ]);
                 $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_id_seq' : null);
 
@@ -2095,7 +2095,7 @@ class DomainsController extends Controller
                 $from = $row['exdate'];
                 $rgpstatus = 'renewPeriod';
 
-                $renewedExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                $renewedExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                 $db->exec(
                     'UPDATE domain SET exdate = ?, rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE name = ?',
                     [
@@ -2339,7 +2339,7 @@ class DomainsController extends Controller
                     ]
                 );
 
-                $deleteTime = (new \DateTime("+$grace_period days"))->format('Y-m-d H:i:s');
+                $deleteTime = (new \DateTime("+$grace_period days"))->format('Y-m-d H:i:s.v');
                 $db->exec(
                     'UPDATE domain SET rgpstatus = ?, delTime = ? WHERE id = ?',
                     ['redemptionPeriod', $deleteTime, $domain_id]
@@ -2739,8 +2739,8 @@ class DomainsController extends Controller
                         $db->beginTransaction();
                         
                         $waiting_period = 5;
-                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
-                        $transferExdate = (new \DateTime($domain['exdate']))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s.v');
+                        $transferExdate = (new \DateTime($domain['exdate']))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                         $db->exec(
                             'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = ?, transfer_exdate = ? WHERE id = ?',
                             ['pending', $clid, $registrar_id_domain, $acdate, $transferExdate, $domain_id]
@@ -2816,7 +2816,7 @@ class DomainsController extends Controller
                         $db->beginTransaction();
                         
                         $waiting_period = 5;
-                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                        $acdate = (new \DateTime("+$waiting_period days"))->format('Y-m-d H:i:s.v');
                         $db->exec(
                             'UPDATE domain SET trstatus = ?, reid = ?, redate = CURRENT_TIMESTAMP(3), acid = ?, acdate = ?, transfer_exdate = NULL WHERE id = ?',
                             ['pending', $clid, $registrar_id_domain, $acdate, $domain_id]
@@ -3114,7 +3114,7 @@ class DomainsController extends Controller
                     );
                     $from = $row['exdate'];
 
-                    $newExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                    $newExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                     $db->exec(
                         'UPDATE domain SET exdate = ?, lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
                         [$newExdate, $reid, $clid, $newRegistrantId, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
@@ -3624,7 +3624,7 @@ class DomainsController extends Controller
                 try {
                     $db->beginTransaction();
 
-                    $restoredExdate = (new \DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s');
+                    $restoredExdate = (new \DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s.v');
                     $db->exec(
                         'UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?',
                         [

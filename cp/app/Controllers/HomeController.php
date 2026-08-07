@@ -46,9 +46,9 @@ class HomeController extends Controller
             }
         }
         
-        $today = (new \DateTime('today'))->format('Y-m-d H:i:s');
-        $thirtyDaysAgo = (new \DateTime('today -30 days'))->format('Y-m-d H:i:s');
-        $thirtyDaysAhead = (new \DateTime('today +30 days'))->format('Y-m-d H:i:s');
+        $today = (new \DateTime('today'))->format('Y-m-d H:i:s.v');
+        $thirtyDaysAgo = (new \DateTime('today -30 days'))->format('Y-m-d H:i:s.v');
+        $thirtyDaysAhead = (new \DateTime('today +30 days'))->format('Y-m-d H:i:s.v');
 
         if ($clid !== null) {
             $domains = $db->selectValue('SELECT count(id) as domains FROM domain WHERE clid = ?', [$clid]);

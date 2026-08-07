@@ -22,7 +22,7 @@ try {
 try {
     $minimum_data = $c['minimum_data'];
     $dbh->beginTransaction();
-    $oneMonthAgo = (new DateTime('-1 month'))->format('Y-m-d H:i:s');
+    $oneMonthAgo = (new DateTime('-1 month'))->format('Y-m-d H:i:s.v');
     
     // Prepare and execute the SQL statement to select unused hosts
     $stmt = $dbh->prepare("

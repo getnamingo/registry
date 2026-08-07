@@ -2064,7 +2064,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $from = $sth->fetchColumn();
                 $sth->closeCursor();
 
-                $exdate = (new DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s');
+                $exdate = (new DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s.v');
                 $sth = $db->prepare("UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
                 
                 if (!$sth->execute([$exdate, $postData, $resReason, $statementTexts[0], $statementTexts[1], $clid, $domain_id])) {

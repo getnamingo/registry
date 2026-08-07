@@ -357,7 +357,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt = $db->prepare("DELETE FROM domain_status WHERE domain_id = ?");
             $stmt->execute([$domain_id]);
 
-            $deleteTime = (new DateTime("+$grace_period days"))->format('Y-m-d H:i:s');
+            $deleteTime = (new DateTime("+$grace_period days"))->format('Y-m-d H:i:s.v');
             $stmt = $db->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?");
             $stmt->execute([$deleteTime, $domain_id]);
 

@@ -1688,7 +1688,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
             }
 
-            $exdate = (new DateTime())->modify("+$date_add months")->format('Y-m-d H:i:s');
+            $exdate = (new DateTime())->modify("+$date_add months")->format('Y-m-d H:i:s.v');
             $domainSql = "INSERT INTO domain (
                 name, tldid, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod,
                 phase_name, tm_phase, tm_smd_id, tm_notice_id, tm_notice_accepted, tm_notice_expires

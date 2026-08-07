@@ -157,7 +157,7 @@ try {
             }
 
             $from = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
-            $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
+            $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
 
             $stmt_update = $dbh->prepare("
                 UPDATE domain

@@ -159,7 +159,7 @@ class DomainLifecycleManager {
         $this->dbh->beginTransaction();
 
         try {
-            $renewedDate = (new DateTime($exdate))->modify('+12 months')->format('Y-m-d H:i:s');
+            $renewedDate = (new DateTime($exdate))->modify('+12 months')->format('Y-m-d H:i:s.v');
             $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = ?, autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
             $sth->execute([$renewedDate, $domain_id]);
 
@@ -191,7 +191,7 @@ class DomainLifecycleManager {
         $this->dbh->beginTransaction();
         try {
             $this->dbh->prepare("DELETE FROM domain_status WHERE domain_id = ?")->execute([$domain_id]);
-            $deleteTime = (new DateTime($exdate))->modify('+' . (int) $this->config['gracePeriodDays'] . ' days')->format('Y-m-d H:i:s');
+            $deleteTime = (new DateTime($exdate))->modify('+' . (int) $this->config['gracePeriodDays'] . ' days')->format('Y-m-d H:i:s.v');
             $this->dbh->prepare("UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?")->execute([$deleteTime, $domain_id]);
             $this->dbh->prepare("INSERT INTO domain_status (domain_id, status) VALUES(?, 'pendingDelete')")->execute([$domain_id]);
 
@@ -211,7 +211,7 @@ class DomainLifecycleManager {
         $gracePeriodDays = $this->config['gracePeriodDays'];
 
         // Fetch domains eligible for grace period
-        $graceThreshold = (new DateTime("-$gracePeriodDays days"))->format('Y-m-d H:i:s');
+        $graceThreshold = (new DateTime("-$gracePeriodDays days"))->format('Y-m-d H:i:s.v');
         $sth = $this->dbh->prepare("
             SELECT id, name, exdate 
             FROM domain 
@@ -270,7 +270,7 @@ class DomainLifecycleManager {
 
     private function cleanupPeriod($periodName, $days) {
         $column = $periodName === 'addPeriod' ? 'crdate' : ($periodName === 'renewPeriod' ? 'renewedDate' : ($periodName === 'transferPeriod' ? 'trdate' : 'exdate'));
-        $threshold = (new DateTime("-$days days"))->format('Y-m-d H:i:s');
+        $threshold = (new DateTime("-$days days"))->format('Y-m-d H:i:s.v');
         $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = NULL WHERE $column < ? AND rgpstatus = ?");
         $sth->execute([$threshold, $periodName]);
     }
@@ -284,7 +284,7 @@ class DomainLifecycleManager {
         $redemptionPeriodDays = $this->config['redemptionPeriodDays'];
 
         // Fetch domains eligible for pending delete
-        $pendingDeleteThreshold = (new DateTime("-$redemptionPeriodDays days"))->format('Y-m-d H:i:s');
+        $pendingDeleteThreshold = (new DateTime("-$redemptionPeriodDays days"))->format('Y-m-d H:i:s.v');
         $sth = $this->dbh->prepare("
             SELECT id, name, exdate 
             FROM domain 
@@ -327,7 +327,7 @@ class DomainLifecycleManager {
         $this->log->info('Starting Pending Restore Phase.');
 
         // Fetch domains in pendingRestore status that have exceeded the restore period
-        $restoreThreshold = (new DateTime('-7 days'))->format('Y-m-d H:i:s');
+        $restoreThreshold = (new DateTime('-7 days'))->format('Y-m-d H:i:s.v');
         $sth = $this->dbh->prepare("
             SELECT id, name 
             FROM domain 
@@ -358,7 +358,7 @@ class DomainLifecycleManager {
         $totalPendingDays = $this->config['redemptionPeriodDays'] + $this->config['pendingDeletePeriodDays'];
 
         // Fetch domains eligible for deletion
-        $deletionThreshold = (new DateTime("-$totalPendingDays days"))->format('Y-m-d H:i:s');
+        $deletionThreshold = (new DateTime("-$totalPendingDays days"))->format('Y-m-d H:i:s.v');
         $sth = $this->dbh->prepare("
             SELECT id, name, delTime AS \"delTime\"
             FROM domain 
@@ -509,7 +509,7 @@ class DomainLifecycleManager {
             }
 
             $base = $expiry > $now ? $expiry : $now;
-            $newExpiry = $base->modify('+12 months')->format('Y-m-d H:i:s');
+            $newExpiry = $base->modify('+12 months')->format('Y-m-d H:i:s.v');
 
             $update->execute([$newExpiry, $row['id'], $row['exdate']]);
 

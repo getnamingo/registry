@@ -399,7 +399,7 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $db->beginTransaction();
 
                 $waiting_period = 5; // days
-                $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s.v');
                 $stmt = $db->prepare("UPDATE contact SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_contact, acdate = :acdate WHERE id = :contact_id");
                 $stmt->execute([
                     ':registrar_id' => $clid,
@@ -683,7 +683,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $from = $stmt->fetchColumn();
                 $stmt->closeCursor();
 
-                $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                 $stmt = $db->prepare("UPDATE domain SET exdate = ?, lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = 'clientApproved', acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = 'transferPeriod', transferPeriod = ? WHERE id = ?");
                 $stmt->execute([$newExdate, $row["reid"], $clid, $newRegistrantId, $date_add, $domain_id]);
 
@@ -1266,8 +1266,8 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     $db->beginTransaction();
 
                     $waiting_period = 5;
-                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
-                    $transferExdate = (new DateTime($expiryDate->format('Y-m-d H:i:s')))->modify("+$date_add months")->format('Y-m-d H:i:s');
+                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s.v');
+                    $transferExdate = (new DateTime($expiryDate->format('Y-m-d H:i:s.v')))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                     $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = :acdate, transfer_exdate = :transfer_exdate WHERE id = :domain_id");
                     $stmt->execute([':registrar_id' => $clid, ':registrar_id_domain' => $registrar_id_domain, ':acdate' => $acdate, ':transfer_exdate' => $transferExdate, ':domain_id' => $domain_id]);
 
@@ -1352,7 +1352,7 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     $db->beginTransaction();
                     $waiting_period = 5; // days
 
-                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s');
+                    $acdate = (new DateTime("+$waiting_period days"))->format('Y-m-d H:i:s.v');
                     $stmt = $db->prepare("UPDATE domain SET trstatus = 'pending', reid = :registrar_id, redate = CURRENT_TIMESTAMP(3), acid = :registrar_id_domain, acdate = :acdate, transfer_exdate = NULL WHERE id = :domain_id");
                     $stmt->execute([
                         ':registrar_id' => $clid,

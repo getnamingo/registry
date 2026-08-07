@@ -71,8 +71,8 @@ try {
 
         $stmt2 = $pdo->prepare($sql);
         $stmt2->execute([
-            ':target_start' => $targetDateStart->format('Y-m-d H:i:s'),
-            ':target_end'   => $targetDateEnd->format('Y-m-d H:i:s'),
+            ':target_start' => $targetDateStart->format('Y-m-d H:i:s.v'),
+            ':target_end'   => $targetDateEnd->format('Y-m-d H:i:s.v'),
         ]);
         $domains = $stmt2->fetchAll();
 
