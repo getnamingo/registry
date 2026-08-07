@@ -304,7 +304,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`contact_authInfo` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `contact_id` int(10) unsigned NOT NULL,
     `authtype` enum('pw','ext') NOT NULL default 'pw',
-    `authinfo` varchar(64) NOT NULL,
+    `authinfo` varchar(255) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `contact_id` (`contact_id`),
     CONSTRAINT `contact_authInfo_ibfk_1` FOREIGN KEY (`contact_id`) REFERENCES `contact` (`id`) ON DELETE RESTRICT
@@ -398,7 +398,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`application` (
     `delTime` datetime(3) default NULL,
     `application_id` varchar(36) default NULL,
     `authtype` enum('pw','ext') NOT NULL default 'pw',
-    `authinfo` varchar(64) NOT NULL,
+    `authinfo` varchar(255) default NULL,
     `phase_name` VARCHAR(75) DEFAULT NULL,
     `phase_type` VARCHAR(50) NOT NULL,
     `smd` text default NULL,
@@ -444,7 +444,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_authInfo` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `domain_id` int(10) unsigned NOT NULL,
     `authtype` enum('pw','ext') NOT NULL default 'pw',
-    `authinfo` varchar(64) NOT NULL,
+    `authinfo` varchar(255) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `domain_id` (`domain_id`),
     CONSTRAINT `domain_authInfo_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE RESTRICT

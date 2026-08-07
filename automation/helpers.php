@@ -731,3 +731,29 @@ function runValidnsIfAvailable(string $zoneName, string $zonePath, $log): bool
     $log->info("validns validation passed for {$zoneName}.");
     return true;
 }
+
+function isSettingEnabled(PDO $pdo, string $name): bool
+{
+    $stmt = $pdo->prepare(
+        'SELECT value FROM settings WHERE name = :name LIMIT 1'
+    );
+
+    $stmt->execute(['name' => $name]);
+
+    $value = $stmt->fetchColumn();
+
+    if ($value === false) {
+        return false;
+    }
+
+    return in_array(
+        strtolower(trim((string) $value)),
+        ['1', 'on', 'true', 'yes', 'enabled'],
+        true
+    );
+}
+
+function isSecureAuthInfoTransferEnabled(PDO $pdo): bool
+{
+    return isSettingEnabled($pdo, 'secureAuthInfoTransfer');
+}

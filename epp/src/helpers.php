@@ -99,6 +99,97 @@ function checkLogin($db, $clID, $pw) {
     return password_verify($pw, $hashedPassword);
 }
 
+function isSecureAuthInfo(string $authInfo): bool {
+    $length = strlen($authInfo);
+    if ($length > 64 || preg_match('/^[\x21-\x7e]+$/D', $authInfo) !== 1) {
+        return false;
+    }
+
+    return $length >= (preg_match('/^[A-Za-z0-9]+$/D', $authInfo) === 1 ? 25 : 20);
+}
+
+function hashAuthInfo(string $authInfo): string {
+    $salt = random_bytes(16);
+    return 'sha256$' . bin2hex($salt) . '$' . hash('sha256', $salt . $authInfo);
+}
+
+function authInfoStorage(string $objectType): array {
+    return match ($objectType) {
+        'contact' => ['contact_authInfo', 'contact_id'],
+        'domain' => ['domain_authInfo', 'domain_id'],
+        default => throw new InvalidArgumentException('Unsupported authInfo object type'),
+    };
+}
+
+function storeAuthInfo($db, string $objectType, int $objectId, ?string $authInfo): void {
+    [$table, $idColumn] = authInfoStorage($objectType);
+
+    $stmt = $db->prepare("DELETE FROM {$table} WHERE {$idColumn} = ?");
+    $stmt->execute([$objectId]);
+
+    if ($authInfo !== null && $authInfo !== '') {
+        $stmt = $db->prepare("INSERT INTO {$table} ({$idColumn}, authtype, authinfo) VALUES (?, 'pw', ?)");
+        $stmt->execute([$objectId, hashAuthInfo($authInfo)]);
+    }
+}
+
+function authInfoMatches($db, string $objectType, int $objectId, ?string $authInfo): bool {
+    if ($authInfo === null || $authInfo === '') {
+        return false;
+    }
+
+    [$table, $idColumn] = authInfoStorage($objectType);
+    $stmt = $db->prepare("SELECT authinfo FROM {$table} WHERE {$idColumn} = ? AND authtype = 'pw' LIMIT 1");
+    $stmt->execute([$objectId]);
+    $stored = $stmt->fetchColumn();
+    $stmt->closeCursor();
+
+    if (!is_string($stored) || $stored === '') {
+        return false;
+    }
+
+    if (preg_match('/^sha256\$([0-9a-f]{32})\$([0-9a-f]{64})$/D', $stored, $parts) === 1) {
+        $salt = hex2bin($parts[1]);
+        return $salt !== false && hash_equals($parts[2], hash('sha256', $salt . $authInfo));
+    }
+
+    // Transition support for legacy clear-text values. Re-hash on first use.
+    if (hash_equals($stored, $authInfo)) {
+        $stmt = $db->prepare(
+            "UPDATE {$table} SET authinfo = ? WHERE {$idColumn} = ? AND authtype = 'pw' AND authinfo = ?"
+        );
+        $stmt->execute([hashAuthInfo($authInfo), $objectId, $stored]);
+        return true;
+    }
+
+    return false;
+}
+
+function redactEppSecrets(string $xml): string {
+    $dom = new DOMDocument();
+    $previous = libxml_use_internal_errors(true);
+    $loaded = $dom->loadXML($xml, LIBXML_NONET);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
+
+    if (!$loaded) {
+        return '[EPP frame omitted: unable to redact XML safely]';
+    }
+
+    $xpath = new DOMXPath($dom);
+    $nodes = $xpath->query(
+        '//*[local-name()="authInfo"]/*[local-name()="pw" or local-name()="ext"]'
+        . ' | //*[local-name()="login"]/*[local-name()="pw" or local-name()="newPW"]'
+        . ' | //*[local-name()="loginSec"]/*[local-name()="pw" or local-name()="newPW"]'
+    );
+
+    foreach ($nodes as $node) {
+        $node->nodeValue = '[REDACTED]';
+    }
+
+    return $dom->saveXML();
+}
+
 function sendGreeting($conn, Swoole\Table $eppExtensionsTable) {
     global $c;
     $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
@@ -482,6 +573,8 @@ function normalize_v6_address($v6) {
 }
 
 function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
+    $clTRIDframe = redactEppSecrets($clTRIDframe);
+
     global $c, $transactionPool;
 
     $transactionDb = null;
@@ -1269,4 +1362,30 @@ function dnskey_rdata_keytag(string $dnskeyRdata): int
     }
     $ac += ($ac >> 16) & 0xFFFF;
     return $ac & 0xFFFF;
+}
+
+function isSettingEnabled($pdo, string $name): bool
+{
+    $stmt = $pdo->prepare(
+        'SELECT value FROM settings WHERE name = :name LIMIT 1'
+    );
+
+    $stmt->execute(['name' => $name]);
+
+    $value = $stmt->fetchColumn();
+
+    if ($value === false) {
+        return false;
+    }
+
+    return in_array(
+        strtolower(trim((string) $value)),
+        ['1', 'on', 'true', 'yes', 'enabled'],
+        true
+    );
+}
+
+function isSecureAuthInfoTransferEnabled($pdo): bool
+{
+    return isSettingEnabled($pdo, 'secureAuthInfoTransfer');
 }

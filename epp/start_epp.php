@@ -73,7 +73,8 @@ if (is_array($data)) {
         'urn:ietf:params:xml:ns:epp:fee-1.0',
         'urn:ietf:params:xml:ns:mark-1.0',
         'urn:ietf:params:xml:ns:allocationToken-1.0',
-        'urn:ietf:params:xml:ns:epp:loginSec-1.0'
+        'urn:ietf:params:xml:ns:epp:loginSec-1.0',
+        'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0'
     ];
     foreach ($fallback as $urn) {
         $eppExtensionsTable->set($urn, ['extension' => 1]);
@@ -310,6 +311,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             $xml->registerXPathNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
             $xml->registerXPathNamespace('allocationToken', 'urn:ietf:params:xml:ns:allocationToken-1.0');
             $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
+            $xml->registerXPathNamespace('secureAuthInfo', 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0');
             $xml->registerXPathNamespace('identica', 'https://namingo.org/epp/identica-1.0');
 
             if ($xml->getName() != 'epp') {

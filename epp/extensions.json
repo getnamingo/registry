@@ -21,7 +21,7 @@
     "enabled": false
   },
   "urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0": {
-    "enabled": false
+    "enabled": true
   },
   "urn:ietf:params:xml:ns:idn-1.0": {
     "enabled": false

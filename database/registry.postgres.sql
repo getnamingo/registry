@@ -292,7 +292,7 @@ CREATE TABLE contact_authinfo (
      "id" SERIAL PRIMARY KEY,
      "contact_id" int CHECK ("contact_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
-     "authinfo"   varchar(64) NOT NULL,
+     "authinfo"   varchar(255) NOT NULL,
      unique ("contact_id") 
 );
 
@@ -374,7 +374,7 @@ CREATE TABLE application (
      "deltime"   timestamp(3) without time zone default NULL,
      "application_id"   varchar(36) default NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
-     "authinfo" varchar(64) NOT NULL,
+     "authinfo" varchar(255) default NULL,
      "phase_name" VARCHAR(75) DEFAULT NULL,
      "phase_type" VARCHAR(50) NOT NULL,
      "smd" TEXT DEFAULT NULL,
@@ -406,7 +406,7 @@ CREATE TABLE domain_authinfo (
      "id" SERIAL PRIMARY KEY,
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "authtype" varchar CHECK ("authtype" IN ( 'pw','ext' )) NOT NULL default 'pw',
-     "authinfo"   varchar(64) NOT NULL,
+     "authinfo"   varchar(255) NOT NULL,
      unique ("domain_id") 
 );
 

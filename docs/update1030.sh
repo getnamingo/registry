@@ -105,6 +105,16 @@ case "$db_driver" in
                 "ALTER TABLE contact MODIFY COLUMN validation_log TEXT NULL"
                 
         "${db_cmd[@]}" -e "
+            ALTER TABLE contact_authInfo
+                MODIFY COLUMN authinfo VARCHAR(255) NOT NULL;
+
+            ALTER TABLE domain_authInfo
+                MODIFY COLUMN authinfo VARCHAR(255) NOT NULL;
+
+            ALTER TABLE application
+                MODIFY COLUMN authinfo VARCHAR(255) NULL DEFAULT NULL;"
+
+        "${db_cmd[@]}" -e "
             INSERT IGNORE INTO settings (name, value)
             VALUES ('allocationTokens', NULL)"
 
@@ -124,6 +134,19 @@ case "$db_driver" in
                     ON payment_history (gateway, gateway_reference);
                 ALTER TABLE contact
                     ALTER COLUMN validation_log TYPE TEXT;
+                    
+                ALTER TABLE contact_authinfo
+                    ALTER COLUMN authinfo TYPE VARCHAR(255);
+
+                ALTER TABLE domain_authinfo
+                    ALTER COLUMN authinfo TYPE VARCHAR(255);
+
+                ALTER TABLE application
+                    ALTER COLUMN authinfo TYPE VARCHAR(255);
+                ALTER TABLE application
+                    ALTER COLUMN authinfo DROP NOT NULL;
+                ALTER TABLE application
+                    ALTER COLUMN authinfo SET DEFAULT NULL;
 
                 INSERT INTO settings (name, value)
                 VALUES ('"'"'allocationTokens'"'"', NULL)

@@ -110,9 +110,11 @@ try {
                     $stmt->execute();
                 }
 
-                // Insert auth info and status for the new registrant
-                $new_authinfo = generateAuthInfo();
-                $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                if (!isSecureAuthInfoTransferEnabled($dbh)) {
+                    // Insert auth info and status for the new registrant
+                    $new_authinfo = generateAuthInfo();
+                    $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                }
                 $dbh->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
 
                 // Process each contact in the contact map
@@ -149,8 +151,10 @@ try {
                             $stmt->execute();
                         }
 
-                        $new_authinfo = generateAuthInfo();
-                        $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                        if (!isSecureAuthInfoTransferEnabled($dbh)) {
+                            $new_authinfo = generateAuthInfo();
+                            $dbh->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                        }
                         $dbh->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
                     }
                 }
@@ -182,9 +186,14 @@ try {
                 ':domain_id'       => $domain_id,
             ]);
 
-            $new_authinfo = generateAuthInfo();
-            $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
-            $stmt_update_auth->execute();
+            if (!isSecureAuthInfoTransferEnabled($dbh)) {
+                $new_authinfo = generateAuthInfo();
+                $stmt_update_auth = $dbh->prepare("UPDATE domain_authInfo SET authinfo = '$new_authinfo' WHERE domain_id = '$domain_id'");
+                $stmt_update_auth->execute();
+            } else {
+                $stmt_update_auth = $dbh->prepare("DELETE FROM domain_authInfo WHERE domain_id = :domain_id");
+                $stmt_update_auth->execute([':domain_id' => $domain_id]);
+            }
 
             // Remove "pendingTransfer" status
             $stmt_remove_pending = $dbh->prepare("DELETE FROM domain_status WHERE domain_id = :domain_id AND status = 'pendingTransfer'");
@@ -291,6 +300,11 @@ try {
                 // The losing registrar has five days once the contact is pending to respond.
                 $stmt_update_contact = $dbh->prepare("UPDATE contact SET lastupdate = CURRENT_TIMESTAMP, clid = ?, upid = NULL, trdate = CURRENT_TIMESTAMP, trstatus = 'serverApproved', acdate = CURRENT_TIMESTAMP WHERE id = ?");
                 $stmt_update_contact->execute([$reid, $contact_id]);
+
+                if (isSecureAuthInfoTransferEnabled($dbh)) {
+                    $stmt_delete_auth = $dbh->prepare("DELETE FROM contact_authInfo WHERE contact_id = ?");
+                    $stmt_delete_auth->execute([$contact_id]);
+                }
 
                 $stmt_select_contact = $dbh->prepare("SELECT identifier, crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = ? LIMIT 1");
                 $stmt_select_contact->execute([$contact_id]);
