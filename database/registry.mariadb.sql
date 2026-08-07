@@ -845,8 +845,8 @@ CREATE TABLE IF NOT EXISTS `registry`.`tmch_crl` (
     `update_timestamp` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Crl';
 
-INSERT INTO `registry`.`domain_tld` VALUES('1','.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
-INSERT INTO `registry`.`domain_tld` VALUES('2','.COM.TEST','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO `registry`.`domain_tld` VALUES('1','.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
+INSERT INTO `registry`.`domain_tld` VALUES('2','.com.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 
 INSERT INTO `registry`.`domain_price` VALUES('1','1',NULL,'create','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
 INSERT INTO `registry`.`domain_price` VALUES('2','1',NULL,'renew','0.00','5.00','10.00','15.00','20.00','25.00','30.00','35.00','40.00','45.00','50.00');
@@ -945,6 +945,7 @@ INSERT INTO `registry`.`settings` (`name`, `value`) VALUES
 ('handle',    'RXX'),
 ('email',    'contact@example.com'),
 ('launch_phases',    NULL),
+('allocationTokens',    NULL),
 ('whois_server',    'whois.example.com'),
 ('rdap_server',    'https://rdap.example.com'),
 ('currency',    'EUR');

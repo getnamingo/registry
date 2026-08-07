@@ -872,6 +872,7 @@ INSERT INTO settings (name, value) VALUES
 ('handle', 'RXX'),
 ('email', 'contact@example.com'),
 ('launch_phases', NULL),
+('allocationTokens', NULL),
 ('whois_server', 'whois.example.com'),
 ('rdap_server', 'https://rdap.example.com'),
 ('currency', 'EUR');

@@ -67,6 +67,7 @@ class SystemController extends Controller
                     'contactPhone'        => 'phone',
                     'registryHandle'      => 'handle',
                     'launchPhases'        => 'launch_phases',
+                    'allocationTokens'    => 'allocationTokens',
                     'whoisServer'         => 'whois_server',
                     'rdapServer'          => 'rdap_server',
                     'currency'            => 'currency',
@@ -74,6 +75,7 @@ class SystemController extends Controller
 
                 $defaults = [
                     'launchPhases' => '0',
+                    'allocationTokens' => '0',
                 ];
 
                 foreach ($settingsMap as $formField => $settingName) {
@@ -142,6 +144,7 @@ class SystemController extends Controller
         $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
         $handle = $db->selectValue("SELECT value FROM settings WHERE name = 'handle'");
         $launch_phases = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'");
+        $allocationTokens = $db->selectValue("SELECT value FROM settings WHERE name = 'allocationTokens'");
         $whois_server = $db->selectValue("SELECT value FROM settings WHERE name = 'whois_server'");
         $rdap_server = $db->selectValue("SELECT value FROM settings WHERE name = 'rdap_server'");
         $currency = $db->selectValue("SELECT value FROM settings WHERE name = 'currency'");
@@ -169,6 +172,7 @@ class SystemController extends Controller
             'email' => $email,
             'handle' => $handle,
             'launch_phases' => $launch_phases,
+            'allocationTokens' => $allocationTokens,
             'whois_server' => $whois_server,
             'rdap_server' => $rdap_server,
             'uniqueCurrencies' => $uniqueCurrencies,

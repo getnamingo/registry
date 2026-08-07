@@ -37,22 +37,26 @@
               <div class="card">
                 <div class="card-body border-bottom py-3">
                   <p class="mb-4">{{ __('Enter the domain name you want to check:') }}</p>
-                    <form action="/domain/check" method="POST">
-                    {{ csrf.field | raw }}
-                      <div class="input-group mb-3">
-                        <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required" autocapitalize="none">
-                        <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
-                      </div>
-                      <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-check">
-                          <input class="form-check-input" type="checkbox" name="claims">
-                          <span class="form-check-label">{{ __('Check claims') }}</span>
-                        </label>
-                      </div>
-                    </form>
+                  <form action="/domain/check" method="POST">
+                  {{ csrf.field | raw }}
+                    <div class="input-group mb-3">
+                      <input type="text" class="form-control" placeholder="yourdomain.com" name="domain_name" required="required" autocapitalize="none">
+                      <button type="submit" class="btn btn-primary">{{ __('Check Availability') }}</button>
+                    </div>
+                    {% if allocationTokens %}
+                    <div class="mb-3">
+                      <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" autocapitalize="none">
+                    </div>
+                    {% endif %}
+                    {% if applicationsEnabled %}
+                    <div class="mb-3">
+                      <label class="form-check">
+                        <input class="form-check-input" type="checkbox" name="claims">
+                        <span class="form-check-label">{{ __('Check claims') }}</span>
+                      </label>
+                    </div>
+                    {% endif %}
+                  </form>
                 </div>
               </div>
             </div>

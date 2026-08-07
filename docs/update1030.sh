@@ -103,8 +103,12 @@ case "$db_driver" in
         [[ "$validation_log_type" == "text" ]] ||
             "${db_cmd[@]}" -e \
                 "ALTER TABLE contact MODIFY COLUMN validation_log TEXT NULL"
+                
+        "${db_cmd[@]}" -e "
+            INSERT IGNORE INTO settings (name, value)
+            VALUES ('allocationTokens', NULL)"
         ;;
-        
+
     pgsql)
         PGPASSWORD="$db_pass" psql -X -v ON_ERROR_STOP=1 \
             -h "$db_host" -U "$db_user" -d "$db_name" -c '
@@ -116,6 +120,10 @@ case "$db_driver" in
                     ON payment_history (gateway, gateway_reference);
                 ALTER TABLE contact
                     ALTER COLUMN validation_log TYPE TEXT;
+
+                INSERT INTO settings (name, value)
+                VALUES ('"'"'allocationTokens'"'"', NULL)
+                ON CONFLICT (name) DO NOTHING;
             '
         ;;
 esac

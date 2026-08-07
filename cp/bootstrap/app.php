@@ -143,8 +143,10 @@ $container->set('view', function ($container) {
 
     $db = $container->get('db');
     $applicationsEnabled = $db->selectValue("SELECT value FROM settings WHERE name = 'launch_phases'") === 'on';
+    $allocationTokens = $db->selectValue("SELECT value FROM settings WHERE name = 'allocationTokens'") === 'on';
 
     $view->getEnvironment()->addGlobal('applicationsEnabled', $applicationsEnabled);
+    $view->getEnvironment()->addGlobal('allocationTokens', $allocationTokens);
     $view->getEnvironment()->addGlobal('uiLang', $uiLang);
     $view->getEnvironment()->addGlobal('lang', $lang);
     $view->getEnvironment()->addGlobal('_lang', substr($desiredLanguage, 0, 2));
