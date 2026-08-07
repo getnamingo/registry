@@ -104,10 +104,9 @@
                         <div class="mb-3">
                           <label class="form-label">{{ __('Type') }}</label>
                           <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="role-toggle" name="role" value="admin">
+                            <input class="form-check-input" type="checkbox" id="role-toggle" value="admin">
                             <label class="form-check-label" for="role-toggle" id="role-label">{{ __('Registrar') }}</label>
                           </div>
-                          <!-- Hidden input to ensure "registrar" is sent when the toggle is off -->
                           <input type="hidden" name="role" id="hidden-role" value="registrar">
                         </div>
                       </div>
@@ -122,6 +121,17 @@
                           {% for registrar in registrars %}
                             <option value="{{ registrar.id }}">{{ registrar.name }}</option>
                           {% endfor %}
+                        </select>
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label">{{ __('Registrar Role') }}</label>
+                        <select class="form-select" name="registrar_role">
+                          <option value="registrar">{{ __('Full Access') }}</option>
+                          <option value="accountant">{{ __('Accountant') }}</option>
+                          <option value="support">{{ __('Support') }}</option>
+                          <option value="audit">{{ __('Audit') }}</option>
+                          <option value="sales">{{ __('Sales') }}</option>
                         </select>
                       </div>
                     </div>
@@ -140,31 +150,43 @@
         {% include 'partials/footer.twig' %}
       </div>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const roleToggle = document.getElementById("role-toggle");
-    const hiddenRoleInput = document.getElementById("hidden-role");
-    const registrarFields = document.getElementById("registrar-fields");
-    const roleLabel = document.getElementById("role-label");
+document.addEventListener('DOMContentLoaded', function () {
+    const roleToggle = document.getElementById('role-toggle');
+    const hiddenRoleInput = document.getElementById('hidden-role');
+    const registrarFields = document.getElementById('registrar-fields');
+    const roleLabel = document.getElementById('role-label');
 
-    // Function to toggle registrar fields, role value, and label text
+    const registrarInputs = registrarFields.querySelectorAll(
+        'input, select, textarea'
+    );
+
     function updateRole() {
         if (roleToggle.checked) {
-            // Admin role selected
-            hiddenRoleInput.value = "admin";
-            roleLabel.textContent = "Admin"; // Update label to Admin
-            registrarFields.style.display = "none"; // Hide registrar-specific fields
+            // Admin
+            hiddenRoleInput.value = 'admin';
+            roleLabel.textContent = {{ __('Admin')|json_encode|raw }};
+            registrarFields.style.display = 'none';
+
+            // Do not submit registrar-specific fields
+            registrarInputs.forEach(function (input) {
+                input.disabled = true;
+            });
         } else {
-            // Registrar role selected
-            hiddenRoleInput.value = "registrar";
-            roleLabel.textContent = "Registrar"; // Update label to Registrar
-            registrarFields.style.display = "block"; // Show registrar-specific fields
+            // Registrar
+            hiddenRoleInput.value = 'registrar';
+            roleLabel.textContent = {{ __('Registrar')|json_encode|raw }};
+            registrarFields.style.display = 'block';
+
+            // Submit registrar-specific fields
+            registrarInputs.forEach(function (input) {
+                input.disabled = false;
+            });
         }
     }
 
-    // Attach event listener to the toggle
-    roleToggle.addEventListener("change", updateRole);
+    roleToggle.addEventListener('change', updateRole);
 
-    // Set initial state on page load
+    // Set correct state on initial page load
     updateRole();
 });
 </script>

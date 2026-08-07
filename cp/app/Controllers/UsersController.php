@@ -33,13 +33,16 @@ class UsersController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();    
             $db = $this->container->get('db');
+
             $email = $data['email'] ?? null;
             $username = $data['username'] ?? null;
             $password = $data['password'] ?? null;
             $password_confirmation = $data['password_confirmation'] ?? null;
             $status = $data['status'] ?? null;
             $verified = $data['verified'] ?? null;
-            $role = $data['role'] ?? null;
+
+            $accountType = $data['role'] ?? null;
+            $registrarRole = $data['registrar_role'] ?? null;
             $registrar_id = $data['registrar_id'] ?? null;
 
             // Define validation rules
@@ -49,39 +52,61 @@ class UsersController extends Controller
                 'password' => v::stringType()->notEmpty()->length(6, 255)->setName('Password'),
                 'password_confirmation' => v::equals($data['password'] ?? '')->setName('Password Confirmation'),
                 'status' => v::in(['0', '4'])->setName('Status'),
+                'verified' => v::in(['0', '1'])->setName('Verified'),
                 'role' => v::in(['admin', 'registrar'])->setName('Role'),
             ];
 
-            // Add registrar_id validation if role is registrar
-            if (($data['role'] ?? '') === 'registrar') {
+            // Registrar-specific validation
+            if ($accountType === 'registrar') {
                 $validators['registrar_id'] = v::numericVal()->notEmpty()->setName('Registrar ID');
+
+                $validators['registrar_role'] = v::in([
+                    'registrar',
+                    'accountant',
+                    'support',
+                    'audit',
+                    'sales'
+                ])->setName('Registrar Role');
             }
 
             // Validate data
             $errors = [];
+
             foreach ($validators as $field => $validator) {
                 try {
                     $validator->assert($data[$field] ?? null);
                 } catch (\Respect\Validation\Exceptions\ValidationException $exception) {
-                    $errors[$field] = $exception->getMessages(); // Collect all error messages
+                    $errors[$field] = $exception->getMessages();
                 }
             }
 
-            // If errors exist, return with errors
             if (!empty($errors)) {
-                // Flatten the errors array into a string
                 $errorMessages = [];
+
                 foreach ($errors as $field => $fieldErrors) {
-                    $fieldMessages = implode(', ', $fieldErrors); // Concatenate messages for the field
-                    $errorMessages[] = ucfirst($field) . ': ' . $fieldMessages; // Prefix with field name
+                    $fieldMessages = implode(', ', $fieldErrors);
+                    $errorMessages[] = ucfirst($field) . ': ' . $fieldMessages;
                 }
-                $errorString = implode('; ', $errorMessages); // Join all fields' errors
 
-                // Add the flattened error string as a flash message
-                $this->container->get('flash')->addMessage('error', 'Error: ' . $errorString);
+                $errorString = implode('; ', $errorMessages);
 
-                // Redirect back to the form
+                $this->container->get('flash')->addMessage('error',    'Error: ' . $errorString);
+
                 return $response->withHeader('Location', '/user/create')->withStatus(302);
+            }
+
+            if ($accountType === 'admin') {
+                $role = 0;
+            } else {
+                $roleMap = [
+                    'registrar'  => 4,
+                    'accountant' => 8,
+                    'support'    => 16,
+                    'audit'      => 32,
+                    'sales'      => 64,
+                ];
+
+                $role = $roleMap[$registrarRole];
             }
 
             if (!checkPasswordComplexity($password)) {
@@ -89,83 +114,58 @@ class UsersController extends Controller
                 return $response->withHeader('Location', '/user/create')->withStatus(302);
             }
 
-            $registrars = $db->select("SELECT id, clid, name FROM registrar");
-            if ($_SESSION["auth_roles"] != 0) {
-                $registrar = true;
-            } else {
-                $registrar = null;
-            }
+            $db->beginTransaction();
 
-            if ($email) {                
-                if ($registrar_id) {                   
-                    $db->beginTransaction();
+            $password_hashed = password_hash(
+                $password,
+                PASSWORD_ARGON2ID,
+                [
+                    'memory_cost' => 1024 * 128,
+                    'time_cost' => 6,
+                    'threads' => 4
+                ]
+            );
 
-                    $password_hashed = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+            try {
+                // Create user
+                $db->insert(
+                    'users',
+                    [
+                        'email' => $email,
+                        'password' => $password_hashed,
+                        'username' => $username,
+                        'verified' => $verified,
+                        'roles_mask' => $role,
+                        'status' => $status,
+                        'registered' => \time()
+                    ]
+                );
 
-                    try {
-                        $db->insert(
-                            'users',
-                            [
-                                'email' => $email,
-                                'password' => $password_hashed,
-                                'username' => $username,
-                                'verified' => $verified,
-                                'roles_mask' => 4,
-                                'status' => $status,
-                                'registered' => \time()
-                            ]
-                        );
-                        $user_id = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
+                $userId = $db->getLastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
 
-                        $db->insert(
-                            'registrar_users',
-                            [
-                                'registrar_id' => $registrar_id,
-                                'user_id' => $user_id
-                            ]
-                        );
-
-                        $db->commit();
-                    } catch (Exception $e) {
-                        $db->rollBack();
-                        $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/user/create')->withStatus(302);
-                    }
-
-                    $this->container->get('flash')->addMessage('success', 'User ' . $email . ' has been created successfully');
-                    return $response->withHeader('Location', '/users')->withStatus(302);
-                } else {
-                    $db->beginTransaction();
-
-                    $password_hashed = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
-
-                    try {
-                        $db->insert(
-                            'users',
-                            [
-                                'email' => $email,
-                                'password' => $password_hashed,
-                                'username' => $username,
-                                'verified' => $verified,
-                                'roles_mask' => 0,
-                                'status' => $status,
-                                'registered' => \time()
-                            ]
-                        );
-                        $userId = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'users_id_seq' : null);
-
-                        $db->commit();
-                    } catch (Exception $e) {
-                        $db->rollBack();
-                        $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/user/create')->withStatus(302);
-                    }
-
-                    $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
-                    $this->container->get('flash')->addMessage('success', 'User ' . $email . ' has been created successfully');
-                    return $response->withHeader('Location', '/users')->withStatus(302);
+                // Associate registrar users with their registrar
+                if ($accountType === 'registrar') {
+                    $db->insert(
+                        'registrar_users',
+                        [
+                            'registrar_id' => $registrar_id,
+                            'user_id' => $userId
+                        ]
+                    );
                 }
+
+                $db->exec('UPDATE users SET password_last_updated = NOW() WHERE id = ?', [$userId]);
+
+                $db->commit();
+
+            } catch (Exception $e) {
+                $db->rollBack();
+                $this->container->get('flash')->addMessage('error',    'Database failure: ' . $e->getMessage());
+                return $response->withHeader('Location', '/user/create')->withStatus(302);
             }
+
+            $this->container->get('flash')->addMessage('success', 'User ' . $email . ' has been created successfully');
+            return $response->withHeader('Location', '/users')->withStatus(302);
         }
 
         $db = $this->container->get('db');
