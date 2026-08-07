@@ -207,7 +207,7 @@ class FinancialsController extends Controller
             $enabledGateways = array_map('trim', explode(',', envi('ENABLED_GATEWAYS')));
 
             return view($response,'admin/financials/deposit-registrar.twig', [
-                'balance' => $balance,
+                'balance_user' => $balance,
                 'currency' => $currency,
                 'enabledGateways' => $enabledGateways,
             ]);
