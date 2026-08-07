@@ -107,6 +107,10 @@ case "$db_driver" in
         "${db_cmd[@]}" -e "
             INSERT IGNORE INTO settings (name, value)
             VALUES ('allocationTokens', NULL)"
+
+        "${db_cmd[@]}" -e "
+            INSERT IGNORE INTO settings (name, value)
+            VALUES ('secureAuthInfoTransfer', NULL)"
         ;;
 
     pgsql)
@@ -123,6 +127,10 @@ case "$db_driver" in
 
                 INSERT INTO settings (name, value)
                 VALUES ('"'"'allocationTokens'"'"', NULL)
+                ON CONFLICT (name) DO NOTHING;
+
+                INSERT INTO settings (name, value)
+                VALUES ('"'"'secureAuthInfoTransfer'"'"', NULL)
                 ON CONFLICT (name) DO NOTHING;
             '
         ;;

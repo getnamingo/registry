@@ -873,6 +873,7 @@ INSERT INTO settings (name, value) VALUES
 ('email', 'contact@example.com'),
 ('launch_phases', NULL),
 ('allocationTokens', NULL),
+('secureAuthInfoTransfer', NULL),
 ('whois_server', 'whois.example.com'),
 ('rdap_server', 'https://rdap.example.com'),
 ('currency', 'EUR');
