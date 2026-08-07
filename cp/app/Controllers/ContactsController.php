@@ -39,6 +39,7 @@ class ContactsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
             $contactID = $data['contactid'] ?? null;
@@ -73,7 +74,7 @@ class ContactsController extends Controller
             $voice = $data['voice'] ?? null;
             $fax = $data['fax'] ?? null;
             $email = strtolower($data['email']) ?? null;
-            $authInfo_pw = $data['authInfo'] ?? null;
+            $authInfo_pw = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
 
             if (!$contactID) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Please provide a contact ID');
@@ -242,19 +243,27 @@ class ContactsController extends Controller
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Email address failed check');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
-            
-            if (!$authInfo_pw) {
+
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo_pw) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact authinfo missing');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                }
+
+                if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 64 characters long');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                }
+
+                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password should have both upper and lower case characters');
+                    return $response->withHeader('Location', '/contact/create')->withStatus(302);
+                }
+            } elseif ($authInfo_pw === null) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact authinfo missing');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
-            }
-
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password needs to be at least 6 and up to 64 characters long');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
-            }
-
-            if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password should have both upper and lower case characters');
+            } elseif ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
             }
 
@@ -352,15 +361,19 @@ class ContactsController extends Controller
                         ]
                     );
                 }
-                
-                $db->insert(
-                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
-                    [
-                        'contact_id' => $contact_id,
-                        'authtype' => 'pw',
-                        'authinfo' => $authInfo_pw
-                    ]
-                );
+
+                if ($secureAuthInfoTransfer) {
+                    storeAuthInfo($db, 'contact', (int)$contact_id, $authInfo_pw);
+                } else {
+                    $db->insert(
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
+                        [
+                            'contact_id' => $contact_id,
+                            'authtype' => 'pw',
+                            'authinfo' => $authInfo_pw
+                        ]
+                    );
+                }
 
                 $db->insert(
                     'contact_status',
@@ -401,6 +414,7 @@ class ContactsController extends Controller
             'registrars' => $registrars,
             'countries' => $countries,
             'registrar' => $registrar,
+            'secureAuthInfoTransfer' => isSecureAuthInfoTransferEnabled($db),
         ]);
     }
     
@@ -418,6 +432,7 @@ class ContactsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
             $contactID = $data['contactid'] ?? null;
@@ -452,7 +467,7 @@ class ContactsController extends Controller
             $voice = $data['voice'] ?? null;
             $fax = $data['fax'] ?? null;
             $email = strtolower($data['email']) ?? null;
-            $authInfo_pw = $data['authInfoc'] ?? null;
+            $authInfo_pw = isset($data['authInfoc']) && is_string($data['authInfoc']) ? $data['authInfoc'] : null;
 
             if (!$contactID) {
                 $error = ["error" => "Unable to create contact: Please provide a contact ID"];
@@ -646,20 +661,30 @@ class ContactsController extends Controller
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
             
-            if (!$authInfo_pw) {
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo_pw) {
+                    $error = ["error" => "Unable to create contact: Contact authinfo missing"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                }
+
+                if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                    $error = ["error" => "Unable to create contact: Password needs to be at least 6 and up to 64 characters long"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                }
+
+                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                    $error = ["error" => "Unable to create contact: Password should have both upper and lower case characters"];
+                    $response->getBody()->write(json_encode($error));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                }
+            } elseif ($authInfo_pw === null) {
                 $error = ["error" => "Unable to create contact: Contact authinfo missing"];
                 $response->getBody()->write(json_encode($error));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-            }
-
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
-                $error = ["error" => "Unable to create contact: Password needs to be at least 6 and up to 64 characters long"];
-                $response->getBody()->write(json_encode($error));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-            }
-
-            if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                $error = ["error" => "Unable to create contact: Password should have both upper and lower case characters"];
+            } elseif ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+                $error = ["error" => "Unable to create contact: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)"];
                 $response->getBody()->write(json_encode($error));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
@@ -761,14 +786,18 @@ class ContactsController extends Controller
                     );
                 }
                 
-                $db->insert(
-                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
-                    [
-                        'contact_id' => $contact_id,
-                        'authtype' => 'pw',
-                        'authinfo' => $authInfo_pw
-                    ]
-                );
+                if ($secureAuthInfoTransfer) {
+                    storeAuthInfo($db, 'contact', (int)$contact_id, $authInfo_pw);
+                } else {
+                    $db->insert(
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
+                        [
+                            'contact_id' => $contact_id,
+                            'authtype' => 'pw',
+                            'authinfo' => $authInfo_pw
+                        ]
+                    );
+                }
 
                 $db->insert(
                     'contact_status',
@@ -848,7 +877,8 @@ class ContactsController extends Controller
                 
                 $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?',
                 [ $contact['id'] ]);
-                $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
+                $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+                $contactAuth = $secureAuthInfoTransfer ? null : $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
                 $contactLinked = $db->selectRow('SELECT domain_id, type FROM domain_contact_map WHERE contact_id = ?',
                 [ $contact['id'] ]);
@@ -1036,7 +1066,8 @@ class ContactsController extends Controller
                 
                 $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?',
                 [ $contact['id'] ]);
-                $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
+                $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+                $contactAuth = $secureAuthInfoTransfer ? null : $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
                 $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?',
                 [ $contact['id'] ]);
@@ -1050,7 +1081,8 @@ class ContactsController extends Controller
                     'contactPostal' => $contactPostal,
                     'registrars' => $registrars,
                     'countries' => $countries,
-                    'currentUri' => $uri
+                    'currentUri' => $uri,
+                    'secureAuthInfoTransfer' => $secureAuthInfoTransfer
                 ];
                 
                 $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
@@ -1124,7 +1156,9 @@ class ContactsController extends Controller
         $countries = $iso3166->all();
 
         $contactStatus = $db->selectRow('SELECT status FROM contact_status WHERE contact_id = ?', [ $contact['id'] ]);
-        $contactAuth = $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?', [ $contact['id'] ]);
+        $contactAuth = isSecureAuthInfoTransferEnabled($db)
+            ? null
+            : $db->selectRow('SELECT authinfo FROM contact_authInfo WHERE contact_id = ?', [ $contact['id'] ]);
         $contactPostal = $db->select('SELECT * FROM contact_postalInfo WHERE contact_id = ?', [ $contact['id'] ]);
 
         $_SESSION['contacts_to_validate'] = [$contact['identifier']];
@@ -1441,6 +1475,7 @@ class ContactsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $iso3166 = new ISO3166();
             $countries = $iso3166->all();
             if (!empty($_SESSION['contacts_to_update'])) {
@@ -1483,7 +1518,7 @@ class ContactsController extends Controller
             $voice = $data['voice'] ?? null;
             $fax = $data['fax'] ?? null;
             $email = $data['email'] ?? null;
-            $authInfo_pw = $data['authInfo'] ?? null;
+            $authInfo_pw = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
 
             if (!$identifier) {
                 $this->container->get('flash')->addMessage('error', 'Unable to update contact: Please provide a contact ID');
@@ -1626,18 +1661,23 @@ class ContactsController extends Controller
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
-            if (!$authInfo_pw) {
-                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Contact authinfo');
-                return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
-            }
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo_pw) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Contact authinfo');
+                    return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                }
 
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password needs to be at least 6 and up to 64 characters long');
-                return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
-            }
+                if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password needs to be at least 6 and up to 64 characters long');
+                    return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                }
 
-            if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password should have both upper and lower case characters');
+                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact: Password should have both upper and lower case characters');
+                    return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
+                }
+            } elseif ($authInfo_pw !== null && $authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+                $this->container->get('flash')->addMessage('error', 'Unable to update contact: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/contact/update/'.$identifier)->withStatus(302);
             }
 
@@ -1768,17 +1808,23 @@ class ContactsController extends Controller
                     }
 
                 }
-                
-                $db->update(
-                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
-                    [
-                        'authinfo' => $authInfo_pw
-                    ],
-                    [
-                        'contact_id' => $contact_id,
-                        'authtype' => 'pw'
-                    ]
-                );
+
+                if ($secureAuthInfoTransfer) {
+                    if ($authInfo_pw !== null) {
+                        storeAuthInfo($db, 'contact', (int)$contact_id, $authInfo_pw);
+                    }
+                } else {
+                    $db->update(
+                        envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
+                        [
+                            'authinfo' => $authInfo_pw
+                        ],
+                        [
+                            'contact_id' => $contact_id,
+                            'authtype' => 'pw'
+                        ]
+                    );
+                }
 
                 $db->commit();
             } catch (Exception $e) {

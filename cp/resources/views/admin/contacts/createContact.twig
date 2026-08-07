@@ -151,7 +151,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="authInfo" class="form-label required">{{ __('Contact AuthInfo') }}</label>
+                        <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Contact AuthInfo') }}</label>
                         <input type="text" class="form-control" id="authInfo" name="authInfo" readonly>
                         <small class="form-text text-muted">{{ __('Auto-generated authentication information for the contact') }}.</small>
                     </div>
@@ -258,7 +258,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Generate authInfo for Contact
     const authInfoInput = document.getElementById('authInfo');
+    {% if not secureAuthInfoTransfer %}
     authInfoInput.value = generateAuthInfo();
+    {% endif %}
 
     function generateAuthInfo() {
         const length = 16;

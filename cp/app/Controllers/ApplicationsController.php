@@ -32,6 +32,7 @@ class ApplicationsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $domainName = $data['domainName'] ?? null;
             // Convert to Punycode if the domain is not in ASCII
             if (!mb_detect_encoding($domainName, 'ASCII', true)) {
@@ -71,7 +72,7 @@ class ApplicationsController extends Controller
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
 
-            $authInfo = $data['authInfo'] ?? null;
+            $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             $invalid_domain = validate_label($domainName, $db);
             
             $uploadedFiles = $request->getUploadedFiles();
@@ -438,21 +439,29 @@ class ApplicationsController extends Controller
                 }
             }
             
-            if (!$authInfo) {
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Missing application authinfo');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+
+                if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Password needs to be at least 6 and up to 16 characters long');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+
+                if (!preg_match('/[A-Z]/', $authInfo)) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating application: Password should have both upper and lower case characters');
+                    return $response->withHeader('Location', '/application/create')->withStatus(302);
+                }
+            } elseif ($authInfo === null) {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: Missing application authinfo');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
-            }
-
-            if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                $this->container->get('flash')->addMessage('error', 'Error creating application: Password needs to be at least 6 and up to 16 characters long');
+            } elseif ($authInfo !== '' && !isSecureAuthInfo($authInfo)) {
+                $this->container->get('flash')->addMessage('error', 'Error creating application: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
-            if (!preg_match('/[A-Z]/', $authInfo)) {
-                $this->container->get('flash')->addMessage('error', 'Error creating application: Password should have both upper and lower case characters');
-                return $response->withHeader('Location', '/application/create')->withStatus(302);
-            }
-            
             $registrant_id = $db->selectValue(
                 'SELECT id FROM contact WHERE identifier = ? LIMIT 1',
                 [$contactRegistrant]
@@ -481,7 +490,7 @@ class ApplicationsController extends Controller
                     'acid' => null,
                     'acdate' => null,            
                     'authtype' => 'pw',
-                    'authinfo' => $authInfo,
+                    'authinfo' => $secureAuthInfoTransfer ? ($authInfo === '' ? null : hashAuthInfo($authInfo)) : $authInfo,
                     'phase_name' => $phaseName ?? null,
                     'phase_type' => $phaseType ?? 'none',
                     'smd' => $smd ?? null,
@@ -760,6 +769,7 @@ class ApplicationsController extends Controller
                 'registrars' => $registrars,
                 'countries' => $countries,
                 'registrar' => $registrar,
+                'secureAuthInfoTransfer' => isSecureAuthInfoTransferEnabled($db),
             ]);
         } else {
             $this->container->get('flash')->addMessage('info', 'Applications are disabled.');
@@ -785,6 +795,10 @@ class ApplicationsController extends Controller
             [ $args ]);
 
             if ($domain) {
+                $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+                if ($secureAuthInfoTransfer) {
+                    $domain['authinfo'] = null;
+                }
                 $registrars = $db->selectRow('SELECT id, clid, name FROM registrar WHERE id = ?', [$domain['clid']]);
 
                 // Check if the user is not an admin (assuming role 0 is admin)
@@ -1189,6 +1203,7 @@ class ApplicationsController extends Controller
 
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             // Get the current URI
             $uri = $request->getUri()->getPath();
         
@@ -1306,14 +1321,29 @@ class ApplicationsController extends Controller
                     ]);
                     $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_id_seq' : null);
 
-                    $db->insert(
-                        envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
-                        [
-                            'domain_id' => $domain_id,
-                            'authtype' => 'pw',
-                            'authinfo' => $authinfo
-                        ]
-                    );
+                    if ($secureAuthInfoTransfer) {
+                        if ($authinfo !== null && $authinfo !== '') {
+                            $db->insert(
+                                envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
+                                [
+                                    'domain_id' => $domain_id,
+                                    'authtype' => 'pw',
+                                    'authinfo' => preg_match('/^sha256\$[0-9a-f]{32}\$[0-9a-f]{64}$/D', $authinfo) === 1
+                                        ? $authinfo
+                                        : hashAuthInfo($authinfo)
+                                ]
+                            );
+                        }
+                    } else {
+                        $db->insert(
+                            envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
+                            [
+                                'domain_id' => $domain_id,
+                                'authtype' => 'pw',
+                                'authinfo' => $authinfo
+                            ]
+                        );
+                    }
 
                     $db->exec(
                         'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',

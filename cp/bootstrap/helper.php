@@ -822,6 +822,89 @@ function generateAuthInfo(): string {
     return $retVal;
 }
 
+function isSecureAuthInfoTransferEnabled($db): bool
+{
+    $value = $db->selectValue("SELECT value FROM settings WHERE name = 'secureAuthInfoTransfer' LIMIT 1");
+
+    return in_array(
+        strtolower(trim((string) $value)),
+        ['1', 'on', 'true', 'yes', 'enabled'],
+        true
+    );
+}
+
+function isSecureAuthInfo(string $authInfo): bool
+{
+    $length = strlen($authInfo);
+    if ($length > 64 || preg_match('/^[\x21-\x7e]+$/D', $authInfo) !== 1) {
+        return false;
+    }
+
+    return $length >= (preg_match('/^[A-Za-z0-9]+$/D', $authInfo) === 1 ? 25 : 20);
+}
+
+function hashAuthInfo(string $authInfo): string
+{
+    $salt = random_bytes(16);
+    return 'sha256$' . bin2hex($salt) . '$' . hash('sha256', $salt . $authInfo);
+}
+
+function authInfoStorage(string $objectType): array
+{
+    return match ($objectType) {
+        'contact' => [envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo', 'contact_id'],
+        'domain' => [envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo', 'domain_id'],
+        default => throw new InvalidArgumentException('Unsupported authInfo object type'),
+    };
+}
+
+function storeAuthInfo($db, string $objectType, int $objectId, ?string $authInfo): void
+{
+    [$table, $idColumn] = authInfoStorage($objectType);
+    $db->delete($table, [$idColumn => $objectId]);
+
+    if ($authInfo !== null && $authInfo !== '') {
+        $db->insert($table, [
+            $idColumn => $objectId,
+            'authtype' => 'pw',
+            'authinfo' => hashAuthInfo($authInfo),
+        ]);
+    }
+}
+
+function authInfoMatches($db, string $objectType, int $objectId, ?string $authInfo): bool
+{
+    if ($authInfo === null || $authInfo === '') {
+        return false;
+    }
+
+    [$table, $idColumn] = authInfoStorage($objectType);
+    $stored = $db->selectValue(
+        "SELECT authinfo FROM {$table} WHERE {$idColumn} = ? AND authtype = 'pw' LIMIT 1",
+        [$objectId]
+    );
+
+    if (!is_string($stored) || $stored === '') {
+        return false;
+    }
+
+    if (preg_match('/^sha256\$([0-9a-f]{32})\$([0-9a-f]{64})$/D', $stored, $parts) === 1) {
+        $salt = hex2bin($parts[1]);
+        return $salt !== false && hash_equals($parts[2], hash('sha256', $salt . $authInfo));
+    }
+
+    if (hash_equals($stored, $authInfo)) {
+        $db->update(
+            $table,
+            ['authinfo' => hashAuthInfo($authInfo)],
+            [$idColumn => $objectId, 'authtype' => 'pw', 'authinfo' => $stored]
+        );
+        return true;
+    }
+
+    return false;
+}
+
 function validateLocField($input, $minLength = 5, $maxLength = 255) {
     // Normalize input to NFC form
     $input = normalizer_normalize($input, Normalizer::FORM_C);

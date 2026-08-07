@@ -120,6 +120,7 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $domainName = $data['domainName'] ?? null;
             // Convert to Punycode if the domain is not in ASCII
             if (!mb_detect_encoding($domainName, 'ASCII', true)) {
@@ -166,7 +167,7 @@ class DomainsController extends Controller
             $dnskeyAlg = $data['dnskeyAlg'] ?? null;
             $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
 
-            $authInfo = $data['authInfo'] ?? null;
+            $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             $invalid_domain = validate_label($domainName, $db);
 
             $uploadedFiles = $request->getUploadedFiles();
@@ -573,18 +574,26 @@ class DomainsController extends Controller
                 }
             }
             
-            if (!$authInfo) {
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Missing domain authinfo');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                }
+
+                if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Password needs to be at least 6 and up to 16 characters long');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                }
+
+                if (!preg_match('/[A-Z]/', $authInfo)) {
+                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Password should have both upper and lower case characters');
+                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
+                }
+            } elseif ($authInfo === null) {
                 $this->container->get('flash')->addMessage('error', 'Error creating domain: Missing domain authinfo');
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
-            }
-
-            if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                $this->container->get('flash')->addMessage('error', 'Error creating domain: Password needs to be at least 6 and up to 16 characters long');
-                return $response->withHeader('Location', '/domain/create')->withStatus(302);
-            }
-
-            if (!preg_match('/[A-Z]/', $authInfo)) {
-                $this->container->get('flash')->addMessage('error', 'Error creating domain: Password should have both upper and lower case characters');
+            } elseif ($authInfo !== '' && !isSecureAuthInfo($authInfo)) {
+                $this->container->get('flash')->addMessage('error', 'Error creating domain: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
@@ -630,15 +639,19 @@ class DomainsController extends Controller
                 ]);
                 $domain_id = $db->getlastInsertId(envi('DB_DRIVER') === 'pgsql' ? 'domain_id_seq' : null);
 
-                $db->insert(
-                    envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
-                    [
-                        'domain_id' => $domain_id,
-                        'authtype' => 'pw',
-                        'authinfo' => $authInfo
-                    ]
-                );
-                
+                if ($secureAuthInfoTransfer) {
+                    storeAuthInfo($db, 'domain', (int)$domain_id, $authInfo);
+                } else {
+                    $db->insert(
+                        envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
+                        [
+                            'domain_id' => $domain_id,
+                            'authtype' => 'pw',
+                            'authinfo' => $authInfo
+                        ]
+                    );
+                }
+
                 if ($_SESSION["auth_roles"] != 0) {
                     $clientStatuses = $data['clientStatuses'] ?? [];
                     
@@ -1076,6 +1089,7 @@ class DomainsController extends Controller
             'launch_phases' => $launch_phases,
             'currency' => $currency,
             'registry_currency' => $registry_currency,
+            'secureAuthInfoTransfer' => isSecureAuthInfoTransferEnabled($db),
         ]);
     }
     
@@ -1117,7 +1131,8 @@ class DomainsController extends Controller
                 [ $domain['registrant'] ]);
                 $domainStatus = $db->select('SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain['id'] ]);
-                $domainAuth = $db->selectRow('SELECT * FROM domain_authInfo WHERE domain_id = ?',
+                $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+                $domainAuth = $secureAuthInfoTransfer ? null : $db->selectRow('SELECT * FROM domain_authInfo WHERE domain_id = ?',
                 [ $domain['id'] ]);
                 $domainSecdns = $db->select('SELECT * FROM secdns WHERE domain_id = ?',
                 [ $domain['id'] ]);
@@ -1314,7 +1329,8 @@ class DomainsController extends Controller
                 [ $domain['registrant'] ]);
                 $domainStatus = $db->select('SELECT status FROM domain_status WHERE domain_id = ?',
                 [ $domain['id'] ]);
-                $domainAuth = $db->selectRow('SELECT authinfo FROM domain_authInfo WHERE domain_id = ?',
+                $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+                $domainAuth = $secureAuthInfoTransfer ? null : $db->selectRow('SELECT authinfo FROM domain_authInfo WHERE domain_id = ?',
                 [ $domain['id'] ]);
                 $domainSecdns = $db->select('SELECT * FROM secdns WHERE domain_id = ?',
                 [ $domain['id'] ]);
@@ -1360,7 +1376,8 @@ class DomainsController extends Controller
                     'currentUri' => $uri,
                     'countries' => $countries,
                     'csrfTokenName' => $csrfTokenName,
-                    'csrfTokenValue' => $csrfTokenValue
+                    'csrfTokenValue' => $csrfTokenValue,
+                    'secureAuthInfoTransfer' => $secureAuthInfoTransfer
                ]);
             } else {
                 // Domain does not exist, redirect to the domains view
@@ -1414,6 +1431,7 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             if (!empty($_SESSION['domains_to_update'])) {
                 $domainName = $_SESSION['domains_to_update'][0];
             } else {
@@ -1462,7 +1480,7 @@ class DomainsController extends Controller
             $dnskeyAlg = $data['dnskeyAlg'] ?? null;
             $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
             
-            $authInfo = $data['authInfo'] ?? null;
+            $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             
             if ($contactRegistrant) {
                 $validRegistrant = validate_identifier($contactRegistrant);
@@ -1539,18 +1557,23 @@ class DomainsController extends Controller
                 }
             }
             
-            if (!$authInfo) {
-                $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' can not be updated: Missing domain authinfo');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
+            if (!$secureAuthInfoTransfer) {
+                if (!$authInfo) {
+                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' can not be updated: Missing domain authinfo');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
 
-            if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
-                $this->container->get('flash')->addMessage('error', 'Password needs to be at least 6 and up to 16 characters long');
-                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-            }
+                if (strlen($authInfo) < 6 || strlen($authInfo) > 16) {
+                    $this->container->get('flash')->addMessage('error', 'Password needs to be at least 6 and up to 16 characters long');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
 
-            if (!preg_match('/[A-Z]/', $authInfo)) {
-                $this->container->get('flash')->addMessage('error', 'Password should have both upper and lower case characters');
+                if (!preg_match('/[A-Z]/', $authInfo)) {
+                    $this->container->get('flash')->addMessage('error', 'Password should have both upper and lower case characters');
+                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+                }
+            } elseif ($authInfo !== null && $authInfo !== '' && !isSecureAuthInfo($authInfo)) {
+                $this->container->get('flash')->addMessage('error', 'Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
             }
             
@@ -1579,17 +1602,23 @@ class DomainsController extends Controller
                     [$domainName]
                 );
 
-                $db->update(
-                    envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
-                    [
-                        'authinfo' => $authInfo
-                    ],
-                    [
-                        'id' => $domain_id,
-                        'authtype' => 'pw'
-                    ]
-                );
-                
+                if ($secureAuthInfoTransfer) {
+                    if ($authInfo !== null) {
+                        storeAuthInfo($db, 'domain', (int)$domain_id, $authInfo);
+                    }
+                } else {
+                    $db->update(
+                        envi('DB_DRIVER') === 'pgsql' ? 'domain_authinfo' : 'domain_authInfo',
+                        [
+                            'authinfo' => $authInfo
+                        ],
+                        [
+                            'domain_id' => $domain_id,
+                            'authtype' => 'pw'
+                        ]
+                    );
+                }
+
                 if ($_SESSION["auth_roles"] != 0) {
                     $clientStatuses = $data['clientStatuses'] ?? [];
                     
@@ -2616,6 +2645,7 @@ class DomainsController extends Controller
             // Retrieve POST data
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
             $domainName = $data['domainName'] ?? null;
             // Convert to Punycode if the domain is not in ASCII
             if (!mb_detect_encoding($domainName, 'ASCII', true)) {
@@ -2634,7 +2664,7 @@ class DomainsController extends Controller
             } else {
                 $registrar = null;
             }
-            $authInfo = $data['authInfo'] ?? null;
+            $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             $transferYears = $data['transferYears'] ?? null;
 
             if (!$domainName) {
@@ -2683,12 +2713,16 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
 
-            $domain_authinfo_id = $db->selectValue(
-                 'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
-                [
-                    $domain_id, $authInfo
-                ]
-            );
+            if ($secureAuthInfoTransfer) {
+                $domain_authinfo_id = authInfoMatches($db, 'domain', (int)$domain_id, $authInfo);
+            } else {
+                $domain_authinfo_id = $db->selectValue(
+                     'SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = \'pw\' AND authinfo = ? LIMIT 1',
+                    [
+                        $domain_id, $authInfo
+                    ]
+                );
+            }
             
             if (!$domain_authinfo_id) {
                 $this->container->get('flash')->addMessage('error', 'auth Info pw is not correct');
@@ -2974,7 +3008,8 @@ class DomainsController extends Controller
        //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
-            
+            $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+
             if ($args) {
                 $args = strtolower(trim($args));
 
@@ -3085,16 +3120,18 @@ class DomainsController extends Controller
                         // Insert new contact_postalInfo record
                         $db->insert(envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo', $postalInfo);
                     }
-                    
-                    $new_authinfo = generateAuthInfo();
-                    $db->insert(
-                        envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
-                        [
-                            'contact_id' => $newRegistrantId,
-                            'authtype' => 'pw',
-                            'authinfo' => $new_authinfo
-                        ]
-                    );
+
+                    if (!$secureAuthInfoTransfer) {
+                        $new_authinfo = generateAuthInfo();
+                        $db->insert(
+                            envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
+                            [
+                                'contact_id' => $newRegistrantId,
+                                'authtype' => 'pw',
+                                'authinfo' => $new_authinfo
+                            ]
+                        );
+                    }
 
                     $db->insert(
                         'contact_status',
@@ -3123,16 +3160,18 @@ class DomainsController extends Controller
                                 // Insert new contact_postalInfo record
                                 $db->insert(envi('DB_DRIVER') === 'pgsql' ? 'contact_postalinfo' : 'contact_postalInfo', $postalInfo);
                             }
-                            
-                            $new_authinfo = generateAuthInfo();
-                            $db->insert(
-                                envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
-                                [
-                                    'contact_id' => $newContactId,
-                                    'authtype' => 'pw',
-                                    'authinfo' => $new_authinfo
-                                ]
-                            );
+
+                            if (!$secureAuthInfoTransfer) {
+                                $new_authinfo = generateAuthInfo();
+                                $db->insert(
+                                    envi('DB_DRIVER') === 'pgsql' ? 'contact_authinfo' : 'contact_authInfo',
+                                    [
+                                        'contact_id' => $newContactId,
+                                        'authtype' => 'pw',
+                                        'authinfo' => $new_authinfo
+                                    ]
+                                );
+                            }
 
                             $db->insert(
                                 'contact_status',
@@ -3155,12 +3194,16 @@ class DomainsController extends Controller
                         'UPDATE domain SET exdate = ?, lastupdate = CURRENT_TIMESTAMP(3), clid = ?, upid = ?, registrant = ?, trdate = CURRENT_TIMESTAMP(3), trstatus = ?, acdate = CURRENT_TIMESTAMP(3), transfer_exdate = NULL, rgpstatus = ?, transferPeriod = ? WHERE id = ?',
                         [$newExdate, $reid, $clid, $newRegistrantId, 'clientApproved', 'transferPeriod', $date_add, $domain_id]
                     );
-                    
-                    $new_authinfo = generateAuthInfo();
-                    $db->exec(
-                        'UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?',
-                        [$new_authinfo, $domain_id]
-                    );
+
+                    if ($secureAuthInfoTransfer) {
+                        storeAuthInfo($db, 'domain', (int)$domain_id, null);
+                    } else {
+                        $new_authinfo = generateAuthInfo();
+                        $db->exec(
+                            'UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?',
+                            [$new_authinfo, $domain_id]
+                        );
+                    }
 
                     $existingStatus = $db->selectValue(
                         'SELECT status FROM domain_status WHERE domain_id = ? AND status = ? LIMIT 1',

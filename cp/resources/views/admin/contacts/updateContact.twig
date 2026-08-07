@@ -144,7 +144,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="authInfo" class="form-label required">{{ __('Contact AuthInfo') }}</label>
+                        <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Contact AuthInfo') }}</label>
                         <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ contactAuth.authinfo }}">
                         <small class="form-text text-muted">{{ __('Authentication information for the contact') }}.</small>
                     </div>

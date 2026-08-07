@@ -149,8 +149,8 @@
                             
                             <!-- AuthInfo -->
                             <div class="mb-3">
-                                <label for="authInfo" class="form-label required">{{ __('Auth Info') }}</label>
-                                <input type="text" class="form-control" id="authInfo" name="authInfo" required>
+                                <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Auth Info') }}</label>
+                                <input type="text" class="form-control" id="authInfo" name="authInfo"{% if not secureAuthInfoTransfer %} required{% endif %}>
                             </div>
 
                           </div>
@@ -528,7 +528,7 @@
                                     
                                     <!-- AuthInfo for Contact -->
                                     <div class="mb-3">
-                                        <label for="authInfoc" class="form-label required">{{ __('Contact AuthInfo') }}</label>
+                                        <label for="authInfoc" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Contact AuthInfo') }}</label>
                                         <input type="text" class="form-control" id="authInfoc" name="authInfoc" readonly>
                                         <small class="form-text text-muted">{{ __('Auto-generated authentication information for the contact') }}.</small>
                                     </div>
@@ -846,7 +846,9 @@
 
     document.getElementById("addContactModal").addEventListener("show.bs.modal", function () {
         document.getElementById('contactid').value = generateAuthInfoC();
+        {% if not secureAuthInfoTransfer %}
         document.getElementById('authInfoc').value = generateAuthInfoC();
+        {% endif %}
     });
 
     var table;
@@ -876,7 +878,9 @@
         
         // Generate authInfo for Contact
         const authInfoInput = document.getElementById('authInfoc');
+        {% if not secureAuthInfoTransfer %}
         authInfoInput.value = generateAuthInfoC();
+        {% endif %}
 
     function contactLinkFormatter(cell){
         var value = cell.getValue();
@@ -1099,7 +1103,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         return result;
     }
+    {% if not secureAuthInfoTransfer %}
     authInfoField.value = generateAuthInfo();
+    {% endif %}
     
     // Display DNSSEC data when the checkbox is ticked
     document.getElementById('addDnssec').addEventListener('change', function() {
