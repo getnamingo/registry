@@ -146,7 +146,14 @@
                     <div class="mb-3">
                         <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Contact AuthInfo') }}</label>
                         <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ contactAuth.authinfo }}">
-                        <small class="form-text text-muted">{{ __('Authentication information for the contact') }}.</small>
+                        {% if secureAuthInfoTransfer %}
+                        <small class="form-text text-muted">
+                            {{ __('Copy this AuthInfo before saving. It cannot be displayed again after it is saved.') }}
+                        </small>
+                        <button type="button" class="btn btn-outline-secondary mt-2" id="generateAuthInfo">
+                            {{ __('Generate AuthInfo') }}
+                        </button>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
@@ -263,4 +270,25 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+{% if secureAuthInfoTransfer %}
+<script>
+document.getElementById('generateAuthInfo').addEventListener('click', async function () {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+
+    const authInfo = Array.from(
+        bytes,
+        b => b.toString(16).padStart(2, '0')
+    ).join('');
+
+    document.getElementById('authInfo').value = authInfo;
+
+    try {
+        await navigator.clipboard.writeText(authInfo);
+    } catch (e) {
+        // Keep it visible so it can still be copied manually.
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

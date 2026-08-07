@@ -188,6 +188,15 @@
                             <div class="mb-3 mt-3">
                                 <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Auth Info') }}</label>
                                 <input type="text" class="form-control" id="authInfo" name="authInfo" value="{{ domainAuth.authinfo }}"{% if not secureAuthInfoTransfer %} required{% endif %}>
+
+                                {% if secureAuthInfoTransfer %}
+                                <small class="form-text text-muted">
+                                    {{ __('Copy this AuthInfo before saving. It cannot be displayed again after it is saved.') }}
+                                </small>
+                                <button type="button" class="btn btn-outline-secondary mt-2" id="generateAuthInfo">
+                                    {{ __('Generate AuthInfo') }}
+                                </button>
+                                {% endif %}
                             </div>
                             
                         </div>
@@ -1155,5 +1164,25 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     
 });
+
+{% if secureAuthInfoTransfer %}
+document.getElementById('generateAuthInfo').addEventListener('click', async function () {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+
+    const authInfo = Array.from(
+        bytes,
+        b => b.toString(16).padStart(2, '0')
+    ).join('');
+
+    document.getElementById('authInfo').value = authInfo;
+
+    try {
+        await navigator.clipboard.writeText(authInfo);
+    } catch (e) {
+        // Keep it visible so it can still be copied manually.
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
