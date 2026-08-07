@@ -59,17 +59,24 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmt->execute([
-                ':contact_id' => $contact_id,
-                ':authInfo_pw' => $authInfo_pw
-            ]);
-            $contact_authinfo_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+                $stmt->execute([
+                    ':contact_id' => $contact_id,
+                    ':authInfo_pw' => $authInfo_pw
+                ]);
+                $contact_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if (!$contact_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+                if (!$contact_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'contact', (int)$contact_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -91,6 +98,10 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 sendEppError($conn, $db, 2400, 'The transfer was not approved successfully, something is wrong', $clTRID, $trans);
                 return;
             } else {
+                if (isSecureAuthInfoTransferEnabled($db)) {
+                    storeAuthInfo($db, 'contact', (int)$contact_id, null);
+                }
+
                 $stmt = $db->prepare("SELECT crid, crdate, upid, lastupdate, trdate, trstatus, reid, redate, acid, acdate FROM contact WHERE id = :contact_id LIMIT 1");
                 $stmt->execute([':contact_id' => $contact_id]);
                 $updatedContactInfo = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -140,13 +151,20 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
         // A <contact:authInfo> element that contains authorization information associated with the contact object.
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-            $contact_authinfo_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
-            if (!$contact_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+                $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+                $contact_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
+                if (!$contact_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'contact', (int)$contact_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -262,14 +280,21 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
 
         // A <contact:authInfo> element that contains authorization information associated with the contact object.
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-            $contact_authinfo_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+                $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+                $contact_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if (!$contact_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+                if (!$contact_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'contact', (int)$contact_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -361,14 +386,21 @@ function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         // Check the <contact:authInfo> element
-        $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-        $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
-        $contact_authinfo_id = $stmt->fetchColumn();
-        $stmt->closeCursor();
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $stmt = $db->prepare("SELECT id FROM contact_authInfo WHERE contact_id = :contact_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+            $stmt->execute([':contact_id' => $contact_id, ':authInfo_pw' => $authInfo_pw]);
+            $contact_authinfo_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
-        if (!$contact_authinfo_id) {
-            sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-            return;
+            if (!$contact_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
+        } else {
+            if (!authInfoMatches($db, 'contact', (int)$contact_id, $authInfo_pw)) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
         }
 
         $stmt = $db->prepare("SELECT status FROM contact_status WHERE contact_id = :contact_id");
@@ -530,14 +562,21 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
-            $stmt->execute([$domain_id, $authInfo_pw]);
-            $domain_authinfo_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
+                $stmt->execute([$domain_id, $authInfo_pw]);
+                $domain_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if (!$domain_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+                if (!$domain_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'domain', (int)$domain_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -628,9 +667,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         $stmt->execute();
                     }
 
-                    // Insert auth info and status for the new registrant
-                    $new_authinfo = generateAuthInfo();
-                    $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                    if (!isSecureAuthInfoTransferEnabled($db)) {
+                        // Insert auth info and status for the new registrant
+                        $new_authinfo = generateAuthInfo();
+                        $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newRegistrantId, 'pw', $new_authinfo]);
+                    }
                     $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newRegistrantId, 'ok']);
 
                     // Process each contact in the contact map
@@ -669,8 +710,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                                 $stmt->execute();
                             }
 
-                            $new_authinfo = generateAuthInfo();
-                            $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                            if (!isSecureAuthInfoTransferEnabled($db)) {
+                                $new_authinfo = generateAuthInfo();
+                                $db->prepare('INSERT INTO contact_authInfo (contact_id, authtype, authinfo) VALUES (?, ?, ?)')->execute([$newContactId, 'pw', $new_authinfo]);
+                            }
                             $db->prepare('INSERT INTO contact_status (contact_id, status) VALUES (?, ?)')->execute([$newContactId, 'ok']);
                         }
                     }
@@ -718,10 +761,14 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $insertStmt = $db->prepare('INSERT INTO domain_status (domain_id, status) VALUES (?, ?)');
                 $insertStmt->execute([$domain_id, 'ok']);
 
-                $new_authinfo = generateAuthInfo();
-                $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
-                $stmt->execute([$new_authinfo, $domain_id]);
-                
+                if (!isSecureAuthInfoTransferEnabled($db)) {
+                    $new_authinfo = generateAuthInfo();
+                    $stmt = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ?");
+                    $stmt->execute([$new_authinfo, $domain_id]);
+                } else {
+                    storeAuthInfo($db, 'domain', (int)$domain_id, null);
+                }
+
                 if (!($config['minimum_data'] ?? false)) {
                     foreach ($contactMap as $contact) {
                         $sql = "UPDATE domain_contact_map SET contact_id = :new_contact_id WHERE domain_id = :domain_id AND type = :type AND contact_id = :contact_id";
@@ -822,14 +869,21 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         if ($authInfo_pw) {
-            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
-            $domain_authinfo_id = $stmt->fetchColumn();
-            $stmt->closeCursor();
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+                $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
+                $domain_authinfo_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
 
-            if (!$domain_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+                if (!$domain_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'domain', (int)$domain_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -993,14 +1047,21 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         if ($authInfo_pw) {
-            $stmtAuthInfo = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-            $stmtAuthInfo->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
-            $domain_authinfo_id = $stmtAuthInfo->fetchColumn();
-            $stmtAuthInfo->closeCursor();
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmtAuthInfo = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+                $stmtAuthInfo->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
+                $domain_authinfo_id = $stmtAuthInfo->fetchColumn();
+                $stmtAuthInfo->closeCursor();
 
-            if (!$domain_authinfo_id) {
-                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                return;
+                if (!$domain_authinfo_id) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
+            } else {
+                if (!authInfoMatches($db, 'domain', (int)$domain_id, $authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                    return;
+                }
             }
         }
 
@@ -1160,14 +1221,21 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         }
 
         // Auth info
-        $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
-        $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
-        $domain_authinfo_id = $stmt->fetchColumn();
-        $stmt->closeCursor();
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = :domain_id AND authtype = 'pw' AND authinfo = :authInfo_pw LIMIT 1");
+            $stmt->execute(['domain_id' => $domain_id, 'authInfo_pw' => $authInfo_pw]);
+            $domain_authinfo_id = $stmt->fetchColumn();
+            $stmt->closeCursor();
 
-        if (!$domain_authinfo_id) {
-            sendEppError($conn, $db, 2202, 'authInfo pw is invalid', $clTRID, $trans);
-            return;
+            if (!$domain_authinfo_id) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is invalid', $clTRID, $trans);
+                return;
+            }
+        } else {
+            if (!authInfoMatches($db, 'domain', (int)$domain_id, $authInfo_pw)) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is invalid', $clTRID, $trans);
+                return;
+            }
         }
 
         // Check domain status

@@ -264,25 +264,38 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
         return;
     }
 
-    $authInfo_pw = (string) $contactCreate->authInfo->pw;
-    if (!$authInfo_pw) {
-        sendEppError($conn, $db, 2003, 'Missing contact:pw', $clTRID, $trans);
-        return;
-    }
+    if (!isSecureAuthInfoTransferEnabled($db)) {
+        $authInfo_pw = (string) $contactCreate->authInfo->pw;
+        if (!$authInfo_pw) {
+            sendEppError($conn, $db, 2003, 'Missing contact:pw', $clTRID, $trans);
+            return;
+        }
 
-    if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
-        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
-        return;
-    }
+        if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+            sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
+            return;
+        }
 
-    if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
-        return;
-    }
+        if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+            sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
+            return;
+        }
 
-    if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
-        return;
+        if (!preg_match('/\d/', $authInfo_pw)) {
+            sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+            return;
+        }
+    } else {
+        if (!isset($contactCreate->authInfo->pw)) {
+            sendEppError($conn, $db, 2003, 'Missing contact:pw', $clTRID, $trans);
+            return;
+        }
+        $authInfo_pw = (string) $contactCreate->authInfo->pw;
+        
+        if ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+            sendEppError($conn, $db, 2202, 'Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)', $clTRID, $trans);
+            return;
+        }
     }
 
     $contact_disclose = $xml->xpath('//contact:disclose');
@@ -383,9 +396,13 @@ function processContactCreate($conn, $db, $xml, $clid, $database_type, $trans) {
             $stmt->execute([$contact_id, 'loc', $postalInfoLocName, $postalInfoLocOrg, $postalInfoLocStreet1, $postalInfoLocStreet2 ?? null, $postalInfoLocStreet3 ?? null, $postalInfoLocCity, $postalInfoLocSp, $postalInfoLocPc, $postalInfoLocCc, $disclose_name_int, $disclose_name_loc, $disclose_org_int, $disclose_org_loc, $disclose_addr_int, $disclose_addr_loc]);
         }
 
-        $stmt = $db->prepare("INSERT INTO contact_authInfo (contact_id,authtype,authinfo) VALUES(?,?,?)");
-        $stmt->execute([$contact_id, 'pw', $authInfo_pw]);
-        
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $stmt = $db->prepare("INSERT INTO contact_authInfo (contact_id,authtype,authinfo) VALUES(?,?,?)");
+            $stmt->execute([$contact_id, 'pw', $authInfo_pw]);
+        } else {
+            storeAuthInfo($db, 'contact', (int)$contact_id, $authInfo_pw);
+        }
+
         $stmt = $db->prepare("INSERT INTO contact_status (contact_id,status) VALUES(?,?)");
         $stmt->execute([$contact_id, 'ok']);
 
@@ -1413,24 +1430,36 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $tmp = $xml->xpath('//domain:authInfo/domain:pw[1]');
     $authInfo_pw = isset($tmp[0]) ? (string)$tmp[0] : null;
 
-    if (!$authInfo_pw) {
-        sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);
-        return;
-    }
+    if (!isSecureAuthInfoTransferEnabled($db)) {
+        if (!$authInfo_pw) {
+            sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);
+            return;
+        }
 
-    if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 64) {
-        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
-        return;
-    }
+        if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 64) {
+            sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
+            return;
+        }
 
-    if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-        sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
-        return;
-    }
+        if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+            sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
+            return;
+        }
 
-    if (!preg_match('/\d/', $authInfo_pw)) {
-        sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
-        return;
+        if (!preg_match('/\d/', $authInfo_pw)) {
+            sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+            return;
+        }
+    } else {
+        if (!isset($tmp[0])) {
+             sendEppError($conn, $db, 2003, 'Missing domain:pw', $clTRID, $trans);
+             return;
+        }
+
+        if ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+            sendEppError($conn, $db, 2202, 'Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)', $clTRID, $trans);
+            return;
+        }
     }
 
     if (isset($phase_details) && $phase_details === 'Application') {
@@ -1448,18 +1477,33 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             )";
 
             $domainStmt = $db->prepare($domainSql);
-            $domainStmt->execute([
-                ':name' => $domainName,
-                ':tldid' => $tld_id,
-                ':registrant' => $registrant_id,
-                ':crdate' => $crdate,
-                ':clid' => $clid,
-                ':crid' => $clid,
-                ':authtype' => 'pw',
-                ':authinfo' => $authInfo_pw ?? null,
-                ':tm_phase' => $launch_phase_name ?? null,
-                ':phase_type' => $launch_phase ?? null,
-            ]);
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $domainStmt->execute([
+                    ':name' => $domainName,
+                    ':tldid' => $tld_id,
+                    ':registrant' => $registrant_id,
+                    ':crdate' => $crdate,
+                    ':clid' => $clid,
+                    ':crid' => $clid,
+                    ':authtype' => 'pw',
+                    ':authinfo' => $authInfo_pw ?? null,
+                    ':tm_phase' => $launch_phase_name ?? null,
+                    ':phase_type' => $launch_phase ?? null,
+                ]);
+            } else {
+                $domainStmt->execute([
+                    ':name' => $domainName,
+                    ':tldid' => $tld_id,
+                    ':registrant' => $registrant_id,
+                    ':crdate' => $crdate,
+                    ':clid' => $clid,
+                    ':crid' => $clid,
+                    ':authtype' => 'pw',
+                    ':authinfo' => $authInfo_pw === '' ? null : hashAuthInfo($authInfo_pw),
+                    ':tm_phase' => $launch_phase_name ?? null,
+                    ':phase_type' => $launch_phase ?? null,
+                ]);
+            }
             $domain_id = $db->lastInsertId($database_type === 'pgsql' ? 'application_id_seq' : null);
             $uuid = createUuidFromId($domain_id);
 
@@ -1716,12 +1760,16 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
             $domain_id = $db->lastInsertId($database_type === 'pgsql' ? 'domain_id_seq' : null);
 
-            $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
-            $authInfoStmt->execute([
-                ':domain_id' => $domain_id,
-                ':authInfo_pw' => $authInfo_pw
-            ]);
-            
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $authInfoStmt = $db->prepare("INSERT INTO domain_authInfo (domain_id,authtype,authinfo) VALUES(:domain_id,'pw',:authInfo_pw)");
+                $authInfoStmt->execute([
+                    ':domain_id' => $domain_id,
+                    ':authInfo_pw' => $authInfo_pw
+                ]);
+            } else {
+                storeAuthInfo($db, 'domain', (int)$domain_id, $authInfo_pw);
+            }
+
             $secDNSDataSet = $xml->xpath('//secDNS:dsData') ?? [];
             $keyDataSet    = $xml->xpath('//secDNS:keyData') ?? [];
 

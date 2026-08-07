@@ -3,6 +3,10 @@
 function processContactInfo($conn, $db, $xml, $clid, $trans) {
     $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
     $clTRID = (string) $xml->command->clTRID;
+    if (isSecureAuthInfoTransferEnabled($db)) {
+        $authInfoNodes = $xml->xpath('//contact:info/contact:authInfo/contact:pw[1]');
+        $authInfo_pw = !empty($authInfoNodes) ? (string)$authInfoNodes[0] : null;
+    }
 
     if (!$contactID) {
         sendEppError($conn, $db, 2003, 'Missing contact:id', $clTRID, $trans);
@@ -38,9 +42,17 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         }
 
         $clidNumeric = getClid($db, $clid);
-        if ($clidNumeric !== (int)$contact[0]['clid']) {
-            sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
-            return;
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            if ($clidNumeric !== (int)$contact[0]['clid']) {
+                sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
+                return;
+            }
+        } else {
+            $isSponsor = $clidNumeric === (int)$contact[0]['clid'];
+            if (!$isSponsor && !authInfoMatches($db, 'contact', (int)$contact[0]['id'], $authInfo_pw)) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
         }
 
         $contactRow = $contact[0];
@@ -104,28 +116,53 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         $stmt->closeCursor();
 
         $svTRID = generateSvTRID();
-        $response = [
-            'command' => 'info_contact',
-            'clTRID' => $clTRID,
-            'svTRID' => $svTRID,
-            'resultCode' => 1000,
-            'msg' => 'Command completed successfully',
-            'id' => $contactRow['identifier'],
-            'roid' => 'C' . $contactRow['id'] . '-' . $roid,
-            'status' => $statusArray,
-            'postal' => $postalArray,
-            'voice' => $contactRow['voice'],
-            'fax' => $contactRow['fax'],
-            'email' => $contactRow['email'],
-            'clID' => getRegistrarClid($db, $contactRow['clid']),
-            'crID' => getRegistrarClid($db, $contactRow['crid']),
-            'crDate' => $contactRow['crdate'],
-            'upID' => getRegistrarClid($db, $contactRow['upid']),
-            'upDate' => $contactRow['lastupdate'],
-            'authInfo' => 'valid',
-            'authInfo_type' => $contactRow['authtype'],
-            'authInfo_val' => $contactRow['authinfo']
-        ];
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $response = [
+                'command' => 'info_contact',
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+                'resultCode' => 1000,
+                'msg' => 'Command completed successfully',
+                'id' => $contactRow['identifier'],
+                'roid' => 'C' . $contactRow['id'] . '-' . $roid,
+                'status' => $statusArray,
+                'postal' => $postalArray,
+                'voice' => $contactRow['voice'],
+                'fax' => $contactRow['fax'],
+                'email' => $contactRow['email'],
+                'clID' => getRegistrarClid($db, $contactRow['clid']),
+                'crID' => getRegistrarClid($db, $contactRow['crid']),
+                'crDate' => $contactRow['crdate'],
+                'upID' => getRegistrarClid($db, $contactRow['upid']),
+                'upDate' => $contactRow['lastupdate'],
+                'authInfo' => 'valid',
+                'authInfo_type' => $contactRow['authtype'],
+                'authInfo_val' => $contactRow['authinfo']
+            ];
+        } else {
+            $response = [
+                'command' => 'info_contact',
+                'clTRID' => $clTRID,
+                'svTRID' => $svTRID,
+                'resultCode' => 1000,
+                'msg' => 'Command completed successfully',
+                'id' => $contactRow['identifier'],
+                'roid' => 'C' . $contactRow['id'] . '-' . $roid,
+                'status' => $statusArray,
+                'postal' => $postalArray,
+                'voice' => $contactRow['voice'],
+                'fax' => $contactRow['fax'],
+                'email' => $contactRow['email'],
+                'clID' => getRegistrarClid($db, $contactRow['clid']),
+                'crID' => getRegistrarClid($db, $contactRow['crid']),
+                'crDate' => $contactRow['crdate'],
+                'upID' => getRegistrarClid($db, $contactRow['upid']),
+                'upDate' => $contactRow['lastupdate'],
+                'authInfo' => $isSponsor && isset($contactRow['authinfo']) ? 'valid' : 'invalid',
+                'authInfo_type' => $contactRow['authtype'],
+                'authInfo_val' => ''
+            ];
+        }
 
         if (!empty($disclose_fields)) {
             $response['disclose'] = [
@@ -331,6 +368,13 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 sendEppError($conn, $db, 2303, 'Application does not exist', $clTRID, $trans);
                 return;
             }
+            
+            if (isSecureAuthInfoTransferEnabled($db)) {
+                if ((int)$domain['clid'] !== (int)$clid) {
+                    sendEppError($conn, $db, 2201, 'Client is not the sponsor of the application', $clTRID, $trans);
+                    return;
+                }
+            }
 
             // Fetch contacts
             $stmt = $db->prepare("SELECT * FROM application_contact_map WHERE domain_id = :id");
@@ -391,14 +435,24 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             if ($registrant_id !== null && $registrant_id !== false) {
                 $response['registrant'] = $registrant_id;
             }
-            if (isset($domain['authinfo'])) {
-                $response['authInfo'] = 'valid';
-                $response['authInfo_type'] = $domain['authtype'];
-                $response['authInfo_val'] = $domain['authinfo'];
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                if (isset($domain['authinfo'])) {
+                    $response['authInfo'] = 'valid';
+                    $response['authInfo_type'] = $domain['authtype'];
+                    $response['authInfo_val'] = $domain['authinfo'];
+                } else {
+                    $response['authInfo'] = 'invalid';
+                }
             } else {
-                $response['authInfo'] = 'invalid';
+                if (isset($domain['authinfo'])) {
+                    $response['authInfo'] = 'valid';
+                    $response['authInfo_type'] = $domain['authtype'];
+                    $response['authInfo_val'] = '';
+                } else {
+                    $response['authInfo'] = 'invalid';
+                }
             }
-            
+
             // Conditionally add hostObj if hosts are available from domain_host_map
             if (!empty($transformedHosts)) {
                 $response['hostObj'] = $transformedHosts;
@@ -431,20 +485,28 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
                 return;
             }
-            
-            $domain_authinfo_id = null;
-            if ($authInfo_pw) {
-                $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
-                $stmt->execute([$domain['id'], $authInfo_pw]);
-                $domain_authinfo_id = $stmt->fetchColumn();
-                $stmt->closeCursor();
 
-                if (!$domain_authinfo_id) {
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $domain_authinfo_id = null;
+                if ($authInfo_pw) {
+                    $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
+                    $stmt->execute([$domain['id'], $authInfo_pw]);
+                    $domain_authinfo_id = $stmt->fetchColumn();
+                    $stmt->closeCursor();
+
+                    if (!$domain_authinfo_id) {
+                        sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                        return;
+                    }
+                }
+            } else {
+                $isSponsor = (int)$clid === (int)$domain['clid'];
+                if (!$isSponsor && !authInfoMatches($db, 'domain', (int)$domain['id'], $authInfo_pw)) {
                     sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                     return;
                 }
             }
-            
+
             // Fetch contacts
             $stmt = $db->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
@@ -600,16 +662,26 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             if (isset($domain['trdate']) && $domain['trdate']) {
                 $response['trDate'] = $domain['trdate'];
             }
-            if ($clid == $domain['clid']) {
-                $response['authInfo'] = 'valid';
-                $response['authInfo_type'] = $authInfo['authtype'];
-                $response['authInfo_val'] = $authInfo['authinfo'];
-            } else if (isset($domain_authinfo_id) && $domain_authinfo_id) {
-                $response['authInfo'] = 'valid';
-                $response['authInfo_type'] = $authInfo['authtype'];
-                $response['authInfo_val'] = $authInfo['authinfo'];
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                if ($clid == $domain['clid']) {
+                    $response['authInfo'] = 'valid';
+                    $response['authInfo_type'] = $authInfo['authtype'];
+                    $response['authInfo_val'] = $authInfo['authinfo'];
+                } else if (isset($domain_authinfo_id) && $domain_authinfo_id) {
+                    $response['authInfo'] = 'valid';
+                    $response['authInfo_type'] = $authInfo['authtype'];
+                    $response['authInfo_val'] = $authInfo['authinfo'];
+                } else {
+                    $response['authInfo'] = 'invalid';
+                }
             } else {
-                $response['authInfo'] = 'invalid';
+                if ($isSponsor && isset($authInfo['authinfo'])) {
+                    $response['authInfo'] = 'valid';
+                    $response['authInfo_type'] = $authInfo['authtype'];
+                    $response['authInfo_val'] = '';
+                } else {
+                    $response['authInfo'] = 'invalid';
+                }
             }
 
             // Conditionally add hostObj if hosts are available from domain_host_map

@@ -355,22 +355,32 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        $authInfo_pw = (string) $contactUpdate->chg->authInfo->pw;
-        if ($authInfo_pw) {
-            if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
-                sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
-                return;
-            }
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $authInfo_pw = (string) $contactUpdate->chg->authInfo->pw;
+            if ($authInfo_pw) {
+                if ((strlen($authInfo_pw) < 6) || (strlen($authInfo_pw) > 64)) {
+                    sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
+                    return;
+                }
 
-            if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
-                return;
-            }
+                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                    sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
+                    return;
+                }
 
-            if (!preg_match('/\d/', $authInfo_pw)) {
-                sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
-                return;
+                if (!preg_match('/\d/', $authInfo_pw)) {
+                    sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+                    return;
+                }
             }
+        } else {
+            $authInfo_pw = isset($contactUpdate->chg->authInfo->pw)
+                ? (string)$contactUpdate->chg->authInfo->pw
+                : null;
+            if ($authInfo_pw !== null && $authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+                sendEppError($conn, $db, 2202, 'Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)', $clTRID, $trans);
+                return;
+             }
         }
 
         $contact_disclose = $xml->xpath('//contact:disclose');
@@ -586,7 +596,12 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         $e_fax = (string)($xml->xpath("//contact:fax")[0] ?? "");
         $e_fax_x = (string)($xml->xpath("//contact:fax/@x")[0] ?? "");
         $e_email = (string)($xml->xpath("//contact:email")[0] ?? "");
-        $e_authInfo_pw = (string)($xml->xpath("//contact:authInfo/contact:pw")[0] ?? "");
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            $e_authInfo_pw = (string)($xml->xpath("//contact:authInfo/contact:pw")[0] ?? "");
+        } else {
+            $e_authInfo_pw_nodes = $xml->xpath("//contact:authInfo/contact:pw[1]");
+            $e_authInfo_pw = !empty($e_authInfo_pw_nodes) ? (string)$e_authInfo_pw_nodes[0] : null;
+        }
         $e_authInfo_ext = (string)($xml->xpath("//contact:authInfo/contact:ext")[0] ?? "");
 
         if (!empty($e_voice) || !empty($e_voice_x) || !empty($e_fax) || !empty($e_fax_x) || !empty($e_email)) {
@@ -690,19 +705,29 @@ function processContactUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         }
 
         // Update contact_authInfo for 'pw'
-        if (!empty($e_authInfo_pw)) {
-            $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
-            $stmt = $db->prepare($query);
-            $stmt->execute([
-                $e_authInfo_pw,
-                $contact_id,
-                'pw'
-            ]);
+        if (!isSecureAuthInfoTransferEnabled($db)) {
+            if (!empty($e_authInfo_pw)) {
+                $query = "UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?";
+                $stmt = $db->prepare($query);
+                $stmt->execute([
+                    $e_authInfo_pw,
+                    $contact_id,
+                    'pw'
+                ]);
+            }
+        } else {
+            if ($e_authInfo_pw !== null) {
+                storeAuthInfo($db, 'contact', (int)$contact_id, $e_authInfo_pw);
+            }
         }
 
         // Update contact_authInfo for 'ext'
         if (!empty($e_authInfo_ext)) {
-            $stmt = $db->prepare($query); // Same query as above, can reuse
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                $stmt = $db->prepare($query); // Same query as above, can reuse
+            } else {
+                $stmt = $db->prepare("UPDATE contact_authInfo SET authinfo = ? WHERE contact_id = ? AND authtype = ?");
+            }
             $stmt->execute([
                 $e_authInfo_ext,
                 $contact_id,
@@ -1514,19 +1539,26 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
         if (!empty($authInfo_pw_elements)) {
             $authInfo_pw = (string)$authInfo_pw_elements[0];
 
-            if ($authInfo_pw) {
-                if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 64) {
-                    sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
-                    return;
-                }
+            if (!isSecureAuthInfoTransferEnabled($db)) {
+                if ($authInfo_pw) {
+                    if (strlen($authInfo_pw) < 6 || strlen($authInfo_pw) > 64) {
+                        sendEppError($conn, $db, 2005, 'Password needs to be at least 6 and up to 64 characters long', $clTRID, $trans);
+                        return;
+                    }
 
-                if (!preg_match('/[A-Z]/', $authInfo_pw)) {
-                    sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
-                    return;
-                }
+                    if (!preg_match('/[A-Z]/', $authInfo_pw)) {
+                        sendEppError($conn, $db, 2005, 'Password should have both upper and lower case characters', $clTRID, $trans);
+                        return;
+                    }
 
-                if (!preg_match('/\d/', $authInfo_pw)) {
-                    sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+                    if (!preg_match('/\d/', $authInfo_pw)) {
+                        sendEppError($conn, $db, 2005, 'Password should contain one or more numbers', $clTRID, $trans);
+                        return;
+                    }
+                }
+            } else {
+                if ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
+                    sendEppError($conn, $db, 2202, 'Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)', $clTRID, $trans);
                     return;
                 }
             }
@@ -1947,17 +1979,31 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         }
         
-        $authInfoNodes = $xml->xpath('//domain:authInfo');
-        $authInfo_pw = (!empty($authInfoNodes)) ? (string)$xml->xpath('//domain:pw[1]')[0] : null;
+        $authInfoPwNodes = $xml->xpath('//domain:authInfo/domain:pw[1]');
+        if (!empty($authInfoPwNodes)) {
+            $authInfo_pw = (string)$authInfoPwNodes[0];
 
-        if ($authInfo_pw) {
-            $sth = $db->prepare("UPDATE domain_authInfo SET authinfo = ? WHERE domain_id = ? AND authtype = ?");
-            if (!$sth->execute([$authInfo_pw, $domain_id, 'pw'])) {
-                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
-                return;
+            if (isSecureAuthInfoTransferEnabled($db)) {
+                // RFC 9154 mode - store hashed
+                storeAuthInfo($db, 'domain', (int)$domain_id, $authInfo_pw);
+            } else {
+                // Legacy mode - store plaintext
+                $sth = $db->prepare(
+                    "UPDATE domain_authInfo
+                     SET authinfo = ?
+                     WHERE domain_id = ? AND authtype = ?"
+                );
+
+                if (!$sth->execute([$authInfo_pw, $domain_id, 'pw'])) {
+                    sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                    return;
+                }
             }
-            
-            $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
+
+            $sth = $db->prepare(
+                "UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?"
+            );
+
             if (!$sth->execute([$clid, $domain_id])) {
                 sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
                 return;
