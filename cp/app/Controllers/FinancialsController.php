@@ -198,6 +198,10 @@ class FinancialsController extends Controller
     
     public function deposit(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4, 8, 64])) {
+            return $response->withHeader('Location', '/overview')->withStatus(302);
+        }
+
         if ($_SESSION["auth_roles"] != 0) {
             $db = $this->container->get('db');
             $balance = $db->selectRow('SELECT name, accountBalance AS "accountBalance", creditLimit AS "creditLimit" FROM registrar WHERE id = ?',

@@ -605,6 +605,10 @@ class RegistrarsController extends Controller
     
     public function updateRegistrar(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $iso3166 = new ISO3166();
         $countries = $iso3166->all();
@@ -1027,6 +1031,10 @@ class RegistrarsController extends Controller
     
     public function editRegistrar(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();

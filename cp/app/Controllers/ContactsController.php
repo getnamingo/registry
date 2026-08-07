@@ -31,6 +31,10 @@ class ContactsController extends Controller
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -404,6 +408,10 @@ class ContactsController extends Controller
     {
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
         }
 
         if ($request->getMethod() === 'POST') {
@@ -987,7 +995,11 @@ class ContactsController extends Controller
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
@@ -1069,7 +1081,11 @@ class ContactsController extends Controller
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $identifier = trim((string) $args);
         $redirectUrl = '/contact/validate/' . rawurlencode($identifier);
@@ -1201,7 +1217,11 @@ class ContactsController extends Controller
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
@@ -1412,7 +1432,11 @@ class ContactsController extends Controller
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -1774,7 +1798,11 @@ class ContactsController extends Controller
         if (envi('MINIMUM_DATA') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI

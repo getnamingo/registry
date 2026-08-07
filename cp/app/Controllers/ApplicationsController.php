@@ -24,6 +24,10 @@ class ApplicationsController extends Controller
 
     public function createApplication(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -845,6 +849,10 @@ class ApplicationsController extends Controller
     
     public function updateApplication(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $registrars = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
@@ -936,6 +944,10 @@ class ApplicationsController extends Controller
     
     public function updateApplicationProcess(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -1118,6 +1130,10 @@ class ApplicationsController extends Controller
     
     public function applicationDeleteHost(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $data = $request->getParsedBody();
         $uri = $request->getUri()->getPath();
@@ -1523,6 +1539,10 @@ class ApplicationsController extends Controller
 
     public function deleteApplication(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/applications')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI

@@ -16,6 +16,10 @@ class HostsController extends Controller
     
     public function createHost(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -397,6 +401,10 @@ class HostsController extends Controller
 
     public function updateHost(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         // Get the current URI
         $uri = $request->getUri()->getPath();
@@ -489,6 +497,10 @@ class HostsController extends Controller
     
     public function updateHostProcess(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -636,6 +648,10 @@ class HostsController extends Controller
     
     public function deleteHost(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/hosts')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI

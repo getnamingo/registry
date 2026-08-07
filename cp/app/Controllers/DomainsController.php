@@ -112,6 +112,10 @@ class DomainsController extends Controller
     
     public function createDomain(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -1264,6 +1268,10 @@ class DomainsController extends Controller
 
     public function updateDomain(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $registrars_list = $db->select("SELECT id, clid, name FROM registrar");
         if ($_SESSION["auth_roles"] != 0) {
@@ -1398,6 +1406,10 @@ class DomainsController extends Controller
 
     public function updateDomainProcess(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -1906,6 +1918,10 @@ class DomainsController extends Controller
     
     public function domainDeleteHost(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $data = $request->getParsedBody();
         $uri = $request->getUri()->getPath();
@@ -1954,6 +1970,10 @@ class DomainsController extends Controller
     
     public function domainDeleteSecdns(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         $db = $this->container->get('db');
         $data = $request->getParsedBody();
         $uri = $request->getUri()->getPath();
@@ -2002,6 +2022,10 @@ class DomainsController extends Controller
     
     public function renewDomain(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -2261,6 +2285,10 @@ class DomainsController extends Controller
     
     public function deleteDomain(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
        // if ($request->getMethod() === 'POST') {
             $db = $this->container->get('db');
             // Get the current URI
@@ -2580,6 +2608,10 @@ class DomainsController extends Controller
     
     public function requestTransfer(Request $request, Response $response)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         if ($request->getMethod() === 'POST') {
             // Retrieve POST data
             $data = $request->getParsedBody();
@@ -2935,6 +2967,10 @@ class DomainsController extends Controller
     
     public function approveTransfer(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
        //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
@@ -3244,6 +3280,10 @@ class DomainsController extends Controller
     
     public function rejectTransfer(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
@@ -3354,6 +3394,10 @@ class DomainsController extends Controller
     
     public function cancelTransfer(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
@@ -3464,6 +3508,10 @@ class DomainsController extends Controller
     
     public function restoreDomain(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
@@ -3547,6 +3595,10 @@ class DomainsController extends Controller
     
     public function reportDomain(Request $request, Response $response, $args)
     {
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/domains')->withStatus(302);
+        }
+
         //if ($request->getMethod() === 'POST') {
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
