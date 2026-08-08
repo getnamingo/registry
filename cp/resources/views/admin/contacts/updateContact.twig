@@ -116,8 +116,8 @@
 
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label for="voice" class="form-label required">{{ __('Voice') }}</label>
-                            <input type="tel" class="form-control" id="voice" name="voice" required="required" value="{{ contact.voice }}">
+                            <label for="voice" class="form-label required">{{ __('Phone') }}</label>
+                            <input type="tel" class="form-control" id="voice" name="voice" required="required" value="{{ contact.voice }}" autocomplete="tel">
                             <label class="form-check form-switch mt-1">
                                 <input class="form-check-input" type="checkbox" id="discloseVoice" name="disclose_voice" {% if contact.disclose_voice == '1' %}checked{% endif %}>
                                 <span class="form-check-label" for="discloseVoice">{{ __('Disclose in WHOIS') }}</span>

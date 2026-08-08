@@ -168,6 +168,9 @@ class DomainsController extends Controller
             $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
 
             $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
+            if ($secureAuthInfoTransfer && $authInfo === null) {
+                $authInfo = '';
+            }
             $invalid_domain = validate_label($domainName, $db);
 
             $uploadedFiles = $request->getUploadedFiles();
@@ -589,9 +592,6 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Error creating domain: Password should have both upper and lower case characters');
                     return $response->withHeader('Location', '/domain/create')->withStatus(302);
                 }
-            } elseif ($authInfo === null) {
-                $this->container->get('flash')->addMessage('error', 'Error creating domain: Missing domain authinfo');
-                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             } elseif ($authInfo !== '' && !isSecureAuthInfo($authInfo)) {
                 $this->container->get('flash')->addMessage('error', 'Error creating domain: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);

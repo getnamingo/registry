@@ -75,6 +75,9 @@ class ContactsController extends Controller
             $fax = $data['fax'] ?? null;
             $email = strtolower($data['email']) ?? null;
             $authInfo_pw = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
+            if ($secureAuthInfoTransfer && $authInfo_pw === null) {
+                $authInfo_pw = '';
+            }
 
             if (!$contactID) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Please provide a contact ID');
@@ -259,9 +262,6 @@ class ContactsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Unable to create contact: Password should have both upper and lower case characters');
                     return $response->withHeader('Location', '/contact/create')->withStatus(302);
                 }
-            } elseif ($authInfo_pw === null) {
-                $this->container->get('flash')->addMessage('error', 'Unable to create contact: Contact authinfo missing');
-                return $response->withHeader('Location', '/contact/create')->withStatus(302);
             } elseif ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
                 $this->container->get('flash')->addMessage('error', 'Unable to create contact: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)');
                 return $response->withHeader('Location', '/contact/create')->withStatus(302);
@@ -468,6 +468,9 @@ class ContactsController extends Controller
             $fax = $data['fax'] ?? null;
             $email = strtolower($data['email']) ?? null;
             $authInfo_pw = isset($data['authInfoc']) && is_string($data['authInfoc']) ? $data['authInfoc'] : null;
+            if ($secureAuthInfoTransfer && $authInfo_pw === null) {
+                $authInfo_pw = '';
+            }
 
             if (!$contactID) {
                 $error = ["error" => "Unable to create contact: Please provide a contact ID"];
@@ -679,10 +682,6 @@ class ContactsController extends Controller
                     $response->getBody()->write(json_encode($error));
                     return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
-            } elseif ($authInfo_pw === null) {
-                $error = ["error" => "Unable to create contact: Contact authinfo missing"];
-                $response->getBody()->write(json_encode($error));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             } elseif ($authInfo_pw !== '' && !isSecureAuthInfo($authInfo_pw)) {
                 $error = ["error" => "Unable to create contact: Non-empty authInfo must be 20 to 64 printable ASCII characters (25 if alphanumeric only)"];
                 $response->getBody()->write(json_encode($error));

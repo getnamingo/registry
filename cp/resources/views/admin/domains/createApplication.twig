@@ -134,13 +134,13 @@
                                 </div>
                                 
                             </div>{% endif %}
-                            
+                            {% if not secureAuthInfoTransfer %}
                             <!-- AuthInfo -->
                             <div class="mb-3">
                                 <label for="authInfo" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Auth Info') }}</label>
                                 <input type="text" class="form-control" id="authInfo" name="authInfo"{% if not secureAuthInfoTransfer %} required{% endif %}>
                             </div>
-                            
+                            {% endif %}
                           </div>
                           <div class="col-md-6">
                             <div class="mb-3">
@@ -354,7 +354,7 @@
 
                                     <!-- Voice -->
                                     <div class="mb-3">
-                                        <label for="voice" class="form-label required">{{ __('Voice') }}</label>
+                                        <label for="voice" class="form-label required">{{ __('Phone') }}</label>
                                         <input type="tel" class="form-control" id="voice" name="voice" required="required">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseVoice" name="disclose_voice">
@@ -381,14 +381,14 @@
                                           <span class="form-check-label" for="discloseEmail">{{ __('Disclose in WHOIS') }}</span>
                                         </label>
                                     </div>
-                                    
+                                    {% if not secureAuthInfoTransfer %}
                                     <!-- AuthInfo for Contact -->
                                     <div class="mb-3">
                                         <label for="authInfoc" class="form-label{% if not secureAuthInfoTransfer %} required{% endif %}">{{ __('Contact AuthInfo') }}</label>
                                         <input type="text" class="form-control" id="authInfoc" name="authInfoc" readonly>
                                         <small class="form-text text-muted">{{ __('Auto-generated authentication information for the contact') }}.</small>
                                     </div>
-
+                                    {% endif %}
                                     <!-- NIN - National Identification Number -->
                                     <div class="mb-3">
                                         <label for="nin" class="form-label">{{ __('NIN - National Identification Number') }}</label>
@@ -540,7 +540,7 @@
             });
         })
         .then(data => {
-            console.log("✅ Contact Added:", data);
+            console.log("Contact Added:", data);
 
             if (data.identifier && addContactTargetInputId) {
                 let targetInput = document.getElementById(addContactTargetInputId);
@@ -549,7 +549,7 @@
                 }
             }
 
-            // ✅ Only close modal if form submission is successful
+            // Only close modal if form submission is successful
             if (data.identifier) {
                 let modalElement = document.getElementById("addContactModal");
                 let modalInstance = tabler.Modal.getInstance(modalElement);
