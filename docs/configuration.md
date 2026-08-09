@@ -129,20 +129,41 @@ Add usernames separated by commas. These accounts will **not be subject to passw
 - Edit the `.env` file located at `/var/www/cp/.env`
 - Save the file and clear the cache using the following command: `php /var/www/cp/bin/clear_cache.php`
 
-#### 1.3.5. Setting Up Redis Session Storage
+#### 1.3.5. Optional Redis Session Storage
 
-To utilize Redis for session storage, you need to install the necessary packages and configure your environment accordingly. Follow these steps to set up Redis session storage:
+Namingo Registry uses `pinga/session`, which supports both standard file sessions and Redis through PHP's native session handler. Redis is optional, and the application code does not need to be changed.
+
+Configure PHP to use Redis:
+
+```ini
+session.save_handler = redis
+session.save_path = "tcp://127.0.0.1:6379?prefix=namingo_session:&timeout=1&read_timeout=1"
+session.gc_maxlifetime = 1800
+
+redis.session.locking_enabled = 1
+redis.session.lock_expire = 60
+redis.session.lock_wait_time = 20000
+redis.session.lock_retries = 100
+```
+
+Restart PHP-FPM or the relevant web server after changing the configuration.
+
+If the obsolete `pinga/session-redis` package is installed, replace it with Pinga Session 1.0.0:
 
 ```bash
 cd /var/www/cp
-composer require pinga/session-redis
+composer remove pinga/session-redis
+composer require pinga/session:1.0.0
 ```
 
-After installation, log out of your application if you are currently logged in. This ensures that the session starts afresh with the new configuration.
+Existing sessions are not migrated between storage backends, so currently signed-in users will need to sign in again.
 
-Clear your browser cookies related to the application. This step is crucial as it removes any existing session cookies that were set using the previous session storage mechanism.
+To switch back to file sessions, change the PHP configuration and restart PHP-FPM:
 
-Upon your next login, Redis will be used for storing session data. The new sessions will be created and managed through Redis, providing a more scalable and efficient session management system.
+```ini
+session.save_handler = files
+session.save_path = "/var/lib/php/sessions"
+```
 
 ### 1.4. Setting Up the Automation System
 
