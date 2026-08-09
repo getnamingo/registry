@@ -15,57 +15,136 @@ use Swoole\Http\Response;
 
 require __DIR__ . '/vendor/autoload.php';
 
-$c = require_once 'config.php';
-require_once 'helpers.php';
+$c = require __DIR__ . '/config.php';
+require_once __DIR__ . '/helpers.php';
 
 $logFilePath = '/var/log/namingo/msg_producer.log';
 $logger = setupLogger($logFilePath, 'Msg_Producer');
 
-class RedisPool {
-    private $pool;
-    private $host;
-    private $port;
+function normalizeMessage(array $data): array
+{
+    $type = $data['type'] ?? null;
 
-    public function __construct(string $host, int $port, int $size = 10) {
+    if (!is_string($type) || !in_array($type, ['sendmail', 'sendsms'], true)) {
+        throw new InvalidArgumentException('Unsupported message type');
+    }
+
+    if ($type === 'sendmail') {
+        $to = $data['toEmail'] ?? null;
+        $subject = $data['subject'] ?? null;
+        $body = $data['body'] ?? null;
+
+        if (!is_string($to) || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException('Invalid email recipient');
+        }
+
+        if (!is_string($subject)
+            || strlen($subject) > 998
+            || preg_match('/[\r\n]/', $subject)
+        ) {
+            throw new InvalidArgumentException('Invalid email subject');
+        }
+
+        if (!is_string($body) || strlen($body) > 524288) {
+            throw new InvalidArgumentException('Invalid email body');
+        }
+
+        return [
+            'type' => 'sendmail',
+            'toEmail' => $to,
+            'subject' => $subject,
+            'body' => $body,
+        ];
+    }
+
+    $to = $data['toSMS'] ?? null;
+    $content = $data['contentSMS'] ?? null;
+
+    if (!is_string($to) || !preg_match('/^\+[1-9][0-9]{7,14}$/D', $to)) {
+        throw new InvalidArgumentException('Invalid SMS recipient');
+    }
+
+    if (!is_string($content) || $content === '' || strlen($content) > 4096) {
+        throw new InvalidArgumentException('Invalid SMS content');
+    }
+
+    return [
+        'type' => 'sendsms',
+        'toSMS' => $to,
+        'contentSMS' => $content,
+    ];
+}
+
+function jsonResponse(Response $response, int $status, array $body): void
+{
+    $response->status($status);
+    $response->header('Content-Type', 'application/json; charset=utf-8');
+    $response->end(json_encode($body, JSON_THROW_ON_ERROR));
+}
+
+final class RedisPool
+{
+    private Swoole\Coroutine\Channel $pool;
+
+    public function __construct(
+        private readonly string $host,
+        private readonly int $port,
+        private readonly int $size = 4,
+    ) {
         $this->pool = new Swoole\Coroutine\Channel($size);
-        $this->host = $host;
-        $this->port = $port;
     }
 
     /**
      * Initialize pool inside a coroutine context.
      */
-    public function initialize(int $size = 10): void {
-        for ($i = 0; $i < $size; $i++) {
-            go(function () {
-                $redis = new Redis();
-                if (!$redis->connect($this->host, $this->port)) {
-                    throw new Exception("Failed to connect to Redis at {$this->host}:{$this->port}");
-                }
-                $this->pool->push($redis);
-                echo "Added Redis connection to pool\n"; // Debugging log
-            });
+    public function initialize(): void
+    {
+        for ($i = 0; $i < $this->size; $i++) {
+            $this->pool->push($this->createConnection());
         }
     }
 
-    /**
-     * Get a Redis connection from the pool.
-     * Optionally, you can add a timeout to avoid indefinite blocking.
-     */
-    public function get(float $timeout = 2.0): Redis {
-        $conn = $this->pool->pop($timeout);
-        if (!$conn) {
-            throw new Exception("No available Redis connection in pool");
+    private function createConnection(): Redis
+    {
+        $redis = new Redis();
+
+        if (!$redis->connect($this->host, $this->port, 1.0)) {
+            throw new RuntimeException(
+                "Failed to connect to Redis at {$this->host}:{$this->port}"
+            );
         }
+
+        return $redis;
+    }
+
+    public function get(float $timeout = 1.0): Redis
+    {
+        $conn = $this->pool->pop($timeout);
+
+        if (!$conn instanceof Redis) {
+            throw new RuntimeException('Redis pool exhausted');
+        }
+
+        if (!$conn->isConnected()) {
+            return $this->createConnection();
+        }
+
         return $conn;
     }
 
-    /**
-     * Return a Redis connection back to the pool.
-     */
-    public function put(?Redis $redis): void {
+    public function put(?Redis $redis): void
+    {
         if ($redis && $redis->isConnected()) {
-            $this->pool->push($redis);
+            if (!$this->pool->push($redis, 0.05)) {
+                $redis->close();
+            }
+        }
+    }
+
+    public function discard(?Redis $redis): void
+    {
+        if ($redis && $redis->isConnected()) {
+            $redis->close();
         }
     }
 
@@ -79,37 +158,31 @@ $server->set([
     'daemonize'  => true,
     'log_file'   => '/var/log/namingo/msg_producer.log',
     'log_level'  => SWOOLE_LOG_INFO,
-    'worker_num' => swoole_cpu_num() * 2,
+    'worker_num' => max(1, min(4, swoole_cpu_num())),
     'pid_file'   => '/var/run/msg_producer.pid',
-    'enable_coroutine' => true
+    'enable_coroutine' => true,
+    'hook_flags' => SWOOLE_HOOK_ALL,
+    'package_max_length' => 1048576,
 ]);
 
-/**
- * Instead of initializing the Redis pool in the "start" event (which runs in the master process),
- * we initialize it in the "workerStart" event so that it runs in a coroutine-enabled worker process.
- */
-$server->on("workerStart", function ($server, $workerId) use (&$logger) {
+$redisPool = null;
+
+$server->on("workerStart", function ($server, $workerId) use (&$redisPool, $logger) {
     try {
-        $server->redisPool = new RedisPool('127.0.0.1', 6379, 10); // Store in server object
-        $server->redisPool->initialize(10);
+        $redisPool = new RedisPool('127.0.0.1', 6379, 4);
+        $redisPool->initialize();
         $logger->info("Redis pool initialized in worker process {$workerId}");
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
+        $redisPool = null;
         $logger->error("Worker {$workerId}: Failed to initialize Redis pool - " . $e->getMessage());
     }
 });
 
 // Handle incoming requests
-$server->on("request", function (Request $request, Response $response) use ($server, $logger) {
-    $redisPool = $server->redisPool ?? null;
-
+$server->on("request", function (Request $request, Response $response) use (&$redisPool, $logger, $c) {
     if (!$redisPool) {
         $logger->error("Redis pool not initialized");
-        $response->status(500);
-        $response->header('Content-Type', 'application/json');
-        $response->end(json_encode([
-            'status'  => 'error',
-            'message' => 'Redis pool not initialized'
-        ]));
+        jsonResponse($response, 503, ['status' => 'error']);
         return;
     }
 
@@ -123,36 +196,92 @@ $server->on("request", function (Request $request, Response $response) use ($ser
         return;
     }
 
-    $data = json_decode($request->rawContent(), true);
-    if (!$data || empty($data['type'])) {
-        $response->status(400);
-        $response->header('Content-Type', 'application/json');
-        $response->end(json_encode([
-            'status'  => 'error',
-            'message' => 'Invalid request: missing JSON data or "type" field'
-        ]));
+    $contentType = strtolower((string)($request->header['content-type'] ?? ''));
+    if (!str_starts_with($contentType, 'application/json')) {
+        jsonResponse($response, 415, ['status' => 'error']);
+        return;
+    }
+
+    // Optional local bearer authentication. Strongly recommend enabling it.
+    $apiToken = (string)($c['msg_api_token'] ?? '');
+    if ($apiToken !== '') {
+        $authorization = (string)($request->header['authorization'] ?? '');
+        $matches = [];
+
+        if (
+            preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches) !== 1
+            || !hash_equals($apiToken, trim($matches[1]))
+        ) {
+            jsonResponse($response, 401, ['status' => 'error']);
+            return;
+        }
+    }
+
+    $raw = $request->rawContent();
+    if (!is_string($raw) || $raw === '' || strlen($raw) > 1048576) {
+        jsonResponse($response, 413, ['status' => 'error']);
         return;
     }
 
     try {
-        $redis = $redisPool->get();
-        $redis->lPush('message_queue', json_encode($data));
-        $redisPool->put($redis);
+        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($decoded)) {
+            throw new InvalidArgumentException('JSON object required');
+        }
 
-        $logger->info("Message queued", ['data' => $data]);
-        $response->header('Content-Type', 'application/json');
-        $response->end(json_encode([
-            'status'  => 'success',
-            'message' => 'Message queued for delivery'
-        ]));
-    } catch (Exception $e) {
-        $logger->error("Failed to queue message", ['error' => $e->getMessage()]);
-        $response->status(500);
-        $response->header('Content-Type', 'application/json');
-        $response->end(json_encode([
-            'status'  => 'error',
-            'message' => 'Internal Server Error'
-        ]));
+        $data = normalizeMessage($decoded);
+    } catch (JsonException|InvalidArgumentException $e) {
+        jsonResponse($response, 400, [
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ]);
+        return;
+    }
+
+    $data['id'] = bin2hex(random_bytes(16));
+    $data['retries'] = 0;
+    $data['queuedAt'] = time();
+    $payload = json_encode($data, JSON_THROW_ON_ERROR);
+
+    $redis = null;
+
+    try {
+        $redis = $redisPool->get();
+        $maxDepth = max(100, (int)($c['msg_queue_max_depth'] ?? 50000));
+        if ($redis->lLen('message_queue') >= $maxDepth) {
+            jsonResponse($response, 503, [
+                'status' => 'error',
+                'message' => 'Message queue is full',
+            ]);
+            return;
+        }
+
+        if ($redis->lPush('message_queue', $payload) === false) {
+            throw new RuntimeException('Redis LPUSH failed');
+        }
+
+        // Do not log email/SMS bodies.
+        $logger->info('Message queued', [
+            'id' => $data['id'],
+            'type' => $data['type'],
+        ]);
+
+        jsonResponse($response, 202, [
+            'status' => 'success',
+            'id' => $data['id'],
+        ]);
+    } catch (Throwable $e) {
+        $redisPool->discard($redis);
+        $redis = null;
+
+        $logger->error('Failed to queue message', [
+            'id' => $data['id'],
+            'error' => $e->getMessage(),
+        ]);
+
+        jsonResponse($response, 503, ['status' => 'error']);
+    } finally {
+        $redisPool->put($redis);
     }
 });
 

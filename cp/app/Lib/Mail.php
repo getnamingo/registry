@@ -73,28 +73,70 @@ class Mail
             }
         } else if (envi('MAIL_DRIVER') == 'msg') {
             $url = 'http://127.0.0.1:8250';
-            $data = ['type' => 'sendmail', 'mailer' => 'phpmailer', 'toEmail' => $to['email'], 'subject' => $subject, 'body' => $body];
+            $data = [
+                'type' => 'sendmail',
+                'toEmail' => $to['email'],
+                'subject' => $subject,
+                'body' => $body,
+            ];
+
+            $payload = json_encode(
+                $data,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE
+            );
+
+            $headers = [
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($payload),
+            ];
+
+            // Empty token preserves backward compatibility during rollout.
+            $token = trim((string)envi('MSG_API_TOKEN'));
+
+            if ($token !== '') {
+                $headers[] = 'Authorization: Bearer ' . $token;
+            }
 
             $options = [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CUSTOMREQUEST  => 'POST',
-                CURLOPT_POSTFIELDS     => json_encode($data),
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/json',
-                    'Content-Length: ' . strlen(json_encode($data))
-                ],
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_CONNECTTIMEOUT => 1,
+                CURLOPT_TIMEOUT => 5,
             ];
 
             $curl = curl_init($url);
             curl_setopt_array($curl, $options);
 
             $response = curl_exec($curl);
-
-            if ($response === false) {
-                throw new Exception(curl_error($curl), curl_errno($curl));
-            }
+            $httpStatus = (int)curl_getinfo(
+                $curl,
+                CURLINFO_RESPONSE_CODE
+            );
+            $curlError = curl_error($curl);
+            $curlErrno = curl_errno($curl);
 
             curl_close($curl);
+
+            if ($response === false) {
+                throw new \RuntimeException(
+                    'Message producer connection failed: ' . $curlError,
+                    $curlErrno
+                );
+            }
+
+            if ($httpStatus < 200 || $httpStatus >= 300) {
+                $details = trim(substr((string)$response, 0, 500));
+
+                throw new \RuntimeException(
+                    sprintf(
+                        'Message producer returned HTTP %d%s',
+                        $httpStatus,
+                        $details !== '' ? ': ' . $details : ''
+                    )
+                );
+            }
 
             return true;
         } else {

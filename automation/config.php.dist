@@ -54,21 +54,28 @@ return [
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX',
     'urs_imap_username' => 'your_username',
     'urs_imap_password' => 'your_password',
-    
+
     // Message Broker Configuration
+    'msg_api_token' => '',
+    'msg_queue_max_depth' => 50000,
+
     'mailer' => 'phpmailer', // sendgrid, mailgun are also available
+	'mailer_from_name' => 'Registry',
     'mailer_api_key' => 'YOUR_API_KEY',
     'mailer_domain' => 'example.com',
     'mailer_from' => 'from@example.com',
+    'mailer_smtp_encryption' => 'tls',
+    'mailer_smtp_timeout' => 10,
     'mailer_smtp_host' => 'smtp.example.com',
     'mailer_smtp_username' => 'your_email@example.com',
     'mailer_smtp_password' => 'your_password',
     'mailer_smtp_port' => 587,
-    
+
     'mailer_sms' => 'twilio', // telesign, plivo, vonage, clickatell are also available
     'mailer_sms_account' => 'YOUR_ACCOUNT_SID/USERNAME',
     'mailer_sms_auth' => 'YOUR_AUTH_TOKEN/PASSWORD',
-    
+	'mailer_sms_from' => '',
+
     // TMCH Configuration
     'tmch_path' => '/tmp/',
     'tmch_smdrl_user' => 'your_username',
