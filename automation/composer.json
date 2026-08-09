@@ -3,6 +3,7 @@
         "php": "^8.3",
         "ext-pdo": "*",
         "ext-swoole": "*",
+        "ext-redis": "*",
         "badcow/dns": "^4.3",
         "phpseclib/phpseclib": "^3.0.55",
         "phpbu/phpbu": "^6.0.33",
