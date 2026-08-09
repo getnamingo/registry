@@ -44,6 +44,7 @@ register_shutdown_function(function () use ($log) {
 
 $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
+$table->column('registrar_id', Table::TYPE_INT, 8);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->create();
 
@@ -108,6 +109,8 @@ if ($c['db_type'] === 'pgsql') {
     );
 }
 
+$maxFrameLen = (int) ($c['epp_max_frame'] ?? (4 * 1024 * 1024));
+
 $server = new Server(
     $c['epp_host'],
     $c['epp_port'],
@@ -121,8 +124,14 @@ $server->set([
     'log_level' => SWOOLE_LOG_INFO,
     'worker_num' => max(2, swoole_cpu_num()),
     'pid_file' => $c['epp_pid'],
-    'max_request' => 1000,
+    'max_request' => 0,
     'max_conn' => 1024,
+    // RFC 5734: uint32 network-order total length, including 4-byte header.
+    'open_length_check' => true,
+    'package_length_type' => 'N',
+    'package_length_offset' => 0,
+    'package_body_offset' => 0,
+    'package_max_length' => $maxFrameLen,
     'reload_async' => true,
     'max_wait_time' => 60,
     'open_tcp_nodelay' => true,
@@ -142,9 +151,9 @@ $server->set([
     //'ssl_client_cert_depth' => 1,
     'ssl_cert_file' => $c['ssl_cert'],
     'ssl_key_file' => $c['ssl_key'],
-    'ssl_verify_peer' => false,
+    'ssl_verify_peer' => !empty($c['mandatory_client_ssl']),
     'ssl_verify_depth' => 3,
-    'ssl_client_cert_file' => '/etc/ssl/certs/ca-certificates.crt',
+    'ssl_client_cert_file' => $c['ssl_client_ca'] ?? '/etc/ssl/certs/ca-certificates.crt',
     'ssl_allow_self_signed' => false,
     'ssl_protocols' => SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3,
     'ssl_ciphers' => 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE+AESGCM:ECDHE+AES256:ECDHE+AES128:DHE+AES256:DHE+AES128:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK',
@@ -152,9 +161,8 @@ $server->set([
 
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
-$buffers = [];
 
-$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable) {
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable) {
     $conn = new class($serv, $fd) {
         private $serv, $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -163,8 +171,6 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
         public function exportSocket() { return $this->serv->getClientInfo($this->fd); }
     };
 
-    sendGreeting($conn, $eppExtensionsTable);
-    
     $info = $serv->getClientInfo($fd);
     $clientIP = isset($info['remote_ip'])
         ? (strpos($info['remote_ip'], '::ffff:') === 0
@@ -174,10 +180,33 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
     if (isIPv6($clientIP)) {
         $clientIP = expandIPv6($clientIP);
     }
+
+    if (!$permittedIPsTable->exist($clientIP)) {
+        $allowed = false;
+        foreach ($permittedIPsTable as $row) {
+            if (strpos($row['addr'], '/') !== false &&
+                ipMatches($clientIP, $row['addr'])) {
+                $allowed = true;
+                break;
+            }
+        }
+
+        if (!$allowed) {
+            $log->warning("Access denied for $clientIP");
+            $conn->close();
+            return;
+        }
+    }
+
+    sendGreeting($conn, $eppExtensionsTable);
     $log->info("client #{$fd} connected from {$clientIP}");
 });
 
 $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $log) {
+    if ($workerId !== 0) {
+        return;
+    }
+
     Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
         try {
             updatePermittedIPs($pool, $permittedIPsTable);
@@ -203,7 +232,7 @@ $server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $
     });
 });
 
-$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter, &$buffers) {
+$server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $data) use ($table, $eppExtensionsTable, $pool, $c, $log, $permittedIPsTable, $rateLimiter, $maxFrameLen) {
     $conn = new class($serv, $fd) {
         private $serv; private $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -245,35 +274,23 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         return;
     }
 
-    $buffers[$fd] = ($buffers[$fd] ?? '') . $data;
-
     $connId = $fd;
-    $buffer =& $buffers[$fd];
-    $maxFrameLen = $c['epp_max_frame'] ?? (4 * 1024 * 1024); // 4 MB default
-
-    $frames = [];
-    while (strlen($buffer) >= 4) {
-        $len = unpack('N', substr($buffer, 0, 4))[1];
-
-        if ($len < 5 || $len > $maxFrameLen) {
-            $log->warning("Invalid EPP frame length $len from $clientIP (fd=$fd)");
-            $conn->close();
-            unset($buffers[$fd]);
-            return;
-        }
-
-        if (strlen($buffer) < $len) {
-            break;
-        }
-
-        $frames[] = substr($buffer, 4, $len - 4);
-        $buffer   = substr($buffer, $len);
-    }
-
-    if (!$frames) {
+    // Swoole has already reconstructed exactly one EPP data unit.
+    $actualLen = strlen($data);
+    if ($actualLen < 5) {
+        $log->warning("Invalid EPP frame length $actualLen from $clientIP (fd=$fd)");
+        $conn->close();
         return;
     }
 
+    $declaredLen = unpack('N', substr($data, 0, 4))[1];
+    if ($declaredLen !== $actualLen || $declaredLen > $maxFrameLen) {
+        $log->warning("Invalid EPP frame length $declaredLen from $clientIP (fd=$fd)");
+        $conn->close();
+        return;
+    }
+
+    $frames = [substr($data, 4)];
     $pdo = null;
 
     try {
@@ -282,7 +299,6 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         if (!$pdo) {
             $log->alert("PDOPool->get() returned null/false for fd={$fd} ip={$clientIP}");
             $conn->close();
-            unset($buffers[$fd]);
             return;
         }
 
@@ -429,7 +445,11 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                             return;
                         }
                         
-                        $table->set($connId, ['clid' => $clID, 'logged_in' => 1]);
+                        $table->set($connId, [
+                            'clid' => $clID,
+                            'registrar_id' => $clid,
+                            'logged_in' => 1
+                        ]);
                         $svTRID = generateSvTRID();
                         $response = [
                             'command' => 'login',
@@ -459,8 +479,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clID = $data['clid'];
-                    $clid = getClid($pdo, $clID);
+                    $clid = (int) $data['registrar_id'];
                     $table->del($connId);
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
@@ -497,7 +516,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processPoll($conn, $pdo, $xml, $data['clid'], $trans);
@@ -513,7 +532,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -534,7 +553,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -555,7 +574,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -576,7 +595,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -597,7 +616,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -618,7 +637,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
@@ -639,7 +658,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
@@ -655,7 +674,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainInfo($conn, $pdo, $xml, $clid, $trans);
@@ -671,7 +690,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -687,7 +706,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
@@ -703,7 +722,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -719,7 +738,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
@@ -735,7 +754,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCheck($conn, $pdo, $xml, $trans);
@@ -751,7 +770,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -767,7 +786,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostInfo($conn, $pdo, $xml, $trans);
@@ -783,7 +802,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -799,7 +818,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -815,7 +834,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
@@ -831,7 +850,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    $clid = getClid($pdo, $data['clid']);
+                    $clid = (int) $data['registrar_id'];
                     $xmlString = $xml->asXML();
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainRenew($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
@@ -858,12 +877,10 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             ' | file=' . $e->getFile() . ':' . $e->getLine());
         $log->warning('DB error; closing EPP connection so client can retry.');
         try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
-        unset($buffers[$fd]);
         return;
     } catch (Throwable $e) {
         $log->error('General Error: ' . $e->getMessage());
         try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
-        unset($buffers[$fd]);
         return;
     } finally {
         if ($pdo) {
@@ -880,7 +897,6 @@ $server->on('WorkerError', function (Server $server, int $workerId, int $workerP
 
 $server->on('Close', function(Server $serv, int $fd) use ($log, $table, &$buffers) {
     $table->del($fd);
-    unset($buffers[$fd]);
     $log->info("client #{$fd} disconnected");
 });
 

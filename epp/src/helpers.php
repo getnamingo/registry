@@ -581,6 +581,9 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
     $table = 'registryTransaction.transaction_identifier';
     if ($c['db_type'] === 'pgsql') {
         $transactionDb = $transactionPool->get(1.0);
+        if (!$transactionDb) {
+            throw new RuntimeException('Transaction PDOPool exhausted');
+        }
         $db = $transactionDb;
         $table = 'transaction_identifier';
     }
@@ -618,7 +621,7 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
 
         return $db->lastInsertId($c['db_type'] === 'pgsql' ? 'transaction_identifier_id_seq' : null);
     } finally {
-        if ($transactionDb !== null) {
+        if ($transactionDb) {
             $transactionPool->put($transactionDb);
         }
     }
@@ -631,6 +634,9 @@ function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, 
     $table = 'registryTransaction.transaction_identifier';
     if ($c['db_type'] === 'pgsql') {
         $transactionDb = $transactionPool->get(1.0);
+        if (!$transactionDb) {
+            throw new RuntimeException('Transaction PDOPool exhausted');
+        }
         $db = $transactionDb;
         $table = 'transaction_identifier';
     }
@@ -663,7 +669,7 @@ function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, 
 
         return true;
     } finally {
-        if ($transactionDb !== null) {
+        if ($transactionDb) {
             $transactionPool->put($transactionDb);
         }
     }
