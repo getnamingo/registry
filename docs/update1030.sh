@@ -185,8 +185,23 @@ echo "Clearing cache..."
 php /var/www/cp/bin/clear_cache.php
 
 # Clone the new version of the repository
+echo "Preparing staging directory..."
+
+clone_dir="/opt/registry1030"
+
+# Remove leftovers from a previous failed/interrupted upgrade
+if [[ -e "$clone_dir" ]]; then
+    echo "Removing stale staging directory: $clone_dir"
+    rm -rf -- "$clone_dir"
+fi
+
 echo "Cloning v1.0.30 from the repository..."
-git clone --branch v1.0.30 --single-branch https://github.com/getnamingo/registry /opt/registry1030
+git clone \
+    --branch v1.0.30 \
+    --single-branch \
+    --depth 1 \
+    https://github.com/getnamingo/registry \
+    "$clone_dir"
 
 # Copy files from the new version to the appropriate directories
 echo "Copying files..."
@@ -236,7 +251,35 @@ if [[ -e /etc/os-release ]]; then
 fi
 
 # Upgrade PHP
-apt update && dpkg-query -W -f='${binary:Package} ${db:Status-Status}\n' 'php8.3*' 2>/dev/null | awk '$2=="installed"{gsub(/8\.3/,"8.5",$1); print $1}' | xargs -r apt install -y
+apt update
+
+php85_packages=()
+
+while read -r pkg; do
+    [[ -n "$pkg" ]] || continue
+
+    newpkg="${pkg/php8.3/php8.5}"
+    candidate=$(apt-cache policy "$newpkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')
+
+    if [[ -n "$candidate" && "$candidate" != "(none)" ]]; then
+        php85_packages+=("$newpkg")
+        echo "Will install: $newpkg ($candidate)"
+    else
+        echo "Skipping unavailable PHP 8.5 package: $newpkg"
+    fi
+done < <(
+    dpkg-query -W -f='${binary:Package} ${db:Status-Status}\n' 'php8.3*' 2>/dev/null \
+        | awk '$2=="installed"{print $1}' || true
+)
+
+if [[ ${#php85_packages[@]} -eq 0 ]]; then
+    echo "ERROR: No PHP 8.5 replacement packages found."
+    exit 1
+fi
+
+apt install -y "${php85_packages[@]}"
+php8.5 -v >/dev/null
+systemctl cat php8.5-fpm.service >/dev/null
 update-alternatives --set php /usr/bin/php8.5
 grep -RIlZ 'php8\.3-fpm\.sock' /etc/caddy | xargs -0r sed -i 's/php8\.3-fpm\.sock/php8.5-fpm.sock/g' && caddy validate --config /etc/caddy/Caddyfile
 
@@ -286,7 +329,7 @@ systemctl start msg_worker
 # Check if services started successfully
 if [[ $? -eq 0 ]]; then
     echo "Services started successfully. Deleting /opt/registry1030..."
-    rm -rf /opt/registry1030
+    rm -rf -- "$clone_dir"
 else
     echo "There was an issue starting the services. /opt/registry1030 will not be deleted."
 fi
