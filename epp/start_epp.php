@@ -375,7 +375,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
 
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
 
                     if (!empty($c['mandatory_client_ssl'])) {
@@ -481,7 +481,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     }
                     $clid = (int) $data['registrar_id'];
                     $table->del($connId);
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     $svTRID = generateSvTRID();
                     $response = [
@@ -517,7 +517,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processPoll($conn, $pdo, $xml, $data['clid'], $trans);
                     return;
@@ -533,7 +533,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -554,7 +554,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -575,7 +575,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -596,7 +596,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -617,7 +617,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -638,7 +638,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     if ($c['minimum_data']) {
                         sendEppError($conn, $pdo, 2101, 'Contact commands are not supported in minimum data mode', $clTRID);
@@ -659,7 +659,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCheck($conn, $pdo, $xml, $trans, $data['clid']);
                     return;
@@ -675,7 +675,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
@@ -691,7 +691,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -707,7 +707,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
                     return;
@@ -723,7 +723,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -739,7 +739,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainTransfer($conn, $pdo, $xml, $data['clid'], $c, $trans);
                     return;
@@ -755,7 +755,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCheck($conn, $pdo, $xml, $trans);
                     return;
@@ -771,7 +771,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -787,7 +787,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostInfo($conn, $pdo, $xml, $trans);
                     return;
@@ -803,7 +803,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -819,7 +819,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processHostDelete($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;
@@ -835,7 +835,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
                     return;
@@ -851,7 +851,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         break;
                     }
                     $clid = (int) $data['registrar_id'];
-                    $xmlString = $xml->asXML();
+                    $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     processDomainRenew($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
                     return;

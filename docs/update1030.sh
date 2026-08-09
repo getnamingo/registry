@@ -253,6 +253,22 @@ composer_update "/var/www/cp"
 composer_update "/opt/registry/rdap"
 composer_update "/opt/registry/epp"
 
+# Add EPP client TLS configuration
+epp_config="/opt/registry/epp/config.php"
+
+if ! grep -Eq "^[[:space:]]*'mandatory_client_ssl'[[:space:]]*=>" "$epp_config"; then
+    sed -i "/^[[:space:]]*];[[:space:]]*$/i\\
+\\
+    'mandatory_client_ssl' => false," "$epp_config"
+fi
+
+if ! grep -Eq "^[[:space:]]*'ssl_client_ca'[[:space:]]*=>" "$epp_config"; then
+    sed -i "/^[[:space:]]*];[[:space:]]*$/i\\
+    'ssl_client_ca' => '/etc/ssl/certs/ca-certificates.crt'," "$epp_config"
+fi
+
+php -l "$epp_config" >/dev/null
+
 # Reload cache
 echo "Reloading cache..."
 php /var/www/cp/bin/file_cache.php

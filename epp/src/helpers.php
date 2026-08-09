@@ -314,6 +314,8 @@ function validate_identifier($identifier) {
 }
 
 function validate_label($domain, $pdo) {
+    static $tldConfigCache = [];
+
     if (!$domain) {
         return 'You must enter a domain name';
     }
@@ -396,12 +398,18 @@ function validate_label($domain, $pdo) {
     }
 
     // Check if the TLD exists in the domain_tld table
-    $stmtTLD = $pdo->prepare("SELECT COUNT(*) FROM domain_tld WHERE tld = :tld");
-    $stmtTLD->bindParam(':tld', $tld, PDO::PARAM_STR);
-    $stmtTLD->execute();
-    $tldExists = $stmtTLD->fetchColumn();
+    if (!array_key_exists($tld, $tldConfigCache)) {
+        $stmtTLD = $pdo->prepare(
+            "SELECT idn_table FROM domain_tld WHERE tld = :tld LIMIT 1"
+        );
+        $stmtTLD->execute(['tld' => $tld]);
+        $tldConfigCache[$tld] =
+            $stmtTLD->fetch(PDO::FETCH_ASSOC) ?: false;
+        $stmtTLD->closeCursor();
+    }
 
-    if (!$tldExists) {
+    $tldConfig = $tldConfigCache[$tld];
+    if ($tldConfig === false) {
         return 'Zone is not supported';
     }
 
@@ -415,10 +423,7 @@ function validate_label($domain, $pdo) {
         $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
 
         // Fetch the IDN regex for the given TLD
-        $stmtRegex = $pdo->prepare("SELECT idn_table FROM domain_tld WHERE tld = :tld");
-        $stmtRegex->bindParam(':tld', $tld, PDO::PARAM_STR);
-        $stmtRegex->execute();
-        $idnRegex = $stmtRegex->fetchColumn();
+        $idnRegex = $tldConfig['idn_table'] ?? null;
 
         if (!$idnRegex) {
             return 'Failed to fetch domain IDN table';
@@ -435,14 +440,19 @@ function validate_label($domain, $pdo) {
 
 function extractDomainAndTLD($urlString) {
     global $c;
-    
-    $cachePath = '/var/www/cp/cache'; // Cache directory
-    $adapter = new LocalFilesystemAdapter($cachePath, null, LOCK_EX);
-    $filesystem = new Filesystem($adapter);
-    $cache = new Pool(new ScrapbookFlysystem($filesystem));
-    $cacheKey = 'tlds_alpha_by_domain';
-    $cachedFile = $cache->getItem($cacheKey);
-    $fileContent = $cachedFile->get();
+
+    static $cacheLoaded = false;
+    static $fileContent = null;
+    static $tlds = null;
+    static $testTlds = null;
+
+    if (!$cacheLoaded) {
+        $adapter = new LocalFilesystemAdapter('/var/www/cp/cache', null, LOCK_EX);
+        $filesystem = new Filesystem($adapter);
+        $cache = new Pool(new ScrapbookFlysystem($filesystem));
+        $fileContent = $cache->getItem('tlds_alpha_by_domain')->get();
+        $cacheLoaded = true;
+    }
 
     if (null === $fileContent) {
         // fallback: treat everything after the last dot as TLD
@@ -464,7 +474,7 @@ function extractDomainAndTLD($urlString) {
     }
 
     // Load a list of test TLDs used in your QA environment
-    $testTlds = explode(',', $c['test_tlds']);
+    $testTlds ??= explode(',', $c['test_tlds']);
 
     // Parse the URL to get the host
     $parts = parse_url($urlString);
@@ -499,7 +509,7 @@ function extractDomainAndTLD($urlString) {
 
     try {
         // Use the PHP Domain Parser library for real TLDs
-        $tlds = TopLevelDomains::fromString($fileContent);
+        $tlds ??= TopLevelDomains::fromString($fileContent);
         $domain = Domain::fromIDNA2008($host);
         $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
     } catch (\Pdp\Exception $e) { // Catch domain parser exceptions
