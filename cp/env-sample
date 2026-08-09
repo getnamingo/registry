@@ -25,7 +25,7 @@ MAIL_PASSWORD=password
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS='example@domain.com'
 MAIL_TO_ADDRESS='example@domain.com'
-MAIL_FROM_NAME='Example'
+MAIL_FROM_NAME='Registry'
 MAIL_API_KEY='test-api-key'
 MAIL_API_PROVIDER='sendgrid'
 
