@@ -104,7 +104,7 @@ class ApplicationsController extends Controller
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
 
-            $parts = extractDomainAndTLD($domainName);
+            $parts = extractDomainAndTLD($domainName, $db);
             $label = $parts['domain'];
             $domain_extension = $parts['tld'];
             
@@ -1242,7 +1242,7 @@ class ApplicationsController extends Controller
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 }
 
-                $parts = extractDomainAndTLD($domainName);
+                $parts = extractDomainAndTLD($domainName, $db);
                 $label = $parts['domain'];
                 $domain_extension = '.' . strtoupper($parts['tld']);
 
@@ -1498,7 +1498,7 @@ class ApplicationsController extends Controller
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
 
-                $parts = extractDomainAndTLD($domainName);
+                $parts = extractDomainAndTLD($domainName, $db);
                 $label = $parts['domain'];
                 $domain_extension = $parts['tld'];
 
@@ -1593,7 +1593,7 @@ class ApplicationsController extends Controller
                 $domain_id = $domain['id'];
                 $registrar_id_domain = $domain['clid'];
 
-                $parts = extractDomainAndTLD($domainName);
+                $parts = extractDomainAndTLD($domainName, $db);
                 $label = $parts['domain'];
                 $domain_extension = $parts['tld'];
                 

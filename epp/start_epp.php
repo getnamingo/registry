@@ -52,6 +52,10 @@ $permittedIPsTable = new Table(1024);
 $permittedIPsTable->column('addr', Table::TYPE_STRING, 64);
 $permittedIPsTable->create();
 
+$domainTldsTable = new Table(4096);
+$domainTldsTable->column('tld', Table::TYPE_STRING, 255);
+$domainTldsTable->create();
+
 $eppExtensionsTable = new Table(64);
 $eppExtensionsTable->column('extension', Table::TYPE_INT, 1);
 $eppExtensionsTable->create();
@@ -202,30 +206,39 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
     $log->info("client #{$fd} connected from {$clientIP}");
 });
 
-$server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $log) {
+$server->on('WorkerStart', function(Server $server, int $workerId) use ($pool, $permittedIPsTable, $domainTldsTable, $log) {
     if ($workerId !== 0) {
         return;
     }
 
-    Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $log) {
+    Swoole\Coroutine::create(function () use ($pool, $permittedIPsTable, $domainTldsTable, $log) {
         try {
             updatePermittedIPs($pool, $permittedIPsTable);
+            updateDomainTlds($pool, $domainTldsTable);
+
             if (count($permittedIPsTable) === 0) {
                 $log->warning('Permitted IPs table is empty after initial load.');
             }
+
+            if (count($domainTldsTable) === 0) {
+                $log->warning('Domain TLD table is empty after initial load.');
+            }
         } catch (\Throwable $e) {
-            $log->error('updatePermittedIPs (initial) failed: ' . $e->getMessage());
+            $log->error('Initial cache load failed: ' . $e->getMessage());
         }
     });
 
     $refreshing = false;
-    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $log, &$refreshing) {
+    Timer::tick(300000, function() use ($pool, $permittedIPsTable, $domainTldsTable, $log, &$refreshing) {
         if ($refreshing) return;
+
         $refreshing = true;
+
         try {
             updatePermittedIPs($pool, $permittedIPsTable);
+            updateDomainTlds($pool, $domainTldsTable);
         } catch (\Throwable $e) {
-            $log->error('updatePermittedIPs (timer) failed: ' . $e->getMessage());
+            $log->error('Cache refresh failed: ' . $e->getMessage());
         } finally {
             $refreshing = false;
         }

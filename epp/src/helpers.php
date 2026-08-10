@@ -12,12 +12,6 @@ use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-use Pdp\Domain;
-use Pdp\TopLevelDomains;
-use League\Flysystem\Local\LocalFilesystemAdapter;
-use League\Flysystem\Filesystem;
-use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
-use MatthiasMullie\Scrapbook\Psr6\Pool;
 use Money\Money;
 use Money\Currency;
 use Money\Converter;
@@ -317,7 +311,7 @@ function validate_label($domain, $pdo) {
     static $tldConfigCache = [];
 
     if (!$domain) {
-        return 'You must enter a domain name';
+        return 'Domain name is required';
     }
 
     // Ensure domain has at least one dot (.) separating labels
@@ -383,10 +377,10 @@ function validate_label($domain, $pdo) {
     try {
         $parts = extractDomainAndTLD($domain);
     } catch (\Exception $e) {
-        return 'Invalid domain structure, unable to parse domain name';
+        return 'Invalid domain name';
     }
     if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
-        return 'Invalid domain structure, unable to parse domain name';
+        return 'Invalid domain name';
     }
 
     $tld = "." . $parts['tld'];
@@ -439,110 +433,44 @@ function validate_label($domain, $pdo) {
 }
 
 function extractDomainAndTLD($urlString) {
-    global $c;
+    global $domainTldsTable;
 
-    static $cacheLoaded = false;
-    static $fileContent = null;
-    static $tlds = null;
-    static $testTlds = null;
+    $host = strtolower(trim($urlString, " .\t\n\r\0\x0B"));
 
-    if (!$cacheLoaded) {
-        $adapter = new LocalFilesystemAdapter('/var/www/cp/cache', null, LOCK_EX);
-        $filesystem = new Filesystem($adapter);
-        $cache = new Pool(new ScrapbookFlysystem($filesystem));
-        $fileContent = $cache->getItem('tlds_alpha_by_domain')->get();
-        $cacheLoaded = true;
+    if ($host === '' || strpos($host, '.') === false) {
+        throw new \Exception('Invalid domain format');
     }
 
-    if (null === $fileContent) {
-        // fallback: treat everything after the last dot as TLD
-        $parts = parse_url($urlString);
-        $host = $parts['host'] ?? $urlString;
+    $labels = explode('.', $host);
 
-        if (!preg_match('/\./', $urlString)) {
-            throw new \Exception("Invalid domain format");
-        }
-
-        $hostParts = explode('.', $host);
-        if (count($hostParts) < 2) {
-            throw new \Exception("Invalid domain format");
-        }
-
-        $tld  = array_pop($hostParts);
-        $sld  = array_pop($hostParts);
-        return ['domain' => $sld, 'tld' => $tld];
+    if (count($labels) < 2) {
+        throw new \Exception('Invalid domain format');
     }
 
-    // Load a list of test TLDs used in your QA environment
-    $testTlds ??= explode(',', $c['test_tlds']);
+    // Start after the first label so there is always a registrable
+    // domain label to the left of the registry zone.
+    for ($i = 1, $count = count($labels); $i < $count; $i++) {
+        $zone = '.' . implode('.', array_slice($labels, $i));
+        $key = sha1($zone);
 
-    // Parse the URL to get the host
-    $parts = parse_url($urlString);
-    $host = $parts['host'] ?? $urlString;
+        if ($domainTldsTable->exist($key)) {
+            $row = $domainTldsTable->get($key);
 
-    if (!preg_match('/\./', $urlString)) {
-        throw new \Exception("Invalid domain format");
-    }
-
-    // Function to handle TLD extraction
-    $extractSLDandTLD = function($host, $tlds) {
-        foreach ($tlds as $tld) {
-            if (str_ends_with($host, ".$tld")) {
-                $tldLength = strlen($tld) + 1; // +1 for the dot
-                $hostWithoutTld = substr($host, 0, -$tldLength);
-                $hostParts = explode('.', $hostWithoutTld);
-                $sld = array_pop($hostParts);
-                return [
-                    'domain' => $sld,
-                    'tld' => $tld
-                ];
+            // Defensive verification of hashed lookup
+            if (!$row || strtolower($row['tld']) !== $zone) {
+                continue;
             }
+
+            $domain = implode('.', array_slice($labels, 0, $i));
+
+            return [
+                'domain' => $domain,
+                'tld'    => ltrim($zone, '.')
+            ];
         }
-        return null;
-    };
-
-    // First, check against test TLDs
-    $result = $extractSLDandTLD($host, $testTlds);
-    if ($result !== null) {
-        return $result;
     }
 
-    try {
-        // Use the PHP Domain Parser library for real TLDs
-        $tlds ??= TopLevelDomains::fromString($fileContent);
-        $domain = Domain::fromIDNA2008($host);
-        $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
-    } catch (\Pdp\Exception $e) { // Catch domain parser exceptions
-        throw new \Exception('Domain parsing error: ' . $e->getMessage());
-    } catch (\Exception $e) { // Catch any other unexpected exceptions
-        throw new \Exception('Unexpected error: ' . $e->getMessage());
-    }
-
-    // Handle cases with multi-level TLDs
-    $possibleTLDs = [];
-    $hostParts = explode('.', $host);
-    $tld = '';
-    for ($i = count($hostParts) - 1; $i >= 0; $i--) {
-        $tld = $hostParts[$i] . ($tld ? '.' . $tld : '');
-        $possibleTLDs[] = $tld;
-    }
-
-    // Sort by length to match longest TLD first
-    usort($possibleTLDs, function ($a, $b) {
-        return strlen($b) - strlen($a);
-    });
-
-    // Check against real TLDs
-    $result = $extractSLDandTLD($host, $possibleTLDs);
-    if ($result !== null) {
-        return $result;
-    }
-
-    // Fallback if nothing matches
-    $sld = $domain->secondLevelDomain()->toString();
-    $tld = $resolvedTLD;
-
-    return ['domain' => $sld, 'tld' => $tld];
+    throw new \Exception('Unsupported registry zone');
 }
 
 function normalize_v4_address($v4) {
@@ -1404,4 +1332,45 @@ function isSettingEnabled($pdo, string $name): bool
 function isSecureAuthInfoTransferEnabled($pdo): bool
 {
     return isSettingEnabled($pdo, 'secureAuthInfoTransfer');
+}
+
+function updateDomainTlds($pool, Swoole\Table $domainTldsTable): void
+{
+    $pdo = $pool->get();
+
+    try {
+        $stmt = $pdo->query("SELECT tld FROM domain_tld");
+        $seen = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $tld = strtolower(trim($row['tld']));
+
+            if ($tld === '') {
+                continue;
+            }
+
+            // Ensure canonical leading dot
+            if ($tld[0] !== '.') {
+                $tld = '.' . $tld;
+            }
+
+            $key = sha1($tld);
+            $seen[$key] = true;
+
+            $domainTldsTable->set($key, [
+                'tld' => $tld
+            ]);
+        }
+
+        $stmt->closeCursor();
+
+        // Remove zones which no longer exist in DB
+        foreach ($domainTldsTable as $key => $row) {
+            if (!isset($seen[$key])) {
+                $domainTldsTable->del($key);
+            }
+        }
+    } finally {
+        $pool->put($pdo);
+    }
 }

@@ -43,7 +43,7 @@ class DomainsController extends Controller
                 }
 
                 try {
-                    $parts = extractDomainAndTLD($domainName);
+                    $parts = extractDomainAndTLD($domainName, $db);
                 } catch (\Exception $e) {
                     $errorMessage = $e->getMessage();
                     $this->container->get('flash')->addMessage('error', "Error: " . $errorMessage);
@@ -198,7 +198,7 @@ class DomainsController extends Controller
             }
 
             try {
-                $parts = extractDomainAndTLD($domainName);
+                $parts = extractDomainAndTLD($domainName, $db);
             } catch (\Exception $e) {
                 $errorMessage = $e->getMessage();
                 $this->container->get('flash')->addMessage('error', "Error: " . $errorMessage);
@@ -2068,7 +2068,7 @@ class DomainsController extends Controller
 
             $renewalYears = $data['renewalYears'] ?? null;
             
-            $parts = extractDomainAndTLD($domainName);
+            $parts = extractDomainAndTLD($domainName, $db);
             $label = $parts['domain'];
             $domain_extension = '.' . strtoupper($parts['tld']);
 
@@ -2356,7 +2356,7 @@ class DomainsController extends Controller
                 $renewedDate = $domain['renewedDate'];
                 $transferPeriod = $domain['transferPeriod'];
 
-                $parts = extractDomainAndTLD($domainName);
+                $parts = extractDomainAndTLD($domainName, $db);
                 $label = $parts['domain'];
                 $domain_extension = '.' . strtoupper($parts['tld']);
 

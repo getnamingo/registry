@@ -640,8 +640,6 @@ PANEL_PASSWORD="$PANEL_PASSWORD" \
 PANEL_USERNAME="admin" \
 php /var/www/cp/bin/create_admin_user.php
 
-echo "Downloading initial data."
-php /var/www/cp/bin/file_cache.php
 echo "Setting up cache."
 chown www-data:www-data /var/www/cp/cache
 

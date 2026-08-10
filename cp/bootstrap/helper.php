@@ -16,12 +16,6 @@
  */
 
 use Pinga\Auth\Auth;
-use Pdp\Domain;
-use Pdp\TopLevelDomains;
-use League\Flysystem\Local\LocalFilesystemAdapter;
-use League\Flysystem\Filesystem;
-use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
-use MatthiasMullie\Scrapbook\Psr6\Pool;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Guid\Guid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
@@ -244,32 +238,31 @@ function validate_label($domain, $db) {
         return 'You must enter a domain name';
     }
 
-    // Ensure domain has at least one dot (.) separating labels
+    // Ensure domain has at least one dot separating labels
     if (strpos($domain, '.') === false) {
         return 'Invalid domain name format: must contain at least one dot (.)';
     }
+
     if ($domain[0] === '.' || substr($domain, -1) === '.') {
         return 'Invalid domain name format: cannot start or end with a dot (.)';
     }
 
-    // Split domain into labels (subdomains, SLD, TLD)
+    // Split domain into labels
     $labels = explode('.', $domain);
 
     foreach ($labels as $index => $label) {
         $len = strlen($label);
 
-        // Stricter validation for the first label
+        // Stricter validation for the registrable label
         if ($index === 0) {
             if ($len < 2 || $len > 63) {
                 return 'The domain must be between 2 and 63 characters';
             }
-            
+
             if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/', $label)) {
                 return 'The domain must start and end with a letter or number and contain only letters, numbers, or hyphens';
             }
-        } 
-        // Basic validation for other labels
-        else {
+        } else {
             if (!preg_match('/^[a-zA-Z0-9-]+$/', $label)) {
                 return 'Each domain label must contain only letters, numbers, or hyphens';
             }
@@ -277,76 +270,91 @@ function validate_label($domain, $db) {
 
         // Check if it's a Punycode label (IDN)
         if (strpos($label, 'xn--') === 0) {
-            // Ensure valid Punycode structure
             if (!preg_match('/^xn--[a-zA-Z0-9-]+$/', $label)) {
                 return 'Invalid Punycode format';
             }
 
-            // Convert Punycode to UTF-8
-            $decoded = idn_to_utf8($label, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+            $decoded = idn_to_utf8(
+                $label,
+                IDNA_NONTRANSITIONAL_TO_ASCII,
+                INTL_IDNA_VARIANT_UTS46
+            );
+
             if ($decoded === false || $decoded === '') {
                 return 'Invalid Punycode conversion';
             }
 
-            // Ensure decoded label follows normal domain rules
             if (!preg_match('/^[\p{L}0-9][\p{L}0-9-]*[\p{L}0-9]$/u', $decoded)) {
                 return 'IDN must start and end with a letter or number';
             }
         } else {
-            // Prevent consecutive or invalid hyphen usage
-            if ($label !== $labels[0] && preg_match('/\.\./', $label)) {
-                return 'Domain labels cannot contain consecutive dots (..)';
-            }
             if (preg_match('/^..--/', $label)) {
                 return 'Domain labels cannot have double hyphens at position 3 and 4';
             }
         }
     }
 
-    // Extract domain and TLD
-    $parts = extractDomainAndTLD($domain);
-    if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
-        return 'Invalid domain structure, unable to parse domain name';
+    // Extract registrable label and configured registry zone
+    try {
+        $parts = extractDomainAndTLD($domain, $db);
+    } catch (\Exception $e) {
+        return 'Invalid domain name';
     }
 
-    $tld = "." . $parts['tld'];
+    if (!$parts || empty($parts['domain']) || empty($parts['tld'])) {
+        return 'Invalid domain name';
+    }
 
-    // Validate domain length
+    $tld = '.' . $parts['tld'];
+
+    // Validate registrable label length
     $domainLength = strlen($parts['domain']);
+
     if ($domainLength < 2 || $domainLength > 63) {
         return 'Domain length must be between 2 and 63 characters';
     }
 
-    // Check if the TLD exists in the domain_tld table
-    $tldExists = $db->selectValue('SELECT COUNT(*) FROM domain_tld WHERE tld = ?', [$tld]);
+    // Get registry zone configuration.
+    $tldConfig = $db->selectRow(
+        'SELECT idn_table FROM domain_tld WHERE tld = ? LIMIT 1',
+        [$tld]
+    );
 
-    if (!$tldExists) {
+    if (!$tldConfig) {
         return 'Zone is not supported';
     }
 
     // Prevent mixed IDN & ASCII domains
-    if ((strpos($parts['domain'], 'xn--') === 0) !== (strpos($parts['tld'], 'xn--') === 0)) {
+    if (
+        (strpos($parts['domain'], 'xn--') === 0) !==
+        (strpos($parts['tld'], 'xn--') === 0)
+    ) {
         return 'Invalid domain name: IDN (xn--) domains must have both an IDN domain and TLD.';
     }
 
-    // IDN-specific validation (only if the domain contains Punycode)
-    if (strpos($parts['domain'], 'xn--') === 0 && strpos($parts['tld'], 'xn--') === 0) {
-        $label = idn_to_utf8($parts['domain'], IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+    // IDN-specific validation
+    if (
+        strpos($parts['domain'], 'xn--') === 0 &&
+        strpos($parts['tld'], 'xn--') === 0
+    ) {
+        $label = idn_to_utf8(
+            $parts['domain'],
+            IDNA_NONTRANSITIONAL_TO_ASCII,
+            INTL_IDNA_VARIANT_UTS46
+        );
 
-        // Fetch the IDN regex for the given TLD
-        $idnRegex = $db->selectValue('SELECT idn_table FROM domain_tld WHERE tld = ?', [$tld]);
+        $idnRegex = $tldConfig['idn_table'] ?? null;
 
         if (!$idnRegex) {
             return 'Failed to fetch domain IDN table';
         }
 
-        // Check against IDN regex
         if (!preg_match($idnRegex, $label)) {
             return 'Invalid domain name format, please review registry policy about accepted labels';
         }
     }
 
-    return null; // No errors
+    return null;
 }
 
 function normalize_v4_address($v4) {
@@ -386,96 +394,70 @@ function normalize_v6_address($v6) {
     return $v6;
 }
 
-function extractDomainAndTLD($urlString) {
-    $cachePath = __DIR__ . '/../cache'; // Cache directory
-    $adapter = new LocalFilesystemAdapter($cachePath, null, LOCK_EX);
-    $filesystem = new Filesystem($adapter);
-    $cache = new Pool(new ScrapbookFlysystem($filesystem));
-    $cacheKey = 'tlds_alpha_by_domain';
-    $cachedFile = $cache->getItem($cacheKey);
-    $fileContent = $cachedFile->get();
+function extractDomainAndTLD($urlString, $db) {
+    static $registryTlds = null;
 
-    // Check if fileContent is not null
-    if (null === $fileContent) {
-        // Handle the error gracefully
-        $_SESSION['slimFlash']['error'][] = 'The TLDs cache file is missing or unreadable';
-        return null;
-    }
+    // Load configured registry zones once per request.
+    if ($registryTlds === null) {
+        $registryTlds = [];
 
-    // Load a list of test TLDs used in your QA environment
-    $testTlds = explode(',', envi('TEST_TLDS'));
+        $rows = $db->select('SELECT tld FROM domain_tld');
 
-    // Parse the URL to get the host
-    $parts = parse_url($urlString);
-    $host = $parts['host'] ?? $urlString;
+        foreach ($rows as $row) {
+            $tld = strtolower(trim((string) $row['tld']));
 
-    if (!preg_match('/\./', $urlString)) {
-        $_SESSION['slimFlash']['error'][] = 'Invalid domain format';
-        return ['error' => 'Invalid domain format'];
-    }
-
-    // Function to handle TLD extraction
-    $extractSLDandTLD = function($host, $tlds) {
-        foreach ($tlds as $tld) {
-            if (str_ends_with($host, ".$tld")) {
-                $tldLength = strlen($tld) + 1; // +1 for the dot
-                $hostWithoutTld = substr($host, 0, -$tldLength);
-                $hostParts = explode('.', $hostWithoutTld);
-                $sld = array_pop($hostParts);
-                return [
-                    'domain' => $sld,
-                    'tld' => $tld
-                ];
+            if ($tld === '') {
+                continue;
             }
+
+            // Normalize to leading-dot format
+            if ($tld[0] !== '.') {
+                $tld = '.' . $tld;
+            }
+
+            $registryTlds[$tld] = true;
         }
-        return null;
-    };
-
-    // First, check against test TLDs
-    $result = $extractSLDandTLD($host, $testTlds);
-    if ($result !== null) {
-        return $result;
     }
 
-    // Use the PHP Domain Parser library for real TLDs
-    try {
-        // Use the PHP Domain Parser library for real TLDs
-        $tlds = TopLevelDomains::fromString($fileContent);
-        $domain = Domain::fromIDNA2008($host);
-        $resolvedTLD = $tlds->resolve($domain)->suffix()->toString();
-    } catch (\Pdp\Exception $e) { // Catch domain parser exceptions
-        $_SESSION['slimFlash']['error'][] = 'Domain parsing error: ' . $e->getMessage();
-        return ['error' => 'Domain parsing error: ' . $e->getMessage()];
-    } catch (\Exception $e) { // Catch any other unexpected exceptions
-        $_SESSION['slimFlash']['error'][] = 'Unexpected error: ' . $e->getMessage();
-        return ['error' => 'Unexpected error: ' . $e->getMessage()];
+    // Preserve support for either a hostname or plain domain string
+    $parsed = parse_url($urlString);
+    $host = strtolower(trim(
+        $parsed['host'] ?? $urlString,
+        " .\t\n\r\0\x0B"
+    ));
+
+    if ($host === '' || strpos($host, '.') === false) {
+        throw new \Exception('Invalid domain format');
     }
 
-    // Handle cases with multi-level TLDs
-    $possibleTLDs = [];
-    $hostParts = explode('.', $host);
-    $tld = '';
-    for ($i = count($hostParts) - 1; $i >= 0; $i--) {
-        $tld = $hostParts[$i] . ($tld ? '.' . $tld : '');
-        $possibleTLDs[] = $tld;
+    $labels = explode('.', $host);
+
+    if (count($labels) < 2) {
+        throw new \Exception('Invalid domain format');
     }
 
-    // Sort by length to match longest TLD first
-    usort($possibleTLDs, function ($a, $b) {
-        return strlen($b) - strlen($a);
-    });
+    // Try longest possible registry zone first.
+    for ($i = 1, $count = count($labels); $i < $count; $i++) {
+        $zone = '.' . implode('.', array_slice($labels, $i));
 
-    // Check against real TLDs
-    $result = $extractSLDandTLD($host, $possibleTLDs);
-    if ($result !== null) {
-        return $result;
+        if (!isset($registryTlds[$zone])) {
+            continue;
+        }
+
+        $domain = implode('.', array_slice($labels, 0, $i));
+
+        // Registry domains must be exactly one label below the zone.
+        if ($domain === '' || strpos($domain, '.') !== false) {
+            throw new \Exception('Invalid domain structure');
+        }
+
+        return [
+            'domain' => $domain,
+            'tld'    => ltrim($zone, '.')
+        ];
     }
 
-    // Fallback if nothing matches
-    $sld = $domain->secondLevelDomain()->toString();
-    $tld = $resolvedTLD;
-
-    return ['domain' => $sld, 'tld' => $tld];
+    throw new \Exception('Unsupported registry zone');
 }
 
 function getDomainPrice($db, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'EUR') {
