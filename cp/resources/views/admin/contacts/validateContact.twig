@@ -17,6 +17,9 @@
                     <li class="breadcrumb-item">
                       <a href="{{route('listContacts')}}">{{ __('Contacts') }}</a>
                     </li>
+                    <li class="breadcrumb-item">
+                      <a href="/contact/update/{{ contact.identifier }}">{{ __('Contact') }} {{ contact.identifier }}</a>
+                    </li>
                     <li class="breadcrumb-item active">
                       {{ __('Contact Validation') }}
                     </li>
