@@ -1242,6 +1242,8 @@ class ContactsController extends Controller
             }        
         }
 
+		$responseData['sumsub_enabled'] = !empty(envi('SUMSUB_TOKEN')) && !empty(envi('SUMSUB_KEY'));
+
         return view($response, 'admin/contacts/validateContact.twig', $responseData);
     }
     
@@ -1314,143 +1316,195 @@ class ContactsController extends Controller
             }
             
             if ($contact) {
-                if (!empty(envi('SUMSUB_TOKEN')) && !empty(envi('SUMSUB_KEY'))) {
-                    $level_name = 'idv-and-phone-verification';
+                $adminId = (int) ($_SESSION['auth_user_id'] ?? 0);
+                $adminUsername = trim((string) $db->selectValue('SELECT username FROM users WHERE id = ?', [$adminId]));
 
-                    // Build request body
-                    $bodyArray = [
-                        'levelName' => $level_name,
-                        'userId' => $identifier,
-                        'applicantIdentifiers' => [
-                            'email' => $contact['email'],
-                            'phone' => $contact['voice']
-                        ],
-                        'ttlInSecs' => 1800
-                    ];
+                if ($adminUsername === '') {
+                    $adminUsername = 'admin';
+                }
 
-                    $body = json_encode($bodyArray);
-                    $path = '/resources/sdkIntegrations/levels/-/websdkLink';
-                    $ts = time();
-                    $signature = sign($ts, 'POST', $path, $body, envi('SUMSUB_KEY'));
+                $adminLabel = $adminUsername;
 
-                    // Guzzle client
-                    $client = new \GuzzleHttp\Client([
-                        'base_uri' => 'https://api.sumsub.com',
-                        'headers' => [
-                            'X-App-Token' => envi('SUMSUB_TOKEN'),
-                            'X-App-Access-Ts' => $ts,
-                            'X-App-Access-Sig' => $signature,
-                            'Content-Type' => 'application/json',
-                        ]
-                    ]);
+                if ($adminId > 0) {
+                    $adminLabel .= ' (#' . $adminId . ')';
+                }
 
-                    // Send request
-                    try {
-                        $response = $client->post($path, ['body' => $body]);
-                        $data = json_decode($response->getBody(), true);
-                        $link = $data['url'];
+                $stamp = date('Y-m-d H:i:s');
 
-                        $currentDateTime = new \DateTime();
-                        $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
-                        $email = $db->selectValue('SELECT email FROM users WHERE id = ?', [$_SESSION['auth_user_id']]);
-                        $registry = $db->selectValue('SELECT value FROM settings WHERE name = ?', ['company_name']);
-                        $message = file_get_contents(__DIR__.'/../../resources/views/mail/validation.html');
-                        $placeholders = ['{registry}', '{link}', '{app_name}', '{app_url}', '{identifier}'];
-                        $replacements = [$registry, $link, envi('APP_NAME'), envi('APP_URL'), $contact['identifier']];
-                        $message = str_replace($placeholders, $replacements, $message);   
-                        $mailsubject = '[' . envi('APP_NAME') . '] Contact Verification Required';
-                        $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
-                        $to = ['email'=>$contact['email'], 'name'=>''];
-                        // send message
-                        Mail::send($mailsubject, $message, $from, $to);
+                $actionText = match ($action) {
+                    'validate'   => 'Marked as validated',
+                    'unvalidate' => 'Marked as unvalidated',
+                    'note'       => 'Added audit note',
+                };
 
-                        $this->container->get('flash')->addMessage('info', 'Contact validation process initiated with SumSub on ' . $stamp);
-                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
-                    } catch (\GuzzleHttp\Exception\ClientException $e) {
-                        $this->container->get('flash')->addMessage('error', 'Contact validation error: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
-                    }
-                } else {
-                    $adminId = (int) ($_SESSION['auth_user_id'] ?? 0);
-                    $adminUsername = trim((string) $db->selectValue(
-                        'SELECT username
-                         FROM users
-                         WHERE id = ?',
-                        [$adminId]
-                    ));
+                $logLine = sprintf(
+                    '[%s] %s by %s',
+                    $stamp,
+                    $actionText,
+                    $adminLabel
+                );
 
-                    if ($adminUsername === '') {
-                        $adminUsername = 'admin';
-                    }
+                if ($note !== '') {
+                    $logLine .= ' | Note: ' . $note;
+                }
 
-                    $adminLabel = $adminUsername;
+                $oldLog = rtrim((string) ($contact['validation_log'] ?? ''));
 
-                    if ($adminId > 0) {
-                        $adminLabel .= ' (#' . $adminId . ')';
-                    }
+                $newLog = $oldLog === ''
+                    ? $logLine
+                    : $oldLog . PHP_EOL . $logLine;
 
-                    $stamp = date('Y-m-d H:i:s');
+                $update = [
+                    'validation_log' => $newLog,
+                ];
 
-                    $actionText = match ($action) {
-                        'validate'   => 'Marked as validated',
-                        'unvalidate' => 'Marked as unvalidated',
-                        'note'       => 'Added audit note',
-                    };
-
-                    $logLine = sprintf(
-                        '[%s] %s by %s',
-                        $stamp,
-                        $actionText,
-                        $adminLabel
-                    );
-
-                    if ($note !== '') {
-                        $logLine .= ' | Note: ' . $note;
-                    }
-
-                    $oldLog = rtrim((string) ($contact['validation_log'] ?? ''));
-
-                    $newLog = $oldLog === ''
-                        ? $logLine
-                        : $oldLog . PHP_EOL . $logLine;
-
-                    $update = [
-                        'validation_log' => $newLog,
-                    ];
-
-                    if ($action === 'validate') {
-                        $update['validation'] = 1;
-                        $update['validation_stamp'] = $stamp;
-                        $update['lastupdate'] = $stamp;
-                    } elseif ($action === 'unvalidate') {
-                        $update['validation'] = 0;
-                        $update['validation_stamp'] = $stamp;
-                        $update['lastupdate'] = $stamp;
-                    }
+                if ($action === 'validate') {
+                    $update['validation'] = 1;
+                    $update['validation_stamp'] = $stamp;
+                    $update['lastupdate'] = $stamp;
+                } elseif ($action === 'unvalidate') {
+                    $update['validation'] = 0;
+                    $update['validation_stamp'] = $stamp;
+                    $update['lastupdate'] = $stamp;
+                }
                     
-                    try {
-                        $db->beginTransaction();
-                        $currentDateTime = new \DateTime();
-                        $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
-                        $db->update(
-                            'contact',
-                            $update,
-                            ['identifier' => $identifier]
-                        );
-                        $db->commit();
-                    } catch (Exception $e) {
-                        $db->rollBack();
-                        $this->container->get('flash')->addMessage('error', 'Unable to update contact validation: ' . $e->getMessage());
-                        return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
-                    }
+                try {
+                    $db->beginTransaction();
+                    $currentDateTime = new \DateTime();
+                    $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $db->update(
+                        'contact',
+                        $update,
+                        ['identifier' => $identifier]
+                    );
+                    $db->commit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    $this->container->get('flash')->addMessage('error', 'Unable to update contact validation: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
+                }
 
-                    $successMessage = match ($action) {
-                        'validate'   => 'Contact has been marked as validated',
-                        'unvalidate' => 'Contact has been marked as unvalidated',
-                        'note'       => 'Audit note has been added',
-                    };
-                    unset($_SESSION['contacts_to_validate']);
-                    $this->container->get('flash')->addMessage('success', $successMessage);
+                $successMessage = match ($action) {
+                    'validate'   => 'Contact has been marked as validated',
+                    'unvalidate' => 'Contact has been marked as unvalidated',
+                    'note'       => 'Audit note has been added',
+                };
+                unset($_SESSION['contacts_to_validate']);
+                $this->container->get('flash')->addMessage('success', $successMessage);
+                return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
+            } else {
+                // Contact does not exist, redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+        }
+    }
+
+    public function identityContact(Request $request, Response $response) 
+    {
+        if (envi('MINIMUM_DATA') === 'true') {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        if (!currentUserHasAnyRole([0, 4])) {
+            return $response->withHeader('Location', '/contacts')->withStatus(302);
+        }
+
+        if ($request->getMethod() === 'POST') {
+            $db = $this->container->get('db');
+            $verifyPhone = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPhone'");
+            $verifyEmail = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyEmail'");
+            $verifyPostal = $db->selectValue("SELECT value FROM settings WHERE name = 'verifyPostal'");
+                    
+            if ($verifyPhone === NULL && $verifyEmail === NULL && $verifyPostal === NULL) {
+                // Redirect to the contacts view
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+            // Retrieve POST data
+            $data = $request->getParsedBody();
+            $action = trim((string) ($data['action'] ?? ''));
+            $note = trim((string) ($data['note'] ?? ''));
+            // Get the current URI
+            $uri = $request->getUri()->getPath();
+
+            if (!empty($_SESSION['contacts_to_validate'])) {
+                $identifier = $_SESSION['contacts_to_validate'][0];
+            } else {
+                $this->container->get('flash')->addMessage('error', 'No contact specified for validation');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+            $identifier = trim((string) $identifier);
+
+            if (!preg_match('/^[a-zA-Z0-9\-]+$/', $identifier)) {
+                $this->container->get('flash')->addMessage('error', 'Invalid contact ID format');
+                return $response->withHeader('Location', '/contacts')->withStatus(302);
+            }
+
+            $contact = $db->selectRow('SELECT id, identifier, voice, fax, email, nin, nin_type, crdate, clid, disclose_voice, disclose_fax, disclose_email, validation, validation_stamp, validation_log FROM contact WHERE identifier = ?',
+            [ $identifier ]);
+            
+            if ($_SESSION["auth_roles"] != 0) {
+                $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
+                $contact_clid = $contact['clid'];
+                if ($contact_clid != $clid) {
+                    return $response->withHeader('Location', '/contacts')->withStatus(302);
+                }
+            }
+            
+            if ($contact) {
+                $level_name = 'idv-and-phone-verification';
+
+                // Build request body
+                $bodyArray = [
+                    'levelName' => $level_name,
+                    'userId' => $identifier,
+                    'applicantIdentifiers' => [
+                        'email' => $contact['email'],
+                        'phone' => $contact['voice']
+                    ],
+                    'ttlInSecs' => 1800
+                ];
+
+                $body = json_encode($bodyArray);
+                $path = '/resources/sdkIntegrations/levels/-/websdkLink';
+                $ts = time();
+                $signature = sign($ts, 'POST', $path, $body, envi('SUMSUB_KEY'));
+
+                // Guzzle client
+                $client = new \GuzzleHttp\Client([
+                    'base_uri' => 'https://api.sumsub.com',
+                    'headers' => [
+                        'X-App-Token' => envi('SUMSUB_TOKEN'),
+                        'X-App-Access-Ts' => $ts,
+                        'X-App-Access-Sig' => $signature,
+                        'Content-Type' => 'application/json',
+                    ]
+                ]);
+
+                // Send request
+                try {
+                    $response = $client->post($path, ['body' => $body]);
+                    $data = json_decode($response->getBody(), true);
+                    $link = $data['url'];
+
+                    $currentDateTime = new \DateTime();
+                    $stamp = $currentDateTime->format('Y-m-d H:i:s.v');
+                    $email = $db->selectValue('SELECT email FROM users WHERE id = ?', [$_SESSION['auth_user_id']]);
+                    $registry = $db->selectValue('SELECT value FROM settings WHERE name = ?', ['company_name']);
+                    $message = file_get_contents(__DIR__.'/../../resources/views/mail/validation.html');
+                    $placeholders = ['{registry}', '{link}', '{app_name}', '{app_url}', '{identifier}'];
+                    $replacements = [$registry, $link, envi('APP_NAME'), envi('APP_URL'), $contact['identifier']];
+                    $message = str_replace($placeholders, $replacements, $message);   
+                    $mailsubject = '[' . envi('APP_NAME') . '] Contact Verification Required';
+                    $from = ['email'=>envi('MAIL_FROM_ADDRESS'), 'name'=>envi('MAIL_FROM_NAME')];
+                    $to = ['email'=>$contact['email'], 'name'=>''];
+                    // send message
+                    Mail::send($mailsubject, $message, $from, $to);
+
+                    $this->container->get('flash')->addMessage('info', 'Contact verification process initiated with SumSub on ' . $stamp);
+                    return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
+                } catch (\GuzzleHttp\Exception\ClientException $e) {
+                    $this->container->get('flash')->addMessage('error', 'Contact verification error: ' . $e->getMessage());
                     return $response->withHeader('Location', '/contact/validate/'.$identifier)->withStatus(302);
                 }
             } else {

@@ -190,6 +190,36 @@
                     </form>
                 </div>
 
+                {% if sumsub_enabled %}
+                <div class="card mb-3">
+                  <div class="card-body">
+                    <div class="d-flex align-items-start">
+                      <span class="avatar avatar-md bg-primary-lt me-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06" /><path d="M15 19l2 2l4 -4" /></svg>
+                      </span>
+
+                      <div class="flex-fill">
+                        <h3 class="card-title mb-1">
+                          {{ __('Identity Verification') }}
+                        </h3>
+
+                        <p class="text-secondary mb-3">
+                          {{ __('Complete a secure identity verification to confirm your contact details. You will be redirected to our verification provider to continue.') }}
+                        </p>
+
+                        <form action="/contact/identity" method="post">
+                          {{ csrf.field | raw }}
+
+                          <button type="submit" class="btn btn-outline-primary">
+                            {{ __('Verify Identity') }}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+
                 <div class="card">
                   <div class="card-header">
                     <h3 class="card-title">{{ __('Validation Audit Log') }}</h3>
