@@ -1263,8 +1263,15 @@ class SystemController extends Controller
         if ($_SESSION["auth_roles"] != 0) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
-        
+
+        $db = $this->container->get('db');
         $uri = $request->getUri()->getPath();
+
+        $allocationTokens = $db->selectValue("SELECT value FROM settings WHERE name = 'allocationTokens'");
+        if ($allocationTokens !== 'on') {
+            $this->container->get('flash')->addMessage('info', 'Allocation Tokens (RFC 8495) are disabled. Enable this feature to manage allocation tokens.');
+            return $response->withHeader('Location', '/settings/general')->withStatus(302);
+        }
 
         return view($response,'admin/system/manageTokens.twig', [
             'currentUri' => $uri
