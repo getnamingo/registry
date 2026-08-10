@@ -998,3 +998,163 @@ knotc -b zone-validate test.
 > ```
 >
 > Advanced validation pipeline: https://github.com/icann/OCTO-TE-labs/tree/extended/dnssec/08-zonedelivery
+
+## 3. FreeBSD 15.1 Differences
+
+On FreeBSD 15.1, use the native packages, paths, users, and `rc.d` services below. All DNS configuration syntax remains unchanged unless noted.
+
+### BIND 9.20
+
+No external repository is required:
+
+```sh
+pkg update
+pkg install -y bind920
+
+install -d -o bind -g bind -m 0750 \
+    /usr/local/etc/namedb/primary \
+    /usr/local/etc/namedb/keys \
+    /usr/local/etc/namedb/secondary
+
+sysrc named_enable=YES
+```
+
+Use these FreeBSD paths:
+
+| Debian/Ubuntu | FreeBSD 15.1 |
+|---|---|
+| `/etc/bind` | `/usr/local/etc/namedb` |
+| `/etc/bind/named.conf.local` | `/usr/local/etc/namedb/named.conf` |
+| `/etc/bind/named.conf.options` | `/usr/local/etc/namedb/named.conf` |
+| `/var/lib/bind` | `/usr/local/etc/namedb/primary` |
+| `/var/lib/bind/keys` | `/usr/local/etc/namedb/keys` |
+| `/var/cache/bind/zones` | `/usr/local/etc/namedb/secondary` |
+
+Generate the TSIG key with:
+
+```sh
+cd /usr/local/etc/namedb
+tsig-keygen -a HMAC-SHA256 test.key > test.key
+chown root:bind test.key
+chmod 0640 test.key
+```
+
+Place the `options`, `include`, `dnssec-policy`, and `zone` blocks in:
+
+```text
+/usr/local/etc/namedb/named.conf
+```
+
+For example, use:
+
+```conf
+include "/usr/local/etc/namedb/test.key";
+
+zone "test." {
+    type primary;
+    file "/usr/local/etc/namedb/primary/test.zone";
+    allow-transfer { key "test.key"; };
+    also-notify {
+        <secondary-server-IP> key "test.key";
+    };
+};
+```
+
+Validate and start BIND:
+
+```sh
+named-checkconf
+named-checkzone test. /usr/local/etc/namedb/primary/test.zone
+
+service named restart
+service named status
+rndc zonestatus test.
+```
+
+Recent BIND messages are available through syslog:
+
+```sh
+tail -n 100 /var/log/messages
+```
+
+### Optional BIND HSM Packages
+
+```sh
+pkg install -y softhsm2 opensc openssl-pkcs11provider
+
+pw groupshow softhsm >/dev/null 2>&1 || pw groupadd softhsm
+pw groupmod softhsm -m bind
+
+install -d -o root -g softhsm -m 2770 \
+    /var/lib/softhsm \
+    /var/lib/softhsm/tokens
+```
+
+Use these module paths:
+
+```text
+/usr/local/lib/softhsm/libsofthsm2.so
+/usr/local/lib/ossl-modules/pkcs11.so
+```
+
+Replace the systemd environment override with:
+
+```sh
+sysrc named_env="OPENSSL_CONF=/usr/local/etc/namedb/openssl-pkcs11.cnf"
+service named restart
+```
+
+### Knot DNS
+
+No external repository is required:
+
+```sh
+pkg update
+pkg install -y knot3
+
+test -f /usr/local/etc/knot/knot.conf ||
+    cp /usr/local/etc/knot/knot.conf.sample \
+       /usr/local/etc/knot/knot.conf
+
+install -d -o knot -g knot -m 0750 \
+    /var/db/knot/zones \
+    /var/db/knot/secondary
+
+sysrc knot_enable=YES
+sysrc knot_config=/usr/local/etc/knot/knot.conf
+```
+
+Use these FreeBSD paths:
+
+| Debian/Ubuntu | FreeBSD 15.1 |
+|---|---|
+| `/etc/knot/knot.conf` | `/usr/local/etc/knot/knot.conf` |
+| `/var/lib/knot/zones` | `/var/db/knot/zones` |
+| `/var/lib/knot/slave` | `/var/db/knot/secondary` |
+
+Validate and start Knot DNS:
+
+```sh
+knotc conf-check
+service knot restart
+service knot status
+knotc zone-status test.
+```
+
+Recent Knot DNS messages are available through syslog:
+
+```sh
+tail -n 100 /var/log/messages
+```
+
+After Namingo generates the zone, use:
+
+```sh
+chown knot:knot /var/db/knot/zones/test.zone
+chmod 0640 /var/db/knot/zones/test.zone
+
+kzonecheck -v test. /var/db/knot/zones/test.zone
+knotc -b zone-reload test.
+```
+
+References: [FreeBSD BIND port](https://github.com/freebsd/freebsd-ports/tree/main/dns/bind920), [FreeBSD Knot port](https://github.com/freebsd/freebsd-ports/tree/main/dns/knot3).
