@@ -707,7 +707,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
     $parts = extractDomainAndTLD($domainName);
     $label = $parts['domain'];
-    $domain_extension = '.' . strtoupper($parts['tld']);
+    $domain_extension = '.' . strtolower(ltrim($parts['tld'], '.'));
 
     if ($launch_extension_enabled && isset($launch_create)) {
         $xml->registerXPathNamespace('launch', 'urn:ietf:params:xml:ns:launch-1.0');
@@ -798,7 +798,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         }
     }
 
-    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = UPPER(?)");
+    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE tld = ? LIMIT 1");
     $stmt->execute([$domain_extension]);
     $tld_id = $stmt->fetchColumn();
     $stmt->closeCursor();
