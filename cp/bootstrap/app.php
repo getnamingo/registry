@@ -12,14 +12,22 @@ use Gettext\Loader\PoLoader;
 use Gettext\Translations;
 use Punic\Language;
 
-// Enable for debug
-// if (session_status() == PHP_SESSION_NONE) {
-//     session_start();
-// }
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
 
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_cookies', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.use_trans_sid', '0');
 ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', '1');
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.cookie_lifetime', '0');
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/helper.php';
@@ -38,7 +46,6 @@ if (envi('APP_ENV')=='local') {
     Logger::systemLogs(true);
 } else{
     Logger::systemLogs(false);
-    ini_set('session.cookie_secure', '1');
 }
 
 $container = new Container();
