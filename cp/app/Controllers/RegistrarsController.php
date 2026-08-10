@@ -1919,9 +1919,10 @@ class RegistrarsController extends Controller
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_CUSTOMREQUEST  => 'POST',
                     CURLOPT_POSTFIELDS     => $jsonData,
-                    CURLOPT_HTTPHEADER     => [
+                    CURLOPT_HTTPHEADER => [
                         'Content-Type: application/json',
-                        'Content-Length: ' . strlen($jsonData)
+                        'Content-Length: ' . strlen($jsonData),
+                        'Authorization: Bearer ' . envi('MSG_API_TOKEN'),
                     ],
                 ];
 

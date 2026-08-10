@@ -103,9 +103,10 @@ try {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST  => 'POST',
         CURLOPT_POSTFIELDS     => $jsonPayload,
-        CURLOPT_HTTPHEADER     => [
+        CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Content-Length: ' . strlen($jsonPayload),
+            'Authorization: Bearer ' . $c['msg_api_token'],
         ],
     ];
 

@@ -87,7 +87,7 @@ function generateReportHTML($tickets)
 // Send email via internal API
 function sendEmail($toEmail, $subject, $htmlContent)
 {
-    global $log;
+    global $log, $c;
     $data = [
         'type' => 'sendmail',
         'toEmail' => $toEmail,
@@ -102,7 +102,8 @@ function sendEmail($toEmail, $subject, $htmlContent)
         CURLOPT_POSTFIELDS => json_encode($data),
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($data))
+            'Content-Length: ' . strlen(json_encode($data)),
+            'Authorization: Bearer ' . $c['msg_api_token'],
         ],
     ];
 

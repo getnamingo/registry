@@ -73,26 +73,31 @@ try {
 
 // Function to send email
 function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $registryName) {
-    $message = "Dear ".$data['name'].",\n\n";
-    
+    global $c;
+
+    $message = "Dear " . $data['name'] . ",\n\n";
+
     switch ($case) {
         case 'low_balance':
             $subject = "Low balance alert for registrar: " . $data['clid'];
             $message .= "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is below the minimum credit threshold of {$data['currency']} {$data['creditThreshold']}.\n\n";
             break;
+
         case 'zero_balance':
             $subject = "Zero balance alert for registrar: " . $data['clid'];
             $message .= "We have noticed that your account balance with us is currently zero. This means you are unable to use our services until the balance is topped up.\n\n";
             break;
+
         case 'over_limit':
             $subject = "Over limit alert for registrar: " . $data['clid'];
             $message .= "Your account is currently past the credit limit. Immediate action is required to bring your account back into good standing and avoid service disruption.\n\n";
             break;
+
         default:
             $subject = "Alert for registrar: " . $data['clid'];
             $message .= "This is a generic warning for registrar: " . $data['clid'];
     }
-    
+
     $message .= "Important: To avoid any interruption in services, we recommend that you top up your account balance as soon as possible.\n\n";
     $message .= "How to Top Up:\n";
     $message .= "1. Log in to your account.\n";
@@ -102,37 +107,87 @@ function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $regi
     $message .= "Thank you for your prompt attention to this matter.\n\n";
     $message .= "Best regards,\n";
     $message .= "$registryName's Billing Team";
-    
-    // Prepare the data array for the cURL request
-    $to_send = [
-        'type' => 'sendmail', 
+
+    $toSend = [
+        'type'    => 'sendmail',
         'subject' => $subject,
-        'body' => $message,
+        'body'    => $message,
         'toEmail' => $data['email'],
     ];
-            
+
+    try {
+        $payload = json_encode(
+            $toSend,
+            JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+    } catch (JsonException $e) {
+        $log->error('Unable to encode email payload', [
+            'clid' => $data['clid'],
+            'error' => $e->getMessage(),
+        ]);
+        return;
+    }
+
     $url = 'http://127.0.0.1:8250';
 
-    $options = [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST  => 'POST',
-        CURLOPT_POSTFIELDS     => json_encode($to_send),
-        CURLOPT_HTTPHEADER     => [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($to_send))
-        ],
+    $headers = [
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($payload),
     ];
 
+    $apiToken = (string)($c['msg_api_token'] ?? '');
+
+    if ($apiToken !== '') {
+        $headers[] = 'Authorization: Bearer ' . $apiToken;
+    }
+
     $curl = curl_init($url);
-    curl_setopt_array($curl, $options);
+
+    if ($curl === false) {
+        $log->error('Unable to initialize cURL', [
+            'clid' => $data['clid'],
+        ]);
+        return;
+    }
+
+    curl_setopt_array($curl, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT        => 10,
+    ]);
 
     $response = curl_exec($curl);
-
-    if ($response === false) {
-        throw new Exception(curl_error($curl), curl_errno($curl));
-    }
+    $curlError = curl_error($curl);
+    $curlErrno = curl_errno($curl);
+    $httpCode = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
 
     curl_close($curl);
 
-    $log->info('sending email to ' . $data['clid']);
+    if ($response === false) {
+        $log->error('Message producer connection failed', [
+            'clid' => $data['clid'],
+            'error' => $curlError,
+            'errno' => $curlErrno,
+        ]);
+        return;
+    }
+
+    if ($httpCode !== 202) {
+        $log->error('Message producer rejected email', [
+            'clid' => $data['clid'],
+            'http_code' => $httpCode,
+            'response' => substr((string)$response, 0, 500),
+        ]);
+        return;
+    }
+
+    $result = json_decode($response, true);
+
+    $log->info('Email queued successfully', [
+        'clid' => $data['clid'],
+        'message_id' => $result['id'] ?? null,
+    ]);
 }
