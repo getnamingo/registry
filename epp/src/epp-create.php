@@ -798,7 +798,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         }
     }
 
-    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = ?");
+    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE UPPER(tld) = UPPER(?)");
     $stmt->execute([$domain_extension]);
     $tld_id = $stmt->fetchColumn();
     $stmt->closeCursor();
