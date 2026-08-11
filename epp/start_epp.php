@@ -25,6 +25,14 @@ $logFilePath = '/var/log/namingo/epp.log';
 $log = setupLogger($logFilePath, 'EPP');
 
 set_error_handler(function ($severity, $message, $file, $line) use ($log) {
+    if (
+        str_contains($message, 'PDOStatement::execute()') &&
+        str_contains($message, 'Broken pipe') &&
+        str_contains($file, 'PDOStatementProxy.php')
+    ) {
+        return true; // handled; don't log it
+    }
+
     $log->error("PHP error [{$severity}] {$message} in {$file}:{$line}");
     return false;
 });
@@ -305,6 +313,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
 
     $frames = [substr($data, 4)];
     $pdo = null;
+    $pdoHealthy = true;
 
     try {
         $pdo = $pool->get(1.0);
@@ -895,11 +904,28 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         $log->error('General Error: ' . $e->getMessage());
         try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
         return;
+    } catch (PDOException $e) {
+        $pdoHealthy = false;
+
+        $errorInfo = $e->errorInfo ?? [];
+        $sqlState = $errorInfo[0] ?? 'n/a';
+        $driverCode = $errorInfo[1] ?? 'n/a';
+
+        $log->alert('Database error: ' . $e->getMessage() .
+            ' | code=' . $e->getCode() .
+            ' | sqlstate=' . $sqlState .
+            ' | driverCode=' . $driverCode .
+            ' | file=' . $e->getFile() . ':' . $e->getLine());
+
+        try { $conn->close(); } catch (\Throwable $closeErr) {}
+
+        return;
     } finally {
-        if ($pdo) {
+        if ($pdo && $pdoHealthy) {
             $pool->put($pdo);
-            $pdo = null;
         }
+
+        $pdo = null;
     }
 
 });

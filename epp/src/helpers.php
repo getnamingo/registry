@@ -751,6 +751,7 @@ function dnssec_key2ds($owner, $flags, $protocol, $algorithm, $publickey) {
 // Function to update the permitted IPs from the database
 function updatePermittedIPs($pool, $permittedIPsTable): void {
     $pdo = null;
+    $pdoHealthy = true;
 
     try {
         $pdo = $pool->get(1.0);
@@ -761,11 +762,28 @@ function updatePermittedIPs($pool, $permittedIPsTable): void {
         $stmt = $pdo->query("SELECT addr FROM registrar_whitelist");
         $permittedIPs = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
         $stmt->closeCursor();
+    } catch (PDOException $e) {
+        $pdoHealthy = false;
+
+        $errorInfo = $e->errorInfo ?? [];
+        $sqlState = $errorInfo[0] ?? 'n/a';
+        $driverCode = $errorInfo[1] ?? 'n/a';
+
+        $log->alert('Database error: ' . $e->getMessage() .
+            ' | code=' . $e->getCode() .
+            ' | sqlstate=' . $sqlState .
+            ' | driverCode=' . $driverCode .
+            ' | file=' . $e->getFile() . ':' . $e->getLine());
+
+        try { $conn->close(); } catch (\Throwable $closeErr) {}
+
+        return;
     } finally {
-        if ($pdo) {
+        if ($pdo && $pdoHealthy) {
             $pool->put($pdo);
-            $pdo = null;
         }
+
+        $pdo = null;
     }
 
     // Clear table
@@ -1336,9 +1354,11 @@ function isSecureAuthInfoTransferEnabled($pdo): bool
 
 function updateDomainTlds($pool, Swoole\Table $domainTldsTable): void
 {
-    $pdo = $pool->get();
+    $pdo = null;
+    $pdoHealthy = true;
 
     try {
+        $pdo = $pool->get();
         $stmt = $pdo->query("SELECT tld FROM domain_tld");
         $seen = [];
 
@@ -1370,7 +1390,27 @@ function updateDomainTlds($pool, Swoole\Table $domainTldsTable): void
                 $domainTldsTable->del($key);
             }
         }
+    } catch (PDOException $e) {
+        $pdoHealthy = false;
+
+        $errorInfo = $e->errorInfo ?? [];
+        $sqlState = $errorInfo[0] ?? 'n/a';
+        $driverCode = $errorInfo[1] ?? 'n/a';
+
+        $log->alert('Database error: ' . $e->getMessage() .
+            ' | code=' . $e->getCode() .
+            ' | sqlstate=' . $sqlState .
+            ' | driverCode=' . $driverCode .
+            ' | file=' . $e->getFile() . ':' . $e->getLine());
+
+        try { $conn->close(); } catch (\Throwable $closeErr) {}
+
+        return;
     } finally {
-        $pool->put($pdo);
+        if ($pdo && $pdoHealthy) {
+            $pool->put($pdo);
+        }
+
+        $pdo = null;
     }
 }
