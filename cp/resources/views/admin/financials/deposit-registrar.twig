@@ -32,6 +32,20 @@
     [data-bs-theme="dark"] .payment-provider-liqpay {
         background-image: url('/assets/liqpay-dark.svg');
     }
+    .payment-provider-revolut {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #d6d8dc;
+        border-radius: 4px;
+        color: #111;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 800;
+        justify-content: center;
+    }
+    .payment-provider-revolut::before {
+        content: 'R';
+    }
 </style>
       <div class="page-wrapper">
         <!-- Page header -->
@@ -96,6 +110,34 @@
                                     <div>
                                         <span class="payment payment-provider-liqpay payment-xs me-2"></span>
                                         {{ __('LiqPay') }}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endif %}
+                            {% if 'revolut' in enabledGateways %}
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="revolut" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-revolut payment-xs me-2"></span>
+                                        {{ __('Revolut Card') }}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endif %}
+                            {% if 'revolutpay' in enabledGateways %}
+                            <label class="form-selectgroup-item flex-fill">
+                                <input type="radio" name="paymentMethod" value="revolutpay" class="form-selectgroup-input">
+                                <div class="form-selectgroup-label d-flex align-items-center p-3">
+                                    <div class="me-3">
+                                        <span class="form-selectgroup-check"></span>
+                                    </div>
+                                    <div>
+                                        <span class="payment payment-provider-revolut payment-xs me-2"></span>
+                                        {{ __('Revolut Pay') }}
                                     </div>
                                 </div>
                             </label>
@@ -205,9 +247,160 @@ document.getElementById('depositForm').addEventListener('submit', function (e) {
     }
 
     sendPayment(`/payment/${encodeURIComponent(paymentMethod)}/create`, formData, (data) => {
-        window.location.href = data.url;
+        if (paymentMethod === 'revolut') {
+            startRevolutCard(data);
+            return;
+        }
+        if (paymentMethod === 'revolutpay') {
+            startRevolutPay(data);
+            return;
+        }
+        window.location.assign(data.url);
     });
 });
+
+let revolutSdkPromise = null;
+let activeRevolutPayments = null;
+
+function loadRevolutSdk(embedHost) {
+    const allowedHosts = [
+        'https://merchant.revolut.com',
+        'https://sandbox-merchant.revolut.com'
+    ];
+    if (!allowedHosts.includes(embedHost)) {
+        return Promise.reject(new Error('Invalid Revolut SDK host.'));
+    }
+    if (typeof window.RevolutCheckout === 'function') {
+        return Promise.resolve(window.RevolutCheckout);
+    }
+    if (revolutSdkPromise) {
+        return revolutSdkPromise;
+    }
+
+    revolutSdkPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `${embedHost}/embed.js`;
+        script.async = true;
+        script.onload = () => {
+            if (typeof window.RevolutCheckout === 'function') {
+                resolve(window.RevolutCheckout);
+            } else {
+                reject(new Error('The Revolut SDK did not initialise.'));
+            }
+        };
+        script.onerror = () => reject(new Error('The Revolut SDK could not be loaded.'));
+        document.head.appendChild(script);
+    }).catch(error => {
+        revolutSdkPromise = null;
+        throw error;
+    });
+
+    return revolutSdkPromise;
+}
+
+function revolutErrorText(error) {
+    if (error && typeof error.message === 'string' && error.message !== '') {
+        return error.message;
+    }
+    return '{{ __("The payment was not completed. Please try again.") }}';
+}
+
+function startRevolutCard(data) {
+    if (data.checkout !== 'card' || !data.order_token || !data.return_url) {
+        showError('{{ __("Payment Error") }}', '{{ __("Revolut returned incomplete checkout data.") }}');
+        return;
+    }
+
+    loadRevolutSdk(data.embed_host)
+        .then(RevolutCheckout => RevolutCheckout(data.order_token, data.mode))
+        .then(checkout => {
+            checkout.payWithPopup({
+                name: data.customer_name || undefined,
+                email: data.customer_email || undefined,
+                locale: 'auto',
+                onSuccess: () => window.location.assign(data.return_url),
+                onError: error => showError(
+                    '{{ __("Payment Error") }}',
+                    revolutErrorText(error)
+                )
+            });
+        })
+        .catch(error => showError(
+            '{{ __("Payment Error") }}',
+            revolutErrorText(error)
+        ));
+}
+
+function startRevolutPay(data) {
+    if (
+        data.checkout !== 'revolut_pay'
+        || !data.public_key
+        || !data.order_token
+        || !data.return_url
+    ) {
+        showError('{{ __("Payment Error") }}', '{{ __("Revolut returned incomplete checkout data.") }}');
+        return;
+    }
+
+    Swal.fire({
+        title: '{{ __("Pay with Revolut") }}',
+        html: '<div id="revolut-pay-widget" style="min-height:48px"></div>'
+            + '<div id="revolut-pay-error" class="text-danger mt-3" role="alert"></div>',
+        showConfirmButton: false,
+        showCloseButton: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+            const target = document.getElementById('revolut-pay-widget');
+            const errorBox = document.getElementById('revolut-pay-error');
+
+            loadRevolutSdk(data.embed_host)
+                .then(RevolutCheckout => RevolutCheckout.payments({
+                    publicToken: data.public_key,
+                    mode: data.mode,
+                    locale: 'auto'
+                }))
+                .then(payments => {
+                    if (!payments || !payments.revolutPay) {
+                        throw new Error('Revolut Pay is not available for this merchant account.');
+                    }
+
+                    activeRevolutPayments = payments;
+                    payments.revolutPay.mount(target, {
+                        currency: data.currency,
+                        totalAmount: data.amount_minor,
+                        createOrder: () => Promise.resolve({ publicId: data.order_token }),
+                        mobileRedirectUrls: {
+                            success: data.return_url,
+                            failure: data.return_url,
+                            cancel: data.return_url
+                        },
+                        buttonStyle: {
+                            action: 'pay',
+                            size: 'large',
+                            cashback: false
+                        }
+                    });
+
+                    payments.revolutPay.on('payment', event => {
+                        if (event && event.type === 'success') {
+                            window.location.assign(data.return_url);
+                        } else if (event && event.type === 'error') {
+                            errorBox.textContent = revolutErrorText(event.error);
+                        }
+                    });
+                })
+                .catch(error => {
+                    errorBox.textContent = revolutErrorText(error);
+                });
+        },
+        didClose: () => {
+            if (activeRevolutPayments && typeof activeRevolutPayments.destroy === 'function') {
+                activeRevolutPayments.destroy();
+            }
+            activeRevolutPayments = null;
+        }
+    });
+}
 
 function sendPayment(url, formData, onSuccess) {
     fetch(url, {

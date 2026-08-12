@@ -22,6 +22,14 @@ class FinancialsController extends Controller
             'create' => 'createLiqPayPayment',
             'verify' => 'verifyLiqPayPayment',
         ],
+        'revolut' => [
+            'create' => 'createRevolutPayment',
+            'verify' => 'verifyRevolutPayment',
+        ],
+        'revolutpay' => [
+            'create' => 'createRevolutPayPayment',
+            'verify' => 'verifyRevolutPayPayment',
+        ],
         'plata' => [
             'create' => 'createPlataPayment',
             'verify' => 'verifyPlataPayment',
@@ -715,6 +723,311 @@ class FinancialsController extends Controller
             (string)($data['currency'] ?? ''),
             $token
         );
+    }
+
+    /**
+     * Revolut card pop-up adapter.
+     */
+    private function createRevolutPayment(Request $request, Response $response): Response
+    {
+        return $this->createRevolutOrder($request, $response, 'revolut', 'card');
+    }
+
+    private function verifyRevolutPayment(Request $request, string $channel): ?array
+    {
+        return $this->verifyRevolutOrder($request, 'revolut', $channel);
+    }
+
+    /**
+     * Standalone Revolut Pay button adapter.
+     */
+    private function createRevolutPayPayment(Request $request, Response $response): Response
+    {
+        return $this->createRevolutOrder($request, $response, 'revolutpay', 'revolut_pay');
+    }
+
+    private function verifyRevolutPayPayment(Request $request, string $channel): ?array
+    {
+        return $this->verifyRevolutOrder($request, 'revolutpay', $channel);
+    }
+
+    private function createRevolutOrder(
+        Request $request,
+        Response $response,
+        string $gateway,
+        string $checkout
+    ): Response {
+        $context = $this->paymentContextFromRequest($request, $gateway);
+        $config = $this->revolutConfig($checkout === 'revolut_pay');
+        $customer = array_filter([
+            'email' => trim($context['email']),
+            'full_name' => trim($context['username']),
+        ], static fn (string $value): bool => $value !== '');
+
+        $payload = [
+            'amount' => $context['amount_minor'],
+            'currency' => $context['currency'],
+            'capture_mode' => 'automatic',
+            'description' => $context['description'],
+            'metadata' => [
+                'foundry_gateway' => $gateway,
+                'payment_context' => $context['token'],
+            ],
+            'merchant_order_data' => [
+                'reference' => sprintf(
+                    'Foundry-%s-%s-%s',
+                    $gateway,
+                    $context['invoice_id'] ?? $context['user_id'],
+                    substr(hash('sha256', $context['token']), 0, 12)
+                ),
+            ],
+        ];
+        if ($customer !== []) {
+            $payload['customer'] = $customer;
+        }
+
+        $order = $this->revolutRequest('POST', 'api/orders', ['json' => $payload]);
+        $orderId = trim((string)($order['id'] ?? ''));
+        $orderToken = trim((string)($order['token'] ?? $order['public_id'] ?? ''));
+        if ($orderId === '' || $orderToken === '') {
+            throw new \RuntimeException('Revolut did not return an order ID and token.');
+        }
+
+        $returnUrl = $this->appUrl(
+            '/payment/' . $gateway . '/return?order_id=' . rawurlencode($orderId)
+        );
+
+        $this->clearPendingInvoice($context);
+
+        return $this->jsonResponse($response, [
+            'checkout' => $checkout,
+            'embed_host' => $config['host'],
+            'mode' => $config['mode'],
+            'order_id' => $orderId,
+            'order_token' => $orderToken,
+            'public_key' => $checkout === 'revolut_pay' ? $config['public_key'] : null,
+            'amount_minor' => $context['amount_minor'],
+            'currency' => $context['currency'],
+            'customer_name' => $context['username'],
+            'customer_email' => $context['email'],
+            'return_url' => $returnUrl,
+        ]);
+    }
+
+    private function verifyRevolutOrder(
+        Request $request,
+        string $gateway,
+        string $channel
+    ): ?array {
+        if ($channel === 'webhook') {
+            $orderId = $this->revolutWebhookOrderId($request, $gateway);
+            if ($orderId === null) {
+                return null;
+            }
+        } else {
+            $query = $request->getQueryParams();
+            $orderId = trim((string)(
+                $query['order_id']
+                ?? $query['revolut_order_id']
+                ?? $query['_rp_oid']
+                ?? ''
+            ));
+            if ($orderId === '') {
+                throw new \InvalidArgumentException('Missing Revolut order ID.');
+            }
+        }
+
+        if (!preg_match('/^[0-9a-f-]{20,64}$/i', $orderId)) {
+            throw new \InvalidArgumentException('Invalid Revolut order ID.');
+        }
+
+        $order = $this->revolutRequest(
+            'GET',
+            'api/orders/' . rawurlencode($orderId)
+        );
+        $orderGateway = strtolower(trim((string)(
+            $order['metadata']['foundry_gateway']
+            ?? ''
+        )));
+        if ($orderGateway !== $gateway) {
+            // Both Foundry adapters may receive account-wide Revolut events.
+            if ($channel === 'webhook') {
+                return null;
+            }
+            throw new \InvalidArgumentException('Revolut payment gateway does not match.');
+        }
+
+        $type = strtolower(trim((string)($order['type'] ?? 'payment')));
+        if ($type !== 'payment') {
+            throw new \InvalidArgumentException('The Revolut order is not a payment.');
+        }
+
+        $providerStatus = strtolower(trim((string)($order['state'] ?? '')));
+        $status = match ($providerStatus) {
+            'completed' => 'paid',
+            'failed' => 'failed',
+            'cancelled', 'canceled' => 'cancelled',
+            default => 'pending',
+        };
+        $token = trim((string)($order['metadata']['payment_context'] ?? ''));
+
+        return $this->verifiedPayment(
+            $gateway,
+            trim((string)($order['id'] ?? $orderId)),
+            $status,
+            $this->amountFromMinor($order['amount'] ?? ''),
+            (string)($order['currency'] ?? ''),
+            $token
+        );
+    }
+
+    private function revolutWebhookOrderId(Request $request, string $gateway): ?string
+    {
+        $secretName = $gateway === 'revolut'
+            ? 'REVOLUT_CARD_WEBHOOK_SECRET'
+            : 'REVOLUT_PAY_WEBHOOK_SECRET';
+        $secret = trim((string)envi($secretName));
+        $signature = trim($request->getHeaderLine('Revolut-Signature'));
+        $timestamp = trim($request->getHeaderLine('Revolut-Request-Timestamp'));
+        $rawBody = (string)$request->getBody();
+
+        if ($secret === '' || $signature === '' || $timestamp === '') {
+            throw new \InvalidArgumentException('Revolut webhook signing is not configured.');
+        }
+        if (!preg_match('/^\d{10,13}$/', $timestamp)) {
+            throw new \InvalidArgumentException('Invalid Revolut webhook timestamp.');
+        }
+
+        $timestampSeconds = strlen($timestamp) === 13
+            ? intdiv((int)$timestamp, 1000)
+            : (int)$timestamp;
+        if (abs(time() - $timestampSeconds) > 300) {
+            throw new \InvalidArgumentException('Expired Revolut webhook timestamp.');
+        }
+
+        $expected = 'v1=' . hash_hmac(
+            'sha256',
+            'v1.' . $timestamp . '.' . $rawBody,
+            $secret
+        );
+        $valid = false;
+        foreach (explode(',', $signature) as $candidate) {
+            if (hash_equals($expected, trim($candidate))) {
+                $valid = true;
+                break;
+            }
+        }
+        if (!$valid) {
+            throw new \InvalidArgumentException('Invalid Revolut webhook signature.');
+        }
+
+        try {
+            $payload = json_decode($rawBody, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new \InvalidArgumentException(
+                'Invalid Revolut webhook payload.',
+                0,
+                $exception
+            );
+        }
+        if (!is_array($payload)) {
+            throw new \InvalidArgumentException('Invalid Revolut webhook payload.');
+        }
+        if (strtoupper(trim((string)($payload['event'] ?? ''))) !== 'ORDER_COMPLETED') {
+            return null;
+        }
+
+        $webhookData = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        $orderId = trim((string)($payload['order_id'] ?? $webhookData['order_id'] ?? ''));
+        if ($orderId === '') {
+            throw new \InvalidArgumentException('Missing Revolut webhook order ID.');
+        }
+
+        return $orderId;
+    }
+
+    private function revolutRequest(string $method, string $path, array $options = []): array
+    {
+        $config = $this->revolutConfig();
+        $options['headers'] = array_merge([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $config['secret_key'],
+            'Revolut-Api-Version' => $config['api_version'],
+        ], $options['headers'] ?? []);
+
+        try {
+            $apiResponse = (new Client([
+                'base_uri' => $config['host'] . '/',
+                'timeout' => 15,
+            ]))->request($method, ltrim($path, '/'), $options);
+        } catch (\GuzzleHttp\Exception\GuzzleException $exception) {
+            $message = 'Revolut API request failed.';
+            if ($exception instanceof \GuzzleHttp\Exception\RequestException
+                && $exception->hasResponse()
+            ) {
+                $errorBody = (string)$exception->getResponse()->getBody();
+                $error = json_decode($errorBody, true);
+                $apiMessage = '';
+                if (is_array($error)) {
+                    if (is_string($error['message'] ?? null)) {
+                        $apiMessage = trim($error['message']);
+                    } elseif (is_string($error['error'] ?? null)) {
+                        $apiMessage = trim($error['error']);
+                    } elseif (is_array($error['error'] ?? null)) {
+                        $apiMessage = trim((string)($error['error']['message'] ?? ''));
+                    }
+                }
+                if ($apiMessage !== '') {
+                    $message .= ' ' . $apiMessage;
+                }
+            }
+            throw new \RuntimeException($message, 0, $exception);
+        }
+
+        try {
+            $data = json_decode(
+                $apiResponse->getBody()->getContents(),
+                true,
+                64,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\JsonException $exception) {
+            throw new \RuntimeException('Revolut returned invalid JSON.', 0, $exception);
+        }
+        if (!is_array($data)) {
+            throw new \RuntimeException('Revolut returned an invalid API response.');
+        }
+
+        return $data;
+    }
+
+    private function revolutConfig(bool $requirePublicKey = false): array
+    {
+        $secretKey = trim((string)envi('REVOLUT_SECRET_KEY'));
+        $publicKey = trim((string)envi('REVOLUT_PUBLIC_KEY'));
+        $apiVersion = trim((string)envi('REVOLUT_API_VERSION')) ?: '2024-09-01';
+        $sandboxValue = strtolower(trim((string)envi('REVOLUT_SANDBOX')));
+        $sandbox = in_array($sandboxValue, ['1', 'true', 'yes', 'on'], true);
+
+        if ($secretKey === '') {
+            throw new \RuntimeException('REVOLUT_SECRET_KEY is not configured.');
+        }
+        if ($requirePublicKey && $publicKey === '') {
+            throw new \RuntimeException('REVOLUT_PUBLIC_KEY is not configured.');
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $apiVersion)) {
+            throw new \RuntimeException('REVOLUT_API_VERSION is invalid.');
+        }
+
+        return [
+            'secret_key' => $secretKey,
+            'public_key' => $publicKey,
+            'api_version' => $apiVersion,
+            'mode' => $sandbox ? 'sandbox' : 'prod',
+            'host' => $sandbox
+                ? 'https://sandbox-merchant.revolut.com'
+                : 'https://merchant.revolut.com',
+        ];
     }
 
     private function createPlataPayment(Request $request, Response $response): Response
@@ -1492,6 +1805,7 @@ class FinancialsController extends Controller
         $secret = match ($gateway) {
             'stripe' => envi('STRIPE_SECRET_KEY'),
             'liqpay' => envi('LIQPAY_PRIVATE_KEY'),
+            'revolut', 'revolutpay' => envi('REVOLUT_SECRET_KEY'),
             'plata' => envi('PLATA_TOKEN'),
             'adyen' => envi('ADYEN_HMAC_KEY'),
             'now' => envi('NOW_API_KEY'),
@@ -1769,9 +2083,6 @@ class FinancialsController extends Controller
             );
             if (!$user) {
                 throw new \RuntimeException('Payment user was not found.');
-            }
-            if (strtoupper((string)$_SESSION['_currency']) !== $currency) {
-                throw new \RuntimeException('Payment currency does not match the user currency.');
             }
 
             $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s.v');

@@ -34,6 +34,14 @@ ENABLED_GATEWAYS=stripe
 STRIPE_SECRET_KEY='stripe-secret-key'
 STRIPE_PUBLISHABLE_KEY='stripe-publishable-key'
 
+REVOLUT_SANDBOX=true
+REVOLUT_SECRET_KEY=sk_your_sandbox_secret_key
+REVOLUT_PUBLIC_KEY=pk_your_sandbox_public_key
+REVOLUT_API_VERSION=2024-09-01
+
+REVOLUT_CARD_WEBHOOK_SECRET=
+REVOLUT_PAY_WEBHOOK_SECRET=
+
 LIQPAY_PUBLIC_KEY='liqpay-public-key'
 LIQPAY_PRIVATE_KEY='liqpay-private-key'
 
