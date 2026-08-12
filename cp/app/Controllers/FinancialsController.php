@@ -2037,22 +2037,18 @@ class FinancialsController extends Controller
             ? "Payment for Invoice #{$invoiceId}"
             : 'Account balance deposit';
 
-        $matchesPayment = static function ($transaction) use (
+        $matchesPayment = static function ($row) use (
             $registrarId,
-            $paymentType,
-            $invoiceId,
-            $transactionType,
-            $amount,
-            $currency
+            $amount
         ): bool {
-            return is_array($transaction)
-                && (int)$transaction['user_id'] === $registrarId
-                && $transaction['related_entity_type'] === $paymentType
-                && (int)$transaction['related_entity_id'] === $invoiceId
-                && $transaction['type'] === $transactionType
-                && number_format((float)$transaction['amount'], 2, '.', '') === $amount
-                && strtoupper((string)$transaction['currency']) === $currency
-                && $transaction['status'] === 'completed';
+            return is_array($row)
+                && (int)($row['registrar_id'] ?? 0) === $registrarId
+                && number_format(
+                    (float)($row['amount'] ?? 0),
+                    2,
+                    '.',
+                    ''
+                ) === $amount;
         };
 
         $db = $this->container->get('db');
@@ -2077,12 +2073,13 @@ class FinancialsController extends Controller
                 return;
             }
 
-            $user = $db->selectRow(
-                'SELECT id FROM users WHERE id = ? LIMIT 1',
+            $registrar = $db->selectRow(
+                'SELECT id, currency FROM registrar WHERE id = ? LIMIT 1',
                 [$registrarId]
             );
-            if (!$user) {
-                throw new \RuntimeException('Payment user was not found.');
+
+            if (!$registrar) {
+                throw new \RuntimeException('Payment registrar was not found.');
             }
 
             $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s.v');

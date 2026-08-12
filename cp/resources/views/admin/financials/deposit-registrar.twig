@@ -318,7 +318,7 @@ function startRevolutCard(data) {
                 name: data.customer_name || undefined,
                 email: data.customer_email || undefined,
                 locale: 'auto',
-                onSuccess: () => window.location.assign(data.return_url),
+                onSuccess: () => finishRevolutPayment(data),
                 onError: error => showError(
                     '{{ __("Payment Error") }}',
                     revolutErrorText(error)
@@ -383,7 +383,7 @@ function startRevolutPay(data) {
 
                     payments.revolutPay.on('payment', event => {
                         if (event && event.type === 'success') {
-                            window.location.assign(data.return_url);
+                            finishRevolutPayment(data);
                         } else if (event && event.type === 'error') {
                             errorBox.textContent = revolutErrorText(event.error);
                         }
@@ -426,6 +426,21 @@ function sendPayment(url, formData, onSuccess) {
 
 function showError(title, text) {
     Swal.fire({ icon: 'error', title, text });
+}
+
+function finishRevolutPayment(data) {
+    Swal.fire({
+        icon: 'success',
+        title: '{{ __("Payment confirmed") }}',
+        text: '{{ __("Updating your balance…") }}',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    setTimeout(() => {
+        window.location.assign(data.return_url);
+    }, 12000);
 }
 </script>
 {% endblock %}
