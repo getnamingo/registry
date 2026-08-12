@@ -23,6 +23,7 @@ class DomainsController extends Controller
             $domainName = $data['domain_name'] ?? null;
             $token = $data['token'] ?? null;
             $claims = $data['claims'] ?? null;
+            $db = $this->container->get('db');
 
             if ($domainName) {
                 // Convert to Punycode if the domain is not in ASCII
@@ -36,7 +37,7 @@ class DomainsController extends Controller
                     }
                 }
 
-                $invalid_domain = validate_label($domainName, $this->container->get('db'));
+                $invalid_domain = validate_label($domainName, $db);
                 if ($invalid_domain) {
                     $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: ' . $invalid_domain);
                     return $response->withHeader('Location', '/domain/check')->withStatus(302);
@@ -50,14 +51,14 @@ class DomainsController extends Controller
                     return $response->withHeader('Location', '/domain/check')->withStatus(302);
                 }
 
-                $domainModel = new Domain($this->container->get('db'));
+                $domainModel = new Domain($db);
                 $availability = $domainModel->getDomainByName($domainName);
 
                 // Convert the DB result into a boolean '0' or '1'
                 $availability = $availability ? '0' : '1';
 
                 if (isset($claims)) {
-                    $claim_key = $this->container->get('db')->selectValue('SELECT claim_key FROM tmch_claims WHERE domain_label = ? LIMIT 1',[$parts['domain']]);
+                    $claim_key = $db->selectValue('SELECT claim_key FROM tmch_claims WHERE domain_label = ? LIMIT 1',[$parts['domain']]);
                     
                     if ($claim_key) {
                         $claim = 1;
@@ -70,11 +71,11 @@ class DomainsController extends Controller
 
                 // If the domain is not taken, check if it's reserved
                 if ($availability === '1') {
-                    $domain_already_reserved = $this->container->get('db')->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
+                    $domain_already_reserved = $db->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
 
                     if ($domain_already_reserved) {
                         if ($token !== null && $token !== '') {
-                            $allocation_token = $this->container->get('db')->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                            $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
                                 
                             if ($allocation_token) {
                                 $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Allocation token valid');

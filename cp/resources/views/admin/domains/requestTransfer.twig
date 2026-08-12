@@ -162,7 +162,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const registrarId = document.getElementById('registrarDropdown')?.value || "";
         const years = parseInt(document.getElementById('transferYears')?.value, 10) || 1;
 
-        if (domainValue) {
+        if (domainValue && domainValue.includes('.') && !domainValue.endsWith('.')) {
             getDomainPrice(domainValue, years, registrarId).then(({ price, type }) => {
                 if (isNaN(price)) {
                     console.error("Invalid price received:", price);
