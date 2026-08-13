@@ -12,8 +12,8 @@ prompt_for_input() {
 prompt_for_password() {
     local password
     read -r -s -p "$1: " password
-    echo
-    echo "$password"
+    echo >&2
+    printf '%s' "$password"
 }
 
 generate_db_username() {

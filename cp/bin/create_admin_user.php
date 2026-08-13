@@ -18,6 +18,10 @@ $email = getenv('PANEL_EMAIL');
 $newPW = getenv('PANEL_PASSWORD');
 $username = getenv('PANEL_USERNAME') ?: 'admin';
 
+if ($newPW !== false) {
+    $newPW = trim($newPW);
+}
+
 if ($email === false || $email === '') {
     die("PANEL_EMAIL is required." . PHP_EOL);
 }
