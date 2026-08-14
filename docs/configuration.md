@@ -1121,6 +1121,28 @@ return [
 ];
 ```
 
+#### Testing the DAS Server
+
+You can query the DAS service directly over TCP using `nc`:
+
+```bash
+printf 'example.example\r\n' | nc das.example.com 1043
+```
+
+The server returns:
+
+```text
+1
+```
+
+if the domain is available, or:
+
+```text
+0
+```
+
+if the domain is not available.
+
 ### EPP Server Configuration (`/opt/registry/epp/config.php`)
 
 Settings for the Extensible Provisioning Protocol (EPP) server.
