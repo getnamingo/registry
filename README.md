@@ -67,27 +67,27 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 **Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
 
-## Configuration
+### Configuration
 
-### [General Configuration](docs/configuration.md) [Required]
+#### [General Configuration](docs/configuration.md) [Required]
 
-### [DNS Setup](docs/dns.md) [Required]
+#### [DNS Setup](docs/dns.md) [Required]
 
-### [Registrar Payments](docs/payment.md) [Required]
+#### [Registrar Payments](docs/payment.md) [Required]
 
-### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
+#### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
 
-### [Database Replication](docs/replication.md) [Recommended]
+#### [Database Replication](docs/replication.md) [Recommended]
 
-### [Data Encryption](docs/encryption.md) [Recommended]
+#### [Data Encryption](docs/encryption.md) [Recommended]
 
-## [First Steps Guide](docs/iog.md)
+#### [First Steps Guide](docs/iog.md)
 
-## [EPP Operations Guide](docs/epp.md)
+#### [EPP Operations Guide](docs/epp.md)
 
-## [Registrar FAQ](docs/faq.md)
+#### [Registrar FAQ](docs/faq.md)
 
-## [System Architecture](docs/architecture.md)
+#### [System Architecture](docs/architecture.md)
 
 ### Upgrade
 
