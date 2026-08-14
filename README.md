@@ -4,40 +4,17 @@
 
 [![SWUbanner](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://github.com/vshymanskyy/StandWithUkraine/blob/main/docs/README.md)
 
-Open-source domain registry platform. Revolutionizing ccTLD and gTLD management with Namingo.
+Open-source domain registry platform for modern ccTLD, gTLD, brand, and private registry operations.
 
 ## Introduction
 
-Namingo is a state-of-the-art open-source domain registry platform, diligently crafted to serve ccTLD, gTLD, brand and private domain registries. Written from scratch in 2023/2026, it adheres to the latest standards, ensuring a cutting-edge experience. 
+Namingo is a modern, open-source domain registry platform designed for **ccTLD, gTLD, brand, and private domain registries**. Developed from scratch for contemporary registry operations, it provides a standards-based, modular, and maintainable foundation for operating a domain name registry without dependence on legacy registry software.
 
-Namingo is optimally designed for the 2026 ICANN new gTLD application round, providing a straightforward and easily updatable platform. Its contemporary architecture and intuitive interface make it an ideal choice for efficient and modern domain registry management.
+The platform implements the core services required for registry operation, including **EPP, RDAP, WHOIS, DNS/DNSSEC integration, data escrow, ICANN reporting, abuse monitoring, registrar management, and registry automation**, together with a web-based administration and registrar interface.
 
-> [!NOTE]
-> Namingo **passes** ICANN OT&E RST for the `MainRSPEvaluationTest` profile, demonstrating compliance with required operational standards.
+Namingo has been developed with current ICANN gTLD technical and operational requirements in mind and has been **successfully tested against ICANN's Registry System Testing (RST) v2.0 OT&E environment for the 2026 New gTLD Program**.
 
-### Want to pass your own RST?
-
-You can use our open-source [ICANN RST OT&E Test Script](https://github.com/getnamingo/registry-rst) tool to easily run your ICANN OT&E and production RST tests.
-
-## Get Involved
-
-We also seek assistance from gTLD operators to test Namingo in real-world environments. If you can provide access to ICANN and other relevant infrastructure, your contributions will help improve Namingo’s compatibility and reliability for registry operations.
-
-### EPP Benchmark Summary
-
-Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM, and an 11GB SSD. On a larger setup with 8 cores, 32GB RAM, and a 125GB NVMe SSD, it scales to 1,000,000 domains, with zone generation taking approximately 6 minutes.
-
-| **Metric**                      | 2 vCPU, 2 GB RAM, SSD | 8 vCPU, 32 GB RAM, NVMe |
-|---------------------------------|-----------------------|-------------------------|
-| _Domain Check_                  |                       |                         |
-| Operations per Second (Ops/sec) | 217.55                | 462.58                  |
-| Average Time per Operation (ms) | 4.596                 | 2.16                    |
-| _Domain Info_                   |                       |                         |
-| Operations per Second (Ops/sec) | 94.65                 | 225.55                  |
-| Average Time per Operation (ms) | 10.57                 | 4.43                    |
-| _Domain Create_                 |                       |                         |
-| Operations per Second (Ops/sec) | 42.17                 | 120.62                  |
-| Average Time per Operation (ms) | 23.72                 | 8.29                    |
+Its architecture is intended to remain straightforward to deploy, operate, audit, extend, and upgrade as registry standards and policy requirements evolve. Namingo can therefore serve both established registry operators and organizations building new registry services, while remaining fully open source and under the operator's control.
 
 ## Features
 
@@ -73,8 +50,6 @@ Namingo efficiently manages up to 150,000 domains on a VPS with 2 cores, 4GB RAM
 
 ## Documentation
 
-Our documentation provides comprehensive guidance on installation, configuration, and initial operation, ensuring you have all the information you need to successfully manage your domain registry.
-
 ### Installation
 
 **Minimum requirement:** a fresh VPS or virtual machine running Ubuntu 22.04/24.04/26.04, Debian 12/13, or FreeBSD 15.1, with at least 1 CPU core, 2 GB RAM, and 10 GB of disk space.
@@ -91,6 +66,28 @@ After installation, be sure to review all the guides in the Documentation sectio
 **Note for Systems with Partial or Misconfigured IPv6 Support:** If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
 
 **Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
+
+## Configuration
+
+### [General Configuration](docs/configuration.md) [Required]
+
+### [DNS Setup](docs/dns.md) [Required]
+
+### [Registrar Payments](docs/payment.md) [Required]
+
+### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
+
+### [Database Replication](docs/replication.md) [Recommended]
+
+### [Data Encryption](docs/encryption.md) [Recommended]
+
+## [First Steps Guide](docs/iog.md)
+
+## [EPP Operations Guide](docs/epp.md)
+
+## [Registrar FAQ](docs/faq.md)
+
+## [System Architecture](docs/architecture.md)
 
 ### Upgrade
 
@@ -109,26 +106,6 @@ After installation, be sure to review all the guides in the Documentation sectio
   Download and run the [`update1029.sh`](docs/update1029.sh) script.
 
 For **older versions**, please refer to [`upgrade.md`](docs/upgrade.md).
-
-### [Configuration Guide](docs/configuration.md) [Required]
-
-#### [DNS Setup Guide](docs/dns.md) [Required]
-
-#### [Registrar Payment Guide](docs/payment.md) [Required]
-
-#### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
-
-#### [Database Replication](docs/replication.md) [Recommended]
-
-#### [Data Encryption](docs/encryption.md) [Recommended]
-
-### [First Steps Guide](docs/iog.md) [Required]
-
-### [EPP Operations Guide](docs/epp.md) [Required]
-
-### [Registrar FAQ](docs/faq.md) [Required]
-
-### [System Architecture](docs/architecture.md) [Advanced]
 
 ## Support
 
