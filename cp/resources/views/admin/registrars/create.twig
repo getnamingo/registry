@@ -331,21 +331,21 @@
                             <div class="col-md-6">
                               <div class="row g-3 mb-3">
                                   <div class="col-md-6">
-                                    <label for="billingFirstName" class="form-label required">{{ __('First Name') }}</label>
-                                    <input type="text" class="form-control" id="billingFirstName" name="tech[first_name]" required>
+                                    <label for="techFirstName" class="form-label required">{{ __('First Name') }}</label>
+                                    <input type="text" class="form-control" id="techFirstName" name="tech[first_name]" required>
                                   </div>
                                   <div class="col-md-6">
-                                    <label for="billingLastName" class="form-label required">{{ __('Last Name') }}</label>
-                                    <input type="text" class="form-control" id="billingLastName" name="tech[last_name]" required>
+                                    <label for="techLastName" class="form-label required">{{ __('Last Name') }}</label>
+                                    <input type="text" class="form-control" id="techLastName" name="tech[last_name]" required>
                                   </div>
                               </div>
                               <div class="mb-3">
-                                <label for="billingOrg" class="form-label">{{ __('Organization') }}</label>
-                                <input type="text" class="form-control" id="billingOrg" name="tech[org]">
+                                <label for="techOrg" class="form-label">{{ __('Organization') }}</label>
+                                <input type="text" class="form-control" id="techOrg" name="tech[org]">
                               </div>
                               <div class="mb-3">
-                                <label for="billingStreet1" class="form-label">{{ __('Street Address') }}</label>
-                                <input type="text" class="form-control" id="billingStreet1" name="tech[street1]">
+                                <label for="techStreet1" class="form-label">{{ __('Street Address') }}</label>
+                                <input type="text" class="form-control" id="techStreet1" name="tech[street1]">
                               </div>
                             </div>
 
@@ -353,21 +353,21 @@
                             <div class="col-md-6">
                               <div class="row g-3 mb-3">
                                   <div class="col-md-4">
-                                    <label for="billingCity" class="form-label required">{{ __('City') }}</label>
-                                    <input type="text" class="form-control" id="billingCity" name="tech[city]" required>
+                                    <label for="techCity" class="form-label required">{{ __('City') }}</label>
+                                    <input type="text" class="form-control" id="techCity" name="tech[city]" required>
                                   </div>
                                   <div class="col-md-4">
-                                    <label for="billingSp" class="form-label">{{ __('State/Province') }}</label>
-                                    <input type="text" class="form-control" id="billingSp" name="tech[sp]">
+                                    <label for="techSp" class="form-label">{{ __('State/Province') }}</label>
+                                    <input type="text" class="form-control" id="techSp" name="tech[sp]">
                                   </div>
                                   <div class="col-md-4">
-                                    <label for="billingPc" class="form-label">{{ __('Postal Code') }}</label>
-                                    <input type="text" class="form-control" id="billingPc" name="tech[pc]">
+                                    <label for="techPc" class="form-label">{{ __('Postal Code') }}</label>
+                                    <input type="text" class="form-control" id="techPc" name="tech[pc]">
                                   </div>
                               </div>
                               <div class="mb-3">
-                                <label for="billingCc" class="form-label required">{{ __('Country') }}</label>
-                                <select class="form-select" id="billingCc" name="tech[cc]" required="required">
+                                <label for="techCc" class="form-label required">{{ __('Country') }}</label>
+                                <select class="form-select" id="techCc" name="tech[cc]" required="required">
                                   {% for country in countries %}
                                     <option value="{{ country.alpha2|lower }}">{{ country.name }}</option>
                                   {% endfor %}
@@ -375,12 +375,12 @@
                               </div>
                               <div class="row g-3 mb-3">
                                   <div class="col-md-6">
-                                    <label for="billingVoice" class="form-label">{{ __('Phone') }}</label>
-                                    <input type="tel" class="form-control" id="billingVoice" name="tech[voice]">
+                                    <label for="techVoice" class="form-label">{{ __('Phone') }}</label>
+                                    <input type="tel" class="form-control" id="techVoice" name="tech[voice]">
                                   </div>
                                   <div class="col-md-6">
-                                    <label for="billingEmail" class="form-label required">{{ __('Email') }}</label>
-                                    <input type="text" class="form-control" id="billingEmail" name="tech[email]" required autocapitalize="none">
+                                    <label for="techEmail" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="techEmail" name="tech[email]" required autocapitalize="none">
                                   </div>
                               </div>                              
                             </div>
@@ -444,8 +444,8 @@
                                     <input type="tel" class="form-control" id="abuseVoice" name="abuse[voice]">
                                   </div>
                                   <div class="col-md-6">
-                                    <label for="abuseEmail" class="form-label required">{{ __('Email') }}</label>
-                                    <input type="text" class="form-control" id="abuseEmail" name="abuse[email]" required autocapitalize="none">
+                                    <label for="abuseEmailList" class="form-label required">{{ __('Email') }}</label>
+                                    <input type="text" class="form-control" id="abuseEmailList" name="abuse[email]" required autocapitalize="none">
                                   </div>
                               </div>
                             </div>
@@ -467,11 +467,11 @@
                         </p>
                         <div id="ipWhitelistForm">
                           <div id="ipAddressFields">
-                            <div class="mb-3 d-flex align-items-center">
-                              <input type="text" class="form-control" name="ipAddress[]" autocapitalize="none" required>
-                              <button type="button" class="btn btn-primary ms-2 add-ip">+</button>
+                            <div class="mb-3">
+                              <input type="text" class="form-control" name="ipAddress[]" autocapitalize="none" placeholder="{{ __('Enter an IPv4 or IPv6 address') }}" required>
                             </div>
                           </div>
+                          <button type="button" class="btn btn-outline-primary add-ip">+ {{ __('Add another IP address') }}</button>
                         </div>
                       </div>
                     </div>
@@ -485,33 +485,23 @@
                         <p class="card-text">
                           {{ __('Create a registrar user by specifying the username (also known as CLID), email, and passwords for EPP and panel access.') }}
                         </p>
-                        <div class="table-responsive">
-                          <table class="table">
-                            <thead>
-                              <tr>
-                                <th scope="col required">{{ __('Username/CLID') }} <span class="text-red">*</span></th>
-                                <th scope="col">{{ __('Login Email') }} <span class="text-red">*</span></th>
-                                <th scope="col">{{ __('Panel Password') }} <span class="text-red">*</span></th>
-                                <th scope="col">{{ __('EPP Password') }} <span class="text-red">*</span></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td>
-                                  <input type="text" class="form-control form-control-sm" name="user_name" placeholder="user1" autocomplete="off" required autocapitalize="none">
-                                </td>
-                                <td>
-                                  <input type="text" class="form-control form-control-sm" name="user_email" placeholder="user1@example.com" autocomplete="off" required autocapitalize="none">
-                                </td>
-                                <td>
-                                  <input type="password" class="form-control form-control-sm" name="panelPassword" autocomplete="off" required>
-                                </td>
-                                <td>
-                                  <input type="password" class="form-control form-control-sm" name="eppPassword" autocomplete="off" required>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div class="datagrid">
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('EPP Username/CLID') }} <span class="text-red">*</span></div>
+                            <div class="datagrid-content"><input type="text" class="form-control" id="userName" name="user_name" placeholder="user1" autocomplete="off" required autocapitalize="none"></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('EPP Password') }} <span class="text-red">*</span></div>
+                            <div class="datagrid-content"><input type="password" class="form-control" id="eppPassword" name="eppPassword" autocomplete="off" required></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Panel Login Email') }} <span class="text-red">*</span></div>
+                            <div class="datagrid-content"><input type="text" class="form-control" id="userEmail" name="user_email" placeholder="user1@example.com" autocomplete="off" required autocapitalize="none"></div>
+                          </div>
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Panel Password') }} <span class="text-red">*</span></div>
+                            <div class="datagrid-content"><input type="password" class="form-control" id="panelPassword" name="panelPassword" autocomplete="off" required></div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -601,23 +591,29 @@ document.addEventListener('DOMContentLoaded', function() {
     ipForm.addEventListener('click', function(e) {
         const target = e.target;
 
-        // Handle Add IP Button Click
         if (target.classList.contains('add-ip')) {
             const totalFields = ipForm.querySelectorAll('input[name="ipAddress[]"]').length;
+
             if (totalFields < maxFields) {
-                const newField = target.parentElement.cloneNode(true);
-                newField.querySelector('input').value = '';
-                newField.querySelector('.add-ip').classList.replace('btn-primary', 'btn-danger');
-                newField.querySelector('.add-ip').textContent = '-';
-                newField.querySelector('.add-ip').classList.replace('add-ip', 'remove-ip');
+                const newField = document.createElement('div');
+                newField.className = 'mb-3 d-flex align-items-center';
+                newField.innerHTML = `
+                    <input type="text" class="form-control" name="ipAddress[]" autocapitalize="none" required>
+                    <button type="button" class="btn btn-danger ms-2 remove-ip">-</button>
+                `;
+
                 ipForm.querySelector('#ipAddressFields').appendChild(newField);
+                newField.querySelector('input').focus();
             }
         }
 
-        // Handle Remove IP Button Click
         if (target.classList.contains('remove-ip')) {
             target.parentElement.remove();
         }
+
+        const totalFields = ipForm.querySelectorAll('input[name="ipAddress[]"]').length;
+        const addButton = ipForm.querySelector('.add-ip');
+        addButton.disabled = totalFields >= maxFields;
     });
     
     const copyCheckbox = document.getElementById('copyOwnerData');

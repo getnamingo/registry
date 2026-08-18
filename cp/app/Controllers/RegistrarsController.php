@@ -35,7 +35,7 @@ class RegistrarsController extends Controller
 
             $ipAddressValidator = v::when(
                 v::arrayType()->notEmpty(),
-                v::arrayType()->each(
+                v::arrayType()->length(1, 5)->each(
                     v::oneOf(
                         v::ip(), // Accepts IPv4 and IPv6
                         v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
@@ -719,7 +719,7 @@ class RegistrarsController extends Controller
 
             $ipAddressValidator = v::when(
                 v::arrayType()->notEmpty(),
-                v::arrayType()->each(
+                v::arrayType()->length(1, 5)->each(
                     v::oneOf(
                         v::ip(), // Accepts IPv4 and IPv6
                         v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
@@ -1052,7 +1052,7 @@ class RegistrarsController extends Controller
 
             $ipAddressValidator = v::when(
                 v::arrayType()->notEmpty(),
-                v::arrayType()->each(
+                v::arrayType()->length(1, 5)->each(
                     v::oneOf(
                         v::ip(), // Accepts IPv4 and IPv6
                         v::regex('/^(\d{1,3}\.){3}\d{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/'), // IPv4 CIDR
