@@ -895,6 +895,8 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             }
         }
     } catch (PDOException $e) {
+        $pdoHealthy = false;
+
         $errorInfo = $e->errorInfo ?? [];
         $sqlState  = $errorInfo[0] ?? 'n/a';
         $driverCode = $errorInfo[1] ?? 'n/a';
@@ -911,25 +913,25 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         $log->error('General Error: ' . $e->getMessage());
         try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
         return;
-    } catch (PDOException $e) {
-        $pdoHealthy = false;
-
-        $errorInfo = $e->errorInfo ?? [];
-        $sqlState = $errorInfo[0] ?? 'n/a';
-        $driverCode = $errorInfo[1] ?? 'n/a';
-
-        $log->alert('Database error: ' . $e->getMessage() .
-            ' | code=' . $e->getCode() .
-            ' | sqlstate=' . $sqlState .
-            ' | driverCode=' . $driverCode .
-            ' | file=' . $e->getFile() . ':' . $e->getLine());
-
-        try { $conn->close(); } catch (\Throwable $closeErr) {}
-
-        return;
     } finally {
-        if ($pdo && $pdoHealthy) {
-            $pool->put($pdo);
+        if ($pdo) {
+            try {
+                if ($pdo->inTransaction()) {
+                    if (!$pdo->rollBack()) {
+                        throw new RuntimeException('PDO rollback returned false');
+                    }
+                    $log->warning("Rolled back unfinished database transaction for fd={$fd}");
+                }
+            } catch (Throwable $cleanupError) {
+                $pdoHealthy = false;
+                $log->error(
+                    'Failed to clean up database transaction: ' . $cleanupError->getMessage()
+                );
+            }
+
+            if ($pdoHealthy) {
+                $pool->put($pdo);
+            }
         }
 
         $pdo = null;

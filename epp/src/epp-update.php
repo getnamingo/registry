@@ -1864,11 +1864,17 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     if ($internal_host) {
                         $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);                    
+                        if (!$sth->execute([$hostName, $domain_id, $clid, $clid])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
                         $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                         $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                        $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
+                        if (!$sth->execute([$domain_id, $host_id])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
 
                         $hostAddr_list = $node->xpath('domain:hostAddr');
                         foreach ($hostAddr_list as $node) {
@@ -1882,7 +1888,10 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             }
 
                             $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
-                            $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
+                            if (!$sth->execute([$host_id, $hostAddr, $addr_type])) {
+                                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                                return;
+                            }
                         }
                        
                         $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
