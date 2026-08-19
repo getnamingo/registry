@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+umask 027
+
+install -d -m 0750 -o www-data -g www-data \
+    /run/namingo \
+    /run/namingo/tls \
+    /var/log/namingo \
+    /opt/escrow \
+    /opt/reporting \
+    /var/lib/bind \
+    /var/www/cp/cache \
+    /var/www/cp/resources
+
+for pid_file in epp rdap whois das msg_producer; do
+    touch "/run/${pid_file}.pid"
+    chown www-data:www-data "/run/${pid_file}.pid"
+done
+
+php /usr/local/lib/namingo/render-config.php
+chown -R www-data:www-data /run/namingo
+
+domain=${NAMINGO_DOMAIN:?NAMINGO_DOMAIN is required}
+host_line="127.0.0.1 cp.${domain} rdap.${domain} whois.${domain} epp.${domain}"
+if ! grep -Fqx "$host_line" /etc/hosts; then
+    printf '%s\n' "$host_line" >> /etc/hosts
+fi
+
+if [ -r /certs/epp.crt ] && [ -r /certs/epp.key ]; then
+    cp /certs/epp.crt /run/namingo/tls/epp.crt
+    cp /certs/epp.key /run/namingo/tls/epp.key
+    chown www-data:www-data /run/namingo/tls/epp.crt /run/namingo/tls/epp.key
+    chmod 0644 /run/namingo/tls/epp.crt
+    chmod 0600 /run/namingo/tls/epp.key
+fi
+
+if [ "${NAMINGO_RUN_AS_ROOT:-false}" = "true" ]; then
+    exec "$@"
+fi
+
+if [ "$#" -gt 0 ] && [ "$1" = "php-fpm" ]; then
+    exec "$@"
+fi
+
+exec gosu www-data:www-data "$@"

@@ -1,0 +1,457 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+cd "$script_dir"
+
+compose() {
+    docker compose --project-directory "$script_dir" "$@"
+}
+
+die() {
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
+note() {
+    printf '%s\n' "$*"
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+require_docker() {
+    require_command docker
+    docker compose version >/dev/null 2>&1 || die "Docker Compose v2 is required."
+    docker info >/dev/null 2>&1 || die "The Docker daemon is not available to this user."
+}
+
+random_secret() {
+    openssl rand -hex 32
+}
+
+set_env_value() {
+    local key=$1
+    local value=$2
+    local temporary
+    temporary=$(mktemp "${script_dir}/.env.XXXXXX")
+    awk -v key="$key" -v value="$value" '
+        BEGIN { replaced = 0 }
+        $0 ~ "^" key "=" {
+            print key "=" value
+            replaced = 1
+            next
+        }
+        { print }
+        END {
+            if (!replaced) print key "=" value
+        }
+    ' .env > "$temporary"
+    chmod 0600 "$temporary"
+    mv -f "$temporary" .env
+}
+
+get_env_value() {
+    local key=$1
+    local default=${2:-}
+    local value
+    value=$(awk -v key="$key" '
+        index($0, key "=") == 1 {
+            print substr($0, length(key) + 2)
+            exit
+        }
+    ' .env)
+    if [[ -z "$value" ]]; then
+        printf '%s' "$default"
+        return
+    fi
+    if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+        value=${value:1:${#value}-2}
+    elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+        value=${value:1:${#value}-2}
+    fi
+    printf '%s' "$value"
+}
+
+prompt_value() {
+    local prompt=$1
+    local default=${2:-}
+    local answer
+    if [[ -n "$default" ]]; then
+        read -r -p "${prompt} [${default}]: " answer
+        printf '%s' "${answer:-$default}"
+    else
+        read -r -p "${prompt}: " answer
+        printf '%s' "$answer"
+    fi
+}
+
+prompt_password() {
+    local first second
+    while :; do
+        read -r -s -p "Control-panel admin password (minimum 12 characters): " first
+        printf '\n' >&2
+        read -r -s -p "Repeat the password: " second
+        printf '\n' >&2
+        [[ ${#first} -ge 12 ]] || { note "Password is too short." >&2; continue; }
+        [[ "$first" == "$second" ]] || { note "Passwords do not match." >&2; continue; }
+        printf '%s' "$first"
+        return
+    done
+}
+
+validate_domain() {
+    local domain=$1
+    [[ ${#domain} -le 253 ]] || return 1
+    [[ "$domain" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]
+}
+
+validate_email() {
+    [[ "$1" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]
+}
+
+ensure_secret() {
+    local name=$1
+    local value=${2:-}
+    local path="docker/secrets/${name}.txt"
+    if [[ ! -s "$path" ]]; then
+        [[ -n "$value" ]] || value=$(random_secret)
+        umask 077
+        printf '%s\n' "$value" > "$path"
+    fi
+    chmod 0600 "$path"
+}
+
+ensure_certificate() {
+    local domain=$1
+    local certificate=docker/certs/epp.crt
+    local private_key=docker/certs/epp.key
+    if [[ -s "$certificate" && -s "$private_key" ]]; then
+        return
+    fi
+
+    note "Generating a temporary EPP certificate; Caddy will replace it after ACME succeeds."
+    umask 077
+    openssl req \
+        -x509 \
+        -newkey rsa:3072 \
+        -sha256 \
+        -nodes \
+        -days 14 \
+        -subj "/CN=epp.${domain}" \
+        -addext "subjectAltName=DNS:epp.${domain}" \
+        -keyout "${private_key}.new" \
+        -out "${certificate}.new" >/dev/null 2>&1
+    chmod 0600 "${private_key}.new"
+    chmod 0644 "${certificate}.new"
+    mv -f "${private_key}.new" "$private_key"
+    mv -f "${certificate}.new" "$certificate"
+}
+
+ensure_ca_bundle() {
+    local destination=docker/certs/ca-bundle.crt
+    local source candidate
+    [[ -s "$destination" ]] && return
+
+    for candidate in \
+        /etc/ssl/certs/ca-certificates.crt \
+        /etc/pki/tls/certs/ca-bundle.crt \
+        /etc/ssl/cert.pem; do
+        if [[ -r "$candidate" && -s "$candidate" ]]; then
+            source=$candidate
+            break
+        fi
+    done
+    [[ -n "${source:-}" ]] || die "A readable system CA certificate bundle is required."
+
+    cp "$source" "${destination}.new"
+    chmod 0644 "${destination}.new"
+    mv -f "${destination}.new" "$destination"
+}
+
+bootstrap() {
+    local domain admin_email tls_mode panel_password
+
+    require_command openssl
+    install -d -m 0700 docker/secrets docker/certs
+
+    if [[ -f .env ]]; then
+        for required in db_root_password db_password panel_admin_password msg_api_token altcha_hmac_secret; do
+            [[ -s "docker/secrets/${required}.txt" ]] \
+                || die ".env exists but docker/secrets/${required}.txt is missing."
+        done
+        domain=$(get_env_value NAMINGO_DOMAIN)
+        domain=${domain,,}
+        domain=${domain%.}
+        validate_domain "$domain" || die "NAMINGO_DOMAIN is invalid in .env."
+        admin_email=$(get_env_value NAMINGO_ADMIN_EMAIL)
+        validate_email "$admin_email" || die "NAMINGO_ADMIN_EMAIL is invalid in .env."
+        tls_mode=$(get_env_value NAMINGO_TLS_MODE)
+        case "$tls_mode" in
+            public|internal) ;;
+            *) die "NAMINGO_TLS_MODE must be public or internal in .env." ;;
+        esac
+        ensure_certificate "$domain"
+        ensure_ca_bundle
+        return
+    fi
+
+    domain=${NAMINGO_DOMAIN:-}
+    admin_email=${NAMINGO_ADMIN_EMAIL:-}
+    tls_mode=${NAMINGO_TLS_MODE:-}
+
+    [[ -n "$domain" ]] || domain=$(prompt_value "Registry base domain (cp/rdap/whois/epp will be created below it)")
+    domain=${domain,,}
+    domain=${domain%.}
+    validate_domain "$domain" || die "Invalid domain: $domain"
+
+    [[ -n "$admin_email" ]] || admin_email=$(prompt_value "Control-panel admin and ACME email" "admin@${domain}")
+    validate_email "$admin_email" || die "Invalid email address: $admin_email"
+
+    if [[ -z "$tls_mode" ]]; then
+        tls_mode=$(prompt_value "TLS mode: public or internal" "public")
+    fi
+    case "${tls_mode,,}" in
+        public)
+            tls_mode=public
+            ;;
+        internal)
+            tls_mode=internal
+            ;;
+        *)
+            die "TLS mode must be public or internal."
+            ;;
+    esac
+
+    panel_password=${NAMINGO_PANEL_PASSWORD:-}
+    if [[ -z "$panel_password" ]]; then
+        if [[ -t 0 ]]; then
+            panel_password=$(prompt_password)
+        else
+            panel_password=$(random_secret)
+            note "Generated a control-panel password because input is non-interactive: ${panel_password}"
+        fi
+    fi
+    [[ ${#panel_password} -ge 12 ]] || die "The control-panel password must be at least 12 characters."
+
+    cp .env.example .env
+    chmod 0600 .env
+    set_env_value NAMINGO_DOMAIN "$domain"
+    set_env_value NAMINGO_ADMIN_EMAIL "$admin_email"
+    set_env_value NAMINGO_TLS_MODE "$tls_mode"
+    set_env_value NAMINGO_NAMESERVERS "ns1.${domain},ns2.${domain}"
+    set_env_value NAMINGO_DNS_SOA "hostmaster.${domain}"
+    if [[ "$tls_mode" == internal ]]; then
+        set_env_value NAMINGO_CADDY_TLS_DIRECTIVE "tls internal"
+    else
+        set_env_value NAMINGO_CADDY_TLS_DIRECTIVE "tls ${admin_email}"
+    fi
+
+    ensure_secret db_root_password
+    ensure_secret db_password
+    ensure_secret panel_admin_password "$panel_password"
+    ensure_secret msg_api_token
+    ensure_secret altcha_hmac_secret
+    ensure_certificate "$domain"
+    ensure_ca_bundle
+
+    unset panel_password NAMINGO_PANEL_PASSWORD
+}
+
+wait_supported() {
+    compose up --help 2>/dev/null | grep -q -- '--wait'
+}
+
+start_stack() {
+    if wait_supported; then
+        compose up -d --remove-orphans --wait --wait-timeout 300
+    else
+        compose up -d --remove-orphans
+    fi
+}
+
+show_access() {
+    local domain admin_username admin_email epp_port whois_port das_port tls_mode
+    domain=$(get_env_value NAMINGO_DOMAIN)
+    admin_username=$(get_env_value NAMINGO_ADMIN_USERNAME admin)
+    admin_email=$(get_env_value NAMINGO_ADMIN_EMAIL)
+    epp_port=$(get_env_value NAMINGO_EPP_PORT 700)
+    whois_port=$(get_env_value NAMINGO_WHOIS_PORT 43)
+    das_port=$(get_env_value NAMINGO_DAS_PORT 1043)
+    tls_mode=$(get_env_value NAMINGO_TLS_MODE public)
+    note ""
+    note "Namingo Registry is running."
+    note "  Control panel: https://cp.${domain}"
+    note "  RDAP:          https://rdap.${domain}"
+    note "  Web WHOIS:     https://whois.${domain}"
+    note "  EPP:           epp.${domain}:${epp_port}"
+    note "  WHOIS:         whois.${domain}:${whois_port}"
+    note "  DAS:           ${domain}:${das_port}"
+    note ""
+    note "Admin username: ${admin_username}"
+    note "Admin email:    ${admin_email}"
+    if [[ "$tls_mode" == internal ]]; then
+        note "Internal TLS: map the four hostnames to this host, then trust"
+        note "              docker/certs/caddy-local-root.crt in test clients."
+    fi
+    note "Use './namingo status' and './namingo logs' to inspect the stack."
+}
+
+install_stack() {
+    require_docker
+    bootstrap
+    compose config --quiet
+    compose build --pull
+    start_stack
+    show_access
+}
+
+update_stack() {
+    require_docker
+    [[ -f .env ]] || die "Run './namingo install' first."
+    compose config --quiet
+    compose build --pull
+    start_stack
+    compose ps
+}
+
+backup_stack() {
+    require_docker
+    [[ -f .env ]] || die "Run './namingo install' first."
+    local stamp destination
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    destination="backups/${stamp}"
+    install -d -m 0700 "$destination"
+
+    note "Dumping Namingo databases..."
+    compose exec -T database sh -ec '
+        exec mariadb-dump \
+            --user=root \
+            --password="$(cat "$MARIADB_ROOT_PASSWORD_FILE")" \
+            --single-transaction \
+            --routines \
+            --events \
+            --triggers \
+            --hex-blob \
+            --databases registry registryTransaction registryAudit
+    ' > "${destination}/database.sql"
+
+    note "Archiving persistent registry files..."
+    compose exec -T automation tar -czf - \
+        /opt/escrow /opt/reporting /var/lib/bind /var/log/namingo \
+        /var/www/cp/resources \
+        > "${destination}/registry-files.tar.gz"
+
+    note "Capturing Redis queue/session state..."
+    compose exec -T runtime sh -ec '
+        redis-cli SAVE >/dev/null
+        exec tar -czf - /data/dump.rdb
+    ' > "${destination}/redis-snapshot.tar.gz"
+
+    note "Archiving Caddy ACME and local-CA state..."
+    compose exec -T caddy tar -czf - /data /config \
+        > "${destination}/caddy-state.tar.gz"
+
+    tar -czf "${destination}/deployment-secrets.tar.gz" \
+        .env docker/secrets docker/certs
+    chmod 0600 "$destination"/*
+    note "Backup created: ${destination}"
+}
+
+doctor() {
+    require_docker
+    compose config --quiet
+    compose ps
+    note ""
+    compose exec -T database healthcheck.sh --connect --innodb_initialized
+    compose exec -T runtime redis-cli ping
+    compose exec -T rdap curl -fsS http://127.0.0.1:7500/help >/dev/null
+    compose exec -T panel nc -z 127.0.0.1 9000
+    note "Core database, Redis, RDAP, and PHP-FPM checks passed."
+}
+
+usage() {
+    cat <<'USAGE'
+Usage: ./namingo <command> [arguments]
+
+Commands:
+  install           Configure, build, initialize, and start Namingo
+  up                Start or reconcile the existing deployment
+  update            Rebuild current source with fresh base images and restart
+  down              Stop the deployment without deleting data
+  restart [service] Restart the whole deployment or one service
+  status            Show service and health status
+  logs [service]    Follow logs for the whole deployment or one service
+  doctor            Run core service checks
+  backup            Create a timestamped database/config/data backup
+  shell [service]   Open a shell (default: panel)
+  config            Render and validate the Compose configuration
+  help              Show this help
+
+No command named destroy is provided intentionally. Persistent volumes must be
+removed explicitly with `docker compose down --volumes` after taking a backup.
+USAGE
+}
+
+command_name=${1:-help}
+shift || true
+
+case "$command_name" in
+    install)
+        install_stack
+        ;;
+    up)
+        require_docker
+        bootstrap
+        start_stack
+        ;;
+    update)
+        update_stack
+        ;;
+    down)
+        require_docker
+        compose down --remove-orphans
+        ;;
+    restart)
+        require_docker
+        if [[ $# -gt 0 ]]; then
+            compose restart "$1"
+        else
+            compose restart
+        fi
+        ;;
+    status)
+        require_docker
+        compose ps
+        ;;
+    logs)
+        require_docker
+        if [[ $# -gt 0 ]]; then
+            compose logs --tail=200 --follow "$1"
+        else
+            compose logs --tail=200 --follow
+        fi
+        ;;
+    doctor)
+        doctor
+        ;;
+    backup)
+        backup_stack
+        ;;
+    shell)
+        require_docker
+        compose exec "${1:-panel}" sh
+        ;;
+    config)
+        require_docker
+        compose config
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    *)
+        usage >&2
+        die "Unknown command: $command_name"
+        ;;
+esac

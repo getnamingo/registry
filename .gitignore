@@ -1,0 +1,7 @@
+.env
+backups/
+docker/certs/*
+!docker/certs/.gitignore
+docker/secrets/*
+!docker/secrets/.gitignore
+

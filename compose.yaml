@@ -1,0 +1,328 @@
+name: ${COMPOSE_PROJECT_NAME:-namingo}
+
+x-app-environment: &app-environment
+  NAMINGO_DB_PASSWORD_FILE: /run/secrets/db_password
+  NAMINGO_MSG_API_TOKEN_FILE: /run/secrets/msg_api_token
+  NAMINGO_ALTCHA_SECRET_FILE: /run/secrets/altcha_hmac_secret
+  TZ: ${NAMINGO_TIMEZONE:-UTC}
+  CURL_CA_BUNDLE: /certs/ca-bundle.crt
+  SSL_CERT_FILE: /certs/ca-bundle.crt
+
+x-app-secrets: &app-secrets
+  - db_password
+  - msg_api_token
+  - altcha_hmac_secret
+
+x-app-volumes: &app-volumes
+  - logs:/var/log/namingo
+  - panel_cache:/var/www/cp/cache
+  - panel_resources:/var/www/cp/resources
+  - zones:/var/lib/bind
+  - escrow:/opt/escrow
+  - reporting:/opt/reporting
+  - ./docker/certs:/certs:ro
+
+x-app: &app
+  image: ${NAMINGO_IMAGE:-namingo-registry:local}
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: namingo
+    args:
+      PHP_VERSION: ${NAMINGO_PHP_VERSION:-8.5}
+      PHP_EXTENSION_JOBS: ${NAMINGO_BUILD_JOBS:-2}
+  env_file:
+    - .env
+  environment: *app-environment
+  secrets: *app-secrets
+  volumes: *app-volumes
+  network_mode: service:runtime
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+  stop_grace_period: 45s
+
+services:
+  database:
+    image: ${NAMINGO_MARIADB_IMAGE:-mariadb:11.8}
+    environment:
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_DATABASE: registry
+      MARIADB_USER: ${NAMINGO_DB_USER:-namingo}
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      TZ: ${NAMINGO_TIMEZONE:-UTC}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-name-resolve
+      - --max-connections=300
+      - --innodb-flush-log-at-trx-commit=1
+    secrets:
+      - db_root_password
+      - db_password
+    volumes:
+      - database_data:/var/lib/mysql
+      - ./docker/mariadb/01-create-and-grant.sh:/docker-entrypoint-initdb.d/01-create-and-grant.sh:ro
+      - ./database/registry.mariadb.sql:/docker-entrypoint-initdb.d/10-registry.sql:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+
+  runtime:
+    image: ${NAMINGO_REDIS_IMAGE:-redis:8.2-alpine}
+    sysctls:
+      # WHOIS binds TCP 43 as www-data in the shared network namespace.
+      net.ipv4.ip_unprivileged_port_start: "0"
+    command:
+      - redis-server
+      - --bind
+      - 127.0.0.1
+      - --protected-mode
+      - "yes"
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --save
+      - "60"
+      - "1"
+      - --maxmemory-policy
+      - noeviction
+    ports:
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_HTTP_PORT:-80}:80/tcp"
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_HTTPS_PORT:-443}:443/tcp"
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_HTTPS_PORT:-443}:443/udp"
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_EPP_PORT:-700}:700/tcp"
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_WHOIS_PORT:-43}:43/tcp"
+      - "${NAMINGO_BIND_ADDRESS:-0.0.0.0}:${NAMINGO_DAS_PORT:-1043}:1043/tcp"
+    volumes:
+      - redis_data:/data
+    networks:
+      - edge
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  init:
+    <<: *app
+    command: ["php", "/usr/local/lib/namingo/init.php"]
+    environment:
+      <<: *app-environment
+      NAMINGO_PANEL_PASSWORD_FILE: /run/secrets/panel_admin_password
+      NAMINGO_RUN_AS_ROOT: "true"
+    secrets:
+      - db_password
+      - msg_api_token
+      - altcha_hmac_secret
+      - panel_admin_password
+    depends_on:
+      database:
+        condition: service_healthy
+      runtime:
+        condition: service_healthy
+    restart: "no"
+
+  panel:
+    <<: *app
+    command: ["php-fpm", "-F"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  rdap:
+    <<: *app
+    command: ["php", "/opt/registry/rdap/start_rdap.php"]
+    working_dir: /opt/registry/rdap
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:7500/help >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  whois:
+    <<: *app
+    command: ["php", "/opt/registry/whois/port43/start_whois.php"]
+    working_dir: /opt/registry/whois/port43
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'health.test\\r\\n' | nc -w 3 127.0.0.1 43 | grep -q ."]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  das:
+    <<: *app
+    command: ["php", "/opt/registry/das/start_das.php"]
+    working_dir: /opt/registry/das
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'health.test\\r\\n' | nc -w 3 127.0.0.1 1043 | grep -Eq '^[0-3]'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  epp:
+    <<: *app
+    command: ["namingo-epp"]
+    working_dir: /opt/registry/epp
+    environment:
+      <<: *app-environment
+      NAMINGO_RUN_AS_ROOT: "true"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "printf '' | openssl s_client -connect 127.0.0.1:700 -servername epp.${NAMINGO_DOMAIN} -brief >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 8s
+      retries: 20
+      start_period: 20s
+
+  message-producer:
+    <<: *app
+    command: ["namingo-message-producer"]
+    working_dir: /opt/registry/automation
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8250/)\" = 405"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  message-worker:
+    <<: *app
+    command: ["php", "/opt/registry/automation/msg_worker.php"]
+    working_dir: /opt/registry/automation
+    depends_on:
+      message-producer:
+        condition: service_healthy
+
+  automation:
+    <<: *app
+    command: ["namingo-cron"]
+    working_dir: /opt/registry/automation
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+  caddy:
+    image: ${NAMINGO_WEB_IMAGE:-namingo-registry-web:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    environment:
+      NAMINGO_DOMAIN: ${NAMINGO_DOMAIN}
+      NAMINGO_ADMIN_EMAIL: ${NAMINGO_ADMIN_EMAIL}
+      NAMINGO_CADDY_TLS_DIRECTIVE: ${NAMINGO_CADDY_TLS_DIRECTIVE}
+    network_mode: service:runtime
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      panel:
+        condition: service_healthy
+      rdap:
+        condition: service_healthy
+      runtime:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  cert-sync:
+    image: ${NAMINGO_IMAGE:-namingo-registry:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: namingo
+      args:
+        PHP_VERSION: ${NAMINGO_PHP_VERSION:-8.5}
+        PHP_EXTENSION_JOBS: ${NAMINGO_BUILD_JOBS:-2}
+    entrypoint: ["/usr/bin/tini", "--", "/usr/local/bin/namingo-cert-sync"]
+    environment:
+      NAMINGO_DOMAIN: ${NAMINGO_DOMAIN}
+      NAMINGO_CERT_SYNC_ENABLED: ${NAMINGO_CERT_SYNC_ENABLED:-true}
+      NAMINGO_CERT_SYNC_INTERVAL: ${NAMINGO_CERT_SYNC_INTERVAL:-300}
+    network_mode: none
+    volumes:
+      - caddy_data:/caddy-data:ro
+      - ./docker/certs:/certs
+    depends_on:
+      caddy:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  database_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  logs:
+  panel_cache:
+  panel_resources:
+  zones:
+  escrow:
+  reporting:
+
+secrets:
+  db_root_password:
+    file: ./docker/secrets/db_root_password.txt
+  db_password:
+    file: ./docker/secrets/db_password.txt
+  panel_admin_password:
+    file: ./docker/secrets/panel_admin_password.txt
+  msg_api_token:
+    file: ./docker/secrets/msg_api_token.txt
+  altcha_hmac_secret:
+    file: ./docker/secrets/altcha_hmac_secret.txt

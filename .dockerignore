@@ -1,0 +1,11 @@
+.git
+.github
+.env
+backups
+docker/certs
+docker/secrets
+**/vendor
+**/composer.lock
+docs/*.png
+docs/*.jpg
+
