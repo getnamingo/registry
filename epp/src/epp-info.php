@@ -3,10 +3,9 @@
 function processContactInfo($conn, $db, $xml, $clid, $trans) {
     $contactID = (string) $xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info->{'id'};
     $clTRID = (string) $xml->command->clTRID;
-    if (isSecureAuthInfoTransferEnabled($db)) {
-        $authInfoNodes = $xml->xpath('//contact:info/contact:authInfo/contact:pw[1]');
-        $authInfo_pw = !empty($authInfoNodes) ? (string)$authInfoNodes[0] : null;
-    }
+    $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
+    $authInfoNodes = $xml->xpath('//contact:info/contact:authInfo/contact:pw[1]');
+    $authInfo_pw = !empty($authInfoNodes) ? (string)$authInfoNodes[0] : null;
 
     if (!$contactID) {
         sendEppError($conn, $db, 2003, 'Missing contact:id', $clTRID, $trans);
@@ -41,15 +40,18 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
             return;
         }
 
-        $clidNumeric = getClid($db, $clid);
-        if (!isSecureAuthInfoTransferEnabled($db)) {
-            if ($clidNumeric !== (int)$contact[0]['clid']) {
+        $isSponsor = (int)$clid === (int)$contact[0]['clid'];
+        if (!$isSponsor) {
+            if ($authInfo_pw === null || $authInfo_pw === '') {
                 sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
                 return;
             }
-        } else {
-            $isSponsor = $clidNumeric === (int)$contact[0]['clid'];
-            if (!$isSponsor && !authInfoMatches($db, 'contact', (int)$contact[0]['id'], $authInfo_pw)) {
+
+            $authorizedByAuthInfo = $secureAuthInfoTransfer
+                ? authInfoMatches($db, 'contact', (int)$contact[0]['id'], $authInfo_pw)
+                : is_string($contact[0]['authinfo']) && hash_equals($contact[0]['authinfo'], $authInfo_pw);
+
+            if (!$authorizedByAuthInfo) {
                 sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                 return;
             }
@@ -116,7 +118,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         $stmt->closeCursor();
 
         $svTRID = generateSvTRID();
-        if (!isSecureAuthInfoTransferEnabled($db)) {
+        if (!$secureAuthInfoTransfer && $isSponsor) {
             $response = [
                 'command' => 'info_contact',
                 'clTRID' => $clTRID,
@@ -198,7 +200,7 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
     }
 }
 
-function processHostInfo($conn, $db, $xml, $trans) {
+function processHostInfo($conn, $db, $xml, $clid, $trans) {
     $hostName = $xml->command->info->children('urn:ietf:params:xml:ns:host-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
 
@@ -225,6 +227,11 @@ function processHostInfo($conn, $db, $xml, $trans) {
 
         if (!$host) {
             sendEppError($conn, $db, 2303, 'Host does not exist', $clTRID, $trans);
+            return;
+        }
+
+        if ((int)$host['clid'] !== (int)$clid) {
+            sendEppError($conn, $db, 2201, 'Client is not the sponsor of the host object', $clTRID, $trans);
             return;
         }
         
@@ -316,6 +323,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
 
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
     $authInfo_pw = !empty($result) ? (string)$result[0] : null;
+    $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($db);
 
     $invalid_label = validate_label($domainName, $db);
     if ($invalid_label) {
@@ -345,7 +353,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
         $includeMarkBool = strtolower($includeMark) === 'true';
         
         try {
-            $query = "SELECT * FROM application WHERE name = :name AND phase_type = :phase";
+            $query = "SELECT * FROM application WHERE name = :name AND phase_type = :phase AND clid = :clid";
 
             if (!empty($applicationID)) {
                 $query .= " AND application_id = :applicationID";
@@ -354,6 +362,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare($query);
             $stmt->bindParam(':name', $domainName);
             $stmt->bindParam(':phase', $phaseType);
+            $stmt->bindValue(':clid', (int)$clid, PDO::PARAM_INT);
 
             if (!empty($applicationID)) {
                 $stmt->bindParam(':applicationID', $applicationID);
@@ -369,13 +378,6 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 return;
             }
             
-            if (isSecureAuthInfoTransferEnabled($db)) {
-                if ((int)$domain['clid'] !== (int)$clid) {
-                    sendEppError($conn, $db, 2201, 'Client is not the sponsor of the application', $clTRID, $trans);
-                    return;
-                }
-            }
-
             // Fetch contacts
             $stmt = $db->prepare("SELECT * FROM application_contact_map WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
@@ -435,7 +437,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             if ($registrant_id !== null && $registrant_id !== false) {
                 $response['registrant'] = $registrant_id;
             }
-            if (!isSecureAuthInfoTransferEnabled($db)) {
+            if (!$secureAuthInfoTransfer) {
                 if (isset($domain['authinfo'])) {
                     $response['authInfo'] = 'valid';
                     $response['authInfo_type'] = $domain['authtype'];
@@ -486,22 +488,29 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 return;
             }
 
-            if (!isSecureAuthInfoTransferEnabled($db)) {
-                $domain_authinfo_id = null;
-                if ($authInfo_pw) {
-                    $stmt = $db->prepare("SELECT id FROM domain_authInfo WHERE domain_id = ? AND authtype = 'pw' AND authinfo = ? LIMIT 1");
-                    $stmt->execute([$domain['id'], $authInfo_pw]);
-                    $domain_authinfo_id = $stmt->fetchColumn();
-                    $stmt->closeCursor();
+            $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id LIMIT 1");
+            $stmt->execute(['id' => $domain['id']]);
+            $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
 
-                    if (!$domain_authinfo_id) {
-                        sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
-                        return;
-                    }
+            $isSponsor = (int)$clid === (int)$domain['clid'];
+            $authorizedByAuthInfo = false;
+
+            if (!$isSponsor) {
+                if ($authInfo_pw === null || $authInfo_pw === '') {
+                    sendEppError($conn, $db, 2201, 'Client is not the sponsor of the domain object', $clTRID, $trans);
+                    return;
                 }
-            } else {
-                $isSponsor = (int)$clid === (int)$domain['clid'];
-                if (!$isSponsor && !authInfoMatches($db, 'domain', (int)$domain['id'], $authInfo_pw)) {
+
+                if ($secureAuthInfoTransfer) {
+                    $authorizedByAuthInfo = authInfoMatches($db, 'domain', (int)$domain['id'], $authInfo_pw);
+                } else {
+                    $storedAuthInfo = is_array($authInfo) ? ($authInfo['authinfo'] ?? null) : null;
+                    $authorizedByAuthInfo = is_string($storedAuthInfo)
+                        && hash_equals($storedAuthInfo, $authInfo_pw);
+                }
+
+                if (!$authorizedByAuthInfo) {
                     sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
                     return;
                 }
@@ -534,12 +543,6 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt = $db->prepare("SELECT name FROM host WHERE domain_id = :id");
             $stmt->execute(['id' => $domain['id']]);
             $hostNames = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-            $stmt->closeCursor();
-
-            // Fetch authInfo
-            $stmt = $db->prepare("SELECT * FROM domain_authInfo WHERE domain_id = :id");
-            $stmt->execute(['id' => $domain['id']]);
-            $authInfo = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
 
             // Fetch status
@@ -662,12 +665,8 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             if (isset($domain['trdate']) && $domain['trdate']) {
                 $response['trDate'] = $domain['trdate'];
             }
-            if (!isSecureAuthInfoTransferEnabled($db)) {
-                if ($clid == $domain['clid']) {
-                    $response['authInfo'] = 'valid';
-                    $response['authInfo_type'] = $authInfo['authtype'];
-                    $response['authInfo_val'] = $authInfo['authinfo'];
-                } else if (isset($domain_authinfo_id) && $domain_authinfo_id) {
+            if (!$secureAuthInfoTransfer) {
+                if (($isSponsor || $authorizedByAuthInfo) && is_array($authInfo) && isset($authInfo['authinfo'])) {
                     $response['authInfo'] = 'valid';
                     $response['authInfo_type'] = $authInfo['authtype'];
                     $response['authInfo_val'] = $authInfo['authinfo'];

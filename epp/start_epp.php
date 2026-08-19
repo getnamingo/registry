@@ -368,6 +368,13 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
                         return;
                     }
+
+                    if (!isRegistrarIPAllowed($pdo, $clid, $clientIP)) {
+                        $log->warning("Login denied for registrar {$clID} from unassigned IP {$clientIP}");
+                        sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
+                        return;
+                    }
+
                     $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
 
                     $loginSecPw = null;
@@ -604,7 +611,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
+                    processContactInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
                     
@@ -811,7 +818,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processHostInfo($conn, $pdo, $xml, $trans);
+                    processHostInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
                     

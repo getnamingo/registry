@@ -624,6 +624,42 @@ function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {
     return $result ? (int)$result['id'] : null;
 }
 
+function isRegistrarIPAllowed(Swoole\Database\PDOProxy $db, int $registrarId, string $clientIP): bool {
+    $clientBinary = inet_pton($clientIP);
+    if ($clientBinary === false) {
+        return false;
+    }
+
+    $stmt = $db->prepare(
+        'SELECT addr FROM registrar_whitelist WHERE registrar_id = :registrar_id'
+    );
+    $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+    $stmt->execute();
+    $allowedAddresses = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $stmt->closeCursor();
+
+    foreach ($allowedAddresses as $allowedAddress) {
+        $allowedAddress = trim((string)$allowedAddress);
+        if ($allowedAddress === '') {
+            continue;
+        }
+
+        if (strpos($allowedAddress, '/') !== false) {
+            if (ipMatches($clientIP, $allowedAddress)) {
+                return true;
+            }
+            continue;
+        }
+
+        $allowedBinary = inet_pton($allowedAddress);
+        if ($allowedBinary !== false && $allowedBinary === $clientBinary) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function getFingerprint(Swoole\Database\PDOProxy $db, int $clid): ?string {
     $stmt = $db->prepare("SELECT ssl_fingerprint FROM registrar WHERE id = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_INT);
@@ -1194,6 +1230,10 @@ function ipMatches($ip, $cidr) {
 
     if ($ipBin === false || $subnetBin === false) {
         return false; // invalid IP
+    }
+
+    if (strlen($ipBin) !== strlen($subnetBin)) {
+        return false; // address families must match
     }
 
     $ipLen = strlen($ipBin) * 8; // 32 for IPv4, 128 for IPv6
