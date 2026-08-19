@@ -508,36 +508,26 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-    $internal_host = false;
-    foreach ($tlds as $tld) {
-        if (str_ends_with($hostName, strtolower($tld))) {
-            $internal_host = true;
-            break;
-        }
-    }
+    $superordinateName = extractDomainFromHost($hostName, $tlds);
+    $internal_host = $superordinateName !== null;
 
     if ($internal_host) {
-        $domain_exist = false;
-        $clid_domain = 0;
-        $superordinate_dom = 0;
-        
-        $stmt = $db->prepare("SELECT id,clid,name FROM domain");
-        $stmt->execute();
-        
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (preg_match('/\.' . preg_quote($row['name'], '/') . '$/i', $hostName)) {
-                $domain_exist = true;
-                $clid_domain = $row['clid'];
-                $superordinate_dom = $row['id'];
-                break;
-            }
+        $superordinateDomain = false;
+
+        if (str_ends_with($hostName, '.' . $superordinateName)) {
+            $stmt = $db->prepare("SELECT id, clid FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$superordinateName]);
+            $superordinateDomain = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
         }
-        $stmt->closeCursor();
-        
-        if (!$domain_exist) {
+
+        if (!$superordinateDomain) {
             sendEppError($conn, $db, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
             return;
         }
+
+        $clid_domain = $superordinateDomain['clid'];
+        $superordinate_dom = $superordinateDomain['id'];
         
         if ($clid != $clid_domain) {
             sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
@@ -1292,13 +1282,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
                 // Check if the host is internal or external
                 $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-                $internal_host = false;
-                foreach ($tlds as $tld) {
-                    if (str_ends_with($hostName, strtolower($tld))) {
-                        $internal_host = true;
-                        break;
-                    }
-                }
+                $superordinateName = extractDomainFromHost($hostName, $tlds);
+                $internal_host = $superordinateName !== null;
 
                 if ($internal_host) {
                     if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
@@ -1343,25 +1328,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 } else {
                     // Validate the hostname using the function
                     if (validateHostName($hostName)) {
-                        $domain_exist = false;
-                        $clid_domain = 0;
+                        $clid_domain = false;
 
-                        // Prepare statement
-                        $stmt = $db->prepare("SELECT clid, name FROM domain");
-                        $stmt->execute();
-
-                        // Fetch results
-                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                            if (stripos($hostName, '.' . $row['name']) !== false) {
-                                $domain_exist = true;
-                                $clid_domain = $row['clid'];
-                                break;
-                            }
+                        if (str_ends_with(strtolower($hostName), '.' . $superordinateName)) {
+                            $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
+                            $stmt->execute([$superordinateName]);
+                            $clid_domain = $stmt->fetchColumn();
+                            $stmt->closeCursor();
                         }
-                        $stmt->closeCursor();
 
                         // Object does not exist error
-                        if (!$domain_exist) {
+                        if ($clid_domain === false) {
                            sendEppError($conn, $db, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
                            return;
                         }

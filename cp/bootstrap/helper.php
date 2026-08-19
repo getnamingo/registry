@@ -1316,6 +1316,40 @@ function isValidHostname($hostname) {
     return true;
 }
 
+function extractDomainFromHost(string $hostname, array $tlds): ?string
+{
+    $hostname = strtolower(trim($hostname, " .\t\n\r\0\x0B"));
+    $labels = array_values(array_filter(explode('.', $hostname), fn($x) => $x !== ''));
+    if (count($labels) < 2) {
+        return null;
+    }
+
+    $best = null;
+    $bestTldLabels = -1;
+
+    foreach ($tlds as $tld) {
+        $tld = strtolower(ltrim(trim($tld), '.'));
+        if ($tld === '') {
+            continue;
+        }
+
+        $tldLabels = explode('.', $tld);
+        $tldLabelCount = count($tldLabels);
+        $requiredLabels = $tldLabelCount + 1;
+
+        if (count($labels) < $requiredLabels) {
+            continue;
+        }
+
+        if (array_slice($labels, -$tldLabelCount) === $tldLabels && $tldLabelCount > $bestTldLabels) {
+            $bestTldLabels = $tldLabelCount;
+            $best = implode('.', array_slice($labels, -$requiredLabels));
+        }
+    }
+
+    return $best;
+}
+
 // HMAC Signature generator
 function sign($ts, $method, $path, $body, $secret_key) {
     $stringToSign = $ts . strtoupper($method) . $path . $body;

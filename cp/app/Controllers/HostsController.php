@@ -84,38 +84,29 @@ class HostsController extends Controller
                     }
                 }
 
-                $internal_host = false;
-
                 $query = "SELECT tld FROM domain_tld";
                 $result = $db->select($query);
-
-                foreach ($result as $row) {
-                    if (preg_match("/" . preg_quote(strtoupper($row['tld']), '/') . "$/i", $hostName)) {
-                        $internal_host = true;
-                        break;
-                    }
-                }
+                $tlds = array_column($result, 'tld');
+                $superordinateName = extractDomainFromHost($hostName, $tlds);
+                $internal_host = $superordinateName !== null;
 
                 if ($internal_host) {
-                    $domain_exist = false;
-                    $clid_domain = 0;
-                    $superordinate_dom = 0;
-                    
-                    $result = $db->select("SELECT id, clid, name FROM domain");
+                    $superordinateDomain = null;
 
-                    foreach ($result as $row) {
-                        if (strpos($hostName, $row['name']) !== false) {
-                            $domain_exist = true;
-                            $clid_domain = $row['clid'];
-                            $superordinate_dom = $row['id'];
-                            break;
-                        }
+                    if (str_ends_with(strtolower($hostName), '.' . $superordinateName)) {
+                        $superordinateDomain = $db->selectRow(
+                            'SELECT id, clid FROM domain WHERE name = ? LIMIT 1',
+                            [$superordinateName]
+                        );
                     }
                     
-                    if (!$domain_exist) {
+                    if (!$superordinateDomain) {
                         $this->container->get('flash')->addMessage('error', 'Error creating host: A host name object can NOT be created in a repository for which no superordinate domain name object exists');
                         return $response->withHeader('Location', '/host/create')->withStatus(302);
                     }
+
+                    $clid_domain = $superordinateDomain['clid'];
+                    $superordinate_dom = $superordinateDomain['id'];
                     
                     if ($_SESSION['auth_roles'] !== 0) {
                         if ($clid != $clid_domain) {
