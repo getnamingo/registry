@@ -440,7 +440,7 @@ class ApplicationsController extends Controller
             $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
             $price = $returnValue['price'];
 
-            if (!$price) {
+            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: The price, period and currency for such TLD are not declared');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
@@ -618,10 +618,9 @@ class ApplicationsController extends Controller
                     'status' => 'pendingValidation'
                 ]);
 
-                $db->exec(
-                    'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                    [$price, $clid]
-                );
+                if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                    throw new \RuntimeException('Low credit: minimum threshold reached');
+                }
 
                 $db->exec(
                     'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -750,6 +749,7 @@ class ApplicationsController extends Controller
                             
                             if ($internal_host) {
                                 if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
+                                    $db->rollBack();
                                     $this->container->get('flash')->addMessage('error', 'Error creating application: No IPv4 or IPv6 addresses provided for internal host');
                                     return $response->withHeader('Location', '/application/create')->withStatus(302);
                                 }
@@ -832,14 +832,16 @@ class ApplicationsController extends Controller
                 ]);
 
                 $db->commit();
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (\Throwable $e) {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
-            } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
-                $db->rollBack();
-                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                return $response->withHeader('Location', '/application/create')->withStatus(302);
+            } finally {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
             }
             
             $crdate = $db->selectValue(
@@ -1370,7 +1372,7 @@ class ApplicationsController extends Controller
                 $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
                 $price = $returnValue['price'];
 
-                if (!$price) {
+                if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                     $this->container->get('flash')->addMessage('error', 'Error creating domain: The price, period and currency for such TLD are not declared');
                     return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
@@ -1445,10 +1447,9 @@ class ApplicationsController extends Controller
                         );
                     }
 
-                    $db->exec(
-                        'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                        [$price, $clid]
-                    );
+                    if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                        throw new \RuntimeException('Low credit: minimum threshold reached');
+                    }
 
                     $db->exec(
                         'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -1526,13 +1527,6 @@ class ApplicationsController extends Controller
                         'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE'
                     );
                     
-                    $db->commit();
-                    
-                    $crdate = $db->selectValue(
-                        "SELECT crdate FROM domain WHERE id = ? LIMIT 1",
-                        [$domain_id]
-                    );
-
                     $db->insert('error_log', [
                         'channel' => 'applications',
                         'level' => 250,
@@ -1552,14 +1546,14 @@ class ApplicationsController extends Controller
                         ])
                     ]);
 
+                    $db->commit();
+
                     $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
                     return $response->withHeader('Location', '/domains')->withStatus(302);
-                } catch (Exception $e) {
-                    $db->rollBack();
-                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                    return $response->withHeader('Location', '/applications')->withStatus(302);
-                } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
                     $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }

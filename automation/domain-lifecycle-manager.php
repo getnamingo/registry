@@ -88,7 +88,7 @@ class DomainLifecycleManager {
 
         // Fetch domains eligible for auto-renewal
         $sth = $this->dbh->prepare("
-            SELECT id, name, tldid, exdate, clid 
+            SELECT id, name
             FROM domain 
             WHERE CURRENT_TIMESTAMP > exdate 
               AND rgpstatus IS NULL
@@ -98,15 +98,7 @@ class DomainLifecycleManager {
         while ($row = $sth->fetch(PDO::FETCH_ASSOC)) {
             $domain_id = $row['id'];
             $name = $row['name'];
-            $tldid = $row['tldid'];
-            $exdate = $row['exdate'];
-            $clid = $row['clid'];
-
-            // Check if domain can be set to auto-renew period
-            if ($this->canSetAutoRenewPeriod($domain_id)) {
-                // Process auto-renewal
-                $this->handleAutoRenewal($domain_id, $name, $tldid, $exdate, $clid);
-            }
+            $this->handleAutoRenewal($domain_id, $name);
 
             $this->log->info("$name (ID $domain_id) processed for auto-renewal.");
         }
@@ -114,75 +106,113 @@ class DomainLifecycleManager {
         $this->log->info('Completed Auto-Renewal Phase.');
     }
 
-    private function canSetAutoRenewPeriod($domain_id) {
-        $sth_status = $this->dbh->prepare("SELECT status FROM domain_status WHERE domain_id = ?");
-        $sth_status->execute([$domain_id]);
-
-        while ($status_row = $sth_status->fetch(PDO::FETCH_ASSOC)) {
-            $status = $status_row['status'];
-            if (preg_match("/(serverUpdateProhibited|serverDeleteProhibited)$/", $status) || preg_match("/^pending/", $status)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private function handleAutoRenewal($domain_id, $name, $tldid, $exdate, $clid) {
-        // Get registrar balance, credit limit, and currency
-        $sthRegistrar = $this->dbh->prepare('
-            SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
-            FROM registrar 
-            WHERE id = ? 
-            LIMIT 1
-        ');
-        $sthRegistrar->execute([$clid]);
-        $registrar = $sthRegistrar->fetch(PDO::FETCH_ASSOC);
-        
-        $registrar_balance = $registrar['accountBalance'];
-        $creditLimit = $registrar['creditLimit'];
-        $currency = $registrar['currency'];
-
-        // Get domain price
-        $returnValue = getDomainPrice($this->dbh, $name, $tldid, 12, 'renew', $clid, $currency);
-        $price = $returnValue['price'];
-
-        if (($registrar_balance + $creditLimit) > $price) {
-            // Proceed with auto-renewal
-            $this->renewDomain($domain_id, $name, $exdate, $clid, $price);
-        } else {
-            // Insufficient funds, move to redemption period
-            $this->moveToRedemptionPeriod($domain_id, $exdate);
-        }
-    }
-
-    private function renewDomain($domain_id, $name, $exdate, $clid, $price) {
+    private function handleAutoRenewal($domain_id, $name) {
         $this->dbh->beginTransaction();
 
         try {
-            $renewedDate = (new DateTime($exdate))->modify('+12 months')->format('Y-m-d H:i:s.v');
+            // Lock and re-check the mutable domain state. Another worker may
+            // have processed a row after the initial work-list query.
+            $sth = $this->dbh->prepare(
+                "SELECT id, name, tldid, exdate, clid
+                 FROM domain
+                 WHERE id = ?
+                   AND CURRENT_TIMESTAMP > exdate
+                   AND rgpstatus IS NULL
+                 FOR UPDATE"
+            );
+            $sth->execute([$domain_id]);
+            $domain = $sth->fetch(PDO::FETCH_ASSOC);
+            $sth->closeCursor();
+
+            if (!$domain) {
+                $this->dbh->rollBack();
+                return;
+            }
+
+            $sth = $this->dbh->prepare(
+                'SELECT status FROM domain_status WHERE domain_id = ? FOR UPDATE'
+            );
+            $sth->execute([$domain_id]);
+            $statuses = $sth->fetchAll(PDO::FETCH_COLUMN);
+            $sth->closeCursor();
+
+            foreach ($statuses as $status) {
+                if (preg_match('/(serverUpdateProhibited|serverDeleteProhibited)$/', $status) || preg_match('/^pending/', $status)) {
+                    $this->dbh->rollBack();
+                    return;
+                }
+            }
+
+            $sthRegistrar = $this->dbh->prepare(
+                'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                 FROM registrar
+                 WHERE id = ?
+                 LIMIT 1
+                 FOR UPDATE'
+            );
+            $sthRegistrar->execute([$domain['clid']]);
+            $registrar = $sthRegistrar->fetch(PDO::FETCH_ASSOC);
+            $sthRegistrar->closeCursor();
+
+            if (!$registrar) {
+                throw new RuntimeException("Registrar {$domain['clid']} does not exist");
+            }
+
+            $returnValue = getDomainPrice(
+                $this->dbh,
+                $domain['name'],
+                $domain['tldid'],
+                12,
+                'renew',
+                $domain['clid'],
+                $registrar['currency']
+            );
+            $price = $returnValue['price'] ?? null;
+            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
+                throw new RuntimeException("Renewal price is not configured for {$domain['name']}");
+            }
+
+            if (($registrar['accountBalance'] + $registrar['creditLimit']) < $price) {
+                $this->dbh->prepare('DELETE FROM domain_status WHERE domain_id = ?')->execute([$domain_id]);
+                $deleteTime = (new DateTime($domain['exdate']))
+                    ->modify('+' . (int)$this->config['gracePeriodDays'] . ' days')
+                    ->format('Y-m-d H:i:s.v');
+                $this->dbh->prepare(
+                    "UPDATE domain SET rgpstatus = 'redemptionPeriod', delTime = ? WHERE id = ?"
+                )->execute([$deleteTime, $domain_id]);
+                $this->dbh->prepare(
+                    "INSERT INTO domain_status (domain_id, status) VALUES (?, 'pendingDelete')"
+                )->execute([$domain_id]);
+
+                $this->dbh->commit();
+                $this->log->notice("{$domain['name']} moved to redemption period because registrar {$domain['clid']} has insufficient funds.");
+                return;
+            }
+
+            $from = $domain['exdate'];
+            $renewedDate = (new DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s.v');
             $sth = $this->dbh->prepare("UPDATE domain SET rgpstatus = 'autoRenewPeriod', exdate = ?, autoRenewPeriod = '12', renewedDate = exdate WHERE id = ?");
             $sth->execute([$renewedDate, $domain_id]);
 
-            $sth = $this->dbh->prepare("UPDATE registrar SET accountBalance = (accountBalance - ?) WHERE id = ?");
-            $sth->execute([$price, $clid]);
+            if (!debitRegistrarBalance($this->dbh, (int)$domain['clid'], $price)) {
+                throw new RuntimeException("Registrar {$domain['clid']} has insufficient funds for auto-renewal");
+            }
 
             $sth = $this->dbh->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?)");
-            $description = "autoRenew domain $name for period 12 MONTH";
-            $sth->execute([$clid, $description, -$price]);
-
-            $sth = $this->dbh->prepare("SELECT exdate FROM domain WHERE id = ? LIMIT 1");
-            $sth->execute([$domain_id]);
-            list($to) = $sth->fetch(PDO::FETCH_NUM);
+            $description = "autoRenew domain {$domain['name']} for period 12 MONTH";
+            $sth->execute([$domain['clid'], $description, -$price]);
 
             $statementPeriodColumns = $this->config['db_type'] === 'pgsql' ? '"fromS", "toS"' : 'fromS, toS';
             $sthStatement = $this->dbh->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount) VALUES(?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)");
-            $sthStatement->execute([$clid, 'autoRenew', $name, '12', $exdate, $to, $price]);
+            $sthStatement->execute([$domain['clid'], 'autoRenew', $domain['name'], '12', $from, $renewedDate, $price]);
 
             $this->updateStatistics('renewed_domains');
 
             $this->dbh->commit();
-        } catch (Exception $e) {
-            $this->dbh->rollBack();
+        } catch (Throwable $e) {
+            if ($this->dbh->inTransaction()) {
+                $this->dbh->rollBack();
+            }
             $this->log->error("Failed to auto-renew $name (ID $domain_id): " . $e->getMessage());
         }
     }

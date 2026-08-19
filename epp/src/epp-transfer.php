@@ -589,13 +589,47 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
             try {
                 $db->beginTransaction();
 
+                $stmt = $db->prepare(
+                    "SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid,
+                            trdate, trstatus, reid, redate, acid, acdate, transfer_exdate
+                     FROM domain
+                     WHERE name = ?
+                     LIMIT 1
+                     FOR UPDATE"
+                );
+                $stmt->execute([$domainName]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
+
+                if (!$row || $row['trstatus'] !== 'pending') {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2300, 'Command failed as the domain is not pending transfer', $clTRID, $trans);
+                    return;
+                }
+
+                $domain_id = $row['id'];
+
                 $date_add = 0;
                 $price = 0;
 
-                $stmt = $db->prepare("SELECT accountBalance,creditLimit FROM registrar WHERE id = ? LIMIT 1");
+                $stmt = $db->prepare(
+                    'SELECT accountBalance, creditLimit, currency
+                     FROM registrar
+                     WHERE id = ?
+                     LIMIT 1
+                     FOR UPDATE'
+                );
                 $stmt->execute([$row["reid"]]);
-                list($registrar_balance, $creditLimit) = $stmt->fetch(PDO::FETCH_NUM);
+                $account = $stmt->fetch(PDO::FETCH_ASSOC);
                 $stmt->closeCursor();
+
+                if (!$account) {
+                    throw new RuntimeException('Gaining registrar account does not exist');
+                }
+
+                $registrar_balance = $account['accountBalance'];
+                $creditLimit = $account['creditLimit'];
+                $currency = $account['currency'];
 
                 if ($row["transfer_exdate"]) {
                     $transferDate = new DateTime($row['transfer_exdate']);
@@ -603,21 +637,17 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     $date_add = ((int) $transferDate->format('Y') - (int) $expiryDate->format('Y')) * 12
                         + (int) $transferDate->format('m') - (int) $expiryDate->format('m');
 
-                    $stmt = $db->prepare("SELECT currency FROM registrar WHERE id = :registrar_id LIMIT 1");
-                    $stmt->execute([':registrar_id' => $clid]);
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $stmt->closeCursor();
-                    $currency = $result["currency"];
-
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $row['reid'], $currency);
                     $price = $returnValue['price'] ?? null;
 
                     if (!isset($price)) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                         return;
                     }
 
                     if (($registrar_balance + $creditLimit) < $price) {
+                        $db->rollBack();
                         sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
                         return;
                     }
@@ -784,8 +814,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 $stmt = $db->prepare("UPDATE host SET clid = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3), trdate = CURRENT_TIMESTAMP(3) WHERE domain_id = ?");
                 $stmt->execute([$row["reid"], $clid, $domain_id]);
 
-                $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :reid");
-                $stmt->execute(['price' => $price, 'reid' => $row['reid']]);
+                if (!debitRegistrarBalance($db, (int)$row['reid'], $price)) {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2104, 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request', $clTRID, $trans);
+                    return;
+                }
 
                 $stmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:reid, CURRENT_TIMESTAMP(3), :description, :amount)");
                 $description = "transfer domain $domainName for period $date_add MONTH";

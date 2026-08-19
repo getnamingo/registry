@@ -1198,11 +1198,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
 
-    if (($registrar_balance + $creditLimit) < $price) {
-        sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
-        return;
-    }
-
     $ns = $xml->xpath('//domain:ns')[0] ?? null;
     $hostObj_list = null;
     $hostAttr_list = null;
@@ -1615,11 +1610,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':status' => 'pendingValidation'
             ]);
 
-            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $updateRegistrarStmt->execute([
-                ':price' => $price,
-                ':registrar_id' => $clid
-            ]);
+            if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
+                return;
+            }
 
             $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
             $paymentHistoryStmt->execute([
@@ -1786,6 +1781,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $db->rollBack();
             }
             sendEppError($conn, $db, 2400, 'Application could not be created due to database error', $clTRID, $trans);
+            return;
         }
 
         $svTRID = generateSvTRID();
@@ -2067,11 +2063,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
             }
 
-            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $updateRegistrarStmt->execute([
-                ':price' => $price,
-                ':registrar_id' => $clid
-            ]);
+            if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
+                return;
+            }
 
             $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
             $paymentHistoryStmt->execute([
@@ -2265,6 +2261,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $db->rollBack();
             }
             sendEppError($conn, $db, 2400, 'Domain could not be created due to database error', $clTRID, $trans);
+            return;
         }
         $svTRID = generateSvTRID();
         $response['command'] = 'create_domain';

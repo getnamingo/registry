@@ -613,6 +613,65 @@ function getDomainRestorePrice($db, $tld_id, $registrar_id = null, $currency = '
 }
 
 /**
+ * Debit a registrar without allowing concurrent requests to overspend.
+ *
+ * The registry mutation and its ledger entries must use the same transaction.
+ */
+function debitRegistrarBalance($db, int $registrarId, $amount): bool {
+    if (!$db->isTransactionActive()) {
+        throw new \LogicException('Registrar balance changes require an active transaction');
+    }
+
+    if (!is_numeric($amount) || (float)$amount < 0) {
+        throw new \InvalidArgumentException('Debit amount must be a non-negative number');
+    }
+
+    if ((float)$amount === 0.0) {
+        $lockedRegistrarId = $db->selectValue(
+            'SELECT id FROM registrar WHERE id = ? FOR UPDATE',
+            [$registrarId]
+        );
+
+        return $lockedRegistrarId !== null && $lockedRegistrarId !== false;
+    }
+
+    return $db->exec(
+        'UPDATE registrar
+         SET accountBalance = accountBalance - ?
+         WHERE id = ?
+           AND accountBalance + creditLimit >= ?',
+        [$amount, $registrarId, $amount]
+    ) === 1;
+}
+
+/**
+ * Credit a registrar as part of an active registry transaction.
+ */
+function creditRegistrarBalance($db, int $registrarId, $amount): bool {
+    if (!$db->isTransactionActive()) {
+        throw new \LogicException('Registrar balance changes require an active transaction');
+    }
+
+    if (!is_numeric($amount) || (float)$amount < 0) {
+        throw new \InvalidArgumentException('Credit amount must be a non-negative number');
+    }
+
+    if ((float)$amount === 0.0) {
+        $lockedRegistrarId = $db->selectValue(
+            'SELECT id FROM registrar WHERE id = ? FOR UPDATE',
+            [$registrarId]
+        );
+
+        return $lockedRegistrarId !== null && $lockedRegistrarId !== false;
+    }
+
+    return $db->exec(
+        'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
+        [$amount, $registrarId]
+    ) === 1;
+}
+
+/**
  * Load exchange rates from JSON file with APCu caching.
  */
 function getExchangeRates() {

@@ -80,35 +80,84 @@ try {
         $totalAmount       = ($combinedResult['total'] ?? 0) - $refundTotal;
 
         if ($transactionsCount > 0 && $totalAmount > 0) {
-            // Prepare and execute insert statement
-            $insertStmt = $pdo->prepare("INSERT INTO invoices (registrar_id, billing_contact_id, issue_date, due_date, total_amount, payment_status, created_at) VALUES (:registrarId, :billingContactId, :issueDate, :dueDate, :totalAmount, :paymentStatus, :createdAt)");
+            try {
+                $pdo->beginTransaction();
 
-            $currentDateTime = new DateTimeImmutable();
-            $dueDateTime = $currentDateTime->modify('+30 days');
+                // Serialize invoice generation for this registrar. The email
+                // is deliberately sent after the database transaction commits.
+                $lockStmt = $pdo->prepare('SELECT id FROM registrar WHERE id = ? FOR UPDATE');
+                $lockStmt->execute([$row['id']]);
+                if ($lockStmt->fetchColumn() === false) {
+                    throw new RuntimeException("Registrar {$row['id']} does not exist");
+                }
+                $lockStmt->closeCursor();
 
-            $currentDateTimeMilliseconds = $currentDateTime->format('Y-m-d H:i:s.v');
-            $dueDateTimeMilliseconds = $dueDateTime->format('Y-m-d H:i:s.v');
+                $currentDateTime = new DateTimeImmutable();
+                $invoiceWindowStart = $currentDateTime
+                    ->modify('first day of this month')
+                    ->setTime(0, 0)
+                    ->format('Y-m-d H:i:s.v');
+                $invoiceWindowEnd = $currentDateTime
+                    ->modify('first day of next month')
+                    ->setTime(0, 0)
+                    ->format('Y-m-d H:i:s.v');
+                $existingInvoiceStmt = $pdo->prepare(
+                    'SELECT id FROM invoices
+                     WHERE registrar_id = ? AND issue_date >= ? AND issue_date < ?
+                     LIMIT 1'
+                );
+                $existingInvoiceStmt->execute([
+                    $row['id'],
+                    $invoiceWindowStart,
+                    $invoiceWindowEnd,
+                ]);
+                $existingInvoiceId = $existingInvoiceStmt->fetchColumn();
+                $existingInvoiceStmt->closeCursor();
+                if ($existingInvoiceId !== false) {
+                    $pdo->commit();
+                    $log->info("Invoice already exists for registrar {$row['id']} this month; skipping duplicate generation.");
+                    continue;
+                }
 
-            $paymentStatus = 'unpaid';
+                $insertStmt = $pdo->prepare("INSERT INTO invoices (registrar_id, billing_contact_id, issue_date, due_date, total_amount, payment_status, created_at) VALUES (:registrarId, :billingContactId, :issueDate, :dueDate, :totalAmount, :paymentStatus, :createdAt)");
 
-            $insertStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
-            $insertStmt->bindParam(':billingContactId', $row['billing_contact_id'], PDO::PARAM_INT);
-            $insertStmt->bindParam(':issueDate', $currentDateTimeMilliseconds);
-            $insertStmt->bindParam(':dueDate', $dueDateTimeMilliseconds);
-            $insertStmt->bindParam(':totalAmount', $totalAmount, PDO::PARAM_STR);
-            $insertStmt->bindParam(':paymentStatus', $paymentStatus);
-            $insertStmt->bindParam(':createdAt', $currentDateTimeMilliseconds);
-            $insertStmt->execute();
-            
-            $invoiceNumber = $pdo->lastInsertId($c['db_type'] === 'pgsql' ? 'invoices_id_seq' : null);
-            $currentDateFormatted = date("Ymd");
-            $invoiceIdFormatted = "I" . $invoiceNumber . "-" . $currentDateFormatted;
-            
-            $updateQuery = "UPDATE invoices SET invoice_number = :invoiceIdFormatted WHERE id = :invoiceNumber";
-            $stmt = $pdo->prepare($updateQuery);
-            $stmt->bindParam(':invoiceIdFormatted', $invoiceIdFormatted, PDO::PARAM_STR);
-            $stmt->bindParam(':invoiceNumber', $invoiceNumber, PDO::PARAM_INT);
-            $stmt->execute();
+                $dueDateTime = $currentDateTime->modify('+30 days');
+
+                $currentDateTimeMilliseconds = $currentDateTime->format('Y-m-d H:i:s.v');
+                $dueDateTimeMilliseconds = $dueDateTime->format('Y-m-d H:i:s.v');
+
+                $paymentStatus = 'unpaid';
+
+                $insertStmt->bindParam(':registrarId', $row['id'], PDO::PARAM_INT);
+                $insertStmt->bindParam(':billingContactId', $row['billing_contact_id'], PDO::PARAM_INT);
+                $insertStmt->bindParam(':issueDate', $currentDateTimeMilliseconds);
+                $insertStmt->bindParam(':dueDate', $dueDateTimeMilliseconds);
+                $insertStmt->bindParam(':totalAmount', $totalAmount, PDO::PARAM_STR);
+                $insertStmt->bindParam(':paymentStatus', $paymentStatus);
+                $insertStmt->bindParam(':createdAt', $currentDateTimeMilliseconds);
+                $insertStmt->execute();
+
+                $invoiceNumber = $pdo->lastInsertId($c['db_type'] === 'pgsql' ? 'invoices_id_seq' : null);
+                $currentDateFormatted = date("Ymd");
+                $invoiceIdFormatted = "I" . $invoiceNumber . "-" . $currentDateFormatted;
+
+                $updateQuery = "UPDATE invoices SET invoice_number = :invoiceIdFormatted WHERE id = :invoiceNumber";
+                $stmt = $pdo->prepare($updateQuery);
+                $stmt->bindParam(':invoiceIdFormatted', $invoiceIdFormatted, PDO::PARAM_STR);
+                $stmt->bindParam(':invoiceNumber', $invoiceNumber, PDO::PARAM_INT);
+                $stmt->execute();
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException("Failed to assign invoice number for invoice $invoiceNumber");
+                }
+
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $log->error("Failed to generate invoice for registrar {$row['id']}: " . $e->getMessage());
+                continue;
+            }
 
             $log->info("Generated invoice {$invoiceIdFormatted} for registrar ID {$row['id']} ({$row['registrar_name']}) - Amount: {$totalAmount}");
 

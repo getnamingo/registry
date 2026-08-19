@@ -236,12 +236,18 @@ class FinancialsController extends Controller
                 $description .= " (" . $data['description'] . ")";
             }
 
-            $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false && preg_match('/^\d+(\.\d{1,2})?$/', $amount);
+            $isPositiveNumberWithTwoDecimals = filter_var($amount, FILTER_VALIDATE_FLOAT) !== false
+                && preg_match('/^\d+(\.\d{1,2})?$/', $amount)
+                && (float)$amount > 0;
 
             if ($isPositiveNumberWithTwoDecimals) {
                 $db->beginTransaction();
 
                 try {
+                    if (!creditRegistrarBalance($db, (int)$registrar_id, $amount)) {
+                        throw new \RuntimeException('Registrar account does not exist');
+                    }
+
                     $currentDateTime = new \DateTime();
                     $date = $currentDateTime->format('Y-m-d H:i:s.v');
                     $db->insert(
@@ -268,17 +274,11 @@ class FinancialsController extends Controller
                         ]
                     );
                     
-                    $db->exec(
-                        'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
-                        [
-                            $amount,
-                            $registrar_id
-                        ]
-                    );
-                    
                     $db->commit();
-                } catch (Exception $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
                     $this->container->get('flash')->addMessage('error', 'Database failure: '.$e->getMessage());
                     return $response->withHeader('Location', '/deposit')->withStatus(302);
                 }
@@ -2074,7 +2074,7 @@ class FinancialsController extends Controller
             }
 
             $registrar = $db->selectRow(
-                'SELECT id, currency FROM registrar WHERE id = ? LIMIT 1',
+                'SELECT id, currency FROM registrar WHERE id = ? LIMIT 1 FOR UPDATE',
                 [$registrarId]
             );
 
@@ -2111,11 +2111,7 @@ class FinancialsController extends Controller
                 ]
             );
                         
-            $updated = $db->exec(
-                'UPDATE registrar SET accountBalance = (accountBalance + ?) WHERE id = ?',
-                [$amount, $registrarId]
-            );
-            if ($updated !== 1) {
+            if (!creditRegistrarBalance($db, $registrarId, $amount)) {
                 throw new \RuntimeException('Payment balance update failed.');
             }
 

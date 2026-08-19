@@ -579,7 +579,7 @@ class DomainsController extends Controller
             $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
             $price = $returnValue['price'];
 
-            if (!$price) {
+            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                 $this->container->get('flash')->addMessage('error', 'Error creating domain: The price, period and currency for such TLD are not declared');
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
@@ -897,10 +897,9 @@ class DomainsController extends Controller
                     $db->insert('secdns', $insertData);
                 }
                 
-                $db->exec(
-                    'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                    [$price, $clid]
-                );
+                if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                    throw new \RuntimeException('Low credit: minimum threshold reached');
+                }
 
                 $db->exec(
                     'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -1128,14 +1127,17 @@ class DomainsController extends Controller
                 );
                 
                 $db->commit();
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (\Throwable $e) {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/domain/create')->withStatus(302);
-            } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
-                $db->rollBack();
-                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                return $response->withHeader('Location', '/domain/create')->withStatus(302);
+            } finally {
+                // Validation failures above can return from inside the try.
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
             }
             
             $crdate = $db->selectValue(
@@ -2203,7 +2205,7 @@ class DomainsController extends Controller
             $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'renew', $clid, $currency);
             $price = $returnValue['price'];
 
-            if (!$price) {
+            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                 return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
             }
@@ -2238,47 +2240,83 @@ class DomainsController extends Controller
             
             try {
                 $db->beginTransaction();
-                        
-                $currentDateTime = new \DateTime();
-                $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
-                
-                $row = $db->selectRow(
-                    'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
-                    [$domainName]
+
+                $lockedDomain = $db->selectRow(
+                    'SELECT id, name, tldid, exdate, clid
+                     FROM domain
+                     WHERE id = ?
+                     LIMIT 1
+                     FOR UPDATE',
+                    [$domain_id]
                 );
-                $from = $row['exdate'];
+                if (!$lockedDomain || (int)$lockedDomain['clid'] !== (int)$clid) {
+                    throw new \RuntimeException('Domain ownership changed before renewal');
+                }
+
+                $lockedStatuses = $db->select(
+                    'SELECT status FROM domain_status WHERE domain_id = ? FOR UPDATE',
+                    [$domain_id]
+                ) ?? [];
+                foreach ($lockedStatuses as $statusRow) {
+                    $status = $statusRow['status'];
+                    if (preg_match('/RenewProhibited$/', $status) || preg_match('/^pending/', $status)) {
+                        throw new \RuntimeException('The domain status no longer allows renewal');
+                    }
+                }
+
+                $account = $db->selectRow(
+                    'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                     FROM registrar
+                     WHERE id = ?
+                     LIMIT 1
+                     FOR UPDATE',
+                    [$clid]
+                );
+                if (!$account) {
+                    throw new \RuntimeException('Registrar account does not exist');
+                }
+
+                $returnValue = getDomainPrice(
+                    $db,
+                    $lockedDomain['name'],
+                    $lockedDomain['tldid'],
+                    $date_add,
+                    'renew',
+                    $clid,
+                    $account['currency']
+                );
+                $price = $returnValue['price'] ?? null;
+                if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
+                    throw new \RuntimeException('The renewal price is not configured');
+                }
+                if (($account['accountBalance'] + $account['creditLimit']) < $price) {
+                    throw new \RuntimeException('Low credit: minimum threshold reached');
+                }
+
+                $from = $lockedDomain['exdate'];
                 $rgpstatus = 'renewPeriod';
 
                 $renewedExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                 $db->exec(
-                    'UPDATE domain SET exdate = ?, rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                    'UPDATE domain SET exdate = ?, rgpstatus = ?, renewPeriod = ?, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = ?',
                     [
                         $renewedExdate,
                         $rgpstatus,
                         $date_add,
-                        $domainName
+                        $domain_id
                     ]
                 );
-                $domain_id = $db->selectValue(
-                    'SELECT id FROM domain WHERE name = ?',
-                    [$domainName]
-                );
 
-                $db->exec(
-                    'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                    [$price, $clid]
-                );
+                if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                    throw new \RuntimeException('Low credit: minimum threshold reached');
+                }
                 
                 $db->exec(
                     'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
                     [$clid, "renew domain $domainName for period $date_add MONTH", "-$price"]
                 );
 
-                $row = $db->selectRow(
-                    'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
-                    [$domainName]
-                );
-                $to = $row['exdate'];
+                $to = $renewedExdate;
 
                 $currentDateTime = new \DateTime();
                 $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
@@ -2305,8 +2343,10 @@ class DomainsController extends Controller
                 );
                  
                 $db->commit();
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (\Throwable $e) {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
                 $this->container->get('flash')->addMessage('error', 'Database failure during renew: ' . $e->getMessage());
                 return $response->withHeader('Location', '/domain/renew/'.$domainName)->withStatus(302);
             }
@@ -2431,9 +2471,15 @@ class DomainsController extends Controller
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 }
-        
-                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM domain WHERE name = ?',
+
+                $db->beginTransaction();
+                try {
+                $domain = $db->selectRow('SELECT id, name, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM domain WHERE name = ? LIMIT 1 FOR UPDATE',
                 [ $args ]);
+
+                if (!$domain) {
+                    throw new \RuntimeException('Domain does not exist');
+                }
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
@@ -2476,7 +2522,7 @@ class DomainsController extends Controller
                 }
 
                 $results = $db->select(
-                    'SELECT status FROM domain_status WHERE domain_id = ?',
+                    'SELECT status FROM domain_status WHERE domain_id = ? FOR UPDATE',
                     [ $domain_id ]
                 ) ?? [];
 
@@ -2521,18 +2567,14 @@ class DomainsController extends Controller
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $addPeriod, 'create', $clid, $currency);
                             $price = $returnValue['price'];
             
-                            if (!$price) {
+                            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
                             
-                            try {
-                                $db->beginTransaction();
-                            
-                                $db->exec(
-                                    'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                    [$price, $clid]
-                                );
+                            if (!creditRegistrarBalance($db, (int)$clid, $price)) {
+                                throw new \RuntimeException('Registrar account does not exist');
+                            }
                                 
                                 $description = "domain name is deleted by the registrar during grace addPeriod, the registry provides a credit for the cost of the registration domain $domainName for period $addPeriod MONTH";
                                 $db->exec(
@@ -2623,12 +2665,6 @@ class DomainsController extends Controller
                                     'UPDATE statistics SET deleted_domains = deleted_domains + 1 WHERE date = CURRENT_DATE'
                                 );
                             
-                                $db->commit();
-                            } catch (Exception $e) {
-                                $db->rollBack();
-                                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                                return $response->withHeader('Location', '/domains')->withStatus(302);
-                            }
                             $isImmediateDeletion = true;
                         }
                     } elseif ($rgpstatus === 'autoRenewPeriod') {
@@ -2639,15 +2675,14 @@ class DomainsController extends Controller
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $autoRenewPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
                             
-                            if (!$price) {
+                            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
 
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
+                            if (!creditRegistrarBalance($db, (int)$clid, $price)) {
+                                throw new \RuntimeException('Registrar account does not exist');
+                            }
                             
                             $description = "domain name is deleted by the registrar during grace autoRenewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $autoRenewPeriod MONTH";
                             $db->exec(
@@ -2663,15 +2698,14 @@ class DomainsController extends Controller
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $renewPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
 
-                            if (!$price) {
+                            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
 
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
+                            if (!creditRegistrarBalance($db, (int)$clid, $price)) {
+                                throw new \RuntimeException('Registrar account does not exist');
+                            }
                             
                             $description = "domain name is deleted by the registrar during grace renewPeriod, the registry provides a credit for the cost of the renewal domain $domainName for period $renewPeriod MONTH";
                             $db->exec(
@@ -2687,15 +2721,14 @@ class DomainsController extends Controller
                             $returnValue = getDomainPrice($db, $domainName, $tld_id, $transferPeriod, 'renew', $clid, $currency);
                             $price = $returnValue['price'];
                             
-                            if (!$price) {
+                            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                                 $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                                 return $response->withHeader('Location', '/domains')->withStatus(302);
                             }
 
-                            $db->exec(
-                                'UPDATE registrar SET accountBalance = accountBalance + ? WHERE id = ?',
-                                [$price, $clid]
-                            );
+                            if (!creditRegistrarBalance($db, (int)$clid, $price)) {
+                                throw new \RuntimeException('Registrar account does not exist');
+                            }
                             
                             $description = "domain name is deleted by the registrar during grace transferPeriod, the registry provides a credit for the cost of the transfer domain $domainName for period $transferPeriod MONTH";
                             $db->exec(
@@ -2706,12 +2739,25 @@ class DomainsController extends Controller
                     }
                 }
                     
+                $db->commit();
+
                 if ($isImmediateDeletion) {
                     $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' deleted successfully');
                 } else {
                     $this->container->get('flash')->addMessage('info', 'Deletion process for domain ' . $domainName . ' has been initiated');
                 }
                 return $response->withHeader('Location', '/domains')->withStatus(302);
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
+                    $this->container->get('flash')->addMessage('error', 'Database failure during deletion: ' . $e->getMessage());
+                    return $response->withHeader('Location', '/domains')->withStatus(302);
+                } finally {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
+                }
             } else {
                 // Redirect to the domains view
                 return $response->withHeader('Location', '/domains')->withStatus(302);
@@ -2890,9 +2936,9 @@ class DomainsController extends Controller
                     $currency = $result['currency'];
                     
                     $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
-                    $price = $returnValue['price'];
+                    $price = $returnValue['price'] ?? null;
 
-                    if (!$price) {
+                    if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                         $this->container->get('flash')->addMessage('error', 'The price, period and currency for such TLD are not declared');
                         return $response->withHeader('Location', '/transfer/request')->withStatus(302);
                     }
@@ -3186,8 +3232,13 @@ class DomainsController extends Controller
                     $date_add = ((int) $transferDate->format('Y') - (int) $expiryDate->format('Y')) * 12
                         + (int) $transferDate->format('m') - (int) $expiryDate->format('m');
                     
-                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $clid, $currency);
-                    $price = $returnValue['price'];
+                    $returnValue = getDomainPrice($db, $domainName, $tldid, $date_add, 'transfer', $reid, $currency);
+                    $price = $returnValue['price'] ?? null;
+
+                    if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
+                        $this->container->get('flash')->addMessage('error', 'The transfer price is not configured');
+                        return $response->withHeader('Location', '/transfers')->withStatus(302);
+                    }
                     
                     if (($registrar_balance + $creditLimit) < $price) {
                         $this->container->get('flash')->addMessage('error', 'The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
@@ -3197,7 +3248,66 @@ class DomainsController extends Controller
 
                 try {
                     $db->beginTransaction();
-                    
+
+                    $lockedDomain = $db->selectRow(
+                        'SELECT id, registrant, exdate, clid, reid, trstatus, transfer_exdate, tldid
+                         FROM domain
+                         WHERE id = ?
+                         LIMIT 1
+                         FOR UPDATE',
+                        [$domain_id]
+                    );
+                    if (
+                        !$lockedDomain
+                        || $lockedDomain['trstatus'] !== 'pending'
+                        || (int)$lockedDomain['clid'] !== (int)$clid
+                    ) {
+                        throw new \RuntimeException('The transfer state changed before approval');
+                    }
+
+                    $registrant = $lockedDomain['registrant'];
+                    $exdate = $lockedDomain['exdate'];
+                    $reid = $lockedDomain['reid'];
+                    $transfer_exdate = $lockedDomain['transfer_exdate'];
+                    $tldid = $lockedDomain['tldid'];
+
+                    $account = $db->selectRow(
+                        'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                         FROM registrar
+                         WHERE id = ?
+                         LIMIT 1
+                         FOR UPDATE',
+                        [$reid]
+                    );
+                    if (!$account) {
+                        throw new \RuntimeException('Gaining registrar account does not exist');
+                    }
+
+                    $date_add = 0;
+                    $price = 0;
+                    if ($transfer_exdate) {
+                        $transferDate = new \DateTime($transfer_exdate);
+                        $expiryDate = new \DateTime($exdate);
+                        $date_add = ((int)$transferDate->format('Y') - (int)$expiryDate->format('Y')) * 12
+                            + (int)$transferDate->format('m') - (int)$expiryDate->format('m');
+                        $returnValue = getDomainPrice(
+                            $db,
+                            $domainName,
+                            $tldid,
+                            $date_add,
+                            'transfer',
+                            $reid,
+                            $account['currency']
+                        );
+                        $price = $returnValue['price'] ?? null;
+                        if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
+                            throw new \RuntimeException('The transfer price is not configured');
+                        }
+                        if (($account['accountBalance'] + $account['creditLimit']) < $price) {
+                            throw new \RuntimeException('The gaining registrar has insufficient funds');
+                        }
+                    }
+
                     $contactMap = $db->select('SELECT contact_id, type FROM domain_contact_map WHERE domain_id = ?', [$domain_id]);
 
                     // Prepare an array to hold new contact IDs to prevent duplicating contacts
@@ -3284,11 +3394,7 @@ class DomainsController extends Controller
                         }
                     }
                     
-                    $row = $db->selectRow(
-                        'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
-                        [$domainName]
-                    );
-                    $from = $row['exdate'];
+                    $from = $exdate;
 
                     $newExdate = (new \DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
                     $db->exec(
@@ -3344,10 +3450,9 @@ class DomainsController extends Controller
                         [$reid, $clid, $domain_id]
                     );
 
-                    $db->exec(
-                        'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                        [$price, $reid]
-                    );
+                    if (!debitRegistrarBalance($db, (int)$reid, $price)) {
+                        throw new \RuntimeException('The gaining registrar has insufficient funds');
+                    }
                     
                     $db->exec(
                         'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -3407,8 +3512,10 @@ class DomainsController extends Controller
                     );
 
                     $db->commit();
-                } catch (Exception $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
                     $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                     return $response->withHeader('Location', '/transfers')->withStatus(302);
                 }
@@ -3820,17 +3927,77 @@ class DomainsController extends Controller
                 try {
                     $db->beginTransaction();
 
+                    $lockedDomain = $db->selectRow(
+                        'SELECT id, tldid, exdate, clid, rgpstatus
+                         FROM domain
+                         WHERE name = ?
+                         LIMIT 1
+                         FOR UPDATE',
+                        [$domainName]
+                    );
+                    if (
+                        !$lockedDomain
+                        || $lockedDomain['rgpstatus'] !== 'pendingRestore'
+                        || (int)$lockedDomain['clid'] !== (int)$clid
+                    ) {
+                        throw new \RuntimeException('The domain is no longer eligible for restore');
+                    }
+
+                    $db->select(
+                        'SELECT status FROM domain_status WHERE domain_id = ? FOR UPDATE',
+                        [$lockedDomain['id']]
+                    );
+
+                    $account = $db->selectRow(
+                        'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                         FROM registrar
+                         WHERE id = ?
+                         LIMIT 1
+                         FOR UPDATE',
+                        [$clid]
+                    );
+                    if (!$account) {
+                        throw new \RuntimeException('Registrar account does not exist');
+                    }
+
+                    $returnValue = getDomainPrice(
+                        $db,
+                        $domainName,
+                        $lockedDomain['tldid'],
+                        12,
+                        'renew',
+                        $clid,
+                        $account['currency']
+                    );
+                    $renew_price = $returnValue['price'] ?? null;
+                    $restore_price = getDomainRestorePrice(
+                        $db,
+                        $lockedDomain['tldid'],
+                        $clid,
+                        $account['currency']
+                    );
+                    if (
+                        !isset($renew_price)
+                        || !isset($restore_price)
+                        || ($returnValue['type'] ?? 'not_found') === 'not_found'
+                    ) {
+                        throw new \RuntimeException('Restore or renewal price is not configured');
+                    }
+
+                    $total_price = number_format((float)$renew_price + (float)$restore_price, 2, '.', '');
+                    if (($account['accountBalance'] + $account['creditLimit']) < $total_price) {
+                        throw new \RuntimeException('There is no money on the account for restore and renew');
+                    }
+
+                    $domain_id = $lockedDomain['id'];
+                    $from = $lockedDomain['exdate'];
                     $restoredExdate = (new \DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s.v');
                     $db->exec(
-                        'UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE name = ?',
+                        'UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?',
                         [
                             $restoredExdate,
-                            $domainName
+                            $domain_id
                         ]
-                    );
-                    $domain_id = $db->selectValue(
-                        'SELECT id FROM domain WHERE name = ?',
-                        [$domainName]
                     );
 
                     $db->delete(
@@ -3841,10 +4008,9 @@ class DomainsController extends Controller
                         ]
                     );
 
-                    $db->exec(
-                        'UPDATE registrar SET accountBalance = (accountBalance - ? - ?) WHERE id = ?',
-                        [$renew_price, $restore_price, $clid]
-                    );
+                    if (!debitRegistrarBalance($db, (int)$clid, $total_price)) {
+                        throw new \RuntimeException('There is no money on the account for restore and renew');
+                    }
                     
                     $db->exec(
                         'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -3856,11 +4022,7 @@ class DomainsController extends Controller
                         [$clid, "renew domain $domainName for period 12 MONTH", "-$renew_price"]
                     );
 
-                    $row = $db->selectRow(
-                        'SELECT exdate FROM domain WHERE name = ? LIMIT 1',
-                        [$domainName]
-                    );
-                    $to = $row['exdate'];
+                    $to = $restoredExdate;
 
                     $currentDateTime = new \DateTime();
                     $stdate = $currentDateTime->format('Y-m-d H:i:s.v');
@@ -3905,8 +4067,10 @@ class DomainsController extends Controller
                     );
                      
                     $db->commit();
-                } catch (Exception $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
                     $this->container->get('flash')->addMessage('error', 'Database failure during restore: ' . $e->getMessage());
                     return $response->withHeader('Location', '/domains')->withStatus(302);
                 }

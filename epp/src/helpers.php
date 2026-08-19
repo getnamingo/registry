@@ -848,6 +848,43 @@ function updatePermittedIPs($pool, $permittedIPsTable): void {
     }
 }
 
+function debitRegistrarBalance($db, int $registrarId, $amount): bool {
+    if (!$db->inTransaction()) {
+        throw new LogicException('Registrar balance changes require an active transaction');
+    }
+
+    if (!is_numeric($amount) || (float)$amount < 0) {
+        throw new InvalidArgumentException('Debit amount must be a non-negative number');
+    }
+
+    // A zero-price operation still locks and verifies the registrar row. MySQL
+    // can report zero affected rows for an UPDATE that does not change a value.
+    if ((float)$amount === 0.0) {
+        $stmt = $db->prepare('SELECT id FROM registrar WHERE id = :registrar_id FOR UPDATE');
+        $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+        $stmt->execute();
+        $exists = $stmt->fetchColumn() !== false;
+        $stmt->closeCursor();
+
+        return $exists;
+    }
+
+    $stmt = $db->prepare(
+        'UPDATE registrar
+         SET accountBalance = accountBalance - :debit
+         WHERE id = :registrar_id
+           AND accountBalance + creditLimit >= :required_balance'
+    );
+    $stmt->bindValue(':debit', (string)$amount, PDO::PARAM_STR);
+    $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+    $stmt->bindValue(':required_balance', (string)$amount, PDO::PARAM_STR);
+    $stmt->execute();
+    $debited = $stmt->rowCount() === 1;
+    $stmt->closeCursor();
+
+    return $debited;
+}
+
 function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'EUR') {
     $redis = new Redis();
     $redis->connect('127.0.0.1', 6379);
