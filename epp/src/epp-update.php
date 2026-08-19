@@ -1864,11 +1864,17 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
 
                     if ($internal_host) {
                         $sth = $db->prepare("INSERT INTO host (name,domain_id,clid,crid,crdate) VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(3))");
-                        $sth->execute([$hostName, $domain_id, $clid, $clid]) or die($sth->errorInfo()[2]);                    
+                        if (!$sth->execute([$hostName, $domain_id, $clid, $clid])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
                         $host_id = $db->lastInsertId($database_type === 'pgsql' ? 'host_id_seq' : null);
 
                         $sth = $db->prepare("INSERT INTO domain_host_map (domain_id,host_id) VALUES(?, ?)");
-                        $sth->execute([$domain_id, $host_id]) or die($sth->errorInfo()[2]);
+                        if (!$sth->execute([$domain_id, $host_id])) {
+                            sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                            return;
+                        }
 
                         $hostAddr_list = $node->xpath('domain:hostAddr');
                         foreach ($hostAddr_list as $node) {
@@ -1882,7 +1888,10 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                             }
 
                             $sth = $db->prepare("INSERT INTO host_addr (host_id,addr,ip) VALUES(?, ?, ?)");
-                            $sth->execute([$host_id, $hostAddr, $addr_type]) or die($sth->errorInfo()[2]);
+                            if (!$sth->execute([$host_id, $hostAddr, $addr_type])) {
+                                sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+                                return;
+                            }
                         }
                        
                         $sth = $db->prepare("UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
@@ -2084,74 +2093,134 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans) {
                 $statementTexts = [null, null]; // Assuming you expect two statements
             }
             
-            $sth = $db->prepare("SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = 'pendingRestore' AND id = ?");
-            $sth->execute([$domain_id]);
-            $temp_id = $sth->fetchColumn();
-            $sth->closeCursor();
+            try {
+                $db->beginTransaction();
 
-            if ($temp_id == 1) {
-                $sth = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?');
-                $sth->execute([$clid]);
-                list($registrar_balance, $creditLimit, $currency) = $sth->fetch();
+                // Lock the domain so two restore reports cannot charge it twice.
+                $sth = $db->prepare(
+                    "SELECT id, tldid, exdate
+                     FROM domain
+                     WHERE id = ? AND rgpstatus = 'pendingRestore'
+                     LIMIT 1
+                     FOR UPDATE"
+                );
+                $sth->execute([$domain_id]);
+                $lockedDomain = $sth->fetch(PDO::FETCH_ASSOC);
                 $sth->closeCursor();
 
-                $returnValue = getDomainPrice($db, $domainName, $row['tldid'], 12, 'renew', $clid, $currency);
-                $renew_price = $returnValue['price'];
+                if (!$lockedDomain) {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2304, 'report can only be sent if the domain is in pendingRestore status', $clTRID, $trans);
+                    return;
+                }
 
-                $restore_price = getDomainRestorePrice($db, $row['tldid'], $clid, $currency);
+                $sth = $db->prepare(
+                    'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                     FROM registrar
+                     WHERE id = ?
+                     LIMIT 1
+                     FOR UPDATE'
+                );
+                $sth->execute([$clid]);
+                $account = $sth->fetch(PDO::FETCH_ASSOC);
+                $sth->closeCursor();
 
-                if (($registrar_balance + $creditLimit) < ($renew_price + $restore_price)) {
+                if (!$account) {
+                    throw new RuntimeException('Registrar account does not exist');
+                }
+
+                $returnValue = getDomainPrice(
+                    $db,
+                    $domainName,
+                    $lockedDomain['tldid'],
+                    12,
+                    'renew',
+                    $clid,
+                    $account['currency']
+                );
+                $renew_price = $returnValue['price'] ?? null;
+                $restore_price = getDomainRestorePrice(
+                    $db,
+                    $lockedDomain['tldid'],
+                    $clid,
+                    $account['currency']
+                );
+
+                if (!isset($renew_price) || !isset($restore_price)) {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2400, 'Restore or renewal price is not configured', $clTRID, $trans);
+                    return;
+                }
+
+                $total_price = number_format((float)$renew_price + (float)$restore_price, 2, '.', '');
+                if (($account['accountBalance'] + $account['creditLimit']) < $total_price) {
+                    $db->rollBack();
                     sendEppError($conn, $db, 2104, 'There is no money on the account for restore and renew', $clTRID, $trans);
                     return;
                 }
 
-                $sth = $db->prepare("SELECT exdate FROM domain WHERE id = ?");
-                $sth->execute([$domain_id]);
-                $from = $sth->fetchColumn();
-                $sth->closeCursor();
-
+                $from = $lockedDomain['exdate'];
                 $exdate = (new DateTime($from))->modify('+12 months')->format('Y-m-d H:i:s.v');
-                $sth = $db->prepare("UPDATE domain SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3), rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?, upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?");
-                
-                if (!$sth->execute([$exdate, $postData, $resReason, $statementTexts[0], $statementTexts[1], $clid, $domain_id])) {
-                    sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
+                $sth = $db->prepare(
+                    'UPDATE domain
+                     SET exdate = ?, rgpstatus = NULL, rgpresTime = CURRENT_TIMESTAMP(3),
+                         rgppostData = ?, rgpresReason = ?, rgpstatement1 = ?, rgpstatement2 = ?,
+                         upid = ?, lastupdate = CURRENT_TIMESTAMP(3)
+                     WHERE id = ?'
+                );
+                $sth->execute([
+                    $exdate,
+                    $postData,
+                    $resReason,
+                    $statementTexts[0] ?? null,
+                    $statementTexts[1] ?? null,
+                    $clid,
+                    $domain_id,
+                ]);
+
+                $sth = $db->prepare(
+                    'DELETE FROM domain_status WHERE domain_id = ? AND status = ?'
+                );
+                $sth->execute([$domain_id, 'pendingDelete']);
+
+                if (!debitRegistrarBalance($db, (int)$clid, $total_price)) {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2104, 'There is no money on the account for restore and renew', $clTRID, $trans);
                     return;
-                } else {
-                    $sth = $db->prepare("DELETE FROM domain_status WHERE domain_id = ? AND status = ?");
-                    $sth->execute([$domain_id, 'pendingDelete']);
-
-                    $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - ? - ?) WHERE id = ?")
-                    ->execute([$renew_price, $restore_price, $clid]);
-
-                    $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(?,CURRENT_TIMESTAMP(3),'restore domain $domainName',?)")
-                    ->execute([$clid, -$restore_price]);
-            
-                    $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(?,CURRENT_TIMESTAMP(3),'renew domain $domainName for period 12 MONTH',?)")
-                    ->execute([$clid, -$renew_price]);
-
-                    $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = ?");
-                    $stmt->execute([$domain_id]);
-                    $to = $stmt->fetchColumn();
-                    $stmt->closeCursor();
-
-                    $sth = $db->prepare("INSERT INTO statement (registrar_id,date,command,domain_name,length_in_months,$statementPeriodColumns,amount) VALUES(?,CURRENT_TIMESTAMP(3),?,?,?,?,?,?)");
-                    $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
-        
-                    $sth->execute([$clid, 'renew', $domainName, 12, $from, $to, $renew_price]);
-
-                    $statisticsInsert = $database_type === 'pgsql'
-                        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
-                        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
-                    $db->exec($statisticsInsert);
-                    
-                    $db->prepare("UPDATE statistics SET restored_domains = restored_domains + 1 WHERE date = CURRENT_DATE")
-                    ->execute();
-
-                    $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE")
-                    ->execute();
                 }
-            } else {
-                sendEppError($conn, $db, 2304, 'report can only be sent if the domain is in pendingRestore status', $clTRID, $trans);
+
+                $sth = $db->prepare(
+                    'INSERT INTO payment_history (registrar_id, date, description, amount)
+                     VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)'
+                );
+                $sth->execute([$clid, "restore domain $domainName", -$restore_price]);
+                $sth->execute([$clid, "renew domain $domainName for period 12 MONTH", -$renew_price]);
+
+                $sth = $db->prepare(
+                    "INSERT INTO statement
+                     (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount)
+                     VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)"
+                );
+                $sth->execute([$clid, 'restore', $domainName, 0, $from, $from, $restore_price]);
+                $sth->execute([$clid, 'renew', $domainName, 12, $from, $exdate, $renew_price]);
+
+                $statisticsInsert = $database_type === 'pgsql'
+                    ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                    : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+                $db->exec($statisticsInsert);
+                $db->exec(
+                    'UPDATE statistics
+                     SET restored_domains = restored_domains + 1,
+                         renewed_domains = renewed_domains + 1
+                     WHERE date = CURRENT_DATE'
+                );
+
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                sendEppError($conn, $db, 2400, 'Database error during domain restore', $clTRID, $trans);
                 return;
             }
         }

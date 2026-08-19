@@ -378,6 +378,46 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
 }
 
 /**
+ * Debit a registrar atomically while enforcing its credit limit.
+ *
+ * The registry mutation and its ledger entries must use the same transaction.
+ */
+function debitRegistrarBalance(PDO $pdo, int $registrarId, $amount): bool {
+    if (!$pdo->inTransaction()) {
+        throw new LogicException('Registrar balance changes require an active transaction');
+    }
+
+    if (!is_numeric($amount) || (float)$amount < 0) {
+        throw new InvalidArgumentException('Debit amount must be a non-negative number');
+    }
+
+    if ((float)$amount === 0.0) {
+        $stmt = $pdo->prepare('SELECT id FROM registrar WHERE id = :registrar_id FOR UPDATE');
+        $stmt->execute([':registrar_id' => $registrarId]);
+        $exists = $stmt->fetchColumn() !== false;
+        $stmt->closeCursor();
+
+        return $exists;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE registrar
+         SET accountBalance = accountBalance - :debit
+         WHERE id = :registrar_id
+           AND accountBalance + creditLimit >= :required_balance'
+    );
+    $stmt->execute([
+        ':debit' => (string)$amount,
+        ':registrar_id' => $registrarId,
+        ':required_balance' => (string)$amount,
+    ]);
+    $debited = $stmt->rowCount() === 1;
+    $stmt->closeCursor();
+
+    return $debited;
+}
+
+/**
  * Load exchange rates from JSON file with APCu caching.
  */
 function getExchangeRates() {

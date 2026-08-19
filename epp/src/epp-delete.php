@@ -374,6 +374,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $price = $returnValue['price'];
                 
                         if (!isset($price)) {
+                            $db->rollBack();
                             sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                             return;
                         }
@@ -410,6 +411,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $stmt->execute([$domain_id]);
 
                         if ($stmt->errorCode() != "00000") {
+                            $db->rollBack();
                             sendEppError($conn, $db, 2400, 'The domain name has not been deleted, it has something to do with other objects', $clTRID, $trans);
                             return;
                         }
@@ -431,6 +433,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $price = $returnValue['price'];
 
                         if (!isset($price)) {
+                            $db->rollBack();
                             sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                             return;
                         }
@@ -453,6 +456,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                         $price = $returnValue['price'];
 
                         if (!isset($price)) {
+                            $db->rollBack();
                             sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                             return;
                         }
@@ -477,6 +481,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
                             $price = $returnValue['price'];
 
                             if (!isset($price)) {
+                                $db->rollBack();
                                 sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                                 return;
                             }
@@ -495,7 +500,7 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
             }
         
             $db->commit();
-        } catch (PDOException $e) {
+        } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }

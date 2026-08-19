@@ -199,26 +199,87 @@ class ApplicationsController extends Controller
                     // Extract the BASE64 encoded part
                     $beginMarker = "-----BEGIN ENCODED SMD-----";
                     $endMarker = "-----END ENCODED SMD-----";
-                    $beginPos = strpos($smd, $beginMarker) + strlen($beginMarker);
+                    $beginPos = strpos($smd, $beginMarker);
                     $endPos = strpos($smd, $endMarker);
-                    $encodedSMD = trim(substr($smd, $beginPos, $endPos - $beginPos));
+                    if ($beginPos === false || $endPos === false || $endPos <= $beginPos) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid SMD file envelope.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
 
-                    // Decode the BASE64 content
-                    $xmlContent = base64_decode($encodedSMD);
+                    $beginPos += strlen($beginMarker);
+                    $encodedSMD = preg_replace('/\s+/', '', substr($smd, $beginPos, $endPos - $beginPos));
 
-                    // Load the XML content using DOMDocument
+                    // Decode and parse the signed XML without modifying it.
+                    $xmlContent = base64_decode($encodedSMD, true);
+                    if ($xmlContent === false) {
+                        $this->container->get('flash')->addMessage('error', 'SMD contains invalid BASE64 data.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     $domDocument = new \DOMDocument();
-                    $domDocument->preserveWhiteSpace = false;
-                    $domDocument->formatOutput = true;
-                    $domDocument->loadXML($xmlContent);
-                    
-                    // Parse data
+                    $domDocument->preserveWhiteSpace = true;
+                    $domDocument->formatOutput = false;
+                    if (!$domDocument->loadXML($xmlContent, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING) || $domDocument->doctype !== null) {
+                        $this->container->get('flash')->addMessage('error', 'SMD contains invalid XML.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     $xpath = new \DOMXPath($domDocument);
                     $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
                     $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
                     $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
-                    $certNode = $xpath->evaluate('string(//ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate)');
+
+                    $signedMark = $domDocument->documentElement;
+                    $signatureNodes = $xpath->query('//ds:Signature');
+                    if (
+                        !($signedMark instanceof \DOMElement) ||
+                        $signedMark->localName !== 'signedMark' ||
+                        $signedMark->namespaceURI !== 'urn:ietf:params:xml:ns:signedMark-1.0' ||
+                        $signedMark->getAttribute('id') === '' ||
+                        $signatureNodes === false ||
+                        $signatureNodes->length !== 1
+                    ) {
+                        $this->container->get('flash')->addMessage('error', 'SMD has an invalid signed-mark structure.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $signatureNode = $signatureNodes->item(0);
+                    if (
+                        !($signatureNode instanceof \DOMElement) ||
+                        !($signatureNode->parentNode instanceof \DOMElement) ||
+                        !$signatureNode->parentNode->isSameNode($signedMark)
+                    ) {
+                        $this->container->get('flash')->addMessage('error', 'SMD signature is not attached to the signed-mark root.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $referenceNodes = $xpath->query('./ds:SignedInfo/ds:Reference', $signatureNode);
+                    $expectedReference = '#' . $signedMark->getAttribute('id');
+                    if (
+                        $referenceNodes === false ||
+                        $referenceNodes->length !== 1 ||
+                        $referenceNodes->item(0)->getAttribute('URI') !== $expectedReference ||
+                        $xpath->evaluate('string(./ds:SignedInfo/ds:CanonicalizationMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityDSig::EXC_C14N ||
+                        $xpath->evaluate('string(./ds:SignedInfo/ds:SignatureMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256 ||
+                        $xpath->evaluate('string(./ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityDSig::SHA256
+                    ) {
+                        $this->container->get('flash')->addMessage('error', 'SMD uses an invalid signature profile.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $certNodes = $xpath->query('./ds:KeyInfo/ds:X509Data/ds:X509Certificate', $signatureNode);
+                    if ($certNodes === false || $certNodes->length !== 1) {
+                        $this->container->get('flash')->addMessage('error', 'SMD must contain exactly one signing certificate.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    $certNode = $certNodes->item(0)->textContent;
                     $certBase64 = preg_replace('/\s+/', '', $certNode);
+                    if ($certBase64 === '' || base64_decode($certBase64, true) === false) {
+                        $this->container->get('flash')->addMessage('error', 'Invalid SMD certificate format.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     $certPem = "-----BEGIN CERTIFICATE-----\n" .
                                chunk_split($certBase64, 64, "\n") .
                                "-----END CERTIFICATE-----\n";
@@ -249,9 +310,18 @@ class ApplicationsController extends Controller
                     // Get latest CRL from DB
                     $crlDer = $db->selectValue('SELECT content FROM tmch_crl ORDER BY update_timestamp DESC LIMIT 1');
 
+                    if (!is_string($crlDer) || $crlDer === '') {
+                        $this->container->get('flash')->addMessage('error', 'TMCH certificate revocation list is unavailable.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     // Load and parse the CRL
                     $crl = new \phpseclib3\File\X509();
                     $crlData = $crl->loadCRL($crlDer);
+                    if (!is_array($crlData)) {
+                        $this->container->get('flash')->addMessage('error', 'TMCH certificate revocation list is invalid.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
 
                     // Check revoked serials
                     $revoked = $crlData['tbsCertList']['revokedCertificates'] ?? [];
@@ -263,26 +333,74 @@ class ApplicationsController extends Controller
                         }
                     }
 
-                    $smdId = $xpath->evaluate('string(//smd:id)');
+                    // Verify both SignedInfo and the digest of the referenced signedMark.
+                    try {
+                        $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
+                        $locatedSignature = $dsig->locateSignature($domDocument);
+                        if ($locatedSignature === null || !$locatedSignature->isSameNode($signatureNode)) {
+                            throw new \RuntimeException('Unable to locate the expected SMD signature.');
+                        }
+
+                        $dsig->idKeys = ['id'];
+                        $dsig->canonicalizeSignedInfo();
+
+                        $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
+                            \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
+                            ['type' => 'public']
+                        );
+                        $key->loadKey($certPem, false, true);
+
+                        $dsig->validateReference();
+                        $validatedNodes = $dsig->getValidatedNodes();
+                        $validatedNode = is_array($validatedNodes) && count($validatedNodes) === 1
+                            ? reset($validatedNodes)
+                            : null;
+                        if (
+                            !($validatedNode instanceof \DOMElement) ||
+                            !$validatedNode->isSameNode($signedMark) ||
+                            $dsig->verify($key) !== 1
+                        ) {
+                            throw new \RuntimeException('SMD signature validation failed.');
+                        }
+                    } catch (\Throwable $e) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: The XML signature of the SMD file is not valid.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
+                    // Read business data only from the node whose digest was validated.
+                    $smdId = trim((string) $xpath->evaluate('string(./smd:id[1])', $signedMark));
+                    $notBeforeValue = trim((string) $xpath->evaluate('string(./smd:notBefore[1])', $signedMark));
+                    $notAfterValue = trim((string) $xpath->evaluate('string(./smd:notAfter[1])', $signedMark));
+                    $markName = trim((string) $xpath->evaluate('string(.//mark:markName[1])', $signedMark));
+                    $markId = trim((string) $xpath->evaluate('string(.//mark:id[1])', $signedMark));
+                    $labels = [];
+                    foreach ($xpath->query('.//mark:label', $signedMark) as $x_label) {
+                        $labels[] = strtolower(trim($x_label->nodeValue));
+                    }
+
+                    if ($smdId === '' || $notBeforeValue === '' || $notAfterValue === '' || $markName === '' || $markId === '') {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: SMD is missing required signed data.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
+                    }
+
                     $isRevoked = $db->selectValue(
                         "SELECT 1 FROM tmch_revocation WHERE smd_id = ?",
                         [ $smdId ]
                     );
-                    if ($isRevoked === 1) {
+                    if ($isRevoked) {
                         $this->container->get('flash')->addMessage('error', 'Error creating application: SMD certificate has been revoked');
                         return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
 
-                    $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
-                    $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
-                    $markName = $xpath->evaluate('string(//mark:markName)');
-                    $markId = $xpath->evaluate('string(//mark:id)');
-                    $labels = [];
-                    foreach ($xpath->query('//mark:label') as $x_label) {
-                        $labels[] = $x_label->nodeValue;
+                    try {
+                        $notBefore = new \DateTime($notBeforeValue);
+                        $notafter = new \DateTime($notAfterValue);
+                    } catch (\Throwable $e) {
+                        $this->container->get('flash')->addMessage('error', 'Error creating application: SMD contains invalid validity dates.');
+                        return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
 
-                    if (!in_array($label, $labels)) {
+                    if (!in_array(strtolower($label), $labels, true)) {
                         $this->container->get('flash')->addMessage('error', 'Error creating application: SMD file is not valid for the application being created');
                         return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
@@ -294,25 +412,7 @@ class ApplicationsController extends Controller
                         return $response->withHeader('Location', '/application/create')->withStatus(302);
                     }
 
-                    // Verify the signature
-                    $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
-                    $signatureNode = $dsig->locateSignature($domDocument);
-                    $dsig->canonicalizeSignedInfo();
-                    $dsig->idKeys = ['ID'];
-                    $dsig->idNS = ['smd' => 'urn:ietf:params:xml:ns:signedMark-1.0'];
-
-                    $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
-                        \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
-                        ['type' => 'public']
-                    );
-                    $key->loadKey($certPem, false, true);
-
                     $accepted = (new \DateTime())->format('Y-m-d H:i:s.v');
-
-                    if (!$dsig->verify($key, $signatureNode)) {
-                        $this->container->get('flash')->addMessage('error', 'Error creating application: The XML signature of the SMD file is not valid.');
-                        return $response->withHeader('Location', '/application/create')->withStatus(302);
-                    }
                 } else {
                     $this->container->get('flash')->addMessage('error', "Error creating application: SMD upload is required in the 'sunrise' phase.");
                     return $response->withHeader('Location', '/application/create')->withStatus(302);
@@ -340,7 +440,7 @@ class ApplicationsController extends Controller
             $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
             $price = $returnValue['price'];
 
-            if (!$price) {
+            if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                 $this->container->get('flash')->addMessage('error', 'Error creating application: The price, period and currency for such TLD are not declared');
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
             }
@@ -518,10 +618,9 @@ class ApplicationsController extends Controller
                     'status' => 'pendingValidation'
                 ]);
 
-                $db->exec(
-                    'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                    [$price, $clid]
-                );
+                if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                    throw new \RuntimeException('Low credit: minimum threshold reached');
+                }
 
                 $db->exec(
                     'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -650,6 +749,7 @@ class ApplicationsController extends Controller
                             
                             if ($internal_host) {
                                 if (empty($nameserver_ipv4[$index]) && empty($nameserver_ipv6[$index])) {
+                                    $db->rollBack();
                                     $this->container->get('flash')->addMessage('error', 'Error creating application: No IPv4 or IPv6 addresses provided for internal host');
                                     return $response->withHeader('Location', '/application/create')->withStatus(302);
                                 }
@@ -732,14 +832,16 @@ class ApplicationsController extends Controller
                 ]);
 
                 $db->commit();
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (\Throwable $e) {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
                 $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                 return $response->withHeader('Location', '/application/create')->withStatus(302);
-            } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
-                $db->rollBack();
-                $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                return $response->withHeader('Location', '/application/create')->withStatus(302);
+            } finally {
+                if ($db->isTransactionActive()) {
+                    $db->rollBack();
+                }
             }
             
             $crdate = $db->selectValue(
@@ -1270,7 +1372,7 @@ class ApplicationsController extends Controller
                 $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
                 $price = $returnValue['price'];
 
-                if (!$price) {
+                if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
                     $this->container->get('flash')->addMessage('error', 'Error creating domain: The price, period and currency for such TLD are not declared');
                     return $response->withHeader('Location', '/application/create')->withStatus(302);
                 }
@@ -1345,10 +1447,9 @@ class ApplicationsController extends Controller
                         );
                     }
 
-                    $db->exec(
-                        'UPDATE registrar SET accountBalance = accountBalance - ? WHERE id = ?',
-                        [$price, $clid]
-                    );
+                    if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                        throw new \RuntimeException('Low credit: minimum threshold reached');
+                    }
 
                     $db->exec(
                         'INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
@@ -1426,13 +1527,6 @@ class ApplicationsController extends Controller
                         'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE'
                     );
                     
-                    $db->commit();
-                    
-                    $crdate = $db->selectValue(
-                        "SELECT crdate FROM domain WHERE id = ? LIMIT 1",
-                        [$domain_id]
-                    );
-
                     $db->insert('error_log', [
                         'channel' => 'applications',
                         'level' => 250,
@@ -1452,14 +1546,14 @@ class ApplicationsController extends Controller
                         ])
                     ]);
 
+                    $db->commit();
+
                     $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
                     return $response->withHeader('Location', '/domains')->withStatus(302);
-                } catch (Exception $e) {
-                    $db->rollBack();
-                    $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
-                    return $response->withHeader('Location', '/applications')->withStatus(302);
-                } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->isTransactionActive()) {
+                        $db->rollBack();
+                    }
                     $this->container->get('flash')->addMessage('error', 'Database failure: ' . $e->getMessage());
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }

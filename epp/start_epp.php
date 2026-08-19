@@ -368,6 +368,13 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         sendEppError($conn, $pdo, 2201, 'Unknown client identifier', $clTRID);
                         return;
                     }
+
+                    if (!isRegistrarIPAllowed($pdo, $clid, $clientIP)) {
+                        $log->warning("Login denied for registrar {$clID} from unassigned IP {$clientIP}");
+                        sendEppError($conn, $pdo, 2200, 'Authentication error', $clTRID);
+                        return;
+                    }
+
                     $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
 
                     $loginSecPw = null;
@@ -604,7 +611,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
-                    processContactInfo($conn, $pdo, $xml, $data['clid'], $trans);
+                    processContactInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
                     
@@ -811,7 +818,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processHostInfo($conn, $pdo, $xml, $trans);
+                    processHostInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
                     
@@ -888,6 +895,8 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             }
         }
     } catch (PDOException $e) {
+        $pdoHealthy = false;
+
         $errorInfo = $e->errorInfo ?? [];
         $sqlState  = $errorInfo[0] ?? 'n/a';
         $driverCode = $errorInfo[1] ?? 'n/a';
@@ -904,25 +913,25 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         $log->error('General Error: ' . $e->getMessage());
         try { $conn->close(); } catch (\Throwable $closeErr) { /* ignore */ }
         return;
-    } catch (PDOException $e) {
-        $pdoHealthy = false;
-
-        $errorInfo = $e->errorInfo ?? [];
-        $sqlState = $errorInfo[0] ?? 'n/a';
-        $driverCode = $errorInfo[1] ?? 'n/a';
-
-        $log->alert('Database error: ' . $e->getMessage() .
-            ' | code=' . $e->getCode() .
-            ' | sqlstate=' . $sqlState .
-            ' | driverCode=' . $driverCode .
-            ' | file=' . $e->getFile() . ':' . $e->getLine());
-
-        try { $conn->close(); } catch (\Throwable $closeErr) {}
-
-        return;
     } finally {
-        if ($pdo && $pdoHealthy) {
-            $pool->put($pdo);
+        if ($pdo) {
+            try {
+                if ($pdo->inTransaction()) {
+                    if (!$pdo->rollBack()) {
+                        throw new RuntimeException('PDO rollback returned false');
+                    }
+                    $log->warning("Rolled back unfinished database transaction for fd={$fd}");
+                }
+            } catch (Throwable $cleanupError) {
+                $pdoHealthy = false;
+                $log->error(
+                    'Failed to clean up database transaction: ' . $cleanupError->getMessage()
+                );
+            }
+
+            if ($pdoHealthy) {
+                $pool->put($pdo);
+            }
         }
 
         $pdo = null;

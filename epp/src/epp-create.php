@@ -508,36 +508,26 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-    $internal_host = false;
-    foreach ($tlds as $tld) {
-        if (str_ends_with($hostName, strtolower($tld))) {
-            $internal_host = true;
-            break;
-        }
-    }
+    $superordinateName = extractDomainFromHost($hostName, $tlds);
+    $internal_host = $superordinateName !== null;
 
     if ($internal_host) {
-        $domain_exist = false;
-        $clid_domain = 0;
-        $superordinate_dom = 0;
-        
-        $stmt = $db->prepare("SELECT id,clid,name FROM domain");
-        $stmt->execute();
-        
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (preg_match('/\.' . preg_quote($row['name'], '/') . '$/i', $hostName)) {
-                $domain_exist = true;
-                $clid_domain = $row['clid'];
-                $superordinate_dom = $row['id'];
-                break;
-            }
+        $superordinateDomain = false;
+
+        if (str_ends_with($hostName, '.' . $superordinateName)) {
+            $stmt = $db->prepare("SELECT id, clid FROM domain WHERE name = ? LIMIT 1");
+            $stmt->execute([$superordinateName]);
+            $superordinateDomain = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
         }
-        $stmt->closeCursor();
-        
-        if (!$domain_exist) {
+
+        if (!$superordinateDomain) {
             sendEppError($conn, $db, 2303, 'A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
             return;
         }
+
+        $clid_domain = $superordinateDomain['clid'];
+        $superordinate_dom = $superordinateDomain['id'];
         
         if ($clid != $clid_domain) {
             sendEppError($conn, $db, 2201, 'The domain name belongs to another registrar, you are not allowed to create hosts for it', $clTRID, $trans);
@@ -894,23 +884,77 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     return;
                 }
 
-                // Decode the BASE64 content
-                $xmlContent = base64_decode($smd_encodedSignedMark);
-                $xmlContent = str_replace('&#13;', '', $xmlContent);
+                // Decode and parse the signed XML without modifying it.
+                $xmlContent = base64_decode($smd_encodedSignedMark, true);
+                if ($xmlContent === false) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD contains invalid BASE64 data.', $clTRID, $trans);
+                    return;
+                }
 
-                // Load the XML content using DOMDocument
                 $domDocument = new \DOMDocument();
-                $domDocument->preserveWhiteSpace = false;
-                $domDocument->formatOutput = true;
-                $domDocument->loadXML($xmlContent);
+                $domDocument->preserveWhiteSpace = true;
+                $domDocument->formatOutput = false;
+                if (!$domDocument->loadXML($xmlContent, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING) || $domDocument->doctype !== null) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD contains invalid XML.', $clTRID, $trans);
+                    return;
+                }
 
-                // Parse data
                 $xpath = new \DOMXPath($domDocument);
                 $xpath->registerNamespace('smd', 'urn:ietf:params:xml:ns:signedMark-1.0');
                 $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
                 $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
-                $certNode = $xpath->evaluate('string(//ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate)');
+
+                $signedMark = $domDocument->documentElement;
+                $signatureNodes = $xpath->query('//ds:Signature');
+                if (
+                    !($signedMark instanceof \DOMElement) ||
+                    $signedMark->localName !== 'signedMark' ||
+                    $signedMark->namespaceURI !== 'urn:ietf:params:xml:ns:signedMark-1.0' ||
+                    $signedMark->getAttribute('id') === '' ||
+                    $signatureNodes === false ||
+                    $signatureNodes->length !== 1
+                ) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD has an invalid signed-mark structure.', $clTRID, $trans);
+                    return;
+                }
+
+                $signatureNode = $signatureNodes->item(0);
+                if (
+                    !($signatureNode instanceof \DOMElement) ||
+                    !($signatureNode->parentNode instanceof \DOMElement) ||
+                    !$signatureNode->parentNode->isSameNode($signedMark)
+                ) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD signature is not attached to the signed-mark root.', $clTRID, $trans);
+                    return;
+                }
+
+                $referenceNodes = $xpath->query('./ds:SignedInfo/ds:Reference', $signatureNode);
+                $expectedReference = '#' . $signedMark->getAttribute('id');
+                if (
+                    $referenceNodes === false ||
+                    $referenceNodes->length !== 1 ||
+                    $referenceNodes->item(0)->getAttribute('URI') !== $expectedReference ||
+                    $xpath->evaluate('string(./ds:SignedInfo/ds:CanonicalizationMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityDSig::EXC_C14N ||
+                    $xpath->evaluate('string(./ds:SignedInfo/ds:SignatureMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256 ||
+                    $xpath->evaluate('string(./ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm)', $signatureNode) !== \RobRichards\XMLSecLibs\XMLSecurityDSig::SHA256
+                ) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD uses an invalid signature profile.', $clTRID, $trans);
+                    return;
+                }
+
+                $certNodes = $xpath->query('./ds:KeyInfo/ds:X509Data/ds:X509Certificate', $signatureNode);
+                if ($certNodes === false || $certNodes->length !== 1) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD must contain exactly one signing certificate.', $clTRID, $trans);
+                    return;
+                }
+
+                $certNode = $certNodes->item(0)->textContent;
                 $certBase64 = preg_replace('/\s+/', '', $certNode);
+                if ($certBase64 === '' || base64_decode($certBase64, true) === false) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: Invalid SMD certificate format.', $clTRID, $trans);
+                    return;
+                }
+
                 $certPem = "-----BEGIN CERTIFICATE-----\n" .
                            chunk_split($certBase64, 64, "\n") .
                            "-----END CERTIFICATE-----\n";
@@ -943,9 +987,18 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $crlDer = $stmt->fetchColumn();
                 $stmt->closeCursor();
 
+                if (!is_string($crlDer) || $crlDer === '') {
+                    sendEppError($conn, $db, 2400, 'Error creating domain: TMCH certificate revocation list is unavailable.', $clTRID, $trans);
+                    return;
+                }
+
                 // Load and parse the CRL
                 $crl = new \phpseclib3\File\X509();
                 $crlData = $crl->loadCRL($crlDer);
+                if (!is_array($crlData)) {
+                    sendEppError($conn, $db, 2400, 'Error creating domain: TMCH certificate revocation list is invalid.', $clTRID, $trans);
+                    return;
+                }
 
                 // Check revoked serials
                 $revoked = $crlData['tbsCertList']['revokedCertificates'] ?? [];
@@ -957,7 +1010,56 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     }
                 }
 
-                $smdId = $xpath->evaluate('string(//smd:id)');
+                // Verify both SignedInfo and the digest of the referenced signedMark.
+                try {
+                    $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
+                    $locatedSignature = $dsig->locateSignature($domDocument);
+                    if ($locatedSignature === null || !$locatedSignature->isSameNode($signatureNode)) {
+                        throw new \RuntimeException('Unable to locate the expected SMD signature.');
+                    }
+
+                    $dsig->idKeys = ['id'];
+                    $dsig->canonicalizeSignedInfo();
+
+                    $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
+                        \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
+                        ['type' => 'public']
+                    );
+                    $key->loadKey($certPem, false, true);
+
+                    $dsig->validateReference();
+                    $validatedNodes = $dsig->getValidatedNodes();
+                    $validatedNode = is_array($validatedNodes) && count($validatedNodes) === 1
+                        ? reset($validatedNodes)
+                        : null;
+                    if (
+                        !($validatedNode instanceof \DOMElement) ||
+                        !$validatedNode->isSameNode($signedMark) ||
+                        $dsig->verify($key) !== 1
+                    ) {
+                        throw new \RuntimeException('SMD signature validation failed.');
+                    }
+                } catch (\Throwable $e) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: The XML signature of the SMD file is not valid.', $clTRID, $trans);
+                    return;
+                }
+
+                // Read business data only from the node whose digest was validated.
+                $smdId = trim((string) $xpath->evaluate('string(./smd:id[1])', $signedMark));
+                $notBeforeValue = trim((string) $xpath->evaluate('string(./smd:notBefore[1])', $signedMark));
+                $notAfterValue = trim((string) $xpath->evaluate('string(./smd:notAfter[1])', $signedMark));
+                $markName = trim((string) $xpath->evaluate('string(.//mark:markName[1])', $signedMark));
+                $markId = trim((string) $xpath->evaluate('string(.//mark:id[1])', $signedMark));
+                $labels = [];
+                foreach ($xpath->query('.//mark:label', $signedMark) as $x_label) {
+                    $labels[] = strtolower(trim($x_label->nodeValue));
+                }
+
+                if ($smdId === '' || $notBeforeValue === '' || $notAfterValue === '' || $markName === '' || $markId === '') {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD is missing required signed data.', $clTRID, $trans);
+                    return;
+                }
+
                 $stmt = $db->prepare("SELECT 1 FROM tmch_revocation WHERE smd_id = ?");
                 $stmt->execute([$smdId]);
                 if ($stmt->fetchColumn()) {
@@ -965,16 +1067,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     return;
                 }
 
-                $notBefore = new \DateTime($xpath->evaluate('string(//smd:notBefore)'));
-                $notafter = new \DateTime($xpath->evaluate('string(//smd:notAfter)'));
-                $markName = $xpath->evaluate('string(//mark:markName)');
-                $markId = $xpath->evaluate('string(//mark:id)');
-                $labels = [];
-                foreach ($xpath->query('//mark:label') as $x_label) {
-                    $labels[] = $x_label->nodeValue;
+                try {
+                    $notBefore = new \DateTime($notBeforeValue);
+                    $notafter = new \DateTime($notAfterValue);
+                } catch (\Throwable $e) {
+                    sendEppError($conn, $db, 2306, 'Error creating domain: SMD contains invalid validity dates.', $clTRID, $trans);
+                    return;
                 }
 
-                if (!in_array($label, $labels)) {
+                if (!in_array(strtolower($label), $labels, true)) {
                     sendEppError($conn, $db, 2306, 'Error creating domain: SMD file is not valid for the domain name being registered.', $clTRID, $trans);
                     return;
                 }
@@ -986,23 +1087,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     return;
                 }
 
-                // Verify the signature
-                $dsig = new \RobRichards\XMLSecLibs\XMLSecurityDSig();
-                $signatureNode = $dsig->locateSignature($domDocument);
-                $dsig->canonicalizeSignedInfo();
-                $dsig->idKeys = ['ID'];
-                $dsig->idNS = ['smd' => 'urn:ietf:params:xml:ns:signedMark-1.0'];
-
-                $key = new \RobRichards\XMLSecLibs\XMLSecurityKey(
-                    \RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256,
-                    ['type' => 'public']
-                );
-                $key->loadKey($certPem, false, true);
-
-                if (!$dsig->verify($key, $signatureNode)) {
-                    sendEppError($conn, $db, 2306, 'Error creating domain: The XML signature of the SMD file is not valid.', $clTRID, $trans);
-                    return;
-                }
             } else {
                 sendEppError($conn, $db, 2306, "Error creating domain: SMD upload is required in the 'sunrise' phase.", $clTRID, $trans);
                 return;
@@ -1104,11 +1188,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         return;
     }
 
-    if (($registrar_balance + $creditLimit) < $price) {
-        sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
-        return;
-    }
-
     $ns = $xml->xpath('//domain:ns')[0] ?? null;
     $hostObj_list = null;
     $hostAttr_list = null;
@@ -1203,13 +1282,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
                 // Check if the host is internal or external
                 $tlds = $db->query("SELECT tld FROM domain_tld")->fetchAll(PDO::FETCH_COLUMN);
-                $internal_host = false;
-                foreach ($tlds as $tld) {
-                    if (str_ends_with($hostName, strtolower($tld))) {
-                        $internal_host = true;
-                        break;
-                    }
-                }
+                $superordinateName = extractDomainFromHost($hostName, $tlds);
+                $internal_host = $superordinateName !== null;
 
                 if ($internal_host) {
                     if (preg_match('/\.' . preg_quote($domainName, '/') . '$/i', $hostName)) {
@@ -1254,25 +1328,17 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 } else {
                     // Validate the hostname using the function
                     if (validateHostName($hostName)) {
-                        $domain_exist = false;
-                        $clid_domain = 0;
+                        $clid_domain = false;
 
-                        // Prepare statement
-                        $stmt = $db->prepare("SELECT clid, name FROM domain");
-                        $stmt->execute();
-
-                        // Fetch results
-                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                            if (stripos($hostName, '.' . $row['name']) !== false) {
-                                $domain_exist = true;
-                                $clid_domain = $row['clid'];
-                                break;
-                            }
+                        if (str_ends_with(strtolower($hostName), '.' . $superordinateName)) {
+                            $stmt = $db->prepare("SELECT clid FROM domain WHERE name = ? LIMIT 1");
+                            $stmt->execute([$superordinateName]);
+                            $clid_domain = $stmt->fetchColumn();
+                            $stmt->closeCursor();
                         }
-                        $stmt->closeCursor();
 
                         // Object does not exist error
-                        if (!$domain_exist) {
+                        if ($clid_domain === false) {
                            sendEppError($conn, $db, 2303, 'domain:hostName '.$hostName.' . A host name object can NOT be created in a repository for which no superordinate domain name object exists', $clTRID, $trans);
                            return;
                         }
@@ -1521,11 +1587,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 ':status' => 'pendingValidation'
             ]);
 
-            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $updateRegistrarStmt->execute([
-                ':price' => $price,
-                ':registrar_id' => $clid
-            ]);
+            if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
+                return;
+            }
 
             $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
             $paymentHistoryStmt->execute([
@@ -1692,6 +1758,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $db->rollBack();
             }
             sendEppError($conn, $db, 2400, 'Application could not be created due to database error', $clTRID, $trans);
+            return;
         }
 
         $svTRID = generateSvTRID();
@@ -1973,11 +2040,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
             }
 
-            $updateRegistrarStmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $updateRegistrarStmt->execute([
-                ':price' => $price,
-                ':registrar_id' => $clid
-            ]);
+            if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'Low credit: minimum threshold reached', $clTRID, $trans);
+                return;
+            }
 
             $paymentHistoryStmt = $db->prepare("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES(:registrar_id,CURRENT_TIMESTAMP(3),:description,:amount)");
             $paymentHistoryStmt->execute([
@@ -2171,6 +2238,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 $db->rollBack();
             }
             sendEppError($conn, $db, 2400, 'Domain could not be created due to database error', $clTRID, $trans);
+            return;
         }
         $svTRID = generateSvTRID();
         $response['command'] = 'create_domain';

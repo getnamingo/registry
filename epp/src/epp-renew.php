@@ -119,94 +119,150 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
             return;
         }
 
-        // Check registrar account balance
-        $stmt = $db->prepare('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = :registrarId LIMIT 1');
-        $stmt->bindParam(':registrarId', $clid, PDO::PARAM_INT);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        $registrar_balance = $row['accountBalance'];
-        $creditLimit = $row['creditLimit'];
-        $currency = $row['currency'];
+        try {
+            $db->beginTransaction();
 
-        $returnValue = getDomainPrice($db, $domainData['name'], $domainData['tldid'], $date_add, 'renew', $clid, $currency);
-        $price = $returnValue['price'] ?? null;
-
-        if (!isset($price)) {
-            sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
-            return;
-        }
-
-        if (($registrar_balance + $creditLimit) < $price) {
-            sendEppError($conn, $db, 2104, 'There is no money on the account to renew', $clTRID, $trans);
-            return;
-        }
-
-        $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
-        $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $from = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        $rgpstatus = 'renewPeriod';
-        $stmt = $db->prepare("UPDATE domain SET exdate = :exdate, rgpstatus = :rgpstatus, renewPeriod = :renewPeriod, lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3) WHERE id = :domain_id");
-        $newExdate = $renewedDate->format('Y-m-d H:i:s.v');
-        $stmt->bindParam(':exdate', $newExdate, PDO::PARAM_STR);
-        $stmt->bindParam(':rgpstatus', $rgpstatus, PDO::PARAM_STR);
-        $stmt->bindParam(':renewPeriod', $date_add, PDO::PARAM_INT);
-        $stmt->bindParam(':upid', $clid, PDO::PARAM_INT);
-        $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
-        $stmt->execute();
-
-        // Error check
-        $errorInfo = $stmt->errorInfo();
-        if (isset($errorInfo[2])) {
-            sendEppError($conn, $db, 2400, 'It was not renewed successfully, something is wrong', $clTRID, $trans);
-            return;
-        } else {
-            // Update registrar's account balance:
-            $stmt = $db->prepare("UPDATE registrar SET accountBalance = (accountBalance - :price) WHERE id = :registrar_id");
-            $stmt->bindParam(':price', $price);
-            $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
-            $stmt->execute();
-
-            // Insert into payment_history:
-            $description = "renew domain $domainName for period $date_add MONTH";
-            $negative_price = -$price;
-            $stmt = $db->prepare("INSERT INTO payment_history (registrar_id, date, description, amount) VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)");
-            $stmt->bindParam(':registrar_id', $clid, PDO::PARAM_INT);
-            $stmt->bindParam(':description', $description, PDO::PARAM_STR);
-            $stmt->bindParam(':amount', $negative_price);
-            $stmt->execute();
-
-            // Fetch exdate:
-            $stmt = $db->prepare("SELECT exdate FROM domain WHERE id = :domain_id LIMIT 1");
-            $stmt->bindParam(':domain_id', $domainData['id'], PDO::PARAM_INT);
-            $stmt->execute();
-            $to = $stmt->fetchColumn();
+            // Serialize renewals of the same domain and re-check mutable state.
+            $stmt = $db->prepare(
+                "SELECT id, name, tldid, exdate, clid
+                 FROM domain
+                 WHERE id = :domain_id
+                 LIMIT 1
+                 FOR UPDATE"
+            );
+            $stmt->execute([':domain_id' => $domainData['id']]);
+            $lockedDomain = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
 
-            // Insert into statement:
-            $stmt = $db->prepare("INSERT INTO statement (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$clid, 'renew', $domainName, $date_add, $from, $to, $price]);
+            if (!$lockedDomain) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2303, 'Domain does not exist', $clTRID, $trans);
+                return;
+            }
+
+            if ((int)$lockedDomain['clid'] !== (int)$clid) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2201, 'It belongs to another registrar', $clTRID, $trans);
+                return;
+            }
+
+            if (explode(' ', $lockedDomain['exdate'])[0] !== $curExpDate) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2306, 'The expiration date does not match', $clTRID, $trans);
+                return;
+            }
+
+            $stmt = $db->prepare(
+                'SELECT status FROM domain_status WHERE domain_id = :domain_id FOR UPDATE'
+            );
+            $stmt->execute([':domain_id' => $lockedDomain['id']]);
+            $lockedStatuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $stmt->closeCursor();
+
+            foreach ($lockedStatuses as $status) {
+                if (preg_match('/RenewProhibited$/', $status) || preg_match('/^pending/', $status)) {
+                    $db->rollBack();
+                    sendEppError($conn, $db, 2304, 'It has a status that does not allow renew, first change the status', $clTRID, $trans);
+                    return;
+                }
+            }
+
+            $stmt = $db->prepare(
+                'SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency
+                 FROM registrar
+                 WHERE id = :registrar_id
+                 LIMIT 1
+                 FOR UPDATE'
+            );
+            $stmt->execute([':registrar_id' => $clid]);
+            $account = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+
+            if (!$account) {
+                throw new RuntimeException('Registrar account does not exist');
+            }
+
+            $returnValue = getDomainPrice(
+                $db,
+                $lockedDomain['name'],
+                $lockedDomain['tldid'],
+                $date_add,
+                'renew',
+                $clid,
+                $account['currency']
+            );
+            $price = $returnValue['price'] ?? null;
+
+            if (!isset($price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
+                return;
+            }
+
+            if (($account['accountBalance'] + $account['creditLimit']) < $price) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'There is no money on the account to renew', $clTRID, $trans);
+                return;
+            }
+
+            $from = $lockedDomain['exdate'];
+            $newExdate = (new DateTime($from))->modify("+$date_add months")->format('Y-m-d H:i:s.v');
+
+            $stmt = $db->prepare(
+                "UPDATE domain
+                 SET exdate = :exdate, rgpstatus = 'renewPeriod', renewPeriod = :renew_period,
+                     lastupdate = CURRENT_TIMESTAMP(3), upid = :upid, renewedDate = CURRENT_TIMESTAMP(3)
+                 WHERE id = :domain_id"
+            );
+            $stmt->execute([
+                ':exdate' => $newExdate,
+                ':renew_period' => $date_add,
+                ':upid' => $clid,
+                ':domain_id' => $lockedDomain['id'],
+            ]);
+
+            if (!debitRegistrarBalance($db, (int)$clid, $price)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2104, 'There is no money on the account to renew', $clTRID, $trans);
+                return;
+            }
+
+            $description = "renew domain $domainName for period $date_add MONTH";
+            $stmt = $db->prepare(
+                'INSERT INTO payment_history (registrar_id, date, description, amount)
+                 VALUES (:registrar_id, CURRENT_TIMESTAMP(3), :description, :amount)'
+            );
+            $stmt->execute([
+                ':registrar_id' => $clid,
+                ':description' => $description,
+                ':amount' => -$price,
+            ]);
+
+            $stmt = $db->prepare(
+                "INSERT INTO statement
+                 (registrar_id, date, command, domain_name, length_in_months, $statementPeriodColumns, amount)
+                 VALUES (?, CURRENT_TIMESTAMP(3), ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([$clid, 'renew', $domainName, $date_add, $from, $newExdate, $price]);
+
+            $statisticsInsert = $database_type === 'pgsql'
+                ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
+                : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
+            $db->exec($statisticsInsert);
+            $db->exec(
+                'UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE'
+            );
+
+            $db->commit();
+            $exdateUpdated = $newExdate;
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            sendEppError($conn, $db, 2400, 'Domain could not be renewed due to database error', $clTRID, $trans);
+            return;
         }
     }
-    
-    // Fetch exdate for the given domain name
-    $stmt = $db->prepare("SELECT exdate FROM domain WHERE name = :name LIMIT 1");
-    $stmt->bindParam(':name', $domainName, PDO::PARAM_STR);
-    $stmt->execute();
-    $exdateUpdated = $stmt->fetchColumn();
-    $stmt->closeCursor();
-
-    $statisticsInsert = $database_type === 'pgsql'
-        ? 'INSERT INTO statistics (date) VALUES(CURRENT_DATE) ON CONFLICT (date) DO NOTHING'
-        : 'INSERT IGNORE INTO statistics (date) VALUES(CURRENT_DATE)';
-    $db->exec($statisticsInsert);
-
-    // Update the renewed_domains count for the current date
-    $stmt = $db->prepare("UPDATE statistics SET renewed_domains = renewed_domains + 1 WHERE date = CURRENT_DATE");
-    $stmt->execute();
 
     $svTRID = generateSvTRID();
     $response = [

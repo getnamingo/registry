@@ -624,6 +624,42 @@ function getClid(Swoole\Database\PDOProxy $db, string $clid): ?int {
     return $result ? (int)$result['id'] : null;
 }
 
+function isRegistrarIPAllowed(Swoole\Database\PDOProxy $db, int $registrarId, string $clientIP): bool {
+    $clientBinary = inet_pton($clientIP);
+    if ($clientBinary === false) {
+        return false;
+    }
+
+    $stmt = $db->prepare(
+        'SELECT addr FROM registrar_whitelist WHERE registrar_id = :registrar_id'
+    );
+    $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+    $stmt->execute();
+    $allowedAddresses = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $stmt->closeCursor();
+
+    foreach ($allowedAddresses as $allowedAddress) {
+        $allowedAddress = trim((string)$allowedAddress);
+        if ($allowedAddress === '') {
+            continue;
+        }
+
+        if (strpos($allowedAddress, '/') !== false) {
+            if (ipMatches($clientIP, $allowedAddress)) {
+                return true;
+            }
+            continue;
+        }
+
+        $allowedBinary = inet_pton($allowedAddress);
+        if ($allowedBinary !== false && $allowedBinary === $clientBinary) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function getFingerprint(Swoole\Database\PDOProxy $db, int $clid): ?string {
     $stmt = $db->prepare("SELECT ssl_fingerprint FROM registrar WHERE id = :clid LIMIT 1");
     $stmt->bindParam(':clid', $clid, PDO::PARAM_INT);
@@ -810,6 +846,43 @@ function updatePermittedIPs($pool, $permittedIPsTable): void {
 
         $permittedIPsTable->set($key, ['addr' => $ip]);
     }
+}
+
+function debitRegistrarBalance($db, int $registrarId, $amount): bool {
+    if (!$db->inTransaction()) {
+        throw new LogicException('Registrar balance changes require an active transaction');
+    }
+
+    if (!is_numeric($amount) || (float)$amount < 0) {
+        throw new InvalidArgumentException('Debit amount must be a non-negative number');
+    }
+
+    // A zero-price operation still locks and verifies the registrar row. MySQL
+    // can report zero affected rows for an UPDATE that does not change a value.
+    if ((float)$amount === 0.0) {
+        $stmt = $db->prepare('SELECT id FROM registrar WHERE id = :registrar_id FOR UPDATE');
+        $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+        $stmt->execute();
+        $exists = $stmt->fetchColumn() !== false;
+        $stmt->closeCursor();
+
+        return $exists;
+    }
+
+    $stmt = $db->prepare(
+        'UPDATE registrar
+         SET accountBalance = accountBalance - :debit
+         WHERE id = :registrar_id
+           AND accountBalance + creditLimit >= :required_balance'
+    );
+    $stmt->bindValue(':debit', (string)$amount, PDO::PARAM_STR);
+    $stmt->bindValue(':registrar_id', $registrarId, PDO::PARAM_INT);
+    $stmt->bindValue(':required_balance', (string)$amount, PDO::PARAM_STR);
+    $stmt->execute();
+    $debited = $stmt->rowCount() === 1;
+    $stmt->closeCursor();
+
+    return $debited;
 }
 
 function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'EUR') {
@@ -1194,6 +1267,10 @@ function ipMatches($ip, $cidr) {
 
     if ($ipBin === false || $subnetBin === false) {
         return false; // invalid IP
+    }
+
+    if (strlen($ipBin) !== strlen($subnetBin)) {
+        return false; // address families must match
     }
 
     $ipLen = strlen($ipBin) * 8; // 32 for IPv4, 128 for IPv6

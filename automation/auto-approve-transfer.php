@@ -28,6 +28,26 @@ try {
     foreach ($domains as $row) {
         $dbh->beginTransaction();
         try {
+            // Serialize approval of this domain and discard stale work-list rows.
+            $stmt_locked_domain = $dbh->prepare(
+                "SELECT id, name, registrant, crdate, exdate, lastupdate, clid, crid,
+                        upid, trdate, trstatus, reid, redate, acid, acdate, transfer_exdate
+                 FROM domain
+                 WHERE id = ?
+                   AND CURRENT_TIMESTAMP > acdate
+                   AND trstatus = 'pending'
+                 FOR UPDATE"
+            );
+            $stmt_locked_domain->execute([$row['id']]);
+            $lockedRow = $stmt_locked_domain->fetch(PDO::FETCH_ASSOC);
+            $stmt_locked_domain->closeCursor();
+
+            if (!$lockedRow) {
+                $dbh->rollBack();
+                continue;
+            }
+
+            $row = $lockedRow;
             extract($row);
 
             $date_add = 0;
@@ -40,10 +60,16 @@ try {
                 FROM registrar 
                 WHERE id = ? 
                 LIMIT 1
+                FOR UPDATE
             ");
             $stmt->execute([$reid]);
 
-            [$registrar_balance, $creditLimit, $currency] = $stmt->fetch(PDO::FETCH_NUM);
+            $registrar = $stmt->fetch(PDO::FETCH_NUM);
+            $stmt->closeCursor();
+            if (!$registrar) {
+                throw new RuntimeException("Registrar $reid does not exist");
+            }
+            [$registrar_balance, $creditLimit, $currency] = $registrar;
 
             if ($transfer_exdate) {
                 $transferDate = new DateTime($transfer_exdate);
@@ -59,7 +85,11 @@ try {
                 $tld_id = $stmt_tld->fetchColumn();
 
                 $returnValue = getDomainPrice($dbh, $name, $tld_id, $date_add, 'transfer', $reid, $currency);
-                $price = $returnValue['price'];
+                $price = $returnValue['price'] ?? null;
+
+                if (!isset($price) || ($returnValue['type'] ?? 'not_found') === 'not_found') {
+                    throw new RuntimeException("Transfer price is not configured for $name");
+                }
 
                 if (($registrar_balance + $creditLimit) < $price) {
                     $log->notice($name . ': The registrar who took over this domain has no money to pay the renewal period that resulted from the transfer request');
@@ -222,8 +252,19 @@ try {
             $stmt_update_host = $dbh->prepare("UPDATE host SET clid = '$reid', upid = NULL, lastupdate = CURRENT_TIMESTAMP, trdate = CURRENT_TIMESTAMP WHERE domain_id = '$domain_id'");
             $stmt_update_host->execute();
 
-            $dbh->exec("UPDATE registrar SET accountBalance = (accountBalance - $price) WHERE id = '$reid'");
-            $dbh->exec("INSERT INTO payment_history (registrar_id,date,description,amount) VALUES('$reid',CURRENT_TIMESTAMP,'transfer domain $name for period $date_add MONTH','-$price')");
+            if (!debitRegistrarBalance($dbh, (int)$reid, $price)) {
+                throw new RuntimeException("Registrar $reid has insufficient funds for transfer of $name");
+            }
+
+            $stmt_payment = $dbh->prepare(
+                'INSERT INTO payment_history (registrar_id, date, description, amount)
+                 VALUES (?, CURRENT_TIMESTAMP, ?, ?)'
+            );
+            $stmt_payment->execute([
+                $reid,
+                "transfer domain $name for period $date_add MONTH",
+                -$price,
+            ]);
 
             $to = $dbh->query("SELECT exdate FROM domain WHERE id = '$domain_id' LIMIT 1")->fetchColumn();
                 
@@ -281,7 +322,9 @@ try {
 
             $dbh->commit();
         } catch (Throwable $e) {
-            $dbh->rollBack();
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
             $log->error("Failed auto-approve for {$row['name']} (id {$row['id']}): " . $e->getMessage());
         }
     }
