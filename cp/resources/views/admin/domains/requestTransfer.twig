@@ -74,12 +74,12 @@
                             <div class="mb-3" id="domainPriceDisplay" style="display:none;">
                                 <strong>{{ __('Estimated Price') }}: </strong><span id="domainPrice">{{ currency }} 0.00</span>
                             </div>
-
+                            {% if allocationTokens %}
                             <div class="mb-3">
                               <label for="token" class="form-label">{{ __('Allocation Token') }}</label>
                               <input type="text" class="form-control" placeholder="{{ __('Allocation token') }}" name="token" id="token" autocapitalize="none">
                             </div>
-
+                            {% endif %}
                     </div>
                 <div class="card-footer">
                   <div class="row align-items-center">
@@ -107,6 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const yearInput = document.getElementById('transferYears');
     const priceDisplay = document.getElementById('domainPriceDisplay');
     const priceValue = document.getElementById('domainPrice');
+    const registrarDropdown = document.getElementById('registrarDropdown');
     
     // Display year value from slider
     yearSlider.addEventListener('input', function() {
@@ -132,10 +133,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
 
                 // Convert price to float safely
+                if (data.price === null || data.price === undefined || data.price === '') {
+                    return { price: null, type: null };
+                }
+
                 const price = parseFloat(data.price);
                 if (isNaN(price)) {
-                    console.error("Invalid price received:", data.price);
-                    return Promise.reject("Invalid price received");
+                    throw new Error("Invalid price received");
                 }
 
                 return { price, type: data.type || "regular" };
@@ -164,16 +168,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (domainValue && domainValue.includes('.') && !domainValue.endsWith('.')) {
             getDomainPrice(domainValue, years, registrarId).then(({ price, type }) => {
+                if (price === null) {
+                    priceDisplay.style.display = 'none';
+                    return;
+                }
+
                 if (isNaN(price)) {
                     console.error("Invalid price received:", price);
                     priceValue.innerText = formatPrice(0.00);
                     return;
                 }
 
-                // Multiply price by years
-                const totalPrice = price * years;
-
-                priceValue.innerText = formatPrice(totalPrice);
+                priceValue.innerText = formatPrice(price);
                 priceDisplay.style.display = 'block';
 
                 // Remove existing color classes
@@ -200,10 +206,14 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    domainInput.addEventListener('input', updatePrice);
-    yearInput.addEventListener('input', updatePrice);
-    registrarDropdown.addEventListener('change', updatePrice);
-    yearSlider.addEventListener('input', updatePrice);
+    let priceTimeout;
+
+    domainInput.addEventListener('input', function () {
+        clearTimeout(priceTimeout);
+        priceTimeout = setTimeout(updatePrice, 500);
+    });
+
+    registrarDropdown?.addEventListener('change', updatePrice);
 });
 </script>
 {% endblock %}

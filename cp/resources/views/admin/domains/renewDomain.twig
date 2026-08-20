@@ -154,10 +154,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
 
-                // Multiply price by years
-                const totalPrice = price * years;
-
-                priceValue.innerText = formatPrice(totalPrice);
+                priceValue.innerText = formatPrice(price);
                 priceDisplay.style.display = 'block';
 
                 // Remove existing color classes

@@ -406,5 +406,14 @@ $app->add(function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\S
         return $response
             ->withHeader('Location', '/')
             ->withStatus(302);
+    } catch (\Slim\Exception\HttpMethodNotAllowedException $e) {
+        $responseFactory = new \Nyholm\Psr7\Factory\Psr17Factory();
+        $response = $responseFactory->createResponse(405);
+
+        $response->getBody()->write('Method Not Allowed');
+
+        return $response
+            ->withHeader('Allow', implode(', ', $e->getAllowedMethods()))
+            ->withHeader('Content-Type', 'text/plain; charset=UTF-8');
     }
 });

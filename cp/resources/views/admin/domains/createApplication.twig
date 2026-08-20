@@ -189,8 +189,8 @@
                             </div>
 
                             <div class="mb-3">
-                              <label class="form-label">{{ __('Signed Mark Information') }}</label>
-                              <input type="file" class="form-control" name="smd" accept=".smd" />
+                              <label for="smd" class="form-label">{{ __('Signed Mark Information') }}</label>
+                              <input type="file" class="form-control" name="smd" id="smd" accept=".smd" />
                             </div>
                           </div>
                         </div>
@@ -199,19 +199,19 @@
                           <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="noticeid" class="form-label">{{ __('Notice ID') }}</label>
-                                <input type="text" class="form-control" name="noticeid">
+                                <input type="text" class="form-control" name="noticeid" id="noticeid">
                             </div>
                           </div>
                           <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="notafter" class="form-label">{{ __('Not After Date') }}</label>
-                                <input type="datetime-local" class="form-control" name="notafter">
+                                <input type="datetime-local" class="form-control" name="notafter" id="notafter">
                             </div>
                           </div>
                           <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="accepted" class="form-label">{{ __('Accepted Date') }}</label>
-                                <input type="datetime-local" class="form-control" name="accepted">
+                                <input type="datetime-local" class="form-control" name="accepted" id="accepted">
                             </div>
                           </div>
                         </div>
@@ -375,7 +375,7 @@
                                     <!-- Email -->
                                     <div class="mb-3">
                                         <label for="email" class="form-label required">{{ __('Email') }}</label>
-                                        <input type="text" class="form-control" id="email" name="email"  required="required" autocapitalize="none">
+                                        <input type="text" class="form-control" id="email" name="email"  required="required" autocomplete="email" autocapitalize="none">
                                         <label class="form-check form-switch mt-1">
                                           <input class="form-check-input" type="checkbox" id="discloseEmail" name="disclose_email">
                                           <span class="form-check-label" for="discloseEmail">{{ __('Disclose in WHOIS') }}</span>
