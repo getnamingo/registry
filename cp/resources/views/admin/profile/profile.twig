@@ -80,18 +80,19 @@
                             <div class="col-md-6">
                               <form action="{{route('change.password')}}" name="register" method="post">
                               {{ csrf.field | raw }}
+                              <input type="email" name="username" value="{{ email }}" autocomplete="username" class="visually-hidden" tabindex="-1">
                               <h3 class="card-title mt-4">{{ __('Change Password') }}</h3>
                               <div class="row g-3 mb-3">
                                 <div class="col-md">
                                   <div class="form-label required">{{ __('Old Password') }}</div>
-                                  <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="{{ __('Enter old password') }}" required>
+                                  <input type="password" class="form-control{{ errors.old_password ? ' is-invalid' : '' }}" name="old_password" placeholder="{{ __('Enter old password') }}" autocomplete="current-password" required>
                                   {% if errors.old_password %}
                                       <small class="form-hint">{{ errors.old_password | first }}</small>
                                   {% endif %}
                                 </div>
                                 <div class="col-md">
                                   <div class="form-label required">{{ __('New Password') }}</div>
-                                  <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="{{ __('Enter new password') }}" required>
+                                  <input type="password" class="form-control{{ errors.new_password ? ' is-invalid' : '' }}" name="new_password" placeholder="{{ __('Enter new password') }}" autocomplete="new-password" required>
                                   {% if errors.new_password %}
                                       <small class="form-hint">{{ errors.new_password | first }}</small>
                                   {% endif %}
