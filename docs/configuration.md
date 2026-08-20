@@ -763,7 +763,20 @@ Key features include:
 
 ## 3. Security Hardening
 
-After completing the steps below, it’s recommended to audit your VPS using [vernu/vps-audit](https://github.com/vernu/vps-audit) to verify that your server configuration meets common security best practices.
+After completing the security hardening steps below, it is strongly recommended to perform an independent security audit of your VPS. This can help identify insecure defaults, exposed services, missing protections, and other configuration issues that may have been overlooked.
+
+Two useful open-source tools are:
+
+- **[VPS Audit](https://github.com/vernu/vps-audit)** — a lightweight VPS security auditing tool designed to check common server configuration and hardening practices.
+- **[Lynis](https://github.com/CISOfy/lynis)** — a comprehensive security auditing and system-hardening tool for Linux and other Unix-based systems. It performs extensive checks and provides recommendations for improving the security of the system.
+
+For a more thorough assessment, consider running **both tools**, as they approach security auditing from slightly different perspectives.
+
+> [!TIP]
+> Security auditing should not be treated as a one-time task. Re-run these checks periodically, particularly after major system upgrades, configuration changes, or the installation of new services.
+
+> [!NOTE]
+> Automated auditing tools are useful for identifying potential weaknesses, but their recommendations should always be reviewed before applying changes to a production server.
 
 ### 3.1. Create the namingo user
 
