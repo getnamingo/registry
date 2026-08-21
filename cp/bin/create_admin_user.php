@@ -1,4 +1,7 @@
 <?php
+
+use App\Security\PasswordHasher;
+
 require __DIR__ . '/../vendor/autoload.php'; // Path to the Composer autoload file
 
 // Load environment variables from .env file
@@ -34,13 +37,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     die("Invalid admin email address." . PHP_EOL);
 }
 
-// Hash the password
-$options = [
-    'memory_cost' => 1024 * 128,
-    'time_cost'   => 6,
-    'threads'     => 4,
-];
-$hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
+$hashedPassword = PasswordHasher::hash($newPW);
 
 try {
     // Create PDO instance

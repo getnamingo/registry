@@ -423,8 +423,10 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         }
                     }
 
-                    if (checkLogin($pdo, $clID, $pw)) {
-                        if (isset($xml->command->login->newPW)) {
+                    $isPasswordChange = isset($xml->command->login->newPW);
+
+                    if (checkLogin($pdo, $clID, $pw, $log, !$isPasswordChange)) {
+                        if ($isPasswordChange) {
                             $newPW = (string) $xml->command->login->newPW;
                             if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
                                 $newPW = $loginSecNewPw;
@@ -439,18 +441,14 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                                 );
                                 break;
                             }
-                            $options = [
-                                'memory_cost' => 1024 * 128,
-                                'time_cost'   => 6,
-                                'threads'     => 4,
-                            ];
-                            $hashedPassword = password_hash($newPW, PASSWORD_ARGON2ID, $options);
+
                             try {
+                                $hashedPassword = hashEppPassword($newPW);
                                 $stmt = $pdo->prepare("UPDATE registrar SET pw = :newPW WHERE clid = :clID");
                                 $stmt->bindParam(':newPW', $hashedPassword);
                                 $stmt->bindParam(':clID', $clID);
                                 $stmt->execute();
-                            } catch (PDOException $e) {
+                            } catch (\Throwable $e) {
                                 $log->error('Password change DB error for ' . $clID . ': ' . $e->getMessage());
                                 sendEppError($conn, $pdo, 2400, 'Password could not be changed', $clTRID);
                                 break;

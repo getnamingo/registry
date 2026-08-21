@@ -24,12 +24,12 @@ function readSecretFile(string $envName): string
     return $value;
 }
 
-function hashPassword(string $password): string
+function hashPassword(#[\SensitiveParameter] string $password): string
 {
     $hash = password_hash($password, PASSWORD_ARGON2ID, [
-        'memory_cost' => 128 * 1024,
-        'time_cost' => 6,
-        'threads' => 4,
+        'memory_cost' => 64 * 1024,
+        'time_cost' => 3,
+        'threads' => 1,
     ]);
     if ($hash === false) {
         throw new RuntimeException('Unable to hash a password');

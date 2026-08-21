@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\User;
+use App\Security\PasswordHasher;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
@@ -116,15 +117,7 @@ class UsersController extends Controller
 
             $db->beginTransaction();
 
-            $password_hashed = password_hash(
-                $password,
-                PASSWORD_ARGON2ID,
-                [
-                    'memory_cost' => 1024 * 128,
-                    'time_cost' => 6,
-                    'threads' => 4
-                ]
-            );
+            $password_hashed = PasswordHasher::hash($password);
 
             try {
                 // Create user
@@ -391,7 +384,7 @@ class UsersController extends Controller
                 ];
 
                 if (!empty($password)) {
-                    $password_hashed = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $password_hashed = PasswordHasher::hash($password);
                     $updateData['password'] = $password_hashed;
                 }
 

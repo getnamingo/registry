@@ -94,16 +94,16 @@ After installation, be sure to review all the guides in the Documentation sectio
 > [!IMPORTANT]
 > Upgrade scripts **must be run sequentially** without skipping versions.
 >
-> For example, to upgrade from **v1.0.29** to **v1.0.31**, first run the **v1.0.30** upgrade, then the **v1.0.31** upgrade.
+> For example, to upgrade from **v1.0.30** to **v1.0.32**, first run the **v1.0.31** upgrade, then the **v1.0.32** upgrade.
+
+- **v1.0.31 → v1.0.32**  
+  Download and run the [`update1032.sh`](docs/update1032.sh) script.
 
 - **v1.0.30 → v1.0.31**  
   Download and run the [`update1031.sh`](docs/update1031.sh) script.
 
 - **v1.0.29 → v1.0.30**  
   Download and run the [`update1030.sh`](docs/update1030.sh) script.
-
-- **v1.0.28 → v1.0.29**  
-  Download and run the [`update1029.sh`](docs/update1029.sh) script.
 
 For **older versions**, please refer to [`upgrade.md`](docs/upgrade.md).
 

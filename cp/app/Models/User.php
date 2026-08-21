@@ -13,6 +13,7 @@
 
 namespace App\Models;
 
+use App\Security\PasswordHasher;
 use Pinga\Db\PdoDatabase;
 
 class User
@@ -36,7 +37,7 @@ class User
 
     public function createUser($username, $email, $password)
     {
-        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+        $hashedPassword = PasswordHasher::hash($password);
 
         $this->db->insert('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [$username, $email, $hashedPassword]);
 
@@ -45,7 +46,7 @@ class User
 
     public function updateUser($id, $username, $email, $password)
     {
-        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+        $hashedPassword = PasswordHasher::hash($password);
 
         $this->db->update('UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?', [$username, $email, $hashedPassword, $id]);
 

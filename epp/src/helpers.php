@@ -84,13 +84,53 @@ function setupLogger($logFilePath, $channelName = 'app') {
     return $log;
 }
 
-function checkLogin($db, $clID, $pw) {
+function eppPasswordOptions(): array
+{
+    return [
+        'memory_cost' => 64 * 1024,
+        'time_cost' => 3,
+        'threads' => 1,
+    ];
+}
+
+function hashEppPassword(#[\SensitiveParameter] string $password): string {
+    return password_hash($password, PASSWORD_ARGON2ID, eppPasswordOptions());
+}
+
+function checkLogin($db, string $clID, #[\SensitiveParameter] string $pw, Logger $log, bool $rehash = true): bool {
     $stmt = $db->prepare("SELECT pw FROM registrar WHERE clid = :username");
     $stmt->execute(['username' => $clID]);
     $hashedPassword = $stmt->fetchColumn();
     $stmt->closeCursor();
 
-    return password_verify($pw, $hashedPassword);
+    if (!is_string($hashedPassword) || !password_verify($pw, $hashedPassword)) {
+        return false;
+    }
+
+    if ($rehash && password_needs_rehash($hashedPassword, PASSWORD_ARGON2ID, eppPasswordOptions())) {
+        try {
+            $newHash = hashEppPassword($pw);
+
+            $stmt = $db->prepare(
+                "UPDATE registrar SET pw = :newPassword "
+                . "WHERE clid = :username AND pw = :oldPassword"
+            );
+            $stmt->execute([
+                'newPassword' => $newHash,
+                'username' => $clID,
+                'oldPassword' => $hashedPassword,
+            ]);
+            $stmt->closeCursor();
+        } catch (\Throwable $e) {
+            // Authentication has succeeded.
+            $log->warning('Unable to rehash EPP password', [
+                'clid' => $clID,
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    return true;
 }
 
 function isSecureAuthInfo(string $authInfo): bool {

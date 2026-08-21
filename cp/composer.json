@@ -13,7 +13,7 @@
         "php-di/php-di": "^7.1.1",
         "nyholm/psr7": "^1.8.2",
         "nyholm/psr7-server": "^1.1.0",
-        "pinga/auth": "^1.0.0",
+        "pinga/auth": "^1.1.0",
         "filp/whoops": "^2.18.4",
         "mevdschee/php-crud-api": "^2.16.2",
         "gettext/gettext": "^5.7.3",

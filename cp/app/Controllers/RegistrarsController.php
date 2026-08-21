@@ -8,9 +8,20 @@ use Psr\Container\ContainerInterface;
 use League\ISO3166\ISO3166;
 use Respect\Validation\Validator as v;
 use App\Auth\Auth;
+use App\Security\PasswordHasher;
 
 class RegistrarsController extends Controller
 {
+    private const EPP_PASSWORD_OPTIONS = [
+        'memory_cost' => 64 * 1024,
+        'time_cost' => 3,
+        'threads' => 1,
+    ];
+
+    private function hashEppPassword(#[\SensitiveParameter] string $password): string {
+        return password_hash($password, PASSWORD_ARGON2ID, self::EPP_PASSWORD_OPTIONS);
+    }
+
     public function view(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
@@ -141,7 +152,7 @@ class RegistrarsController extends Controller
                 for ($i = 0; $i < 2; $i++) {
                     $randomPrefix .= $characters[rand(0, strlen($characters) - 1)];
                 }
-                $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                $eppPassword = $this->hashEppPassword($data['eppPassword']);
                 
                 if (empty($data['ianaId']) || !is_numeric($data['ianaId'])) {
                     $data['ianaId'] = null;
@@ -271,8 +282,8 @@ class RegistrarsController extends Controller
                         );
                     }
                 }
-                
-                $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+
+                $panelPassword = PasswordHasher::hash($data['panelPassword']);
 
                 $db->insert(
                     'users',
@@ -879,7 +890,7 @@ class RegistrarsController extends Controller
                 ];
                 
                 if (!empty($data['eppPassword'])) {
-                    $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $eppPassword = $this->hashEppPassword($data['eppPassword']);
                     $updateData['pw'] = $eppPassword;
                 }
 
@@ -1001,7 +1012,7 @@ class RegistrarsController extends Controller
                 }
                 
                 if (isset($data['panelPassword']) && $data['panelPassword']) {
-                    $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $panelPassword = PasswordHasher::hash($data['panelPassword']);
 
                     $db->update(
                         'users',
@@ -1201,7 +1212,7 @@ class RegistrarsController extends Controller
                 ];
                 
                 if (!empty($data['eppPassword'])) {
-                    $eppPassword = password_hash($data['eppPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $eppPassword = $this->hashEppPassword($data['eppPassword']);
                     $updateData['pw'] = $eppPassword;
                 }
 
@@ -1323,7 +1334,7 @@ class RegistrarsController extends Controller
                 }
                 
                 if (isset($data['panelPassword']) && $data['panelPassword']) {
-                    $panelPassword = password_hash($data['panelPassword'], PASSWORD_ARGON2ID, ['memory_cost' => 1024 * 128, 'time_cost' => 6, 'threads' => 4]);
+                    $panelPassword = PasswordHasher::hash($data['panelPassword']);
 
                     $db->update(
                         'users',

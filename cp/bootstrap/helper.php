@@ -15,6 +15,7 @@
  * @version    1.0
  */
 
+use App\Security\PasswordHasher;
 use Pinga\Auth\Auth;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Guid\Guid;
@@ -127,7 +128,7 @@ function pdo(){
  */
 function auth(){
     $db = pdo();
-    $auth = new Auth($db);
+    $auth = new Auth($db, passwordOptions: PasswordHasher::OPTIONS);
     return $auth;
 }
 
