@@ -78,7 +78,6 @@ RUN set -eux; \
             --optimize-autoloader; \
     done; \
     composer --working-dir=whois/web require \
-        --no-dev \
         --no-interaction \
         --no-progress \
         --prefer-dist \
