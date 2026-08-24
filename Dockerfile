@@ -42,6 +42,7 @@ RUN set -eux; \
         imap \
         intl \
         mbstring \
+        mysqli \
         opcache \
         pcntl \
         pdo_mysql \
