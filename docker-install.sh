@@ -20,5 +20,5 @@ if [[ -e "$install_dir" ]]; then
 fi
 
 git clone --depth 1 --branch "$reference" "$repository" "$install_dir"
+chmod +x "$install_dir/namingo"
 exec "$install_dir/namingo" install
-
