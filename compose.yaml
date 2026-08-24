@@ -47,6 +47,7 @@ services:
     image: ${NAMINGO_MARIADB_IMAGE:-mariadb:11.8}
     environment:
       MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_ROOT_HOST: "%"
       MARIADB_DATABASE: registry
       MARIADB_USER: ${NAMINGO_DB_USER:-namingo}
       MARIADB_PASSWORD_FILE: /run/secrets/db_password
@@ -62,8 +63,6 @@ services:
       - db_password
     volumes:
       - database_data:/var/lib/mysql
-      - ./docker/mariadb/01-create-and-grant.sh:/docker-entrypoint-initdb.d/01-create-and-grant.sh:ro
-      - ./database/registry.mariadb.sql:/docker-entrypoint-initdb.d/10-registry.sql:ro
     networks:
       - backend
     healthcheck:
@@ -119,6 +118,23 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  schema-init:
+    <<: *app
+    entrypoint: ["/usr/bin/tini", "--"]
+    command: ["/usr/local/lib/namingo/schema-init.sh"]
+    environment:
+      <<: *app-environment
+      NAMINGO_DB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_root_password
+      - db_password
+    depends_on:
+      database:
+        condition: service_healthy
+      runtime:
+        condition: service_healthy
+    restart: "no"
+
   init:
     <<: *app
     command: ["php", "/usr/local/lib/namingo/init.php"]
@@ -132,8 +148,8 @@ services:
       - altcha_hmac_secret
       - panel_admin_password
     depends_on:
-      database:
-        condition: service_healthy
+      schema-init:
+        condition: service_completed_successfully
       runtime:
         condition: service_healthy
     restart: "no"
