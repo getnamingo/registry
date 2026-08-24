@@ -174,7 +174,8 @@ bootstrap() {
     local domain admin_email tls_mode panel_password
 
     require_command openssl
-    install -d -m 0700 docker/secrets docker/certs
+    install -d -m 0700 docker/secrets
+    install -d -m 0755 docker/certs
 
     if [[ -f .env ]]; then
         for required in db_root_password db_password panel_admin_password msg_api_token altcha_hmac_secret; do
