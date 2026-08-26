@@ -303,7 +303,7 @@ install_stack() {
     require_docker
     bootstrap
     compose config --quiet
-    compose build --pull
+    compose pull
     start_stack
     show_access
 }
@@ -312,7 +312,7 @@ update_stack() {
     require_docker
     [[ -f .env ]] || die "Run './namingo install' first."
     compose config --quiet
-    compose build --pull
+    compose pull
     start_stack
     compose ps
 }
@@ -377,9 +377,9 @@ usage() {
 Usage: ./namingo <command> [arguments]
 
 Commands:
-  install           Configure, build, initialize, and start Namingo
+  install           Configure, pull, initialize, and start Namingo
   up                Start or reconcile the existing deployment
-  update            Rebuild current source with fresh base images and restart
+  update            Pull current images and restart
   down              Stop the deployment without deleting data
   restart [service] Restart the whole deployment or one service
   status            Show service and health status

@@ -21,9 +21,10 @@ x-app-volumes: &app-volumes
   - escrow:/opt/escrow
   - reporting:/opt/reporting
   - ./docker/certs:/certs:ro
+  - ./docker/config:/etc/namingo/overrides:ro
 
 x-app: &app
-  image: ${NAMINGO_IMAGE:-namingo-registry:local}
+  image: ${NAMINGO_IMAGE:-ghcr.io/getnamingo/registry:latest}
   build:
     context: .
     dockerfile: Dockerfile
@@ -257,7 +258,7 @@ services:
         condition: service_completed_successfully
 
   caddy:
-    image: ${NAMINGO_WEB_IMAGE:-namingo-registry-web:local}
+    image: ${NAMINGO_WEB_IMAGE:-ghcr.io/getnamingo/registry-web:latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -289,7 +290,7 @@ services:
       - no-new-privileges:true
 
   cert-sync:
-    image: ${NAMINGO_IMAGE:-namingo-registry:local}
+    image: ${NAMINGO_IMAGE:-ghcr.io/getnamingo/registry:latest}
     build:
       context: .
       dockerfile: Dockerfile
