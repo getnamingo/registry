@@ -61,11 +61,15 @@ To get started, copy the command below and paste it into your server terminal (r
 bash <(curl -fsSL https://namingo.org/install.sh)
 ```
 
+For Docker installation, use `bash <(curl -fsSL https://namingo.org/docker-install.sh)`. For details, see the **[Docker Installation Guide](docs/docker.md)**
+
 After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration.
 
 **Note for Systems with Partial or Misconfigured IPv6 Support:** If your system has partial or misconfigured IPv6 support (e.g., `ping -6 ipv6.google.com` fails), edit `/etc/gai.conf` and add or uncomment the following line `precedence ::ffff:0:0/96 100`. In the `config.php` files for WHOIS/DAS, replace `::` with `false`, or use `0.0.0.0` for EPP.
 
 **Note for AWS/Google Cloud installations:** When installing on *AWS* or *Google Cloud*, ensure you provide the private/internal IPv4 address (e.g., `172.x.x.x` for AWS or `10.x.x.x` for Google Cloud) to the installer, rather than the public IPv4 address, as these platforms use private IPs for internal communication. For IPv6, you'll typically need to use the public IPv6 address for external-facing services. For most other cloud providers, such as DigitalOcean or Linode, you will generally need to provide the public IPv4 and public IPv6 addresses.
+
+#### [Docker Installation](docs/docker.md)
 
 ### Configuration
 
@@ -107,6 +111,9 @@ bash <(wget -qO- https://namingo.org/upgrade.sh)
 #### Older than v1.0.32
 
 Use the legacy sequential upgrade scripts until you reach **v1.0.32**, then use the universal upgrader for all future releases. See the **[Upgrade Guide](docs/upgrade.md)** for the complete upgrade path.
+
+> [!NOTE]
+> Upgrades of Docker-based installations are currently not supported. See [issue #249](https://github.com/getnamingo/registry/issues/249). If you need assistance, please contact us through one of the support channels below.
 
 ## Support
 
