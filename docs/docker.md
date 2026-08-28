@@ -1,21 +1,4 @@
-# Namingo Registry with Docker Compose
-
-This deployment runs the complete Namingo application stack without modifying
-the existing Namingo PHP or SQL sources. It uses the production-recommended
-MariaDB backend and starts:
-
-- Control panel (PHP-FPM behind Caddy)
-- EPP server on TCP 700
-- RDAP server behind Caddy
-- WHOIS server on TCP 43 and web WHOIS behind Caddy
-- DAS server on TCP 1043
-- Redis-backed message producer and worker
-- Namingo's automation scheduler
-- MariaDB, Redis, Caddy, and automatic EPP certificate synchronization
-
-MariaDB and Redis are not published to the host. Persistent Docker volumes hold
-the databases, Redis queue/session data, web certificate state, application
-logs, panel resources/cache, generated zones, escrow deposits, and reports.
+# Namingo Registry: Docker
 
 ## Requirements
 
@@ -36,60 +19,85 @@ container is a production TLD DNS deployment. Follow `docs/dns.md` to connect
 the volume/output to BIND, Knot, or Cascade and to arrange independent public
 secondaries.
 
-## One-command installation
+## Installation
 
-After this Docker deployment is present on the repository's default branch:
+### Ubuntu
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/getnamingo/registry/main/docker-install.sh)
-```
-
-The bootstrap script clones the repository and launches the interactive
-installer. It does not alter the host package manager or firewall.
-
-From an existing checkout, the command is simply:
+Before running `docker-install.sh`, make sure Docker is installed.
 
 ```bash
-./namingo install
+apt update
+apt install -y ca-certificates curl
+
+install -m 0755 -d /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt update
+
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+systemctl enable --now docker
 ```
 
-The installer asks for the base domain, administrator email/password, and TLS
-mode. It then:
-
-1. creates `.env`;
-2. generates Docker secret files with mode `0600`;
-3. creates a short-lived bootstrap certificate for EPP;
-4. validates the Compose model;
-5. builds the shared PHP runtime and web gateway images;
-6. creates and imports all three Namingo databases;
-7. creates the control-panel administrator idempotently;
-8. neutralizes the untouched public demonstration credentials from the
-   upstream seed data; and
-9. starts the services and waits for their health checks.
-
-Generated database, panel, message-token, and CAPTCHA secrets are not placed on
-a command line or stored in `.env`. They live under `docker/secrets/`, which is
-ignored by Git. The temporary EPP key lives under `docker/certs/`, also ignored
-by Git. Optional third-party mail/payment credentials configured in `.env`
-should be protected with the same host-level access controls.
-
-### Non-interactive installation
-
-CI or automated provisioning can supply the initial values as environment
-variables. Do not put the password directly in a shell history.
+You can then run:
 
 ```bash
-export NAMINGO_DOMAIN=registry.example
-export NAMINGO_ADMIN_EMAIL=admin@registry.example
-export NAMINGO_TLS_MODE=public
-read -r -s NAMINGO_PANEL_PASSWORD
-export NAMINGO_PANEL_PASSWORD
-./namingo install
-unset NAMINGO_PANEL_PASSWORD
+./docker-install.sh
 ```
 
-When stdin is non-interactive and no password is supplied, the installer
-generates a random password and displays it once.
+### Debian
+
+Before running `docker-install.sh`, make sure Docker is installed.
+
+```bash
+apt update
+apt install -y ca-certificates curl
+
+install -m 0755 -d /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt update
+
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+systemctl enable --now docker
+```
+
+You can then run:
+
+```bash
+./docker-install.sh
+```
+
+### FreeBSD
+
+Docker Engine does not currently support FreeBSD as a native host.
+
+To use the Docker installation of Namingo Registry on FreeBSD, run a supported Linux distribution such as Debian or Ubuntu inside a virtual machine and install Docker there.
+
+The `docker-install.sh` script should then be executed inside the Linux virtual machine.
 
 ## TLS modes
 
@@ -204,7 +212,7 @@ Place the registrar CA bundle at `docker/certs/registrar-ca.pem`, set
 `NAMINGO_EPP_REQUIRE_CLIENT_CERT=true`. Test certificate rollover and client
 validation before enabling it for active registrars.
 
-## Architecture note
+## Architecture
 
 Several upstream components intentionally communicate through hard-coded
 loopback endpoints:
@@ -223,11 +231,7 @@ Docker Engine restriction on combining container-network mode with
 engine-level host mappings. MariaDB remains a distinct service on an
 internal-only Docker network.
 
-## Updating
-
-First update the Git checkout using the release/tag policy appropriate for the
-registry. Review sequential Namingo database migrations in `docs/upgrade.md`.
-Then rebuild and reconcile containers:
+## Upgrade
 
 ```bash
 ./namingo backup
@@ -237,9 +241,11 @@ git pull --ff-only
 ./namingo doctor
 ```
 
-The Docker wrapper deliberately does not run Git pulls or database migrations
-implicitly. Registry upgrades require an explicit backup and sequential schema
-review.
+Upgrading an existing Namingo Registry Docker installation is currently not supported.
+
+See [issue #249](https://github.com/getnamingo/registry/issues/249) for more information.
+
+If you need help upgrading or migrating an existing installation, please contact us or open a GitHub issue.
 
 ## PostgreSQL
 
