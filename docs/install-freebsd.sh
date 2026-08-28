@@ -601,7 +601,7 @@ TMP_DIR=$(mktemp -d /tmp/namingo-install.XXXXXX)
 log "Configuring FreeBSD package repository"
 install -d -m 0755 /usr/local/etc/pkg/repos
 cat > /usr/local/etc/pkg/repos/FreeBSD.conf <<'EOF'
-FreeBSD: {
+FreeBSD-ports: {
   url: "pkg+https://pkg.FreeBSD.org/${ABI}/latest",
   mirror_type: "srv",
   signature_type: "fingerprints",
@@ -616,11 +616,11 @@ fi
 pkg update -f
 
 COMMON_PACKAGES="bind-tools bind920 ca_root_nss caddy curl gettext-runtime git gnupg portacl-rc pv redis sudo wget"
-PHP_PACKAGES="php85 php85-extensions php85-bcmath php85-curl php85-fileinfo php85-ftp php85-gd php85-gettext php85-gmp php85-pecl-imap php85-intl php85-mbstring php85-pcntl php85-readline php85-soap php85-sockets php85-sodium php85-xml php85-zip php85-zlib php85-pecl-ds php85-pecl-gnupg php85-pecl-igbinary php85-pecl-protobuf php85-pecl-redis php85-pecl-uuid php85-swoole"
+PHP_PACKAGES="php85 php85-bcmath php85-curl php85-fileinfo php85-ftp php85-gd php85-gettext php85-gmp php85-pecl-imap php85-intl php85-mbstring php85-pcntl php85-readline php85-soap php85-sockets php85-sodium php85-xml php85-zip php85-zlib php85-pecl-ds php85-pecl-gnupg php85-pecl-igbinary php85-pecl-protobuf php85-pecl-redis php85-pecl-uuid php85-swoole"
 
 log "Installing required packages"
 # Word splitting is intentional: these are constant package-name lists.
-pkg install -y $COMMON_PACKAGES $PHP_PACKAGES
+pkg install -y -r FreeBSD-ports $COMMON_PACKAGES $PHP_PACKAGES
 
 # Rebuild FreeBSD's system trust store after installing ca_root_nss. Namingo's
 # PHP and Swoole services use this canonical bundle for outbound TLS.
@@ -628,9 +628,9 @@ pkg install -y $COMMON_PACKAGES $PHP_PACKAGES
 [ -r /etc/ssl/cert.pem ] || die "FreeBSD CA bundle is missing: /etc/ssl/cert.pem"
 
 if [ "$DB_TYPE" = "mariadb" ]; then
-    pkg install -y mariadb118-client mariadb118-server php85-mysqli php85-pdo_mysql
+    pkg install -y -r FreeBSD-ports mariadb118-client mariadb118-server php85-mysqli php85-pdo_mysql
 else
-    pkg install -y postgresql18-client postgresql18-server php85-pdo_pgsql php85-pgsql
+    pkg install -y -r FreeBSD-ports postgresql18-client postgresql18-server php85-pdo_pgsql php85-pgsql
 fi
 
 required_commands="/usr/local/bin/caddy /usr/local/bin/curl /usr/local/bin/delv /usr/local/bin/dig /usr/local/bin/dnssec-dsfromkey /usr/local/bin/git /usr/local/bin/named-checkzone /usr/local/bin/php /usr/local/bin/sudo /usr/local/sbin/php-fpm /usr/local/sbin/rndc /usr/local/sbin/visudo"
