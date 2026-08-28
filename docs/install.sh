@@ -2,6 +2,21 @@
 
 set -euo pipefail
 
+# Optional environment variables for unattended provisioning:
+#   NAMINGO_DOMAIN
+#   NAMINGO_IPV4
+#   NAMINGO_IPV6               set to an empty value to disable IPv6
+#   NAMINGO_DNS_READY          yes|no
+#   NAMINGO_INSTALL_WHOIS      yes|no (default: yes)
+#   NAMINGO_DB_TYPE            M|P
+#   NAMINGO_PANEL_EMAIL
+#   NAMINGO_PANEL_PASSWORD
+#   NAMINGO_SSH_PORT           default: 22
+#   NAMINGO_CONFIGURE_FIREWALL yes|no (default: yes)
+#   NAMINGO_REGISTRY_VERSION   git tag/branch (default: v1.0.32)
+
+REGISTRY_VERSION="${NAMINGO_REGISTRY_VERSION:-v1.0.32}"
+
 # ---------- Helpers ----------
 log() { printf "\n\033[1;32m[%s]\033[0m %s\n" "$(date +%H:%M:%S)" "$*"; }
 warn() { printf "\n\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
@@ -13,11 +28,13 @@ prompt_for_input() {
     local response
     local default="${2:-}"
 
+    [[ -c /dev/tty ]] || die "Interactive input requires /dev/tty. Set the NAMINGO_* environment variables instead."
+
     if [[ -n "$default" ]]; then
-        read -r -p "$1 [$default]: " response
+        read -r -p "$1 [$default]: " response < /dev/tty
         response="${response:-$default}"
     else
-        read -r -p "$1: " response
+        read -r -p "$1: " response < /dev/tty
     fi
 
     printf '%s' "$response"
@@ -28,8 +45,10 @@ prompt_for_password_confirm() {
     local password
     local confirmation
 
+    [[ -c /dev/tty ]] || die "Interactive password input requires /dev/tty. Set NAMINGO_PANEL_PASSWORD instead."
+
     while true; do
-        read -r -s -p "$prompt: " password
+        read -r -s -p "$prompt: " password < /dev/tty
         echo >&2
 
         if [[ -z "$password" ]]; then
@@ -37,7 +56,7 @@ prompt_for_password_confirm() {
             continue
         fi
 
-        read -r -s -p "Confirm panel admin password: " confirmation
+        read -r -s -p "Confirm panel admin password: " confirmation < /dev/tty
         echo >&2
 
         if [[ "$password" != "$confirmation" ]]; then
@@ -199,8 +218,9 @@ echo
 
 log "Basic configuration"
 
-# Prompt for details
-REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
+# Prompt for details unless values were supplied through NAMINGO_* variables.
+REGISTRY_DOMAIN=${NAMINGO_DOMAIN:-}
+[[ -n "$REGISTRY_DOMAIN" ]] || REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 [[ -n "$REGISTRY_DOMAIN" ]] || die "Registry domain cannot be empty."
 REGISTRY_DOMAIN=$(validate_registry_domain "$REGISTRY_DOMAIN")
 
@@ -214,10 +234,14 @@ if [[ -n "${IPV4:-}" || -n "${IPV6:-}" ]]; then
     echo
 fi
 
-YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address" "${IPV4:-}")
+YOUR_IPV4_ADDRESS=${NAMINGO_IPV4:-}
+[[ -n "$YOUR_IPV4_ADDRESS" ]] || YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address" "${IPV4:-}")
 [[ -n "$YOUR_IPV4_ADDRESS" ]] || die "An IPv4 address is required."
 
-YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)" "${IPV6:-}")
+YOUR_IPV6_ADDRESS=${NAMINGO_IPV6:-}
+if [[ -z "$YOUR_IPV6_ADDRESS" && -z "${NAMINGO_IPV6+x}" ]]; then
+    YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)" "${IPV6:-}")
+fi
 
 echo
 echo "Before continuing, make sure these hostnames point to this server:"
@@ -230,23 +254,29 @@ echo
 echo "DNS must be configured before TLS certificates can be issued."
 echo
 
-DNS_READY=$(prompt_for_input "Continue? [Y/n]")
-if [[ "${DNS_READY:-y}" =~ ^[Nn]([Oo])?$ ]]; then
-    die "Installation aborted. Update DNS, then run the installer again."
-fi
+DNS_READY=${NAMINGO_DNS_READY:-}
+[[ -n "$DNS_READY" ]] || DNS_READY=$(prompt_for_input "Continue? [Y/n]")
+case "${DNS_READY,,}" in
+    ""|y|yes) ;;
+    n|no) die "Installation aborted. Update DNS, then run the installer again." ;;
+    *) die "Invalid NAMINGO_DNS_READY value. Use yes or no." ;;
+esac
 
-WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS/DAS servers (TCP ports 43/1043)? [Y/n]")
-if [[ "${WHOIS_SERVER_CHOICE:-y}" =~ ^[Nn]([Oo])?$ ]]; then
-    INSTALL_WHOIS_SERVER=false
-else
-    INSTALL_WHOIS_SERVER=true
-fi
+WHOIS_SERVER_CHOICE=${NAMINGO_INSTALL_WHOIS:-}
+[[ -n "$WHOIS_SERVER_CHOICE" ]] || WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS/DAS servers (TCP ports 43/1043)? [Y/n]")
+case "${WHOIS_SERVER_CHOICE,,}" in
+    ""|y|yes) INSTALL_WHOIS_SERVER=true ;;
+    n|no) INSTALL_WHOIS_SERVER=false ;;
+    *) die "Invalid NAMINGO_INSTALL_WHOIS value. Use yes or no." ;;
+esac
+
 DB_USER=$(generate_db_username)
 DB_PASSWORD=$(generate_password)
 DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&|]/\\&/g')
 DB_PASSWORD_SQL_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
-DB_TYPE=$(prompt_for_input "Enter database type [M = MariaDB, P = PostgreSQL]")
 
+DB_TYPE=${NAMINGO_DB_TYPE:-}
+[[ -n "$DB_TYPE" ]] || DB_TYPE=$(prompt_for_input "Enter database type [M = MariaDB, P = PostgreSQL]")
 case "${DB_TYPE^^}" in
     M)
         DB_TYPE="mariadb"
@@ -262,11 +292,27 @@ case "${DB_TYPE^^}" in
         die "Invalid database type. Use M or P."
         ;;
 esac
-PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
+
+PANEL_EMAIL=${NAMINGO_PANEL_EMAIL:-}
+[[ -n "$PANEL_EMAIL" ]] || PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
 [[ -n "$PANEL_EMAIL" ]] || die "Panel admin email cannot be empty."
 
-PANEL_PASSWORD=$(prompt_for_password_confirm "Enter panel admin password")
+PANEL_PASSWORD=${NAMINGO_PANEL_PASSWORD:-}
+[[ -n "$PANEL_PASSWORD" ]] || PANEL_PASSWORD=$(prompt_for_password_confirm "Enter panel admin password")
+[[ -n "$PANEL_PASSWORD" ]] || die "Panel admin password cannot be empty."
 echo ""
+
+SSH_PORT=${NAMINGO_SSH_PORT:-22}
+[[ "$SSH_PORT" =~ ^[0-9]+$ ]] && (( SSH_PORT >= 1 && SSH_PORT <= 65535 )) \
+    || die "Invalid NAMINGO_SSH_PORT value: $SSH_PORT"
+
+FIREWALL_CHOICE=${NAMINGO_CONFIGURE_FIREWALL:-yes}
+case "${FIREWALL_CHOICE,,}" in
+    y|yes) CONFIGURE_FIREWALL=true ;;
+    n|no) CONFIGURE_FIREWALL=false ;;
+    *) die "Invalid NAMINGO_CONFIGURE_FIREWALL value. Use yes or no." ;;
+esac
+
 current_user=$(whoami)
 
 # Install required packages
@@ -433,28 +479,32 @@ ln -sf /usr/share/adminer/latest.php "/usr/share/adminer/${ADMINER_SLUG}"
 
 if [[ ! -d /opt/registry/.git ]]; then
     log "Installing Namingo Registry"
-    git clone --branch v1.0.32 --single-branch https://github.com/getnamingo/registry /opt/registry
+    git clone --branch "$REGISTRY_VERSION" --single-branch https://github.com/getnamingo/registry /opt/registry
 fi
 
 log "Configuring firewall"
 
-ufw default deny incoming >/dev/null
-ufw default allow outgoing >/dev/null
-ufw logging low >/dev/null
+if $CONFIGURE_FIREWALL; then
+    ufw default deny incoming >/dev/null
+    ufw default allow outgoing >/dev/null
+    ufw logging low >/dev/null
 
-ufw allow 22/tcp >/dev/null
-if $INSTALL_WHOIS_SERVER; then
-    ufw allow 43/tcp >/dev/null
-    ufw allow 1043/tcp >/dev/null
+    ufw allow "${SSH_PORT}/tcp" >/dev/null
+    if $INSTALL_WHOIS_SERVER; then
+        ufw allow 43/tcp >/dev/null
+        ufw allow 1043/tcp >/dev/null
+    fi
+    ufw allow 80/tcp >/dev/null
+    ufw allow 443/tcp >/dev/null
+    ufw allow 443/udp >/dev/null
+    ufw allow 700/tcp >/dev/null
+    ufw allow 53/tcp >/dev/null
+    ufw allow 53/udp >/dev/null
+
+    ufw --force enable >/dev/null
+else
+    warn "Firewall configuration skipped. Open TCP ${SSH_PORT},80,443,700,53 and UDP 53,443 as required."
 fi
-ufw allow 80/tcp >/dev/null
-ufw allow 443/tcp >/dev/null
-ufw allow 443/udp >/dev/null
-ufw allow 700/tcp >/dev/null
-ufw allow 53/tcp >/dev/null
-ufw allow 53/udp >/dev/null
-
-ufw --force enable >/dev/null
 
 # Function to generate bind line
 generate_bind_line() {
