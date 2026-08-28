@@ -1079,7 +1079,7 @@ restore_freebsd_permissions() {
     chown root:namingo-web "$CP_DIR"
     chown -R root:namingo-web "$CP_DIR/public" "$WHOIS_WEB_DIR"
 
-    install -d -m 0750 "$CP_DIR/cache"
+    install -d -o www -g www -m 0750 "$CP_DIR/cache"
     chown -R www:www "$CP_DIR/cache"
 
     chown root:www "$CP_DIR/.env" "$WHOIS_WEB_DIR/config.php"

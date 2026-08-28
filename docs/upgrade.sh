@@ -773,6 +773,11 @@ composer_sync "$CP_DIR" "${STAGING_DIR}/cp"
 composer_sync "${INSTALL_DIR}/rdap" "${STAGING_DIR}/rdap"
 composer_sync "${INSTALL_DIR}/epp" "${STAGING_DIR}/epp"
 
+# Restore runtime-writable control panel cache permissions.
+log "Restoring control panel runtime permissions"
+install -d -o www-data -g www-data -m 0750 "$CP_DIR/cache"
+chown -R www-data:www-data "$CP_DIR/cache"
+
 # ---------------------------------------------------------
 # Adminer
 # ---------------------------------------------------------
