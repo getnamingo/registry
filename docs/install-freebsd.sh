@@ -2,10 +2,6 @@
 
 # Namingo Registry installer for FreeBSD 15.1-RELEASE.
 #
-# This is a FreeBSD-native counterpart to docs/install.sh. It uses pkg,
-# rc.d, sysrc, PF, FreeBSD filesystem paths, and the official FreeBSD
-# package repository's latest branch (required for PHP 8.5 + Swoole).
-#
 # Run on a fresh server as root. Interactive input is read from /dev/tty, so
 # the script is safe to invoke through a pipe, for example:
 #
@@ -15,6 +11,7 @@
 #   NAMINGO_DOMAIN
 #   NAMINGO_IPV4
 #   NAMINGO_IPV6
+#   NAMINGO_DNS_READY           yes|no (default: prompt; yes if no TTY)
 #   NAMINGO_INSTALL_WHOIS       yes|no (default: yes)
 #   NAMINGO_DB_TYPE             M|P
 #   NAMINGO_PANEL_EMAIL
@@ -42,16 +39,35 @@ COMPOSER_BIN="/usr/local/bin/composer"
 TMP_DIR=""
 TTY_ECHO_DISABLED=0
 
+if [ -t 1 ]; then
+    COLOR_GREEN=$(printf '\033[1;32m')
+    COLOR_YELLOW=$(printf '\033[1;33m')
+    COLOR_RED=$(printf '\033[1;31m')
+    COLOR_RESET=$(printf '\033[0m')
+else
+    COLOR_GREEN=""
+    COLOR_YELLOW=""
+    COLOR_RED=""
+    COLOR_RESET=""
+fi
+
 say() {
     printf '%s\n' "$*"
 }
 
+log() {
+    printf '\n%s[%s]%s %s\n' \
+        "$COLOR_GREEN" "$(date +%H:%M:%S)" "$COLOR_RESET" "$*"
+}
+
 warn() {
-    printf 'Warning: %s\n' "$*" >&2
+    printf '\n%s[WARN]%s %s\n' \
+        "$COLOR_YELLOW" "$COLOR_RESET" "$*" >&2
 }
 
 die() {
-    printf 'Error: %s\n' "$*" >&2
+    printf '\n%s[ERR]%s %s\n' \
+        "$COLOR_RED" "$COLOR_RESET" "$*" >&2
     exit 1
 }
 
@@ -73,10 +89,22 @@ trap 'exit 1' HUP INT TERM
 
 prompt_for_input() {
     prompt_text=$1
+    default_value=${2:-}
     response=""
     [ -c /dev/tty ] || die "Interactive input requires /dev/tty. Set the NAMINGO_* environment variables instead."
-    printf '%s: ' "$prompt_text" > /dev/tty
+
+    if [ -n "$default_value" ]; then
+        printf '%s [%s]: ' "$prompt_text" "$default_value" > /dev/tty
+    else
+        printf '%s: ' "$prompt_text" > /dev/tty
+    fi
+
     IFS= read -r response < /dev/tty || die "Unable to read input."
+
+    if [ -z "$response" ] && [ -n "$default_value" ]; then
+        response=$default_value
+    fi
+
     printf '%s' "$response"
 }
 
@@ -96,6 +124,66 @@ prompt_for_password() {
     TTY_ECHO_DISABLED=0
     printf '\n' > /dev/tty
     printf '%s' "$password"
+}
+
+prompt_for_password_confirm() {
+    prompt_text=$1
+
+    while :; do
+        password=$(prompt_for_password "$prompt_text")
+
+        if [ -z "$password" ]; then
+            warn "Password cannot be empty."
+            continue
+        fi
+
+        confirmation=$(prompt_for_password "Confirm panel admin password")
+
+        if [ "$password" = "$confirmation" ]; then
+            printf '%s' "$password"
+            return 0
+        fi
+
+        warn "Passwords do not match. Please try again."
+    done
+}
+
+detect_ips() {
+    DETECTED_IPV4=""
+    DETECTED_IPV6=""
+
+    default_interface=$(
+        route -n get default 2>/dev/null |
+            awk '/interface:/ { print $2; exit }'
+    )
+
+    if [ -n "$default_interface" ]; then
+        DETECTED_IPV4=$(
+            ifconfig "$default_interface" inet 2>/dev/null |
+                awk '
+                    /[[:space:]]inet[[:space:]]/ {
+                        if ($2 != "127.0.0.1" && $2 !~ /^169\.254\./) {
+                            print $2
+                            exit
+                        }
+                    }
+                '
+        )
+
+        DETECTED_IPV6=$(
+            ifconfig "$default_interface" inet6 2>/dev/null |
+                awk '
+                    /[[:space:]]inet6[[:space:]]/ {
+                        address=$2
+                        sub(/%.*/, "", address)
+                        if (address != "::1" && address !~ /^fe80:/) {
+                            print address
+                            exit
+                        }
+                    }
+                '
+        )
+    fi
 }
 
 is_yes() {
@@ -369,22 +457,73 @@ for existing_path in "$REGISTRY_ROOT" "$CP_ROOT" "$WHOIS_WEB_ROOT"; do
     [ ! -e "$existing_path" ] || die "${existing_path} already exists. This installer requires a fresh Namingo installation."
 done
 
-say "FreeBSD ${FREEBSD_VERSION} on ${MACHINE_ARCH} meets the minimum requirements."
+say ""
+say "=================================================="
+say " Namingo Registry ${REGISTRY_VERSION}"
+say " FreeBSD installer"
+say "=================================================="
+say ""
+say "System:       FreeBSD ${FREEBSD_VERSION}"
+say "Architecture: ${MACHINE_ARCH}"
+say "Memory:       ${AVAILABLE_RAM_MB} MB"
+say "Disk free:    ${AVAILABLE_DISK_GB} GB"
+say ""
+
+log "Basic configuration"
 
 REGISTRY_DOMAIN=${NAMINGO_DOMAIN:-}
 [ -n "$REGISTRY_DOMAIN" ] || REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
 REGISTRY_DOMAIN=$(printf '%s' "$REGISTRY_DOMAIN" | tr '[:upper:]' '[:lower:]')
 valid_domain "$REGISTRY_DOMAIN" || die "Invalid registry domain: ${REGISTRY_DOMAIN}"
 
+detect_ips
+
+if [ -n "$DETECTED_IPV4" ] || [ -n "$DETECTED_IPV6" ]; then
+    say ""
+    say "Detected addresses on the default interface:"
+    say "  IPv4: ${DETECTED_IPV4:-none}"
+    say "  IPv6: ${DETECTED_IPV6:-none}"
+    say ""
+fi
+
 YOUR_IPV4_ADDRESS=${NAMINGO_IPV4:-}
-[ -n "$YOUR_IPV4_ADDRESS" ] || YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter the IPv4 address Caddy should bind")
+if [ -z "$YOUR_IPV4_ADDRESS" ]; then
+    YOUR_IPV4_ADDRESS=$(prompt_for_input \
+        "Enter the IPv4 address Caddy should bind" \
+        "$DETECTED_IPV4")
+fi
 valid_ipv4 "$YOUR_IPV4_ADDRESS" || die "Invalid IPv4 address: ${YOUR_IPV4_ADDRESS}"
 
 YOUR_IPV6_ADDRESS=${NAMINGO_IPV6:-}
 if [ -z "$YOUR_IPV6_ADDRESS" ] && [ -z "${NAMINGO_IPV6+x}" ]; then
-    YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter the IPv6 address Caddy should bind (leave blank if unavailable)")
+    YOUR_IPV6_ADDRESS=$(prompt_for_input \
+        "Enter the IPv6 address Caddy should bind (leave blank if unavailable)" \
+        "$DETECTED_IPV6")
 fi
 valid_ipv6_syntax "$YOUR_IPV6_ADDRESS" || die "Invalid IPv6 address syntax: ${YOUR_IPV6_ADDRESS}"
+
+say ""
+say "Before continuing, make sure these hostnames point to this server:"
+say ""
+say "  cp.${REGISTRY_DOMAIN}"
+say "  epp.${REGISTRY_DOMAIN}"
+say "  rdap.${REGISTRY_DOMAIN}"
+say "  whois.${REGISTRY_DOMAIN}"
+say ""
+say "DNS should be configured before Caddy requests TLS certificates."
+say ""
+
+DNS_READY_CHOICE=${NAMINGO_DNS_READY:-}
+if [ -z "$DNS_READY_CHOICE" ]; then
+    if [ -c /dev/tty ]; then
+        DNS_READY_CHOICE=$(prompt_for_input "Continue? [Y/n]")
+    else
+        DNS_READY_CHOICE=yes
+        warn "No interactive terminal available; assuming DNS preflight is complete."
+    fi
+fi
+valid_yes_no "$DNS_READY_CHOICE" || die "Invalid DNS readiness choice. Use yes or no."
+is_yes "$DNS_READY_CHOICE" || die "Installation aborted. Update DNS, then run the installer again."
 
 WHOIS_CHOICE=${NAMINGO_INSTALL_WHOIS:-}
 [ -n "$WHOIS_CHOICE" ] || WHOIS_CHOICE=$(prompt_for_input "Install optional WHOIS/DAS servers on TCP 43/1043? [Y/n]")
@@ -419,7 +558,7 @@ PANEL_EMAIL=${NAMINGO_PANEL_EMAIL:-}
 valid_email_syntax "$PANEL_EMAIL" || die "Invalid panel admin email syntax."
 
 PANEL_PASSWORD=${NAMINGO_PANEL_PASSWORD:-}
-[ -n "$PANEL_PASSWORD" ] || PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
+[ -n "$PANEL_PASSWORD" ] || PANEL_PASSWORD=$(prompt_for_password_confirm "Enter panel admin password")
 [ -n "$PANEL_PASSWORD" ] || die "Panel admin password cannot be empty."
 
 DETECTED_SSH_PORT=22
@@ -446,19 +585,20 @@ fi
 
 DB_USER=$(generate_db_username)
 DB_PASSWORD=$(generate_password)
+ADMINER_SLUG="adminer-$(openssl rand -hex 4).php"
+
 printf '%s\n' "$DB_USER" | grep -Eq '^nmg_[0-9a-f]{8}$' \
     || die "Unable to generate a database username."
 [ "${#DB_PASSWORD}" -ge 24 ] || die "Unable to generate a database password."
+printf '%s\n' "$ADMINER_SLUG" | grep -Eq '^adminer-[0-9a-f]{8}\.php$' \
+    || die "Unable to generate the Adminer URL."
+
 PHP_MEMORY_MB=$((AVAILABLE_RAM_MB / 2))
 PHP_MEMORY_LIMIT="${PHP_MEMORY_MB}M"
 
-say "Generated database username: ${DB_USER}"
-say "Generated database password: ${DB_PASSWORD}"
-say "Store these credentials securely. A root-only copy will be written after installation."
-
 TMP_DIR=$(mktemp -d /tmp/namingo-install.XXXXXX)
 
-say "Configuring the official FreeBSD latest package branch."
+log "Configuring FreeBSD package repository"
 install -d -m 0755 /usr/local/etc/pkg/repos
 cat > /usr/local/etc/pkg/repos/FreeBSD.conf <<'EOF'
 FreeBSD: {
@@ -478,7 +618,7 @@ pkg update -f
 COMMON_PACKAGES="bind-tools bind920 ca_root_nss caddy curl gettext-runtime git gnupg portacl-rc pv redis sudo wget"
 PHP_PACKAGES="php85 php85-extensions php85-bcmath php85-curl php85-fileinfo php85-ftp php85-gd php85-gettext php85-gmp php85-pecl-imap php85-intl php85-mbstring php85-pcntl php85-readline php85-soap php85-sockets php85-sodium php85-xml php85-zip php85-zlib php85-pecl-ds php85-pecl-gnupg php85-pecl-igbinary php85-pecl-protobuf php85-pecl-redis php85-pecl-uuid php85-swoole"
 
-say "Installing common services and PHP 8.5 packages."
+log "Installing required packages"
 # Word splitting is intentional: these are constant package-name lists.
 pkg install -y $COMMON_PACKAGES $PHP_PACKAGES
 
@@ -534,7 +674,7 @@ if [ -n "$YOUR_IPV6_ADDRESS" ]; then
         || die "Invalid IPv6 address: ${YOUR_IPV6_ADDRESS}"
 fi
 
-say "Setting the system timezone to UTC and enabling clock synchronization."
+log "Configuring system and PHP"
 tzsetup -s UTC
 sysrc ntpd_enable=YES ntpd_sync_on_start=YES >/dev/null
 if service_is_running ntpd; then
@@ -563,19 +703,36 @@ chmod 0644 "$PHP_INI_FILE"
 sysrc php_fpm_enable=YES >/dev/null
 start_or_restart_service php_fpm
 
-say "Cloning Namingo Registry ${REGISTRY_VERSION}."
+log "Installing Namingo Registry ${REGISTRY_VERSION}"
 git clone --branch "$REGISTRY_VERSION" --single-branch --depth 1 \
     https://github.com/getnamingo/registry "$REGISTRY_ROOT"
 
-say "Starting and provisioning the database."
+log "Configuring database"
 if [ "$DB_TYPE" = "mariadb" ]; then
     sysrc mysql_enable=YES >/dev/null
     start_or_restart_service mysql-server
+    
+    MARIADB_DROP_USERS_SQL="$TMP_DIR/mariadb-drop-users.sql"
+    mariadb -u root --batch --skip-column-names -e "
+        SELECT CONCAT(
+            'DROP USER IF EXISTS ',
+            QUOTE(User), '@', QUOTE(Host), ';'
+        )
+        FROM mysql.global_priv
+        WHERE User = ''
+           OR (
+               User = 'root'
+               AND Host NOT IN ('localhost', '127.0.0.1', '::1')
+           );
+    " > "$MARIADB_DROP_USERS_SQL"
+    chmod 0600 "$MARIADB_DROP_USERS_SQL"
+
+    if [ -s "$MARIADB_DROP_USERS_SQL" ]; then
+        mariadb -u root < "$MARIADB_DROP_USERS_SQL"
+    fi
 
     MARIADB_SETUP_SQL="$TMP_DIR/mariadb-setup.sql"
     cat > "$MARIADB_SETUP_SQL" <<EOF
-DELETE FROM mysql.global_priv WHERE User='';
-DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
 DROP DATABASE IF EXISTS test;
 DELETE FROM mysql.db WHERE Db='test' OR Db LIKE 'test\\_%';
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
@@ -640,7 +797,7 @@ EOF
         -f "$REGISTRY_ROOT/database/registryTransaction.postgres.sql"
 fi
 
-say "Installing and verifying Composer."
+log "Installing and verifying Composer"
 curl -fsSLo "$TMP_DIR/composer-setup.php" https://getcomposer.org/installer
 curl -fsSLo "$TMP_DIR/composer-installer.sig" https://composer.github.io/installer.sig
 EXPECTED_SIGNATURE=$(tr -d '\r\n' < "$TMP_DIR/composer-installer.sig")
@@ -649,12 +806,12 @@ ACTUAL_SIGNATURE=$(/usr/local/bin/php -r "echo hash_file('sha384', '$TMP_DIR/com
 /usr/local/bin/php "$TMP_DIR/composer-setup.php" --quiet --install-dir=/usr/local/bin --filename=composer
 chmod 0755 "$COMPOSER_BIN"
 
-say "Installing Adminer."
+log "Installing Adminer"
 install -d -m 0755 /usr/local/share/adminer
-curl -fsSLo /usr/local/share/adminer/adminer.php https://www.adminer.org/latest.php
-chmod 0644 /usr/local/share/adminer/adminer.php
+curl -fsSLo "/usr/local/share/adminer/${ADMINER_SLUG}" https://www.adminer.org/latest.php
+chmod 0644 "/usr/local/share/adminer/${ADMINER_SLUG}"
 
-say "Installing the control panel."
+log "Installing Control Panel"
 install -d -m 0755 /var/www
 cp -R "$REGISTRY_ROOT/cp" "$CP_ROOT"
 mv "$CP_ROOT/env-sample" "$CP_ROOT/.env"
@@ -671,7 +828,7 @@ replace_literal "$CP_ROOT/.env" "DB_DRIVER=mysql" "DB_DRIVER=${DB_DRIVER}"
 replace_literal "$CP_ROOT/.env" "DB_PORT=3306" "DB_PORT=${DB_PORT}"
 install_composer_dependencies "$CP_ROOT"
 
-say "Installing web WHOIS."
+log "Installing Web WHOIS"
 install -d -m 0755 "$WHOIS_WEB_ROOT"
 cp -R "$REGISTRY_ROOT/whois/web/." "$WHOIS_WEB_ROOT/"
 (
@@ -696,7 +853,7 @@ if [ "$INSTALL_WHOIS_SERVER" = "no" ]; then
         "'disable_whois' => true"
 fi
 
-say "Installing core servers and automation."
+log "Installing Registry services and automation"
 if [ "$INSTALL_WHOIS_SERVER" = "yes" ]; then
     install_composer_dependencies "$REGISTRY_ROOT/whois/port43"
     mv "$REGISTRY_ROOT/whois/port43/config.php.dist" "$REGISTRY_ROOT/whois/port43/config.php"
@@ -1010,7 +1167,7 @@ for component_config in $component_configs; do
     chmod 0600 "$component_config"
 done
 
-say "Installing native rc.d services."
+log "Installing native rc.d services"
 if [ "$INSTALL_WHOIS_SERVER" = "yes" ]; then
     install_namingo_rc_service whois "$REGISTRY_ROOT/whois/port43" start_whois.php /var/run/whois.pid
     install_namingo_rc_service das "$REGISTRY_ROOT/das" start_das.php /var/run/das.pid
@@ -1024,7 +1181,7 @@ install_namingo_rc_service msg_worker "$REGISTRY_ROOT/automation" msg_worker.php
 sysrc redis_enable=YES >/dev/null
 start_or_restart_service redis
 
-say "Installing Caddy and PF configuration."
+log "Configuring Caddy and firewall"
 if [ -n "$YOUR_IPV6_ADDRESS" ]; then
     BIND_LINE="bind ${YOUR_IPV4_ADDRESS} ${YOUR_IPV6_ADDRESS}"
 else
@@ -1098,7 +1255,7 @@ cp.${REGISTRY_DOMAIN} {
         }
         format json
     }
-    route /adminer.php* {
+    route /${ADMINER_SLUG}* {
         root * /usr/local/share/adminer
         php_fastcgi 127.0.0.1:9000
     }
@@ -1154,7 +1311,7 @@ else
     warn "PF configuration was skipped. Open TCP ${SSH_PORT},80,443,700,53${firewall_whois_ports} and UDP 53,443 in your firewall."
 fi
 
-say "Installing issuer-independent Caddy certificate synchronization for EPP."
+log "Configuring EPP certificate synchronization"
 install -d -m 0700 /var/db/namingo
 cat > /usr/local/sbin/namingo-cert-sync <<EOF
 #!/bin/sh
@@ -1248,13 +1405,13 @@ PANEL_USERNAME=admin \
     /usr/local/bin/php "$CP_ROOT/bin/create_admin_user.php"
 chown -R www:www "$CP_ROOT/cache"
 
-say "Downloading ICANN TMCH certificate data."
+log "Downloading ICANN TMCH certificate data"
 install -d -m 0755 /etc/ssl/certs
 curl -fsSLo /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
 curl -fsSLo /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
 chmod 0644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
 
-say "Enabling the minute-by-minute automation dispatcher."
+log "Enabling automation services"
 if ! grep -q 'Namingo Registry automation' /etc/crontab; then
     cat >> /etc/crontab <<'EOF'
 
@@ -1265,7 +1422,7 @@ fi
 sysrc cron_enable=YES >/dev/null
 start_or_restart_service cron
 
-say "Starting Namingo services."
+log "Starting Namingo services"
 if [ "$INSTALL_WHOIS_SERVER" = "yes" ]; then
     start_or_restart_service whois
     start_or_restart_service das
@@ -1303,6 +1460,7 @@ Database port: ${DB_PORT}
 Database username: ${DB_USER}
 Database password: ${DB_PASSWORD}
 Panel admin email: ${PANEL_EMAIL}
+Adminer URL: https://cp.${REGISTRY_DOMAIN}/${ADMINER_SLUG}
 EOF
 chmod 0600 "$CREDENTIALS_FILE"
 
@@ -1311,7 +1469,9 @@ if ! pkg audit -F; then
 fi
 
 say ""
-say "Namingo Registry installation completed on FreeBSD ${FREEBSD_VERSION}."
+say "=================================================="
+say " Namingo Registry installation complete"
+say "=================================================="
 say ""
 say "Access points:"
 say " - Control Panel:   https://cp.${REGISTRY_DOMAIN}"
@@ -1324,6 +1484,7 @@ else
     say " - WHOIS/DAS TCP:   not installed"
 fi
 say " - EPP endpoint:    epp.${REGISTRY_DOMAIN}:700"
+say " - Adminer:         https://cp.${REGISTRY_DOMAIN}/${ADMINER_SLUG}"
 say ""
 say "Service checks:"
 if [ "$INSTALL_WHOIS_SERVER" = "yes" ]; then
@@ -1333,5 +1494,9 @@ say " service rdap status; service epp status"
 say " service msg_producer status; service msg_worker status"
 say " service caddy status; service php_fpm status; service redis status"
 say ""
-say "Credentials: ${CREDENTIALS_FILE} (mode 0600)"
+say "Configuration:"
+say " - Panel/DB:        ${CP_ROOT}/.env"
+say " - Registry:        ${REGISTRY_ROOT}"
+say " - Credentials:     ${CREDENTIALS_FILE} (mode 0600)"
+say ""
 say "Next: review ${REGISTRY_ROOT}/automation/config.php and the Namingo configuration, DNS, payment, and first-steps guides."

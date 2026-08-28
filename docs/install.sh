@@ -2,18 +2,70 @@
 
 set -euo pipefail
 
+# ---------- Helpers ----------
+log() { printf "\n\033[1;32m[%s]\033[0m %s\n" "$(date +%H:%M:%S)" "$*"; }
+warn() { printf "\n\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+err() { printf "\n\033[1;31m[ERR]\033[0m %s\n" "$*" >&2; }
+die() { err "$*"; exit 1; }
+
 # Function to prompt for user input
 prompt_for_input() {
     local response
-    read -r -p "$1: " response
-    echo "$response"
+    local default="${2:-}"
+
+    if [[ -n "$default" ]]; then
+        read -r -p "$1 [$default]: " response
+        response="${response:-$default}"
+    else
+        read -r -p "$1: " response
+    fi
+
+    printf '%s' "$response"
 }
 
-prompt_for_password() {
+prompt_for_password_confirm() {
+    local prompt="$1"
     local password
-    read -r -s -p "$1: " password
-    echo >&2
-    printf '%s' "$password"
+    local confirmation
+
+    while true; do
+        read -r -s -p "$prompt: " password
+        echo >&2
+
+        if [[ -z "$password" ]]; then
+            warn "Password cannot be empty."
+            continue
+        fi
+
+        read -r -s -p "Confirm panel admin password: " confirmation
+        echo >&2
+
+        if [[ "$password" != "$confirmation" ]]; then
+            warn "Passwords do not match. Please try again."
+            continue
+        fi
+
+        printf '%s' "$password"
+        return 0
+    done
+}
+
+# Return best-guess IPv4/IPv6 addresses for use as installer defaults.
+detect_ips() {
+    IPV4=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+    IPV6=$(ip -6 addr show scope global 2>/dev/null | awk '/inet6/{print $2}' | cut -d/ -f1 | head -n1 || true)
+}
+
+validate_registry_domain() {
+    local domain="$1"
+
+    domain="$(printf '%s' "$domain" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+
+    if [[ ! "$domain" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; then
+        die "Invalid registry domain. Use a hostname such as example.com."
+    fi
+
+    printf '%s' "$domain"
 }
 
 generate_db_username() {
@@ -51,14 +103,15 @@ set_php_ini_value() {
     fi
 }
 
+log "Checking system requirements"
+
 # Check the Linux distribution and version
 if [[ -r /etc/os-release ]]; then
     . /etc/os-release
     OS_ID="$ID"
     VER="$VERSION_ID"
 else
-    echo "Error: /etc/os-release not found."
-    exit 1
+    die "/etc/os-release not found."
 fi
 
 case "${OS_ID}:${VER}" in
@@ -103,15 +156,13 @@ case "${OS_ID}:${VER}" in
         MARIADB_COMPONENTS="main"
         ;;
     *)
-        echo "Unsupported Linux distribution or version: ${OS_ID} ${VER}"
-        exit 1
+        die "Unsupported Linux distribution or version: ${OS_ID} ${VER}"
         ;;
 esac
 
 # Ensure the script is run as root
 if [[ $EUID -ne 0 ]]; then
-    echo "Error: This installer must be run as root or with sudo." >&2
-    exit 1
+    die "This installer must be run as root or with sudo."
 fi
 
 # Minimum requirements
@@ -128,22 +179,62 @@ AVAILABLE_DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
 
 # Check RAM
 if [ "$AVAILABLE_RAM_MB" -lt "$MIN_RAM_MB" ]; then
-    echo "Error: At least 2GB of RAM is required. Only ${AVAILABLE_RAM_MB}MB is available."
-    exit 1
+    die "At least 2GB of RAM is required. Only ${AVAILABLE_RAM_MB}MB is available."
 fi
 
 # Check disk space
 if [ "$AVAILABLE_DISK_GB" -lt "$MIN_DISK_GB" ]; then
-    echo "Error: At least 10GB of free disk space is required. Only ${AVAILABLE_DISK_GB}GB is available."
-    exit 1
+    die "At least 10GB of free disk space is required. Only ${AVAILABLE_DISK_GB}GB is available."
 fi
 
-echo "System meets the minimum requirements. Proceeding with installation..."
+echo
+echo "=================================================="
+echo " Namingo Registry v1.0.32"
+echo "=================================================="
+echo
+echo "System:      ${OS_NAME} ${VER}"
+echo "Memory:      ${AVAILABLE_RAM_MB} MB"
+echo "Disk free:   ${AVAILABLE_DISK_GB} GB"
+echo
+
+log "Basic configuration"
 
 # Prompt for details
 REGISTRY_DOMAIN=$(prompt_for_input "Enter main domain for registry")
-YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address")
-YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)")
+[[ -n "$REGISTRY_DOMAIN" ]] || die "Registry domain cannot be empty."
+REGISTRY_DOMAIN=$(validate_registry_domain "$REGISTRY_DOMAIN")
+
+detect_ips
+
+if [[ -n "${IPV4:-}" || -n "${IPV6:-}" ]]; then
+    echo
+    echo "Detected IP addresses:"
+    echo "  IPv4: ${IPV4:-none}"
+    echo "  IPv6: ${IPV6:-none}"
+    echo
+fi
+
+YOUR_IPV4_ADDRESS=$(prompt_for_input "Enter your IPv4 address" "${IPV4:-}")
+[[ -n "$YOUR_IPV4_ADDRESS" ]] || die "An IPv4 address is required."
+
+YOUR_IPV6_ADDRESS=$(prompt_for_input "Enter your IPv6 address (leave blank if not available)" "${IPV6:-}")
+
+echo
+echo "Before continuing, make sure these hostnames point to this server:"
+echo
+echo "  cp.$REGISTRY_DOMAIN"
+echo "  epp.$REGISTRY_DOMAIN"
+echo "  rdap.$REGISTRY_DOMAIN"
+echo "  whois.$REGISTRY_DOMAIN"
+echo
+echo "DNS must be configured before TLS certificates can be issued."
+echo
+
+DNS_READY=$(prompt_for_input "Continue? [Y/n]")
+if [[ "${DNS_READY:-y}" =~ ^[Nn]([Oo])?$ ]]; then
+    die "Installation aborted. Update DNS, then run the installer again."
+fi
+
 WHOIS_SERVER_CHOICE=$(prompt_for_input "Install the optional WHOIS/DAS servers (TCP ports 43/1043)? [Y/n]")
 if [[ "${WHOIS_SERVER_CHOICE:-y}" =~ ^[Nn]([Oo])?$ ]]; then
     INSTALL_WHOIS_SERVER=false
@@ -154,10 +245,6 @@ DB_USER=$(generate_db_username)
 DB_PASSWORD=$(generate_password)
 DB_PASSWORD_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed 's/[&|]/\\&/g')
 DB_PASSWORD_SQL_ESCAPED=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
-
-echo "Generated database username: $DB_USER"
-echo "Generated database password: $DB_PASSWORD"
-echo ""
 DB_TYPE=$(prompt_for_input "Enter database type [M = MariaDB, P = PostgreSQL]")
 
 case "${DB_TYPE^^}" in
@@ -172,17 +259,18 @@ case "${DB_TYPE^^}" in
         DB_PORT="5432"
         ;;
     *)
-        echo "Invalid database type. Use M or P."
-        exit 1
+        die "Invalid database type. Use M or P."
         ;;
 esac
 PANEL_EMAIL=$(prompt_for_input "Enter panel admin email")
-PANEL_PASSWORD=$(prompt_for_password "Enter panel admin password")
+[[ -n "$PANEL_EMAIL" ]] || die "Panel admin email cannot be empty."
+
+PANEL_PASSWORD=$(prompt_for_password_confirm "Enter panel admin password")
 echo ""
 current_user=$(whoami)
 
 # Install required packages
-echo "Installing required packages..."
+log "Installing required packages"
 apt update -y
 
 # Install common packages
@@ -226,13 +314,13 @@ Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
 EOF
 fi
 
-echo "Updating package lists..."
+log "Updating package lists"
 apt update -y
 
 PHP_VERSION="php8.5"
 PHP_SHORT="8.5"
 
-echo "Installing packages..."
+log "Installing PHP and server packages"
 apt install -y caddy ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-protobuf ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
 
 if [ "$DB_TYPE" == "mariadb" ]; then
@@ -287,21 +375,31 @@ echo "PHP configuration update complete!"
 
 if [ "$DB_TYPE" == "mariadb" ]; then
     echo "Applying MariaDB hardening..."
-    mariadb -u root -e "DELETE FROM mysql.user WHERE User='';"
-    mariadb -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    log "Securing MariaDB"
+
+    mariadb -u root --batch --skip-column-names -e "
+        SELECT CONCAT(
+            'DROP USER IF EXISTS ',
+            QUOTE(User), '@', QUOTE(Host), ';'
+        )
+        FROM mysql.user
+        WHERE User = ''
+           OR (User = 'root'
+               AND Host NOT IN ('localhost', '127.0.0.1', '::1'));
+    " | mariadb -u root
     mariadb -u root -e "DROP DATABASE IF EXISTS test;"
     mariadb -u root -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
     mariadb -u root -e "FLUSH PRIVILEGES;"
 
     # Create user and grant privileges
-    echo "Creating user $DB_USER and setting privileges..."
+    log "Creating MariaDB registry user"
     mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD_SQL_ESCAPED';"
     mariadb -u root -e "GRANT ALL PRIVILEGES ON registry.* TO '$DB_USER'@'localhost';"
     mariadb -u root -e "GRANT ALL PRIVILEGES ON registryTransaction.* TO '$DB_USER'@'localhost';"
     mariadb -u root -e "GRANT ALL PRIVILEGES ON registryAudit.* TO '$DB_USER'@'localhost';"
     mariadb -u root -e "FLUSH PRIVILEGES;"
 elif [ "$DB_TYPE" == "pgsql" ]; then
-    echo "Configuring PostgreSQL..."
+    log "Configuring PostgreSQL"
 
     systemctl enable --now postgresql
 
@@ -329,29 +427,34 @@ elif [ "$DB_TYPE" == "pgsql" ]; then
 fi
 
 mkdir -p /usr/share/adminer
-wget "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
-ln -sf /usr/share/adminer/latest.php /usr/share/adminer/adminer.php
+wget -q "https://www.adminer.org/latest.php" -O /usr/share/adminer/latest.php
+ADMINER_SLUG="adminer-$(openssl rand -hex 4).php"
+ln -sf /usr/share/adminer/latest.php "/usr/share/adminer/${ADMINER_SLUG}"
 
 if [[ ! -d /opt/registry/.git ]]; then
+    log "Installing Namingo Registry"
     git clone --branch v1.0.32 --single-branch https://github.com/getnamingo/registry /opt/registry
 fi
 
-echo "Setting up firewall rules..."
-ufw allow 22/tcp
-if $INSTALL_WHOIS_SERVER; then
-    ufw allow 43/tcp
-    ufw allow 1043/tcp
-fi
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 443/udp
-ufw allow 700/tcp
-ufw allow 53/tcp
-ufw allow 53/udp
+log "Configuring firewall"
 
-# Enable the firewall
-echo "Enabling the firewall..."
-ufw --force enable
+ufw default deny incoming >/dev/null
+ufw default allow outgoing >/dev/null
+ufw logging low >/dev/null
+
+ufw allow 22/tcp >/dev/null
+if $INSTALL_WHOIS_SERVER; then
+    ufw allow 43/tcp >/dev/null
+    ufw allow 1043/tcp >/dev/null
+fi
+ufw allow 80/tcp >/dev/null
+ufw allow 443/tcp >/dev/null
+ufw allow 443/udp >/dev/null
+ufw allow 700/tcp >/dev/null
+ufw allow 53/tcp >/dev/null
+ufw allow 53/udp >/dev/null
+
+ufw --force enable >/dev/null
 
 # Function to generate bind line
 generate_bind_line() {
@@ -365,6 +468,8 @@ generate_bind_line() {
 }
 
 BIND_LINE=$(generate_bind_line "$YOUR_IPV4_ADDRESS" "$YOUR_IPV6_ADDRESS")
+
+log "Configuring web services"
 
 # Update Caddyfile
 cat > /etc/caddy/Caddyfile << EOF
@@ -435,8 +540,8 @@ cat > /etc/caddy/Caddyfile << EOF
             }
             format json
         }
-        # Adminer Configuration
-        route /adminer.php* {
+        # Adminer Configuration (randomized path)
+        route /${ADMINER_SLUG}* {
             root * /usr/share/adminer
             php_fastcgi unix//run/php/${PHP_VERSION}-fpm.sock
         }
@@ -474,7 +579,7 @@ sleep 5
 ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$REGISTRY_DOMAIN/epp.$REGISTRY_DOMAIN.crt /opt/registry/epp/epp.crt
 ln -sf /var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/epp.$REGISTRY_DOMAIN/epp.$REGISTRY_DOMAIN.key /opt/registry/epp/epp.key
 
-echo "Installing Control Panel."
+log "Installing Control Panel"
 mkdir -p /var/www
 cp -r /opt/registry/cp /var/www
 mv /var/www/cp/env-sample /var/www/cp/.env
@@ -518,7 +623,7 @@ elif [ "$DB_TYPE" == "pgsql" ]; then
 fi
 echo "SQL import completed."
 
-echo "Installing Web WHOIS."
+log "Installing Web WHOIS"
 mkdir -p /var/www/whois
 cd /opt/registry/whois/web
 cp -r * /var/www/whois
@@ -531,7 +636,7 @@ sed -i "s|'rdap_url' => '.*'|'rdap_url' => 'rdap.${REGISTRY_DOMAIN}'|" /var/www/
 sed -i "s|'altcha_hmac_secret' => '.*'|'altcha_hmac_secret' => '${ALTCHA_HMAC_SECRET}'|" /var/www/whois/config.php
 
 if $INSTALL_WHOIS_SERVER; then
-    echo "Installing WHOIS Server."
+    log "Installing WHOIS Server"
     cd /opt/registry/whois/port43
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/whois/port43/config.php.dist /opt/registry/whois/port43/config.php
@@ -545,7 +650,7 @@ if $INSTALL_WHOIS_SERVER; then
     systemctl daemon-reload
     systemctl enable whois.service
 
-    echo "Installing DAS Server."
+    log "Installing DAS Server"
     cd /opt/registry/das
     COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
     mv /opt/registry/das/config.php.dist /opt/registry/das/config.php
@@ -563,7 +668,7 @@ else
     sed -i "s|'disable_whois' => false|'disable_whois' => true|" /var/www/whois/config.php
 fi
 
-echo "Installing RDAP Server."
+log "Installing RDAP Server"
 cd /opt/registry/rdap
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/rdap/config.php.dist /opt/registry/rdap/config.php
@@ -577,7 +682,7 @@ cp /opt/registry/docs/rdap.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable rdap.service
 
-echo "Installing EPP Server."
+log "Installing EPP Server"
 cd /opt/registry/epp
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/epp/config.php.dist /opt/registry/epp/config.php
@@ -591,7 +696,7 @@ cp /opt/registry/docs/epp.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable epp.service
 
-echo "Installing Automation Scripts."
+log "Installing automation services"
 cd /opt/registry/automation
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 mv /opt/registry/automation/config.php.dist /opt/registry/automation/config.php
@@ -600,7 +705,7 @@ sed -i "s|'db_password' => 'your_password'|'db_password' => '$DB_PASSWORD'|g" /o
 sed -i "s|'db_type' => 'mysql'|'db_type' => '$DB_DRIVER'|" /opt/registry/automation/config.php
 sed -i "s|'db_port' => 3306|'db_port' => $DB_PORT|" /opt/registry/automation/config.php
 
-echo "Installing Message Broker."
+log "Installing Message Broker"
 cp /opt/registry/docs/msg_producer.service /etc/systemd/system/
 cp /opt/registry/docs/msg_worker.service /etc/systemd/system/
 systemctl daemon-reload
@@ -633,7 +738,7 @@ systemctl daemon-reload
 systemctl enable redis-server
 systemctl start redis-server
 
-echo "Configuring control panel admin."
+log "Configuring control panel administrator"
 
 PANEL_EMAIL="$PANEL_EMAIL" \
 PANEL_PASSWORD="$PANEL_PASSWORD" \
@@ -648,36 +753,45 @@ curl -o /etc/ssl/certs/tmch.pem https://ca.icann.org/tmch.crt
 curl -o /etc/ssl/certs/tmch_pilot.pem https://ca.icann.org/tmch_pilot.crt
 chmod 644 /etc/ssl/certs/tmch.pem /etc/ssl/certs/tmch_pilot.pem
 
-echo -e "\nNamingo Registry installation completed successfully!\n"
-
-echo -e "Access points:"
-echo -e " - Control Panel:     https://cp.$REGISTRY_DOMAIN"
-echo -e " - RDAP:              https://rdap.$REGISTRY_DOMAIN"
-echo -e " - WHOIS (web):       https://whois.$REGISTRY_DOMAIN"
+echo
+echo "=================================================="
+echo " Namingo Registry installation complete"
+echo "=================================================="
+echo
+echo "Access points:"
+echo " - Control Panel:     https://cp.$REGISTRY_DOMAIN"
+echo " - RDAP:              https://rdap.$REGISTRY_DOMAIN"
+echo " - WHOIS (web):       https://whois.$REGISTRY_DOMAIN"
 if $INSTALL_WHOIS_SERVER; then
-    echo -e " - WHOIS (port 43):   whois.$REGISTRY_DOMAIN:43"
+    echo " - WHOIS (port 43):   whois.$REGISTRY_DOMAIN:43"
 else
-    echo -e " - WHOIS (port 43):   not installed (web WHOIS uses RDAP only)"
+    echo " - WHOIS (port 43):   not installed (web WHOIS uses RDAP only)"
 fi
-echo -e " - EPP endpoint:  epp.$REGISTRY_DOMAIN:700\n"
-
-echo -e "Next steps:"
-echo -e "1. Review and adjust configuration files in /opt/registry as needed."
-echo -e "2. Start core services:"
+echo " - EPP endpoint:      epp.$REGISTRY_DOMAIN:700"
+echo " - Adminer:           https://cp.$REGISTRY_DOMAIN/${ADMINER_SLUG}"
+echo
+echo "Configuration:"
+echo " - Panel/DB settings: /var/www/cp/.env"
+echo " - Registry services: /opt/registry"
+echo
+echo "Next steps:"
+echo "1. Review and adjust configuration files in /opt/registry as needed."
+echo "2. Start core services:"
 if $INSTALL_WHOIS_SERVER; then
-    echo -e "   systemctl start whois.service"
-    echo -e "   systemctl start das.service\n"
+    echo "   systemctl start whois.service"
+    echo "   systemctl start das.service"
 fi
-echo -e "   systemctl start rdap.service"
-echo -e "   systemctl start epp.service"
-
-echo -e "3. Verify services are running:"
+echo "   systemctl start rdap.service"
+echo "   systemctl start epp.service"
+echo
+echo "3. Verify services are running:"
 if $INSTALL_WHOIS_SERVER; then
-    echo -e "   systemctl status whois rdap epp das\n"
+    echo "   systemctl status whois rdap epp das"
 else
-    echo -e "   systemctl status rdap epp\n"
+    echo "   systemctl status rdap epp"
 fi
 
-echo -e "4. Complete any additional configuration described in the Namingo documentation.\n"
-
-echo -e "Your registry environment is now ready."
+echo
+echo "4. Complete any additional configuration described in the Namingo documentation."
+echo
+echo "Your registry environment is now ready."
