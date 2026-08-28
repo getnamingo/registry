@@ -57,11 +57,25 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 
 To get started, copy the command below and paste it into your server terminal (root access required):
 
+#### Linux
+
 ```bash
 bash <(curl -fsSL https://namingo.org/install.sh)
 ```
 
-For Docker installation, use `bash <(curl -fsSL https://namingo.org/docker-install.sh)`. For details, see the **[Docker Installation Guide](docs/docker.md)**
+#### FreeBSD
+
+```bash
+fetch -qo - https://namingo.org/install.sh | sh
+```
+
+#### Docker
+
+```bash
+bash <(curl -fsSL https://namingo.org/docker-install.sh)
+````
+
+For additional information, see the **[Docker Installation Guide](docs/docker.md)**
 
 After installation, be sure to review all the guides in the Documentation section to complete your setup and configuration.
 
@@ -93,27 +107,35 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 #### [System Architecture](docs/architecture.md)
 
-### Upgrade
+### Upgrade (v1.0.32 and later)
 
 > [!IMPORTANT]
 > Namingo Registry v1.0.32 is the last version using the legacy sequential upgrade scripts.
 >
 > Starting with v1.0.33, all upgrades use the universal [`upgrade.sh`](docs/upgrade.sh) script.
 
-#### v1.0.32 and later
-
 Upgrade to the latest Namingo Registry release with:
+
+#### Linux
 
 ```bash
 bash <(wget -qO- https://namingo.org/upgrade.sh)
 ```
 
+#### FreeBSD
+
+```bash
+fetch -qo - https://namingo.org/upgrade.sh | sh
+```
+
+#### Docker
+
+> [!NOTE]
+> Currently not supported. See [issue #249](https://github.com/getnamingo/registry/issues/249). If you need assistance, please contact us through one of the support channels below.
+
 #### Older than v1.0.32
 
 Use the legacy sequential upgrade scripts until you reach **v1.0.32**, then use the universal upgrader for all future releases. See the **[Upgrade Guide](docs/upgrade.md)** for the complete upgrade path.
-
-> [!NOTE]
-> Upgrades of Docker-based installations are currently not supported. See [issue #249](https://github.com/getnamingo/registry/issues/249). If you need assistance, please contact us through one of the support channels below.
 
 ## Support
 
