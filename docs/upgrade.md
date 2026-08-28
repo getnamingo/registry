@@ -1,8 +1,22 @@
-# Namingo Upgrade Guide
+# Namingo Registry Upgrade Guide
 
-## v1.0.0 to v1.0.32
+## Universal Upgrade System
 
-To update, you must run the update scripts sequentially without skipping versions. For example, if you're on v1.0.30 and the latest is v1.0.32, first update to v1.0.31, then to v1.0.32.
+Namingo Registry v1.0.33 and later use the universal upgrade script.
+
+To upgrade from v1.0.32 or any later version to the latest release:
+
+```bash
+bash <(wget -qO- https://namingo.org/upgrade.sh)
+```
+
+## Versions older than v1.0.32
+
+> Older installations must use the legacy sequential upgrade scripts until they reach v1.0.32.
+>
+> Upgrade scripts **must be run sequentially** without skipping versions.
+>
+> For example, to upgrade from **v1.0.30** to **v1.0.32**, first run the **v1.0.31** upgrade, then the **1.0.32** upgrade. After reaching v1.0.32, use the universal upgrade system for all subsequent releases.
 
 - v1.0.31 to v1.0.32 - download and run the [update1032.sh](update1032.sh) script.
 
