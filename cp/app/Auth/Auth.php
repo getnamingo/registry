@@ -229,7 +229,7 @@ class Auth
         try {
             $auth->forgotPassword($email, function ($selector, $token) use ($email,$username) {
                 $link = url('reset.password',[],['selector'=>urlencode($selector),'token'=>urlencode($token)]);
-                $message = file_get_contents(__DIR__.'/../../resources/views/auth/mail/reset-password.html');
+                $message = file_get_contents(__DIR__.'/../../resources/views/mail/reset-password.html');
                 $placeholders = ['{user_first_name}', '{link}', '{app_name}'];
                 $replacements = [ucfirst($username), $link, envi('APP_NAME')];
                 $message = str_replace($placeholders, $replacements, $message);            
