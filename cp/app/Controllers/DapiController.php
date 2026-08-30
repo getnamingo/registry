@@ -68,6 +68,7 @@ class DapiController extends Controller
                         continue;
                     }
                     $column = $allowedFieldsMap[$fField];
+                    $likeColumn = envi('DB_DRIVER') === 'pgsql' ? "CAST($column AS TEXT)" : $column;
 
                     switch ($fOp) {
                         case 'eq':

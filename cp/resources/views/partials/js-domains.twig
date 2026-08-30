@@ -126,7 +126,9 @@
         columns:[
             {formatter:"responsiveCollapse", width:40, minWidth:40, hozAlign:"center", resizable:false, headerSort:false, responsive:0},
             {title:"{{ __('Name') }}", field:"name", minWidth:100, resizable:false, headerSort:true, formatter: domainLinkFormatter, responsive:0},
+            {% if minimum_data == 'false' %}
             {title:"{{ __('Registrant') }}", minWidth:200, field:"registrant_identifier", resizable:false, headerSort:true, responsive:2},
+            {% endif %}
             {title:"{{ __('Creation Date') }}", width:250, minWidth:150, field:"crdate", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Expiration Date') }}", width:250, minWidth:150, field:"exdate", resizable:false, headerSort:true, responsive:2},
             {title:"{{ __('Status') }}", width:150, field:"domain_status", formatter: statusFormatter, resizable:false, headerSort:true, download:false, responsive:2},
