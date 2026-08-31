@@ -151,13 +151,7 @@ We appreciate your involvement and patience as Namingo continues to grow and ada
 
 ## Acknowledgements
 
-Special thanks to **XPanel Ltd** for their inspirational work on [XPanel Registry](https://github.com/XPanel/epp). Their project, licensed under the Apache 2.0 License (© 2017 XPanel Ltd), has been a key inspiration for Namingo. We've incorporated elements and certain code parts from XPanel Registry, which have been significantly rewritten in our project.
-
-Additionally, we extend our gratitude to:
-- **ChatGPT** for invaluable assistance with code and text writing.
-- [Slim Framework 4 Starter App](https://github.com/hezecom/slim-starter) which served as the foundation for our control panel.
-- [Tabler](https://tabler.io/), whose elegant and intuitive interface design has greatly influenced the user experience of Namingo.
-- [ActiveCampaign/postmark-templates](https://github.com/ActiveCampaign/postmark-templates) and [leemunroe/responsive-html-email-template](https://github.com/leemunroe/responsive-html-email-template), for providing great email templates.
+Thanks to [**XPanel Registry**](https://github.com/XPanel/epp) by **XPanel Ltd** (Apache 2.0, © 2017 XPanel Ltd), whose work inspired parts of Namingo Registry and from which some code was adapted and substantially rewritten; to [**Slim Framework 4 Starter App**](https://github.com/hezecom/slim-starter) for serving as the foundation of the control panel; to [**Tabler**](https://tabler.io/) for UI inspiration; and to **ChatGPT** for assistance with code and documentation.
 
 ## Support This Project
 

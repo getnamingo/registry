@@ -181,15 +181,63 @@ Open `config.php` and adjust all necessary settings to suit your system's requir
 
 #### 1.4.2. Configuring the Message Broker
 
-You can easily configure the message broker for email delivery in ```config.php```. It is compatible with SendGrid, Mailgun API, and PHPMailer for those opting to use their own SMTP server. All necessary settings are conveniently located under the mailer_ lines within the file.
+The Message Broker handles email delivery for the Namingo Registry. It supports SendGrid, the Mailgun API, and PHPMailer for delivery through your own SMTP server.
 
-For establishing your own mail server, both [Mox](https://github.com/mjl-/mox) and [Stalwart](https://stalw.art/) offer comprehensive solutions. You can install Mox by following its GitHub instructions, or Stalwart by referring to its official site. Once installed, enter the required details in the ```config.php``` file to complete the setup.
+Configuration is split between:
 
-To run the Message Broker, execute the following commands:
+- `config.php` for the Message Broker settings.
+- `/var/www/cp/.env` for the Control Panel integration.
+
+##### Configure email delivery
+
+Edit `config.php` and configure the appropriate `mailer_` settings for your preferred delivery method. Edit `/var/www/cp/.env` and configure the appropriate `MAIL_` settings.
+
+If you want to operate your own mail server, [Mox](https://github.com/mjl-/mox) and [Stalwart](https://stalw.art/) are both good options. Install and configure the mail server first, then enter its SMTP details in `config.php`.
+
+##### Configure the Message Broker API token
+
+The Message Broker and Control Panel must share the same API token.
+
+Generate a secure token once:
+
+```bash
+php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+```
+
+Copy the generated value and configure it in both locations.
+
+In `/var/www/cp/.env`, add or update:
+
+```ini
+MSG_API_TOKEN=your_generated_token
+```
+
+In `config.php`, set the same value for:
+
+```php
+'msg_api_token' => 'your_generated_token',
+```
+
+After modifying `/var/www/cp/.env`, clear the Control Panel cache:
+
+```bash
+php /var/www/cp/bin/clear_cache.php
+```
+
+##### Start the Message Broker
+
+Once the configuration is complete, start the producer and worker services:
 
 ```bash
 systemctl start msg_producer
 systemctl start msg_worker
+```
+
+To start them automatically at boot:
+
+```bash
+systemctl enable msg_producer
+systemctl enable msg_worker
 ```
 
 #### 1.4.3. Setting Up an Audit Trail Database for Namingo
@@ -204,35 +252,59 @@ This will initialize and configure the audit trail functionality. This process e
 
 **Currently, the audit trail setup for Namingo is supported only with MariaDB databases. If you're using PostgreSQL, you'll need to utilize an external tool for audit logging, such as [pgMemento](https://github.com/pgMemento/pgMemento), which provides detailed audit logging capabilities tailored for PostgreSQL environments.**
 
-#### 1.4.4. Setup Backup
+#### 1.4.4. Setting Up Backups
 
-The default backup system in Namingo is based on `phpbu`, which is well-suited for **small to medium databases** and multi-purpose PHP-driven automation. It supports database backups, file system snapshots, remote uploads (e.g., SFTP), and more, using customizable JSON configuration files.
+Namingo Registry uses [`phpbu`](https://phpbu.de/) for automated backups. It is well suited for small to medium-sized installations and supports database dumps, file backups, compression, retention policies, integrity checks, and synchronization to remote storage such as SFTP servers.
 
-**Step-by-Step Setup:**
+##### Configure backups
 
-1. Rename `/opt/registry/automation/backup.json.dist` and `/opt/registry/automation/backup-upload.json.dist` to `backup.json` and `backup-upload.json`, respectively. 
-
-2. Edit both files to include the correct database and other required details. If using SFTP for uploads with just username and password, make sure you check `backup_upload.php` for which values you need to set to `null` in `backup-upload.json`.
-
-3. Enable the backup functionality in `cron.php`.
-
-4. Follow the instructions in section **1.4.8. Running the Automation System** to activate the automation system on your server.
-
-##### 1.4.4.1. Using mariabackup for Large MariaDB Databases
-
-For large or high-performance MariaDB deployments, you can replace the default `mariadb-dump`-based backup with `mariabackup`, which performs **physical (binary) backups** without downtime.
-
-**Step-by-Step Setup:**
-
-1. Install `mariabackup` (usually part of the MariaDB-server package or as `mariadb-backup`).
-
-2. Modify `backup.json` to use a `preExec` shell command that runs:
+1. Copy the default configuration file:
 
 ```bash
-mariabackup --backup --target-dir=/opt/registry/backups/mariadb --user=... --password=...
+cp /opt/registry/automation/backup.json.dist /opt/registry/automation/backup.json
 ```
 
-3. (Optional) Add a `postExec` command to compress the backup or prepare it for upload.
+2. Edit `/opt/registry/automation/backup.json` and configure the required database credentials, backup destination, retention policy, and optional remote synchronization.
+
+The provided file is intended as a starting point. For the complete list of available JSON configuration options, backup sources, checks, cleanup strategies, and synchronization methods, refer to the official [phpbu documentation](https://phpbu.de/manual/current/en/).
+
+3. Enable backup processing in `cron.php`.
+
+4. Follow section **1.4.8. Running the Automation System** to enable and start the Namingo automation services.
+
+It is strongly recommended to store at least one copy of your backups on a separate server or remote storage location rather than keeping all backups on the Registry server itself.
+
+##### Using `mariabackup` for Large MariaDB Databases
+
+For large or high-performance MariaDB deployments, you may replace the default `mariadb-dump` backup with [`mariabackup`](https://mariadb.com/docs/server/server-usage/backing-up-and-restoring-databases/mariadb-backup/), which creates physical backups of the database files and is better suited to larger datasets.
+
+Install `mariabackup`, usually provided by the `mariadb-backup` package, and configure `backup.json` to execute it using a `preExec` command, for example:
+
+```bash
+mariabackup --backup --target-dir=/opt/registry/backups/mariadb --user=backup --password=...
+```
+
+You can additionally use `postExec` commands to prepare, compress, archive, or transfer the resulting backup.
+
+For production deployments, use a dedicated MariaDB backup user with only the privileges required by `mariabackup`, and avoid storing database credentials directly in shell commands where possible.
+
+Refer to the official MariaDB Backup documentation for installation, backup preparation, restoration, incremental backups, and other advanced options.
+
+##### Using `pg_basebackup` for Large PostgreSQL Databases
+
+For large PostgreSQL deployments, [`pg_basebackup`](https://www.postgresql.org/docs/current/app-pgbasebackup.html) can be used instead of a logical `pg_dump` backup. It creates a physical backup of the entire PostgreSQL cluster and is suitable for larger databases and disaster-recovery scenarios.
+
+Configure `backup.json` to execute `pg_basebackup` using a `preExec` command, for example:
+
+```bash
+pg_basebackup -h localhost -U backup -D /opt/registry/backups/postgresql -Fp -Xs -P
+```
+
+You can use `postExec` commands to compress, archive, or transfer the resulting backup to remote storage.
+
+The PostgreSQL backup user must have the required replication permissions and access configured in PostgreSQL.
+
+Refer to the official PostgreSQL `pg_basebackup` documentation for authentication, replication permissions, WAL handling, compression, recovery, and other available options.
 
 #### 1.4.5. Setting Up Exchange Rate Download
 
