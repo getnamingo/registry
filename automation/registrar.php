@@ -75,38 +75,43 @@ try {
 function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $registryName) {
     global $c;
 
-    $message = "Dear " . $data['name'] . ",\n\n";
-
     switch ($case) {
         case 'low_balance':
             $subject = "Low balance alert for registrar: " . $data['clid'];
-            $message .= "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is below the minimum credit threshold of {$data['currency']} {$data['creditThreshold']}.\n\n";
+            $alertTitle = 'Low Balance Alert';
+            $alertMessage = "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is below the minimum credit threshold of {$data['currency']} {$data['creditThreshold']}.";
             break;
 
         case 'zero_balance':
             $subject = "Zero balance alert for registrar: " . $data['clid'];
-            $message .= "We have noticed that your account balance with us is currently zero. This means you are unable to use our services until the balance is topped up.\n\n";
+            $alertTitle = 'Zero Balance Alert';
+            $alertMessage = 'We have noticed that your account balance with us is currently zero. This means you are unable to use our services until the balance is topped up.';
             break;
 
         case 'over_limit':
             $subject = "Over limit alert for registrar: " . $data['clid'];
-            $message .= "Your account is currently past the credit limit. Immediate action is required to bring your account back into good standing and avoid service disruption.\n\n";
+            $alertTitle = 'Credit Limit Alert';
+            $alertMessage = 'Your account is currently past the credit limit. Immediate action is required to bring your account back into good standing and avoid service disruption.';
             break;
 
         default:
             $subject = "Alert for registrar: " . $data['clid'];
-            $message .= "This is a generic warning for registrar: " . $data['clid'];
+            $alertTitle = 'Account Alert';
+            $alertMessage = "This is a generic warning for registrar: {$data['clid']}.";
     }
 
-    $message .= "Important: To avoid any interruption in services, we recommend that you top up your account balance as soon as possible.\n\n";
-    $message .= "How to Top Up:\n";
-    $message .= "1. Log in to your account.\n";
-    $message .= "2. Navigate to the 'Financials' -> 'Add Deposit' section.\n";
-    $message .= "3. Follow the instructions to add funds.\n\n";
-    $message .= "If you have any questions or require assistance, please do not hesitate to contact us at $supportEmail or $supportPhoneNumber.\n\n";
-    $message .= "Thank you for your prompt attention to this matter.\n\n";
-    $message .= "Best regards,\n";
-    $message .= "$registryName's Billing Team";
+    $message = renderEmailTemplate(
+        'registrar.html',
+        [
+            'registry_name' => $registryName,
+            'registrar_name' => $data['name'],
+            'registrar_id' => $data['clid'],
+            'alert_title' => $alertTitle,
+            'alert_message' => $alertMessage,
+            'support_email' => $supportEmail,
+            'support_phone' => $supportPhoneNumber,
+        ]
+    );
 
     $toSend = [
         'type'    => 'sendmail',

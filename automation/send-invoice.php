@@ -171,27 +171,48 @@ try {
 
             // Prepare the email content
             $subject = "New Invoice Notification - " . $issueDate;
-            $body = "Dear " . $row['registrar_name'] . ",\n\n" .
-                    "We hope this message finds you well.\n\n" .
-                    "We are writing to inform you that a new invoice has been generated for the period of " . $issueDate . ". The details of the invoice are as follows:\n\n" .
-                    "- Invoice Number: " . $invoiceIdFormatted . "\n" .
-                    "- Issue Date: " . $issueDate . "\n" .
-                    "- Due Date: " . $dueDate . "\n" .
-                    "- Total Amount: " . $totalAmount . "\n\n";
+            $creditsSection = '';
 
             if ($refundTotal > 0) {
-                $body .= "- Credits This Period: -" . $refundTotal . "\n";
-                $body .= "  (Details below)\n\n";
-                $body .= $refundDetailsRaw . "\n\n";
+                $escapedRefundTotal = htmlspecialchars(
+                    (string)$refundTotal,
+                    ENT_QUOTES | ENT_SUBSTITUTE,
+                    'UTF-8'
+                );
+                $escapedRefundDetails = nl2br(
+                    htmlspecialchars(
+                        (string)$refundDetailsRaw,
+                        ENT_QUOTES | ENT_SUBSTITUTE,
+                        'UTF-8'
+                    ),
+                    false
+                );
+                $creditsSection = sprintf(
+                    '<div class="notice" style="margin:24px 0; padding:16px 18px; background-color:#f3f5f2; border-left:3px solid #70867d; border-radius:8px; color:#3f4743;">'
+                    . '<p><strong>Credits This Period:</strong> -%s</p>'
+                    . '<p class="muted" style="color:#737a75; font-size:14px;">(Details below)</p>'
+                    . '<p style="word-break:break-word;">%s</p>'
+                    . '</div>',
+                    $escapedRefundTotal,
+                    $escapedRefundDetails
+                );
             }
 
-            $body .= "The invoice is available in your account for review and payment. Please ensure that the payment is made by the due date to avoid any late fees or service interruptions.\n\n" .
-                     "Should you have any questions or require further assistance, please do not hesitate to contact us at {$supportEmail}.\n\n" .
-                     "Thank you for your prompt attention to this matter.\n\n" .
-                     "Warm regards,\n\n" .
-                     "{$registryName}\n" .
-                     "{$supportEmail}\n" .
-                     "{$supportPhoneNumber}";
+            $body = renderEmailTemplate(
+                'send-invoice.html',
+                [
+                    'registry_name' => $registryName,
+                    'registrar_name' => $row['registrar_name'],
+                    'issue_date' => $issueDate,
+                    'invoice_number' => $invoiceIdFormatted,
+                    'due_date' => $dueDate,
+                    'total_amount' => $totalAmount,
+                    'credits_section' => $creditsSection,
+                    'support_email' => $supportEmail,
+                    'support_phone' => $supportPhoneNumber,
+                ],
+                ['credits_section']
+            );
 
             // Prepare the data array for the cURL request
             $data = [
