@@ -16,6 +16,15 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+
+    $settingsStmt = $dbh->query("
+        SELECT name, value FROM settings
+        WHERE name IN ('email', 'phone', 'company_name')
+    ");
+    $settings = $settingsStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    $supportEmail = $settings['email'] ?? 'default-support@example.com';
+    $supportPhoneNumber = $settings['phone'] ?? '+1.23456789';
+    $registryName = $settings['company_name'] ?? 'Example Registry LLC';
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
     exit;
@@ -43,45 +52,61 @@ function getTicketsByUserRole($dbh, $userRoleMask, $userId = null)
 }
 
 // Generate HTML report for abuse tickets
-function generateReportHTML($tickets)
+function generateReportHTML(
+    $tickets,
+    $reportScope,
+    $registryName,
+    $supportEmail,
+    $supportPhoneNumber
+)
 {
-    $html = "<!DOCTYPE html>
-    <html>
-    <head>
-    <title>Abuse Report</title>
-    </head>
-    <body>
-    <h1>Abuse Report</h1>
-    <p>Report Date: " . date('Y-m-d H:i:s') . "</p>";
+    $escape = static function ($value): string {
+        return htmlspecialchars(
+            (string)($value ?? ''),
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8'
+        );
+    };
 
     if (empty($tickets)) {
-        $html .= "<p>No abuse cases found for the period.</p>";
+        $reportContent = '<div class="notice" style="margin:24px 0; padding:16px 18px; background-color:#f3f5f2; border-left:3px solid #70867d; border-radius:8px; color:#3f4743;">'
+            . '<p>No abuse cases found for the period.</p>'
+            . '</div>';
     } else {
-        $html .= "<table border='1'>
-        <tr>
-            <th>Reported Domain</th>
-            <th>Nature of Abuse</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Date of Incident</th>
-            <th>Date Reported</th>
-        </tr>";
+        $reportContent = '<h2>Cases</h2>';
 
         foreach ($tickets as $ticket) {
-            $html .= "<tr>
-                <td>" . htmlspecialchars($ticket['reported_domain']) . "</td>
-                <td>" . htmlspecialchars($ticket['nature_of_abuse']) . "</td>
-                <td>" . htmlspecialchars($ticket['status']) . "</td>
-                <td>" . htmlspecialchars($ticket['priority']) . "</td>
-                <td>" . htmlspecialchars($ticket['date_of_incident']) . "</td>
-                <td>" . htmlspecialchars($ticket['date_created']) . "</td>
-            </tr>";
+            $reportContent .= sprintf(
+                '<table role="presentation" class="details" width="100%%" cellspacing="0" cellpadding="0" border="0" style="width:100%%; margin:0 0 16px; background-color:#fafaf8; border:1px solid #e5e5df; border-radius:10px;">'
+                . '<tr><td style="padding:12px 14px; vertical-align:top; border-bottom:1px solid #e5e5df;">Reported Domain</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word; border-bottom:1px solid #e5e5df;"><strong>%s</strong></td></tr>'
+                . '<tr><td style="padding:12px 14px; vertical-align:top; border-bottom:1px solid #e5e5df;">Nature of Abuse</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word; border-bottom:1px solid #e5e5df;">%s</td></tr>'
+                . '<tr><td style="padding:12px 14px; vertical-align:top; border-bottom:1px solid #e5e5df;">Status</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word; border-bottom:1px solid #e5e5df;">%s</td></tr>'
+                . '<tr><td style="padding:12px 14px; vertical-align:top; border-bottom:1px solid #e5e5df;">Priority</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word; border-bottom:1px solid #e5e5df;">%s</td></tr>'
+                . '<tr><td style="padding:12px 14px; vertical-align:top; border-bottom:1px solid #e5e5df;">Date of Incident</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word; border-bottom:1px solid #e5e5df;">%s</td></tr>'
+                . '<tr><td style="padding:12px 14px; vertical-align:top;">Date Reported</td><td style="padding:12px 14px; vertical-align:top; word-break:break-word;">%s</td></tr>'
+                . '</table>',
+                $escape($ticket['reported_domain']),
+                $escape($ticket['nature_of_abuse']),
+                $escape($ticket['status']),
+                $escape($ticket['priority']),
+                $escape($ticket['date_of_incident']),
+                $escape($ticket['date_created'])
+            );
         }
-        $html .= "</table>";
     }
-    
-    $html .= "</body></html>";
-    return $html;
+
+    return renderEmailTemplate(
+        'abusereport.html',
+        [
+            'registry_name' => $registryName,
+            'report_scope' => $reportScope,
+            'report_date' => date('Y-m-d H:i:s'),
+            'report_content' => $reportContent,
+            'support_email' => $supportEmail,
+            'support_phone' => $supportPhoneNumber,
+        ],
+        ['report_content']
+    );
 }
 
 // Send email via internal API
@@ -134,7 +159,13 @@ try {
         
         while ($user = $users->fetch()) {
             $tickets = getTicketsByUserRole($dbh, $role['role'], $user['id']);
-            $htmlContent = generateReportHTML($tickets);
+            $htmlContent = generateReportHTML(
+                $tickets,
+                $role['message'],
+                $registryName,
+                $supportEmail,
+                $supportPhoneNumber
+            );
             $subject = "Abuse Report - {$role['message']}";
 
             if (sendEmail($user['email'], $subject, $htmlContent)) {

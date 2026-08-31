@@ -797,3 +797,58 @@ function isSecureAuthInfoTransferEnabled(PDO $pdo): bool
 {
     return isSettingEnabled($pdo, 'secureAuthInfoTransfer');
 }
+
+/**
+ * Render an HTML email template from automation/templates.
+ *
+ * Replacement keys are written without braces. Values are HTML-escaped unless
+ * their key is explicitly included in $rawKeys. Raw values must be assembled
+ * from trusted markup with every dynamic value escaped by the caller.
+ */
+function renderEmailTemplate(
+    string $templateName,
+    array $replacements,
+    array $rawKeys = []
+): string {
+    $templatePath = __DIR__ . '/templates/' . basename($templateName);
+
+    if (!is_readable($templatePath)) {
+        throw new RuntimeException("Email template is not readable: {$templateName}");
+    }
+
+    $template = file_get_contents($templatePath);
+
+    if ($template === false) {
+        throw new RuntimeException("Unable to load email template: {$templateName}");
+    }
+
+    $rawKeyMap = array_fill_keys($rawKeys, true);
+    $values = [];
+
+    foreach ($replacements as $key => $value) {
+        if (!preg_match('/^[a-z][a-z0-9_]*$/i', (string)$key)) {
+            throw new InvalidArgumentException("Invalid email template key: {$key}");
+        }
+
+        $value = (string)$value;
+        $values['{' . $key . '}'] = isset($rawKeyMap[$key])
+            ? $value
+            : htmlspecialchars(
+                $value,
+                ENT_QUOTES | ENT_SUBSTITUTE,
+                'UTF-8'
+            );
+    }
+
+    preg_match_all('/\{[a-z][a-z0-9_]*\}/i', $template, $matches);
+
+    foreach (array_unique($matches[0]) as $tag) {
+        if (!array_key_exists($tag, $values)) {
+            throw new RuntimeException(
+                "Missing replacement for email template tag: {$tag}"
+            );
+        }
+    }
+
+    return strtr($template, $values);
+}
