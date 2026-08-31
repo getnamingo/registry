@@ -660,6 +660,11 @@ rm composer-setup.php
 mv composer.phar /usr/local/bin/composer
 echo 'Composer installed'
 
+log "Installing phpBU"
+curl -fsSL https://github.com/sebastianfeldmann/phpbu/releases/latest/download/phpbu.phar -o /tmp/phpbu.phar
+chmod +x /tmp/phpbu.phar
+mv /tmp/phpbu.phar /usr/local/bin/phpbu
+
 cd /var/www/cp
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --quiet
 

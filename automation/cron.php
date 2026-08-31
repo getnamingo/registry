@@ -7,7 +7,6 @@ $config = require '/opt/registry/automation/config.php';
 $cronJobConfig = [
     'accounting' => $config['cron_accounting'] ?? false,
     'backup' => $config['cron_backup'] ?? false,
-    'backup_upload' => $config['cron_backup_upload'] ?? false,
     'gtld_mode' => $config['cron_gtld_mode'] ?? false,
     'spec11' => $config['cron_spec11'] ?? false,
     'spec11_iq' => $config['cron_spec11_iq'] ?? false,
@@ -34,11 +33,7 @@ if ($cronJobConfig['accounting']) {
 }
 
 if ($cronJobConfig['backup']) {
-    $scheduler->raw('/opt/registry/automation/vendor/bin/phpbu --configuration=/opt/registry/automation/backup.json')->at('15 * * * *');
-}
-
-if ($cronJobConfig['backup_upload']) {
-    $scheduler->php('/opt/registry/automation/backup-upload.php')->at('30 * * * *');
+    $scheduler->raw('phpbu --configuration=/opt/registry/automation/backup.json')->at('15 * * * *');
 }
 
 if ($cronJobConfig['spec11']) {

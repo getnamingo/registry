@@ -222,6 +222,13 @@ mkdir -p /var/log/namingo
 chown -R www-data:www-data /var/log/namingo
 ```
 
+Install phpBU:
+
+```bash
+curl -fsSL https://github.com/sebastianfeldmann/phpbu/releases/latest/download/phpbu.phar -o /usr/local/bin/phpbu
+chmod +x /usr/local/bin/phpbu
+```
+
 ## 5. Configuring UFW Firewall:
 
 To securely set up the UFW (Uncomplicated Firewall) for your registry, follow these commands:

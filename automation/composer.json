@@ -6,7 +6,6 @@
         "ext-redis": "*",
         "badcow/dns": "^4.3",
         "phpseclib/phpseclib": "^3.0.55",
-        "phpbu/phpbu": "^6.0.33",
         "setbased/php-audit": "^1.11.0",
         "monolog/monolog": "^3.10.0",
         "filips123/monolog-phpmailer": "^2.0",

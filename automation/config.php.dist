@@ -127,7 +127,6 @@ return [
     // Cron / Automation Configuration
     'cron_accounting' => false,       // Enable or disable accounting (invoice generation)
     'cron_backup' => false,           // Enable or disable backups
-    'cron_backup_upload' => false,    // Enable or disable backup upload to remote storage
     'cron_gtld_mode' => false,        // Enable or disable gTLD-related automation (TMCH, LORDN, URS, escrow, reporting)
     'cron_spec11' => false,           // Enable or disable ICANN Spec 11 abuse monitoring and reporting
     'cron_spec11_iq' => false,        // Enable or disable ICANN Spec 11 abuse monitoring and reporting (iq.global)

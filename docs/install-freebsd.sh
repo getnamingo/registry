@@ -806,6 +806,10 @@ ACTUAL_SIGNATURE=$(/usr/local/bin/php -r "echo hash_file('sha384', '$TMP_DIR/com
 /usr/local/bin/php "$TMP_DIR/composer-setup.php" --quiet --install-dir=/usr/local/bin --filename=composer
 chmod 0755 "$COMPOSER_BIN"
 
+log "Installing phpBU"
+curl -fsSL https://github.com/sebastianfeldmann/phpbu/releases/latest/download/phpbu.phar -o "$TMP_DIR/phpbu.phar"
+install -m 0755 "$TMP_DIR/phpbu.phar" /usr/local/bin/phpbu
+
 log "Installing Adminer"
 install -d -m 0755 /usr/local/share/adminer
 curl -fsSLo "/usr/local/share/adminer/${ADMINER_SLUG}" https://www.adminer.org/latest.php
