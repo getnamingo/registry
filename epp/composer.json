@@ -2,6 +2,7 @@
     "require": {
         "php": "^8.3",
         "ext-pdo": "*",
+        "ext-openssl": "*",
         "ext-swoole": "*",
         "monolog/monolog": "^3.10.0",
         "filips123/monolog-phpmailer": "^2.0",

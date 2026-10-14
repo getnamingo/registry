@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Domain;
+use App\Lib\Dnssec;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Container\ContainerInterface;
@@ -158,15 +159,12 @@ class DomainsController extends Controller
             $nameserver_ipv4 = !empty($data['nameserver_ipv4']) ? $data['nameserver_ipv4'] : null;
             $nameserver_ipv6 = !empty($data['nameserver_ipv6']) ? $data['nameserver_ipv6'] : null;
 
-            $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
-            $dsAlg = $data['dsAlg'] ?? null;
-            $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
-            $dsDigest = $data['dsDigest'] ?? null;
-
-            $dnskeyFlags = $data['dnskeyFlags'] ?? null;
-            $dnskeyProtocol = $data['dnskeyProtocol'] ?? null;
-            $dnskeyAlg = $data['dnskeyAlg'] ?? null;
-            $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
+            try {
+                $dnssecRecord = Dnssec::fromForm($data, $domainName);
+            } catch (\InvalidArgumentException | \RuntimeException $e) {
+                $this->container->get('flash')->addMessage('error', $e->getMessage());
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
+            }
 
             $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             if ($secureAuthInfoTransfer && $authInfo === null) {
@@ -806,95 +804,10 @@ class DomainsController extends Controller
                     }
                 }
                 
-                // Data sanity checks
-                // Validate keyTag
-                if (!empty($dsKeyTag)) {
-                    if (!is_int($dsKeyTag)) {
-                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                    }
-                
-                    if ($dsKeyTag < 0 || $dsKeyTag > 65535) {
-                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                    }
-                }
-
-                // Validate alg
-                $validAlgorithms = [8, 13, 14, 15, 16];
-                if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete algorithm provided');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-
-                // Validate digestType and digest
-                if (!empty($dsDigestType) && !is_int($dsDigestType)) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Incomplete digest type provided');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-                $validDigests = [
-                2 => 64,  // SHA-256
-                4 => 96   // SHA-384
-                ];
-                if (!empty($dsDigest)) {
-                    if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
-                        $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid digest length or format');
-                        return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                    }
-                }
-
-                // Data sanity checks for keyData
-                // Validate flags
-                $validFlags = [256, 257];
-                if (!empty($dnskeyFlags) && !in_array($dnskeyFlags, $validFlags)) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid flags provided');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-
-                // Validate protocol
-                if (!empty($dnskeyProtocol) && $dnskeyProtocol != 3) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid protocol provided');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-
-                // Validate algKeyData
-                if (!empty($dnskeyAlg)) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid algorithm encoding');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-
-                // Validate pubKey
-                if (!empty($dnskeyPubKey) && base64_encode(base64_decode($dnskeyPubKey, true)) !== $dnskeyPubKey) {
-                    $this->container->get('flash')->addMessage('error', 'Error creating domain: Invalid public key encoding');
-                    return $response->withHeader('Location', '/domain/create')->withStatus(302);
-                }
-
-                if (!empty($dsKeyTag)) {
-                    // Base data for the insert
-                    $insertData = [
+                if ($dnssecRecord !== null) {
+                    $db->insert('secdns', array_merge($dnssecRecord, [
                         'domain_id' => $domain_id,
-                        'maxsiglife' => $maxSigLife,
-                        'interface' => 'dsData',
-                        'keytag' => $dsKeyTag,
-                        'alg' => $dsAlg,
-                        'digesttype' => $dsDigestType,
-                        'digest' => $dsDigest,
-                        'flags' => null,
-                        'protocol' => null,
-                        'keydata_alg' => null,
-                        'pubkey' => null
-                    ];
-
-                    // Check additional conditions for dnskeyFlags
-                    if (isset($dnskeyFlags) && $dnskeyFlags !== "") {
-                        $insertData['flags'] = $dnskeyFlags;
-                        $insertData['protocol'] = $dnskeyProtocol;
-                        $insertData['keydata_alg'] = $dnskeyAlg;
-                        $insertData['pubkey'] = $dnskeyPubKey;
-                    }
-
-                    // Perform the insert
-                    $db->insert('secdns', $insertData);
+                    ]));
                 }
                 
                 if (!debitRegistrarBalance($db, (int)$clid, $price)) {
@@ -1573,16 +1486,13 @@ class DomainsController extends Controller
             
             $nameservers = $data['nameserver'] ?? [];
 
-            $dsKeyTag = isset($data['dsKeyTag']) ? (int)$data['dsKeyTag'] : null;
-            $dsAlg = $data['dsAlg'] ?? null;
-            $dsDigestType = isset($data['dsDigestType']) ? (int)$data['dsDigestType'] : null;
-            $dsDigest = $data['dsDigest'] ?? null;
-            
-            $dnskeyFlags = $data['dnskeyFlags'] ?? null;
-            $dnskeyProtocol = $data['dnskeyProtocol'] ?? null;
-            $dnskeyAlg = $data['dnskeyAlg'] ?? null;
-            $dnskeyPubKey = $data['dnskeyPubKey'] ?? null;
-            
+            try {
+                $dnssecRecord = Dnssec::fromForm($data, $domainName);
+            } catch (\InvalidArgumentException | \RuntimeException $e) {
+                $this->container->get('flash')->addMessage('error', $e->getMessage());
+                return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
+            }
+
             $authInfo = isset($data['authInfo']) && is_string($data['authInfo']) ? $data['authInfo'] : null;
             
             if ($contactRegistrant) {
@@ -1789,95 +1699,10 @@ class DomainsController extends Controller
                     }
                 }
                 
-                // Data sanity checks
-                // Validate keyTag
-                if (!empty($dsKeyTag)) {
-                    if (!is_int($dsKeyTag)) {
-                        $this->container->get('flash')->addMessage('error', 'Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                
-                    if ($dsKeyTag < 0 || $dsKeyTag > 65535) {
-                        $this->container->get('flash')->addMessage('error', 'Incomplete key tag provided');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                }
-
-                // Validate alg
-                $validAlgorithms = [8, 13, 14, 15, 16];
-                if (!empty($dsAlg) && !in_array($dsAlg, $validAlgorithms)) {
-                    $this->container->get('flash')->addMessage('error', 'Incomplete algorithm provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate digestType and digest
-                if (!empty($dsDigestType) && !is_int($dsDigestType)) {
-                    $this->container->get('flash')->addMessage('error', 'Incomplete digest type provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-                $validDigests = [
-                    2 => 64,  // SHA-256
-                    4 => 96   // SHA-384
-                ];
-                if (!empty($dsDigest)) {
-                    if (strlen($dsDigest) != $validDigests[$dsDigestType] || !ctype_xdigit($dsDigest)) {
-                        $this->container->get('flash')->addMessage('error', 'Invalid digest length or format');
-                        return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                    }
-                }
-
-                // Data sanity checks for keyData
-                // Validate flags
-                $validFlags = [256, 257];
-                if (!empty($dnskeyFlags) && !in_array($dnskeyFlags, $validFlags)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid flags provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate protocol
-                if (!empty($dnskeyProtocol) && $dnskeyProtocol != 3) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid protocol provided');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate algKeyData
-                if (!empty($dnskeyAlg)) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid algorithm encoding');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                // Validate pubKey
-                if (!empty($dnskeyPubKey) && base64_encode(base64_decode($dnskeyPubKey, true)) !== $dnskeyPubKey) {
-                    $this->container->get('flash')->addMessage('error', 'Invalid public key encoding');
-                    return $response->withHeader('Location', '/domain/update/'.$domainName)->withStatus(302);
-                }
-
-                if (!empty($dsKeyTag)) {
-                    // Base data for the insert
-                    $insertData = [
+                if ($dnssecRecord !== null) {
+                    $db->insert('secdns', array_merge($dnssecRecord, [
                         'domain_id' => $domain_id,
-                        'maxsiglife' => $maxSigLife,
-                        'interface' => 'dsData',
-                        'keytag' => $dsKeyTag,
-                        'alg' => $dsAlg,
-                        'digesttype' => $dsDigestType,
-                        'digest' => $dsDigest,
-                        'flags' => null,
-                        'protocol' => null,
-                        'keydata_alg' => null,
-                        'pubkey' => null
-                    ];
-
-                    // Check additional conditions for dnskeyFlags
-                    if (isset($dnskeyFlags) && $dnskeyFlags !== "") {
-                        $insertData['flags'] = $dnskeyFlags;
-                        $insertData['protocol'] = $dnskeyProtocol;
-                        $insertData['keydata_alg'] = $dnskeyAlg;
-                        $insertData['pubkey'] = $dnskeyPubKey;
-                    }
-
-                    // Perform the insert
-                    $db->insert('secdns', $insertData);
+                    ]));
                 }
    
                 foreach ($nameservers as $index => $nameserver) {

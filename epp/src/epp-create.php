@@ -650,7 +650,7 @@ function processHostCreate($conn, $db, $xml, $clid, $database_type, $trans) {
 
 }
 
-function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data, $ns_mode) {
+function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $minimum_data, $ns_mode, int $dnssecDigestType = 2) {
     $statementPeriodColumns = $database_type === 'pgsql' ? '"fromS","toS"' : 'fromS,toS';
     $domainName = $xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create->name;
     $clTRID = (string) $xml->command->clTRID;
@@ -1838,7 +1838,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             }
 
             $secDNSDataSet = $xml->xpath('//secDNS:dsData') ?? [];
-            $keyDataSet    = $xml->xpath('//secDNS:keyData') ?? [];
+            $keyDataSet    = $xml->xpath('//secDNS:create/secDNS:keyData') ?? [];
 
             if (!empty($secDNSDataSet) && !empty($keyDataSet)) {
                 $db->rollBack();
@@ -1877,7 +1877,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     }
 
                     // Validate alg
-                    $validAlgorithms = [8, 13, 14, 15, 16];
+                    $validAlgorithms = dnssec_algorithms();
                     if (!isset($alg) || !in_array($alg, $validAlgorithms)) {
                         $db->rollBack();
                         sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
@@ -1890,10 +1890,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         sendEppError($conn, $db, 2005, 'Invalid digestType', $clTRID, $trans);
                         return;
                     }
-                    $validDigests = [
-                    2 => 64,  // SHA-256
-                    4 => 96   // SHA-384
-                    ];
+                    $validDigests = dnssec_digest_lengths();
                     if (!isset($validDigests[$digestType])) {
                         $db->rollBack();
                         sendEppError($conn, $db, 2004, 'Unsupported digestType', $clTRID, $trans);
@@ -1934,7 +1931,7 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         }
 
                         // Validate algKeyData
-                        $validAlgorithms = [8, 13, 14, 15, 16];
+                        $validAlgorithms = dnssec_algorithms();
                         if (!in_array($algKeyData, $validAlgorithms, true)) {
                             $db->rollBack();
                             sendEppError($conn, $db, 2005, 'Invalid algKeyData encoding', $clTRID, $trans);
@@ -1942,9 +1939,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         }
 
                         // Validate pubKey
-                        if (isset($pubKey) && base64_encode(base64_decode($pubKey, true)) !== $pubKey) {
+                        try {
+                            $pubKey = base64_encode(dnssec_decode_key($pubKey, $algKeyData));
+                        } catch (InvalidArgumentException $e) {
                             $db->rollBack();
-                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                            sendEppError($conn, $db, 2005, 'Invalid pubKey encoding or length', $clTRID, $trans);
                             return;
                         }
                     }
@@ -1999,27 +1998,35 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                         sendEppError($conn, $db, 2004, 'Invalid protocol', $clTRID, $trans);
                         return;
                     }
-                    $validKeyAlgs = [8, 13, 14, 15, 16];
+                    $validKeyAlgs = dnssec_algorithms();
                     if (!in_array($algKeyData, $validKeyAlgs, true)) {
                         $db->rollBack();
                         sendEppError($conn, $db, 2004, 'Invalid algorithm', $clTRID, $trans);
                         return;
                     }
 
-                    $pubBin = base64_decode($pubKey, true);
+                    try {
+                        $pubBin = dnssec_decode_key($pubKey, $algKeyData);
+                        $pubKey = base64_encode($pubBin);
+                    } catch (InvalidArgumentException $e) {
+                        $pubBin = false;
+                    }
                     if ($pubBin === false) {
                         $db->rollBack();
-                        sendEppError($conn, $db, 2005, 'Invalid pubKey encoding', $clTRID, $trans);
+                        sendEppError($conn, $db, 2005, 'Invalid pubKey encoding or length', $clTRID, $trans);
                         return;
                     }
 
-                    // --- compute DS from keyData
-                    $ownerWire = dns_name_to_wire($domainName . '.');
-                    $dnskeyRdata = pack('nCC', $flags, $protocol, $algKeyData) . $pubBin;
-                    $keyTag = dnskey_rdata_keytag($dnskeyRdata);
-
-                    $digestType = 2; // SHA-256
-                    $digest = strtoupper(hash('sha256', $ownerWire . $dnskeyRdata));
+                    try {
+                        $derived = dnssec_derive_ds($domainName, $flags, $protocol, $algKeyData, $pubKey, $dnssecDigestType);
+                    } catch (\RuntimeException | \InvalidArgumentException $e) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2400, 'Unable to derive DS record: ' . $e->getMessage(), $clTRID, $trans);
+                        return;
+                    }
+                    $keyTag = $derived['keytag'];
+                    $digestType = $derived['digesttype'];
+                    $digest = $derived['digest'];
 
                     $stmt = $db->prepare("INSERT INTO secdns (domain_id, maxsiglife, interface, keytag, alg, digesttype, digest, flags, protocol, keydata_alg, pubkey)
                                           VALUES (:domain_id, :maxsiglife, :interface, :keytag, :alg, :digesttype, :digest, :flags, :protocol, :keydata_alg, :pubkey)");

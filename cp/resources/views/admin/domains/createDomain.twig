@@ -266,6 +266,8 @@
                                       <option value="14">14: ECDSA Curve P-384 with SHA-384</option>
                                       <option value="15">15: Ed25519</option>
                                       <option value="16">16: Ed448</option>
+                                      <option value="17">17: SM2SM3</option>
+                                      <option value="18">18: ML-DSA-44</option>
                                     </select>
                                   </div>
                                   <div class="col-sm-4 col-md-4">
@@ -273,6 +275,7 @@
                                       <option value="" disabled selected>{{ __('Select Digest Type') }}</option>
                                       <option value="2">2: SHA-256</option>
                                       <option value="4">4: SHA-384</option>
+                                      <option value="6">6: SM3</option>
                                     </select>
                                   </div>
                                   <div class="col-sm-12 col-md-12">
@@ -295,10 +298,19 @@
                                       <option value="14">14: ECDSA Curve P-384 with SHA-384</option>
                                       <option value="15">15: Ed25519</option>
                                       <option value="16">16: Ed448</option>
+                                      <option value="17">17: SM2SM3</option>
+                                      <option value="18">18: ML-DSA-44</option>
                                     </select>
                                   </div>
                                   <div class="col-sm-12 col-md-12">
-                                    <input type="text" class="form-control mb-2" placeholder="{{ __('Public Key') }}" name="dnskeyPubKey">
+                                    <textarea class="form-control mb-2" rows="4" placeholder="{{ __('Public Key (Base64)') }}" name="dnskeyPubKey" maxlength="16384"></textarea>
+                                    <label class="form-label" for="dnskeyDigestType">{{ __('Digest for DNSKEY-only submission') }}</label>
+                                    <select class="form-select mb-2" name="dnskeyDigestType" id="dnskeyDigestType">
+                                      <option value="2">2: SHA-256</option>
+                                      <option value="4">4: SHA-384</option>
+                                      <option value="6">6: SM3</option>
+                                    </select>
+                                    <small class="form-hint">{{ __('For DNSKEY-only submission, use flags 257. Leave the DS fields empty to calculate the DS record.') }}</small>
                                   </div>
                                 </div>
                                 {% if launch_phases == 'on' %}<hr />{% endif %}

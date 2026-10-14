@@ -57,13 +57,39 @@ install_phpbu() {
     log "phpBU installed successfully"
 }
 
+# Idempotent widening for ML-DSA-44 Base64 keys and unsigned DNSSEC key tags.
+upgrade_dnssec_schema() {
+    database=${NAMINGO_DB_MAIN:-${NAMINGO_DB_NAME:-registry}}
+    case "$NAMINGO_DB_DRIVER" in
+        mariadb)
+            require_command mariadb
+            MYSQL_PWD=$NAMINGO_DB_PASSWORD mariadb \
+                --host="$NAMINGO_DB_HOST" --port="$NAMINGO_DB_PORT" \
+                --user="$NAMINGO_DB_USER" --database="$database" <<'SQL'
+ALTER TABLE secdns MODIFY COLUMN pubkey TEXT DEFAULT NULL;
+SQL
+            ;;
+        pgsql)
+            require_command psql
+            PGPASSWORD=$NAMINGO_DB_PASSWORD psql \
+                --host="$NAMINGO_DB_HOST" --port="$NAMINGO_DB_PORT" \
+                --username="$NAMINGO_DB_USER" --dbname="$database" \
+                -v ON_ERROR_STOP=1 <<'SQL'
+ALTER TABLE secdns ALTER COLUMN pubkey TYPE text;
+ALTER TABLE secdns ALTER COLUMN keytag TYPE integer;
+SQL
+            ;;
+        *) die "Unsupported database driver: $NAMINGO_DB_DRIVER" ;;
+    esac
+}
+
 case "$PHASE" in
     pre)
         install_phpbu
         ;;
 
     post)
-        # No post-upgrade actions are required for v1.0.34.
+        upgrade_dnssec_schema
         ;;
 
     *)

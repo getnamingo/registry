@@ -480,7 +480,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`secdns` (
     `flags` smallint(5) unsigned default NULL,
     `protocol` smallint(5) unsigned default NULL,
     `keydata_alg` tinyint(3) unsigned default NULL,
-    `pubkey` varchar(255) default NULL,
+    `pubkey` text default NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniquekey` (`domain_id`,`digest`),
     CONSTRAINT `secdns_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domain` (`id`) ON DELETE RESTRICT

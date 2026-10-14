@@ -429,14 +429,14 @@ CREATE TABLE secdns (
      "domain_id" int CHECK ("domain_id" >= 0) NOT NULL,
      "maxsiglife" int CHECK ("maxsiglife" >= 0) default '604800',
      "interface" varchar CHECK ("interface" IN ( 'dsData','keyData' )) NOT NULL default 'dsData',
-     "keytag" smallint CHECK ("keytag" >= 0) NOT NULL,
+     "keytag" integer CHECK ("keytag" BETWEEN 0 AND 65535) NOT NULL,
      "alg"  smallint CHECK ("alg" >= 0) NOT NULL default '5',
      "digesttype"  smallint CHECK ("digesttype" >= 0) NOT NULL default '1',
      "digest"   varchar(96) NOT NULL,
      "flags" smallint CHECK ("flags" >= 0) default NULL,
      "protocol" smallint CHECK ("protocol" >= 0) default NULL,
      "keydata_alg"  smallint CHECK ("keydata_alg" >= 0) default NULL,
-     "pubkey"   varchar(255) default NULL,
+     "pubkey"   text default NULL,
      unique ("domain_id", "digest") 
 );
 
