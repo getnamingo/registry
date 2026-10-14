@@ -720,7 +720,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans);
+                    processDomainUpdate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, (int)($c['dnssec_keydata_digest_type'] ?? 2));
                     return;
                 }
                     
@@ -736,7 +736,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null);
+                    processDomainCreate($conn, $pdo, $xml, $data['clid'], $c['db_type'], $trans, $c['minimum_data'], $c['ns_mode'] ?? null, (int)($c['dnssec_keydata_digest_type'] ?? 2));
                     return;
                 }
                     
