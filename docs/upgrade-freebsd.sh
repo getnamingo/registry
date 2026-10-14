@@ -7,7 +7,7 @@ set -eu
 # Supported OS: FreeBSD 15.1-RELEASE (including patch levels).
 #
 # v1.0.32 predates the VERSION marker and is handled as a one-time
-# bootstrap case. Starting with v1.0.33, upgrades are driven by VERSION
+# bootstrap case. Starting with v1.0.34, upgrades are driven by VERSION
 # plus optional docs/migrations/X.Y.Z.sh scripts, matching the Linux
 # universal upgrader as closely as FreeBSD permits.
 
