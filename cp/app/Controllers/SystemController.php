@@ -11,6 +11,13 @@ use Ramsey\Uuid\Uuid;
 
 class SystemController extends Controller
 {
+    /**
+     * Devanagari IDN table (second level), based on ICANN's Reference LGR for the
+     * Devanagari script (version 1, 2020-12-15): repertoire, whole label evaluation
+     * rules, hyphen rules and no mixing of ASCII and Devanagari digits.
+     */
+    private const IDN_TABLE_DEVANAGARI = '/^(?!-)(?!..--)(?!.*(?:[0-9].*[\x{0966}-\x{096F}]|[\x{0966}-\x{096F}].*[0-9]))(?:\x{0931}\x{094D}[\x{092F}\x{0939}]|[\x{0915}-\x{0928}\x{092A}-\x{0930}\x{0932}\x{0933}\x{0935}-\x{0939}\x{097B}\x{097C}\x{097E}\x{097F}]|(?<!\x{094D})[\x{0905}-\x{090B}\x{090D}-\x{0914}\x{0972}-\x{0977}]|(?<=[\x{0915}-\x{0917}\x{091A}-\x{091C}\x{0921}\x{0922}\x{092B}\x{0906}\x{0913}\x{093E}\x{094B}])\x{093C}|(?:(?<=[\x{0915}-\x{0928}\x{092A}-\x{0930}\x{0932}\x{0933}\x{0935}-\x{0939}\x{097B}\x{097C}\x{097E}\x{097F}])|(?<=[\x{0915}-\x{0928}\x{092A}-\x{0930}\x{0932}\x{0933}\x{0935}-\x{0939}\x{097B}\x{097C}\x{097E}\x{097F}]\x{093C}))[\x{094D}\x{093A}\x{093B}\x{093E}-\x{0943}\x{0945}-\x{094C}\x{094F}\x{0956}\x{0957}]|(?<=[\x{0905}-\x{090B}\x{090D}-\x{0914}\x{0972}-\x{0977}\x{0915}-\x{0928}\x{092A}-\x{0930}\x{0932}\x{0933}\x{0935}-\x{0939}\x{097B}\x{097C}\x{097E}\x{097F}\x{093C}\x{093A}\x{093B}\x{093E}-\x{0943}\x{0945}-\x{094C}\x{094F}\x{0956}\x{0957}])[\x{0901}-\x{0903}]|[0-9\x{0966}-\x{096F}]|-)+(?<!-)$/u';
+
     public function settings(Request $request, Response $response)
     {
         if ($_SESSION["auth_roles"] != 0) {
@@ -338,6 +345,9 @@ class SystemController extends Controller
                     break;
                 case 'arabic':
                     $idntable = '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u';
+                    break;
+                case 'devanagari':
+                    $idntable = self::IDN_TABLE_DEVANAGARI;
                     break;
                 default:
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
@@ -876,6 +886,7 @@ class SystemController extends Controller
                     '/^[ぁ-んァ-ン一-龯々]+$/u' => 'Japanese',
                     '/^[가-힣]+$/u' => 'Korean',
                     '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'Arabic',
+                    self::IDN_TABLE_DEVANAGARI => 'Devanagari',
                 ];
 
                 $idnRegex = $tld['idn_table'];
@@ -1788,7 +1799,8 @@ class SystemController extends Controller
                 '/^[а-яА-ЯґҐєЄіІїЇѝЍћЋљЈ0-9ʼѫѣѭ]+$/u' => 'cyrillic',
                 '/^[ぁ-んァ-ン一-龯々0-9]+$/u' => 'japanese',
                 '/^[가-힣0-9]+$/u' => 'korean',
-                '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'arabic'
+                '/^(?!-)(?!.*--)[\x{0621}-\x{064A}\x{0660}-\x{0669}\x{0671}-\x{06D3}-]{1,63}(?<!-)$/u' => 'arabic',
+                self::IDN_TABLE_DEVANAGARI => 'devanagari'
             ];
 
             $idn_table_name = 'ascii'; // Default
@@ -1877,6 +1889,20 @@ class SystemController extends Controller
                         'Telephone'     => $phone,
                         'Website'       => 'www.example.com',
                         'Notes'         => 'This table describes codepoints allowed for the Arabic script.'
+                    ];
+                    break;
+                case 'devanagari':
+                    $idntable = self::IDN_TABLE_DEVANAGARI;
+                    $metadata = [
+                        'Registry'      => $company_name,
+                        'Script'        => 'deva',
+                        'Version'       => '1.0',
+                        'Effective Date'=> date('Y-m-d'),
+                        'Contact'       => $email,
+                        'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                        'Telephone'     => $phone,
+                        'Website'       => 'www.example.com',
+                        'Notes'         => 'This table describes codepoints allowed for the Devanagari script, based on the ICANN Reference LGR for Devanagari.'
                     ];
                     break;
                 default:

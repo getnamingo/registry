@@ -24,7 +24,7 @@ update_phases();
 CREATE TABLE domain_tld (
      "id" SERIAL PRIMARY KEY,
      "tld"   varchar(32) NOT NULL,
-     "idn_table"   varchar(255) NOT NULL,
+     "idn_table"   text NOT NULL,
      "secure"   SMALLINT NOT NULL,
      "launch_phase_id" INTEGER DEFAULT NULL,
      unique ("tld") 
