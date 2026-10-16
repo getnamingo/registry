@@ -1,14 +1,16 @@
 <?php
-/**
- * Voras Foundry
+
+/*
+ * Namingo Registry
  *
- * A modular PHP boilerplate for building SaaS applications, admin panels, and control systems.
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
  *
- * @package    App
- * @author     Voras Team <help@namingo.org>
- * @copyright  Copyright (c) 2026 Voras
- * @license    MIT License
- * @link       https://github.com/atriohq/foundry
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 namespace App\Lib;
@@ -67,7 +69,7 @@ class Mail
                 $mail->Body = $body;
                 $mail->send();
                 return true;
-            } catch (Exception $e) {
+            } catch (PHPMailerException $e) {
                 echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
                 return false;
             }
@@ -116,8 +118,6 @@ class Mail
             );
             $curlError = curl_error($curl);
             $curlErrno = curl_errno($curl);
-
-            curl_close($curl);
 
             if ($response === false) {
                 throw new \RuntimeException(

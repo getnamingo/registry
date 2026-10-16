@@ -1,18 +1,19 @@
 <?php
-/**
- * This file contains utility functions for Namingo Registry Control Panel.
+
+/*
+ * Namingo Registry
  *
- * Written and maintained by:
- * - Taras Kondratyuk (2023-2025)
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
  *
- * This file also incorporates functions by:
- * - Hezekiah O. <support@hezecom.com>
+ * Based in part on functions by
+ * Hezekiah O. <support@hezecom.com>
  *
- * @package    Namingo Panel
- * @author     Taras Kondratyuk
- * @copyright  2023-2025 Namingo
- * @license    MIT License
- * @version    1.0
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 use App\Security\PasswordHasher;

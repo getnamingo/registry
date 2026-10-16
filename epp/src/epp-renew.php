@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
     $statementPeriodColumns = $database_type === 'pgsql' ? '"fromS", "toS"' : 'fromS, toS';
     $domainName = (string) $xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew->name;

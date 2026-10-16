@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
@@ -1943,13 +1956,10 @@ class RegistrarsController extends Controller
 
                 if ($curlResponse === false) {
                     $this->container->get('flash')->addMessage('error', 'cURL Error: ' . curl_error($curl));
-                    curl_close($curl);
                     return $response->withHeader('Location', '/registrars/notify')->withStatus(302);
                 } else {
                     $notifiedRegistrars[] = $registrarNames[$registrarId] ?? "Registrar ID: $registrarId";
                 }
-
-                curl_close($curl);
             }
 
             // Create success message with registrar names

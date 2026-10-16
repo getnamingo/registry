@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 function processContactTransfer($conn, $db, $xml, $clid, $config, $trans) {
     // $config['db_type'] for future
     $contactID = (string) $xml->command->transfer->children('urn:ietf:params:xml:ns:contact-1.0')->transfer->{'id'};
