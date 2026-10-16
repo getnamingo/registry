@@ -799,8 +799,8 @@ msgstr "ملاحظات"
 msgid "Thank you very much for doing business with us. We look forward to working with you again!"
 msgstr "شكرا جزيلا لكم على العمل معنا. نحن نتطلع إلى العمل معكم مرة أخرى!"
 
-msgid "Transactions"
-msgstr "المعاملات"
+msgid "Transaction History"
+msgstr "سجل المعاملات"
 
 msgid "Search transactions"
 msgstr "البحث عن معاملات"

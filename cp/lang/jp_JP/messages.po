@@ -802,8 +802,8 @@ msgstr "メモ"
 msgid "Thank you very much for doing business with us. We look forward to working with you again!"
 msgstr "お取引いただきありがとうございます。今後ともよろしくお願いいたします。"
 
-msgid "Transactions"
-msgstr "取引"
+msgid "Transaction History"
+msgstr "取引履歴"
 
 msgid "Search transactions"
 msgstr "取引を検索"

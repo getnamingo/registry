@@ -802,7 +802,7 @@ msgstr ""
 msgid "Thank you very much for doing business with us. We look forward to working with you again!"
 msgstr ""
 
-msgid "Transactions"
+msgid "Transaction History"
 msgstr ""
 
 msgid "Search transactions"

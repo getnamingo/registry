@@ -802,8 +802,8 @@ msgstr "Notas"
 msgid "Thank you very much for doing business with us. We look forward to working with you again!"
 msgstr "Muito obrigado pela sua actividade comercial connosco, e aguardamos com expectativa a oportunidade de voltar a trabalhar convosco."
 
-msgid "Transactions"
-msgstr "Transações"
+msgid "Transaction History"
+msgstr "Histórico de transações"
 
 msgid "Search transactions"
 msgstr "Procurar transações"
