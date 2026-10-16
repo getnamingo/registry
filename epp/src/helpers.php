@@ -399,7 +399,7 @@ function validate_label($domain, $pdo) {
             }
 
             // Ensure decoded label follows normal domain rules
-            if (!preg_match('/^[\p{L}0-9][\p{L}0-9-]*[\p{L}0-9]$/u', $decoded)) {
+            if (!preg_match('/^[\p{L}\p{N}][\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}]$/u', $decoded)) {
                 return 'IDN must start and end with a letter or number';
             }
         } else {
