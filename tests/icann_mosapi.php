@@ -1,10 +1,16 @@
 <?php
-/**
- * ICANN MoSAPI Registry Monitor
- * Fetches TLD state and DAAR-like statistics
+
+/*
+ * Namingo Registry
  *
- * Author: Taras Kondratyuk (https://namingo.org)
- * License: MIT
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 // ===== CONFIGURATION =====
@@ -41,7 +47,6 @@ function login($config) {
     ]);
     $response = curl_exec($ch);
     $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     if ($status !== 200) {
         throw new Exception("Login failed (HTTP $status): " . trim($response));
     }
@@ -55,7 +60,6 @@ function logout($config) {
         CURLOPT_TIMEOUT        => $config['timeout'],
     ]);
     curl_exec($ch);
-    curl_close($ch);
 }
 
 function fetch_json($url, $config) {
@@ -72,7 +76,6 @@ function fetch_json($url, $config) {
     ]);
     $response = curl_exec($ch);
     $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($status !== 200) {
         throw new Exception("Fetch failed (HTTP $status): $response");

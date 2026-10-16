@@ -1,6 +1,17 @@
 #!/usr/bin/env php
 <?php
-declare(strict_types=1);
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
 
 /**
  * Weekly Domain Registration Report
@@ -22,6 +33,7 @@ declare(strict_types=1);
  * Add in crontab: 59 23 * * 0 /usr/bin/php /opt/registry/tests/recent-domains.php
  */
 
+declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
@@ -150,12 +162,10 @@ try {
     if ($response === false) {
         $errNo  = curl_errno($ch);
         $errMsg = curl_error($ch);
-        curl_close($ch);
         throw new Exception("cURL error ({$errNo}): {$errMsg}");
     }
     
     $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     
     if ($httpStatus >= 400) {
         throw new Exception("HTTP error code {$httpStatus} received from email service. Response: {$response}");

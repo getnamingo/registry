@@ -1,187 +1,215 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 $c = require_once 'config.php';
 require_once 'helpers.php';
+date_default_timezone_set('UTC');
 
-// Connect to the database
-$dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
-$logFilePath = '/var/log/namingo/lordn.log';
-$log = setupLogger($logFilePath, 'Lordn');
+$log = setupLogger('/var/log/namingo/lordn.log', 'Lordn');
 $log->info('job started.');
 
+// Keep this script from submitting the same reporting window concurrently.
+$lock = fopen(sys_get_temp_dir() . '/namingo-lordn.lock', 'c');
+if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+    $log->error('LORDN job already running or lock unavailable.');
+    exit(1);
+}
+
+$failures = 0;
 try {
-    $pdo = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
-} catch (PDOException $e) {
-    $log->error('DB Connection failed: ' . $e->getMessage());
-}
+    $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+    $pdo = new PDO($dsn, $c['db_username'], $c['db_password'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
-// Fetching TLDs
-$stmt = $pdo->query("SELECT id, tld FROM domain_tld;");
-$tlds = $stmt->fetchAll();
-
-foreach ($tlds as $tld) {
-    try {
-        $stmt = $pdo->prepare("SELECT phase_type, phase_description FROM launch_phases WHERE tld_id = ?");
-        $stmt->execute([$tld['id']]);
-        $launchPhase = $stmt->fetch();
-
-        if ($launchPhase) {
-            if ($launchPhase['phase_type'] == 'sunrise') {
-                // Generate Sunrise LORDN file
-                generateSunriseLordn($pdo, $tld, $c['lordn_user'], $c['lordn_pass'], $log);
-            } elseif ($launchPhase['phase_type'] == 'claims' || strpos($launchPhase['phase_description'], 'claims') !== false) {
-                // Generate Claims LORDN file
-                generateClaimsLordn($pdo, $tld, $c['lordn_user'], $c['lordn_pass'], $log);
-            }
-        } else {
-            $log->info("No launch phase found for TLD {$tld['tld']}.");
-            continue;
-        }
-    } catch (Throwable $e) {
-        $log->error("Error processing TLD {$tld['tld']}: " . $e->getMessage());
+    $handle = (string)$pdo->query("SELECT value FROM settings WHERE name = 'handle'")->fetchColumn();
+    if ($handle === '' || $handle === '1') {
+        throw new RuntimeException('Missing repository handle in settings.');
     }
+
+    // Configure the actual TMDB base URL; never upload to a placeholder hostname.
+    $baseUrl = rtrim((string)($c['lordn_url'] ?? ''), '/');
+    if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || parse_url($baseUrl, PHP_URL_SCHEME) !== 'https') {
+        throw new RuntimeException('Set lordn_url to the HTTPS TMDB base URL in config.php.');
+    }
+
+    $tlds = $pdo->query('SELECT id, tld FROM domain_tld')->fetchAll();
+    foreach ($tlds as $tld) {
+        try {
+            // Report only TLDs with a currently active launch phase.
+            $stmt = $pdo->prepare(
+                "SELECT phase_type, phase_description FROM launch_phases
+                 WHERE tld_id = ? AND start_date <= UTC_TIMESTAMP(3)
+                   AND (end_date IS NULL OR end_date > UTC_TIMESTAMP(3))
+                 ORDER BY start_date DESC"
+            );
+            $stmt->execute([$tld['id']]);
+            $phases = $stmt->fetchAll();
+            $types = [];
+            foreach ($phases as $phase) {
+                $type = strtolower((string)$phase['phase_type']);
+                if ($type === 'sunrise') {
+                    $types['sunrise'] = true;
+                } elseif ($type === 'claims' || stripos((string)($phase['phase_description'] ?? ''), 'claims') !== false) {
+                    $types['claims'] = true;
+                }
+            }
+
+            foreach (array_keys($types) as $type) {
+                generateLordn($pdo, $tld, $type, $handle, $baseUrl, $c['lordn_user'], $c['lordn_pass'], $log);
+            }
+        } catch (Throwable $e) {
+            $failures++;
+            $log->error("Error processing TLD {$tld['tld']}: " . $e->getMessage());
+        }
+    }
+} catch (Throwable $e) {
+    $failures++;
+    $log->error('LORDN job failed: ' . $e->getMessage());
+} finally {
+    flock($lock, LOCK_UN);
+    fclose($lock);
 }
 
+if ($failures > 0) {
+    $log->error("LORDN job finished with $failures failure(s).");
+    exit(1);
+}
 $log->info('job finished successfully.');
 
-function generateSunriseLordn($pdo, $tld, $username, $password, $log) {
-    $dateStamp = date('Ymd');
-    $tldName = ltrim($tld['tld'], '.'); // Remove leading dot
-    $fileName = "sunrise_lordn_{$tldName}_{$dateStamp}.csv";
-    $file = fopen($fileName, 'w');
-
-    if (!$file) {
-        $log->error("Unable to open file {$fileName} for writing.");
-        return false;
-    }
-    
-    // Fetch data from your database
-    $stmt = $pdo->prepare("SELECT id, name, smd, clid, crdate FROM application WHERE tldid = ?");
-    $stmt->execute([$tld['id']]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $log->info("Creating LORDN file {$fileName} with " . count($rows) . " entries.");
-
-    // First row: version, creation datetime, number of lines
-    fputcsv($file, [1, gmdate('Y-m-d\TH:i:s\Z'), count($rows)]);
-    
-    // Header row
-    fputcsv($file, ['roid', 'domain-name', 'SMD-id', 'registrar-id', 'registration-datetime', 'application-datetime']);
-
-    // Data rows
-    foreach ($rows as $row) {
-        fputcsv($file, $row);
-    }
-
-    fclose($file);
-    
-    // Upload the file
-    $uploadUrl = "https://<tmdb-domain-name>/LORDN/{$tldName}/sunrise";
-    $result = uploadFile($fileName, $uploadUrl, $username, $password, $log);
-
-    if ($result['transactionId']) {
-        $log->info("LORDN upload successful for {$tld['tld']} ({$fileName}). Transaction ID: {$result['transactionId']}");
+function generateLordn(PDO $pdo, array $tld, string $type, string $handle, string $baseUrl, string $username, string $password, $log): void
+{
+    $tldName = ltrim((string)$tld['tld'], '.');
+    // Registered domains only. A creation timestamp within the last 24h bounds daily reporting.
+    $sql = "SELECT d.id, d.name, d.crdate, d.tm_smd_id, d.tm_notice_id,
+                   d.tm_notice_accepted, r.iana_id,
+                   (SELECT MIN(a.crdate) FROM application a
+                    WHERE a.tldid = d.tldid AND a.name = d.name AND a.phase_type = 'sunrise') AS app_date
+            FROM domain d
+            JOIN registrar r ON r.id = d.clid
+            WHERE d.tldid = ? AND d.crdate >= UTC_TIMESTAMP(3) - INTERVAL 1 DAY
+              AND d.crdate <= UTC_TIMESTAMP(3) AND d.delTime IS NULL";
+    if ($type === 'sunrise') {
+        $sql .= " AND LOWER(d.tm_phase) = 'sunrise' AND d.tm_smd_id IS NOT NULL AND d.tm_smd_id <> ''";
     } else {
-        $log->warning("LORDN upload for {$tld['tld']} ({$fileName}) did not return a transaction ID.");
+        $sql .= " AND LOWER(d.tm_phase) = 'claims' AND d.tm_notice_id IS NOT NULL AND d.tm_notice_id <> ''";
     }
-}
-
-function generateClaimsLordn($pdo, $tld, $username, $password, $log) {
-    $dateStamp = date('Ymd');
-    $tldName = ltrim($tld['tld'], '.'); // Remove leading dot
-    $fileName = "claims_lordn_{$tldName}_{$dateStamp}.csv";
-    $file = fopen($fileName, 'w');
-
-    if (!$file) {
-        $log->error("Unable to open file {$fileName} for writing.");
-        return false;
-    }
-
-    // Fetch data from your database
-    $stmt = $pdo->prepare("SELECT id, name, notice_id, clid, crdate, ack_datetime FROM domain WHERE tldid = ?");
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$tld['id']]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll();
+    if (!$rows) {
+        $log->info("No new $type LORDN records for {$tld['tld']}.");
+        return;
+    }
 
-    $log->info("Creating LORDN file {$fileName} with " . count($rows) . " entries.");
-
-    // First row: version, creation datetime, number of lines
-    fputcsv($file, [1, gmdate('Y-m-d\TH:i:s\Z'), count($rows)]);
-
-    // Header row
-    fputcsv($file, ['roid', 'domain-name', 'notice-id', 'registrar-id', 'registration-datetime', 'ack-datetime', 'application-datetime']);
-
-    // Data rows
+    $records = [];
     foreach ($rows as $row) {
-        // Assuming '0' for missing values in the row
-        $data = array_merge($row, array_fill(0, 7 - count($row), '0'));
-        fputcsv($file, $data);
-    }
-
-    fclose($file);
-    
-    // Upload the file
-    $uploadUrl = "https://<tmdb-domain-name>/LORDN/{$tldName}/claims";
-    $result = uploadFile($fileName, $uploadUrl, $username, $password, $log);
-
-    if ($result['transactionId']) {
-        $log->info("LORDN upload successful for {$tld['tld']} ({$fileName}). Transaction ID: {$result['transactionId']}");
-    } else {
-        $log->warning("LORDN upload for {$tld['tld']} ({$fileName}) did not return a transaction ID.");
-    }
-}
-
-function uploadFile($filePath, $uploadUrl, $username, $password, $log) {
-    $curl = curl_init();
-    $fileData = file_get_contents($filePath);
-
-    curl_setopt($curl, CURLOPT_URL, $uploadUrl);
-    curl_setopt($curl, CURLOPT_PUT, true);
-    curl_setopt($curl, CURLOPT_USERPWD, "$username:$password");
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $fileData);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/octet-stream'));
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_HEADER, true);
-
-    $response = curl_exec($curl);
-    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    $headerSize = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
-    $header = substr($response, 0, $headerSize);
-    $body = substr($response, $headerSize);
-
-    $transactionId = null;
-    $locationUrl = null;
-
-    if ($httpCode === 202) {
-        // Successful, LORDN file syntax correct
-        // Extracting LORDN Transaction Identifier from the body
-        $transactionId = trim($body);
-        // Extracting the Location header
-        if (preg_match('/Location: (.*?)\s/m', $header, $matches)) {
-            $locationUrl = trim($matches[1]);
+        if (!is_numeric($row['iana_id']) || (int)$row['iana_id'] <= 0) {
+            throw new RuntimeException("Missing IANA registrar ID for domain {$row['name']}.");
         }
-    } elseif ($httpCode === 400) {
-        // Syntax of the LORDN file is incorrect
-        $log->error("Error 400: Incorrect syntax - " . $body);
-    } elseif ($httpCode === 401) {
-        // Unauthorized
-        $log->error("Error 401: Unauthorized");
-    } elseif ($httpCode === 404) {
-        // Not found, typically outside of a QLP Period
-        $log->error("Error 404: Not Found");
-    } elseif ($httpCode === 500) {
-        // Server error
-        $log->error("Error 500: Server error");
-    } else {
-        // Other errors
-        $log->error("Error: HTTP status code " . $httpCode);
+        $base = ['D' . $row['id'] . '-' . $handle, $row['name']];
+        if ($type === 'sunrise') {
+            $records[] = [...$base, $row['tm_smd_id'], $row['iana_id'], lordnDate($row['crdate']),
+                $row['app_date'] !== null ? lordnDate($row['app_date']) : ''];
+        } else {
+            $ack = (string)($row['tm_notice_accepted'] ?? '');
+            if ($ack === '') {
+                throw new RuntimeException("Missing Claims acknowledgement timestamp for {$row['name']}.");
+            }
+            $records[] = [...$base, $row['tm_notice_id'], $row['iana_id'], lordnDate($row['crdate']), lordnDate($ack), ''];
+        }
     }
 
-    curl_close($curl);
+    $fileName = tempnam(sys_get_temp_dir(), 'lordn_');
+    if ($fileName === false) {
+        throw new RuntimeException('Could not create LORDN temporary file.');
+    }
+    try {
+        $file = fopen($fileName, 'wb');
+        if ($file === false) {
+            throw new RuntimeException('Could not open LORDN temporary file.');
+        }
+        try {
+            $header = $type === 'sunrise'
+                ? ['roid', 'domain-name', 'SMD-id', 'registrar-id', 'registration-datetime', 'application-datetime']
+                : ['roid', 'domain-name', 'notice-id', 'registrar-id', 'registration-datetime', 'ack-datetime', 'application-datetime'];
+            $write = static function (array $data) use ($file): void {
+                if (fputcsv($file, $data, ',', '"', '', "\r\n") === false) {
+                    throw new RuntimeException('Could not write LORDN CSV.');
+                }
+            };
+            $write([1, gmdate('Y-m-d\TH:i:s\Z'), count($records)]);
+            $write($header);
+            foreach ($records as $record) {
+                $write($record);
+            }
+        } finally {
+            fclose($file);
+        }
+        $url = $baseUrl . '/LORDN/' . rawurlencode($tldName) . '/' . $type;
+        $result = uploadFile($fileName, $url, $username, $password);
+        $log->info("LORDN $type accepted for {$tld['tld']}; transaction ID: {$result['transactionId']}; result URL: " . ($result['locationUrl'] ?? 'none'));
+    } finally {
+        if (is_file($fileName)) {
+            unlink($fileName);
+        }
+    }
+}
 
-    return ['transactionId' => $transactionId, 'locationUrl' => $locationUrl];
+function lordnDate(string $value): string
+{
+    // Registry DATETIME columns are assumed to be stored in UTC.
+    return (new DateTimeImmutable($value, new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
+}
+
+function uploadFile(string $filePath, string $url, string $username, string $password): array
+{
+    $data = file_get_contents($filePath);
+    if ($data === false || $data === '') {
+        throw new RuntimeException('Cannot read LORDN file.');
+    }
+    $curl = curl_init($url);
+    curl_setopt_array($curl, [
+        CURLOPT_CUSTOMREQUEST => 'PUT',
+        CURLOPT_POSTFIELDS => $data,
+        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+        CURLOPT_USERPWD => "$username:$password",
+        CURLOPT_HTTPHEADER => ['Content-Type: application/octet-stream'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => true,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT => 60,
+        CURLOPT_FOLLOWLOCATION => false,
+    ]);
+    $response = curl_exec($curl);
+    if ($response === false) {
+        throw new RuntimeException('LORDN upload failed: ' . curl_error($curl));
+    }
+    $httpCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $headerSize = (int)curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+    $body = substr($response, $headerSize);
+    $headers = substr($response, 0, $headerSize);
+    if ($httpCode !== 202) {
+        throw new RuntimeException("LORDN upload rejected: HTTP $httpCode: " . substr($body, 0, 1000));
+    }
+    $transactionId = trim($body);
+    if ($transactionId === '') {
+        throw new RuntimeException('TMDB returned 202 without a transaction ID.');
+    }
+    preg_match('/^Location:\s*(.+)$/im', $headers, $match);
+    return ['transactionId' => $transactionId, 'locationUrl' => isset($match[1]) ? trim($match[1]) : null];
 }

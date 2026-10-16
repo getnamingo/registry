@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 require __DIR__ . '/vendor/autoload.php';
 
 $c = require_once 'config.php';
@@ -16,6 +29,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+    exit(1);
 }
 
 $settingsStmt = $pdo->query("
@@ -41,6 +55,11 @@ try {
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($result as $row) {
+        if (empty($row['billing_contact_id'])) {
+            $log->warning("Missing billing contact for registrar ID {$row['id']}, skipping invoice.");
+            continue;
+        }
+
         $startDate = $previous . "-01";
         $endDate = date("Y-m-d", strtotime("+1 month", strtotime($startDate)));
         $combinedStmt = $pdo->prepare("
@@ -228,6 +247,8 @@ try {
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_CUSTOMREQUEST  => 'POST',
                 CURLOPT_POSTFIELDS     => json_encode($data),
+                CURLOPT_CONNECTTIMEOUT => 3,
+                CURLOPT_TIMEOUT        => 10,
                 CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
                     'Content-Length: ' . strlen(json_encode($data)),
@@ -239,12 +260,15 @@ try {
             curl_setopt_array($curl, $options);
 
             $response = curl_exec($curl);
+            $httpCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($response === false) {
-                $log->error('Email error: ' . curl_error($curl) . curl_errno($curl));
+                $log->error('Email connection failed: ' . curl_error($curl));
+            } elseif ($httpCode !== 202) {
+                $log->error("Email producer rejected invoice notification. HTTP $httpCode");
+            } else {
+                $log->info("Invoice notification queued for registrar {$row['id']}.");
             }
-
-            curl_close($curl);
         }
     }
     $log->info('job finished successfully.');

@@ -1,4 +1,18 @@
 <?php
+
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
@@ -13,6 +27,7 @@ try {
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+    exit(1);
 }
 
 // URL to the IANA file
@@ -29,14 +44,17 @@ $csv_data = curl_exec($ch);
 if (curl_errno($ch)) {
     $error_msg = curl_error($ch);
 }
-curl_close($ch);
 
 if ($csv_data === false) {
-    $log->error("Error downloading CSV file: " . $error_msg);
+    $log->error('Error downloading CSV file: ' . ($error_msg ?? 'Unknown error'));
+    exit(1);
 }
 
 // Parse CSV data
-$rows = array_map("str_getcsv", explode("\n", $csv_data));
+$rows = array_map(
+    static fn($line) => str_getcsv($line, ',', '"', ''),
+    explode("\n", $csv_data)
+);
 $header = array_shift($rows); // Remove header
 
 foreach ($rows as $row) {

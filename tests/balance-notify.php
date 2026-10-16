@@ -1,18 +1,20 @@
 #!/usr/bin/env php
 <?php
-declare(strict_types=1);
 
-/**
- * Low Balance Notification Script
+/*
+ * Namingo Registry
  *
- * This script checks all registrars for three conditions:
- *  - Low balance (accountBalance < creditThreshold)
- *  - Zero balance (accountBalance == 0)
- *  - Over limit (accountBalance + creditLimit < 0)
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
  *
- * If any of these conditions are met, the registry admin is notified.
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
+declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
@@ -123,7 +125,6 @@ try {
     }
 
     $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($httpStatus >= 400) {
         throw new Exception("HTTP error code {$httpStatus} received. Response: {$response}");

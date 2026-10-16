@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 require __DIR__ . '/vendor/autoload.php';
 
 $c = require_once 'config.php';
@@ -25,6 +38,7 @@ try {
     $pdo = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+    exit(1);
 }
 
 // Call API
@@ -32,18 +46,31 @@ $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => 'https://api.abusemanager.iq.global/api/v1/abusemanager/cases?verbose=0&limit=20&offset=0',
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_CONNECTTIMEOUT => 5,
+    CURLOPT_TIMEOUT => 30,
     CURLOPT_HTTPHEADER => [
         'X-API-KEY: ' . $c['abuse_iq_api'],
     ],
 ]);
 $response = curl_exec($ch);
-curl_close($ch);
+$httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+if ($response === false) {
+    $log->error('Abuse iQ API connection failed: ' . curl_error($ch));
+    exit(1);
+}
+
+if ($httpCode !== 200) {
+    $log->error("Abuse iQ API returned HTTP $httpCode");
+    exit(1);
+}
 
 // Decode response
 $data = json_decode($response, true);
+
 if (!isset($data['data']) || !is_array($data['data'])) {
-    $log->error('No data found.');
-    exit;
+    $log->error('Invalid Abuse iQ API response.');
+    exit(1);
 }
 
 foreach ($data['data'] as $case) {
@@ -55,8 +82,20 @@ foreach ($data['data'] as $case) {
     $abuseType = $attr['abuse_category'];
 
     // Check if already inserted
-    $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM support_tickets WHERE reported_domain = ? AND nature_of_abuse = ?");
-    $checkStmt->execute([$domain, $abuseType]);
+    $checkStmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM support_tickets
+         WHERE reported_domain = ?
+           AND nature_of_abuse = ?
+           AND category_id = 8
+           AND date_created >= ?"
+    );
+
+    $checkStmt->execute([
+        $domain,
+        $abuseType,
+        gmdate('Y-m-d H:i:s', time() - 30 * 86400)
+    ]);
+
     if ($checkStmt->fetchColumn() > 0) continue;
 
     $sql = "
@@ -74,7 +113,7 @@ foreach ($data['data'] as $case) {
 
     if (!$userData || empty($userData['user_id'])) {
         $log->error("No user ID could be resolved for domain: $domain");
-        exit;
+        continue;
     }
 
     // Insert new support ticket
@@ -84,7 +123,7 @@ foreach ($data['data'] as $case) {
         date_of_incident, date_created, last_updated
     ) VALUES (
         ?, 8, ?, ?, 'Open', 'High',
-        ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)
+        ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     )");
     $insertStmt->execute([
         $userData['user_id'],

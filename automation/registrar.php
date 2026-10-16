@@ -1,5 +1,18 @@
 <?php
 
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
@@ -14,6 +27,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+    exit(1);
 }
 
 $stmt = $pdo->prepare("SELECT value FROM settings WHERE name = :name");
@@ -52,18 +66,19 @@ try {
     $stmt = $pdo->query($sql);
 
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if ($row['accountBalance'] < $row['creditThreshold']) {
-            // Case 1: accountBalance is less than creditThreshold
-            sendEmail($row, 'low_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
-        } elseif ($row['accountBalance'] == 0) {
-            // Case 2: accountBalance is 0
-            sendEmail($row, 'zero_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
-        } elseif (($row['accountBalance'] + $row['creditLimit']) < 0) {
-            // Case 3: accountBalance + creditLimit is less than 0
+        $balance = (float)$row['accountBalance'];
+        $threshold = (float)$row['creditThreshold'];
+        $creditLimit = (float)$row['creditLimit'];
+
+        if (($balance + $creditLimit) < 0) {
             sendEmail($row, 'over_limit', $log, $supportEmail, $supportPhoneNumber, $registryName);
+        } elseif ($balance == 0) {
+            sendEmail($row, 'zero_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
+        } elseif ($balance < $threshold) {
+            sendEmail($row, 'low_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
         }
     }
-    
+
     $log->info('job finished successfully.');
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
@@ -85,7 +100,7 @@ function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $regi
         case 'zero_balance':
             $subject = "Zero balance alert for registrar: " . $data['clid'];
             $alertTitle = 'Zero Balance Alert';
-            $alertMessage = 'We have noticed that your account balance with us is currently zero. This means you are unable to use our services until the balance is topped up.';
+            $alertMessage = 'We have noticed that your account balance with us is currently zero. Please top up your account to avoid potential service interruptions.';
             break;
 
         case 'over_limit':
@@ -168,8 +183,6 @@ function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $regi
     $curlError = curl_error($curl);
     $curlErrno = curl_errno($curl);
     $httpCode = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-
-    curl_close($curl);
 
     if ($response === false) {
         $log->error('Message producer connection failed', [

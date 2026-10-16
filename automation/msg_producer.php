@@ -1,10 +1,17 @@
 #!/usr/bin/env php
 <?php
-/**
- * msg_producer.php
+
+/*
+ * Namingo Registry
  *
- * A Swoole HTTP server that accepts API calls and pushes messages into a Redis queue.
- * Uses Swoole’s Coroutine Redis client with a simple connection pool.
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 declare(strict_types=1);
@@ -312,7 +319,5 @@ $response = curl_exec($curl);
 if ($response === false) {
     throw new Exception(curl_error($curl), curl_errno($curl));
 }
-
-curl_close($curl);
 
 print_r($response);*/

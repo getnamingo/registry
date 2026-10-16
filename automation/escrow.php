@@ -1,4 +1,20 @@
 <?php
+
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+date_default_timezone_set('UTC');
+
 use phpseclib\Net\SFTP;
 
 require __DIR__ . '/vendor/autoload.php';
@@ -17,6 +33,12 @@ $logFilePath = '/var/log/namingo/escrow.log';
 $log = setupLogger($logFilePath, 'Escrow');
 $log->info('job started.');
 
+$lock = fopen('/tmp/namingo-escrow.lock', 'c');
+if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+    $log->error('Escrow job already running or lock unavailable.');
+    exit(1);
+}
+
 // Check if the directory exists
 if (!file_exists($c['escrow_deposit_path'])) {
     if (!mkdir($c['escrow_deposit_path'], 0755, true)) {
@@ -31,6 +53,7 @@ try {
     $dbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
+    exit(1);
 }
 
 try {
@@ -59,7 +82,7 @@ try {
 
     foreach ($tlds as $tld) {
         $tldname = ltrim($tld['tld'], '.');
-        $endOfPreviousDay = date('Y-m-d 23:59:59', strtotime('-1 day'));
+        $endOfPreviousDay = gmdate('Y-m-d 00:00:00', strtotime('today UTC'));
 
         $domainCount = fetchDomainCount($dbh, $tld['id']);
         $NNDNCount = fetchNNDNCount($dbh);
@@ -124,7 +147,7 @@ try {
             'urn:ietf:params:xml:ns:rdePolicy-1.0'
         ];
 
-        if (!isIDN($dbh, $tld['id'])) {
+        if (isIDN($dbh, $tld['id'])) {
             $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
         }
 
@@ -163,7 +186,7 @@ try {
         $xml->text($registrarCount);
         $xml->endElement();
 
-        if (!isIDN($dbh, $tld['id'])) {
+        if (isIDN($dbh, $tld['id'])) {
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
             $xml->text('1');
@@ -188,7 +211,7 @@ try {
         $xml->endElement();  // Closing rdeHeader:header
 
         // Fetch domain details for this TLD
-        $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate <= :endOfPreviousDay");
+        $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate < :endOfPreviousDay");
         $stmt->bindParam(':tldid', $tld['id']);
         $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
@@ -199,7 +222,7 @@ try {
             $xml->writeElement('rdeDomain:name', $domain['name']);
             $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
             $xml->writeElement('rdeDomain:uName', $domain['name']);
-            if (!isIDN($dbh, $tld['id'])) {
+            if (isIDN($dbh, $tld['id'])) {
                 $script = guessIdnScriptName($tld['tld']);
                 $xml->writeElement('rdeDomain:idnTableId', $script);
             }
@@ -252,7 +275,7 @@ try {
         }
 
         // Fetch and incorporate host details
-        $stmt = $dbh->prepare("SELECT * FROM host WHERE crdate <= :endOfPreviousDay");
+        $stmt = $dbh->prepare("SELECT * FROM host WHERE crdate < :endOfPreviousDay");
         $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $hosts = $stmt->fetchAll();
@@ -289,7 +312,7 @@ try {
         }
 
         // Fetch and incorporate contact details
-        $stmt = $dbh->prepare("SELECT * FROM contact WHERE crdate <= :endOfPreviousDay");
+        $stmt = $dbh->prepare("SELECT * FROM contact WHERE crdate < :endOfPreviousDay");
         $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $contacts = $stmt->fetchAll();
@@ -339,7 +362,7 @@ try {
         }
         
         // Fetch and incorporate registrar details
-        $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate <= :endOfPreviousDay");
+        $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate < :endOfPreviousDay");
         $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $registrars = $stmt->fetchAll();
@@ -392,7 +415,7 @@ try {
             $xml->endElement();  // Closing rdeRegistrar:registrar
         }
 
-        if (!isIDN($dbh, $tld['id'])) {
+        if (isIDN($dbh, $tld['id'])) {
             $script = guessIdnScriptName($tld['tld']);
 
             // Writing the idnTableRef section
@@ -514,7 +537,9 @@ try {
         $tarFileName = $baseFileName . ".tar";
 
         // Save the main XML file
-        file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX);
+        if (file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX) === false) {
+            throw new RuntimeException('Escrow XML write failed.');
+        }
 
         // Compress the XML file using tar
         $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
@@ -531,6 +556,9 @@ try {
 
         // Import public key (ICANN escrow key)
         $publicKeyData = file_get_contents($c['escrow_keyPath']);
+        if ($publicKeyData === false || $publicKeyData === '') {
+            throw new RuntimeException('Cannot read RDE encryption public key.');
+        }
         $importResult = $gpg->import($publicKeyData);
         if (!$importResult || empty($importResult['fingerprint'])) {
             $log->error("Failed to import escrow public key: " . $c['escrow_keyPath']);
@@ -543,6 +571,9 @@ try {
 
         // Read .tar data and encrypt it
         $fileData = file_get_contents($c['escrow_deposit_path'] . "/" . $tarFileName);
+        if ($fileData === false) {
+            throw new RuntimeException('Cannot read RDE tar file.');
+        }
         $gpg->setarmor(false);
         $encryptedData = $gpg->encrypt($fileData);
 
@@ -553,7 +584,9 @@ try {
 
         // Write encrypted .ryde file
         $encryptedFilePath = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
-        file_put_contents($encryptedFilePath, $encryptedData);
+        if (file_put_contents($encryptedFilePath, $encryptedData) === false) {
+            throw new RuntimeException('RDE encrypted file write failed.');
+        }
 
         // Delete the original .tar file
         //unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
@@ -566,11 +599,19 @@ try {
 
         // Read encrypted file
         $encryptedFileContents = file_get_contents($encryptedFilePath);
+        if ($encryptedFileContents === false) {
+            throw new RuntimeException('Cannot read RDE encrypted file.');
+        }
         $signature = $gpg->sign($encryptedFileContents);
+        if (!is_string($signature) || $signature === '') {
+            throw new RuntimeException('RDE signing failed.');
+        }
 
         // Save .sig file
         $signaturePath = $c['escrow_deposit_path'] . '/' . $baseFileName . '.sig';
-        file_put_contents($signaturePath, $signature);
+        if (file_put_contents($signaturePath, $signature) === false) {
+            throw new RuntimeException('RDE signature write failed.');
+        }
 
         // Optionally, delete the encrypted file if you don't need it anymore
         // unlink($encryptedFilePath);
@@ -620,7 +661,7 @@ try {
         $reportXML->text($registrarCount);
         $reportXML->endElement();
 
-        if (!isIDN($dbh, $tld['id'])) {
+        if (isIDN($dbh, $tld['id'])) {
             $reportXML->startElement('rdeHeader:count');
             $reportXML->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
             $reportXML->text('0');
@@ -644,7 +685,9 @@ try {
 
         // Save the report file
         $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_" . date('Y-m-d') . "_full_R{$finalDepositId}.rep";
-        file_put_contents($reportFilePath, $reps, LOCK_EX);
+        if (file_put_contents($reportFilePath, $reps, LOCK_EX) === false) {
+            throw new RuntimeException('RDE report write failed.');
+        }
         
         $dayOfWeekToRunBRDA = $c['escrow_BRDAday'];
         $currentDayOfWeek = date('l');
@@ -701,7 +744,7 @@ try {
                 'urn:ietf:params:xml:ns:rdePolicy-1.0'
             ];
 
-            if (!isIDN($dbh, $tld['id'])) {
+            if (isIDN($dbh, $tld['id'])) {
                 $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
             }
 
@@ -740,7 +783,7 @@ try {
             $xml->text($registrarCount);
             $xml->endElement();
 
-            if (!isIDN($dbh, $tld['id'])) {
+            if (isIDN($dbh, $tld['id'])) {
                 $xml->startElement('rdeHeader:count');
                 $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
                 $xml->text('1');
@@ -765,7 +808,7 @@ try {
             $xml->endElement();  // Closing rdeHeader:header
 
             // Fetch domain details for this TLD
-            $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate <= :endOfPreviousDay");
+            $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate < :endOfPreviousDay");
             $stmt->bindParam(':tldid', $tld['id']);
             $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
             $stmt->execute();
@@ -776,7 +819,7 @@ try {
                 $xml->writeElement('rdeDomain:name', $domain['name']);
                 $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
                 $xml->writeElement('rdeDomain:uName', $domain['name']);
-                if (!isIDN($dbh, $tld['id'])) {
+                if (isIDN($dbh, $tld['id'])) {
                     $script = guessIdnScriptName($tld['tld']);
                     $xml->writeElement('rdeDomain:idnTableId', $script);
                 }
@@ -829,7 +872,7 @@ try {
             }
 
             // Fetch and incorporate registrar details
-            $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate <= :endOfPreviousDay");
+            $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate < :endOfPreviousDay");
             $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
             $stmt->execute();
             $registrars = $stmt->fetchAll();
@@ -895,7 +938,9 @@ try {
             $tarFileName = $baseFileNameBrda . ".tar";
 
             // Save the main XML file
-            file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX);
+            if (file_put_contents($c['escrow_deposit_path']."/".$xmlFileName, $deposit, LOCK_EX) === false) {
+            throw new RuntimeException('Escrow XML write failed.');
+        }
 
             // Compress the XML file using tar
             $phar = new PharData($c['escrow_deposit_path']."/".$tarFileName);
@@ -913,6 +958,9 @@ try {
 
             // Import BRDA escrow public key
             $brdaPublicKeyData = file_get_contents($c['escrow_keyPath_brda']);
+            if ($brdaPublicKeyData === false || $brdaPublicKeyData === '') {
+                throw new RuntimeException('Cannot read BRDA encryption public key.');
+            }
             $importResult = $gpg->import($brdaPublicKeyData);
             if (!$importResult || empty($importResult['fingerprint'])) {
                 $log->error("Failed to import BRDA public key: " . $c['escrow_keyPath_brda']);
@@ -926,6 +974,9 @@ try {
             // Encrypt the .tar contents
             $tarFilePath = $c['escrow_deposit_path'] . "/" . $tarFileName;
             $tarData = file_get_contents($tarFilePath);
+            if ($tarData === false) {
+                throw new RuntimeException('Cannot read BRDA tar file.');
+            }
             $encryptedData = $gpg->encrypt($tarData);
 
             if (!$encryptedData) {
@@ -935,7 +986,9 @@ try {
 
             // Save encrypted BRDA file (.ryde)
             $encryptedFilePathBrda = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
-            file_put_contents($encryptedFilePathBrda, $encryptedData);
+            if (file_put_contents($encryptedFilePathBrda, $encryptedData) === false) {
+            throw new RuntimeException('BRDA encrypted file write failed.');
+        }
 
             // Delete the original .tar file
             //unlink($c['escrow_deposit_path'] . "/" . $tarFileName);
@@ -948,11 +1001,19 @@ try {
 
             // Sign the BRDA .ryde file
             $brdaFileData = file_get_contents($encryptedFilePathBrda);
+            if ($brdaFileData === false) {
+                throw new RuntimeException('Cannot read BRDA encrypted file.');
+            }
             $signature = $gpg->sign($brdaFileData);
+            if (!is_string($signature) || $signature === '') {
+                throw new RuntimeException('BRDA signing failed.');
+            }
 
             // Save .sig file
             $signatureFilePathBrda = $c['escrow_deposit_path'] . '/' . pathinfo($encryptedFilePathBrda, PATHINFO_FILENAME) . '.sig';
-            file_put_contents($signatureFilePathBrda, $signature);
+            if (file_put_contents($signatureFilePathBrda, $signature) === false) {
+            throw new RuntimeException('BRDA signature write failed.');
+        }
 
             // Optionally, delete the encrypted file if you don't need it anymore
             // unlink($encryptedFilePathBrda);
@@ -964,7 +1025,8 @@ try {
 
             // Login with username and password
             if (!$sftp->login($c['escrow_sftp_username'], $c['escrow_sftp_password'])) {
-                $log->error('SFTP Login failed');
+                $log->error('RDE SFTP login failed.');
+                throw new RuntimeException('RDE SFTP login failed.');
             }
 
             // Define the remote directory where you want to upload the files
@@ -980,12 +1042,16 @@ try {
                 $remoteFile = $remoteDir . basename($filePath);
                 if (!$sftp->put($remoteFile, $filePath, SFTP::SOURCE_LOCAL_FILE)) {
                     $log->error('Failed to upload ' . basename($filePath));
+                    throw new RuntimeException('Failed to upload ' . basename($filePath));
                 } else {
                     $log->info('Successfully uploaded ' . basename($filePath));
                 }
             }
             
             $reportFileData = file_get_contents($reportFilePath);
+            if ($reportFileData === false) {
+                throw new RuntimeException('Cannot read escrow report file.');
+            }
 
             $ch = curl_init();
 
@@ -994,6 +1060,9 @@ try {
             curl_setopt($ch, CURLOPT_USERPWD, $c['escrow_report_username'].':'.$c['escrow_report_password']);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $reportFileData);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'Content-Type: application/octet-stream',
@@ -1003,17 +1072,16 @@ try {
             $response = curl_exec($ch);
 
             if ($response === false) {
-                $log->error('Upload error occurred: ' . curl_error($ch));
+                throw new RuntimeException('RDE report upload failed: ' . curl_error($ch));
             }
 
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if ($httpCode >= 200 && $httpCode < 300) {
-                $log->info('Escrow deposit uploaded successfully');
+                $log->info('RDE report uploaded successfully');
             } else {
-                $log->error('Failed to upload escrow deposit. HTTP Status Code: ' . $httpCode);
+                throw new RuntimeException('RDE report upload rejected. HTTP status: ' . $httpCode);
             }
 
-            curl_close($ch);
         }
         
         if ($currentDayOfWeek === $dayOfWeekToRunBRDA) {
@@ -1023,7 +1091,8 @@ try {
 
                 // Login with username and password
                 if (!$sftp->login($c['brda_sftp_username'], $c['brda_sftp_password'])) {
-                    $log->error('SFTP Login failed');
+                    $log->error('BRDA SFTP login failed.');
+                    throw new RuntimeException('BRDA SFTP login failed.');
                 }
 
                 // Define the remote directory where you want to upload the files
@@ -1039,6 +1108,7 @@ try {
                     $remoteFile = $remoteDir . basename($filePath);
                     if (!$sftp->put($remoteFile, $filePath, SFTP::SOURCE_LOCAL_FILE)) {
                         $log->error('Failed to upload ' . basename($filePath));
+                    throw new RuntimeException('Failed to upload ' . basename($filePath));
                     } else {
                         $log->info('Successfully uploaded ' . basename($filePath));
                     }
@@ -1116,6 +1186,8 @@ try {
     $log->info('job finished successfully.');
 } catch (PDOException $e) {
     $log->error('Database error: ' . $e->getMessage());
+    exit(1);
 } catch (Throwable $e) {
     $log->error('Error: ' . $e->getMessage());
+    exit(1);
 }

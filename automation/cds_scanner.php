@@ -1,21 +1,27 @@
 <?php
-/**
- * Namingo Registry DNSSEC CDS/CDNSKEY scanner
+
+/*
+ * Namingo Registry
  *
- * This job implements parent-side DNSSEC DS automation for child zones,
- * following the general behavior described in:
- * - RFC 7344 (CDS/CDNSKEY child-to-parent signaling)
- * - RFC 9615 (DNSSEC bootstrapping via _dsboot signaling)
- * - current DNSOP operational recommendations for DS automation
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
  *
- * Install delv on Ubuntu / Debian:
- *   sudo apt-get update
- *   sudo apt-get install -y bind9-dnsutils
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
  *
- * Operational caution:
- * This is an automated parent-side DNSSEC process. Test carefully in a
- * staging environment before enabling it broadly in production.
+ * SPDX-License-Identifier: MIT
  */
+
+// This job implements parent-side DNSSEC DS automation for child zones,
+// following the general behavior described in:
+// - RFC 7344 (CDS/CDNSKEY child-to-parent signaling)
+// - RFC 9615 (DNSSEC bootstrapping via _dsboot signaling)
+// - current DNSOP operational recommendations for DS automation
+//
+// Install delv on Ubuntu / Debian:
+//   sudo apt-get update
+//   sudo apt-get install -y bind9-dnsutils
 
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;

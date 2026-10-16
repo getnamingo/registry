@@ -1,4 +1,18 @@
 <?php
+
+/*
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 require __DIR__ . '/vendor/autoload.php';
 
 $c = require_once 'config.php';
@@ -27,7 +41,7 @@ try {
     $registryName = $settings['company_name'] ?? 'Example Registry LLC';
 } catch (PDOException $e) {
     $log->error('DB Connection failed: ' . $e->getMessage());
-    exit;
+    exit(1);
 }
 
 // Retrieve tickets by user role
@@ -35,18 +49,25 @@ function getTicketsByUserRole($dbh, $userRoleMask, $userId = null)
 {
     $query = "SELECT reported_domain, nature_of_abuse, status, priority, date_of_incident, date_created
               FROM support_tickets
-              WHERE category_id = '8'";
+              WHERE category_id = '8'
+              AND date_created >= :startDate
+              AND date_created < :endDate";
 
     if ($userRoleMask === 4 && $userId) {
         $query .= " AND user_id = :userId";
     }
 
     $stmt = $dbh->prepare($query);
+    $params = [
+        ':startDate' => gmdate('Y-m-d H:i:s', time() - 86400),
+        ':endDate' => gmdate('Y-m-d H:i:s'),
+    ];
+
     if ($userRoleMask === 4 && $userId) {
-        $stmt->execute([':userId' => $userId]);
-    } else {
-        $stmt->execute();
+        $params[':userId'] = $userId;
     }
+
+    $stmt->execute($params);
     
     return $stmt->fetchAll();
 }
@@ -124,6 +145,8 @@ function sendEmail($toEmail, $subject, $htmlContent)
     $options = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 10,
         CURLOPT_POSTFIELDS => json_encode($data),
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
@@ -135,14 +158,18 @@ function sendEmail($toEmail, $subject, $htmlContent)
     $curl = curl_init($url);
     curl_setopt_array($curl, $options);
     $response = curl_exec($curl);
+    $httpCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
     if ($response === false) {
         $log->error('Email sending failed: ' . curl_error($curl));
-        curl_close($curl);
         return false;
     }
 
-    curl_close($curl);
+    if ($httpCode !== 202) {
+        $log->error("Email producer rejected abuse report. HTTP $httpCode");
+        return false;
+    }
+
     return true;
 }
 
@@ -153,6 +180,7 @@ try {
         ['role' => 4, 'message' => 'Abuse report for specific user cases']
     ];
 
+    $failedEmails = 0;
     foreach ($userRoles as $role) {
         $users = $dbh->prepare("SELECT id, email FROM users WHERE roles_mask = :roleMask");
         $users->execute([':roleMask' => $role['role']]);
@@ -171,12 +199,19 @@ try {
             if (sendEmail($user['email'], $subject, $htmlContent)) {
                 $log->info("Abuse report sent to {$user['email']} for role {$role['role']}");
             } else {
+                $failedEmails++;
                 $log->error("Failed to send abuse report to {$user['email']} for role {$role['role']}");
             }
         }
     }
 
+    if ($failedEmails > 0) {
+        $log->error("Job finished with $failedEmails failed abuse report(s).");
+        exit(1);
+    }
+
     $log->info('Job finished successfully.');
 } catch (Throwable $e) {
     $log->error('Error: ' . $e->getMessage());
+    exit(1);
 }
