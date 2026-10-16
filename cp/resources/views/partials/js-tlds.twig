@@ -39,13 +39,18 @@
         'Japanese': 'bg-success-lt',  // Green badge for Japanese
         'Korean': 'bg-danger-lt',    // Red badge for Korean
         'Arabic': 'bg-teal-lt',    // Teal badge for Japanese
+        'Devanagari': 'bg-orange-lt', // Orange badge for Devanagari
         // Add more mappings as needed
         'Unknown': 'bg-warning-lt'   // Yellow badge for Unknown
     };
 
     function scriptNameFormatter(cell, formatterParams) {
         const idnTableValue = cell.getValue();
-        const scriptName = dbValueToScriptName[idnTableValue] || 'Unknown';
+        let scriptName = dbValueToScriptName[idnTableValue] || 'Unknown';
+        // The Devanagari table is long, so it is recognised by a fragment of it
+        if (scriptName === 'Unknown' && typeof idnTableValue === 'string' && idnTableValue.indexOf('\\x{0931}\\x{094D}') !== -1) {
+            scriptName = 'Devanagari';
+        }
         const badgeClass = scriptNameToBadgeClass[scriptName];
 
         // Return HTML string with Bootstrap badge

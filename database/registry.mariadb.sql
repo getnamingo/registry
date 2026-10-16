@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`launch_phases` (
 CREATE TABLE IF NOT EXISTS `registry`.`domain_tld` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `tld` varchar(32) NOT NULL,
-    `idn_table` varchar(255) NOT NULL,
+    `idn_table` text NOT NULL,
     `secure` TINYINT UNSIGNED NOT NULL,
     `launch_phase_id` INT DEFAULT NULL,
     PRIMARY KEY (`id`),
