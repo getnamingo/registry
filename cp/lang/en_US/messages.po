@@ -1869,3 +1869,6 @@ msgstr "System Health"
 
 msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
 msgstr "Inspect registry services, database status, cache state, storage, queues, and server health."
+
+msgid "Home"
+msgstr "Home"

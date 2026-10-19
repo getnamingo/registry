@@ -1869,3 +1869,6 @@ msgstr "État du système"
 
 msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
 msgstr "Vérifiez les services du registre, l’état de la base de données, du cache, du stockage, des files d’attente et du serveur."
+
+msgid "Home"
+msgstr "Accueil"

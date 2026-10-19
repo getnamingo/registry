@@ -1866,3 +1866,6 @@ msgstr "حالة النظام"
 
 msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
 msgstr "تحقق من خدمات السجل، وحالة قاعدة البيانات، وذاكرة التخزين المؤقت، والتخزين، وقوائم الانتظار، وحالة الخادم."
+
+msgid "Home"
+msgstr "الرئيسية"
