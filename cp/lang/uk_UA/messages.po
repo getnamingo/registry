@@ -1869,3 +1869,6 @@ msgstr "Стан системи"
 
 msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
 msgstr "Перевіряйте служби реєстру, стан бази даних, кешу, сховища, черг і сервера."
+
+msgid "Home"
+msgstr "Головна"

@@ -1869,3 +1869,6 @@ msgstr "システム状態"
 
 msgid "Inspect registry services, database status, cache state, storage, queues, and server health."
 msgstr "レジストリサービス、データベース、キャッシュ、ストレージ、キュー、サーバーの状態を確認します。"
+
+msgid "Home"
+msgstr "ホーム"
