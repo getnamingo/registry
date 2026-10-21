@@ -370,7 +370,7 @@ log "Installing PHP and server packages"
 apt install -y caddy ${PHP_VERSION} ${PHP_VERSION}-bcmath ${PHP_VERSION}-cli ${PHP_VERSION}-common ${PHP_VERSION}-curl ${PHP_VERSION}-ds ${PHP_VERSION}-fpm ${PHP_VERSION}-gd ${PHP_VERSION}-gmp ${PHP_VERSION}-gnupg ${PHP_VERSION}-igbinary ${PHP_VERSION}-imap ${PHP_VERSION}-intl ${PHP_VERSION}-mbstring ${PHP_VERSION}-protobuf ${PHP_VERSION}-readline ${PHP_VERSION}-redis ${PHP_VERSION}-soap ${PHP_VERSION}-swoole ${PHP_VERSION}-uuid ${PHP_VERSION}-xml ${PHP_VERSION}-zip
 
 if [ "$DB_TYPE" == "mariadb" ]; then
-    apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
+    DEBIAN_FRONTEND=noninteractive apt install -y mariadb-client mariadb-server ${PHP_VERSION}-mysql
 
 elif [ "$DB_TYPE" == "pgsql" ]; then
     apt install -y postgresql postgresql-client ${PHP_VERSION}-pgsql
