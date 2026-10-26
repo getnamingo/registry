@@ -40,6 +40,7 @@
         'Korean': 'bg-danger-lt',    // Red badge for Korean
         'Arabic': 'bg-teal-lt',    // Teal badge for Japanese
         'Devanagari': 'bg-orange-lt', // Orange badge for Devanagari
+        'Devanagari (India)': 'bg-red-lt', // Red badge for Devanagari (India, NIXI)
         // Add more mappings as needed
         'Unknown': 'bg-warning-lt'   // Yellow badge for Unknown
     };
@@ -48,8 +49,12 @@
         const idnTableValue = cell.getValue();
         let scriptName = dbValueToScriptName[idnTableValue] || 'Unknown';
         // The Devanagari table is long, so it is recognised by a fragment of it
-        if (scriptName === 'Unknown' && typeof idnTableValue === 'string' && idnTableValue.indexOf('\\x{0931}\\x{094D}') !== -1) {
-            scriptName = 'Devanagari';
+        if (scriptName === 'Unknown' && typeof idnTableValue === 'string') {
+            if (idnTableValue.indexOf('\\x{02BC}') !== -1) {
+                scriptName = 'Devanagari (India)';
+            } else if (idnTableValue.indexOf('\\x{0931}\\x{094D}') !== -1) {
+                scriptName = 'Devanagari';
+            }
         }
         const badgeClass = scriptNameToBadgeClass[scriptName];
 
