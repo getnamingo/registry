@@ -137,7 +137,6 @@ case "${OS_ID}:${VER}" in
     ubuntu:22.04)
         OS_NAME="Ubuntu"
         DISTRO_CODENAME="jammy"
-        PHP_REPO_TYPE="ondrej"
         MARIADB_DISTRO="ubuntu"
         MARIADB_SUITE="jammy"
         MARIADB_COMPONENTS="main main/debug"
@@ -145,7 +144,6 @@ case "${OS_ID}:${VER}" in
     ubuntu:24.04)
         OS_NAME="Ubuntu"
         DISTRO_CODENAME="noble"
-        PHP_REPO_TYPE="ondrej"
         MARIADB_DISTRO="ubuntu"
         MARIADB_SUITE="noble"
         MARIADB_COMPONENTS="main main/debug"
@@ -153,7 +151,6 @@ case "${OS_ID}:${VER}" in
     ubuntu:26.04)
         OS_NAME="Ubuntu"
         DISTRO_CODENAME="resolute"
-        PHP_REPO_TYPE="sury"
         MARIADB_DISTRO="ubuntu"
         MARIADB_SUITE="resolute"
         MARIADB_COMPONENTS="main main/debug"
@@ -161,7 +158,6 @@ case "${OS_ID}:${VER}" in
     debian:12)
         OS_NAME="Debian"
         DISTRO_CODENAME="bookworm"
-        PHP_REPO_TYPE="sury"
         MARIADB_DISTRO="debian"
         MARIADB_SUITE="bookworm"
         MARIADB_COMPONENTS="main"
@@ -169,7 +165,6 @@ case "${OS_ID}:${VER}" in
     debian:13)
         OS_NAME="Debian"
         DISTRO_CODENAME="trixie"
-        PHP_REPO_TYPE="sury"
         MARIADB_DISTRO="debian"
         MARIADB_SUITE="trixie"
         MARIADB_COMPONENTS="main"
@@ -323,14 +318,9 @@ apt update -y
 apt install -y apt-transport-https bind9-dnsutils bzip2 ca-certificates cron curl debian-archive-keyring debian-keyring gettext git gnupg ufw net-tools openssl pv redis unzip wget whois
 
 # PHP setup
-if [[ "$PHP_REPO_TYPE" == "ondrej" ]]; then
-    apt install -y software-properties-common    
-    add-apt-repository -y ppa:ondrej/php
-elif [[ "$PHP_REPO_TYPE" == "sury" ]]; then
-    curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ ${DISTRO_CODENAME} main" \
-        > /etc/apt/sources.list.d/php.list
-fi
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ ${DISTRO_CODENAME} main" \
+    > /etc/apt/sources.list.d/php.list
 
 # Caddy setup
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
