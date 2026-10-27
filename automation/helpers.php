@@ -207,44 +207,49 @@ function checkSpamhaus($domain) {
     return checkdnsrr($queryDomain, "A");
 }
 
-function getUrlhausData($cache, $cacheKey, $urlhausUrl) {
+// Function to fetch and cache the NetAPI compromised domains list. This file imports
+// Swoole's HTTP client as Client, so Guzzle is named in full.
+function getNetapiData($cache, $cacheKey, $netapiUrl) {
     // Check if data is cached
     $cachedFile = $cache->getItem($cacheKey);
 
     if (!$cachedFile->isHit()) {
         // Data is not cached, download it
-        $httpClient = new Client();
-        $response = $httpClient->get($urlhausUrl);
+        $httpClient = new \GuzzleHttp\Client(['timeout' => 120]);
+        $response = $httpClient->get($netapiUrl);
         $fileContent = $response->getBody()->getContents();
 
         // Cache the file content
         $cachedFile->set($fileContent);
-        $cachedFile->expiresAfter(86400 * 7); // Cache for 7 days
+        $cachedFile->expiresAfter(86400); // Cache for 1 day, the list is refreshed daily
         $cache->save($cachedFile);
 
-        return processUrlhausData($fileContent);
+        return processNetapiData($fileContent);
     } else {
         // Retrieve data from cache
         $fileContent = $cachedFile->get();
-        return processUrlhausData($fileContent);
+        return processNetapiData($fileContent);
     }
 }
 
-function processUrlhausData($data) {
+// Function to process the NetAPI list: one domain per line, comment lines start with #
+function processNetapiData($fileContent) {
     $map = new \Ds\Map();
 
-    foreach ($data as $entry) {
-        foreach ($entry as $urlData) {
-            $domain = parse_url($urlData['url'], PHP_URL_HOST); // Extract domain from URL
-            $map->put($domain, $urlData); // Store data against domain
+    foreach (explode("\n", $fileContent) as $line) {
+        $domain = strtolower(rtrim(trim($line), '.'));
+        if ($domain === '' || $domain[0] === '#') {
+            continue;
         }
+        $map->put($domain, true);
     }
 
     return $map;
 }
 
-function checkUrlhaus($domain, Map $urlhausData) {
-    return $urlhausData->get($domain, false);
+// Function to check if a domain is in the NetAPI compromised domains list
+function checkNetapi($domain, Map $netapiData) {
+    return $netapiData->get(strtolower($domain), false);
 }
 
 function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, $log) {
@@ -551,57 +556,6 @@ function generateAuthInfo(): string {
     }
 
     return $retVal;
-}
-
-// Function to fetch and cache URLAbuse data
-function getUrlAbuseData($cache, $cacheKey, $fileUrl) {
-    // Check if data is cached
-    $cachedFile = $cache->getItem($cacheKey);
-
-    if (!$cachedFile->isHit()) {
-        // Data is not cached, download it
-        $httpClient = new Client();
-        $response = $httpClient->get($fileUrl);
-        $fileContent = $response->getBody()->getContents();
-
-        // Cache the file content
-        $cachedFile->set($fileContent);
-        $cachedFile->expiresAfter(300); // Cache for 5 minutes
-        $cache->save($cachedFile);
-
-        return processUrlAbuseData($fileContent);
-    } else {
-        // Retrieve data from cache
-        $fileContent = $cachedFile->get();
-        return processUrlAbuseData($fileContent);
-    }
-}
-
-// Function to process URLAbuse data
-function processUrlAbuseData($fileContent) {
-    $lines = explode("\n", $fileContent);
-    $map = new \Ds\Map();
-
-    foreach ($lines as $line) {
-        // Skip comments
-        if (strpos(trim($line), '#') === 0) {
-            continue;
-        }
-
-        // Parse JSON data from each line
-        $entry = json_decode($line, true);
-        if ($entry && isset($entry['url'])) {
-            $domain = parse_url($entry['url'], PHP_URL_HOST); // Extract domain from URL
-            $map->put($domain, $entry); // Store data against domain
-        }
-    }
-
-    return $map;
-}
-
-// Function to check if a domain is listed in URLAbuse
-function checkUrlAbuse($domain, Map $urlAbuseData) {
-    return $urlAbuseData->get($domain, false);
 }
 
 function generateSerial($soa_type = null) {

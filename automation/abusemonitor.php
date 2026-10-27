@@ -25,7 +25,6 @@ use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\Filesystem;
 use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
 use MatthiasMullie\Scrapbook\Psr6\Pool;
-use GuzzleHttp\Client;
 
 // Initialize the PDO connection pool
 $pdoConfig = (new Swoole\Database\PDOConfig())
@@ -57,37 +56,25 @@ $adapter = new LocalFilesystemAdapter($cachePath, null, LOCK_EX);
 $filesystem = new Filesystem($adapter);
 $cache = new Pool(new ScrapbookFlysystem($filesystem));
 
-// Cache key and file URL for URLAbuse data
-$urlAbuseCacheKey = 'urlabuse_blacklist';
-$urlAbuseUrl = 'https://urlabuse.com/public/data/data.txt';
-
-// Cache key and URL for URLHaus data
-$urlhausCacheKey = 'urlhaus_blacklist';
-$urlhausUrl = 'https://urlhaus.abuse.ch/downloads/json_recent/';
+// Cache key and URL for the NetAPI compromised domains list (one domain per line, refreshed daily)
+$netapiCacheKey = 'netapi_compromised_domains';
+$netapiUrl = 'https://netapi.com/api2/?method=compromised&dataset_type=url';
 
 // Creating first coroutine
-Coroutine::create(function () use ($pool, $log, $cache, $urlAbuseCacheKey, $urlAbuseUrl, $urlhausCacheKey, $urlhausUrl) {
+Coroutine::create(function () use ($pool, $log, $cache, $netapiCacheKey, $netapiUrl) {
     try {
         $pdo = $pool->get();
         $stmt = $pdo->query('SELECT name, clid FROM domain');
 
-        // Retrieve cached URLAbuse data
-        $urlAbuseData = getUrlAbuseData($cache, $urlAbuseCacheKey, $urlAbuseUrl);
-        
-        // Retrieve cached URLHaus data
-        $urlhausData = getUrlhausData($cache, $urlhausCacheKey, $urlhausUrl);
+        // Retrieve cached NetAPI data
+        $netapiData = getNetapiData($cache, $netapiCacheKey, $netapiUrl);
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $domain = $row['name'];
 
-            // Check URLAbuse
-            if (checkUrlAbuse($domain, $urlAbuseData)) {
-                processAbuseDetection($pdo, $domain, $row['clid'], 'URLAbuse', 'https://urlabuse.com/public/data/data.txt', $log);
-            }
-
-            // Check URLhaus
-            if (checkUrlhaus($domain, $urlhausData)) {
-                processAbuseDetection($pdo, $domain, $row['clid'], 'URLHaus', 'https://urlhaus.abuse.ch/downloads/json_recent/', $log);
+            // Check NetAPI compromised domains
+            if (checkNetapi($domain, $netapiData)) {
+                processAbuseDetection($pdo, $domain, $row['clid'], 'NetAPI', 'https://netapi.com/lookup-domain/' . $domain . '/', $log);
             }
 
             // Check Spamhaus
