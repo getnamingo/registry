@@ -1,0 +1,5 @@
+Adds a "Devanagari (India, NIXI)" option when creating a TLD, for .bharat.
+
+The table follows the grammar and restriction rules of NIXI's IDN language tables (Bodo, Dogri, Hindi, Konkani, Maithili, Marathi, Nepali and Sindhi-Devanagari) and uses the union of their code points. It differs from the ICANN-based Devanagari table: it allows avagraha and U+02BC, only ASCII digits, and limits conjuncts (at most four consonants, at most two identical consonants joined by a halant).
+
+Tested with the NIXI example words, validate_label() and the IDN table export.

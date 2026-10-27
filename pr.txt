@@ -1,0 +1,1 @@
+Fix IDN labels with combining marks and add Devanagari IDN table
