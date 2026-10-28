@@ -1458,3 +1458,27 @@ function currentUserHasAnyRole(array $requiredRoles): bool
         $requiredRoles
     );
 }
+
+/**
+ * IDN tables (second level) of NIXI for the Indian IDN TLDs, keyed by the A-label of the TLD.
+ */
+function nixiIdnTables(): array
+{
+    static $tables = null;
+    return $tables ??= require __DIR__ . '/idn_tables_india.php';
+}
+
+/**
+ * Returns the NIXI IDN table for a TLD given as Unicode or A-label, or null when there is none.
+ */
+function nixiIdnTableForTld(string $tld): ?array
+{
+    $tld = strtolower(trim($tld, " ."));
+    if ($tld === '') {
+        return null;
+    }
+    if (!preg_match('/^[a-z0-9-]+$/', $tld)) {
+        $tld = idn_to_ascii($tld, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46) ?: '';
+    }
+    return nixiIdnTables()[$tld] ?? null;
+}

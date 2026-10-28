@@ -56,7 +56,20 @@
                 scriptName = 'Devanagari';
             }
         }
-        const badgeClass = scriptNameToBadgeClass[scriptName];
+        // NIXI tables of the other Indian scripts are recognised by the Unicode block of their first code point
+        if (scriptName === 'Unknown' && typeof idnTableValue === 'string') {
+            const first = idnTableValue.match(/\\x\{([0-9A-Fa-f]{4})\}/);
+            const blocks = [[0x0900, 'Devanagari'], [0x0980, 'Bengali'], [0x0A00, 'Gurmukhi'], [0x0A80, 'Gujarati'], [0x0B00, 'Oriya'], [0x0B80, 'Tamil'], [0x0C00, 'Telugu'], [0x0C80, 'Kannada'], [0x0D00, 'Malayalam']];
+            if (first) {
+                const cp = parseInt(first[1], 16);
+                for (const [start, name] of blocks) {
+                    if (cp >= start && cp < start + 0x80) {
+                        scriptName = name + ' (India)';
+                    }
+                }
+            }
+        }
+        const badgeClass = scriptNameToBadgeClass[scriptName] || 'bg-azure-lt';
 
         // Return HTML string with Bootstrap badge
         return `<span class="badge ${badgeClass}">${scriptName}</span>`;

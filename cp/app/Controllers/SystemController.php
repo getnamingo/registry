@@ -373,6 +373,15 @@ class SystemController extends Controller
                 case 'devanagari_in':
                     $idntable = self::IDN_TABLE_DEVANAGARI_IN;
                     break;
+                case 'india_nixi':
+                    $nixiTable = nixiIdnTableForTld($data['extension']);
+                    if ($nixiTable === null) {
+                        $supported = implode(', ', array_map(fn($t) => $t['tld'], nixiIdnTables()));
+                        $this->container->get('flash')->addMessage('error', 'There is no NIXI IDN table for this TLD. Supported TLDs: ' . $supported);
+                        return $response->withHeader('Location', '/registry/tld/create')->withStatus(302);
+                    }
+                    $idntable = $nixiTable['regex'];
+                    break;
                 default:
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     break;
@@ -913,6 +922,9 @@ class SystemController extends Controller
                     self::IDN_TABLE_DEVANAGARI => 'Devanagari',
                     self::IDN_TABLE_DEVANAGARI_IN => 'Devanagari (India)',
                 ];
+                foreach (nixiIdnTables() as $nixiTable) {
+                    $regexToScriptName[$nixiTable['regex']] = $nixiTable['name'];
+                }
 
                 $idnRegex = $tld['idn_table'];
                 $scriptName = '';
@@ -1828,6 +1840,9 @@ class SystemController extends Controller
                 self::IDN_TABLE_DEVANAGARI => 'devanagari',
                 self::IDN_TABLE_DEVANAGARI_IN => 'devanagari_in'
             ];
+            foreach (nixiIdnTables() as $nixiKey => $nixiTable) {
+                $idn_table_map[$nixiTable['regex']] = 'nixi:' . $nixiKey;
+            }
 
             $idn_table_name = 'ascii'; // Default
 
@@ -1846,7 +1861,21 @@ class SystemController extends Controller
             $email = $db->selectValue("SELECT value FROM settings WHERE name = 'email'");
 
             // Set the regex and metadata based on the script.
-            switch ($idn_table_name) {
+            if (str_starts_with($idn_table_name, 'nixi:')) {
+                $nixiTable = nixiIdnTables()[substr($idn_table_name, 5)];
+                $idntable = $nixiTable['regex'];
+                $metadata = [
+                    'Registry'      => $company_name,
+                    'Script'        => $nixiTable['script'],
+                    'Version'       => '1.0',
+                    'Effective Date'=> date('Y-m-d'),
+                    'Contact'       => $email,
+                    'Address'       => $address . ', ' . $address2 . ', ' . $cc,
+                    'Telephone'     => $phone,
+                    'Website'       => 'www.example.com',
+                    'Notes'         => 'This table describes codepoints allowed for the IDN TLD ' . $nixiTable['tld'] . ', based on the NIXI IDN language table for ' . $nixiTable['languages'] . '.'
+                ];
+            } else switch ($idn_table_name) {
                 case 'ascii':
                     $idntable = '/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i';
                     $metadata = [
