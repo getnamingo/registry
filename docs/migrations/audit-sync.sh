@@ -63,7 +63,7 @@ mariadb_query() {
         --batch --skip-column-names --silent "$@"
 }
 
-active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='$database' AND LOCATE('$audit_schema', ACTION_STATEMENT) > 0;")
+active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND LOCATE('$audit_schema', ACTION_STATEMENT) > 0;")
 if [ "$active" -eq 0 ]; then
     echo "[audit sync] No active audit triggers; skipping"
     exit 0
