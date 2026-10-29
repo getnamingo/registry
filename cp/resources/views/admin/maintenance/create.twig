@@ -1,5 +1,5 @@
 {% extends "layouts/app.twig" %}
-{% block title %}{{ __('New Maintenance') }}{% endblock %}
+{% block title %}{{ isEdit|default(false) ? __('Edit Maintenance') : __('New Maintenance') }}{% endblock %}
 {% block content %}
 <div class="page-wrapper">
   <div class="page-header d-print-none">
@@ -8,18 +8,19 @@
         <ol class="breadcrumb breadcrumb-muted breadcrumb-arrows">
           <li class="breadcrumb-item"><a href="{{ route('home') }}">{{ __('Home') }}</a></li>
           <li class="breadcrumb-item"><a href="{{ route('maintenance') }}">{{ __('Maintenance') }}</a></li>
-          <li class="breadcrumb-item active">{{ __('New Maintenance') }}</li>
+          <li class="breadcrumb-item active">{{ isEdit|default(false) ? __('Edit Maintenance') : __('New Maintenance') }}</li>
         </ol>
       </div>
-      <h2 class="page-title">{{ __('New Maintenance') }}</h2>
+      <h2 class="page-title">{{ isEdit|default(false) ? __('Edit Maintenance') : __('New Maintenance') }}</h2>
     </div>
   </div>
   <div class="page-body">
     <div class="container-xl">
       {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
       <div class="card">
-        <form action="{{ route('storeMaintenance') }}" method="post">
+        <form action="{{ isEdit|default(false) ? '/registry/maintenance/' ~ (eventId|url_encode) ~ '/edit' : route('storeMaintenance') }}" method="post">
           {{ csrf.field | raw }}
+          {% if isEdit|default(false) %}<input type="hidden" name="revision" value="{{ revision }}">{% endif %}
           <div class="card-header"><h3 class="card-title">{{ __('RFC 9167 Maintenance Notice') }}</h3></div>
           <div class="card-body">
             <div class="row">
@@ -29,7 +30,7 @@
               </div>
               <div class="col-md-4 mb-3">
                 <label for="id" class="form-label">{{ __('Event ID') }}</label>
-                <input id="id" name="id" class="form-control" maxlength="64" pattern="[A-Za-z0-9._-]{1,64}" value="{{ old.id|default('') }}" placeholder="{{ __('Auto-generated if blank') }}">
+                <input id="id" name="id" class="form-control" maxlength="64" pattern="[A-Za-z0-9._-]{1,64}" value="{{ old.id|default('') }}" placeholder="{{ __('Auto-generated if blank') }}" {% if isEdit|default(false) %}readonly{% endif %}>
               </div>
               <div class="col-md-6 mb-3">
                 <label for="start" class="form-label required">{{ __('Start (UTC)') }}</label>
@@ -82,11 +83,11 @@
                 <label class="form-check"><input type="checkbox" name="implementation" value="1" class="form-check-input" {% if old.implementation|default(false) %}checked{% endif %}><span class="form-check-label">{{ __('Registrar implementation intervention required') }}</span></label>
               </div>
             </div>
-            <div class="text-secondary small">{{ __('Dates are entered as UTC. Creating this notice publishes an EPP poll notification to every registrar.') }}</div>
+            <div class="text-secondary small">{{ isEdit|default(false) ? __('Dates are in UTC. Saving publishes an update EPP poll notification to every registrar.') : __('Dates are in UTC. Creating publishes a new EPP poll notification to every registrar.') }}</div>
           </div>
           <div class="card-footer text-end">
             <a href="{{ route('maintenance') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
-            <button type="submit" class="btn btn-primary">{{ __('Create & Notify Registrars') }}</button>
+            <button type="submit" class="btn btn-primary">{{ isEdit|default(false) ? __('Save & Notify Registrars') : __('Create & Notify Registrars') }}</button>
           </div>
         </form>
       </div>

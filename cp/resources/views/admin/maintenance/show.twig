@@ -9,18 +9,48 @@
         <li class="breadcrumb-item"><a href="{{ route('maintenance') }}">{{ __('Maintenance') }}</a></li>
         <li class="breadcrumb-item active">{{ item.name }}</li>
       </ol></div>
-      <h2 class="page-title">{{ item.name }}</h2>
+      <div class="row g-2 align-items-center">
+        <div class="col"><h2 class="page-title">{{ item.name }}</h2></div>
+        {% if isAdmin and not deleted and not ended %}
+        <div class="col-auto ms-auto"><a class="btn btn-primary" href="/registry/maintenance/{{ item.id|url_encode }}/edit">{{ __('Edit') }}</a></div>
+        {% endif %}
+      </div>
     </div>
   </div>
   <div class="page-body">
     <div class="container-xl">
+      {% include 'partials/flash.twig' %}
+      {% if isAdmin and not deleted %}
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Registry actions') }}</h3></div>
+        <div class="card-body d-flex gap-2 flex-wrap">
+          {% if ended %}
+            <span class="badge bg-secondary-lt">{{ __('End notification sent') }}</span>
+            <span class="text-secondary small">{{ item._cp.endSentAt }}</span>
+          {% else %}
+            <form method="post" action="/registry/maintenance/{{ item.id|url_encode }}/notify" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('Send another courtesy reminder to all registrars?') }}">
+              {{ csrf.field | raw }}<input type="hidden" name="revision" value="{{ revision }}">
+              <button type="submit" class="btn btn-outline-primary">{{ __('Send Courtesy Notification') }}</button>
+            </form>
+            <form method="post" action="/registry/maintenance/{{ item.id|url_encode }}/end" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('Send the end notification to all registrars?') }}">
+              {{ csrf.field | raw }}<input type="hidden" name="revision" value="{{ revision }}">
+              <button type="submit" class="btn btn-outline-warning">{{ __('End Maintenance') }}</button>
+            </form>
+          {% endif %}
+          <form method="post" action="/registry/maintenance/{{ item.id|url_encode }}/delete" onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ __('Withdraw this event and notify all registrars?') }}">
+            {{ csrf.field | raw }}<input type="hidden" name="revision" value="{{ revision }}">
+            <button type="submit" class="btn btn-outline-danger">{{ __('Delete Maintenance') }}</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title">{{ __('Maintenance Details') }}</h3></div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table">
             <tbody>
               <tr><th>{{ __('Event ID') }}</th><td>{{ item.id }}</td></tr>
-              {% if deleted %}<tr><th>{{ __('Status') }}</th><td>{{ __('Deleted') }}</td></tr>{% endif %}
+              {% if deleted %}<tr><th>{{ __('Status') }}</th><td>{{ __('Deleted') }}</td></tr>{% elseif ended %}<tr><th>{{ __('Status') }}</th><td>{{ __('End notification sent') }}</td></tr>{% endif %}
               <tr><th>{{ __('Start (UTC)') }}</th><td>{{ item.start }}</td></tr>
               <tr><th>{{ __('End (UTC)') }}</th><td>{{ item.end }}</td></tr>
               <tr><th>{{ __('Reason') }}</th><td>{{ item.reason|capitalize }}</td></tr>

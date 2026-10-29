@@ -48,8 +48,13 @@
                 <td>{{ item.end|default('') }}</td>
                 <td>{{ item.environment.type|default('') }}</td>
                 <td>{{ item.reason|default('')|capitalize }}</td>
-                {% if isAdmin %}<td>{% if item.deleted %}<span class="badge bg-secondary-lt">{{ __('Deleted') }}</span>{% else %}<span class="badge bg-green-lt">{{ __('Active') }}</span>{% endif %}</td>{% endif %}
-                <td><a href="/registry/maintenance/{{ item.id|url_encode }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a></td>
+                {% if isAdmin %}<td>{% if item.deleted %}<span class="badge bg-secondary-lt">{{ __('Deleted') }}</span>{% elseif item.endSentAt %}<span class="badge bg-secondary-lt">{{ __('Ended') }}</span>{% else %}<span class="badge bg-green-lt">{{ __('Active') }}</span>{% endif %}</td>{% endif %}
+                <td>
+                  <a href="/registry/maintenance/{{ item.id|url_encode }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a>
+                  {% if isAdmin and not item.deleted and not item.endSentAt %}
+                    <a href="/registry/maintenance/{{ item.id|url_encode }}/edit" class="btn btn-sm btn-outline-primary">{{ __('Edit') }}</a>
+                  {% endif %}
+                </td>
               </tr>
             {% else %}
               <tr><td colspan="{{ isAdmin ? 7 : 6 }}" class="text-center text-secondary">{{ __('No maintenance events found.') }}</td></tr>

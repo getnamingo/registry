@@ -3,8 +3,14 @@
 /*
  * Namingo Registry
  *
- * RFC 9167 maintenance notices in the control panel.
- * Licensed under the MIT License; see LICENSE.
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 namespace App\Controllers;
@@ -23,7 +29,7 @@ class MaintenanceController extends Controller
     private function isAdmin(): bool
     {
         // Namingo uses role 0 for registry administrators (not user ID 0).
-        return isset($_SESSION['auth_roles']) && (int) $_SESSION['auth_roles'] === 0;
+        return in_array($_SESSION['auth_roles'] ?? null, [0, '0'], true);
     }
 
     private function forbidden(Response $response): Response
@@ -49,6 +55,7 @@ class MaintenanceController extends Controller
             }
             $item['id'] = $row['id'];
             $item['deleted'] = in_array($row['deleted'], [true, 1, '1', 't', 'true'], true);
+            $item['endSentAt'] = $item['_cp']['endSentAt'] ?? null;
             $notices[] = $item;
         }
         // RFC timestamps are canonical UTC strings, so lexical sort is chronological.
@@ -86,6 +93,9 @@ class MaintenanceController extends Controller
         return view($response, 'admin/maintenance/show.twig', [
             'item' => $item,
             'deleted' => $deleted,
+            'isAdmin' => $this->isAdmin(),
+            'ended' => !empty($item['_cp']['endSentAt']),
+            'revision' => hash('sha256', $row['item_json']),
         ]);
     }
 
@@ -111,22 +121,10 @@ class MaintenanceController extends Controller
             $event = self::makeEvent($data);
             $event['crDate'] = gmdate('Y-m-d\TH:i:s\Z');
             $stored = json_encode($event, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-            $snapshot = $event;
-            $snapshot['pollType'] = 'create';
-            $message = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-            if (strlen($message) > 65000) {
-                throw new InvalidArgumentException('Maintenance notice is too large for the EPP poll queue.');
-            }
-
             $pdo->beginTransaction();
             $insert = $pdo->prepare('INSERT INTO maintenance (id, item_json, deleted) VALUES (?, ?, FALSE)');
             $insert->execute([$event['id'], $stored]);
-            // Same queue and JSON shape as epp/maintenance-publish.php from patch 1.
-            $notify = $pdo->prepare(
-                "INSERT INTO poll (registrar_id, qdate, msg, msg_type, obj_name_or_id)
-                 SELECT id, ?, ?, 'maintenance', ? FROM registrar"
-            );
-            $notify->execute([gmdate('Y-m-d H:i:s'), $message, $event['id']]);
+            self::queueNotification($pdo, $event, 'create');
             $pdo->commit();
             $this->container->get('flash')->addMessage('success', 'Maintenance notice created and queued for registrars.');
             return $response->withHeader('Location', '/registry/maintenance')->withStatus(303);
@@ -149,6 +147,204 @@ class MaintenanceController extends Controller
                 'error' => $message,
                 'old' => $data,
             ]);
+        }
+    }
+
+    /** RFC 9167 notification snapshots all use the existing poll.msg column. */
+    private static function queueNotification(PDO $pdo, array $event, string $pollType): void
+    {
+        // The _cp key is control-panel bookkeeping, never an RFC 9167 object field.
+        unset($event['_cp'], $event['pollType']);
+        $event['pollType'] = $pollType;
+        $json = json_encode($event, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        // PostgreSQL TEXT is unbounded, but MariaDB poll.msg is TEXT (64 KiB).
+        if (strlen($json) > 65000) {
+            throw new InvalidArgumentException('Maintenance notice is too large for the EPP poll queue.');
+        }
+        $stmt = $pdo->prepare(
+            "INSERT INTO poll (registrar_id, qdate, msg, msg_type, obj_name_or_id)
+             SELECT id, ?, ?, 'maintenance', ? FROM registrar"
+        );
+        $stmt->execute([gmdate('Y-m-d H:i:s'), $json, $event['id']]);
+    }
+
+    private static function validId(string $id): bool
+    {
+        return (bool) preg_match('/^[A-Za-z0-9._-]{1,64}$/D', $id);
+    }
+
+    private static function toForm(array $event): array
+    {
+        $systems = [];
+        foreach ($event['systems'] ?? [] as $system) {
+            $systems[] = ($system['name'] ?? '') . '|' . ($system['host'] ?? '') . '|' . ($system['impact'] ?? '');
+        }
+        return [
+            'id' => $event['id'],
+            'name' => $event['name'] ?? '',
+            'start' => substr($event['start'] ?? '', 0, 16),
+            'end' => substr($event['end'] ?? '', 0, 16),
+            'environment' => $event['environment']['type'] ?? 'production',
+            'environment_name' => $event['environment']['name'] ?? '',
+            'reason' => $event['reason'] ?? 'planned',
+            'type' => $event['types'][0]['text'] ?? '',
+            'systems' => implode("\n", $systems),
+            'tlds' => implode(', ', $event['tlds'] ?? []),
+            'description' => $event['descriptions'][0]['text'] ?? '',
+            'detail' => $event['detail'] ?? '',
+            'connection' => !empty($event['intervention']['connection']),
+            'implementation' => !empty($event['intervention']['implementation']),
+        ];
+    }
+
+    public function edit(Request $request, Response $response, array $args): Response
+    {
+        if (!$this->isAdmin()) {
+            return $this->forbidden($response);
+        }
+        $id = (string) ($args['id'] ?? '');
+        if (!self::validId($id)) {
+            return $response->withStatus(404);
+        }
+        $stmt = $this->container->get('pdo')->prepare(
+            'SELECT item_json, deleted FROM maintenance WHERE id = ?'
+        );
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || self::isDeleted($row['deleted'])) {
+            return $response->withStatus(404);
+        }
+        $item = json_decode($row['item_json'], true);
+        if (!is_array($item) || !empty($item['_cp']['endSentAt'])) {
+            return $response->withStatus(409);
+        }
+        return view($response, 'admin/maintenance/create.twig', [
+            'isEdit' => true,
+            'eventId' => $id,
+            'revision' => hash('sha256', $row['item_json']),
+            'old' => self::toForm($item),
+        ]);
+    }
+
+    private static function isDeleted($value): bool
+    {
+        return in_array($value, [true, 1, '1', 't', 'true'], true);
+    }
+
+    /** POST /edit: post-update snapshot, or /notify|end|delete with the prior state. */
+    public function change(Request $request, Response $response, array $args): Response
+    {
+        if (!$this->isAdmin()) {
+            return $this->forbidden($response);
+        }
+        $id = (string) ($args['id'] ?? '');
+        $action = (string) ($args['action'] ?? '');
+        if (!self::validId($id) || !in_array($action, ['edit', 'notify', 'end', 'delete'], true)) {
+            return $response->withStatus(404);
+        }
+        $data = $request->getParsedBody();
+        $data = is_array($data) ? $data : [];
+        $pdo = $this->container->get('pdo');
+        try {
+            if (!is_string($data['revision'] ?? null) ||
+                !preg_match('/^[a-f0-9]{64}$/D', $data['revision'])) {
+                throw new InvalidArgumentException('Missing or invalid revision; refresh the page.');
+            }
+            if ($action === 'edit' && isset($data['id']) && $data['id'] !== $id) {
+                throw new InvalidArgumentException('Maintenance event IDs cannot be changed.');
+            }
+            // Validate BEFORE opening the transaction; the locked row is checked below.
+            $candidate = null;
+            if ($action === 'edit') {
+                $data['id'] = $id;
+                $candidate = self::makeEvent($data);
+            }
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare(
+                'SELECT item_json, deleted FROM maintenance WHERE id = ? FOR UPDATE'
+            );
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+            if (!$row || self::isDeleted($row['deleted'])) {
+                throw new InvalidArgumentException('Maintenance event was deleted or cannot be found.');
+            }
+            if (!hash_equals(hash('sha256', $row['item_json']), $data['revision'])) {
+                throw new InvalidArgumentException('Maintenance event changed since you opened it. Refresh and retry.');
+            }
+            $current = json_decode($row['item_json'], true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($current)) {
+                throw new InvalidArgumentException('Invalid stored maintenance notice.');
+            }
+            $ended = !empty($current['_cp']['endSentAt']);
+            if ($ended && $action !== 'delete') {
+                throw new InvalidArgumentException('An end notification was already sent; only deletion is permitted.');
+            }
+
+            if ($action === 'edit') {
+                // Preserve identity, creation time, and optional extensions not edited by CP.
+                $next = $current;
+                foreach (['name', 'systems', 'environment', 'start', 'end', 'reason', 'intervention'] as $key) {
+                    $next[$key] = $candidate[$key];
+                }
+                $next['types'][0] = $candidate['types'][0];
+                $next['descriptions'][0] = $candidate['descriptions'][0];
+                unset($next['tlds'], $next['detail']);
+                foreach (['tlds', 'detail'] as $key) {
+                    if (array_key_exists($key, $candidate)) {
+                        $next[$key] = $candidate[$key];
+                    }
+                }
+                $next['upDate'] = gmdate('Y-m-d\TH:i:s\Z');
+                unset($next['pollType']);
+                $json = json_encode($next, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+                $pdo->prepare('UPDATE maintenance SET item_json = ? WHERE id = ?')->execute([$json, $id]);
+                self::queueNotification($pdo, $next, 'update');
+                $message = 'Maintenance updated and registrars notified.';
+            } elseif ($action === 'notify') {
+                self::queueNotification($pdo, $current, 'courtesy');
+                $message = 'Courtesy reminder queued for all registrars.';
+            } elseif ($action === 'end') {
+                // RFC 9167: an end poll includes the latest state without modifying
+                // the advertised maintenance object. _cp is private UI-only metadata.
+                self::queueNotification($pdo, $current, 'end');
+                $current['_cp']['endSentAt'] = gmdate('Y-m-d\TH:i:s\Z');
+                $json = json_encode($current, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+                $pdo->prepare('UPDATE maintenance SET item_json = ? WHERE id = ?')->execute([$json, $id]);
+                $message = 'End notification queued for all registrars.';
+            } else {
+                // The delete notification MUST snapshot the state BEFORE deletion.
+                self::queueNotification($pdo, $current, 'delete');
+                $pdo->prepare('UPDATE maintenance SET deleted = TRUE WHERE id = ?')->execute([$id]);
+                $message = 'Maintenance withdrawn and deletion queued for all registrars.';
+            }
+            $pdo->commit();
+            $this->container->get('flash')->addMessage('success', $message);
+            return $response->withHeader('Location', '/registry/maintenance/' . rawurlencode($id))->withStatus(303);
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($e instanceof InvalidArgumentException) {
+                $message = $e->getMessage();
+                $status = 409;
+            } else {
+                error_log('Maintenance management failed: ' . $e->getMessage());
+                $message = 'Unable to publish maintenance change. No notifications were committed.';
+                $status = 500;
+            }
+            if ($action === 'edit' && $status === 409) {
+                // Do not regenerate a revision on error: stale edits must reload.
+                return view($response->withStatus($status), 'admin/maintenance/create.twig', [
+                    'isEdit' => true,
+                    'eventId' => $id,
+                    'revision' => (string) ($data['revision'] ?? ''),
+                    'error' => $message,
+                    'old' => $data,
+                ]);
+            }
+            $this->container->get('flash')->addMessage('error', $message);
+            return $response->withHeader('Location', '/registry/maintenance/' . rawurlencode($id))->withStatus(303);
         }
     }
 

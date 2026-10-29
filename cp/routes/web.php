@@ -183,10 +183,11 @@ $app->group('', function ($route) {
     $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');
     $route->map(['GET', 'POST'], '/registry/dnssec', SystemController::class . ':manageDnssec')->setName('manageDnssec');
 
-    // Registry operators publish; registrar users may only read.
     $route->get('/registry/maintenance', MaintenanceController::class . ':index')->setName('maintenance');
     $route->get('/registry/maintenance/create', MaintenanceController::class . ':create')->setName('createMaintenance');
     $route->post('/registry/maintenance/create', MaintenanceController::class . ':store')->setName('storeMaintenance');
+    $route->get('/registry/maintenance/{id}/edit', MaintenanceController::class . ':edit')->setName('editMaintenance');
+    $route->post('/registry/maintenance/{id}/{action:edit|notify|end|delete}', MaintenanceController::class . ':change')->setName('changeMaintenance');
     $route->get('/registry/maintenance/{id}', MaintenanceController::class . ':show')->setName('viewMaintenance');
 
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
