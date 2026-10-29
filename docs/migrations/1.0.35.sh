@@ -146,6 +146,8 @@ case "$PHASE" in
         upgrade_idn_table_schema
         upgrade_maintenance_schema
         upgrade_allocation_tokens_schema
+        # Include the v1.0.34 secdns audit change for already-upgraded installs.
+        sh "$(dirname "$0")/audit-sync.sh" all
         ;;
 
     *)

@@ -756,7 +756,14 @@ if [ -f "${INSTALL_DIR}/docs/upgrade-freebsd.sh" ]; then
         "${INSTALL_DIR}/docs/upgrade-freebsd.sh.previous"
 fi
 
+# Keep the existing audit configuration and credentials; it is not a template.
+if [ -f "${INSTALL_DIR}/automation/audit.json" ]; then
+    cp -p "${INSTALL_DIR}/automation/audit.json" "${STAGING_DIR}/.audit.json.preserved"
+fi
 copy_tree_preserving "${STAGING_DIR}/automation" "${INSTALL_DIR}/automation" "config.php"
+if [ -f "${STAGING_DIR}/.audit.json.preserved" ]; then
+    cp -p "${STAGING_DIR}/.audit.json.preserved" "${INSTALL_DIR}/automation/audit.json"
+fi
 copy_tree_preserving "${STAGING_DIR}/cp" "$CP_DIR" ".env"
 copy_tree_preserving "${STAGING_DIR}/whois/web" "$WHOIS_WEB_DIR" "config.php"
 copy_optional_component "${STAGING_DIR}/whois/port43" "${INSTALL_DIR}/whois/port43" "config.php"

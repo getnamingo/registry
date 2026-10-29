@@ -112,6 +112,10 @@
             "audit": true,
             "skip": null
         },
+        "maintenance": {
+            "audit": true,
+            "skip": null
+        },
         "payment_history": {
             "audit": null,
             "skip": null
