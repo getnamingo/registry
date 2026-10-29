@@ -183,8 +183,17 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
         $tmp = $xml->xpath('//fee:check');
         $fee_check = $tmp[0] ?? null;
 
-        $tmp = $xml->xpath('//allocationToken:allocationToken');
-        $allocation_token = $tmp[0] ?? null;
+    }
+
+    try {
+        $allocation_token = allocationTokenParse($xml, 'check');
+    } catch (InvalidArgumentException $e) {
+        sendEppError($conn, $db, 2005, $e->getMessage(), $clTRID, $trans);
+        return;
+    }
+    if ($allocation_token !== null && $launch_check !== null) {
+        sendEppError($conn, $db, 2102, 'Allocation token and launch check cannot be combined', $clTRID, $trans);
+        return;
     }
 
     if (isset($launch_check)) {
@@ -324,35 +333,18 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor();
 
-            if ($result) {
-                if ($result['type'] === 'taken') {
-                    // Domain is registered
-                    $domainEntry[] = 0; // Unavailable
-                    $domainEntry[] = 'In use';
-                } else {
-                    // Domain is reserved
-                    if ($allocation_token !== null) {
-                        $allocationTokenValue = (string)$allocation_token;
-                        $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :label AND token = :token LIMIT 1");
-                        $stmt->bindParam(':label', $label, PDO::PARAM_STR);
-                        $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
-                        $stmt->execute();
-                        $token = $stmt->fetchColumn();
-                        $stmt->closeCursor();
-
-                        if ($token) {
-                            $domainEntry[] = 1; // Available with a valid allocation token
-                        } else {
-                            $domainEntry[] = 0;
-                            $domainEntry[] = 'Allocation Token mismatch';
-                        }
-                    } else {
-                        $domainEntry[] = 0; // Unavailable
-                        $domainEntry[] = ucfirst($result['type']); // Reserved reason
-                    }
-                }
+            $reserved = $result && $result['type'] !== 'taken';
+            $required = allocationTokenRequired($db, $domainName, 'create', (bool)$reserved);
+            $valid = $allocation_token !== null &&
+                allocationTokenValid($db, $domainName, $allocation_token, 'create', $clid);
+            if ($result && $result['type'] === 'taken') {
+                $domainEntry[] = 0;
+                $domainEntry[] = 'In use';
+            } elseif (($required && !$valid) || ($allocation_token !== null && !$valid)) {
+                $domainEntry[] = 0;
+                $domainEntry[] = $allocation_token !== null ? 'Allocation Token mismatch' :
+                    ($reserved ? ucfirst($result['type']) : 'Allocation Token required');
             } else {
-                // Domain is available
                 $domainEntry[] = 1;
             }
 

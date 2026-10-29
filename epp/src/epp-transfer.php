@@ -525,9 +525,16 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
         return;
     }
 
-    $extensionNode = $xml->command->extension;
-    if (isset($extensionNode)) {
-        $allocation_token = $xml->xpath('//allocationToken:allocationToken')[0] ?? null;
+    $allocation_token = null;
+    try {
+        $allocation_token = allocationTokenParse($xml, 'transfer');
+    } catch (InvalidArgumentException $e) {
+        sendEppError($conn, $db, 2005, $e->getMessage(), $clTRID, $trans);
+        return;
+    }
+    if ($allocation_token !== null && $op !== 'request') {
+        sendEppError($conn, $db, 2102, 'Allocation token is only supported for transfer requests', $clTRID, $trans);
+        return;
     }
 
     // An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
@@ -1210,24 +1217,18 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
     }
 
     elseif ($op === 'request') {
-        if ($allocation_token !== null) {
-            $allocationTokenValue = (string)$allocation_token;
-                        
-            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName AND token = :token LIMIT 1");
-            $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
-            $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
-            $stmt->execute();
-            $token = $stmt->fetchColumn();
-            $stmt->closeCursor();
-                        
-            if ($token) {
-                // No action needed, script continues
-            } else {
-                sendEppError($conn, $db, 2201, 'Please double check your allocation token', $clTRID, $trans);
-                return;
-            }
+        $required = allocationTokenRequired($db, $domainName, 'transfer');
+        if ($required && $allocation_token === null) {
+            sendEppError($conn, $db, 2201, 'Allocation Token required for transfer', $clTRID, $trans);
+            return;
         }
-        
+        if ($allocation_token !== null &&
+            (!$required || !allocationTokenValid($db, $domainName, $allocation_token, 'transfer',
+                getRegistrarClid($db, $clid)))) {
+            sendEppError($conn, $db, 2201, 'Allocation Token invalid or not required', $clTRID, $trans);
+            return;
+        }
+
         if (!($config['disable_60days'] ?? false)) {
             // Check days from registration
             $stmt = $db->prepare("SELECT crdate FROM domain WHERE id = :domain_id LIMIT 1");
@@ -1427,6 +1428,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         ':transfer_exdate' => $transfer_exdate
                     ]);
 
+                    if ($allocation_token !== null && !allocationTokenConsume($db, $domainName, $allocation_token)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2201, 'Allocation Token no longer available', $clTRID, $trans);
+                        return;
+                    }
                     $db->commit();
                 } catch (Throwable $e) {
                     if ($db->inTransaction()) {
@@ -1517,6 +1523,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                         ':acdate' => $acdate
                     ]);
 
+                    if ($allocation_token !== null && !allocationTokenConsume($db, $domainName, $allocation_token)) {
+                        $db->rollBack();
+                        sendEppError($conn, $db, 2201, 'Allocation Token no longer available', $clTRID, $trans);
+                        return;
+                    }
                     $db->commit();
                 } catch (Throwable $e) {
                     if ($db->inTransaction()) {

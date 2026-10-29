@@ -25,6 +25,7 @@ global $c;
 $c = require_once 'config.php';
 require_once 'src/EppWriter.php';
 require_once 'src/helpers.php';
+require_once 'src/allocation-token.php';
 require_once 'src/epp-check.php';
 require_once 'src/epp-info.php';
 require_once 'src/epp-maintenance.php';
@@ -369,6 +370,20 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             if ($xml->getName() != 'epp') {
                 sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
                 return;
+            }
+
+            // RFC 8495 only extends domain check, info, create and transfer-request.
+            // Reject tokens in unsupported commands instead of silently ignoring them.
+            $allocationNodes = $xml->xpath('//*[namespace-uri()="' . ALLOCATION_TOKEN_NS . '"]') ?: [];
+            if ($allocationNodes) {
+                $supported = (isset($xml->command->check) && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check))
+                    || (isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info))
+                    || (isset($xml->command->create) && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create))
+                    || (isset($xml->command->transfer) && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer));
+                if (!$supported) {
+                    sendEppError($conn, $pdo, 2102, 'Allocation token is not supported for this command');
+                    return;
+                }
             }
 
             switch (true) {

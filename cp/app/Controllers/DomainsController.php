@@ -86,10 +86,15 @@ class DomainsController extends Controller
                 // If the domain is not taken, check if it's reserved
                 if ($availability === '1') {
                     $domain_already_reserved = $db->selectRow('SELECT id,type FROM reserved_domain_names WHERE name = ? LIMIT 1',[$parts['domain']]);
+                    if (($token !== null && $token !== '' && !allocationTokenCpValid($db, $domainName, $token, 'create')) ||
+                        (allocationTokenCpRequired($db, $domainName, 'create', (bool)$domain_already_reserved) && !$token)) {
+                        $this->container->get('flash')->addMessage('error', 'Domain is not available with this Allocation Token');
+                        return $response->withHeader('Location', '/domain/check')->withStatus(302);
+                    }
 
                     if ($domain_already_reserved) {
                         if ($token !== null && $token !== '') {
-                            $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                            $allocation_token = allocationTokenCpValid($db, $domainName, $token, 'create') ? $token : null;
                                 
                             if ($allocation_token) {
                                 $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' is available!<br />Allocation token valid');
@@ -551,7 +556,7 @@ class DomainsController extends Controller
 
             if ($domain_already_reserved) {
                 if ($token !== null && $token !== '') {
-                    $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
+                    $allocation_token = allocationTokenCpValid($db, $domainName, $token, 'create') ? $token : null;
                                 
                     if (!$allocation_token) {
                         $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' is not available: Allocation Token mismatch');
@@ -579,6 +584,13 @@ class DomainsController extends Controller
                 $clid = $result['registrar_id'];
             } else {
                 $clid = $registrar_id;
+            }
+
+            if (($token !== null && $token !== '' &&
+                    !allocationTokenCpValid($db, $domainName, $token, 'create', (int)$clid)) ||
+                (allocationTokenCpRequired($db, $domainName, 'create', (bool)$domain_already_reserved) && !$token)) {
+                $this->container->get('flash')->addMessage('error', 'Allocation Token invalid or required');
+                return $response->withHeader('Location', '/domain/create')->withStatus(302);
             }
             
             $result = $db->selectRow('SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit", currency FROM registrar WHERE id = ?', [$clid]);
@@ -1051,7 +1063,10 @@ class DomainsController extends Controller
                 $db->exec(
                     'UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE'
                 );
-                
+
+                if ($token !== null && $token !== '') {
+                    allocationTokenCpConsume($db, $domainName, $token);
+                }
                 $db->commit();
             } catch (\Throwable $e) {
                 if ($db->isTransactionActive()) {
@@ -2732,13 +2747,11 @@ class DomainsController extends Controller
                 return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
             
-            if ($token !== null && $token !== '') {
-                $allocation_token = $db->selectValue('SELECT token FROM allocation_tokens WHERE domain_name = ? AND token = ?',[$domainName,$token]);
-                                
-                if (!$allocation_token) {
-                    $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' can not be transferred: Allocation Token mismatch');
-                    return $response->withHeader('Location', '/transfer/request')->withStatus(302);
-                }
+            $requiresToken = allocationTokenCpRequired($db, $domainName, 'transfer');
+            if (($requiresToken && !$token) || ($token &&
+                (!$requiresToken || !allocationTokenCpValid($db, $domainName, $token, 'transfer', (int)$clid)))) {
+                $this->container->get('flash')->addMessage('error', 'Domain ' . $domainName . ' cannot be transferred: Allocation Token missing, invalid or not required');
+                return $response->withHeader('Location', '/transfer/request')->withStatus(302);
             }
             
             $domain = $db->selectRow('SELECT id, registrant, crdate, exdate, lastupdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate FROM domain WHERE name = ? LIMIT 1',
@@ -2853,6 +2866,9 @@ class DomainsController extends Controller
                             'obj_exdate' => $transfer_exdate
                         ]);
                     
+                        if ($token !== null && $token !== '') {
+                            allocationTokenCpConsume($db, $domainName, $token);
+                        }
                         $db->commit();
                     } catch (Exception $e) {
                         $db->rollBack();
@@ -2929,6 +2945,9 @@ class DomainsController extends Controller
                             'obj_exdate' => $transfer_exdate
                         ]);
                     
+                        if ($token !== null && $token !== '') {
+                            allocationTokenCpConsume($db, $domainName, $token);
+                        }
                         $db->commit();
                     } catch (Exception $e) {
                         $db->rollBack();

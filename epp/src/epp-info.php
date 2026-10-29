@@ -328,10 +328,17 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $launch_info = $launch_nodes[0];
         }
 
-        $alloc_nodes = $xml->xpath('//allocationToken:info');
-        if (!empty($alloc_nodes)) {
-            $allocation_token = $alloc_nodes[0];
-        }
+    }
+
+    try {
+        $allocation_token = allocationTokenParse($xml, 'info');
+    } catch (InvalidArgumentException $e) {
+        sendEppError($conn, $db, 2005, $e->getMessage(), $clTRID, $trans);
+        return;
+    }
+    if ($allocation_token !== null && $launch_info !== null) {
+        sendEppError($conn, $db, 2102, 'Allocation token and launch info cannot be combined', $clTRID, $trans);
+        return;
     }
 
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
@@ -509,6 +516,12 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $isSponsor = (int)$clid === (int)$domain['clid'];
             $authorizedByAuthInfo = false;
 
+            // Allocation tokens are credentials. Access to domain authInfo alone
+            // is not sufficient to disclose a token (RFC 8495 §3.1.2).
+            if ($allocation_token !== null && !$isSponsor) {
+                sendEppError($conn, $db, 2201, 'Not authorized to retrieve Allocation Token', $clTRID, $trans);
+                return;
+            }
             if (!$isSponsor) {
                 if ($authInfo_pw === null || $authInfo_pw === '') {
                     sendEppError($conn, $db, 2201, 'Client is not the sponsor of the domain object', $clTRID, $trans);
@@ -717,17 +730,16 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             }
             
             if ($allocation_token !== null) {
-                $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName LIMIT 1");
-                $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
-                $stmt->execute();
-                $token = $stmt->fetchColumn();
-                $stmt->closeCursor();
-                        
-                if ($token) {
-                    $response['allocation'] = $token;
-                } else {
-                    $response['allocation'] = 'ERROR';
+                if (!allocationTokensEnabled($db)) {
+                    sendEppError($conn, $db, 2201, 'Allocation Token extension disabled', $clTRID, $trans);
+                    return;
                 }
+                $token = allocationTokenForInfo($db, $domainName);
+                if ($token === null) {
+                    sendEppError($conn, $db, 2303, 'No Allocation Token for domain', $clTRID, $trans);
+                    return;
+                }
+                $response['allocation'] = $token;
             }
             
             $epp = new EPP\EppWriter();

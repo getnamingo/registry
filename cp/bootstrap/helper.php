@@ -1482,3 +1482,5 @@ function nixiIdnTableForTld(string $tld): ?array
     }
     return nixiIdnTables()[$tld] ?? null;
 }
+
+require_once __DIR__ . '/../app/Lib/AllocationToken.php';

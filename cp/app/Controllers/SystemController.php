@@ -1392,15 +1392,25 @@ class SystemController extends Controller
             }
 
             try {
+                // Used and deprecated credentials must not be silently reactivated.
+                $statusColumn = envi('DB_DRIVER') === 'pgsql' ? '"tokenStatus"' : 'tokenStatus';
+                $currentStatus = $db->selectValue("SELECT $statusColumn FROM allocation_tokens WHERE token = ?", [$token]);
+                if (!in_array($currentStatus, ['new', 'active'], true)) {
+                    $this->container->get('flash')->addMessage('error', 'Used or deprecated tokens cannot be reactivated');
+                    return $response->withHeader('Location', '/registry/tokens')->withStatus(302);
+                }
                 $db->beginTransaction();
 
                 $currentDateTime = new \DateTime();
                 $update = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 
                 $db->update('allocation_tokens', [
-                    'domain_name' => $domain_name,
+                    'domain_name' => strtolower($domain_name),
                     'tokenStatus' => 'active',
-                    'lastupdate' => $update
+                    'lastupdate' => $update,
+                    // A token only becomes time-limited when assigned to a domain.
+                    'expires_at' => (new \DateTimeImmutable('+30 days'))->format('Y-m-d H:i:s.v'),
+                    'used_at' => null
                 ],
                 [
                     'token' => $token

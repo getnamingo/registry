@@ -229,6 +229,7 @@ function redactEppSecrets(string $xml): string {
         '//*[local-name()="authInfo"]/*[local-name()="pw" or local-name()="ext"]'
         . ' | //*[local-name()="login"]/*[local-name()="pw" or local-name()="newPW"]'
         . ' | //*[local-name()="loginSec"]/*[local-name()="pw" or local-name()="newPW"]'
+        . ' | //*[local-name()="allocationToken" and namespace-uri()="urn:ietf:params:xml:ns:allocationToken-1.0"]'
     );
 
     foreach ($nodes as $node) {
@@ -621,6 +622,7 @@ function createTransaction($db, $clid, $clTRID, $clTRIDframe) {
 }
 
 function updateTransaction($db, $cmd, $obj_type, $obj_id, $code, $msg, $svTRID, $svTRIDframe, $transaction_id) {
+    $svTRIDframe = redactEppSecrets($svTRIDframe);
     global $c, $transactionPool;
 
     $transactionDb = null;

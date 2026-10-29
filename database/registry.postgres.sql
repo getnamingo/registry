@@ -70,6 +70,8 @@ CREATE TABLE allocation_tokens (
      "tokenType" VARCHAR(100),
      "crdate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
      "lastupdate" TIMESTAMP(3),
+     "expires_at" TIMESTAMP(3),
+     "used_at" TIMESTAMP(3),
      "registrars" JSON,
      "tlds" JSON,
      "eppActions" JSON,
@@ -77,6 +79,7 @@ CREATE TABLE allocation_tokens (
      "reduceYears" INT CHECK ("reduceYears" BETWEEN 0 AND 10),
     PRIMARY KEY (token)
 );
+CREATE INDEX allocation_tokens_domain_name_idx ON allocation_tokens (domain_name);
 
 CREATE TABLE error_log (
     "id" SERIAL PRIMARY KEY, 

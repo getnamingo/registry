@@ -66,18 +66,21 @@ CREATE TABLE IF NOT EXISTS `registry`.`domain_restore_price` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='domain restore price';
 
 CREATE TABLE IF NOT EXISTS `registry`.`allocation_tokens` (
-    token VARCHAR(255) NOT NULL,
+    token VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
     domain_name VARCHAR(255) DEFAULT NULL,
     tokenStatus VARCHAR(100) DEFAULT NULL,
     tokenType VARCHAR(100) DEFAULT NULL,
     crdate DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     lastupdate DATETIME(3) DEFAULT NULL,
+    expires_at DATETIME(3) DEFAULT NULL,
+    used_at DATETIME(3) DEFAULT NULL,
     registrars JSON DEFAULT NULL,
     tlds JSON DEFAULT NULL,
     eppActions JSON DEFAULT NULL,
     reducePremium TINYINT(1) DEFAULT NULL,
     reduceYears INT DEFAULT NULL CHECK (reduceYears BETWEEN 0 AND 10),
-    PRIMARY KEY (token)
+    PRIMARY KEY (token),
+    KEY allocation_tokens_domain_name_idx (domain_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='allocation tokens';
 
 CREATE TABLE IF NOT EXISTS `registry`.`error_log` (

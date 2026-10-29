@@ -691,14 +691,18 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $tmp = $xml->xpath('//launch:create');
         $launch_create = $tmp[0] ?? null;
 
-        $tmp = $xml->xpath('//allocationToken:allocationToken');
-        $allocation_token = $tmp[0] ?? null;
-
         // Check if launch extension is enabled in database settings
         $stmt = $db->prepare("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1");
         $stmt->execute();
         $launch_extension_enabled = $stmt->fetchColumn();
         $stmt->closeCursor();
+    }
+
+    try {
+        $allocation_token = allocationTokenParse($xml, 'create');
+    } catch (InvalidArgumentException $e) {
+        sendEppError($conn, $db, 2005, $e->getMessage(), $clTRID, $trans);
+        return;
     }
 
     $invalid_domain = validate_label($domainName, $db);
@@ -1112,27 +1116,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $domain_already_reserved = $stmt->fetchColumn();
     $stmt->closeCursor();
 
-    if ($domain_already_reserved) {
-        if ($allocation_token !== null) {
-            $allocationTokenValue = (string)$allocation_token;
-                        
-            $stmt = $db->prepare("SELECT token FROM allocation_tokens WHERE domain_name = :domainName AND token = :token LIMIT 1");
-            $stmt->bindParam(':domainName', $label, PDO::PARAM_STR);
-            $stmt->bindParam(':token', $allocationTokenValue, PDO::PARAM_STR);
-            $stmt->execute();
-            $token = $stmt->fetchColumn();
-            $stmt->closeCursor();
-                        
-            if ($token) {
-                // No action needed, script continues
-            } else {
-                sendEppError($conn, $db, 2201, 'Please double check your allocation token', $clTRID, $trans);
-                return;
-            }
-        } else {
-            sendEppError($conn, $db, 2302, 'Domain name is reserved or restricted', $clTRID, $trans);
-            return;
-        }
+    $required = allocationTokenRequired($db, $domainName, 'create', (bool)$domain_already_reserved);
+    if ($allocation_token !== null &&
+        !allocationTokenValid($db, $domainName, $allocation_token, 'create', $clid)) {
+        sendEppError($conn, $db, 2201, 'Allocation Token does not apply', $clTRID, $trans);
+        return;
+    }
+    if ($required && $allocation_token === null) {
+        sendEppError($conn, $db, 2302, 'Allocation Token required for this domain', $clTRID, $trans);
+        return;
     }
     
     $periodElements = $xml->xpath("//domain:create/domain:period");
@@ -1765,6 +1757,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
             $stmt->closeCursor();
 
+            if ($allocation_token !== null && !allocationTokenConsume($db, $domainName, $allocation_token)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2201, 'Allocation Token no longer available', $clTRID, $trans);
+                return;
+            }
             $db->commit();
         } catch (Exception $e) {
             if ($db->inTransaction()) {
@@ -2252,6 +2249,11 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $db->exec($statisticsInsert);
             $db->exec("UPDATE statistics SET created_domains = created_domains + 1 WHERE date = CURRENT_DATE");
 
+            if ($allocation_token !== null && !allocationTokenConsume($db, $domainName, $allocation_token)) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2201, 'Allocation Token no longer available', $clTRID, $trans);
+                return;
+            }
             $db->commit();
         } catch (Exception $e) {
             if ($db->inTransaction()) {
