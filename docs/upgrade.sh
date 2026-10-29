@@ -22,6 +22,7 @@ BACKUP_DIR="/opt/backup"
 MIN_SUPPORTED_VERSION="1.0.32"
 
 TARGET_OVERRIDE=""
+USE_MAIN=0
 ASSUME_YES=0
 
 STAGING_DIR=""
@@ -61,12 +62,15 @@ Usage: $0 [options]
 Options:
   --target X.Y.Z   Upgrade to a specific released tag instead of the version
                    published in the repository VERSION file.
+  --main           Install latest main, running all migrations newer than
+                   the installed VERSION (including unreleased migrations).
   -y, --yes        Do not ask for the normal upgrade confirmation.
   -h, --help       Show this help.
 
 Examples:
   $0
   $0 --target 1.0.34
+  $0 --main
   $0 -y
 EOF_USAGE
 }
@@ -77,6 +81,10 @@ while [[ $# -gt 0 ]]; do
             [[ $# -ge 2 ]] || die "--target requires a version."
             TARGET_OVERRIDE="$2"
             shift 2
+            ;;
+        --main)
+            USE_MAIN=1
+            shift
             ;;
         -y|--yes)
             ASSUME_YES=1
@@ -91,6 +99,9 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+[[ "$USE_MAIN" -ne 1 || -z "$TARGET_OVERRIDE" ]] \
+    || die "--main cannot be combined with --target."
 
 require_root() {
     [[ "${EUID:-$(id -u)}" -eq 0 ]] \
@@ -301,7 +312,7 @@ if version_gt "$CURRENT_VERSION" "$TARGET_VERSION"; then
 target v${TARGET_VERSION}."
 fi
 
-if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
+if [[ "$USE_MAIN" -ne 1 && "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
     log "Namingo Registry v${CURRENT_VERSION} is already current."
     SUCCESS=1
     exit 0
@@ -311,21 +322,27 @@ fi
 # Verify and clone target release
 # ---------------------------------------------------------
 
-log "Verifying release tag v${TARGET_VERSION}"
-
-git ls-remote \
-    --exit-code \
-    --tags \
-    "$REPO_URL" \
-    "refs/tags/v${TARGET_VERSION}" \
-    >/dev/null \
-    || die "Release tag v${TARGET_VERSION} does not exist. Upgrade aborted."
+SOURCE_REF="main"
+if [[ "$USE_MAIN" -ne 1 ]]; then
+    SOURCE_REF="v${TARGET_VERSION}"
+    log "Verifying release tag ${SOURCE_REF}"
+    git ls-remote \
+        --exit-code \
+        --tags \
+        "$REPO_URL" \
+        "refs/tags/${SOURCE_REF}" \
+        >/dev/null \
+        || die "Release tag ${SOURCE_REF} does not exist. Upgrade aborted."
+else
+    warn "Using unreleased main. Migrations newer than main/VERSION may rerun on subsequent --main upgrades."
+fi
 
 echo
 echo "Namingo Registry upgrade"
 echo
 echo "  Installed: v${CURRENT_VERSION}"
 echo "  Target:    v${TARGET_VERSION}"
+echo "  Source:    ${SOURCE_REF}"
 echo
 
 if [[ "$ASSUME_YES" -ne 1 ]]; then
@@ -345,7 +362,7 @@ STAGING_DIR="$(mktemp -d /opt/namingo-registry-upgrade.XXXXXX)"
 git clone \
     --quiet \
     --depth 1 \
-    --branch "v${TARGET_VERSION}" \
+    --branch "$SOURCE_REF" \
     --single-branch \
     "$REPO_URL" \
     "$STAGING_DIR"
@@ -357,8 +374,8 @@ CLONED_VERSION="$(tr -d '[:space:]' < "$STAGING_DIR/VERSION")"
 
 [[ "$CLONED_VERSION" == "$TARGET_VERSION" ]] \
     || die \
-"Target tag says v${TARGET_VERSION},
-but its VERSION file says v${CLONED_VERSION}."
+"Source ${SOURCE_REF} has VERSION v${CLONED_VERSION},
+expected v${TARGET_VERSION}."
 
 # ---------------------------------------------------------
 # PHP and database configuration
@@ -578,9 +595,9 @@ if [[ -d "$MIGRATION_DIR" ]]; then
         # EXAMPLE.sh and helper files are deliberately ignored.
         validate_version "$name" || continue
 
-        # Run only: current < migration <= target.
+        # --main includes unreleased migrations beyond main/VERSION.
         if version_gt "$name" "$CURRENT_VERSION" \
-           && version_le "$name" "$TARGET_VERSION"; then
+           && { [[ "$USE_MAIN" -eq 1 ]] || version_le "$name" "$TARGET_VERSION"; }; then
             MIGRATIONS+=("$migration")
         fi
     done < <(
@@ -897,6 +914,7 @@ done
 
 # VERSION changes only after backups, files, Composer, migrations and service
 # health checks have all completed successfully.
+# --main keeps main/VERSION; newer unreleased migrations may rerun until it advances.
 printf '%s\n' "$TARGET_VERSION" > "$VERSION_FILE"
 
 rm -f "${INSTALL_DIR}/docs/upgrade.sh.previous"
