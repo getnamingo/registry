@@ -90,6 +90,8 @@ case "$PHASE" in
 
     post)
         upgrade_dnssec_schema
+        # Synchronize existing MariaDB audit tables after the schema change.
+        sh "$(dirname "$0")/audit-sync.sh" secdns
         ;;
 
     *)
