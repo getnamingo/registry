@@ -39,8 +39,9 @@ fi
 
 [ -f "$audit_bin" ] || { echo "Configured audit requires $audit_bin" >&2; exit 1; }
 
-# Only synchronize a deployment with an existing audit trail. On fresh installs
-# the audit facility is opt-in and must not be activated by a version upgrade.
+# Only synchronize a deployment with active PhpAudit triggers. Audit tables can
+# remain after auditing is disabled; never reactivate auditing merely because
+# historical tables exist.
 audit_schema=$(php -r '
     $c = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
     echo $c["database"]["audit_schema"] ?? "registryAudit";
@@ -62,9 +63,9 @@ mariadb_query() {
         --batch --skip-column-names --silent "$@"
 }
 
-active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$audit_schema';")
+active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='$database' AND LOCATE('$audit_schema', ACTION_STATEMENT) > 0;")
 if [ "$active" -eq 0 ]; then
-    echo "[audit sync] No existing audit tables; skipping"
+    echo "[audit sync] No active audit triggers; skipping"
     exit 0
 fi
 
