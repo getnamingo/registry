@@ -19,15 +19,22 @@ command -v mariadb >/dev/null 2>&1 || { echo "MariaDB client required for audit 
 
 # The shipped config contains placeholder credentials. The supplementary
 # credentials-file mechanism is also supported by php-audit.
-if ! php -r '
+if php -r '
     $c = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
     $d = $c["database"] ?? [];
     if (empty($d["credentials"]) &&
         (($d["user"] ?? "") === "your_username" ||
-         ($d["password"] ?? "") === "your_password")) exit(1);
+         ($d["password"] ?? "") === "your_password")) exit(42);
 ' "$config"; then
-    echo "[audit sync] Audit config not activated; skipping"
-    exit 0
+    :
+else
+    status=$?
+    if [ "$status" -eq 42 ]; then
+        echo "[audit sync] Audit config not activated; skipping"
+        exit 0
+    fi
+    echo "Invalid audit.json configuration; refusing to skip active auditing" >&2
+    exit "$status"
 fi
 
 [ -f "$audit_bin" ] || { echo "Configured audit requires $audit_bin" >&2; exit 1; }
@@ -55,7 +62,7 @@ mariadb_query() {
         --batch --skip-column-names --silent "$@"
 }
 
-active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME IN ('secdns','poll','domain_tld');")
+active=$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$audit_schema';")
 if [ "$active" -eq 0 ]; then
     echo "[audit sync] No existing audit tables; skipping"
     exit 0
