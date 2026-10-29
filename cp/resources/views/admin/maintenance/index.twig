@@ -16,7 +16,7 @@
         </div>
         {% if isAdmin %}
         <div class="col-auto ms-auto d-print-none">
-          <a href="{{ route('createMaintenance') }}" class="btn btn-primary">+ {{ __('New Maintenance') }}</a>
+          <a href="{{ route('createMaintenance') }}" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg> {{ __('New Maintenance') }}</a>
         </div>
         {% endif %}
       </div>
@@ -50,9 +50,9 @@
                 <td>{{ item.reason|default('')|capitalize }}</td>
                 {% if isAdmin %}<td>{% if item.deleted %}<span class="badge bg-secondary-lt">{{ __('Deleted') }}</span>{% elseif item.endSentAt %}<span class="badge bg-secondary-lt">{{ __('Ended') }}</span>{% else %}<span class="badge bg-green-lt">{{ __('Active') }}</span>{% endif %}</td>{% endif %}
                 <td>
-                  <a href="/registry/maintenance/{{ item.id|url_encode }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a>
+                  <a href="/registry/maintenance/{{ item.id|url_encode }}" class="btn btn-icon btn-outline-secondary" title="{{ __('View') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg></a>
                   {% if isAdmin and not item.deleted and not item.endSentAt %}
-                    <a href="/registry/maintenance/{{ item.id|url_encode }}/edit" class="btn btn-sm btn-outline-primary">{{ __('Edit') }}</a>
+                    <a href="/registry/maintenance/{{ item.id|url_encode }}/edit" class="btn btn-icon btn-outline-primary" title="{{ __('Edit') }}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415" /><path d="M16 5l3 3" /></svg></a>
                   {% endif %}
                 </td>
               </tr>

@@ -67,9 +67,8 @@ class MaintenanceController extends Controller
         ]);
     }
 
-    public function show(Request $request, Response $response, array $args): Response
+    public function show(Request $request, Response $response, string $id): Response
     {
-        $id = (string) ($args['id'] ?? '');
         if (!preg_match('/^[A-Za-z0-9._-]{1,64}$/D', $id)) {
             return $response->withStatus(404);
         }
@@ -197,12 +196,11 @@ class MaintenanceController extends Controller
         ];
     }
 
-    public function edit(Request $request, Response $response, array $args): Response
+    public function edit(Request $request, Response $response, string $id): Response
     {
         if (!$this->isAdmin()) {
             return $this->forbidden($response);
         }
-        $id = (string) ($args['id'] ?? '');
         if (!self::validId($id)) {
             return $response->withStatus(404);
         }
@@ -232,13 +230,11 @@ class MaintenanceController extends Controller
     }
 
     /** POST /edit: post-update snapshot, or /notify|end|delete with the prior state. */
-    public function change(Request $request, Response $response, array $args): Response
+    public function change(Request $request, Response $response, string $id, string $action): Response
     {
         if (!$this->isAdmin()) {
             return $this->forbidden($response);
         }
-        $id = (string) ($args['id'] ?? '');
-        $action = (string) ($args['action'] ?? '');
         if (!self::validId($id) || !in_array($action, ['edit', 'notify', 'end', 'delete'], true)) {
             return $response->withStatus(404);
         }
