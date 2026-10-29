@@ -70,8 +70,8 @@ if [ "$active" -eq 0 ]; then
 fi
 
 # Widen only existing audit columns; PhpAudit adds any missing columns itself.
-audit_column_exists() {
-    [ "$(mariadb_query -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME='$1' AND COLUMN_NAME='$2';")" -gt 0 ]
+audit_column_type() {
+    mariadb_query -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME='$1' AND COLUMN_NAME='$2';"
 }
 audit_sql() {
     MYSQL_PWD=$NAMINGO_DB_PASSWORD mariadb \
@@ -81,17 +81,21 @@ audit_sql() {
 }
 
 echo "[audit sync] Synchronizing existing MariaDB audit columns"
-if audit_column_exists secdns pubkey; then
-    audit_sql 'ALTER TABLE `secdns` MODIFY COLUMN `pubkey` TEXT DEFAULT NULL;'
-fi
+case "$(audit_column_type secdns pubkey)" in
+    ""|text|mediumtext|longtext) ;;
+    *) audit_sql 'ALTER TABLE `secdns` MODIFY COLUMN `pubkey` TEXT DEFAULT NULL;' ;;
+esac
 
 if [ "$mode" = "all" ]; then
-    if audit_column_exists domain_tld idn_table; then
-        audit_sql 'ALTER TABLE `domain_tld` MODIFY COLUMN `idn_table` TEXT NOT NULL;'
-    fi
-    if audit_column_exists poll msg_type; then
-        audit_sql "ALTER TABLE \`poll\` MODIFY COLUMN \`msg_type\` ENUM('lowBalance','domainTransfer','contactTransfer','maintenance') DEFAULT NULL;"
-    fi
+    case "$(audit_column_type domain_tld idn_table)" in
+        ""|text|mediumtext|longtext) ;;
+        *) audit_sql 'ALTER TABLE `domain_tld` MODIFY COLUMN `idn_table` TEXT NOT NULL;' ;;
+    esac
+    poll_type=$(mariadb_query -e "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME='poll' AND COLUMN_NAME='msg_type';")
+    case "$poll_type" in
+        ""|*"\x27maintenance\x27"*) ;;
+        *) audit_sql "ALTER TABLE \`poll\` MODIFY COLUMN \`msg_type\` ENUM('lowBalance','domainTransfer','contactTransfer','maintenance') DEFAULT NULL;" ;;
+    esac
 
     # An existing operator's audit.json may predate RFC 9167. Add only the
     # missing table configuration, without changing explicit false/null flags.
