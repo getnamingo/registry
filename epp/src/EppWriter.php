@@ -42,6 +42,7 @@ class EppWriter {
         'delete_host' => '_common',
         'info_host' => '_info_host',
         'info_funds' => '_info_funds',
+        'info_maintenance' => '_info_maintenance',
         'update_host' => '_common',
         'poll' => '_poll',
         'error' => '_common',
@@ -474,6 +475,13 @@ class EppWriter {
                     $writer->writeElement('contact:acDate', $resp['obj_acDate']);
                     $writer->endElement();  // End of 'contact:trnData'
                 $writer->endElement();  // End of 'resData'
+            } elseif ($resp['poll_msg_type'] === 'maintenance') {
+                $writer->startElement('resData');
+                $writer->startElement('maint:infData');
+                $writer->writeAttribute('xmlns:maint', 'urn:ietf:params:xml:ns:epp:maintenance-1.0');
+                $this->_maintenanceItem($writer, $resp['maintenance']);
+                $writer->endElement(); // maint:infData
+                $writer->endElement(); // resData
             }
         }
         
@@ -1224,6 +1232,114 @@ class EppWriter {
             $writer->endElement();  // End of 'resData'
         }
 
+        $this->_postamble($writer, $resp);
+    }
+
+    private function _maintenanceId($writer, array $item): void {
+        $writer->startElement('maint:id');
+        if (!empty($item['name'])) {
+            $writer->writeAttribute('name', $item['name']);
+        }
+        if (!empty($item['nameLang'])) {
+            $writer->writeAttribute('lang', $item['nameLang']);
+        }
+        $writer->text($item['id']);
+        $writer->endElement();
+    }
+
+    private function _maintenanceItem($writer, array $item): void {
+        $writer->startElement('maint:item');
+        $this->_maintenanceId($writer, $item);
+        foreach (($item['types'] ?? []) as $type) {
+            $writer->startElement('maint:type');
+            if (isset($type['lang'])) {
+                $writer->writeAttribute('lang', $type['lang']);
+            }
+            $writer->text($type['text']);
+            $writer->endElement();
+        }
+        if (isset($item['pollType'])) {
+            $writer->writeElement('maint:pollType', $item['pollType']);
+        }
+        $writer->startElement('maint:systems');
+        foreach ($item['systems'] as $system) {
+            $writer->startElement('maint:system');
+            $writer->writeElement('maint:name', $system['name']);
+            if (!empty($system['host'])) {
+                $writer->writeElement('maint:host', $system['host']);
+            }
+            $writer->writeElement('maint:impact', $system['impact']);
+            $writer->endElement();
+        }
+        $writer->endElement(); // systems
+        $writer->startElement('maint:environment');
+        $writer->writeAttribute('type', $item['environment']['type']);
+        if (!empty($item['environment']['name'])) {
+            $writer->writeAttribute('name', $item['environment']['name']);
+        }
+        $writer->endElement();
+        $writer->writeElement('maint:start', $item['start']);
+        $writer->writeElement('maint:end', $item['end']);
+        $writer->writeElement('maint:reason', $item['reason']);
+        if (!empty($item['detail'])) {
+            $writer->writeElement('maint:detail', $item['detail']);
+        }
+        foreach (($item['descriptions'] ?? []) as $description) {
+            $writer->startElement('maint:description');
+            if (isset($description['lang'])) {
+                $writer->writeAttribute('lang', $description['lang']);
+            }
+            if (isset($description['type'])) {
+                $writer->writeAttribute('type', $description['type']);
+            }
+            $writer->text($description['text']);
+            $writer->endElement();
+        }
+        if (!empty($item['tlds'])) {
+            $writer->startElement('maint:tlds');
+            foreach ($item['tlds'] as $tld) {
+                $writer->writeElement('maint:tld', $tld);
+            }
+            $writer->endElement();
+        }
+        if (isset($item['intervention'])) {
+            $writer->startElement('maint:intervention');
+            $writer->writeElement('maint:connection', !empty($item['intervention']['connection']) ? 'true' : 'false');
+            $writer->writeElement('maint:implementation', !empty($item['intervention']['implementation']) ? 'true' : 'false');
+            $writer->endElement();
+        }
+        $writer->writeElement('maint:crDate', $item['crDate']);
+        if (!empty($item['upDate'])) {
+            $writer->writeElement('maint:upDate', $item['upDate']);
+        }
+        $writer->endElement(); // item
+    }
+
+    private function _info_maintenance($writer, $resp): void {
+        $this->_preamble($writer, $resp);
+        if ($this->epp_success($resp['resultCode'])) {
+            $writer->startElement('resData');
+            $writer->startElement('maint:infData');
+            $writer->writeAttribute('xmlns:maint', 'urn:ietf:params:xml:ns:epp:maintenance-1.0');
+            if (isset($resp['maintenance_list'])) {
+                $writer->startElement('maint:list');
+                foreach ($resp['maintenance_list'] as $item) {
+                    $writer->startElement('maint:listItem');
+                    $this->_maintenanceId($writer, $item);
+                    foreach (['start', 'end', 'crDate', 'upDate'] as $key) {
+                        if (!empty($item[$key])) {
+                            $writer->writeElement('maint:' . $key, $item[$key]);
+                        }
+                    }
+                    $writer->endElement();
+                }
+                $writer->endElement();
+            } else {
+                $this->_maintenanceItem($writer, $resp['maintenance']);
+            }
+            $writer->endElement(); // maint:infData
+            $writer->endElement(); // resData
+        }
         $this->_postamble($writer, $resp);
     }
 

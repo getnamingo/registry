@@ -29,6 +29,7 @@ use App\Controllers\ReportsController;
 use App\Controllers\ProfileController;
 use App\Controllers\SystemController;
 use App\Controllers\SupportController;
+use App\Controllers\MaintenanceController;
 use App\Controllers\DapiController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
@@ -182,6 +183,12 @@ $app->group('', function ($route) {
     $route->get('/registry/idnexport/{script}', SystemController::class .':idnexport')->setName('idnexport');
     $route->map(['GET', 'POST'], '/registry/dnssec', SystemController::class . ':manageDnssec')->setName('manageDnssec');
 
+    // Registry operators publish; registrar users may only read.
+    $route->get('/registry/maintenance', MaintenanceController::class . ':index')->setName('maintenance');
+    $route->get('/registry/maintenance/create', MaintenanceController::class . ':create')->setName('createMaintenance');
+    $route->post('/registry/maintenance/create', MaintenanceController::class . ':store')->setName('storeMaintenance');
+    $route->get('/registry/maintenance/{id}', MaintenanceController::class . ':show')->setName('viewMaintenance');
+
     $route->get('/support', SupportController::class .':view')->setName('ticketview');
     $route->map(['GET', 'POST'], '/support/new', SupportController::class .':newticket')->setName('newticket');
     $route->get('/ticket/{ticket}', SupportController::class . ':viewTicket')->setName('viewTicket');
@@ -239,8 +246,13 @@ $app->any('/api[/{params:.*}]', function (
         'basePath' => '/api',
         'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
-        $restrictedTables = ['contact_authInfo', 'contact_authinfo', 'contact_postalInfo', 'contact_postalinfo', 'domain_authInfo', 'domain_authinfo', 'secdns'];
-            return !in_array($tableName, $restrictedTables);
+        $restrictedTables = ['contact_authInfo', 'contact_authinfo', 'contact_postalInfo', 'contact_postalinfo', 'domain_authInfo', 'domain_authinfo', 'secdns', 'maintenance'];
+            // Maintenance writes must also create immutable EPP poll notifications.
+            // Prevent generic CRUD from bypassing the MaintenanceController.
+            if ($tableName === 'poll' && !in_array($operation, ['list', 'read'], true)) {
+                return false;
+            }
+            return !in_array($tableName, $restrictedTables, true);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
             if ($tableName == 'registrar' && $columnName == 'pw') {

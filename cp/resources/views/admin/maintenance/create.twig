@@ -1,0 +1,97 @@
+{% extends "layouts/app.twig" %}
+{% block title %}{{ __('New Maintenance') }}{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-print-none">
+    <div class="container-xl">
+      <div class="mb-1">
+        <ol class="breadcrumb breadcrumb-muted breadcrumb-arrows">
+          <li class="breadcrumb-item"><a href="{{ route('home') }}">{{ __('Home') }}</a></li>
+          <li class="breadcrumb-item"><a href="{{ route('maintenance') }}">{{ __('Maintenance') }}</a></li>
+          <li class="breadcrumb-item active">{{ __('New Maintenance') }}</li>
+        </ol>
+      </div>
+      <h2 class="page-title">{{ __('New Maintenance') }}</h2>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="container-xl">
+      {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+      <div class="card">
+        <form action="{{ route('storeMaintenance') }}" method="post">
+          {{ csrf.field | raw }}
+          <div class="card-header"><h3 class="card-title">{{ __('RFC 9167 Maintenance Notice') }}</h3></div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8 mb-3">
+                <label for="name" class="form-label required">{{ __('Name') }}</label>
+                <input id="name" name="name" class="form-control" maxlength="255" required value="{{ old.name|default('') }}" placeholder="EPP system upgrade">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="id" class="form-label">{{ __('Event ID') }}</label>
+                <input id="id" name="id" class="form-control" maxlength="64" pattern="[A-Za-z0-9._-]{1,64}" value="{{ old.id|default('') }}" placeholder="{{ __('Auto-generated if blank') }}">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="start" class="form-label required">{{ __('Start (UTC)') }}</label>
+                <input id="start" name="start" type="datetime-local" class="form-control" required value="{{ old.start|default('') }}">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="end" class="form-label required">{{ __('End (UTC)') }}</label>
+                <input id="end" name="end" type="datetime-local" class="form-control" required value="{{ old.end|default('') }}">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="reason" class="form-label required">{{ __('Reason') }}</label>
+                <select id="reason" name="reason" class="form-select" required>
+                  {% for value in ['planned', 'emergency'] %}<option value="{{ value }}" {% if old.reason|default('planned') == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="environment" class="form-label required">{{ __('Environment') }}</label>
+                <select id="environment" name="environment" class="form-select" required>
+                  {% for value in ['production', 'ote', 'staging', 'dev', 'custom'] %}<option value="{{ value }}" {% if old.environment|default('production') == value %}selected{% endif %}>{{ value|capitalize }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="environment_name" class="form-label">{{ __('Custom environment name') }}</label>
+                <input id="environment_name" name="environment_name" class="form-control" maxlength="255" value="{{ old.environment_name|default('') }}">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="type" class="form-label required">{{ __('Maintenance type') }}</label>
+                <input id="type" name="type" class="form-control" maxlength="255" required value="{{ old.type|default('') }}" placeholder="Software Upgrade">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="tlds" class="form-label">{{ __('Affected TLDs') }}</label>
+                <input id="tlds" name="tlds" class="form-control" value="{{ old.tlds|default('') }}" placeholder="test, example">
+                <small class="form-hint">{{ __('Comma-separated DNS A-labels, without leading dots; leave empty for all.') }}</small>
+              </div>
+              <div class="col-12 mb-3">
+                <label for="systems" class="form-label required">{{ __('Affected systems') }}</label>
+                <textarea id="systems" name="systems" rows="3" class="form-control font-monospace" required placeholder="EPP|epp.registry.example|full&#10;RDAP|rdap.registry.example|partial">{{ old.systems|default('') }}</textarea>
+                <small class="form-hint">{{ __('One per line: system name | hostname (optional) | impact (full, partial, none). Example: EPP|epp.registry.example|full') }}</small>
+              </div>
+              <div class="col-12 mb-3">
+                <label for="description" class="form-label required">{{ __('Description') }}</label>
+                <textarea id="description" name="description" rows="4" class="form-control" required maxlength="5000">{{ old.description|default('') }}</textarea>
+              </div>
+              <div class="col-12 mb-3">
+                <label for="detail" class="form-label">{{ __('Additional information URL') }}</label>
+                <input id="detail" name="detail" type="url" class="form-control" value="{{ old.detail|default('') }}" placeholder="https://registry.example/maintenance">
+              </div>
+              <div class="col-12 mb-3">
+                <label class="form-check"><input type="checkbox" name="connection" value="1" class="form-check-input" {% if old.connection|default(false) %}checked{% endif %}><span class="form-check-label">{{ __('Registrar connection intervention required') }}</span></label>
+                <label class="form-check"><input type="checkbox" name="implementation" value="1" class="form-check-input" {% if old.implementation|default(false) %}checked{% endif %}><span class="form-check-label">{{ __('Registrar implementation intervention required') }}</span></label>
+              </div>
+            </div>
+            <div class="text-secondary small">{{ __('Dates are entered as UTC. Creating this notice publishes an EPP poll notification to every registrar.') }}</div>
+          </div>
+          <div class="card-footer text-end">
+            <a href="{{ route('maintenance') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
+            <button type="submit" class="btn btn-primary">{{ __('Create & Notify Registrars') }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% include 'partials/footer.twig' %}
+</div>
+{% endblock %}

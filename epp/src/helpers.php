@@ -257,7 +257,8 @@ function sendGreeting($conn, Swoole\Table $eppExtensionsTable) {
         'services' => [
             'urn:ietf:params:xml:ns:domain-1.0',
             'urn:ietf:params:xml:ns:contact-1.0',
-            'urn:ietf:params:xml:ns:host-1.0'
+            'urn:ietf:params:xml:ns:host-1.0',
+            'urn:ietf:params:xml:ns:epp:maintenance-1.0'
         ],
         'extensions' => $extensions,
         'dcp' => [ // Data Collection Policy (optional)

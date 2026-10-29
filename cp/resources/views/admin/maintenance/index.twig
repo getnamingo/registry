@@ -1,0 +1,76 @@
+{% extends "layouts/app.twig" %}
+{% block title %}{{ __('Maintenance') }}{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-print-none">
+    <div class="container-xl">
+      <div class="row g-2 align-items-center">
+        <div class="col">
+          <div class="mb-1">
+            <ol class="breadcrumb breadcrumb-muted breadcrumb-arrows">
+              <li class="breadcrumb-item"><a href="{{ route('home') }}">{{ __('Home') }}</a></li>
+              <li class="breadcrumb-item active">{{ __('Maintenance') }}</li>
+            </ol>
+          </div>
+          <h2 class="page-title">{{ __('Maintenance') }}</h2>
+        </div>
+        {% if isAdmin %}
+        <div class="col-auto ms-auto d-print-none">
+          <a href="{{ route('createMaintenance') }}" class="btn btn-primary">+ {{ __('New Maintenance') }}</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="container-xl">
+      {% include 'partials/flash.twig' %}
+      <div class="card">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <span class="text-secondary">{{ __('Scheduled registry maintenance events') }}</span>
+            <input id="maintenance-search" type="search" class="form-control w-auto" placeholder="{{ __('Search maintenance') }}" aria-label="{{ __('Search maintenance') }}">
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="maintenance-table">
+            <thead><tr>
+              <th>{{ __('Name') }}</th><th>{{ __('Start (UTC)') }}</th><th>{{ __('End (UTC)') }}</th>
+              <th>{{ __('Environment') }}</th><th>{{ __('Reason') }}</th>
+              {% if isAdmin %}<th>{{ __('Status') }}</th>{% endif %}
+              <th>{{ __('Actions') }}</th>
+            </tr></thead>
+            <tbody>
+            {% for item in notices %}
+              <tr>
+                <td><strong>{{ item.name }}</strong><div class="small text-secondary">{{ item.id }}</div></td>
+                <td>{{ item.start|default('') }}</td>
+                <td>{{ item.end|default('') }}</td>
+                <td>{{ item.environment.type|default('') }}</td>
+                <td>{{ item.reason|default('')|capitalize }}</td>
+                {% if isAdmin %}<td>{% if item.deleted %}<span class="badge bg-secondary-lt">{{ __('Deleted') }}</span>{% else %}<span class="badge bg-green-lt">{{ __('Active') }}</span>{% endif %}</td>{% endif %}
+                <td><a href="/registry/maintenance/{{ item.id|url_encode }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="{{ isAdmin ? 7 : 6 }}" class="text-center text-secondary">{{ __('No maintenance events found.') }}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% include 'partials/footer.twig' %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const search = document.getElementById('maintenance-search');
+  search.addEventListener('input', function () {
+    const term = search.value.toLowerCase();
+    document.querySelectorAll('#maintenance-table tbody tr').forEach(function (row) {
+      row.hidden = !row.textContent.toLowerCase().includes(term);
+    });
+  });
+});
+</script>
+{% endblock %}

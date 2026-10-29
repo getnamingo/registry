@@ -177,12 +177,19 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar_price_group` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `registry`.`maintenance` (
+    `id` varchar(64) NOT NULL,
+    `item_json` LONGTEXT NOT NULL,
+    `deleted` BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `registrar_id` int(10) unsigned NOT NULL,
     `qdate` datetime(3) NOT NULL,
     `msg` text default NULL,
-    `msg_type` enum('lowBalance','domainTransfer','contactTransfer') default NULL,
+    `msg_type` enum('lowBalance','domainTransfer','contactTransfer','maintenance') default NULL,
     `obj_name_or_id` varchar(68),
     `obj_trStatus` enum('clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled') default NULL,
     `obj_reID` varchar(255),

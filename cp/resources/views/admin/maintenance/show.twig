@@ -1,0 +1,56 @@
+{% extends "layouts/app.twig" %}
+{% block title %}{{ item.name }} | {{ __('Maintenance') }}{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-print-none">
+    <div class="container-xl">
+      <div class="mb-1"><ol class="breadcrumb breadcrumb-muted breadcrumb-arrows">
+        <li class="breadcrumb-item"><a href="{{ route('home') }}">{{ __('Home') }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('maintenance') }}">{{ __('Maintenance') }}</a></li>
+        <li class="breadcrumb-item active">{{ item.name }}</li>
+      </ol></div>
+      <h2 class="page-title">{{ item.name }}</h2>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="container-xl">
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Maintenance Details') }}</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <tbody>
+              <tr><th>{{ __('Event ID') }}</th><td>{{ item.id }}</td></tr>
+              {% if deleted %}<tr><th>{{ __('Status') }}</th><td>{{ __('Deleted') }}</td></tr>{% endif %}
+              <tr><th>{{ __('Start (UTC)') }}</th><td>{{ item.start }}</td></tr>
+              <tr><th>{{ __('End (UTC)') }}</th><td>{{ item.end }}</td></tr>
+              <tr><th>{{ __('Reason') }}</th><td>{{ item.reason|capitalize }}</td></tr>
+              <tr><th>{{ __('Environment') }}</th><td>{{ item.environment.type|default('') }} {% if item.environment.name is defined %}({{ item.environment.name }}){% endif %}</td></tr>
+              <tr><th>{{ __('Maintenance Type') }}</th><td>{% for type in item.types|default([]) %}{{ type.text }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+              <tr><th>{{ __('Affected TLDs') }}</th><td>{% for tld in item.tlds|default([]) %}{{ tld }}{% if not loop.last %}, {% endif %}{% else %}{{ __('All / unspecified') }}{% endfor %}</td></tr>
+              <tr><th>{{ __('Created') }}</th><td>{{ item.crDate|default('') }}</td></tr>
+              {% if item.upDate is defined %}<tr><th>{{ __('Updated') }}</th><td>{{ item.upDate }}</td></tr>{% endif %}
+              <tr><th>{{ __('Connection intervention') }}</th><td>{{ item.intervention.connection|default(false) ? __('Yes') : __('No') }}</td></tr>
+              <tr><th>{{ __('Implementation intervention') }}</th><td>{{ item.intervention.implementation|default(false) ? __('Yes') : __('No') }}</td></tr>
+              {% if item.detail is defined %}<tr><th>{{ __('More information') }}</th><td><a href="{{ item.detail }}" rel="noopener noreferrer" target="_blank">{{ item.detail }}</a></td></tr>{% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Affected Systems') }}</h3></div>
+        <div class="table-responsive"><table class="table table-vcenter card-table">
+          <thead><tr><th>{{ __('System') }}</th><th>{{ __('Host') }}</th><th>{{ __('Impact') }}</th></tr></thead>
+          <tbody>{% for system in item.systems|default([]) %}<tr><td>{{ system.name }}</td><td>{{ system.host|default('') }}</td><td>{{ system.impact|capitalize }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">{{ __('Description') }}</h3></div>
+        <div class="card-body">
+          {% for desc in item.descriptions|default([]) %}<p class="mb-2" style="white-space: pre-wrap">{{ desc.text }}</p>{% else %}<p class="text-secondary">{{ __('No description') }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% include 'partials/footer.twig' %}
+</div>
+{% endblock %}

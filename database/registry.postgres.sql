@@ -178,12 +178,18 @@ CREATE TABLE registrar_price_group (
      "registrar_ids" TEXT NOT NULL  -- comma-separated registrar IDs: e.g. 1,5,7
 );
 
+CREATE TABLE maintenance (
+    id varchar(64) PRIMARY KEY,
+    item_json TEXT NOT NULL,
+    deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
 CREATE TABLE poll (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "qdate"   timestamp(3) without time zone NOT NULL,
      "msg"   text default NULL,
-     "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer' )) default NULL,
+     "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer','maintenance' )) default NULL,
      "obj_name_or_id"   varchar(68),
      "obj_trstatus" varchar CHECK ("obj_trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
      "obj_reid"   varchar(255),

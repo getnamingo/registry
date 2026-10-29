@@ -27,6 +27,7 @@ require_once 'src/EppWriter.php';
 require_once 'src/helpers.php';
 require_once 'src/epp-check.php';
 require_once 'src/epp-info.php';
+require_once 'src/epp-maintenance.php';
 require_once 'src/epp-create.php';
 require_once 'src/epp-update.php';
 require_once 'src/epp-renew.php';
@@ -605,6 +606,21 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     return;
                 }
               
+                case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:epp:maintenance-1.0')->info):
+                {
+                    $data = $table->get($connId);
+                    $clTRID = (string) $xml->command->clTRID;
+                    if (!$data || $data['logged_in'] !== 1) {
+                        sendEppError($conn, $pdo, 2202, 'Authorization error', $clTRID);
+                        $conn->close();
+                        break;
+                    }
+                    $clid = (int) $data['registrar_id'];
+                    $trans = createTransaction($pdo, $clid, $clTRID, $xmlData);
+                    processMaintenanceInfo($conn, $pdo, $xml, $trans);
+                    return;
+                }
+
                 case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:contact-1.0')->info):
                 {
                     $data = $table->get($connId);

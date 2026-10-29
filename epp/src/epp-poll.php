@@ -95,6 +95,14 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
     }
     $response['msg'] = $result['msg'] ?? null;
     $response['poll_msg_type'] = $result['msg_type'] ?? null;
+    if ($response['poll_msg_type'] === 'maintenance') {
+        $response['maintenance'] = json_decode($result['msg'], true);
+        if (!is_array($response['maintenance']) || !isset($response['maintenance']['pollType'])) {
+            sendEppError($conn, $db, 2400, 'Invalid maintenance poll payload', $clTRID, $trans);
+            return;
+        }
+        $response['msg'] = 'Registry Maintenance Notification';
+    }
     $response['lang'] = 'en-US';
     $qdate = str_replace(' ', 'T', $result['qdate'] ?? '') . 'Z';
     $response['qDate'] = $qdate;
