@@ -93,7 +93,7 @@ if [ "$mode" = "all" ]; then
     esac
     poll_type=$(mariadb_query -e "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME='poll' AND COLUMN_NAME='msg_type';")
     case "$poll_type" in
-        ""|*"\x27maintenance\x27"*) ;;
+        ""|*"'maintenance'"*) ;;
         *) audit_sql "ALTER TABLE \`poll\` MODIFY COLUMN \`msg_type\` ENUM('lowBalance','domainTransfer','contactTransfer','maintenance') DEFAULT NULL;" ;;
     esac
 
