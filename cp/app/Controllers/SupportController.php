@@ -174,6 +174,10 @@ class SupportController extends Controller
                 $domainName = null;
             }
 
+            $transferUsers = (int) ($_SESSION['auth_roles'] ?? -1) === 0
+                ? $db->select('SELECT id, username, email FROM users WHERE status = 0 AND id != ? ORDER BY username', [$ticket['user_id']])
+                : [];
+
             $_SESSION['current_ticket'] = [$ticket['id']];
             return view($response,'admin/support/viewTicket.twig', [
                 'ticket' => $ticket,
@@ -181,7 +185,8 @@ class SupportController extends Controller
                 'category' => $category,
                 'currentUri' => $uri,
                 'domain_name' => $domainName,
-                'user_id' => $_SESSION['auth_user_id']
+                'user_id' => $_SESSION['auth_user_id'],
+                'transfer_users' => $transferUsers
             ]);
         } else {
             $this->container->get('flash')->addMessage('error', 'Invalid ticket number');
@@ -360,6 +365,50 @@ class SupportController extends Controller
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
             }
         }
+    }
+
+    public function transferTicket(Request $request, Response $response)
+    {
+        if ((int) ($_SESSION['auth_roles'] ?? -1) !== 0) {
+            $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        $data = $request->getParsedBody();
+        $ticketId = filter_var($data['ticket_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $userId = filter_var($data['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        if (!$ticketId || !$userId) {
+            $this->container->get('flash')->addMessage('error', 'Invalid ticket or user');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        $ticketOwner = $db->selectValue('SELECT user_id FROM support_tickets WHERE id = ?', [$ticketId]);
+        $newOwner = $db->selectValue('SELECT id FROM users WHERE id = ? AND status = 0', [$userId]);
+
+        if (!$ticketOwner || !$newOwner) {
+            $this->container->get('flash')->addMessage('error', 'Ticket or user not found');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        if ((int) $ticketOwner === (int) $newOwner) {
+            $this->container->get('flash')->addMessage('error', 'Ticket already belongs to this user');
+            return $response->withHeader('Location', '/ticket/'.$ticketId)->withStatus(302);
+        }
+
+        try {
+            $db->update('support_tickets', [
+                'user_id' => $newOwner,
+                'last_updated' => (new \DateTime())->format('Y-m-d H:i:s.v'),
+            ], ['id' => $ticketId]);
+        } catch (\Throwable $e) {
+            $this->container->get('flash')->addMessage('error', 'Unable to transfer ticket');
+            return $response->withHeader('Location', '/ticket/'.$ticketId)->withStatus(302);
+        }
+
+        $this->container->get('flash')->addMessage('success', 'Ticket has been transferred successfully');
+        return $response->withHeader('Location', '/ticket/'.$ticketId)->withStatus(302);
     }
 
     public function docs(Request $request, Response $response)
