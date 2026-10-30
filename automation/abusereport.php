@@ -63,10 +63,14 @@ function getAbuseTickets(PDO $dbh, int $tldId, string $start, string $end, ?int 
                   OR (s.last_updated >= :startUpdated AND s.last_updated < :endUpdated)
                   OR EXISTS (SELECT 1 FROM abuse_actions a
                        WHERE a.ticket_id = s.id AND a.action_at >= :startAction
-                         AND a.action_at < :endAction))";
+                         AND a.action_at < :endAction)
+                  OR EXISTS (SELECT 1 FROM ticket_responses tr
+                       WHERE tr.ticket_id = s.id AND tr.date_created >= :startReply
+                         AND tr.date_created < :endReply))";
     $params = [':tldId' => $tldId, ':startDate' => $start, ':endDate' => $end,
         ':startUpdated' => $start, ':endUpdated' => $end,
-        ':startAction' => $start, ':endAction' => $end];
+        ':startAction' => $start, ':endAction' => $end,
+        ':startReply' => $start, ':endReply' => $end];
     if ($registrarId !== null) {
         $query .= ' AND COALESCE(detected.registrar_id, d.clid) = :registrarId'
             . ' AND (detected.id IS NOT NULL OR d.trdate IS NULL OR s.date_created >= d.trdate)';
@@ -124,6 +128,30 @@ function getTicketActions(PDO $dbh, array $tickets): array
     return $actions;
 }
 
+// Preserve each ticket's correspondence as statements. Registrar replies are
+// not validated mitigation events and never feed the abuse_actions counters.
+function getTicketResponses(PDO $dbh, array $tickets): array
+{
+    $responses = [];
+    foreach (array_chunk(array_column($tickets, 'id'), 300) as $ids) {
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $dbh->prepare("SELECT tr.id, tr.ticket_id, tr.responder_id, tr.response,
+                   tr.date_created, u.username, u.email, u.roles_mask
+            FROM ticket_responses tr LEFT JOIN users u ON u.id = tr.responder_id
+            WHERE tr.ticket_id IN ($marks) ORDER BY tr.date_created, tr.id");
+        $stmt->execute($ids);
+        foreach ($stmt->fetchAll() as $reply) {
+            $name = trim((string)(($reply['username'] ?? '') ?: ($reply['email'] ?? '')));
+            $reply['responder_name'] = $name ?: 'User #' . (int)$reply['responder_id'];
+            $reply['statement_type'] = ((int)($reply['roles_mask'] ?? 0) & 4)
+                ? 'Registrar-reported statement (unverified)'
+                : 'Ticket response (unverified)';
+            $responses[(int)$reply['ticket_id']][] = $reply;
+        }
+    }
+    return $responses;
+}
+
 function scanReportHTML(array $scans): string
 {
     $html = '<h2>Technical analysis (TLD-wide)</h2>'
@@ -170,7 +198,7 @@ function reportContent(array $tickets, string $uuid, string $start, string $end,
     ));
     $total = count($tickets);
     $rows = '<table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border:1px solid #d9e3de;">'
-        . '<tr style="background:#edf4f0;"><td>Tickets created / updated</td><td><strong>' . $total . '</strong></td></tr>'
+        . '<tr style="background:#edf4f0;"><td>Tickets created / updated / replied / actioned</td><td><strong>' . $total . '</strong></td></tr>'
         . '<tr><td>Open / In progress</td><td>' . (($counts['Open'] ?? 0) + ($counts['In Progress'] ?? 0)) . '</td></tr>'
         . '<tr><td>Resolved / Closed</td><td>' . (($counts['Resolved'] ?? 0) + ($counts['Closed'] ?? 0)) . '</td></tr>'
         . '<tr><td>Currently sponsored domains (not scan count)</td><td>' . $domainCount . '</td></tr>'
@@ -238,7 +266,7 @@ function reportContent(array $tickets, string $uuid, string $start, string $end,
         }
     }
 
-    $rows .= '<p style="font-size:12px;color:#65746b;">This report summarizes abuse cases created, updated or actioned '
+    $rows .= '<p style="font-size:12px;color:#65746b;">This report summarizes abuse cases created, updated, replied to or actioned '
         . 'for the scoped TLD and registrar. Ticket status is not proof of mitigation, and '
         . 'these figures do not establish the number of domains technically scanned. '
         . 'Maintain the separate technical-analysis evidence and action records required by ICANN Specification 11(3)(b).</p>';
@@ -289,7 +317,7 @@ function pdfReportValue($value): string
 function saveReportPdf(
     string $folder, string $name, string $scope, string $uuid,
     array $tickets, string $start, string $end, int $domainCount,
-    array $scans, array $actions
+    array $scans, array $actions, array $responses
 ): string {
     if (!is_dir($folder) && !mkdir($folder, 0700, true) && !is_dir($folder)) {
         throw new RuntimeException('Cannot create Spec 11 report archive: ' . $folder);
@@ -343,7 +371,7 @@ function saveReportPdf(
         . '**UTC period:** ' . $start . ' to ' . $end . " (end exclusive)\n\n"
         . '**Report UUID:** ' . $uuid . "\n\n"
         . "## Activity at a glance\n\n"
-        . '- Cases created, updated or actioned: **' . count($tickets) . "**\n"
+        . '- Cases created, updated, replied to or actioned: **' . count($tickets) . "**\n"
         . '- Open / in progress: **' . (($statuses['Open'] ?? 0) + ($statuses['In Progress'] ?? 0)) . "**\n"
         . '- Resolved / closed: **' . (($statuses['Resolved'] ?? 0) + ($statuses['Closed'] ?? 0)) . "**\n"
         . '- Currently sponsored domains (not scan count): **' . $domainCount . "**\n\n";
@@ -412,12 +440,28 @@ function saveReportPdf(
             }
             $markdown .= "\n";
         }
+        $ticketReplies = $responses[(int)$ticket['id']] ?? [];
+        if ($ticketReplies) {
+            $markdown .= "**Ticket correspondence (statements, not verified mitigation):**\n\n";
+            foreach ($ticketReplies as $reply) {
+                $markdown .= '- Reply #' . (int)$reply['id'] . ' | '
+                    . pdfReportValue($reply['date_created']) . ' UTC | '
+                    . pdfReportValue($reply['statement_type']) . ' | '
+                    . pdfReportValue($reply['responder_name'])
+                    . ' (user #' . (int)$reply['responder_id'] . '): '
+                    . pdfReportValue($reply['response']) . "\n";
+            }
+            $markdown .= "\n";
+        }
     }
     $markdown .= "## Interpretation and records\n\n"
         . 'This report summarizes scoped tickets and documented actions. Ticket status is not '
         . 'proof of mitigation. The domain count does not establish the number of names technically '
         . 'scanned. Technical scan statistics and separately documented actions are included above. '
-        . 'A detection is not a verified abuse incident and does not imply mitigation.';
+        . 'A detection is not a verified abuse incident and does not imply mitigation. '
+        . 'Ticket responses, including registrar assertions of a hold, are unverified statements. '
+        . 'Verify EPP status independently or record a confirmed action in the action journal; '
+        . 'responses do not count as verified mitigation.';
 
     $doc->addPage()->markdown($markdown, width: 174.0);
     $path = $folder . '/' . $name;
@@ -500,11 +544,12 @@ try {
                 $uuid = newReportUUID();
                 $scans = getScanStatistics($dbh, (int)$tld['id'], $startDate, $endDate);
                 $actions = getTicketActions($dbh, $tickets);
+                $responses = getTicketResponses($dbh, $tickets);
                 $content = reportContent($tickets, $uuid, $startDate, $endDate, $domainCount, $scans, $actions);
                 $slug = preg_replace('/[^a-z0-9-]+/', '-', strtolower(ltrim($tldName, '.')));
                 $fileName = 'spec11-' . $slug . '-' . ($scope['id'] === null ? 'registry' : 'registrar-' . $scope['id'])
                     . '-' . $uuid . '.pdf';
-                $pdf = saveReportPdf($archiveBase, $fileName, $scopeName, $uuid, $tickets, $startDate, $endDate, $domainCount, $scans, $actions);
+                $pdf = saveReportPdf($archiveBase, $fileName, $scopeName, $uuid, $tickets, $startDate, $endDate, $domainCount, $scans, $actions, $responses);
                 $relativePath = 'spec11/' . $start->format('Y-m-d') . '/' . basename($pdf);
                 $html = generateReportHTML($content, $scopeName, $registryName, $supportEmail, $supportPhoneNumber);
                 $subject = "DNS Abuse Report | $tldName | " . $start->format('Y-m-d') . " | $uuid";
