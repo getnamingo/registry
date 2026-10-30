@@ -107,12 +107,7 @@ After installation, be sure to review all the guides in the Documentation sectio
 
 #### [System Architecture](docs/architecture.md)
 
-### Upgrade (v1.0.32 and later)
-
-> [!IMPORTANT]
-> Namingo Registry v1.0.32 is the last version using the legacy sequential upgrade scripts.
->
-> Starting with v1.0.33, all upgrades use the universal [`upgrade.sh`](docs/upgrade.sh) script.
+### Upgrade
 
 Upgrade to the latest Namingo Registry release with:
 
