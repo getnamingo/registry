@@ -138,6 +138,94 @@ SQL
     esac
 }
 
+
+# Persist Spec 11 DNS abuse analysis and mitigation audit history.
+# Both tables already exist in fresh-install schemas; this upgrades existing DBs.
+# CREATE IF NOT EXISTS allows safe re-runs after interrupted upgrades.
+upgrade_spec11_abuse_audit_schema() {
+    log "Creating Spec 11 abuse scan and action audit tables"
+    case "$NAMINGO_DB_DRIVER" in
+        mariadb)
+            db_sql <<'SQL'
+CREATE TABLE IF NOT EXISTS abuse_scan_runs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    scan_uuid CHAR(36) NOT NULL,
+    tld_id INT UNSIGNED NOT NULL,
+    tld_name VARCHAR(32) NOT NULL,
+    source VARCHAR(64) NOT NULL,
+    started_at DATETIME(3) NOT NULL,
+    finished_at DATETIME(3) DEFAULT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'running',
+    domains_checked BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    threats_identified BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    tickets_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    error_message TEXT DEFAULT NULL,
+    UNIQUE KEY uq_scan_uuid (scan_uuid),
+    KEY idx_scan_tld_period (tld_id, started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS abuse_actions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT UNSIGNED NOT NULL,
+    scan_run_id BIGINT UNSIGNED DEFAULT NULL,
+    tld_id INT UNSIGNED NOT NULL,
+    registrar_id INT UNSIGNED NOT NULL,
+    domain_name VARCHAR(255) NOT NULL,
+    action_type VARCHAR(48) NOT NULL,
+    actor VARCHAR(255) NOT NULL,
+    notes TEXT DEFAULT NULL,
+    evidence_url TEXT DEFAULT NULL,
+    action_at DATETIME(3) NOT NULL,
+    KEY idx_actions_ticket (ticket_id, action_at),
+    KEY idx_actions_tld_period (tld_id, action_at),
+    KEY idx_actions_registrar_period (registrar_id, tld_id, action_at),
+    CONSTRAINT fk_abuse_action_ticket FOREIGN KEY (ticket_id) REFERENCES support_tickets(id),
+    CONSTRAINT fk_abuse_action_scan FOREIGN KEY (scan_run_id) REFERENCES abuse_scan_runs(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL
+            ;;
+        pgsql)
+            db_sql <<'SQL'
+BEGIN;
+CREATE TABLE IF NOT EXISTS abuse_scan_runs (
+    id BIGSERIAL PRIMARY KEY,
+    scan_uuid CHAR(36) NOT NULL UNIQUE,
+    tld_id INTEGER NOT NULL,
+    tld_name VARCHAR(32) NOT NULL,
+    source VARCHAR(64) NOT NULL,
+    started_at TIMESTAMP(3) NOT NULL,
+    finished_at TIMESTAMP(3),
+    status VARCHAR(16) NOT NULL DEFAULT 'running',
+    domains_checked BIGINT NOT NULL DEFAULT 0,
+    threats_identified BIGINT NOT NULL DEFAULT 0,
+    tickets_created BIGINT NOT NULL DEFAULT 0,
+    error_message TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_scan_tld_period ON abuse_scan_runs(tld_id, started_at);
+
+CREATE TABLE IF NOT EXISTS abuse_actions (
+    id BIGSERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL REFERENCES support_tickets(id),
+    scan_run_id BIGINT REFERENCES abuse_scan_runs(id),
+    tld_id INTEGER NOT NULL,
+    registrar_id INTEGER NOT NULL,
+    domain_name VARCHAR(255) NOT NULL,
+    action_type VARCHAR(48) NOT NULL,
+    actor VARCHAR(255) NOT NULL,
+    notes TEXT,
+    evidence_url TEXT,
+    action_at TIMESTAMP(3) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_actions_ticket ON abuse_actions(ticket_id, action_at);
+CREATE INDEX IF NOT EXISTS idx_actions_tld_period ON abuse_actions(tld_id, action_at);
+CREATE INDEX IF NOT EXISTS idx_actions_registrar_period ON abuse_actions(registrar_id, tld_id, action_at);
+COMMIT;
+SQL
+            ;;
+        *) die "Unsupported database driver: $NAMINGO_DB_DRIVER" ;;
+    esac
+}
+
 case "$PHASE" in
     pre)
         ;;
@@ -146,6 +234,7 @@ case "$PHASE" in
         upgrade_idn_table_schema
         upgrade_maintenance_schema
         upgrade_allocation_tokens_schema
+        upgrade_spec11_abuse_audit_schema
         # Include the v1.0.34 secdns audit change for already-upgraded installs.
         sh "$(dirname "$0")/audit-sync.sh" all
         ;;
