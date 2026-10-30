@@ -356,23 +356,76 @@ To enable URS handling:
 
 Namingo will regularly scan this mailbox for incoming URS case notifications. Detected cases will be parsed, recorded, and automatically added to the registry system as internal tickets assigned to the affected registrar.
 
-## 10. Spec 11 Monitoring
+## 10. Specification 11 (Spec 11) Monitoring
 
-Spec 11 abuse monitoring is required under the ICANN Registry Agreement for gTLDs. Namingo fulfills this by scanning all active domains against several public threat intelligence sources, including databases listing:
+Specification 11 of the ICANN Registry Agreement requires gTLD registry operators to periodically monitor registered domains for DNS abuse and maintain records of identified threats and actions taken.
+
+Namingo Registry supports this requirement by automatically scanning active domains against multiple public threat intelligence sources, covering:
 
 - Malware
 - Phishing
 - Botnets
-- Spam abuse
+- Spam-related abuse
 
-If a domain is flagged:
+### How it works
 
-- A ticket is created in the affected registrar’s account
-- An abuse report is sent automatically to the registrar via email
+When a potentially abusive domain is detected:
 
-To use this feature, ensure `cron_spec11` is set to `true` in `/opt/registry/automation/config.php`.
+1. A support ticket is automatically created in the affected registrar's account.
+2. An abuse notification is sent to the registrar via email.
+3. The finding is recorded as `detected` for reporting and follow-up.
 
-> This functionality helps maintain registry compliance with Specification 11 and supports proactive registrar communication.
+The `detected` status represents a monitoring finding, **not a confirmed abuse incident or mitigation action**. Registry operators should review findings and document any subsequent actions.
+
+### Enable monitoring
+
+To enable automated Spec 11 monitoring, set `cron_spec11` to `true` in:
+
+`/opt/registry/automation/config.php`
+
+### Reporting and retention
+
+Namingo stores Spec 11 reports in:
+
+`/opt/reporting/spec11`
+
+Ensure this directory is included in **long-term, access-controlled backups**.
+
+Under [ICANN Specification 11, Section 3(b)](https://www.icann.org/en/contracted-parties/advisories/documents/advisory-new-gtld-registry-agreement-specification-11-3b-08-06-2017-en), registry operators must retain statistical reports of identified DNS abuse and actions taken for the term of the Registry Agreement, unless a shorter retention period is required by law or approved by ICANN.
+
+Reports must also be available to ICANN upon request.
+
+### Record an actual action
+
+After reviewing an abuse case, registry operators can use the operator-only CLI to record actions actually taken:
+
+```sh
+cd /opt/registry/automation
+php abuse-action.php --ticket=123 --action=registrar_notified \
+    --actor=operator@example.org --notes='Evidence forwarded, reference INC-123' \
+    --evidence=https://example.org/incident/123
+```
+
+Supported action names:
+
+- `investigation_started`
+- `confirmed_abuse`
+- `false_positive`
+- `registrar_notified`
+- `registry_hold`
+- `registrar_hold`
+- `domain_deleted`
+- `no_action`
+- `resolved`
+- `other`
+
+**Important:**
+
+- Record only actions that have actually occurred.
+- Update the support ticket status separately through the Namingo control panel.
+- The CLI records actions for reporting purposes. It does **not** automatically suspend, delete, or otherwise modify domains.
+
+> **Compliance note:** Automated monitoring, registrar notifications, documented follow-up actions, and long-term report retention help registry operators meet their Specification 11 obligations. Operators remain responsible for reviewing reported abuse and taking appropriate mitigation measures where required.
 
 ## 11. ICANN MoSAPI Integration
 

@@ -18,7 +18,7 @@
 #   NAMINGO_PANEL_PASSWORD
 #   NAMINGO_SSH_PORT
 #   NAMINGO_CONFIGURE_FIREWALL  yes|no (default: yes)
-#   NAMINGO_REGISTRY_VERSION    git tag/branch (default: v1.0.34)
+#   NAMINGO_REGISTRY_VERSION    git tag/branch (default: v1.0.35)
 
 set -eu
 
@@ -29,7 +29,7 @@ export LC_ALL
 umask 027
 
 TARGET_FREEBSD_VERSION="15.1-RELEASE"
-REGISTRY_VERSION="${NAMINGO_REGISTRY_VERSION:-v1.0.34}"
+REGISTRY_VERSION="${NAMINGO_REGISTRY_VERSION:-v1.0.35}"
 REGISTRY_ROOT="/opt/registry"
 CP_ROOT="/var/www/cp"
 WHOIS_WEB_ROOT="/var/www/whois"

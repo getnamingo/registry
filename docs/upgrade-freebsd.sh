@@ -74,7 +74,7 @@ Options:
 
 Examples:
   $0
-  $0 --target 1.0.34
+  $0 --target 1.0.35
   $0 --main
   $0 -y
 EOF_USAGE
