@@ -775,6 +775,39 @@ CREATE TABLE tmch_crl (
     "update_timestamp" TIMESTAMP(3) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS abuse_scan_runs (
+    id BIGSERIAL PRIMARY KEY,
+    scan_uuid CHAR(36) NOT NULL UNIQUE,
+    tld_id INTEGER NOT NULL,
+    tld_name VARCHAR(32) NOT NULL,
+    source VARCHAR(64) NOT NULL,
+    started_at TIMESTAMP(3) NOT NULL,
+    finished_at TIMESTAMP(3),
+    status VARCHAR(16) NOT NULL DEFAULT 'running',
+    domains_checked BIGINT NOT NULL DEFAULT 0,
+    threats_identified BIGINT NOT NULL DEFAULT 0,
+    tickets_created BIGINT NOT NULL DEFAULT 0,
+    error_message TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_scan_tld_period ON abuse_scan_runs(tld_id, started_at);
+
+CREATE TABLE IF NOT EXISTS abuse_actions (
+    id BIGSERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL REFERENCES support_tickets(id),
+    scan_run_id BIGINT REFERENCES abuse_scan_runs(id),
+    tld_id INTEGER NOT NULL,
+    registrar_id INTEGER NOT NULL,
+    domain_name VARCHAR(255) NOT NULL,
+    action_type VARCHAR(48) NOT NULL,
+    actor VARCHAR(255) NOT NULL,
+    notes TEXT,
+    evidence_url TEXT,
+    action_at TIMESTAMP(3) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_actions_ticket ON abuse_actions(ticket_id, action_at);
+CREATE INDEX IF NOT EXISTS idx_actions_tld_period ON abuse_actions(tld_id, action_at);
+CREATE INDEX IF NOT EXISTS idx_actions_registrar_period ON abuse_actions(registrar_id, tld_id, action_at);
+
 INSERT INTO domain_tld VALUES('1','.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 INSERT INTO domain_tld VALUES('2','.com.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 SELECT setval('domain_tld_id_seq', COALESCE((SELECT MAX(id) FROM domain_tld), 0) + 1);

@@ -55,15 +55,21 @@ function getAbuseTickets(PDO $dbh, int $tldId, string $start, string $end, ?int 
     $query = "SELECT s.id, s.reported_domain, s.nature_of_abuse, s.status, s.priority,
                      s.date_of_incident, s.date_created, s.last_updated
               FROM support_tickets s
-              JOIN domain d ON d.name = s.reported_domain
-              WHERE s.category_id = 8 AND d.tldid = :tldId
+              LEFT JOIN abuse_actions detected ON detected.ticket_id = s.id
+                   AND detected.action_type = 'detected'
+              LEFT JOIN domain d ON d.name = s.reported_domain
+              WHERE s.category_id = 8 AND COALESCE(detected.tld_id, d.tldid) = :tldId
                 AND ((s.date_created >= :startDate AND s.date_created < :endDate)
-                  OR (s.last_updated >= :startUpdated AND s.last_updated < :endUpdated))";
+                  OR (s.last_updated >= :startUpdated AND s.last_updated < :endUpdated)
+                  OR EXISTS (SELECT 1 FROM abuse_actions a
+                       WHERE a.ticket_id = s.id AND a.action_at >= :startAction
+                         AND a.action_at < :endAction))";
     $params = [':tldId' => $tldId, ':startDate' => $start, ':endDate' => $end,
-        ':startUpdated' => $start, ':endUpdated' => $end];
+        ':startUpdated' => $start, ':endUpdated' => $end,
+        ':startAction' => $start, ':endAction' => $end];
     if ($registrarId !== null) {
-        $query .= ' AND d.clid = :registrarId'
-            . ' AND (d.trdate IS NULL OR s.date_created >= d.trdate)';
+        $query .= ' AND COALESCE(detected.registrar_id, d.clid) = :registrarId'
+            . ' AND (detected.id IS NOT NULL OR d.trdate IS NULL OR s.date_created >= d.trdate)';
         $params[':registrarId'] = $registrarId;
     }
     $query .= ' ORDER BY s.date_created, s.id';
@@ -86,7 +92,77 @@ function countSponsoredDomains(PDO $dbh, int $tldId, ?int $registrarId): int
     return (int)$stmt->fetchColumn();
 }
 
-function reportContent(array $tickets, string $uuid, string $start, string $end, int $domainCount): string
+
+// Scan counts are TLD-wide, not scoped to a registrar. These are domain checks
+// (two sources x two daily runs), NOT distinct registered domains.
+function getScanStatistics(PDO $dbh, int $tldId, string $start, string $end): array
+{
+    $stmt = $dbh->prepare('SELECT source, status, 1 AS runs,
+        domains_checked AS checked, threats_identified AS findings,
+        tickets_created AS tickets, scan_uuid, started_at, finished_at,
+        error_message
+        FROM abuse_scan_runs WHERE tld_id = ? AND started_at >= ? AND started_at < ?
+        ORDER BY started_at, source');
+    $stmt->execute([$tldId, $start, $end]);
+    return $stmt->fetchAll();
+}
+
+function getTicketActions(PDO $dbh, array $tickets): array
+{
+    $actions = [];
+    foreach (array_chunk(array_column($tickets, 'id'), 300) as $ids) {
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $dbh->prepare("SELECT a.ticket_id, a.action_type, a.actor, a.notes, a.evidence_url,
+                   a.action_at, r.scan_uuid
+            FROM abuse_actions a LEFT JOIN abuse_scan_runs r ON r.id = a.scan_run_id
+            WHERE a.ticket_id IN ($marks) ORDER BY a.action_at, a.id");
+        $stmt->execute($ids);
+        foreach ($stmt->fetchAll() as $action) {
+            $actions[(int)$action['ticket_id']][] = $action;
+        }
+    }
+    return $actions;
+}
+
+function scanReportHTML(array $scans): string
+{
+    $html = '<h2>Technical analysis (TLD-wide)</h2>'
+        . '<p>Each count represents domain checks, not unique domains. Scan failures must be investigated.</p>';
+    if (!$scans) {
+        return $html . '<p><strong>No scan runs recorded for this period.</strong></p>';
+    }
+    $html .= '<table width="100%" cellpadding="7" cellspacing="0" style="border-collapse:collapse">'
+        . '<tr><th>Source / result</th><th>Runs</th><th>Checks</th><th>Findings</th><th>New cases</th></tr>';
+    foreach ($scans as $scan) {
+        $html .= '<tr><td>' . escapeReport($scan['source'] . ' / ' . $scan['status']) . '</td>'
+            . '<td>' . (int)$scan['runs'] . '</td><td>' . (int)$scan['checked'] . '</td>'
+            . '<td>' . (int)$scan['findings'] . '</td><td>' . (int)$scan['tickets'] . '</td></tr>';
+        $html .= '<tr><td colspan="5"><small>Scan ' . escapeReport($scan['scan_uuid'])
+            . ' | ' . escapeReport($scan['started_at']) . ' UTC to '
+            . escapeReport($scan['finished_at'] ?? 'unfinished') . ' UTC'
+            . ($scan['error_message'] ? ' | Error: ' . escapeReport($scan['error_message']) : '')
+            . '</small></td></tr>';
+    }
+    return $html . '</table>';
+}
+
+function actionSummary(array $actions, string $start, string $end): array
+{
+    $counts = [];
+    foreach ($actions as $ticketActions) {
+        foreach ($ticketActions as $action) {
+            if ($action['action_type'] !== 'detected'
+                && $action['action_at'] >= $start && $action['action_at'] < $end) {
+                $type = (string)$action['action_type'];
+                $counts[$type] = ($counts[$type] ?? 0) + 1;
+            }
+        }
+    }
+    ksort($counts);
+    return $counts;
+}
+
+function reportContent(array $tickets, string $uuid, string $start, string $end, int $domainCount, array $scans, array $actions): string
 {
     $counts = array_count_values(array_map(
         static fn(array $ticket): string => (string)($ticket['status'] ?? 'Unknown'),
@@ -115,6 +191,15 @@ function reportContent(array $tickets, string $uuid, string $start, string $end,
         $rows .= '</table>';
     }
 
+    $rows .= scanReportHTML($scans);
+    $summary = actionSummary($actions, $start, $end);
+    $rows .= '<h2>Documented actions during period</h2>';
+    if (!$summary) {
+        $rows .= '<p>No non-detection action was documented for the included cases.</p>';
+    }
+    foreach ($summary as $type => $count) {
+        $rows .= '<p>' . escapeReport($type) . ': <strong>' . (int)$count . '</strong></p>';
+    }
     $rows .= '<p style="font-size:12px;color:#65746b;">UTC period: ' . escapeReport($start) . ' to ' . escapeReport($end)
         . ' (end exclusive)<br>Report UUID: <strong>' . escapeReport($uuid) . '</strong></p>';
 
@@ -139,11 +224,22 @@ function reportContent(array $tickets, string $uuid, string $start, string $end,
                     . escapeReport($value) . '</td></tr>';
             }
             $rows .= '</table>';
+            $history = $actions[(int)$ticket['id']] ?? [];
+            $rows .= '<h3>Action history</h3>';
+            if (!$history) {
+                $rows .= '<p>No documented actions. Ticket status alone is not mitigation evidence.</p>';
+            }
+            foreach ($history as $action) {
+                $rows .= '<p><strong>' . escapeReport($action['action_at'] . ' UTC | ' . $action['action_type'])
+                    . '</strong> (' . escapeReport($action['actor']) . ') ' . escapeReport($action['notes'])
+                    . '<br>Evidence: ' . escapeReport($action['evidence_url'])
+                    . ($action['scan_uuid'] ? '<br>Scan UUID: ' . escapeReport($action['scan_uuid']) : '') . '</p>';
+            }
         }
     }
 
-    $rows .= '<p style="font-size:12px;color:#65746b;">This report summarizes abuse tickets created or updated '
-        . 'for currently registered domains. Ticket status is not proof of mitigation, and '
+    $rows .= '<p style="font-size:12px;color:#65746b;">This report summarizes abuse cases created, updated or actioned '
+        . 'for the scoped TLD and registrar. Ticket status is not proof of mitigation, and '
         . 'these figures do not establish the number of domains technically scanned. '
         . 'Maintain the separate technical-analysis evidence and action records required by ICANN Specification 11(3)(b).</p>';
     return $rows;
@@ -192,7 +288,8 @@ function pdfReportValue($value): string
 
 function saveReportPdf(
     string $folder, string $name, string $scope, string $uuid,
-    array $tickets, string $start, string $end, int $domainCount
+    array $tickets, string $start, string $end, int $domainCount,
+    array $scans, array $actions
 ): string {
     if (!is_dir($folder) && !mkdir($folder, 0700, true) && !is_dir($folder)) {
         throw new RuntimeException('Cannot create Spec 11 report archive: ' . $folder);
@@ -246,10 +343,34 @@ function saveReportPdf(
         . '**UTC period:** ' . $start . ' to ' . $end . " (end exclusive)\n\n"
         . '**Report UUID:** ' . $uuid . "\n\n"
         . "## Activity at a glance\n\n"
-        . '- Tickets created or updated: **' . count($tickets) . "**\n"
+        . '- Cases created, updated or actioned: **' . count($tickets) . "**\n"
         . '- Open / in progress: **' . (($statuses['Open'] ?? 0) + ($statuses['In Progress'] ?? 0)) . "**\n"
         . '- Resolved / closed: **' . (($statuses['Resolved'] ?? 0) + ($statuses['Closed'] ?? 0)) . "**\n"
         . '- Currently sponsored domains (not scan count): **' . $domainCount . "**\n\n";
+
+    $markdown .= "## Technical analysis (TLD-wide)\n\n"
+        . "Counts are domain checks, not distinct domains.\n\n";
+    if (!$scans) {
+        $markdown .= "**No scan runs were recorded for this period.**\n\n";
+    }
+    foreach ($scans as $scan) {
+        $markdown .= '- ' . pdfReportValue($scan['source']) . ' (' . pdfReportValue($scan['status'])
+            . '): runs ' . (int)$scan['runs'] . ', checks ' . (int)$scan['checked']
+            . ', findings ' . (int)$scan['findings'] . ', new cases ' . (int)$scan['tickets']
+            . ', scan UUID ' . pdfReportValue($scan['scan_uuid'])
+            . ', started ' . pdfReportValue($scan['started_at']) . ' UTC'
+            . ($scan['error_message'] ? ', error ' . pdfReportValue($scan['error_message']) : '')
+            . "\n";
+    }
+    $markdown .= "\n## Documented actions in period\n\n";
+    $actionCounts = actionSummary($actions, $start, $end);
+    if (!$actionCounts) {
+        $markdown .= "No non-detection actions are documented for the included cases.\n\n";
+    }
+    foreach ($actionCounts as $action => $count) {
+        $markdown .= '- ' . pdfReportValue($action) . ': **' . $count . "**\n";
+    }
+    $markdown .= "\n";
 
     if ($types) {
         $markdown .= "## Abuse categories\n\n";
@@ -277,12 +398,26 @@ function saveReportPdf(
             $markdown .= '- **' . $label . ':** ' . pdfReportValue($value) . "\n";
         }
         $markdown .= "\n";
+        $history = $actions[(int)$ticket['id']] ?? [];
+        if (!$history) {
+            $markdown .= "No documented actions; ticket status does not prove mitigation.\n\n";
+        } else {
+            $markdown .= "**Action history:**\n\n";
+            foreach ($history as $action) {
+                $markdown .= '- ' . pdfReportValue($action['action_at']) . ' UTC | '
+                    . pdfReportValue($action['action_type']) . ' | ' . pdfReportValue($action['actor'])
+                    . ' | ' . pdfReportValue($action['notes'])
+                    . ' | Evidence: ' . pdfReportValue($action['evidence_url'])
+                    . ($action['scan_uuid'] ? ' | Scan UUID: ' . pdfReportValue($action['scan_uuid']) : '') . "\n";
+            }
+            $markdown .= "\n";
+        }
     }
     $markdown .= "## Interpretation and records\n\n"
-        . 'This report summarizes tickets for currently registered domains. Ticket status is not '
+        . 'This report summarizes scoped tickets and documented actions. Ticket status is not '
         . 'proof of mitigation. The domain count does not establish the number of names technically '
-        . 'scanned. Maintain separate technical-analysis evidence and mitigation-action records '
-        . 'as required by ICANN Specification 11(3)(b).';
+        . 'scanned. Technical scan statistics and separately documented actions are included above. '
+        . 'A detection is not a verified abuse incident and does not imply mitigation.';
 
     $doc->addPage()->markdown($markdown, width: 174.0);
     $path = $folder . '/' . $name;
@@ -363,11 +498,13 @@ try {
                 $tickets = getAbuseTickets($dbh, (int)$tld['id'], $startDate, $endDate, $scope['id']);
                 $domainCount = countSponsoredDomains($dbh, (int)$tld['id'], $scope['id']);
                 $uuid = newReportUUID();
-                $content = reportContent($tickets, $uuid, $startDate, $endDate, $domainCount);
+                $scans = getScanStatistics($dbh, (int)$tld['id'], $startDate, $endDate);
+                $actions = getTicketActions($dbh, $tickets);
+                $content = reportContent($tickets, $uuid, $startDate, $endDate, $domainCount, $scans, $actions);
                 $slug = preg_replace('/[^a-z0-9-]+/', '-', strtolower(ltrim($tldName, '.')));
                 $fileName = 'spec11-' . $slug . '-' . ($scope['id'] === null ? 'registry' : 'registrar-' . $scope['id'])
                     . '-' . $uuid . '.pdf';
-                $pdf = saveReportPdf($archiveBase, $fileName, $scopeName, $uuid, $tickets, $startDate, $endDate, $domainCount);
+                $pdf = saveReportPdf($archiveBase, $fileName, $scopeName, $uuid, $tickets, $startDate, $endDate, $domainCount, $scans, $actions);
                 $relativePath = 'spec11/' . $start->format('Y-m-d') . '/' . basename($pdf);
                 $html = generateReportHTML($content, $scopeName, $registryName, $supportEmail, $supportPhoneNumber);
                 $subject = "DNS Abuse Report | $tldName | " . $start->format('Y-m-d') . " | $uuid";

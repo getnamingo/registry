@@ -13,82 +13,149 @@
  * SPDX-License-Identifier: MIT
  */
 
+require __DIR__ . '/vendor/autoload.php';
 $c = require_once 'config.php';
 require_once 'helpers.php';
 
-$logFilePath = '/var/log/namingo/abusemonitor.log';
-$log = setupLogger($logFilePath, 'Abuse_Monitor');
-$log->info('job started.');
-
-use Swoole\Coroutine;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\Filesystem;
 use MatthiasMullie\Scrapbook\Adapters\Flysystem as ScrapbookFlysystem;
 use MatthiasMullie\Scrapbook\Psr6\Pool;
 
-// Initialize the PDO connection pool
-$pdoConfig = (new Swoole\Database\PDOConfig())
-        ->withDriver($c['db_type'])
-        ->withHost($c['db_host'])
-        ->withPort($c['db_port'])
-        ->withDbName($c['db_database'])
-        ->withUsername($c['db_username'])
-        ->withPassword($c['db_password']);
-if ($c['db_type'] === 'mysql') {
-    $pdoConfig->withCharset('utf8mb4');
+$log = setupLogger('/var/log/namingo/abusemonitor.log', 'Abuse_Monitor');
+$log->info('Job started.');
+
+// Prevent two cron invocations from simultaneously opening duplicate tickets.
+$lock = fopen('/tmp/namingo-abusemonitor.lock', 'c');
+if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+    $log->error('Another abuse monitor is already running.');
+    exit(1);
 }
-$pool = new Swoole\Database\PDOPool($pdoConfig);
 
-Swoole\Runtime::enableCoroutine();
+try {
+    $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
+    $pdo = new PDO($dsn, $c['db_username'], $c['db_password'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
-// Filesystem Cache setup
-$cachePath = __DIR__ . '/cache';
-
-// Check if the 'cache' directory exists
-if (!is_dir($cachePath)) {
-    // Attempt to create the directory
-    if (!mkdir($cachePath, 0755, true)) {
-        $log->error("Unable to create cache directory at $cachePath. Please check permissions.");
+    $cachePath = __DIR__ . '/cache';
+    if (!is_dir($cachePath) && !mkdir($cachePath, 0755, true) && !is_dir($cachePath)) {
+        throw new RuntimeException('Cannot create abuse monitor cache directory');
     }
-}
+    $cache = new Pool(new ScrapbookFlysystem(new Filesystem(new LocalFilesystemAdapter($cachePath))));
 
-$adapter = new LocalFilesystemAdapter($cachePath, null, LOCK_EX);
-$filesystem = new Filesystem($adapter);
-$cache = new Pool(new ScrapbookFlysystem($filesystem));
+    $tlds = $pdo->query('SELECT id, tld FROM domain_tld ORDER BY id')->fetchAll();
+    $beginSql = 'INSERT INTO abuse_scan_runs
+        (scan_uuid, tld_id, tld_name, source, started_at, status)
+        VALUES (?, ?, ?, ?, ?, ?)';
+    $isPostgres = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+    $begin = $pdo->prepare($beginSql . ($isPostgres ? ' RETURNING id' : ''));
+    $complete = $pdo->prepare('UPDATE abuse_scan_runs SET finished_at = ?, status = ?,
+        domains_checked = ?, threats_identified = ?, tickets_created = ?, error_message = ?
+        WHERE id = ?');
+    $select = $pdo->prepare('SELECT name, clid FROM domain WHERE tldid = ? ORDER BY id');
+    $failed = 0;
 
-// Cache key and URL for the NetAPI compromised domains list (one domain per line, refreshed daily)
-$netapiCacheKey = 'netapi_compromised_domains';
-$netapiUrl = 'https://netapi.com/api2/?method=compromised&dataset_type=url';
-
-// Creating first coroutine
-Coroutine::create(function () use ($pool, $log, $cache, $netapiCacheKey, $netapiUrl) {
+    // A failed feed does not silently turn its results into "zero threats".
+    $netapiData = null;
+    $netapiError = null;
     try {
-        $pdo = $pool->get();
-        $stmt = $pdo->query('SELECT name, clid FROM domain');
+        $netapiData = getNetapiData($cache, 'netapi_compromised_domains',
+            'https://netapi.com/api2/?method=compromised&dataset_type=url');
+        if (!$netapiData instanceof \Ds\Map) {
+            throw new RuntimeException('NetAPI returned no usable dataset');
+        }
+    } catch (Throwable $e) {
+        $netapiError = $e->getMessage();
+    }
 
-        // Retrieve cached NetAPI data
-        $netapiData = getNetapiData($cache, $netapiCacheKey, $netapiUrl);
+    $spamhausError = null;
+    try {
+        // If the resolver is blocked or rate-limited, do not claim a successful scan.
+        $test = dns_get_record('test.dbl.spamhaus.org', DNS_A);
+        if ($test === false || !in_array('127.0.1.2', array_column($test, 'ip'), true)) {
+            throw new RuntimeException('Spamhaus DBL DNS resolver preflight failed');
+        }
+    } catch (Throwable $e) {
+        $spamhausError = $e->getMessage();
+    }
 
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $domain = $row['name'];
+    foreach ($tlds as $tld) {
+        foreach (['NetAPI', 'Spamhaus DBL'] as $source) {
+            $hex = bin2hex(random_bytes(16));
+            $uuid = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-'
+                . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+            // This UUID is an audit correlation identifier, not a cryptographic signature.
+            $started = gmdate('Y-m-d H:i:s');
+            $begin->execute([$uuid, $tld['id'], $tld['tld'], $source, $started, 'running']);
+            $runId = $isPostgres ? (int)$begin->fetchColumn() : (int)$pdo->lastInsertId();
+            $begin->closeCursor();
+            $checked = 0;
+            $found = 0;
+            $created = 0;
+            $status = 'success';
+            $error = null;
 
-            // Check NetAPI compromised domains
-            if (checkNetapi($domain, $netapiData)) {
-                processAbuseDetection($pdo, $domain, $row['clid'], 'NetAPI', 'https://netapi.com/lookup-domain/' . $domain . '/', $log);
-            }
+            try {
+                if ($source === 'NetAPI' && $netapiError !== null) {
+                    throw new RuntimeException('NetAPI unavailable: ' . $netapiError);
+                }
+                if ($source === 'Spamhaus DBL' && $spamhausError !== null) {
+                    throw new RuntimeException($spamhausError);
+                }
 
-            // Check Spamhaus
-            if (checkSpamhaus($domain)) {
-                processAbuseDetection($pdo, $domain, $row['clid'], 'Spamhaus', 'http://www.spamhaus.org/query/domain/'.$domain, $log);
+                $select->execute([(int)$tld['id']]);
+                // Buffered PDO result permits ticket inserts on this connection.
+                while ($row = $select->fetch()) {
+                    $domain = strtolower(rtrim((string)$row['name'], '.'));
+                    $evidence = null;
+                    $category = $source;
+                    $sourceCode = null;
+                    if ($source === 'NetAPI') {
+                        if (checkNetapi($domain, $netapiData)) {
+                            $evidence = 'https://netapi.com/lookup-domain/' . rawurlencode($domain) . '/';
+                        }
+                    } else {
+                        $hit = checkSpamhaus($domain);
+                        if ($hit !== null) {
+                            $category = 'Spamhaus DBL: ' . $hit['category'];
+                            $sourceCode = $hit['code'];
+                            $evidence = 'https://check.spamhaus.org/listed/?searchterm=' . rawurlencode($domain);
+                        }
+                    }
+                    $checked++;
+                    if ($evidence !== null) {
+                        $found++;
+                        if (processAbuseDetection($pdo, $domain, (int)$row['clid'], $category,
+                                $evidence, $log, (int)$tld['id'], $runId, $source, $sourceCode)) {
+                            $created++;
+                        }
+                    }
+                }
+                $select->closeCursor();
+            } catch (Throwable $e) {
+                $select->closeCursor();
+                $status = 'failed';
+                $error = mb_substr($e->getMessage(), 0, 2000);
+                $failed++;
+                $log->error("$source / {$tld['tld']} failed: $error");
+            } finally {
+                $complete->execute([gmdate('Y-m-d H:i:s'), $status,
+                    $checked, $found, $created, $error, $runId]);
+                $log->info("{$tld['tld']} / $source: $status, checked=$checked, hits=$found, tickets=$created, audit=$runId");
             }
         }
-        $log->info('job finished successfully.');
-    } catch (PDOException $e) {
-        $log->error('Database error: ' . $e->getMessage());
-    } catch (Throwable $e) {
-        $log->error('Error: ' . $e->getMessage());
-    } finally {
-        // Return the connection to the pool
-        $pool->put($pdo);
     }
-});
+    if ($failed > 0) {
+        throw new RuntimeException("$failed source/TLD scan(s) failed; see abuse_scan_runs");
+    }
+    $log->info('Job finished successfully.');
+} catch (Throwable $e) {
+    $log->error('Abuse monitor failed: ' . $e->getMessage());
+    exit(1);
+} finally {
+    flock($lock, LOCK_UN);
+    fclose($lock);
+}

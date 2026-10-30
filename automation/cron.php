@@ -50,7 +50,7 @@ if ($cronJobConfig['backup']) {
 }
 
 if ($cronJobConfig['spec11']) {
-    $scheduler->php('/opt/registry/automation/abusemonitor.php')->at('30 * * * *');
+    $scheduler->php('/opt/registry/automation/abusemonitor.php')->at('0 0,12 * * *');
     $scheduler->php('/opt/registry/automation/abusereport.php')->at('5 0 * * *');
 }
 

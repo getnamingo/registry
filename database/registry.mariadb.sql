@@ -855,6 +855,42 @@ CREATE TABLE IF NOT EXISTS `registry`.`tmch_crl` (
     `update_timestamp` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='TMCH Crl';
 
+CREATE TABLE IF NOT EXISTS `registry`.`abuse_scan_runs` (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    scan_uuid CHAR(36) NOT NULL,
+    tld_id INT UNSIGNED NOT NULL,
+    tld_name VARCHAR(32) NOT NULL,
+    source VARCHAR(64) NOT NULL,
+    started_at DATETIME(3) NOT NULL,
+    finished_at DATETIME(3) DEFAULT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'running',
+    domains_checked BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    threats_identified BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    tickets_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    error_message TEXT DEFAULT NULL,
+    UNIQUE KEY uq_scan_uuid (scan_uuid),
+    KEY idx_scan_tld_period (tld_id, started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `registry`.`abuse_actions` (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT UNSIGNED NOT NULL,
+    scan_run_id BIGINT UNSIGNED DEFAULT NULL,
+    tld_id INT UNSIGNED NOT NULL,
+    registrar_id INT UNSIGNED NOT NULL,
+    domain_name VARCHAR(255) NOT NULL,
+    action_type VARCHAR(48) NOT NULL,
+    actor VARCHAR(255) NOT NULL,
+    notes TEXT DEFAULT NULL,
+    evidence_url TEXT DEFAULT NULL,
+    action_at DATETIME(3) NOT NULL,
+    KEY idx_actions_ticket (ticket_id, action_at),
+    KEY idx_actions_tld_period (tld_id, action_at),
+    KEY idx_actions_registrar_period (registrar_id, tld_id, action_at),
+    CONSTRAINT fk_abuse_action_ticket FOREIGN KEY (ticket_id) REFERENCES support_tickets(id),
+    CONSTRAINT fk_abuse_action_scan FOREIGN KEY (scan_run_id) REFERENCES abuse_scan_runs(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO `registry`.`domain_tld` VALUES('1','.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 INSERT INTO `registry`.`domain_tld` VALUES('2','.com.test','/^(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-)(\.(?!-)(?!.*--)[A-Z0-9-]{1,63}(?<!-))*$/i','0',NULL);
 

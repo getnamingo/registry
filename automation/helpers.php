@@ -198,13 +198,35 @@ function isIDN($pdo, $tld_id) {
     return !preg_match($asciiPattern, $idnTable); // true if it's IDN
 }
 
-// Function to check domain against Spamhaus SBL
-function checkSpamhaus($domain) {
-    // Append '.sbl.spamhaus.org' to the domain
-    $queryDomain = $domain . '.sbl.spamhaus.org';
-
-    // Check if the domain is listed in the SBL
-    return checkdnsrr($queryDomain, "A");
+function checkSpamhaus(string $domain): ?array {
+    $codes = [
+        '127.0.1.2' => 'low reputation / spam',
+        '127.0.1.4' => 'phishing',
+        '127.0.1.5' => 'malware',
+        '127.0.1.6' => 'botnet C&C',
+        '127.0.1.102' => 'abused legitimate domain (spam)',
+        '127.0.1.103' => 'abused redirector',
+        '127.0.1.104' => 'abused legitimate domain (phishing)',
+        '127.0.1.105' => 'abused legitimate domain (malware)',
+        '127.0.1.106' => 'abused legitimate domain (botnet C&C)',
+    ];
+    $answers = dns_get_record(rtrim(strtolower($domain), '.') . '.dbl.spamhaus.org', DNS_A);
+    if ($answers === false) {
+        throw new RuntimeException('Spamhaus DBL lookup failed for ' . $domain);
+    }
+    foreach ($answers as $answer) {
+        $ip = $answer['ip'] ?? '';
+        if (str_starts_with($ip, '127.255.255.') || $ip === '127.0.1.255') {
+            throw new RuntimeException('Spamhaus DBL DNSBL error ' . $ip . ' for ' . $domain);
+        }
+        if (isset($codes[$ip])) {
+            return ['category' => $codes[$ip], 'code' => $ip];
+        }
+        if (str_starts_with($ip, '127.0.1.')) {
+            throw new RuntimeException('Unrecognized Spamhaus DBL code ' . $ip);
+        }
+    }
+    return null;
 }
 
 // Function to fetch and cache the NetAPI compromised domains list. This file imports
@@ -252,28 +274,56 @@ function checkNetapi($domain, Map $netapiData) {
     return $netapiData->get(strtolower($domain), false);
 }
 
-function processAbuseDetection($pdo, $domain, $clid, $abuseType, $evidenceLink, $log) {
-    $userStmt = $pdo->prepare('SELECT user_id FROM registrar_users WHERE registrar_id = ?');
+function processAbuseDetection(PDO $pdo, string $domain, int $clid, string $abuseType,
+    string $evidenceLink, $log, int $tldId, int $scanRunId, string $source, ?string $sourceCode = null): bool {
+    $check = $pdo->prepare("SELECT id FROM support_tickets
+        WHERE category_id = 8 AND reported_domain = ? AND nature_of_abuse = ?
+          AND (status IN ('Open', 'In Progress') OR date_created >= ?)
+        ORDER BY id DESC LIMIT 1");
+    $check->execute([$domain, $abuseType, gmdate('Y-m-d H:i:s', time() - 30 * 86400)]);
+    if ($check->fetchColumn() !== false) {
+        return false;
+    }
+
+    $userStmt = $pdo->prepare('SELECT user_id FROM registrar_users WHERE registrar_id = ? ORDER BY user_id LIMIT 1');
     $userStmt->execute([$clid]);
-    $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+    $userId = $userStmt->fetchColumn();
+    if ($userId === false) {
+        $userId = $pdo->query("SELECT id FROM users WHERE roles_mask = 0 ORDER BY id LIMIT 1")->fetchColumn();
+    }
+    if ($userId === false) {
+        throw new RuntimeException('Cannot create abuse case: no registrar or registry admin user');
+    }
 
-    if ($userData) {
-        // Prepare INSERT statement to add a ticket
-        $insertStmt = $pdo->prepare("INSERT INTO support_tickets (user_id, category_id, subject, message, status, priority, reported_domain, nature_of_abuse, evidence, relevant_urls, date_of_incident, date_created, last_updated) VALUES (?, 8, ?, ?, 'Open', 'High', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))");
-
-        // Execute the prepared statement with appropriate values
-        $insertStmt->execute([
-            $userData['user_id'], // user_id
-            "Abuse Report for $domain", // subject
-            "Abuse detected for domain $domain via $abuseType.", // message
-            $domain, // reported_domain
-            $abuseType, // nature_of_abuse
-            "Link to $abuseType", // evidence
-            $evidenceLink, // relevant_urls
-            date('Y-m-d H:i:s') // date_of_incident
-        ]);
-
-        $log->info("Abuse detected for domain $domain using $abuseType.");
+    $pdo->beginTransaction();
+    try {
+        $isPostgres = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+        $insertSql = "INSERT INTO support_tickets
+            (user_id, category_id, subject, message, status, priority,
+             reported_domain, nature_of_abuse, evidence, relevant_urls,
+             date_of_incident, date_created, last_updated)
+            VALUES (?, 8, ?, ?, 'Open', 'High', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+        $insert = $pdo->prepare($insertSql . ($isPostgres ? ' RETURNING id' : ''));
+        $insert->execute([$userId, "Abuse Report for $domain",
+            "Potential abuse of $domain detected via $source (scan #$scanRunId)"
+                . ($sourceCode ? ", DBL response $sourceCode" : '')
+                . "; requires investigation. Evidence: $evidenceLink",
+            $domain, $abuseType, "Source: $source", $evidenceLink, gmdate('Y-m-d')]);
+        $ticketId = $isPostgres ? (int)$insert->fetchColumn() : (int)$pdo->lastInsertId();
+        $insert->closeCursor();
+        $action = $pdo->prepare('INSERT INTO abuse_actions
+            (ticket_id, scan_run_id, tld_id, registrar_id, domain_name, action_type,
+             actor, notes, evidence_url, action_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $action->execute([$ticketId, $scanRunId, $tldId, $clid, $domain,
+            'detected', $source, 'Automated potential finding, pending review'
+                . ($sourceCode ? '; DNSBL response ' . $sourceCode : ''),
+            $evidenceLink, gmdate('Y-m-d H:i:s')]);
+        $pdo->commit();
+        $log->info("Abuse case #$ticketId created for $domain via $source.");
+        return true;
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
     }
 }
 
