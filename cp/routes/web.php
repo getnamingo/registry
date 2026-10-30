@@ -195,6 +195,7 @@ $app->group('', function ($route) {
     $route->get('/ticket/{ticket}', SupportController::class . ':viewTicket')->setName('viewTicket');
     $route->post('/support/reply', SupportController::class . ':replyTicket')->setName('replyTicket');
     $route->post('/support/status', SupportController::class . ':statusTicket')->setName('statusTicket');
+    $route->post('/support/transfer', SupportController::class . ':transferTicket')->setName('transferTicket');
     $route->get('/support/docs', SupportController::class .':docs')->setName('docs');
     $route->get('/support/media', SupportController::class .':mediakit')->setName('mediakit');
 
