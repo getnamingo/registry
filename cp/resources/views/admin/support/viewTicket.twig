@@ -71,6 +71,11 @@
                     <div class="card-header">
                         <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>
                         <div class="card-actions">
+                         {% if roles == 0 %}
+                           <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#transferTicketModal">
+                             {{ __('Transfer Ticket') }}
+                           </button>
+                         {% endif %}
                         {% if ticket.status != 'Closed' %}
                           <button type="submit" name="action" value="close" class="btn btn-ghost-warning">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5.641 5.631a9 9 0 1 0 12.719 12.738m1.68 -2.318a9 9 0 0 0 -12.074 -12.098" /><path d="M12 17v.01" /><path d="M12 13.5a1.5 1.5 0 0 1 .394 -1.1m2.106 -1.9a2.6 2.6 0 0 0 -3.347 -3.361" /><path d="M3 3l18 18" /></svg>
@@ -283,4 +288,33 @@
         </div>
         {% include 'partials/footer.twig' %}
       </div>
+{% if roles == 0 %}
+<div class="modal modal-blur fade" id="transferTicketModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <form action="/support/transfer" method="post">
+        {{ csrf.field | raw }}
+        <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ __('Transfer Ticket') }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+        </div>
+        <div class="modal-body">
+          <label for="transferUser" class="form-label required">{{ __('Select a user') }}</label>
+          <select class="form-select" name="user_id" id="transferUser" required>
+            <option value="" selected disabled>{{ __('Select a user') }}...</option>
+            {% for user in transfer_users %}
+              <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+          <button type="submit" class="btn btn-primary">{{ __('Transfer Ticket') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
