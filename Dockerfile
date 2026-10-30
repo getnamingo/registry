@@ -16,6 +16,7 @@ RUN set -eux; \
         bzip2 \
         ca-certificates \
         curl \
+        fonts-dejavu-core \
         gettext-base \
         git \
         gosu \

@@ -1,6 +1,6 @@
 {
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "ext-pdo": "*",
         "ext-swoole": "*",
         "ext-redis": "*",
@@ -17,6 +17,7 @@
         "league/plates": "^3.6",
         "moneyphp/money": "^4.9.0",
         "phpmailer/phpmailer": "^6.9.1",
-        "utopia-php/messaging": "^1.3.0"
+        "utopia-php/messaging": "^1.3.0",
+        "dragonofmercy/phppdf": "^1.12.5"
     }
 }

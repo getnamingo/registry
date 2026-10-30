@@ -56,11 +56,19 @@ function normalizeMessage(array $data): array
             throw new InvalidArgumentException('Invalid email body');
         }
 
+        // Only allow PDF references inside the registry's private Spec 11 archive.
+        $attachment = $data['attachment'] ?? null;
+        if ($attachment !== null && (!is_string($attachment)
+            || !preg_match('~^spec11/[0-9]{4}-[0-9]{2}-[0-9]{2}/spec11-[a-z0-9-]+(?:-[a-z0-9-]+)*-[a-f0-9-]{36}\.pdf$~D', $attachment))) {
+            throw new InvalidArgumentException('Invalid report attachment');
+        }
+
         return [
             'type' => 'sendmail',
             'toEmail' => $to,
             'subject' => $subject,
             'body' => $body,
+            'attachment' => $attachment,
         ];
     }
 

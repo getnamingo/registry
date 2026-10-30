@@ -207,6 +207,18 @@ while (true) {
     try {
         switch ($data['type']) {
             case 'sendmail':
+                $attachmentPath = null;
+                if (!empty($data['attachment'])) {
+                    $base = realpath($c['reporting_path'] ?? '/opt/reporting');
+                    $candidate = $base ? realpath($base . '/' . $data['attachment']) : false;
+                    if (!$candidate || !str_starts_with($candidate, $base . '/spec11/')
+                        || !is_file($candidate) || !is_readable($candidate)
+                        || filesize($candidate) > 10485760 || filesize($candidate) < 5
+                        || file_get_contents($candidate, false, null, 0, 5) !== '%PDF-') {
+                        throw new RuntimeException('Missing or invalid Spec 11 PDF attachment');
+                    }
+                    $attachmentPath = $candidate;
+                }
                 if ($c['mailer'] === 'phpmailer') {
                     if (!$mail instanceof PHPMailer) {
                         $mail = new PHPMailer(true);
@@ -228,7 +240,11 @@ while (true) {
                     }
                     try {
                         $mail->clearAllRecipients();
+                        $mail->clearAttachments();
                         $mail->addAddress($data['toEmail']);
+                        if ($attachmentPath !== null) {
+                            $mail->addAttachment($attachmentPath, basename($attachmentPath), 'base64', 'application/pdf');
+                        }
                         $mail->Subject  = $data['subject'];
                         $mail->Body     = $data['body'];
 
@@ -262,7 +278,12 @@ while (true) {
                         html: str_starts_with(
                             strtolower(ltrim($data['body'])),
                             '<'
-                        )
+                        ),
+                        attachments: $attachmentPath === null ? null : [
+                            new \Utopia\Messaging\Messages\Email\Attachment(
+                                basename($attachmentPath), $attachmentPath, 'application/pdf'
+                            ),
+                        ]
                     );
                     $emailAdapter ??= match ($c['mailer']) {
                         'sendgrid' => new Sendgrid($c['mailer_api_key']),
