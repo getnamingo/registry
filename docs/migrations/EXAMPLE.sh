@@ -26,6 +26,17 @@ set -eu
 # place, while Registry services are still stopped. Use it for database schema
 # changes, system integration changes, and removal of obsolete files.
 #
+# Docker deployments (./namingo upgrade) run only the POST phase, inside the
+# MariaDB container, with NAMINGO_DEPLOYMENT=docker. Database steps work
+# unchanged. systemd units and anything under NAMINGO_INSTALL_DIR (unset in
+# Docker) must be skipped, because the new image already contains them:
+#
+#   if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
+#       log "Docker deployment: skipping host-only step"
+#   else
+#       example_install_apcu
+#   fi
+#
 # IMPORTANT:
 #   - Migrations MUST be idempotent. A failed upgrade may run them again.
 #   - Do not restart core Registry services here. The upgrader owns their
