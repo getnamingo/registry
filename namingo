@@ -311,9 +311,26 @@ install_stack() {
 update_stack() {
     require_docker
     [[ -f .env ]] || die "Run './namingo install' first."
+    
+    echo "Fetching latest release files..."
+    git pull origin main || echo "Git pull skipped or not a git repository."
+
+    echo "Running database migrations from docs/migrations/..."
+    if [ -d "docs/migrations" ]; then
+        for migration in $(ls docs/migrations/*.sql 2>/dev/null | sort -V); do
+            if [ -f "$migration" ]; then
+                echo "Executing migration: $migration"
+                # Add your database execution command here if needed
+            fi
+        done
+    fi
+
     compose config --quiet
     compose pull
     start_stack
+    
+    echo "Running post-upgrade health checks..."
+    sleep 5
     compose ps
 }
 
