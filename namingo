@@ -305,16 +305,567 @@ install_stack() {
     compose config --quiet
     compose pull
     start_stack
+    record_installed_version
     show_access
 }
 
-update_stack() {
+# ---------------------------------------------------------------------------
+# Upgrade
+#
+# `./namingo upgrade` performs a complete, version-aware Registry upgrade:
+#
+#   1. resolve the target release and verify it exists
+#   2. take and verify a backup
+#   3. switch the deployment files (compose.yaml, docker/, docs/migrations)
+#      and pin the image tags in .env
+#   4. pull the new images while the old release is still running
+#   5. stop the application services (database and Redis stay up)
+#   6. run POST migrations (schema changes) against the stopped application
+#   7. start the new release and verify the stack
+#   8. record the installed version
+#
+# PRE migrations are not run: they exist for host package installs, and in
+# Docker the new image already contains its packages.
+#
+# Until step 5 nothing destructive has happened and a failure restores the
+# previous files automatically. After step 5 the database may be partly
+# migrated, so a failure leaves the stack stopped and prints recovery steps
+# instead of guessing. Migrations are required to be idempotent, so re-running
+# `./namingo upgrade` after fixing the cause is the normal recovery path.
+# ---------------------------------------------------------------------------
+
+state_dir=.namingo
+lock_dir="${state_dir}/upgrade.lock"
+default_repository=https://github.com/getnamingo/registry.git
+
+# Shared with the EXIT trap, which can run outside the upgrade function scope.
+upgrade_phase=none      # none | preflight | switched | migrating | started | done
+upgrade_result=
+upg_from=
+upg_target=
+upg_prev_ref=
+upg_backup_dir=
+last_backup_dir=
+
+step() {
+    printf '\n==> %s\n' "$*"
+}
+
+warn() {
+    printf 'Warning: %s\n' "$*" >&2
+}
+
+is_release_version() {
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
+# True when $1 is strictly newer than $2.
+version_gt() {
+    [[ "$1" != "$2" ]] || return 1
+    [[ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" == "$1" ]]
+}
+
+version_le() {
+    ! version_gt "$1" "$2"
+}
+
+shell_quote() {
+    local quote="'" escaped
+    escaped=${1//$quote/$quote\\$quote$quote}
+    printf "'%s'" "$escaped"
+}
+
+record_installed_version() {
+    local version=""
+    [[ -r VERSION ]] && version=$(tr -d '[:space:]' < VERSION)
+    if is_release_version "$version"; then
+        install -d -m 0700 "$state_dir"
+        printf '%s\n' "$version" > "${state_dir}/installed-version"
+    fi
+}
+
+# The marker file is authoritative. Installations created before it existed
+# fall back to the VERSION file of the checked-out release, then to the tag.
+installed_version() {
+    local version=""
+    if [[ -r "${state_dir}/installed-version" ]]; then
+        version=$(tr -d '[:space:]' < "${state_dir}/installed-version")
+    elif [[ -r VERSION ]]; then
+        version=$(tr -d '[:space:]' < VERSION)
+    fi
+    if ! is_release_version "$version"; then
+        version=$(git describe --tags --exact-match 2>/dev/null || true)
+        version=${version#v}
+    fi
+    is_release_version "$version" \
+        || die "Cannot determine the installed Namingo version. Write it (for example 1.0.33) to ${state_dir}/installed-version and retry."
+    printf '%s' "$version"
+}
+
+release_repository() {
+    local url=${NAMINGO_REPOSITORY:-}
+    [[ -n "$url" ]] || url=$(git remote get-url origin 2>/dev/null || true)
+    [[ -n "$url" ]] || url=$default_repository
+    printf '%s' "$url"
+}
+
+latest_release() {
+    git ls-remote --tags --refs "$1" 'v*' \
+        | awk '{ sub("refs/tags/v", "", $2); print $2 }' \
+        | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sort -V \
+        | tail -n1
+}
+
+# Versions of the migrations that must run for from < version <= target,
+# in ascending order, read from the release tag.
+migration_versions() {
+    local ref=$1 from=$2 target=$3 path name
+    while IFS= read -r path; do
+        name=$(basename "$path" .sh)
+        is_release_version "$name" || continue
+        if version_gt "$name" "$from" && version_le "$name" "$target"; then
+            printf '%s\n' "$name"
+        fi
+    done < <(git ls-tree --name-only "$ref" docs/migrations/ | sort -V)
+}
+
+acquire_lock() {
+    install -d -m 0700 "$state_dir"
+    if ! mkdir "$lock_dir" 2>/dev/null; then
+        local pid
+        pid=$(cat "${lock_dir}/pid" 2>/dev/null || true)
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+            die "Another upgrade is already running (pid ${pid})."
+        fi
+        warn "Removing a stale upgrade lock."
+        rm -rf "$lock_dir"
+        mkdir "$lock_dir" || die "Cannot create the upgrade lock."
+    fi
+    printf '%s\n' "$$" > "${lock_dir}/pid"
+}
+
+release_lock() {
+    rm -rf "$lock_dir"
+}
+
+# New KEY=value lines present in an .env.example (read from stdin) but absent
+# from the operator's .env. Image tags are handled separately.
+list_new_env_keys() {
+    local line key
+    while IFS= read -r line; do
+        [[ "$line" =~ ^([A-Z][A-Z0-9_]*)= ]] || continue
+        key=${BASH_REMATCH[1]}
+        case "$key" in
+            NAMINGO_IMAGE|NAMINGO_WEB_IMAGE) continue ;;
+        esac
+        grep -q "^${key}=" .env && continue
+        printf '%s\n' "$line"
+    done
+}
+
+# Release defaults for infrastructure images are reported but never applied:
+# changing the MariaDB or Redis major version is an operator decision.
+report_infrastructure_images() {
+    local key current wanted line
+    local example
+    example=$(cat)
+    for key in NAMINGO_MARIADB_IMAGE NAMINGO_REDIS_IMAGE; do
+        line=$(printf '%s\n' "$example" | grep -m1 "^${key}=" || true)
+        [[ -n "$line" ]] || continue
+        wanted=${line#*=}
+        current=$(get_env_value "$key")
+        if [[ -n "$current" && "$current" != "$wanted" ]]; then
+            note "  ${key}: yours is ${current}, this release defaults to ${wanted} (not changed)"
+        fi
+    done
+}
+
+pin_release_image() {
+    local key=$1 repository=$2 target=$3 current
+    current=$(get_env_value "$key")
+    if [[ -z "$current" || "$current" == "${repository}:v"* ]]; then
+        set_env_value "$key" "${repository}:v${target}"
+    else
+        note "  ${key} is not pinned to a release tag (${current}); left unchanged."
+    fi
+}
+
+update_env_for_release() {
+    local target=$1 line added=0
+    pin_release_image NAMINGO_IMAGE ghcr.io/getnamingo/registry "$target"
+    pin_release_image NAMINGO_WEB_IMAGE ghcr.io/getnamingo/registry-web "$target"
+
+    while IFS= read -r line; do
+        if [[ $added -eq 0 ]]; then
+            [[ -z "$(tail -c1 .env)" ]] || printf '\n' >> .env
+            printf '\n# Added by ./namingo upgrade to v%s\n' "$target" >> .env
+            added=1
+        fi
+        printf '%s\n' "$line" >> .env
+        note "  new setting: ${line%%=*}"
+    done < <(list_new_env_keys < .env.example)
+}
+
+verify_backup() {
+    local directory=$1 file
+    for file in database.sql registry-files.tar.gz redis-snapshot.tar.gz \
+        caddy-state.tar.gz deployment-secrets.tar.gz; do
+        [[ -s "${directory}/${file}" ]] || die "Backup is incomplete: ${directory}/${file} is missing or empty."
+    done
+    tail -n 5 "${directory}/database.sql" | grep -q 'Dump completed' \
+        || die "The SQL dump in ${directory} looks truncated."
+    for file in "$directory"/*.tar.gz; do
+        tar -tzf "$file" >/dev/null 2>&1 || die "Backup archive is corrupt: ${file}"
+    done
+}
+
+# Environment handed to a migration. The database password travels on the
+# script's standard input, never on a command line or in container metadata.
+migration_environment() {
+    local from=$1 target=$2 password
+    password=$(tr -d '\r\n' < docker/secrets/db_password.txt)
+    printf 'export NAMINGO_DEPLOYMENT=docker NAMINGO_OS=linux\n'
+    printf 'export NAMINGO_FROM_VERSION=%s NAMINGO_TARGET_VERSION=%s\n' "$from" "$target"
+    printf 'export NAMINGO_DB_DRIVER=mariadb NAMINGO_DB_HOST=127.0.0.1 NAMINGO_DB_PORT=3306\n'
+    printf 'export NAMINGO_DB_NAME=registry NAMINGO_DB_MAIN=registry\n'
+    printf 'export NAMINGO_DB_TRANSACTION=registryTransaction NAMINGO_DB_AUDIT=registryAudit\n'
+    printf 'export NAMINGO_DB_USER=%s\n' "$(shell_quote "$(get_env_value NAMINGO_DB_USER namingo)")"
+    printf 'export NAMINGO_DB_PASSWORD=%s\n' "$(shell_quote "$password")"
+}
+
+# Migrations are POSIX sh scripts from docs/migrations/. In Docker they run
+# inside the MariaDB container, which ships the mariadb client and can reach
+# the databases directly.
+#
+# The whole migrations directory is staged into a temporary directory in the
+# container and the migration runs from there as a real file, because
+# migrations may call helper scripts that sit next to them
+# ("$(dirname "$0")/audit-sync.sh"). Piping a single script into `sh -s` would
+# leave $0 meaningless and break those helpers.
+#
+# Host-only variables (NAMINGO_INSTALL_DIR and friends) are intentionally left
+# unset so a migration that assumes a package-based layout fails loudly
+# instead of touching the wrong path. The database password travels inside the
+# staged archive on standard input, never on a command line.
+run_migration() {
+    local phase=$1 version=$2 from=$3 target=$4
+    [[ -r "docs/migrations/${version}.sh" ]] \
+        || die "Migration file is missing: docs/migrations/${version}.sh"
+    note "Running ${phase} migration for v${version}"
+
+    local stage status=0
+    stage=$(mktemp -d) || die "Cannot create a staging directory."
+    chmod 0700 "$stage"
+    cp docs/migrations/*.sh "$stage"/
+    ( umask 077; migration_environment "$from" "$target" > "${stage}/.namingo-env.sh" )
+
+    tar -cf - -C "$stage" . \
+        | compose exec -T database sh -c '
+            set -eu
+            dir=$(mktemp -d)
+            trap "rm -rf \"$dir\"" EXIT
+            tar -xf - -C "$dir"
+            cd "$dir"
+            . ./.namingo-env.sh
+            sh "./$1.sh" "$2"
+        ' namingo-migration "$version" "$phase" \
+        || status=$?
+    rm -rf "$stage"
+    return "$status"
+}
+
+verify_stack() {
+    local failed=0 seen=0 service state health code
+    while IFS='|' read -r service state health code; do
+        [[ -n "$service" ]] || continue
+        seen=$((seen + 1))
+        case "$state" in
+            running)
+                if [[ -n "$health" && "$health" != healthy ]]; then
+                    warn "${service} is ${health}."
+                    failed=1
+                fi
+                ;;
+            exited)
+                if [[ "$code" != 0 ]]; then
+                    warn "${service} exited with code ${code}."
+                    failed=1
+                fi
+                ;;
+            *)
+                warn "${service} is ${state}."
+                failed=1
+                ;;
+        esac
+    done < <(compose ps --all --format '{{.Service}}|{{.State}}|{{.Health}}|{{.ExitCode}}')
+    # An unreadable listing must not pass as "nothing is wrong".
+    if [[ $seen -eq 0 ]]; then
+        warn "Could not read any service state from 'docker compose ps'."
+        return 1
+    fi
+    [[ $failed -eq 0 ]] || return 1
+    note "Checked ${seen} containers."
+    doctor
+}
+
+keep_script_executable() {
+    [[ -f namingo ]] && chmod +x namingo
+    return 0
+}
+
+revert_release_files() {
+    [[ -n "$upg_prev_ref" ]] || return 0
+    git -c core.fileMode=false checkout --quiet --detach "$upg_prev_ref" \
+        || warn "Could not restore the previous release files. Run: git checkout --detach ${upg_prev_ref}"
+    keep_script_executable
+    if [[ -n "$upg_backup_dir" && -f "${upg_backup_dir}/env.before" ]]; then
+        cp -p "${upg_backup_dir}/env.before" .env
+    fi
+}
+
+print_recovery() {
+    local state=$1
+    {
+        printf '\n'
+        case "$state" in
+            migrating)
+                printf 'The application services are stopped and the database may be partly migrated.\n' ;;
+            started)
+                printf 'The new release was started but did not pass verification.\n' ;;
+        esac
+        printf 'Your data is safe in %s.\n\n' "${upg_backup_dir:-the backups/ directory}"
+        printf 'Find the cause with:  ./namingo logs\n'
+        printf 'Then retry (migrations are idempotent):  ./namingo upgrade --target %s\n\n' "$upg_target"
+        printf 'To go back to v%s instead:\n' "$upg_from"
+        printf '  1. git checkout --detach %s\n' "${upg_prev_ref:-<previous ref>}"
+        printf '  2. cp -p %s/env.before .env\n' "${upg_backup_dir:-backups/<timestamp>}"
+        printf '  3. ./namingo up\n'
+        printf '  4. restore the database only if a migration already ran:\n'
+        printf '     docker compose exec -T database sh -c '"'"'mariadb --user=root --password="$(cat "$MARIADB_ROOT_PASSWORD_FILE")"'"'"' < %s/database.sql\n' \
+            "${upg_backup_dir:-backups/<timestamp>}"
+    } >&2
+}
+
+on_upgrade_exit() {
+    local status=$?
+    trap - EXIT INT TERM
+    set +e
+    if [[ $status -ne 0 && "$upgrade_phase" != done ]]; then
+        printf '\nUpgrade failed (exit status %s).\n' "$status" >&2
+        case "$upgrade_phase" in
+            preflight)
+                printf 'Nothing was changed.\n' >&2
+                ;;
+            switched)
+                revert_release_files
+                printf 'The previous release files were restored. The running stack was not touched.\n' >&2
+                ;;
+            *)
+                print_recovery "$upgrade_phase"
+                ;;
+        esac
+    fi
+    release_lock
+    exit "$status"
+}
+
+upgrade_usage() {
+    cat <<'USAGE'
+Usage: ./namingo upgrade [options]
+
+Options:
+  --target X.Y.Z   Upgrade to a specific release instead of the latest one.
+  --dry-run        Show what would happen and change nothing.
+  -y, --yes        Do not ask for confirmation.
+  -h, --help       Show this help.
+USAGE
+}
+
+upgrade_stack() {
+    local target="" dry_run=0 assume_yes=0 answer
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --target)
+                [[ $# -ge 2 ]] || die "--target requires a version."
+                target=${2#v}
+                shift 2
+                ;;
+            --dry-run) dry_run=1; shift ;;
+            -y|--yes) assume_yes=1; shift ;;
+            -h|--help) upgrade_usage; upgrade_result=help; return 0 ;;
+            *) die "Unknown option for upgrade: $1" ;;
+        esac
+    done
+
     require_docker
+    require_command git
     [[ -f .env ]] || die "Run './namingo install' first."
+    git rev-parse --git-dir >/dev/null 2>&1 \
+        || die "This installation is not a git checkout, so release files cannot be fetched."
     compose config --quiet
+
+    local repository current release_ref
+    repository=$(release_repository)
+    current=$(installed_version)
+
+    if [[ -n "$target" ]]; then
+        is_release_version "$target" || die "Invalid version: ${target} (expected X.Y.Z)."
+    else
+        step "Checking for the latest release"
+        target=$(latest_release "$repository") || die "Could not query releases from ${repository}."
+        [[ -n "$target" ]] || die "No release tag found in ${repository}."
+    fi
+
+    if [[ "$target" == "$current" ]]; then
+        upgrade_result=current
+        note "Namingo Registry v${current} is already installed."
+        return 0
+    fi
+    version_gt "$target" "$current" \
+        || die "Target v${target} is older than the installed v${current}. Downgrades are not supported; restore a backup instead."
+
+    step "Fetching release v${target}"
+    release_ref="refs/tags/v${target}"
+    git fetch --quiet --no-tags --depth 1 "$repository" "+${release_ref}:${release_ref}" \
+        || die "Release v${target} could not be fetched from ${repository}."
+
+    local -a migrations=()
+    mapfile -t migrations < <(migration_versions "$release_ref" "$current" "$target")
+
+    # Local edits to tracked files survive an upgrade unless the release also
+    # changes the same file. .env.example is a template that the installer
+    # rewrites, so it is restored rather than treated as an operator edit.
+    # Releases store the ./namingo script as non-executable and docker-install.sh
+    # runs chmod +x on it, so permission-only changes are ignored (they would
+    # otherwise block every release that touches the script itself).
+    local conflicts
+    conflicts=$(comm -12 \
+        <(git -c core.fileMode=false diff --name-only HEAD | grep -vx '.env.example' | sort -u) \
+        <(git diff --name-only HEAD "$release_ref" | sort -u) || true)
+
+    printf '\nNamingo Registry upgrade\n\n'
+    printf '  Installed:  v%s\n' "$current"
+    printf '  Target:     v%s\n' "$target"
+    printf '  Source:     %s\n' "$repository"
+    if [[ ${#migrations[@]} -gt 0 ]]; then
+        printf '  Migrations: %s\n' "${migrations[*]}"
+    else
+        printf '  Migrations: none\n'
+    fi
+    printf '  Images:     ghcr.io/getnamingo/registry:v%s, registry-web:v%s\n' "$target" "$target"
+    local new_keys
+    new_keys=$(git show "${release_ref}:.env.example" | list_new_env_keys | cut -d= -f1 | tr '\n' ' ')
+    [[ -z "$new_keys" ]] || printf '  New .env settings (added with release defaults): %s\n' "$new_keys"
+    git show "${release_ref}:.env.example" | report_infrastructure_images
+    if [[ -n "$conflicts" ]]; then
+        printf '\nThese locally modified files are also changed by the release:\n'
+        printf '%s\n' "$conflicts" | sed 's/^/  /'
+        printf 'Move your changes aside (for example into docker/config/*.override.php) and retry.\n'
+    fi
+
+    if [[ $dry_run -eq 1 ]]; then
+        printf '\nDry run: nothing was changed.\n'
+        upgrade_result=dry-run
+        [[ -z "$conflicts" ]] || return 1
+        return 0
+    fi
+    [[ -z "$conflicts" ]] || die "Upgrade stopped: resolve the conflicts above first."
+
+    if [[ $assume_yes -ne 1 ]]; then
+        [[ -t 0 ]] || die "No interactive terminal. Re-run with --yes to confirm."
+        read -r -p "Back up and upgrade now? (y/N): " answer
+        if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+            upgrade_result=aborted
+            note "Upgrade aborted."
+            return 0
+        fi
+    fi
+
+    acquire_lock
+    upgrade_phase=preflight
+    upg_from=$current
+    upg_target=$target
+    trap on_upgrade_exit EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+
+    # Pin the version before anything changes so a retry after a failure sees
+    # the version that is really installed, not the half-switched checkout.
+    install -d -m 0700 "$state_dir"
+    [[ -s "${state_dir}/installed-version" ]] \
+        || printf '%s\n' "$current" > "${state_dir}/installed-version"
+
+    compose exec -T database healthcheck.sh --connect --innodb_initialized >/dev/null \
+        || die "The database is not healthy. Start the stack with ./namingo up first."
+
+    step "Creating and verifying a backup"
+    backup_stack
+    upg_backup_dir=$last_backup_dir
+    verify_backup "$upg_backup_dir"
+    install -m 0600 .env "${upg_backup_dir}/env.before"
+    printf '%s\n' "$current" > "${upg_backup_dir}/version.before"
+    upg_prev_ref=$(git rev-parse -q --verify "refs/tags/v${current}^{commit}" 2>/dev/null \
+        || git rev-parse HEAD)
+
+    step "Switching to release v${target}"
+    upgrade_phase=switched
+    git checkout --quiet -- .env.example 2>/dev/null || true
+    git -c core.fileMode=false checkout --quiet --detach "$release_ref" \
+        || die "The release files could not be checked out (local files in the way?)."
+    keep_script_executable
+    update_env_for_release "$target"
+    compose config --quiet \
+        || die "The compose configuration of v${target} is not valid with your .env."
+
+    step "Pulling images (the current release keeps running)"
     compose pull
+
+    local version
+    if [[ ${#migrations[@]} -gt 0 ]]; then
+        note "Pre-upgrade migration steps prepare host packages; the new images already contain them, so they are skipped in Docker."
+    fi
+
+    step "Stopping application services (database and Redis stay up)"
+    upgrade_phase=migrating
+    local -a services=()
+    mapfile -t services < <(compose config --services | grep -vx -e database -e runtime || true)
+    [[ ${#services[@]} -eq 0 ]] || compose stop "${services[@]}"
+
+    for version in "${migrations[@]}"; do
+        run_migration post "$version" "$current" "$target"
+    done
+
+    step "Starting v${target}"
+    upgrade_phase=started
     start_stack
-    compose ps
+
+    step "Verifying"
+    verify_stack
+
+    printf '%s\n' "$target" > "${state_dir}/installed-version"
+    upgrade_phase=done
+    trap - EXIT INT TERM
+    release_lock
+    upgrade_result=upgraded
+
+    printf '\nNamingo Registry upgraded: v%s -> v%s\n' "$current" "$target"
+    printf 'Backup of the previous release: %s\n' "$upg_backup_dir"
+    printf 'Previous images stay on disk; reclaim the space later with: docker image prune\n'
+}
+
+# Historic name. When a newer release exists this is a full upgrade; when the
+# installation is already current it refreshes images and reconciles the stack,
+# which is what operators use after editing docker/config/*.override.php.
+update_stack() {
+    upgrade_result=
+    upgrade_stack "$@"
+    if [[ "$upgrade_result" == current && $# -eq 0 ]]; then
+        note "Refreshing images and reconciling the stack..."
+        compose pull
+        start_stack
+        compose ps
+    fi
 }
 
 backup_stack() {
@@ -357,6 +908,7 @@ backup_stack() {
     tar -czf "${destination}/deployment-secrets.tar.gz" \
         .env docker/secrets docker/certs
     chmod 0600 "$destination"/*
+    last_backup_dir=$destination
     note "Backup created: ${destination}"
 }
 
@@ -379,7 +931,10 @@ Usage: ./namingo <command> [arguments]
 Commands:
   install           Configure, pull, initialize, and start Namingo
   up                Start or reconcile the existing deployment
-  update            Pull current images and restart
+  upgrade [options] Back up, migrate, and upgrade to the latest release
+                    (--target X.Y.Z, --dry-run, --yes)
+  update            Same as upgrade; when already current, refresh images
+                    and reconcile the stack
   down              Stop the deployment without deleting data
   restart [service] Restart the whole deployment or one service
   status            Show service and health status
@@ -407,8 +962,11 @@ case "$command_name" in
         bootstrap
         start_stack
         ;;
+    upgrade)
+        upgrade_stack "$@"
+        ;;
     update)
-        update_stack
+        update_stack "$@"
         ;;
     down)
         require_docker

@@ -138,6 +138,7 @@ restart EPP:
 ./namingo restart rdap
 ./namingo shell panel
 ./namingo backup
+./namingo upgrade
 ./namingo down
 ./namingo up
 ```
@@ -234,16 +235,98 @@ internal-only Docker network.
 ## Upgrade
 
 ```bash
-./namingo backup
-git pull --ff-only
-# Run every required Namingo migration in order.
-./namingo update
-./namingo doctor
+./namingo upgrade --dry-run    # show what would happen, change nothing
+./namingo upgrade              # back up, migrate, upgrade, verify
 ```
 
-Upgrading an existing Namingo Registry Docker installation is currently not supported.
+`./namingo upgrade` moves the installation to the newest release (or to the
+version given with `--target X.Y.Z`) in this order:
 
-See [issue #249](https://github.com/getnamingo/registry/issues/249) for more information.
+1. Fetch the release tag and show the plan: installed and target version, the
+   migrations that will run, new `.env` settings, and any local file the
+   release would overwrite. `--dry-run` stops here.
+2. Create a backup (the same one `./namingo backup` makes) and verify that the
+   SQL dump is complete and every archive is readable. A bad backup stops the
+   upgrade before anything is changed.
+3. Check out the release files, pin `NAMINGO_IMAGE` and `NAMINGO_WEB_IMAGE` in
+   `.env` to the new tag, and append any settings the release introduced. Your
+   existing `.env` values are never overwritten.
+4. Pull the new images while the current release keeps serving traffic.
+5. Stop the application services. MariaDB and Redis stay up.
+6. Run the `post` step of every migration between your version and the target
+   (schema changes), in version order.
+7. Start the new release, wait for the health checks, and run
+   `./namingo doctor`.
+8. Record the new version in `.namingo/installed-version`.
+
+If anything fails before step 5, the previous release files and `.env` are
+restored automatically and the running stack is not touched. A failure after
+the services were stopped leaves them stopped, because the database may be
+partly migrated, and prints how to retry or go back. Migrations are idempotent,
+so the usual recovery is to fix the cause and run `./namingo upgrade` again.
+Backups live in `backups/<UTC timestamp>/`; `env.before` and `version.before`
+in that directory record what to return to.
+
+Notes:
+
+- Local edits to tracked files such as `docker/config/*.override.php` are kept.
+  The upgrade stops before changing anything if the release modifies the same
+  file; move your change aside and retry.
+- Infrastructure images (`NAMINGO_MARIADB_IMAGE`, `NAMINGO_REDIS_IMAGE`) are
+  never changed automatically. If the release default differs from yours the
+  plan says so; changing a database major version is your decision.
+- Only one upgrade can run at a time (`.namingo/upgrade.lock`).
+- `./namingo update` is the same command. When the installation is already on
+  the newest release it refreshes the images and reconciles the stack instead.
+- Run `docker image prune` after a successful upgrade to remove the previous
+  release's images.
+
+### Installations created before `./namingo upgrade` existed
+
+The `namingo` script of an older installation does not contain the `upgrade`
+command. Download the current script once under another name and run it; it
+upgrades the checkout (including the `namingo` script itself) and from then on
+`./namingo upgrade` is available:
+
+```bash
+cd /opt/namingo-registry    # or your installation directory
+curl -fsSL https://raw.githubusercontent.com/getnamingo/registry/main/namingo \
+    -o namingo-upgrade
+bash ./namingo-upgrade upgrade --dry-run
+bash ./namingo-upgrade upgrade
+rm namingo-upgrade
+```
+
+The installed version is taken from the `VERSION` file of the checked-out
+release. If that file is missing, write the version to
+`.namingo/installed-version` first (for example `echo 1.0.33 > .namingo/installed-version`).
+
+### Writing migrations for Docker
+
+Migrations in `docs/migrations/X.Y.Z.sh` are shared with the package-based
+upgrader and are called as `<script> pre` and `<script> post`. Docker runs only
+`post`: the `pre` step prepares host packages, and the new image already
+contains its packages. `post` runs inside the MariaDB container with these
+variables set:
+
+```text
+NAMINGO_DEPLOYMENT=docker   NAMINGO_OS=linux
+NAMINGO_FROM_VERSION        NAMINGO_TARGET_VERSION
+NAMINGO_DB_DRIVER=mariadb   NAMINGO_DB_HOST      NAMINGO_DB_PORT
+NAMINGO_DB_USER             NAMINGO_DB_PASSWORD
+NAMINGO_DB_NAME / NAMINGO_DB_MAIN / NAMINGO_DB_TRANSACTION / NAMINGO_DB_AUDIT
+```
+
+The whole `docs/migrations/` directory is staged next to the migration, so a
+migration can call a helper such as `"$(dirname "$0")/audit-sync.sh"`.
+`audit-sync.sh` needs PHP and the host's PhpAudit configuration, which are not
+in the database container, so it skips itself there.
+
+The host-layout variables (`NAMINGO_INSTALL_DIR`, `NAMINGO_CP_DIR`,
+`NAMINGO_WHOIS_WEB_DIR`, `NAMINGO_STAGING_DIR`) are deliberately unset. Package
+installs, systemd units, and files under `/opt/registry` belong to the host
+upgrader; guard them with `[ "${NAMINGO_DEPLOYMENT:-}" = docker ]` and rely on
+the new image instead. Database steps need no change.
 
 If you need help upgrading or migrating an existing installation, please contact us or open a GitHub issue.
 
