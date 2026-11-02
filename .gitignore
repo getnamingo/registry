@@ -5,3 +5,4 @@ docker/certs/*
 docker/secrets/*
 !docker/secrets/.gitignore
 
+.namingo/

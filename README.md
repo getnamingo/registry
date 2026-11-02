@@ -125,8 +125,12 @@ fetch -qo - https://namingo.org/upgrade.sh | sh
 
 #### Docker
 
-> [!NOTE]
-> Currently not supported. See [issue #249](https://github.com/getnamingo/registry/issues/249). If you need assistance, please contact us through one of the support channels below.
+```bash
+./namingo upgrade --dry-run
+./namingo upgrade
+```
+
+The command backs up the deployment, runs the required migrations, upgrades to the new release and verifies the stack. See the **[Docker Upgrade Guide](docs/docker.md#upgrade)**, including the one-time steps for installations created before this command existed.
 
 #### Older than v1.0.32
 
