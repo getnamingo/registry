@@ -282,7 +282,7 @@ function sendGreeting($conn, Swoole\Table $eppExtensionsTable, bool $secureAuthI
     sendEppResponse($conn, $xml);
 }
 
-function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
+function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0", bool $newPWError = false) {
     if ($clTRID === "000") {
         $clTRID = 'client-not-provided-' . bin2hex(random_bytes(8));
     }
@@ -298,6 +298,9 @@ function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
         'svTRID' => $svTRID,
         'lang' => 'en-US',
     ];
+    if ($newPWError) {
+        $response['loginSec_newPW_error'] = true;
+    }
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);

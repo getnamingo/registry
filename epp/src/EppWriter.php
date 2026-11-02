@@ -408,6 +408,18 @@ class EppWriter {
     }
 
     private function _postamble($writer, $resp) {
+        if (!empty($resp['loginSec_newPW_error'])) {
+            $writer->startElement('extension');
+            $writer->startElement('loginSec:loginSecData');
+            $writer->writeAttribute('xmlns:loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
+            $writer->startElement('loginSec:event');
+            $writer->writeAttribute('type', 'newPW');
+            $writer->writeAttribute('level', 'error');
+            $writer->text('Invalid new password');
+            $writer->endElement();
+            $writer->endElement();
+            $writer->endElement();
+        }
         if (isset($resp['clTRID']) || isset($resp['svTRID'])) {
             $writer->startElement('trID');
             if (isset($resp['clTRID']) && $resp['clTRID'] !== '') {

@@ -108,6 +108,7 @@ if (is_array($data)) {
         'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0'
     ];
     foreach ($fallback as $urn) {
+        if ($urn === 'urn:ietf:params:xml:ns:epp:loginSec-1.0') continue;
         $eppExtensionsTable->set($urn, ['extension' => 1]);
     }
 }
@@ -424,33 +425,48 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         return;
                     }
 
-                    $loginSec = $xml->xpath('//e:extension/loginSec:loginSec')[0] ?? null;
-
-                    $loginSecPw = null;
-                    $loginSecNewPw = null;
-
-                    if ($loginSec) {
-                        if (isset($loginSec->pw)) {
-                            $loginSecPw = (string) $loginSec->pw;
-                        }
-                        if (isset($loginSec->newPW)) {
-                            $loginSecNewPw = (string) $loginSec->newPW;
-                        }
+                    $loginSecUri = 'urn:ietf:params:xml:ns:epp:loginSec-1.0';
+                    $loginSecEnabled = $eppExtensionsTable->exist($loginSecUri);
+                    $clientLoginSec = in_array($loginSecUri, array_map('strval',
+                        $xml->xpath('/e:epp/e:command/e:login/e:svcs/e:svcExtension/e:extURI') ?: []), true);
+                    $loginSec = $xml->xpath('/e:epp/e:command/e:extension/loginSec:loginSec')[0] ?? null;
+                    if (($clientLoginSec && !$loginSecEnabled) || ($loginSec !== null && !$clientLoginSec)) {
+                        sendEppError($conn, $pdo, 2103, 'Login Security extension not negotiated', $clTRID);
+                        return;
                     }
-
-                    if ($pw === '[LOGIN-SECURITY]' && $loginSecPw) {
-                        $pw = $loginSecPw;
+                    $fields = $loginSec?->children($loginSecUri);
+                    if ($loginSec !== null && !isset($fields->userAgent) && !isset($fields->pw) &&
+                        !isset($fields->newPW)) {
+                        sendEppError($conn, $pdo, 2003, 'Empty Login Security extension', $clTRID);
+                        return;
                     }
-
-                    if (!$loginSec && strlen($pw) > 16) {
-                        sendEppError(
-                            $conn,
-                            $pdo,
-                            2306,
-                            'Password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
-                            $clTRID
-                        );
-                        break;
+                    if (isset($fields->userAgent) && count($fields->userAgent->children($loginSecUri)) === 0) {
+                        sendEppError($conn, $pdo, 2003, 'Empty loginSec:userAgent', $clTRID);
+                        return;
+                    }
+                    if (strlen($pw) > 16) {
+                        sendEppError($conn, $pdo, 2005, 'EPP core password exceeds 16 characters', $clTRID);
+                        return;
+                    }
+                    if ($pw === '[LOGIN-SECURITY]') {
+                        if (!isset($fields->pw)) {
+                            sendEppError($conn, $pdo, 2003, 'Missing loginSec:pw', $clTRID);
+                            return;
+                        }
+                        $pw = preg_replace('/[ \t\r\n]+/', ' ', trim((string)$fields->pw, " \t\r\n"));
+                        if (!preg_match('/^[\x20-\x7e]{6,255}$/D', $pw)) {
+                            sendEppError($conn, $pdo, 2005, 'Invalid loginSec:pw', $clTRID);
+                            return;
+                        }
+                    } elseif (isset($fields->pw)) {
+                        sendEppError($conn, $pdo, 2005, 'loginSec:pw requires the [LOGIN-SECURITY] placeholder', $clTRID);
+                        return;
+                    }
+                    if (isset($fields->newPW) &&
+                        (string)$xml->command->login->newPW !== '[LOGIN-SECURITY]') {
+                        sendEppError($conn, $pdo, 2005, 'loginSec:newPW requires the [LOGIN-SECURITY] placeholder',
+                            $clTRID, '0', $loginSecEnabled && $clientLoginSec);
+                        return;
                     }
 
                     $xmlString = $xmlData;
@@ -477,18 +493,21 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     if (checkLogin($pdo, $clID, $pw, $log, !$isPasswordChange)) {
                         if ($isPasswordChange) {
                             $newPW = (string) $xml->command->login->newPW;
-                            if ($newPW === '[LOGIN-SECURITY]' && $loginSecNewPw) {
-                                $newPW = $loginSecNewPw;
+                            if ($newPW === '[LOGIN-SECURITY]') {
+                                if (!isset($fields->newPW)) {
+                                    sendEppError($conn, $pdo, 2003, 'Missing loginSec:newPW',
+                                        $clTRID, $trans, $loginSecEnabled && $clientLoginSec);
+                                    return;
+                                }
+                                $newPW = preg_replace('/[ \t\r\n]+/', ' ', trim((string)$fields->newPW, " \t\r\n"));
+                                $validNewPW = preg_match('/^[\x20-\x7e]{6,255}$/D', $newPW) === 1;
+                            } else {
+                                $validNewPW = strlen($newPW) >= 6 && strlen($newPW) <= 16;
                             }
-                            if (!$loginSec && strlen($newPW) > 16) {
-                                sendEppError(
-                                    $conn,
-                                    $pdo,
-                                    2306,
-                                    'New password length exceeds 16 characters without loginSec extension. Use loginSec extension or a shorter password.',
-                                    $clTRID
-                                );
-                                break;
+                            if (!$validNewPW || $newPW === '[LOGIN-SECURITY]') {
+                                sendEppError($conn, $pdo, 2005, 'Invalid new EPP password',
+                                    $clTRID, $trans, $loginSecEnabled && $clientLoginSec);
+                                return;
                             }
 
                             try {
