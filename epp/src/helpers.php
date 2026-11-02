@@ -305,7 +305,61 @@ function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0") {
     sendEppResponse($conn, $xml);
 }
 
+function applyUnhandledEppNamespaces(string $response, array $loginServices): string {
+    $ns = 'urn:ietf:params:xml:ns:epp-1.0';
+    $dom = new DOMDocument();
+    if (!$dom->loadXML($response, LIBXML_NONET)) {
+        throw new RuntimeException('Invalid EPP response XML');
+    }
+    $xpath = new DOMXPath($dom);
+    $xpath->registerNamespace('e', $ns);
+    $result = $xpath->query('/e:epp/e:response/e:result')->item(0);
+    if (!$result || !preg_match('/^1[0-9]{3}$/D', $result->getAttribute('code'))) {
+        return $response;
+    }
+
+    $changed = false;
+    foreach (['resData', 'extension'] as $name) {
+        $container = $xpath->query('/e:epp/e:response/e:' . $name)->item(0);
+        if (!$container) {
+            continue;
+        }
+        foreach (iterator_to_array($container->childNodes) as $child) {
+            if (!($child instanceof DOMElement) || !$child->namespaceURI ||
+                in_array($child->namespaceURI, $loginServices, true)) {
+                continue;
+            }
+            $changed = true;
+            $uri = $child->namespaceURI;
+            $child->setAttributeNS('http://www.w3.org/2000/xmlns/',
+                $child->prefix ? 'xmlns:' . $child->prefix : 'xmlns', $uri);
+            $extValue = $dom->createElementNS($ns, 'extValue');
+            $value = $dom->createElementNS($ns, 'value');
+            $value->appendChild($child);
+            $extValue->appendChild($value);
+            $reason = $dom->createElementNS($ns, 'reason');
+            $reason->textContent = $uri . ' not in login services';
+            $extValue->appendChild($reason);
+            $result->appendChild($extValue);
+        }
+        if ($xpath->query('./*', $container)->length === 0) {
+            $container->parentNode->removeChild($container);
+        }
+    }
+    return $changed ? $dom->saveXML() : $response;
+}
+
 function sendEppResponse($conn, $response) {
+    global $table, $eppExtensionsTable;
+    if (isset($table, $eppExtensionsTable) &&
+        $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0') &&
+        method_exists($conn, 'getFd')) {
+        $session = $table->get($conn->getFd());
+        if ($session && !empty($session['logged_in'])) {
+            $services = json_decode($session['login_services'], true, 512, JSON_THROW_ON_ERROR);
+            $response = applyUnhandledEppNamespaces($response, $services);
+        }
+    }
     $length = strlen($response) + 4; // Total length including the 4-byte header
     $lengthData = pack('N', $length); // Pack the length into 4 bytes
 

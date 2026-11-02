@@ -70,6 +70,7 @@ $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('registrar_id', Table::TYPE_INT, 8);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->column('maintenance', Table::TYPE_INT, 1);
+$table->column('login_services', Table::TYPE_STRING, 4096);
 $table->create();
 
 $permittedIPsTable = new Table(1024);
@@ -293,6 +294,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
         public function send($data) { return $this->serv->send($this->fd, $data); }
         public function close() { return $this->serv->close($this->fd); }
         public function exportSocket() { return $this->serv->getClientInfo($this->fd); }
+        public function getFd(): int { return $this->fd; }
     };
 
     // Get the client information
@@ -522,11 +524,24 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $maintenanceUri = 'urn:ietf:params:xml:ns:epp:maintenance-1.0';
                         $loginObjUris = $xml->xpath('/e:epp/e:command/e:login/e:svcs/e:objURI') ?: [];
                         $maintenanceNegotiated = in_array($maintenanceUri, array_map('strval', $loginObjUris), true);
+                        $loginServicesJson = '';
+                        if ($eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0')) {
+                            $loginServices = $xml->xpath(
+                                '/e:epp/e:command/e:login/e:svcs/e:objURI | ' .
+                                '/e:epp/e:command/e:login/e:svcs/e:svcExtension/e:extURI'
+                            ) ?: [];
+                            $loginServicesJson = json_encode(array_map('strval', $loginServices), JSON_THROW_ON_ERROR);
+                            if (strlen($loginServicesJson) >= 4096) {
+                                sendEppError($conn, $pdo, 2004, 'Too many login service namespaces', $clTRID, $trans);
+                                return;
+                            }
+                        }
                         $table->set($connId, [
                             'clid' => $clID,
                             'registrar_id' => $clid,
                             'logged_in' => 1,
-                            'maintenance' => $maintenanceNegotiated ? 1 : 0
+                            'maintenance' => $maintenanceNegotiated ? 1 : 0,
+                            'login_services' => $loginServicesJson
                         ]);
                         $svTRID = generateSvTRID();
                         $response = [
@@ -597,7 +612,9 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processPoll($conn, $pdo, $xml, $data['clid'], $trans, (int) $data['maintenance'] === 1);
+                    processPoll($conn, $pdo, $xml, $data['clid'], $trans,
+                        (int) $data['maintenance'] === 1 ||
+                        !$eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0'));
                     return;
                 }
               
