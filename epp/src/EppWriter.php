@@ -435,6 +435,17 @@ class EppWriter {
 
     private function _common($writer, $resp) {
         $this->_preamble($writer, $resp);
+        if (!empty($resp['rgp_restore_requested'])) {
+            $writer->startElement('extension');
+            $writer->startElement('rgp:upData');
+            $writer->writeAttribute('xmlns:rgp', 'urn:ietf:params:xml:ns:rgp-1.0');
+            $writer->writeAttribute('xsi:schemaLocation', 'urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd');
+            $writer->startElement('rgp:rgpStatus');
+            $writer->writeAttribute('s', 'pendingRestore');
+            $writer->endElement();
+            $writer->endElement();
+            $writer->endElement();
+        }
         $this->_postamble($writer, $resp);
     }
 

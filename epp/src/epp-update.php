@@ -1579,7 +1579,38 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
     }
 
     if (isset($rgp_update)) {
-        $op_attribute = (string) $xml->xpath('//rgp:restore/@op[1]')[0];
+        $restores = $xml->xpath('/e:epp/e:command/e:extension/rgp:update/rgp:restore') ?: [];
+        $reports = $xml->xpath('/e:epp/e:command/e:extension/rgp:update/rgp:restore/rgp:report') ?: [];
+        $op_attribute = count($restores) === 1 ? (string)$restores[0]['op'] : '';
+
+        if (count($xml->xpath('/e:epp/e:command/e:extension/rgp:update') ?: []) !== 1 ||
+            !in_array($op_attribute, ['request', 'report'], true) ||
+            ($op_attribute === 'request' && count($reports) !== 0) ||
+            ($op_attribute === 'report' && count($reports) !== 1) ||
+            isset($secdns_update) || isset($launch_update) ||
+            ($domainAdd === null && $domainRem === null && $domainChg === null)) {
+            sendEppError($conn, $db, 2005, 'Invalid RGP restore command', $clTRID, $trans);
+            return;
+        }
+        foreach ([$domainAdd, $domainRem, $domainChg] as $part) {
+            if ($part !== null && count($part->children('urn:ietf:params:xml:ns:domain-1.0')) !== 0) {
+                sendEppError($conn, $db, 2005, 'RGP restore requires empty domain add/rem/chg', $clTRID, $trans);
+                return;
+            }
+        }
+        if ($op_attribute === 'report') {
+            $path = '/e:epp/e:command/e:extension/rgp:update/rgp:restore/rgp:report/';
+            foreach (['preData', 'postData', 'delTime', 'resTime', 'resReason'] as $field) {
+                if (count($xml->xpath($path . 'rgp:' . $field) ?: []) !== 1) {
+                    sendEppError($conn, $db, 2003, 'Incomplete RGP restore report', $clTRID, $trans);
+                    return;
+                }
+            }
+            if (count($xml->xpath($path . 'rgp:statement') ?: []) !== 2) {
+                sendEppError($conn, $db, 2003, 'RGP restore report requires two statements', $clTRID, $trans);
+                return;
+            }
+        }
 
         if ($op_attribute === 'request') {
             $stmt = $db->prepare("SELECT COUNT(id) AS ids FROM domain WHERE rgpstatus = 'redemptionPeriod' AND id = :domain_id LIMIT 1");
@@ -2713,6 +2744,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
         'message' => 'Command completed successfully',
         'clTRID' => $clTRID,
         'svTRID' => $svTRID,
+        'rgp_restore_requested' => isset($rgp_update) && $op_attribute === 'request',
     ];
 
     $epp = new EPP\EppWriter();
