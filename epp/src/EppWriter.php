@@ -499,6 +499,39 @@ class EppWriter {
                     }
                     $writer->endElement();  // End of 'domain:trnData'
                 $writer->endElement();  // End of 'resData'
+            } elseif ($resp['poll_msg_type'] === 'launchFinal') {
+                $launch = $resp['launch'];
+                $writer->startElement('resData');
+                $writer->startElement('domain:panData');
+                $writer->writeAttribute('xmlns:domain', 'urn:ietf:params:xml:ns:domain-1.0');
+                $writer->startElement('domain:name');
+                $writer->writeAttribute('paResult', $launch['status'] === 'allocated' ? '1' : '0');
+                $writer->text($launch['name']);
+                $writer->endElement();
+                $writer->startElement('domain:paTRID');
+                if (!empty($resp['pa_clTRID'])) {
+                    $writer->writeElement('clTRID', $resp['pa_clTRID']);
+                }
+                $writer->writeElement('svTRID', $resp['pa_svTRID']);
+                $writer->endElement();
+                $writer->writeElement('domain:paDate', $resp['qDate']);
+                $writer->endElement(); // domain:panData
+                $writer->endElement(); // resData
+                $writer->startElement('extension');
+                $writer->startElement('launch:infData');
+                $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
+                $writer->startElement('launch:phase');
+                if (!empty($launch['phaseName'])) {
+                    $writer->writeAttribute('name', $launch['phaseName']);
+                }
+                $writer->text($launch['phase']);
+                $writer->endElement();
+                $writer->writeElement('launch:applicationID', $launch['applicationID']);
+                $writer->startElement('launch:status');
+                $writer->writeAttribute('s', $launch['status']);
+                $writer->endElement();
+                $writer->endElement(); // launch:infData
+                $writer->endElement(); // extension
             } elseif ($resp['poll_msg_type'] === 'contactTransfer') {
                 $writer->startElement('resData');
                     $writer->startElement('contact:trnData');
@@ -1108,12 +1141,8 @@ class EppWriter {
                     $writer->startElement('launch:status');
                     $writer->writeAttribute('s', $resp['launch_status']);
                     $writer->endElement();  // End of 'launch:status'
-                    if (isset($resp['launch_mark'])) {
-                        $writer->startElement('mark:mark');
-                        $writer->writeAttribute('xmlns:mark', 'urn:ietf:params:xml:ns:mark-1.0');
-                        $value = $resp['launch_mark'];
-                        $writer->text($value);
-                        $writer->endElement();  // End of 'mark:mark'
+                    if (!empty($resp['launch_mark_xml'])) {
+                        $writer->writeRaw($resp['launch_mark_xml']);
                     }
                     
                     $writer->endElement();  // End of 'launch:infData'

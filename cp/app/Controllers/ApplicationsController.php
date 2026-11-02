@@ -1331,7 +1331,7 @@ class ApplicationsController extends Controller
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name, clid, registrant, authinfo FROM application WHERE id = ?',
+                $domain = $db->selectRow('SELECT id, name, clid, registrant, authinfo, phase_type, phase_name, application_id FROM application WHERE id = ?',
                 [ $args ]);
                 if (!$domain) {
                     return $response->withHeader('Location', '/applications')->withStatus(302);
@@ -1563,6 +1563,17 @@ class ApplicationsController extends Controller
                         ])
                     ]);
 
+                    // RFC 8334: final application decisions are EPP poll notifications.
+                    $db->exec(
+                        'INSERT INTO poll (registrar_id, qdate, msg_type, msg) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$domain['clid'], 'launchFinal', json_encode([
+                            'name' => $domainName,
+                            'phase' => $domain['phase_type'],
+                            'phaseName' => $domain['phase_name'],
+                            'applicationID' => $domain['application_id'],
+                            'status' => 'allocated',
+                        ], JSON_THROW_ON_ERROR)]
+                    );
                     $db->commit();
 
                     $this->container->get('flash')->addMessage('success', 'Domain ' . $domainName . ' has been created successfully on ' . $crdate);
@@ -1603,7 +1614,7 @@ class ApplicationsController extends Controller
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name, clid FROM application WHERE id = ?',
+                $domain = $db->selectRow('SELECT id, name, clid, phase_type, phase_name, application_id FROM application WHERE id = ?',
                 [ $args ]);
                 if (!$domain) {
                     return $response->withHeader('Location', '/applications')->withStatus(302);
@@ -1611,6 +1622,10 @@ class ApplicationsController extends Controller
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
+                if ($db->selectValue("SELECT 1 FROM application_status WHERE domain_id = ? AND status IN ('allocated', 'rejected') LIMIT 1", [$domain_id])) {
+                    $this->container->get('flash')->addMessage('error', 'Application already finalized');
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
 
                 $parts = extractDomainAndTLD($domainName, $db);
                 $label = $parts['domain'];
@@ -1664,6 +1679,16 @@ class ApplicationsController extends Controller
                         ])
                     ]);
 
+                    $db->exec(
+                        'INSERT INTO poll (registrar_id, qdate, msg_type, msg) VALUES (?, CURRENT_TIMESTAMP(3), ?, ?)',
+                        [$domain['clid'], 'launchFinal', json_encode([
+                            'name' => $domainName,
+                            'phase' => $domain['phase_type'],
+                            'phaseName' => $domain['phase_name'],
+                            'applicationID' => $domain['application_id'],
+                            'status' => 'rejected',
+                        ], JSON_THROW_ON_ERROR)]
+                    );
                     $db->commit();
                 } catch (Exception $e) {
                     $db->rollBack();

@@ -314,6 +314,34 @@ function processHostInfo($conn, $db, $xml, $clid, $trans) {
     }
 }
 
+/** Extract only structured mark XML from a stored raw or encoded SMD. */
+function launchMarkFromSmd(string $smd): ?string {
+    if (preg_match('/-----BEGIN ENCODED SMD-----\s*(.*?)\s*-----END ENCODED SMD-----/s', $smd, $match)) {
+        $smd = $match[1];
+    }
+    $smd = trim($smd);
+    if (!str_starts_with($smd, '<')) {
+        $decoded = base64_decode(preg_replace('/\s+/', '', $smd), true);
+        if ($decoded === false) {
+            return null;
+        }
+        $smd = $decoded;
+    }
+    $doc = new DOMDocument();
+    if (!$doc->loadXML($smd, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING) || $doc->doctype !== null) {
+        return null;
+    }
+    $xpath = new DOMXPath($doc);
+    $xpath->registerNamespace('mark', 'urn:ietf:params:xml:ns:mark-1.0');
+    $nodes = $xpath->query('//mark:mark');
+    if (!$nodes || $nodes->length !== 1) {
+        return null;
+    }
+    $out = new DOMDocument('1.0', 'UTF-8');
+    $out->appendChild($out->importNode($nodes->item(0), true));
+    return $out->saveXML($out->documentElement);
+}
+
 function processDomainInfo($conn, $db, $xml, $clid, $trans) {
     $domainName = $xml->command->info->children('urn:ietf:params:xml:ns:domain-1.0')->info->name;
     $clTRID = (string) $xml->command->clTRID;
@@ -361,7 +389,12 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
         return;
     }
 
-    if (isset($launch_info)) {
+    $applicationID = isset($launch_info)
+        ? (string) $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->applicationID
+        : null;
+    $phaseType = isset($launch_info)
+        ? (string) $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->phase : null;
+    if (isset($launch_info) && $applicationID !== '') {
         $phaseType = (string) $launch_info->children('urn:ietf:params:xml:ns:launch-1.0')->phase;
             
         // Get the <launch:applicationID> element if it exists
@@ -369,10 +402,6 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
 
         // Check if the <launch:applicationID> element is present and set the variable accordingly
         $applicationID = isset($applicationIDElement) ? (string) $applicationIDElement : null;
-        if (!$applicationID) {
-            sendEppError($conn, $db, 2003, 'Missing launch applicationID', $clTRID, $trans);
-            return;
-        }
             
         // Get the attributes of the <launch:info> node
         $attributes = $launch_info->attributes();
@@ -493,8 +522,13 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $response['launch_phase_name'] = $domain['phase_name'];
             $response['launch_application_id'] = $domain['application_id'];
             $response['launch_status'] = $status['status'];
-            if ($includeMarkBool) {
-                $response['launch_mark'] = $domain['smd'];
+            if ($includeMarkBool && !empty($domain['smd'])) {
+                $markXml = launchMarkFromSmd((string)$domain['smd']);
+                if ($markXml === null) {
+                    sendEppError($conn, $db, 2400, 'Stored launch mark cannot be decoded', $clTRID, $trans);
+                    return;
+                }
+                $response['launch_mark_xml'] = $markXml;
             }
             
             $epp = new EPP\EppWriter();
@@ -743,7 +777,15 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             if ($rgpstatus) {
                 $response['rgpstatus'] = $rgpstatus;
             }
-            
+            if (isset($launch_info) && ($applicationID === null || $applicationID === '')) {
+                if ($phaseType !== ($domain['tm_phase'] ?? null)) {
+                    sendEppError($conn, $db, 2306, 'Launch phase does not match registration', $clTRID, $trans);
+                    return;
+                }
+                $response['launch_phase'] = $phaseType;
+                $response['launch_phase_name'] = $domain['phase_name'] ?? null;
+            }
+
             if ($allocation_token !== null) {
                 if (!allocationTokensEnabled($db)) {
                     sendEppError($conn, $db, 2201, 'Allocation Token extension disabled', $clTRID, $trans);

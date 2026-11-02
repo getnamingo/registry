@@ -20,16 +20,21 @@ Welcome to the FAQ for Namingo. This document is intended as a resource for regi
 
 ## EPP Extensions
 
-Namingo's EPP service supports the following extensions:
+Namingo's EPP service supports the following standard and proprietary extensions:
 
-- `urn:ietf:params:xml:ns:secDNS-1.1`
-- `urn:ietf:params:xml:ns:rgp-1.0`
-- `urn:ietf:params:xml:ns:launch-1.0`
-- `urn:ietf:params:xml:ns:epp:fee-1.0`
-- `urn:ietf:params:xml:ns:allocationToken-1.0`
-- `urn:ietf:params:xml:ns:loginSec-1.0`
-- `https://namingo.org/epp/funds-1.0`
-- `https://namingo.org/epp/identica-1.0`
+| Extension | Namespace URI | Specification |
+|---|---|---|
+| DNS Security (DNSSEC) | `urn:ietf:params:xml:ns:secDNS-1.1` | [RFC 5910](https://www.rfc-editor.org/rfc/rfc5910) |
+| Registry Grace Period (RGP) | `urn:ietf:params:xml:ns:rgp-1.0` | [RFC 3915](https://www.rfc-editor.org/rfc/rfc3915) |
+| Launch Phase Mapping | `urn:ietf:params:xml:ns:launch-1.0` | [RFC 8334](https://www.rfc-editor.org/rfc/rfc8334) |
+| Registry Fee | `urn:ietf:params:xml:ns:epp:fee-1.0` | [RFC 8748](https://www.rfc-editor.org/rfc/rfc8748) |
+| Allocation Token | `urn:ietf:params:xml:ns:allocationToken-1.0` | [RFC 8495](https://www.rfc-editor.org/rfc/rfc8495) |
+| Login Security | `urn:ietf:params:xml:ns:epp:loginSec-1.0` | [RFC 8807](https://www.rfc-editor.org/rfc/rfc8807) |
+| Unhandled Namespaces | `urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0` | [RFC 9038](https://www.rfc-editor.org/rfc/rfc9038) |
+| Secure Authorization Information for Transfer | `urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0` | [RFC 9154](https://www.rfc-editor.org/rfc/rfc9154) |
+| Registry Maintenance Notification | `urn:ietf:params:xml:ns:epp:maintenance-1.0` | [RFC 9167](https://www.rfc-editor.org/rfc/rfc9167) |
+| Namingo Funds | `https://namingo.org/epp/funds-1.0` | Proprietary |
+| Namingo Identica | `https://namingo.org/epp/identica-1.0` | Proprietary |
 
 ## WHOIS and RDAP
 

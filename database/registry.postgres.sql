@@ -192,7 +192,7 @@ CREATE TABLE poll (
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
      "qdate"   timestamp(3) without time zone NOT NULL,
      "msg"   text default NULL,
-     "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer','maintenance' )) default NULL,
+     "msg_type" varchar CHECK ("msg_type" IN ( 'lowBalance','domainTransfer','contactTransfer','maintenance','launchFinal' )) default NULL,
      "obj_name_or_id"   varchar(68),
      "obj_trstatus" varchar CHECK ("obj_trstatus" IN ( 'clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled' )) default NULL,
      "obj_reid"   varchar(255),

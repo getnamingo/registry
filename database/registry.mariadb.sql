@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     `registrar_id` int(10) unsigned NOT NULL,
     `qdate` datetime(3) NOT NULL,
     `msg` text default NULL,
-    `msg_type` enum('lowBalance','domainTransfer','contactTransfer','maintenance') default NULL,
+    `msg_type` enum('lowBalance','domainTransfer','contactTransfer','maintenance','launchFinal') default NULL,
     `obj_name_or_id` varchar(68),
     `obj_trStatus` enum('clientApproved','clientCancelled','clientRejected','pending','serverApproved','serverCancelled') default NULL,
     `obj_reID` varchar(255),

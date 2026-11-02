@@ -2,17 +2,44 @@
 
 The **Namingo EPP Server** provides a robust and standards-compliant interface for managing domain registrations, hosts, and contacts via the **Extensible Provisioning Protocol (EPP)**. This section offers practical examples of commonly used EPP commands, showcasing request and response structures for seamless integration with the Namingo Registry.
 
-## Overview  
+## Overview
 
-EPP is an XML-based protocol designed for secure communication between registrars and registries. The Namingo EPP Server adheres to **RFC 5730-5734** and relevant extensions to support modern domain management operations, including:  
+The **Namingo EPP Server** provides a secure, standards-based interface for communication between domain registrars and registries using the **Extensible Provisioning Protocol (EPP)**.
 
-- **Session Management**: Login, logout, and keep-alive commands  
-- **Domain Management**: Create, update, renew, transfer, delete, and check domain availability  
-- **Host (Nameserver) Management**: Create, update, delete, and query hosts  
-- **Contact Management**: Create, update, delete, and retrieve contact information  
-- **Poll Mechanism**: Retrieve registry notifications (e.g., transfer approvals, policy updates)  
+Built on **RFC 5730–5734**, Namingo supports the complete domain provisioning lifecycle, from registration and management to renewal, transfer, and deletion. The server also implements a comprehensive set of standard EPP extensions and Namingo-specific functionality to meet modern registry requirements.
 
-Each command section below includes real-world XML request and response samples to facilitate easy integration.
+### Core Functionality
+
+- **Session Management:** Establish and terminate authenticated sessions using login, logout, and hello commands.
+- **Domain Management:** Check availability, register, update, renew, transfer, delete, and retrieve domain information.
+- **Host Management:** Create, update, delete, and query nameserver (host) objects.
+- **Contact Management:** Create, update, delete, and retrieve contact information.
+- **Poll Messaging:** Retrieve and acknowledge asynchronous registry notifications, including transfer updates and other operational events.
+
+### Supported EPP Extensions
+
+Namingo supports the following standard extensions and operational practices:
+
+- **DNS Security (DNSSEC)** ([RFC 5910](https://www.rfc-editor.org/rfc/rfc5910)) – Manage DNSSEC delegation information, including DS and key data.
+- **Registry Grace Period (RGP)** ([RFC 3915](https://www.rfc-editor.org/rfc/rfc3915)) – Manage domain lifecycle grace periods and restore deleted domains.
+- **Launch Phase Mapping** ([RFC 8334](https://www.rfc-editor.org/rfc/rfc8334)) – Support special registration phases, including Sunrise, Landrush, and application-based allocations.
+- **Allocation Token** ([RFC 8495](https://www.rfc-editor.org/rfc/rfc8495)) – Authorize domain registrations and other operations using allocation tokens.
+- **Registry Fee** ([RFC 8748](https://www.rfc-editor.org/rfc/rfc8748)) – Query registration fees and provide fee information for domain operations.
+- **Login Security** ([RFC 8807](https://www.rfc-editor.org/rfc/rfc8807)) – Enhance authentication security through additional login security information.
+- **Unhandled Namespaces** ([RFC 9038](https://www.rfc-editor.org/rfc/rfc9038)) – Handle EPP response data associated with namespaces not supported by the client.
+- **Secure Authorization Information for Transfer** ([RFC 9154](https://www.rfc-editor.org/rfc/rfc9154)) – Improve transfer security through strong, short-lived authorization information.
+- **Registry Maintenance Notification** ([RFC 9167](https://www.rfc-editor.org/rfc/rfc9167)) – Notify registrars about scheduled or emergency registry maintenance events.
+
+Namingo additionally provides the following proprietary extensions:
+
+- **Namingo Funds** – Support registrar account balance and funding operations.
+- **Namingo Identica** – Provide identity-related registry functionality.
+
+### Using This Guide
+
+This guide provides practical XML request and response examples for EPP commands and supported extensions. Each section describes the relevant operations, expected responses, and integration requirements to help registrar developers implement and maintain reliable connections to the Namingo EPP Server.
+
+For detailed protocol specifications, refer to the linked RFCs and the corresponding Namingo extension documentation.
 
 ---
 

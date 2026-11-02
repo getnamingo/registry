@@ -13,6 +13,34 @@
  * SPDX-License-Identifier: MIT
  */
 
+/** Find the actual create response for EPP-originated applications. */
+function launchOriginalTransaction($db, int $registrarId, string $name, string $applicationID): ?array {
+    global $c, $transactionPool;
+    $transactionDb = null;
+    try {
+        $table = 'registryTransaction.transaction_identifier';
+        if ($c['db_type'] === 'pgsql') {
+            $transactionDb = $transactionPool->get(1.0);
+            if (!$transactionDb) {
+                return null;
+            }
+            $db = $transactionDb;
+            $table = 'transaction_identifier';
+        }
+        $stmt = $db->prepare("SELECT clTRID, svTRID FROM $table WHERE registrar_id = ? " .
+            "AND cmd = 'create' AND obj_type = 'domain' AND obj_id = ? " .
+            "AND svTRIDframe LIKE ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$registrarId, $name, '%<launch:applicationID>' . $applicationID . '</launch:applicationID>%']);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        return $record && !empty($record['svTRID']) ? $record : null;
+    } finally {
+        if ($transactionDb) {
+            $transactionPool->put($transactionDb);
+        }
+    }
+}
+
 function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
@@ -95,6 +123,31 @@ function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiate
     }
     $response['msg'] = $result['msg'] ?? null;
     $response['poll_msg_type'] = $result['msg_type'] ?? null;
+    if ($response['resultCode'] === 1301 && $response['poll_msg_type'] === 'launchFinal') {
+        $payload = json_decode((string)$response['msg'], true);
+        if (!is_array($payload) || !in_array($payload['status'] ?? null, ['allocated', 'rejected'], true) ||
+            empty($payload['name']) || empty($payload['phase']) || empty($payload['applicationID'])) {
+            sendEppError($conn, $db, 2400, 'Invalid launch poll payload', $clTRID, $trans);
+            return;
+        }
+        $response['poll_msg_type'] = 'launchFinal';
+        $response['launch'] = $payload;
+        $response['msg'] = $payload['status'] === 'allocated'
+            ? 'Launch application allocated' : 'Launch application rejected';
+        $response['pa_svTRID'] = 'CP-' . $payload['applicationID'];
+        try {
+            $original = launchOriginalTransaction($db, (int)$clid,
+                $payload['name'], $payload['applicationID']);
+            if ($original) {
+                $response['pa_svTRID'] = $original['svTRID'];
+                if (!empty($original['clTRID']) && !str_starts_with($original['clTRID'], 'client-not-provided-')) {
+                    $response['pa_clTRID'] = $original['clTRID'];
+                }
+            }
+        } catch (Throwable $e) {
+            // CP-created applications have no original EPP create transaction.
+        }
+    }
     if ($response['poll_msg_type'] === 'maintenance') {
         $response['maintenance'] = json_decode($result['msg'], true);
         if (!is_array($response['maintenance']) || !isset($response['maintenance']['pollType'])) {
