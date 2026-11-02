@@ -28,6 +28,7 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         $periodUnit = null;
     }
     $clTRID = (string) $xml->command->clTRID;
+    $feeRenew = $xml->xpath('//fee:renew')[0] ?? null;
 
     if (!$domainName) {
         sendEppError($conn, $db, 2003, 'Please provide domain name', $clTRID, $trans);
@@ -211,6 +212,11 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
                 sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                 return;
             }
+            if ($feeRenew !== null && ($feeError = feeOfferError($feeRenew, $price, $account['currency']))) {
+                $db->rollBack();
+                sendEppError($conn, $db, $feeError[0], $feeError[1], $clTRID, $trans);
+                return;
+            }
 
             if (($account['accountBalance'] + $account['creditLimit']) < $price) {
                 $db->rollBack();
@@ -288,6 +294,10 @@ function processDomainRenew($conn, $db, $xml, $clid, $database_type, $trans) {
         'clTRID' => $clTRID,
         'svTRID' => $svTRID,
     ];
+    if ($feeRenew !== null && (float)$price > 0) {
+        $response['fee_price'] = $price;
+        $response['fee_currency'] = $account['currency'];
+    }
 
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);

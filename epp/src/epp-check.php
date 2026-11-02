@@ -182,7 +182,28 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
 
         $tmp = $xml->xpath('//fee:check');
         $fee_check = $tmp[0] ?? null;
-
+    }
+    $fees = [];
+    $feeCurrency = null;
+    if ($fee_check !== null) {
+        if ($launch_check !== null) {
+            sendEppError($conn, $db, 2102, 'Combined fee and launch checks are not supported', $clTRID, $trans);
+            return;
+        }
+        $registrarId = getClid($db, $clid);
+        $stmt = $db->prepare('SELECT currency FROM registrar WHERE id = ? LIMIT 1');
+        $stmt->execute([$registrarId]);
+        $feeCurrency = (string)$stmt->fetchColumn();
+        $stmt->closeCursor();
+        $requestedCurrency = (string)$fee_check->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
+        if ($requestedCurrency !== '' && $requestedCurrency !== $feeCurrency) {
+            sendEppError($conn, $db, 2004, 'Fee currency does not match registrar currency', $clTRID, $trans);
+            return;
+        }
+        if (count($fee_check->children('urn:ietf:params:xml:ns:epp:fee-1.0')->command) === 0) {
+            sendEppError($conn, $db, 2003, 'Missing fee:command', $clTRID, $trans);
+            return;
+        }
     }
 
     try {
@@ -351,103 +372,50 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             // Append this domain entry to names
             $names[] = $domainEntry;
 
-            if (isset($fee_check)) {
-                $currency = (string) $fee_check->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
-                $commands = $fee_check->xpath('//fee:command');
-
+            if ($fee_check !== null) {
+                $commands = $fee_check->children('urn:ietf:params:xml:ns:epp:fee-1.0')->command;
                 $feeResponses = [];
+                $parts = extractDomainAndTLD($domainName);
+                $stmt = $db->prepare('SELECT id FROM domain_tld WHERE tld = ? LIMIT 1');
+                $stmt->execute(['.' . $parts['tld']]);
+                $tld_id = $stmt->fetchColumn();
+                $stmt->closeCursor();
                 foreach ($commands as $command) {
-                    $commandName = (string) $command->attributes()->name;
-                    $tmp = $command->xpath('.//fee:period');
-                    $periodElement = $tmp[0] ?? null;
-
-                    if ($periodElement !== null) {
-                        $period = (int) $periodElement;
-                        $period_unit = (string) $periodElement->attributes()->unit;
-                    } else {
-                        $period = 1;
-                        $period_unit = 'y';
+                    $name = (string)$command['name'];
+                    if (!in_array($name, ['create', 'renew', 'transfer', 'restore', 'delete', 'update'], true) ||
+                        isset($command['phase']) || isset($command['subphase'])) {
+                        sendEppError($conn, $db, 2004, 'Unsupported fee command or phase', $clTRID, $trans);
+                        return;
                     }
 
-                    if ($period && (($period < 1) || ($period > 99))) {
-                        sendEppError($conn, $db, 2004, 'fee:period minLength value=1, maxLength value=99', $clTRID, $trans);
+                    $feePeriod = $command->children('urn:ietf:params:xml:ns:epp:fee-1.0')->period;
+                    $period = count($feePeriod) ? (int)$feePeriod : 1;
+                    $unit = count($feePeriod) ? (string)$feePeriod['unit'] : 'y';
+                    if ($period < 1 || $period > 99 || !in_array($unit, ['y', 'm'], true)) {
+                        sendEppError($conn, $db, 2004, 'Invalid fee period', $clTRID, $trans);
                         return;
-                    } elseif (!$period) {
-                        $period = 1;
                     }
-
-                    if ($period_unit) {
-                        if (!preg_match('/^(m|y)$/i', $period_unit)) {
-                        sendEppError($conn, $db, 2004, 'fee:period unit m|y', $clTRID, $trans);
-                        return;
+                    $months = $unit === 'y' ? $period * 12 : $period;
+                    $price = null;
+                    if ($tld_id && ($name === 'restore' || ($months >= 12 && $months <= 120 && $months % 12 === 0))) {
+                        if ($name === 'restore') {
+                            $price = getDomainRestorePrice($db, $tld_id, getClid($db, $clid), $feeCurrency);
+                        } elseif (in_array($name, ['create', 'renew', 'transfer'], true)) {
+                            $quote = getDomainPrice($db, $domainName, $tld_id, $months, $name,
+                                getClid($db, $clid), $feeCurrency);
+                            if (($quote['type'] ?? 'not_found') !== 'not_found') {
+                                $price = $quote['price'];
+                            }
                         }
-                    } else {
-                        $period_unit = 'y';
                     }
-
-                    $date_add = 0;
-                    if ($period_unit === 'y') {
-                        $date_add = ($period * 12);
-                    } elseif ($period_unit === 'm') {
-                        $date_add = $period;
-                    }
-
-                    if (!preg_match("/^(12|24|36|48|60|72|84|96|108|120)$/", $date_add)) {
-                        sendEppError($conn, $db, 2306, 'A fee period can be for 1-10 years', $clTRID, $trans);
-                        return;
-                    }
-                    
-                    $parts = extractDomainAndTLD($domainName);
-                    $label = $parts['domain'];
-                    $domain_extension = '.'.$parts['tld'];
-
-                    $stmt = $db->prepare("SELECT id FROM domain_tld WHERE tld = :domain_extension");
-                    $stmt->bindParam(':domain_extension', $domain_extension, PDO::PARAM_STR);
-                    $stmt->execute();
-                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $stmt->closeCursor();
-
-                    if ($result != false) {
-                        $tld_id = $result['id'];
-
-                        // Calculate or retrieve fee for this command
-                        $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, $commandName, $clid);
-                        $price = $returnValue['price'];
-
-                        $restore_price = getDomainRestorePrice($db, $tld_id, $clid, $currency);
-
-                        if ($commandName == 'restore') {
-                            $feeResponses[] = [
-                                'command' => $commandName,
-                                'period' => $period,
-                                'period_unit' => $period_unit,
-                                'avail' => $domainEntry[1],
-                                'fee' => $restore_price,
-                                'name' => $domainName,
-                            ];
-                        } else {
-                            $feeResponses[] = [
-                                'command' => $commandName,
-                                'period' => $period,
-                                'period_unit' => $period_unit,
-                                'avail' => $domainEntry[1],
-                                'fee' => $price,
-                                'name' => $domainName,
-                            ];
-                        }
-                    } else {
-                        $feeResponses[] = [
-                            'command' => $commandName,
-                            'avail' => $domainEntry[1],
-                            'reason' => $domainEntry[2] ?? null,
-                            'name' => $domainName,
-                        ];
-                        continue;
-                    }
+                    $feeResponses[] = [
+                        'command' => $name, 'period' => $period, 'period_unit' => $unit,
+                        'avail' => $price !== null ? 1 : 0,
+                        'fee' => $price, 'name' => $domainName,
+                        'reason' => $price === null ? 'Fee unavailable for this command or period' : null,
+                    ];
                 }
                 $fees[] = $feeResponses;
-            } else {
-                $fees = null;
             }
         }
 
@@ -461,8 +429,9 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             'clTRID' => $clTRID,
             'svTRID' => $svTRID,
         ];
-        if (!empty($fees)) {
+        if ($fee_check !== null) {
             $response['fees'] = $fees;
+            $response['fee_currency'] = $feeCurrency;
         }
     }
 

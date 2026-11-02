@@ -540,6 +540,11 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
     // An OPTIONAL <domain:authInfo> for op="query" and mandatory for other op values "approve|cancel|reject|request"
     $result = $xml->xpath('//domain:authInfo/domain:pw[1]');
     $authInfo_pw = $result ? (string)$result[0] : null;
+    $feeTransfer = $xml->xpath('//fee:transfer')[0] ?? null;
+    if ($feeTransfer !== null && $op !== 'request') {
+        sendEppError($conn, $db, 2102, 'fee:transfer is only supported for transfer requests', $clTRID, $trans);
+        return;
+    }
 
     if (!$domainName) {
         sendEppError($conn, $db, 2003, 'Please provide the domain name', $clTRID, $trans);
@@ -1371,6 +1376,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                     sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
                     return;
                 }
+                if ($feeTransfer !== null && ($feeError = feeOfferError($feeTransfer, $price, $currency))) {
+                    sendEppError($conn, $db, $feeError[0], $feeError[1], $clTRID, $trans);
+                    return;
+                }
 
                 if (($registrar_balance + $creditLimit) < $price) {
                     sendEppError($conn, $db, 2104, 'The registrar who wants to take over this domain has no money', $clTRID, $trans);
@@ -1461,6 +1470,10 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 if ($transfer_exdate) {
                     $response["exDate"] = $transfer_exdate;
                 }
+                if (feeExtensionNegotiated($conn) && (float)$price > 0) {
+                    $response['fee_price'] = $price;
+                    $response['fee_currency'] = $currency;
+                }
 
                 $epp = new EPP\EppWriter();
                 $xml = $epp->epp_writer($response);
@@ -1468,6 +1481,16 @@ function processDomainTransfer($conn, $db, $xml, $clid, $config, $trans) {
                 sendEppResponse($conn, $xml);
             } else {
                 // No expiration date is inserted after the transfer procedure
+                if ($feeTransfer !== null) {
+                    $stmt = $db->prepare('SELECT currency FROM registrar WHERE id = ? LIMIT 1');
+                    $stmt->execute([$clid]);
+                    $feeCurrency = (string)$stmt->fetchColumn();
+                    $stmt->closeCursor();
+                    if ($feeError = feeOfferError($feeTransfer, 0, $feeCurrency)) {
+                        sendEppError($conn, $db, $feeError[0], $feeError[1], $clTRID, $trans);
+                        return;
+                    }
+                }
                 try {
                     $db->beginTransaction();
                     $waiting_period = 5; // days

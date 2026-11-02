@@ -352,6 +352,36 @@ function applyUnhandledEppNamespaces(string $response, array $loginServices): st
     return $changed ? $dom->saveXML() : $response;
 }
 
+function feeExtensionNegotiated($conn): bool {
+    global $table;
+    if (!isset($table) || !method_exists($conn, 'getFd')) {
+        return false;
+    }
+    $session = $table->get($conn->getFd());
+    return $session && !empty($session['logged_in']) && (int)($session['fee'] ?? 0) === 1;
+}
+
+function feeOfferError($feeNode, $price, string $currency): ?array {
+    $data = $feeNode->children('urn:ietf:params:xml:ns:epp:fee-1.0');
+    $requestedCurrency = (string)$data->currency;
+    if ($requestedCurrency !== '' && $requestedCurrency !== $currency) {
+        return [2004, 'Fee currency does not match registrar currency'];
+    }
+    if (count($data->fee) === 0) {
+        return [2003, 'Missing fee:fee'];
+    }
+    $offered = 0.0;
+    foreach ($data->fee as $fee) {
+        $value = (string)$fee;
+        if (!is_numeric($value) || (float)$value < 0) {
+            return [2005, 'Invalid fee:fee'];
+        }
+        $offered += (float)$value;
+    }
+    return round($offered, 2) < round((float)$price, 2)
+        ? [2004, 'Provided fee is less than the registry fee'] : null;
+}
+
 function sendEppResponse($conn, $response) {
     global $table, $eppExtensionsTable;
     if (isset($table, $eppExtensionsTable) &&

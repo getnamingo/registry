@@ -1188,6 +1188,14 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
     $returnValue = getDomainPrice($db, $domainName, $tld_id, $date_add, 'create', $clid, $currency);
     $price = $returnValue['price'];
 
+    if ($fee_create !== null && ($feeError = feeOfferError($fee_create, $price, $currency))) {
+        sendEppError($conn, $db, $feeError[0], $feeError[1], $clTRID, $trans);
+        return;
+    }
+    $feeResponse = feeExtensionNegotiated($conn) && (float)$price > 0 ? [
+        'fee_include' => true, 'fee_currency' => $currency, 'fee_price' => $price,
+    ] : [];
+
     if (!$price) {
         sendEppError($conn, $db, 2400, 'The price, period and currency for such TLD are not declared', $clTRID, $trans);
         return;
@@ -1781,7 +1789,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $response['exDate'] = null;
         $response['clTRID'] = $clTRID;
         $response['svTRID'] = $svTRID;
-        
+        $response += $feeResponse;
+
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
         updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
@@ -1792,22 +1801,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
             $db->beginTransaction();
             
             $response = [];
-            if (isset($fee_create)) {
-                $response['fee_fee'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->fee;
-                
-                if ($response['fee_fee'] >= $price) {
-                    $response['fee_currency'] = (string) $fee_create->children('urn:ietf:params:xml:ns:epp:fee-1.0')->currency;
-                    $response['fee_price'] = $price;
-                    $response['fee_balance'] = $registrar_balance;
-                    $response['fee_creditLimit'] = $creditLimit;
-                    $response['fee_include'] = true;
-                } else {
-                    $response['fee_include'] = false;
-                    $db->rollBack();
-                    sendEppError($conn, $db, 2004, "Provided fee is less than the server domain fee", $clTRID, $trans);
-                    return;
-                }
-            }
 
             $exdate = (new DateTime())->modify("+$date_add months")->format('Y-m-d H:i:s.v');
             $domainSql = "INSERT INTO domain (
@@ -2272,7 +2265,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
         $response['exDate'] = $exdate;
         $response['clTRID'] = $clTRID;
         $response['svTRID'] = $svTRID;
-        
+        $response += $feeResponse;
+
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
         updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);

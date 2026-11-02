@@ -71,6 +71,7 @@ $table->column('registrar_id', Table::TYPE_INT, 8);
 $table->column('logged_in', Table::TYPE_INT, 1);
 $table->column('maintenance', Table::TYPE_INT, 1);
 $table->column('login_services', Table::TYPE_STRING, 4096);
+$table->column('fee', Table::TYPE_INT, 1);
 $table->create();
 
 $permittedIPsTable = new Table(1024);
@@ -407,6 +408,24 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                 }
             }
 
+            $feeNodes = $xml->xpath('/e:epp/e:command/e:extension/*[namespace-uri()="urn:ietf:params:xml:ns:epp:fee-1.0"]') ?: [];
+            if ($feeNodes && !feeExtensionNegotiated($conn)) {
+                sendEppError($conn, $pdo, 2103, 'Fee extension was not negotiated at login', (string)$xml->command->clTRID);
+                return;
+            }
+
+            foreach ($feeNodes as $feeNode) {
+                $name = $feeNode->getName();
+                $supported = ($name === 'check' && isset($xml->command->check->children('urn:ietf:params:xml:ns:domain-1.0')->check))
+                    || ($name === 'create' && isset($xml->command->create->children('urn:ietf:params:xml:ns:domain-1.0')->create))
+                    || ($name === 'renew' && isset($xml->command->renew->children('urn:ietf:params:xml:ns:domain-1.0')->renew))
+                    || ($name === 'transfer' && isset($xml->command->transfer->children('urn:ietf:params:xml:ns:domain-1.0')->transfer));
+                if (!$supported) {
+                    sendEppError($conn, $pdo, 2102, 'Fee extension is not supported for this operation', (string)$xml->command->clTRID);
+                    return;
+                }
+            }
+
             switch (true) {
                 case isset($xml->command->login):
                 {
@@ -555,12 +574,16 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                                 return;
                             }
                         }
+                        $feeUris = $xml->xpath('/e:epp/e:command/e:login/e:svcs/e:svcExtension/e:extURI') ?: [];
+                        $feeNegotiated = $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:fee-1.0') &&
+                            in_array('urn:ietf:params:xml:ns:epp:fee-1.0', array_map('strval', $feeUris), true);
                         $table->set($connId, [
                             'clid' => $clID,
                             'registrar_id' => $clid,
                             'logged_in' => 1,
                             'maintenance' => $maintenanceNegotiated ? 1 : 0,
-                            'login_services' => $loginServicesJson
+                            'login_services' => $loginServicesJson,
+                            'fee' => $feeNegotiated ? 1 : 0
                         ]);
                         $svTRID = generateSvTRID();
                         $response = [

@@ -824,45 +824,37 @@ class EppWriter {
                     
                     $writer->startElement('fee:chkData');
                     $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
-                    
-                    // fee:currency
-                    $writer->writeElement('fee:currency', 'EUR');
-                                            
-                    foreach ($resp['fees'] as $fees) {
-                        if ($fees[0]['avail'] == 1) {
-                            $writer->startElement('fee:cd');
-                                $writer->writeAttribute('avail', $fees[0]['avail']);
 
-                            $writer->writeElement('fee:objID', $fees[0]['name']);
-                            
+                    $writer->writeElement('fee:currency', $resp['fee_currency']);
+                    foreach ($resp['fees'] as $fees) {
+                        $available = !in_array(0, array_column($fees, 'avail'), true);
+                        $writer->startElement('fee:cd');
+                        $writer->writeAttribute('avail', $available ? 1 : 0);
+                        $writer->writeElement('fee:objID', $fees[0]['name']);
+                        if ($available) {
                             foreach ($fees as $fee) {
                                 $writer->startElement('fee:command');
-                                    $writer->writeAttribute('name', $fee['command']);
-                                    
-                                $writer->startElement('fee:period');
+                                $writer->writeAttribute('name', $fee['command']);
+                                if ($fee['command'] !== 'restore') {
+                                    $writer->startElement('fee:period');
                                     $writer->writeAttribute('unit', $fee['period_unit']);
                                     $writer->text($fee['period']);
-                                $writer->endElement();  // End of 'fee:period'
-                                
+                                    $writer->endElement();
+                                }
+
                                 $writer->startElement('fee:fee');
+                                if (in_array($fee['command'], ['create', 'renew', 'transfer'], true)) {
                                     $writer->writeAttribute('refundable', 1);
                                     $writer->writeAttribute('grace-period', 'P5D');
-                                    $writer->text($fee['fee']);
-                                $writer->endElement();  // End of 'fee:fee'
-
-                                $writer->endElement();  // End of 'fee:command'
+                                }
+                                $writer->text($fee['fee']);
+                                $writer->endElement();
+                                $writer->endElement();
                             }
-                                
-                            $writer->endElement();  // End of 'fee:cd'
                         } else {
-                            $writer->startElement('fee:cd');
-                                $writer->writeAttribute('avail', $fees[0]['avail']);
-
-                            $writer->writeElement('fee:objID', $fees[0]['name']);
-                            $writer->writeElement('fee:reason', $fees[0]['reason']);
-                            
-                            $writer->endElement();  // End of 'fee:cd'
+                            $writer->writeElement('fee:reason', current(array_filter(array_column($fees, 'reason'))) ?: 'Fee unavailable');
                         }
+                        $writer->endElement();
                     }
                     
                     $writer->endElement();  // End of 'fee:chkData'
@@ -898,15 +890,13 @@ class EppWriter {
                 $writer->startElement('fee:creData');
                 $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                     
-                $writer->writeElement('fee:currency', 'EUR');
+                $writer->writeElement('fee:currency', $resp['fee_currency']);
                 $writer->startElement('fee:fee');
                     $writer->writeAttribute('refundable', 1);
                     $writer->writeAttribute('grace-period', 'P5D');
                     $writer->text($resp['fee_price']);
                 $writer->endElement();  // End of 'fee:fee'                    
-                $writer->writeElement('fee:balance', $resp['fee_balance']);
-                $writer->writeElement('fee:creditLimit', $resp['fee_creditLimit']);
-                    
+
                 $writer->endElement();  // End of 'fee:creData'
                 $writer->endElement();  // End of 'extension'
             }
@@ -1108,6 +1098,19 @@ class EppWriter {
         $this->_postamble($writer, $resp);
     }
 
+    private function _feeTransformData($writer, $resp, string $element): void {
+        if (!isset($resp['fee_price'])) {
+            return;
+        }
+        $writer->startElement('extension');
+        $writer->startElement('fee:' . $element);
+        $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
+        $writer->writeElement('fee:currency', $resp['fee_currency']);
+        $writer->writeElement('fee:fee', $resp['fee_price']);
+        $writer->endElement();
+        $writer->endElement();
+    }
+
     private function _renew_domain($writer, $resp) {
         $this->_preamble($writer, $resp);
         
@@ -1122,6 +1125,7 @@ class EppWriter {
                 $writer->writeElement('domain:exDate', $exDateFormatted);
                 $writer->endElement();  // End of 'domain:renData'
             $writer->endElement();  // End of 'resData'
+            $this->_feeTransformData($writer, $resp, 'renData');
         }
 
         $this->_postamble($writer, $resp);
@@ -1152,6 +1156,7 @@ class EppWriter {
                 }
                 $writer->endElement();  // End of 'domain:trnData'
             $writer->endElement();  // End of 'resData'
+            $this->_feeTransformData($writer, $resp, 'trnData');
         }
 
         $this->_postamble($writer, $resp);
