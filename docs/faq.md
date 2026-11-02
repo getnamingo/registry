@@ -45,13 +45,19 @@ Namingo's EPP service supports the following extensions:
 
 ## DNSSEC Support
 
-- **DS and DNSKEY**: DNSSEC is supported, including both DS and DNSKEY records. See [DNSSEC record support](dnssec.md) for algorithms 17/18, digest types 2/4/6, and the schema upgrade.
+- **DS and DNSKEY**: DNSSEC is supported, including both DS and DNSKEY records.
 - **Supported Algorithms**:
   - RSA/SHA-256
   - ECDSA Curve P-256 with SHA-256
   - ECDSA Curve P-384 with SHA-384
   - Ed25519
   - Ed448
+  - SM2SM3
+  - ML-DSA-44
+- **Supported Digest Types**:
+  - SHA-256
+  - SHA-384
+  - SM3
 
 ## Internationalized Domain Names (IDNs)
 
