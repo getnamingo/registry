@@ -13,7 +13,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-function processPoll($conn, $db, $xml, $clid, $trans) {
+function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
 
@@ -102,6 +102,7 @@ function processPoll($conn, $db, $xml, $clid, $trans) {
             return;
         }
         $response['msg'] = 'Registry Maintenance Notification';
+        $response['unhandled_maintenance'] = !$maintenanceNegotiated;
     }
     $response['lang'] = 'en-US';
     $qdate = str_replace(' ', 'T', $result['qdate'] ?? '') . 'Z';

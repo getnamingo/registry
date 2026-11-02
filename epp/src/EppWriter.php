@@ -391,6 +391,19 @@ class EppWriter {
                 $writer->endElement();  // End of 'value'
             }
 
+            if (!empty($resp['unhandled_maintenance'])) {
+                // RFC 9038: return an unnegotiated maintenance poll in extValue.
+                $writer->startElement('extValue');
+                $writer->startElement('value');
+                $writer->startElement('maint:infData');
+                $writer->writeAttribute('xmlns:maint', 'urn:ietf:params:xml:ns:epp:maintenance-1.0');
+                $this->_maintenanceItem($writer, $resp['maintenance']);
+                $writer->endElement(); // maint:infData
+                $writer->endElement(); // value
+                $writer->writeElement('reason', 'urn:ietf:params:xml:ns:epp:maintenance-1.0 not in login services');
+                $writer->endElement(); // extValue
+            }
+
             $writer->endElement();  // End of 'result'
     }
 
@@ -475,7 +488,7 @@ class EppWriter {
                     $writer->writeElement('contact:acDate', $resp['obj_acDate']);
                     $writer->endElement();  // End of 'contact:trnData'
                 $writer->endElement();  // End of 'resData'
-            } elseif ($resp['poll_msg_type'] === 'maintenance') {
+            } elseif ($resp['poll_msg_type'] === 'maintenance' && empty($resp['unhandled_maintenance'])) {
                 $writer->startElement('resData');
                 $writer->startElement('maint:infData');
                 $writer->writeAttribute('xmlns:maint', 'urn:ietf:params:xml:ns:epp:maintenance-1.0');

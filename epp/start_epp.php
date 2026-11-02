@@ -69,6 +69,7 @@ $table = new Table(1024);
 $table->column('clid', Table::TYPE_STRING, 64);
 $table->column('registrar_id', Table::TYPE_INT, 8);
 $table->column('logged_in', Table::TYPE_INT, 1);
+$table->column('maintenance', Table::TYPE_INT, 1);
 $table->create();
 
 $permittedIPsTable = new Table(1024);
@@ -102,6 +103,7 @@ if (is_array($data)) {
         'urn:ietf:params:xml:ns:mark-1.0',
         'urn:ietf:params:xml:ns:allocationToken-1.0',
         'urn:ietf:params:xml:ns:epp:loginSec-1.0',
+        'urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0',
         'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0'
     ];
     foreach ($fallback as $urn) {
@@ -500,11 +502,15 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                             $conn->close();
                             return;
                         }
-                        
+
+                        $maintenanceUri = 'urn:ietf:params:xml:ns:epp:maintenance-1.0';
+                        $loginObjUris = $xml->xpath('/e:epp/e:command/e:login/e:svcs/e:objURI') ?: [];
+                        $maintenanceNegotiated = in_array($maintenanceUri, array_map('strval', $loginObjUris), true);
                         $table->set($connId, [
                             'clid' => $clID,
                             'registrar_id' => $clid,
-                            'logged_in' => 1
+                            'logged_in' => 1,
+                            'maintenance' => $maintenanceNegotiated ? 1 : 0
                         ]);
                         $svTRID = generateSvTRID();
                         $response = [
@@ -575,7 +581,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processPoll($conn, $pdo, $xml, $data['clid'], $trans);
+                    processPoll($conn, $pdo, $xml, $data['clid'], $trans, (int) $data['maintenance'] === 1);
                     return;
                 }
               

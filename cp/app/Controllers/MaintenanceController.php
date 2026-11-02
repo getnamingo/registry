@@ -358,10 +358,27 @@ class MaintenanceController extends Controller
 
     private static function aLabel(string $value): bool
     {
-        return strlen($value) <= 253 && (bool) preg_match(
+        if (strlen($value) > 253 || !preg_match(
             '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/D',
             $value
-        );
+        )) {
+            return false;
+        }
+        foreach (explode('.', $value) as $label) {
+            if (strlen($label) > 63) {
+                return false;
+            }
+            if (str_starts_with($label, 'xn--')) {
+                $unicode = idn_to_utf8($label, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                if ($unicode === false ||
+                    idn_to_ascii($unicode, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46) !== $label) {
+                    return false;
+                }
+            } elseif (preg_match('/^..--/', $label)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static function makeEvent(array $data): array
