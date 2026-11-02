@@ -54,6 +54,11 @@ function processContactInfo($conn, $db, $xml, $clid, $trans) {
         }
 
         $isSponsor = (int)$clid === (int)$contact[0]['clid'];
+        if ($secureAuthInfoTransfer && $authInfo_pw !== null &&
+            !authInfoMatches($db, 'contact', (int)$contact[0]['id'], $authInfo_pw)) {
+            sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+            return;
+        }
         if (!$isSponsor) {
             if ($authInfo_pw === null || $authInfo_pw === '') {
                 sendEppError($conn, $db, 2201, 'Client is not the sponsor of the contact object', $clTRID, $trans);
@@ -514,6 +519,11 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             $stmt->closeCursor();
 
             $isSponsor = (int)$clid === (int)$domain['clid'];
+            if ($secureAuthInfoTransfer && $authInfo_pw !== null &&
+                !authInfoMatches($db, 'domain', (int)$domain['id'], $authInfo_pw)) {
+                sendEppError($conn, $db, 2202, 'authInfo pw is not correct', $clTRID, $trans);
+                return;
+            }
             $authorizedByAuthInfo = false;
 
             // Allocation tokens are credentials. Access to domain authInfo alone

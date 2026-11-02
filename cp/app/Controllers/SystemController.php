@@ -78,10 +78,33 @@ class SystemController extends Controller
                 $this->container->get('flash')->addMessage('error', $error);
                 return $response->withHeader('Location', '/settings/general')->withStatus(302);
             }
-            
+
+            if (isSecureAuthInfoTransferEnabled($db) && empty($data['secureAuthInfoTransfer'])) {
+                $this->container->get('flash')->addMessage('error', 'RFC 9154 cannot be disabled after credentials have been hashed.');
+                return $response->withHeader('Location', '/settings/general')->withStatus(302);
+            }
+
             try {
                 $db->beginTransaction();
-                
+
+                // Convert existing passwords before enabling secure AuthInfo mode.
+                if (!isSecureAuthInfoTransferEnabled($db) && !empty($data['secureAuthInfoTransfer'])) {
+                    foreach (['contact_authInfo', 'domain_authInfo', 'application'] as $table) {
+                        $table = envi('DB_DRIVER') === 'pgsql' ? strtolower($table) : $table;
+                        foreach ($db->select("SELECT id, authinfo FROM {$table} WHERE authtype = 'pw' AND authinfo IS NOT NULL") as $row) {
+                            if ($row['authinfo'] === '') {
+                                if ($table === 'application') {
+                                    $db->update($table, ['authinfo' => null], ['id' => $row['id']]);
+                                } else {
+                                    $db->delete($table, ['id' => $row['id']]);
+                                }
+                            } elseif (!preg_match('/^sha256\$[0-9a-f]{32}\$[0-9a-f]{64}$/D', $row['authinfo'])) {
+                                $db->update($table, ['authinfo' => hashAuthInfo($row['authinfo'])], ['id' => $row['id']]);
+                            }
+                        }
+                    }
+                }
+
                 $currentDateTime = new \DateTime();
                 $crdate = $currentDateTime->format('Y-m-d H:i:s.v'); // Current timestamp
 

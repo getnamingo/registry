@@ -239,14 +239,19 @@ function redactEppSecrets(string $xml): string {
     return $dom->saveXML();
 }
 
-function sendGreeting($conn, Swoole\Table $eppExtensionsTable) {
+function sendGreeting($conn, Swoole\Table $eppExtensionsTable, bool $secureAuthInfoTransfer) {
     global $c;
     $currentDateTime = new DateTime("now", new DateTimeZone("UTC"));
     $currentDate = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
     
     $extensions = [];
     foreach ($eppExtensionsTable as $urn => $row) {
-        $extensions[] = $urn;
+        if ($urn !== 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0') {
+            $extensions[] = $urn;
+        }
+    }
+    if ($secureAuthInfoTransfer) {
+        $extensions[] = 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0';
     }
 
     $response = [

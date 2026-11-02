@@ -191,7 +191,7 @@ $server->set([
 $rateLimiter = new Rately();
 $log->info('Namingo EPP server starting on ' . $c['epp_host'] . ':' . $c['epp_port']);
 
-$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable) {
+$server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensionsTable, $permittedIPsTable, $pool) {
     $conn = new class($serv, $fd) {
         private $serv, $fd;
         public function __construct($serv, $fd) { $this->serv = $serv; $this->fd = $fd; }
@@ -227,7 +227,23 @@ $server->on('Connect', function(Server $serv, int $fd) use ($log, $eppExtensions
         }
     }
 
-    sendGreeting($conn, $eppExtensionsTable);
+    $greetingDb = null;
+    try {
+        $greetingDb = $pool->get(1.0);
+        if (!$greetingDb) {
+            $conn->close();
+            return;
+        }
+        $secureAuthInfoTransfer = isSecureAuthInfoTransferEnabled($greetingDb);
+    } catch (\Throwable $e) {
+        $conn->close();
+        return;
+    } finally {
+        if ($greetingDb) {
+            $pool->put($greetingDb);
+        }
+    }
+    sendGreeting($conn, $eppExtensionsTable, $secureAuthInfoTransfer);
     $log->info("client #{$fd} connected from {$clientIP}");
 });
 
@@ -565,7 +581,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     
                 case isset($xml->hello):
                 {
-                    sendGreeting($conn, $eppExtensionsTable);
+                    sendGreeting($conn, $eppExtensionsTable, isSecureAuthInfoTransferEnabled($pdo));
                     return;
                 }
                     
