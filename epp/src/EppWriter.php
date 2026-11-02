@@ -770,7 +770,12 @@ class EppWriter {
                     $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
 
                     // launch:phase
-                    $writer->writeElement('launch:phase', 'claims');
+                    $writer->startElement('launch:phase');
+                    if (!empty($resp['launchPhaseName'])) {
+                        $writer->writeAttribute('name', $resp['launchPhaseName']);
+                    }
+                    $writer->text($resp['launchPhase']);
+                    $writer->endElement();
                     
                     foreach ($resp['names'] as $names) {
                         $writer->startElement('launch:cd');
@@ -780,7 +785,6 @@ class EppWriter {
                             $writer->endElement();  // End of 'launch:name'
                             if (isset($names[2])) {
                                 $writer->startElement('launch:claimKey');
-                                    $writer->writeAttribute('exists', $names[1]);
                                     $writer->text($names[2]);
                                 $writer->endElement();  // End of 'launch:claimKey'
                             }
@@ -800,7 +804,6 @@ class EppWriter {
                             $writer->endElement();  // End of 'launch:name'
                             if (isset($names[2])) {
                                 $writer->startElement('launch:claimKey');
-                                    $writer->writeAttribute('exists', $names[1]);
                                     $writer->text($names[2]);
                                 $writer->endElement();  // End of 'launch:claimKey'
                             }
@@ -889,15 +892,18 @@ class EppWriter {
                 $crDate = new \DateTime($resp['crDate']);
                 $crDateFormatted = $crDate->format('Y-m-d\TH:i:s.v\Z');
                 $writer->writeElement('domain:crDate', $crDateFormatted);
-                $exDate = new \DateTime($resp['exDate']);
-                $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
-                $writer->writeElement('domain:exDate', $exDateFormatted);
+                if (!empty($resp['exDate'])) {
+                    $exDate = new \DateTime($resp['exDate']);
+                    $exDateFormatted = $exDate->format('Y-m-d\TH:i:s.v\Z');
+                    $writer->writeElement('domain:exDate', $exDateFormatted);
+                }
                 $writer->endElement();  // End of 'domain:creData'
             $writer->endElement();  // End of 'resData'
             
-            if (isset($resp['fee_include']) && $resp['fee_include'] == true) {
+            if (!empty($resp['fee_include']) || isset($resp['launch_application_id'])) {
                 $writer->startElement('extension');
-                    
+            }
+            if (!empty($resp['fee_include'])) {
                 $writer->startElement('fee:creData');
                 $writer->writeAttribute('xmlns:fee', 'urn:ietf:params:xml:ns:epp:fee-1.0');
                     
@@ -909,6 +915,20 @@ class EppWriter {
                 $writer->endElement();  // End of 'fee:fee'                    
 
                 $writer->endElement();  // End of 'fee:creData'
+            }
+            if (isset($resp['launch_application_id'])) {
+                $writer->startElement('launch:creData');
+                $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
+                $writer->startElement('launch:phase');
+                if (!empty($resp['launch_phase_name'])) {
+                    $writer->writeAttribute('name', $resp['launch_phase_name']);
+                }
+                $writer->text($resp['launch_phase']);
+                $writer->endElement();
+                $writer->writeElement('launch:applicationID', $resp['launch_application_id']);
+                $writer->endElement(); // launch:creData
+            }
+            if (!empty($resp['fee_include']) || isset($resp['launch_application_id'])) {
                 $writer->endElement();  // End of 'extension'
             }
         }
@@ -1076,7 +1096,12 @@ class EppWriter {
                 if (isset($resp['launch_phase'])) {
                     $writer->startElement('launch:infData');
                     $writer->writeAttribute('xmlns:launch', 'urn:ietf:params:xml:ns:launch-1.0');
-                    $writer->writeElement('launch:phase', $resp['launch_phase']);
+                    $writer->startElement('launch:phase');
+                    if (!empty($resp['launch_phase_name'])) {
+                        $writer->writeAttribute('name', $resp['launch_phase_name']);
+                    }
+                    $writer->text($resp['launch_phase']);
+                    $writer->endElement();
                     if (!empty($resp['launch_application_id'])) {
                         $writer->writeElement('launch:applicationID', $resp['launch_application_id']);
                     }

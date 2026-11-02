@@ -394,6 +394,14 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                 return;
             }
 
+            // Do not silently accept launch commands when launch is disabled.
+            $launchNodes = $xml->xpath('//*[namespace-uri()="urn:ietf:params:xml:ns:launch-1.0"]') ?: [];
+            if ($launchNodes && (!$eppExtensionsTable->exist('urn:ietf:params:xml:ns:launch-1.0') ||
+                $pdo->query("SELECT value FROM settings WHERE name = 'launch_phases' LIMIT 1")->fetchColumn() !== 'on')) {
+                sendEppError($conn, $pdo, 2102, 'Launch extension is not supported');
+                return;
+            }
+
             // RFC 8495 only extends domain check, info, create and transfer-request.
             // Reject tokens in unsupported commands instead of silently ignoring them.
             $allocationNodes = $xml->xpath('//*[namespace-uri()="' . ALLOCATION_TOKEN_NS . '"]') ?: [];

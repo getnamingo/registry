@@ -247,11 +247,19 @@ function processDomainDelete($conn, $db, $xml, $clid, $database_type, $trans) {
     }
 
     if (isset($launch_delete)) {
-        $stmt = $db->prepare('SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM application WHERE name = :name LIMIT 1');
+        $phaseType = (string)$launch_delete->children('urn:ietf:params:xml:ns:launch-1.0')->phase;
+        $applicationID = (string)$launch_delete->children('urn:ietf:params:xml:ns:launch-1.0')->applicationID;
+        if ($phaseType === '' || $applicationID === '') {
+            sendEppError($conn, $db, 2003, 'Missing launch phase or application ID', $clTRID, $trans);
+            return;
+        }
+        $stmt = $db->prepare('SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM application WHERE name = :name AND phase_type = :phase AND application_id = :applicationID LIMIT 1');
     } else {
         $stmt = $db->prepare('SELECT id, tldid, registrant, crdate, exdate, clid, crid, upid, trdate, trstatus, reid, redate, acid, acdate, rgpstatus, addPeriod AS "addPeriod", autoRenewPeriod AS "autoRenewPeriod", renewPeriod AS "renewPeriod", renewedDate AS "renewedDate", transferPeriod AS "transferPeriod" FROM domain WHERE name = :name LIMIT 1');
     }
-    $stmt->execute([':name' => $domainName]);
+    $stmt->execute(isset($launch_delete)
+        ? [':name' => $domainName, ':phase' => $phaseType, ':applicationID' => $applicationID]
+        : [':name' => $domainName]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $stmt->closeCursor();
 

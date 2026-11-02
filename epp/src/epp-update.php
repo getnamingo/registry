@@ -1199,6 +1199,11 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
         $launch_extension_enabled = $stmt->fetchColumn();
         $stmt->closeCursor();
     }
+    if (isset($launch_update)) {
+        // Application updates are not implemented; never update a live domain instead.
+        sendEppError($conn, $db, 2102, 'Launch application update is not supported', $clTRID, $trans);
+        return;
+    }
 
     if ($domainRem === null && $domainAdd === null && $domainChg === null && $extensionNode === null) {
         sendEppError($conn, $db, 2003, 'At least one domain:rem || domain:add || domain:chg', $clTRID, $trans);

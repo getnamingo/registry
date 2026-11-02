@@ -1760,8 +1760,8 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 }
             }
 
-            $stmt = $db->prepare("SELECT crdate,exdate FROM domain WHERE name = ? LIMIT 1");
-            $stmt->execute([$domainName]);
+            $stmt = $db->prepare("SELECT crdate,exdate FROM application WHERE id = ? LIMIT 1");
+            $stmt->execute([$domain_id]);
             [$crdate, $exdate] = $stmt->fetch(PDO::FETCH_NUM);
             $stmt->closeCursor();
 
@@ -1781,19 +1781,22 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
         $svTRID = generateSvTRID();
         $response['command'] = 'create_domain';
-        $response['resultCode'] = 1000;
+        $response['resultCode'] = 1001;
         $response['lang'] = 'en-US';
         $response['message'] = 'Command completed successfully';
         $response['name'] = $domainName;
         $response['crDate'] = $crdate;
         $response['exDate'] = null;
+        $response['launch_phase'] = $launch_phase;
+        $response['launch_phase_name'] = $launch_phase_name;
+        $response['launch_application_id'] = $uuid;
         $response['clTRID'] = $clTRID;
         $response['svTRID'] = $svTRID;
         $response += $feeResponse;
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
-        updateTransaction($db, 'create', 'domain', $domainName, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        updateTransaction($db, 'create', 'domain', $domainName, 1001, 'Application pending', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
     } else {
 

@@ -641,8 +641,8 @@ class ApplicationsController extends Controller
                 );
 
                 $row = $db->selectRow(
-                    'SELECT crdate FROM application WHERE name = ? LIMIT 1',
-                    [$domainName]
+                    'SELECT crdate FROM application WHERE id = ? LIMIT 1',
+                    [$domain_id]
                 );
                 $from = $row['crdate'];
 
@@ -901,12 +901,12 @@ class ApplicationsController extends Controller
         if ($args) {
             $args = strtolower(trim($args));
 
-            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+            if (!ctype_digit($args)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             }
         
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, clid, idnlang, authinfo, authtype, phase_name, phase_type, smd, application_id FROM application WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, clid, idnlang, authinfo, authtype, phase_name, phase_type, smd, application_id FROM application WHERE id = ?',
             [ $args ]);
 
             if ($domain) {
@@ -995,12 +995,12 @@ class ApplicationsController extends Controller
         if ($args) {
             $args = strtolower(trim($args));
 
-            if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+            if (!ctype_digit($args)) {
                 $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             }
 
-            $domain = $db->selectRow('SELECT id, name, registrant, crdate, phase_name, phase_type, clid, application_id FROM application WHERE name = ?',
+            $domain = $db->selectRow('SELECT id, name, registrant, crdate, phase_name, phase_type, clid, application_id FROM application WHERE id = ?',
             [ $args ]);
 
             if ($domain) {
@@ -1047,7 +1047,7 @@ class ApplicationsController extends Controller
                 } else {
                     $domain['punycode'] = $domain['name'];
                 }
-                $_SESSION['applications_to_update'] = [$domain['punycode']];
+                $_SESSION['applications_to_update'] = [$domain['id']];
 
                 return view($response,'admin/domains/updateApplication.twig', [
                     'domain' => $domain,
@@ -1082,21 +1082,26 @@ class ApplicationsController extends Controller
             $data = $request->getParsedBody();
             $db = $this->container->get('db');
             if (!empty($_SESSION['applications_to_update'])) {
-                $domainName = $_SESSION['applications_to_update'][0];
+                $applicationId = (int)$_SESSION['applications_to_update'][0];
             } else {
                 $this->container->get('flash')->addMessage('error', 'No application specified for update');
                 return $response->withHeader('Location', '/applications')->withStatus(302);
             }
-            $domain_id = $db->selectValue('SELECT id FROM application WHERE name = ?', [$domainName]);
+            $application = $db->selectRow('SELECT id, name, clid FROM application WHERE id = ?', [$applicationId]);
+            if (!$application) {
+                return $response->withHeader('Location', '/applications')->withStatus(302);
+            }
+            $domain_id = $application['id'];
+            $domainName = $application['name'];
             
             if ($_SESSION["auth_roles"] != 0) {
                 $clid = $db->selectValue('SELECT registrar_id FROM registrar_users WHERE user_id = ?', [$_SESSION['auth_user_id']]);
-                $domain_clid = $db->selectValue('SELECT clid FROM application WHERE name = ?', [$domainName]);
+                $domain_clid = $application['clid'];
                 if ($domain_clid != $clid) {
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             } else {
-                $clid = $db->selectValue('SELECT clid FROM application WHERE name = ?', [$domainName]);
+                $clid = $application['clid'];
             }
             
             $results = $db->select(
@@ -1108,7 +1113,7 @@ class ApplicationsController extends Controller
                 $status = $row['status'];
                 if (preg_match('/.*(serverUpdateProhibited)$/', $status) || preg_match('/^pendingTransfer/', $status)) {
                     $this->container->get('flash')->addMessage('error', 'It has a status that does not allow update, first change the status');
-                    return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+                    return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
                 }
             }
   
@@ -1125,23 +1130,19 @@ class ApplicationsController extends Controller
                     'upid' => $clid
                 ],
                 [
-                    'name' => $domainName
+                    'id' => $domain_id
                 ]
-                );
-                $domain_id = $db->selectValue(
-                    'SELECT id FROM application WHERE name = ?',
-                    [$domainName]
                 );
 
                 foreach ($nameservers as $index => $nameserver) {
                     if (preg_match("/^-|^\.-|-\.$|^\.$/", $nameserver)) {
                         $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                        return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+                        return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
                     }
                     
                     if (!preg_match('/^([A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9]){0,1}\.){1,125}[A-Z0-9]([A-Z0-9-]{0,61}[A-Z0-9])$/i', $nameserver) && strlen($nameserver) < 254) {
                         $this->container->get('flash')->addMessage('error', 'Invalid hostName');
-                        return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+                        return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
                     }
                 
                     $hostName_already_exist = $db->selectValue(
@@ -1244,16 +1245,16 @@ class ApplicationsController extends Controller
             } catch (Exception $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+                return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
             } catch (\Pinga\Db\Throwable\IntegrityConstraintViolationException $e) {
                 $db->rollBack();
                 $this->container->get('flash')->addMessage('error', 'Database failure during update: ' . $e->getMessage());
-                return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+                return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
             }
 
             unset($_SESSION['applications_to_update']);
             $this->container->get('flash')->addMessage('success', 'Application ' . $domainName . ' has been updated successfully on ' . $update);
-            return $response->withHeader('Location', '/application/update/'.$domainName)->withStatus(302);
+            return $response->withHeader('Location', '/application/update/'.$applicationId)->withStatus(302);
         }
     }
     
@@ -1271,7 +1272,7 @@ class ApplicationsController extends Controller
             $host_id = $db->selectValue('SELECT id FROM host WHERE name = ?',
                     [ $data['nameserver'] ]);
             $domain_id = $data['domain_id'];
-            $domainName = $db->selectValue('SELECT name FROM application WHERE id = ?',
+            $applicationId = $db->selectValue('SELECT id FROM application WHERE id = ?',
                     [ $domain_id ]);
             $db->delete(
                 'application_host_map',
@@ -1285,7 +1286,7 @@ class ApplicationsController extends Controller
 
             $jsonData = json_encode([
                 'success' => true,
-                'redirect' => '/application/update/'.$domainName
+                'redirect' => '/application/update/'.$applicationId
             ]);
 
             $response = new \Nyholm\Psr7\Response(
@@ -1325,13 +1326,16 @@ class ApplicationsController extends Controller
             if ($args) {
                 $args = strtolower(trim($args));
 
-                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                if (!ctype_digit($args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name, clid, registrant, authinfo FROM application WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name, clid, registrant, authinfo FROM application WHERE id = ?',
                 [ $args ]);
+                if (!$domain) {
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
                 
                 $domain_status = $db->selectRow("SELECT status FROM application_status WHERE domain_id = ? AND status IN ('rejected', 'invalid')",
                 [ $domain['id'] ]);
@@ -1594,13 +1598,16 @@ class ApplicationsController extends Controller
             if ($args) {
                 $args = strtolower(trim($args));
 
-                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                if (!ctype_digit($args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
             
-                $domain = $db->selectRow('SELECT id, name FROM application WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, name, clid FROM application WHERE id = ?',
                 [ $args ]);
+                if (!$domain) {
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];
@@ -1622,7 +1629,7 @@ class ApplicationsController extends Controller
                 if ($_SESSION["auth_roles"] != 0) {
                     $clid = $result['registrar_id'];
                 } else {
-                    $clid = $registrar_id_domain;
+                    $clid = $domain['clid'];
                 }
 
                 try {
@@ -1688,13 +1695,16 @@ class ApplicationsController extends Controller
             if ($args) {
                 $args = strtolower(trim($args));
 
-                if (!preg_match('/^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$/', $args)) {
+                if (!ctype_digit($args)) {
                     $this->container->get('flash')->addMessage('error', 'Invalid domain name format');
                     return $response->withHeader('Location', '/applications')->withStatus(302);
                 }
 
-                $domain = $db->selectRow('SELECT id, clid, name FROM application WHERE name = ?',
+                $domain = $db->selectRow('SELECT id, clid, name FROM application WHERE id = ?',
                 [ $args ]);
+                if (!$domain) {
+                    return $response->withHeader('Location', '/applications')->withStatus(302);
+                }
             
                 $domainName = $domain['name'];
                 $domain_id = $domain['id'];

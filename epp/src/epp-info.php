@@ -369,9 +369,13 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
 
         // Check if the <launch:applicationID> element is present and set the variable accordingly
         $applicationID = isset($applicationIDElement) ? (string) $applicationIDElement : null;
+        if (!$applicationID) {
+            sendEppError($conn, $db, 2003, 'Missing launch applicationID', $clTRID, $trans);
+            return;
+        }
             
         // Get the attributes of the <launch:info> node
-        $attributes = $launch_info->attributes('launch', true);
+        $attributes = $launch_info->attributes();
         $includeMark = (string) ($attributes->includeMark ?? 'false');
 
         // Check if includeMark is 'true'
@@ -452,7 +456,7 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
                 'msg' => 'Command completed successfully',
                 'name' => $domain['name'],
                 'roid' => 'A' . $domain['id'] . '-' . $roid,
-                'status' => $status['status'],
+                'status' => in_array($status['status'], ['allocated', 'rejected'], true) ? 'ok' : 'pendingCreate',
                 'contact' => $transformedContacts,
                 'clID' => getRegistrarClid($db, $domain['clid']),
                 'crID' => getRegistrarClid($db, $domain['crid']),
@@ -486,7 +490,8 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
             }
             
             $response['launch_phase'] = $phaseType;
-            $response['launch_application_id'] = $applicationID;
+            $response['launch_phase_name'] = $domain['phase_name'];
+            $response['launch_application_id'] = $domain['application_id'];
             $response['launch_status'] = $status['status'];
             if ($includeMarkBool) {
                 $response['launch_mark'] = $domain['smd'];

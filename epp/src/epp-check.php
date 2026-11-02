@@ -219,11 +219,16 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
 
     if (isset($launch_check)) {
         $tmp = $xml->xpath('//launch:check/@type');
-        $launchCheckType = isset($tmp[0]) ? (string)$tmp[0] : '';
+        $launchCheckType = isset($tmp[0]) ? (string)$tmp[0] : 'claims';
 
         $tmp = $xml->xpath('//launch:phase');
         $launchPhaseText = isset($tmp[0]) ? (string)$tmp[0] : '';
-        
+        $launchPhaseName = (string)($xml->xpath('//launch:phase/@name')[0] ?? '');
+        if ($launchCheckType === 'claims' && $launchPhaseText === '') {
+            sendEppError($conn, $db, 2003, 'Missing launch:phase', $clTRID, $trans);
+            return;
+        }
+
         if ($launchCheckType === 'claims' || $launchCheckType === 'trademark') {
             // Check if the domain has claims
             $names = [];
@@ -261,11 +266,17 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                 'message' => 'Command completed successfully',
                 'names' => $names,
                 'launchCheck' => 1,
-                'launchCheckType' => 'claims',
+                'launchCheckType' => $launchCheckType,
+                'launchPhase' => $launchPhaseText,
+                'launchPhaseName' => $launchPhaseName,
                 'clTRID' => $clTRID,
                 'svTRID' => $svTRID,
             ];
         } else if ($launchCheckType === 'avail') {
+            if ($launchPhaseText !== 'custom') {
+                sendEppError($conn, $db, 2307, 'Unsupported launch availability phase', $clTRID, $trans);
+                return;
+            }
             if ($launchPhaseText === 'custom') {
                 $launchPhaseName = (string) $xml->xpath('//launch:phase/@name')[0];
                 
@@ -279,7 +290,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
                     $domainName = (string) $domain;
 
                     // Check if the domain is already taken
-                    $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName AND tm_phase = :phase");
+                    $stmt = $db->prepare("SELECT name FROM domain WHERE name = :domainName AND phase_name = :phase");
                     $stmt->bindParam(':domainName', $domainName, PDO::PARAM_STR);
                     $stmt->bindParam(':phase', $launchPhaseName, PDO::PARAM_STR);
                     $stmt->execute();
@@ -330,7 +341,7 @@ function processDomainCheck($conn, $db, $xml, $trans, $clid) {
             }
         } else {
             // Unsupported launch check type/phase
-            sendEppError($conn, $db, 2101, 'Unsupported launch check type or phase', $clTRID, $trans);
+            sendEppError($conn, $db, 2307, 'Unsupported launch check type or phase', $clTRID, $trans);
             return;
         }
     } else {
