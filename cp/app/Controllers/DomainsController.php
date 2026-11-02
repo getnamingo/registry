@@ -1451,7 +1451,8 @@ class DomainsController extends Controller
 
         $newRegistrar = $db->selectRow('SELECT id, name FROM registrar WHERE id = ?', [$newRegistrarId]);
 
-        if (!$domain || !$newRegistrar || (int) $domain['clid'] === (int) $newRegistrarId) {
+        if (!$domain || !$newRegistrar || (int) $domain['clid'] === (int) $newRegistrarId
+            || !preg_match('/\.[^.]{2}$/D', $domain['name'])) {
             $this->container->get('flash')->addMessage('error', 'Invalid registrar change');
             return $response
                 ->withHeader('Location', $domain ? '/domain/update/'.$domain['name'] : '/domains')
