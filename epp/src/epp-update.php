@@ -2271,6 +2271,19 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
     }
 
     if (isset($secdns_update)) {
+        $urgent = (string)$secdns_update['urgent'];
+        if ($urgent !== '' && !in_array($urgent, ['true', 'false', '1', '0'], true)) {
+            sendEppError($conn, $db, 2005, 'Invalid secDNS:urgent', $clTRID, $trans);
+            return;
+        }
+        if ($urgent === 'true' || $urgent === '1') {
+            sendEppError($conn, $db, 2102, 'Urgent DNSSEC updates are not supported', $clTRID, $trans);
+            return;
+        }
+        if (!($secdns_update->xpath('./secDNS:rem | ./secDNS:add | ./secDNS:chg') ?: [])) {
+            sendEppError($conn, $db, 2003, 'Missing secDNS update operation', $clTRID, $trans);
+            return;
+        }
         $secdnsRems = $xml->xpath('//secDNS:rem') ?? [];
         $secdnsAdds = $xml->xpath('//secDNS:add') ?? [];
         $secdnsChg = $xml->xpath('//secDNS:chg')[0] ?? null;
@@ -2279,6 +2292,21 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
             foreach ($secdnsRems as $secdnsRem) {
                 $dsDataToRemove = $secdnsRem->xpath('./secDNS:dsData');
                 $keyDataToRemove = $secdnsRem->xpath('./secDNS:keyData');
+                $allNode = $secdnsRem->xpath('./secDNS:all')[0] ?? null;
+                if ($allNode !== null) {
+                    $all = trim((string)$allNode);
+                    if (!in_array($all, ['true', 'false', '1', '0'], true) ||
+                        $dsDataToRemove || $keyDataToRemove) {
+                        sendEppError($conn, $db, 2005, 'Invalid secDNS:rem/all', $clTRID, $trans);
+                        return;
+                    }
+                    if ($all === 'true' || $all === '1') {
+                        $stmt = $db->prepare('DELETE FROM secdns WHERE domain_id = ?');
+                        $stmt->execute([$domain_id]);
+                        $stmt = $db->prepare('UPDATE domain SET upid = ?, lastupdate = CURRENT_TIMESTAMP(3) WHERE id = ?');
+                        $stmt->execute([$clid, $domain_id]);
+                    }
+                }
 
                 if (!empty($dsDataToRemove) && !empty($keyDataToRemove)) {
                     sendEppError($conn, $db, 2005, 'Provide either dsData or keyData, not both', $clTRID, $trans);
@@ -2495,7 +2523,7 @@ function processDomainUpdate($conn, $db, $xml, $clid, $database_type, $trans, in
                             return;
                         }
 
-                        $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
+                        $maxSigLife = $secdnsAdd->xpath('secDNS:maxSigLife') ? (int) $secdnsAdd->xpath('secDNS:maxSigLife')[0] : null;
 
                         // Data sanity checks
                         // Validate keyTag

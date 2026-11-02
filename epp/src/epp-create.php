@@ -1840,8 +1840,15 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                 storeAuthInfo($db, 'domain', (int)$domain_id, $authInfo_pw);
             }
 
-            $secDNSDataSet = $xml->xpath('//secDNS:dsData') ?? [];
+            $secDNSDataSet = $xml->xpath('//secDNS:create/secDNS:dsData') ?? [];
             $keyDataSet    = $xml->xpath('//secDNS:create/secDNS:keyData') ?? [];
+            $maxSigLifeNode = $xml->xpath('//secDNS:create/secDNS:maxSigLife')[0] ?? null;
+            $maxSigLife = $maxSigLifeNode !== null ? (int)$maxSigLifeNode : null;
+            if ($maxSigLifeNode !== null && $maxSigLife < 1) {
+                $db->rollBack();
+                sendEppError($conn, $db, 2005, 'Invalid secDNS:maxSigLife', $clTRID, $trans);
+                return;
+            }
 
             if (!empty($secDNSDataSet) && !empty($keyDataSet)) {
                 $db->rollBack();
@@ -1863,8 +1870,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
 
                     $tmp = $secDNSData->xpath('secDNS:digest');
                     $digest = isset($tmp[0]) ? (string)$tmp[0] : null;
-
-                    $maxSigLife = $secDNSData->xpath('secDNS:maxSigLife') ? (int) $secDNSData->xpath('secDNS:maxSigLife')[0] : null;
 
                     // Data sanity checks
                     // Validate keyTag
@@ -1974,8 +1979,6 @@ function processDomainCreate($conn, $db, $xml, $clid, $database_type, $trans, $m
                     $protocolStr = trim((string)($keyData->xpath('secDNS:protocol')[0] ?? ''));
                     $algStr      = trim((string)($keyData->xpath('secDNS:alg')[0] ?? ''));
                     $pubKey      = trim((string)($keyData->xpath('secDNS:pubKey')[0] ?? ''));
-
-                    $maxSigLife = isset($keyData) && $keyData->xpath('secDNS:maxSigLife') ? (int)$keyData->xpath('secDNS:maxSigLife')[0] : null;
 
                     if ($flagsStr === '' || !ctype_digit($flagsStr) ||
                         $protocolStr === '' || !ctype_digit($protocolStr) ||
