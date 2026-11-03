@@ -38,7 +38,12 @@ class RegistryApiController extends Controller
         }
         $secret = (string) envi('REGISTRY_API_JWT_SECRET', '');
         if (strlen($secret) < 32) {
-            return $response->withStatus(503);
+            $this->container->get('flash')->addMessage(
+                'error',
+                'Registry API is not configured. Set REGISTRY_API_JWT_SECRET in cp/.env to at least 32 random characters, then clear cache.'
+            );
+
+            return $response->withHeader('Location', '/dashboard')->withStatus(303);
         }
 
         $pdo = $this->container->get('pdo');
