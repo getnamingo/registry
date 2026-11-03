@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     `companyNumber` varchar(30) DEFAULT NULL,
     `vatNumber` varchar(30) DEFAULT NULL,
     `ssl_fingerprint` CHAR(64) DEFAULT NULL,
+    `api_key_id` CHAR(64) DEFAULT NULL,
     `crdate` datetime(3) NOT NULL,
     `lastupdate` TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),

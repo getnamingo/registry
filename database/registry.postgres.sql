@@ -120,6 +120,7 @@ CREATE TABLE registrar (
      "companyNumber" VARCHAR(30) DEFAULT NULL,
      "vatNumber" VARCHAR(30) DEFAULT NULL,
      "ssl_fingerprint" CHAR(64) DEFAULT NULL,
+     "api_key_id" CHAR(64) DEFAULT NULL,
      "crdate"   timestamp(3) without time zone NOT NULL,
      "lastupdate"   timestamp(3),
      unique ("clid"),

@@ -1,0 +1,27 @@
+{% extends "layouts/app.twig" %}
+{% block title %}{{ __('Registry API Key') }}{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-print-none"><div class="container-xl">
+    <h2 class="page-title">{{ __('Registry API Key') }}: {{ registrar.name }}</h2>
+  </div></div>
+  <div class="page-body"><div class="container-xl">
+    {% include 'partials/flash.twig' %}
+    <div class="card"><div class="card-body">
+      <p>{{ __('Use this key as a Bearer token with the read-only Registry API.') }}</p>
+      {% if apiKey %}
+        <label class="form-label" for="api-key">{{ __('API Key') }}</label>
+        <input class="form-control font-monospace mb-3" id="api-key" type="password" value="{{ apiKey }}" readonly autocomplete="off" spellcheck="false">
+        <button class="btn btn-outline-secondary mb-3" type="button" onclick="const e=document.getElementById('api-key');e.type=e.type==='password'?'text':'password'">{{ __('Show / Hide') }}</button>
+      {% else %}
+        <p class="text-muted">{{ __('No API key has been generated.') }}</p>
+      {% endif %}
+      <form method="post" action="{{ isAdmin ? '/registrar/api-key/' ~ registrar.clid : route('registrar.apiKey') }}">
+        {{ csrf.field | raw }}
+        <button class="btn btn-primary" type="submit" onclick="return confirm('Invalidate the previous API key?')">{{ apiKey ? __('Regenerate API Key') : __('Generate API Key') }}</button>
+      </form>
+      <p class="text-secondary small mt-3">{{ __('Regeneration immediately revokes the old key. Store the key securely and use HTTPS.') }}</p>
+    </div></div>
+  </div></div>
+</div>
+{% endblock %}

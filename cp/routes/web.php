@@ -31,6 +31,7 @@ use App\Controllers\SystemController;
 use App\Controllers\SupportController;
 use App\Controllers\MaintenanceController;
 use App\Controllers\DapiController;
+use App\Controllers\RegistryApiController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
 use Slim\Exception\HttpNotFoundException;
@@ -120,6 +121,8 @@ $app->group('', function ($route) {
     $route->map(['POST', 'DELETE'], '/registrar/updatepricing/{registrar}', RegistrarsController::class . ':updateCustomPricing')->setName('updateCustomPricing');
     $route->post('/registrar/update', RegistrarsController::class . ':updateRegistrarProcess')->setName('updateRegistrarProcess');
     $route->get('/registrar', RegistrarsController::class .':registrar')->setName('registrar');
+    $route->map(['GET', 'POST'], '/registrar/api-key', RegistryApiController::class . ':key')->setName('registrar.apiKey');
+    $route->map(['GET', 'POST'], '/registrar/api-key/{registrar}', RegistryApiController::class . ':key');
     $route->map(['GET', 'POST'], '/registrar/edit', RegistrarsController::class .':editRegistrar')->setName('editRegistrar');
     $route->get('/registrar/check', RegistrarsController::class . ':oteCheck')->setName('oteCheck');
     $route->map(['GET', 'POST'], '/registrar/transfer', RegistrarsController::class . ':transferRegistrar')->setName('transferRegistrar');
@@ -219,6 +222,38 @@ $app->group('', function ($route) {
     $route->get('/dapi/domain/price', [DapiController::class, 'domainPrice']);
 })->add(new AuthMiddleware($container));
 
+if (strlen((string) envi('REGISTRY_API_JWT_SECRET', '')) >= 32) {
+    $app->group('/registry-api', function ($route) {
+        $route->get('/availability', RegistryApiController::class . ':availability');
+        $route->get('/droplist', RegistryApiController::class . ':droplist');
+        $route->get('/registrars', RegistryApiController::class . ':registrars');
+    })->add(function ($request, $handler) use ($container) {
+        $claims = $request->getAttribute('token'); // Decoded by JimTools middleware.
+        if (is_array($claims) && ($claims['aud'] ?? null) === 'registry-api'
+            && is_string($claims['sub'] ?? null) && ctype_digit($claims['sub'])
+            && is_string($claims['jti'] ?? null)) {
+            $stmt = $container->get('pdo')->prepare('SELECT api_key_id FROM registrar WHERE id = ?');
+            $stmt->execute([$claims['sub']]);
+            $stored = $stmt->fetchColumn();
+            if (is_string($stored) && hash_equals($stored, $claims['jti'])) {
+                return $handler->handle($request);
+            }
+        }
+        return new Response(401, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store'], '{"error":"Unauthorized"}');
+    })->add(new \JimTools\JwtAuth\Middleware\JwtAuthentication(
+        new \JimTools\JwtAuth\Options(isSecure: false), // HTTPS is enforced at the reverse proxy.
+        new \JimTools\JwtAuth\Decoder\FirebaseDecoder(
+            new \JimTools\JwtAuth\Secret((string) envi('REGISTRY_API_JWT_SECRET'), 'HS256')
+        )
+    ))->add(function ($request, $handler) {
+        try {
+            return $handler->handle($request);
+        } catch (\JimTools\JwtAuth\Exceptions\AuthorizationException $e) {
+            return new Response(401, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store'], '{"error":"Unauthorized"}');
+        }
+    });
+}
+
 $app->any('/api[/{params:.*}]', function (
     ServerRequest $request,
     Response $response,
@@ -257,7 +292,7 @@ $app->any('/api[/{params:.*}]', function (
             return !in_array($tableName, $restrictedTables, true);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
-            if ($tableName == 'registrar' && $columnName == 'pw') {
+            if ($tableName == 'registrar' && in_array($columnName, ['pw', 'api_key_id'], true)) {
                 return false;
             }
             if ($tableName == 'users' && $columnName == 'password') {

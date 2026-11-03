@@ -37,7 +37,8 @@
         "moneyphp/money": "^4.9.0",
         "phpmailer/phpmailer": "^6.9.1",
         "robrichards/xmlseclibs": "^3.1.5",
-        "phpseclib/phpseclib": "^3.0.55"
+        "phpseclib/phpseclib": "^3.0.55",
+        "jimtools/jwt-auth": "^3.0"
     },
     "autoload": {
         "psr-4": {

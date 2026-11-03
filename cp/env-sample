@@ -5,6 +5,9 @@ APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
 MINIMUM_DATA=false
 
+# Enables read-only /registry-api when set; use at least 32 random characters.
+REGISTRY_API_JWT_SECRET=
+
 LANG=en_US
 UI_LANG=us
 
@@ -16,7 +19,6 @@ DB_PASSWORD=
 DB_PORT=3306
 
 #mailer settings (Driver = smtp, utopia or msg [for local message broker]; Api Provder = sendgrid or mailgun)
-
 MAIL_DRIVER=none
 MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=2525
