@@ -15,7 +15,7 @@
 
 date_default_timezone_set('UTC');
 
-use phpseclib\Net\SFTP;
+use phpseclib3\Net\SFTP;
 
 require __DIR__ . '/vendor/autoload.php';
 
