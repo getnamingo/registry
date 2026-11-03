@@ -93,8 +93,8 @@ if [ "$mode" = "all" ]; then
     esac
     poll_type=$(mariadb_query -e "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$audit_schema' AND TABLE_NAME='poll' AND COLUMN_NAME='msg_type';")
     case "$poll_type" in
-        ""|*"'maintenance'"*) ;;
-        *) audit_sql "ALTER TABLE \`poll\` MODIFY COLUMN \`msg_type\` ENUM('lowBalance','domainTransfer','contactTransfer','maintenance') DEFAULT NULL;" ;;
+        ""|*"'maintenance','launchFinal'"*) ;;
+        *) audit_sql "ALTER TABLE \`poll\` MODIFY COLUMN \`msg_type\` ENUM('lowBalance','domainTransfer','contactTransfer','maintenance','launchFinal') DEFAULT NULL;" ;;
     esac
 
     # An existing operator's audit.json may predate RFC 9167. Add only the
