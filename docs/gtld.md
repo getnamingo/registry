@@ -344,6 +344,8 @@ To enable TMCH support:
 - Edit the `tmch` section in `/opt/registry/automation/config.php`
 - Add the required credentials and API endpoints provided by the TMDB (TMCH Database provider)
 
+For Sunrise testing, ICANN provides [test Signed Mark Data (SMD) files](https://newgtlds.icann.org/en/about/trademark-clearinghouse/registries-registrars) under **Signed Mark Data Files → Testing Files**, including active, revoked, invalid, and IDN examples.
+
 Namingo will automatically pull TMCH records and store them in the registry database for use during sunrise validations and claims notices.
 
 ## 9. URS Integration
