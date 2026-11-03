@@ -75,8 +75,10 @@ class RegistryApiController extends Controller
             'jti' => $row['api_key_id'],
         ], $secret, 'HS256') : null;
 
+        $uri = $request->getUri()->getPath();
+
         return view($response, 'admin/registrars/apiKey.twig', [
-            'registrar' => $row, 'apiKey' => $token, 'isAdmin' => $admin,
+            'registrar' => $row, 'apiKey' => $token, 'isAdmin' => $admin, 'currentUri' => $uri,
         ])->withHeader('Cache-Control', 'no-store')
           ->withHeader('Referrer-Policy', 'no-referrer');
     }

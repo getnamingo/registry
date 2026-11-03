@@ -236,7 +236,96 @@ if (strlen((string) envi('REGISTRY_API_JWT_SECRET', '')) >= 32) {
             $stmt->execute([$claims['sub']]);
             $stored = $stmt->fetchColumn();
             if (is_string($stored) && hash_equals($stored, $claims['jti'])) {
-                return $handler->handle($request);
+                // REMOTE_ADDR is supplied by the web server; do not trust user-supplied X-Forwarded-For.
+                $ip = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? '');
+                $binary = @inet_pton($ip);
+                if ($binary === false) {
+                    return new Response(503, ['Content-Type' => 'application/json'], '{"error":"Client IP unavailable"}');
+                }
+
+                $stmt = $container->get('pdo')->prepare('SELECT addr FROM registrar_whitelist WHERE registrar_id = ?');
+                $stmt->execute([$claims['sub']]);
+                $whitelisted = false;
+                foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $entry) {
+                    [$address, $mask] = array_pad(explode('/', trim((string) $entry), 2), 2, null);
+                    $network = @inet_pton($address);
+                    if ($network === false || strlen($network) !== strlen($binary)) {
+                        continue;
+                    }
+                    if ($mask === null) {
+                        $whitelisted = ($network === $binary);
+                    } elseif (ctype_digit($mask) && (int) $mask <= strlen($binary) * 8) {
+                        $bytes = intdiv((int) $mask, 8);
+                        $bits = (int) $mask % 8;
+                        $whitelisted = substr($binary, 0, $bytes) === substr($network, 0, $bytes)
+                            && (!$bits || ((ord($binary[$bytes]) ^ ord($network[$bytes])) & (255 << (8 - $bits))) === 0);
+                    }
+                    if ($whitelisted) {
+                        break;
+                    }
+                }
+
+                // Fixed one-minute buckets, atomic on Redis; count cache hits too.
+                $ipLimit = $whitelisted ? 300 : 10;
+                $registrarLimit = $whitelisted ? 1200 : 60;
+                $minute = intdiv(time(), 60);
+                $prefix = 'registry-api:limit:' . $claims['sub'] . ':' . ($whitelisted ? 'trusted' : 'external') . ':' . $minute . ':';
+                $ipKey = $prefix . hash('sha256', $ip);
+                $registrarKey = $prefix . 'total';
+                try {
+                    $redis = $container->get('redis');
+                    $counts = $redis->multi()
+                        ->incr($ipKey)->expire($ipKey, 120)
+                        ->incr($registrarKey)->expire($registrarKey, 120)->exec();
+                    if (!is_array($counts) || !isset($counts[0], $counts[2])) {
+                        throw new \RuntimeException('Redis transaction failed');
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Registry API rate limit: ' . $e->getMessage());
+                    return new Response(503, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store'], '{"error":"API temporarily unavailable"}');
+                }
+                if ($counts[0] > $ipLimit || $counts[2] > $registrarLimit) {
+                    return new Response(429, [
+                        'Content-Type' => 'application/json', 'Cache-Control' => 'no-store',
+                        'Retry-After' => (string) (60 - time() % 60),
+                    ], '{"error":"Rate limit exceeded"}');
+                }
+
+                // Shared server-side cache; auth and rate checks always run before a cache hit.
+                $path = $request->getUri()->getPath();
+                $ttl = match ($path) {
+                    '/registry-api/availability' => 10,
+                    '/registry-api/droplist' => 300,
+                    '/registry-api/registrars' => 1800,
+                    default => 0,
+                };
+                $domain = $request->getQueryParams()['domain'] ?? '';
+                $cacheKey = 'registry-api:cache:v1:' . hash('sha256', $path . (
+                    $path === '/registry-api/availability' && is_string($domain) ? ':' . strtolower(trim($domain)) : ''
+                ));
+                if ($ttl) {
+                    try {
+                        $cached = $redis->get($cacheKey);
+                        if (is_string($cached)) {
+                            return new Response(200, ['Content-Type' => 'application/json; charset=utf-8',
+                                'Cache-Control' => 'no-store', 'X-Registry-Cache' => 'HIT'], $cached);
+                        }
+                    } catch (\Throwable $e) {
+                        // Cache failure must not bypass the enforced rate limit or prevent a live lookup.
+                    }
+                }
+                $response = $handler->handle($request);
+                if ($ttl && $response->getStatusCode() === 200) {
+                    $body = (string) $response->getBody();
+                    if (strlen($body) <= 2097152) {
+                        try {
+                            $redis->setex($cacheKey, $ttl, $body);
+                        } catch (\Throwable $e) {
+                            // Caching is best-effort; the validated live response is still returned.
+                        }
+                    }
+                }
+                return $response;
             }
         }
         return new Response(401, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store'], '{"error":"Unauthorized"}');

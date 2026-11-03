@@ -32,6 +32,8 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 
 - **DNS Interface**: Zone file generation with native DNSSEC signing for BIND 9.20 and Knot DNS 3.5, including RFC 9276-compliant NSEC3 support and optional offline KSK signing.
 
+- **Registry API**: Provides secure, JWT-authenticated REST API access to domain availability checks, domain droplists, and registrar list, with rate limiting, response caching, and registrar-specific API key management for integration with external systems and services.
+
 - **Database Compatibility**: Full support for both MariaDB and PostgreSQL, giving operators the flexibility to use either database backend.
 
 - **GDPR and NIS2 Support**: Includes features designed to support GDPR and NIS2 requirements, such as contact validation, encrypted data storage, access controls, and security-focused operational processes. See the [Encryption Guide](docs/encryption.md) for implementation details.
@@ -43,8 +45,6 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 ### Optional Components
 
 - [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding) – Provides a complete self-service onboarding workflow for new registrars, including application forms, electronic agreement signing, and online payment of application fees. Applications can then be reviewed and approved by registry staff before account activation, eliminating manual email exchanges, document handling, and duplicate data entry.
-
-- [**Domain Registry API**](https://github.com/getnamingo/registry-api) – Provides REST API access to domain availability checks and registry droplist data for integration with external systems and services.
 
 - [**ntfy.sh Error Notifier**](https://github.com/getnamingo/registry-ntfy) – Monitors the registry for newly reported high-severity errors and delivers real-time push notifications through ntfy.sh.
 
@@ -92,6 +92,8 @@ After installation, be sure to review all the guides in the Documentation sectio
 #### [DNS Setup](docs/dns.md) [Required]
 
 #### [Registrar Payments](docs/payment.md) [Required]
+
+#### [Registry API](docs/registry-api.md) [Optional]
 
 #### [gTLD-Specific Setup](docs/gtld.md) [gTLD Only]
 
