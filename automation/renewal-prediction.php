@@ -1,9 +1,16 @@
 <?php
 
 /*
- * Namingo Registry - manual, read-only renewal-volume forecast.
+ * Namingo Registry
+ *
+ * Copyright (c) 2023-2026 Taras Kondratyuk
+ * Copyright (c) 2025-2026 Namingo contributors
+ * Copyright (c) 2026 Terbora Ltd.
+ *
+ * Licensed under the MIT License.
+ * See the LICENSE file distributed with this software for the full license text.
+ *
  * SPDX-License-Identifier: MIT
- * Run from the repository root: php automation/renewal-prediction.php
  */
 
 use Rubix\ML\Datasets\Labeled;
@@ -26,7 +33,6 @@ for ($i = 0; $i < 37; $i++) {
     $monthKeys[$start->modify("+$i months")->format('Y-m')] = $i;
 }
 
-// MariaDB and PostgreSQL both support EXTRACT(). All queries are read-only.
 $dsn = "{$c['db_type']}:host={$c['db_host']};dbname={$c['db_database']};port={$c['db_port']}";
 try {
     $db = new PDO($dsn, $c['db_username'], $c['db_password'], [
