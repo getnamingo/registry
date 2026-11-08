@@ -128,8 +128,7 @@ fetch -qo - https://namingo.org/upgrade.sh | sh
 #### Docker
 
 ```bash
-./namingo upgrade --dry-run
-./namingo upgrade
+/opt/namingo-registry/namingo upgrade
 ```
 
 The command backs up the deployment, runs the required migrations, upgrades to the new release and verifies the stack. See the **[Docker Upgrade Guide](docs/docker.md#upgrade)**, including the one-time steps for installations created before this command existed.
