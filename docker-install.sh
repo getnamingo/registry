@@ -5,7 +5,7 @@ repository=${NAMINGO_REPOSITORY:-https://github.com/getnamingo/registry.git}
 reference=${NAMINGO_VERSION:-}
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-    install_dir=${NAMINGO_INSTALL_DIR:-/opt/namingo-registry}
+    install_dir=${NAMINGO_INSTALL_DIR:-/opt/registry}
 else
     install_dir=${NAMINGO_INSTALL_DIR:-${HOME}/namingo-registry}
 fi
