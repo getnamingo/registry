@@ -235,8 +235,7 @@ internal-only Docker network.
 ## Upgrade
 
 ```bash
-/opt/registry/namingo upgrade              # back up, migrate, upgrade, verify
-/opt/registry/namingo upgrade --dry-run    # optional preview, no changes
+/opt/namingo-registry/namingo upgrade
 ```
 
 `./namingo upgrade` moves the installation to the newest release (or to the
@@ -289,7 +288,7 @@ upgrades the checkout (including the `namingo` script itself) and from then on
 `./namingo upgrade` is available:
 
 ```bash
-cd /opt/registry    # or your installation directory
+cd /opt/namingo-registry    # or your installation directory
 curl -fsSL https://raw.githubusercontent.com/getnamingo/registry/main/namingo \
     -o namingo-upgrade
 bash ./namingo-upgrade upgrade --dry-run
