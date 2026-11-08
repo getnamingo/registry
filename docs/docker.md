@@ -235,8 +235,7 @@ internal-only Docker network.
 ## Upgrade
 
 ```bash
-./namingo upgrade --dry-run    # show what would happen, change nothing
-./namingo upgrade              # back up, migrate, upgrade, verify
+/opt/namingo-registry/namingo upgrade
 ```
 
 `./namingo upgrade` moves the installation to the newest release (or to the
