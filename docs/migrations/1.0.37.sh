@@ -14,6 +14,11 @@ die() {
 }
 
 upgrade_zone_writer_config() {
+    if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
+        log "Skipping host-only DNS configuration migration in Docker"
+        return 0
+    fi
+
     config_file="${NAMINGO_INSTALL_DIR:-/opt/registry}/automation/config.php"
     [ -f "$config_file" ] || die "Automation configuration not found: $config_file"
 
