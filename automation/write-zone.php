@@ -56,28 +56,36 @@ Coroutine::create(function () use ($pool, $log, $c) {
         $tlds = [];
         while (list($id, $tld) = $sth->fetch(PDO::FETCH_NUM)) {
             $cleanedTld = ltrim(strtolower($tld), '.');
+            $zoneConfig = $c['dns_zones'][$cleanedTld] ?? [];
+            // A per-zone NS list replaces the global list in full.
+            $nameservers = $zoneConfig['ns'] ?? $c['ns'];
+            if (!is_array($nameservers) || $nameservers === []) {
+                $log->error("No valid nameserver list configured for {$cleanedTld}; skipping zone.");
+                continue;
+            }
+            $soaConfig = $zoneConfig['soa'] ?? [];
             $zone = new Zone($cleanedTld.'.');
-            $zone->setDefaultTtl(3600);
+            $zone->setDefaultTtl($zoneConfig['ttl'] ?? 3600);
 
             $soa = new ResourceRecord;
             $soa->setName('@');
             $soa->setClass(Classes::INTERNET);
             $soa->setRdata(Factory::Soa(
-                $c['ns']['ns1'] . '.',
-                $c['dns_soa'] . '.',
+                rtrim($soaConfig['mname'] ?? $nameservers['ns1'] ?? reset($nameservers), '.') . '.',
+                rtrim($soaConfig['rname'] ?? $c['dns_soa'], '.') . '.',
                 $serial, 
-                900, 
-                1800, 
-                3600000, 
-                3600
+                $soaConfig['refresh'] ?? 900,
+                $soaConfig['retry'] ?? 1800,
+                $soaConfig['expire'] ?? 3600000,
+                $soaConfig['minimum'] ?? 3600
             ));
             $zone->addResourceRecord($soa);
 
-            foreach ($c['ns'] as $ns) {
+            foreach ($nameservers as $ns) {
                 $nsRecord = new ResourceRecord;
                 $nsRecord->setName($cleanedTld . '.');
                 $nsRecord->setClass(Classes::INTERNET);
-                $nsRecord->setRdata(Factory::Ns($ns . '.'));
+                $nsRecord->setRdata(Factory::Ns(rtrim($ns, '.') . '.'));
                 $zone->addResourceRecord($nsRecord);
             }
 

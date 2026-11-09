@@ -1060,9 +1060,10 @@ return [
         'ns2' => 'ns2.namingo.org', // Secondary name server
         // ... more name servers as needed ...
     ],
-    'dns_soa' => 'hostmaster.example.com', // SOA email address
+    'dns_soa' => 'hostmaster.example.com', // SOA mailbox in DNS notation (not user@host)
     'dns_serial' => 1, // change to 2 for YYYYMMDDXX format, and 3 for Cloudflare-like serial
     'zone_mode' => 'default', // How the BIND zone is generated, 'nice' is also available
+    'dns_zones' => [], // Optional per-zone NS, SOA and TTL overrides; see below
 
     // URS Configuration
     'urs_imap_host' => '{your_imap_server:993/imap/ssl}INBOX', // IMAP host for URS
@@ -1131,6 +1132,58 @@ return [
     'exchange_rate_currencies' => ["USD", "GBP", "JPY", "CAD", "AUD", "CHF"], // Configurable list
 ];
 ```
+
+#### Per-Zone Nameservers and SOA
+
+Add `dns_zones` to `/opt/registry/automation/config.php` to give each zone its
+own apex NS records, SOA fields and default TTL. Keys must be lowercase zone
+names without a leading or trailing dot, such as `example`, `com.example` or
+an ASCII punycode zone name, matching the zones in TLD Management.
+
+```php
+'dns_zones' => [
+    'example' => [
+        'ns' => [
+            'ns1' => 'ns1.example.net',
+            'ns2' => 'ns2.example.net',
+        ],
+        'soa' => [
+            'mname' => 'primary.example.net',
+            'rname' => 'hostmaster.example.net',
+            'refresh' => 900,
+            'retry' => 1800,
+            'expire' => 3600000,
+            'minimum' => 3600,
+        ],
+        'ttl' => 3600,
+    ],
+    'com.example' => [
+        'ns' => ['ns1' => 'a.other.net', 'ns2' => 'b.other.net'],
+        'soa' => ['rname' => 'dns-admin.other.net'],
+    ],
+],
+```
+
+Every override is optional. Zones without an entry retain the existing behavior.
+An `ns` override replaces the entire global NS list; it does not merge with it.
+Omitting `ns` uses the global list. SOA `mname` defaults to the effective list's
+`ns1`, or its first entry for a numeric list. SOA `rname` defaults to `dns_soa`;
+use DNS mailbox notation (`hostmaster.example.net` for
+`hostmaster@example.net`). NS, MNAME and RNAME hostnames may include a trailing dot.
+
+SOA timer defaults remain 900/1800/3600000/3600 seconds for
+refresh/retry/expire/minimum, and the default zone TTL remains 3600 seconds.
+The serial is still generated automatically using the global `dns_serial` policy.
+
+For Docker, put the same `dns_zones` array in
+`docker/config/automation.override.php` and rebuild with `./namingo update`.
+The existing override loader supports it without changes.
+
+No database, EPP, control-panel or DNSSEC changes are required. Configure each
+zone's transfers, NOTIFY targets and TSIG settings in BIND/Knot/Cascade as usual;
+changing apex NS records does not reconfigure the DNS server or parent delegation.
+For in-zone nameservers, supply their A/AAAA records through the existing
+`/opt/registry/automation/<zone>.php` custom-record mechanism when needed.
 
 ### Control Panel Configuration (`/var/www/cp/.env`)
 
