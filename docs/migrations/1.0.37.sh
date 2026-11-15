@@ -13,6 +13,38 @@ die() {
     exit 1
 }
 
+require_command() {
+    command -v "$1" >/dev/null 2>&1 \
+        || die "Required command not found: $1"
+}
+
+db_sql() {
+    database=${NAMINGO_DB_MAIN:-${NAMINGO_DB_NAME:-registry}}
+    case "$NAMINGO_DB_DRIVER" in
+        mariadb)
+            require_command mariadb
+            MYSQL_PWD=$NAMINGO_DB_PASSWORD mariadb \
+                --host="$NAMINGO_DB_HOST" --port="$NAMINGO_DB_PORT" \
+                --user="$NAMINGO_DB_USER" --database="$database"
+            ;;
+        pgsql)
+            require_command psql
+            PGPASSWORD=$NAMINGO_DB_PASSWORD psql \
+                --host="$NAMINGO_DB_HOST" --port="$NAMINGO_DB_PORT" \
+                --username="$NAMINGO_DB_USER" --dbname="$database" \
+                -X -v ON_ERROR_STOP=1
+            ;;
+        *) die "Unsupported database driver: $NAMINGO_DB_DRIVER" ;;
+    esac
+}
+
+upgrade_ticket_assignment() {
+    log "Adding internal support-ticket assignment"
+    db_sql <<'SQL'
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS assigned_to INT DEFAULT NULL;
+SQL
+}
+
 upgrade_zone_writer_config() {
     if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
         log "Skipping host-only DNS configuration migration in Docker"
@@ -80,6 +112,7 @@ case "$PHASE" in
     pre)
         ;;
     post)
+        upgrade_ticket_assignment
         upgrade_zone_writer_config
         ;;
     *)

@@ -72,6 +72,9 @@
                         <h3 class="card-title">{{ __('Ticket') }} #{{ ticket.id }} - {{ ticket.subject }}</h3>
                         <div class="card-actions">
                          {% if roles == 0 %}
+                           <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#assignTicketModal">
+                             {{ __('Assign to Staff') }}
+                           </button>
                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#transferTicketModal">
                              {{ __('Transfer Ticket') }}
                            </button>
@@ -107,6 +110,12 @@
                             <div class="datagrid-title">{{ __('Created On') }}</div>
                             <div class="datagrid-content"><strong>{{ ticket.date_created }}</strong></div>
                           </div>
+                          {% if roles == 0 %}
+                          <div class="datagrid-item">
+                            <div class="datagrid-title">{{ __('Assigned to') }}</div>
+                            <div class="datagrid-content">{{ ticket.assignee_name|default(__('Unassigned')) }}</div>
+                          </div>
+                          {% endif %}
                           {% if ticket.category_id == 8 %}
                           <div class="datagrid-item">
                             <div class="datagrid-title">{{ __('Date of Incident') }}</div>
@@ -289,6 +298,33 @@
         {% include 'partials/footer.twig' %}
       </div>
 {% if roles == 0 %}
+<div class="modal modal-blur fade" id="assignTicketModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <form action="/support/assign" method="post">
+        {{ csrf.field | raw }}
+        <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ __('Assign to Staff') }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+        </div>
+        <div class="modal-body">
+          <label for="assignStaff" class="form-label">{{ __('Assigned to') }}</label>
+          <select class="form-select" name="assigned_to" id="assignStaff">
+            <option value="">{{ __('Unassigned') }}</option>
+            {% for user in staff_users %}
+              <option value="{{ user.id }}"{% if ticket.assigned_to == user.id %} selected{% endif %}>{{ user.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+          <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 <div class="modal modal-blur fade" id="transferTicketModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
