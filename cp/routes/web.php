@@ -382,6 +382,11 @@ $app->any('/api[/{params:.*}]', function (
             return !in_array($tableName, $restrictedTables, true);
         },
         'authorization.columnHandler' => function ($operation, $tableName, $columnName) {
+            if ($tableName === 'support_tickets' && $columnName === 'assigned_to'
+                && !in_array($operation, ['list', 'read'], true)
+                && (int) ($_SESSION['auth_roles'] ?? -1) !== 0) {
+                return false;
+            }
             if ($tableName == 'registrar' && in_array($columnName, ['pw', 'api_key_id'], true)) {
                 return false;
             }
