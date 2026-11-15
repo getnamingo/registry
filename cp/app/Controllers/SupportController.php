@@ -152,9 +152,10 @@ class SupportController extends Controller
         // Get the current URI
         $uri = $request->getUri()->getPath();
         
-        $ticket = $db->selectRow('SELECT st.*, u.username AS ticket_creator, st.user_id 
+        $ticket = $db->selectRow('SELECT st.*, u.username AS ticket_creator, st.user_id, staff.username AS assignee_name
                 FROM support_tickets AS st 
                 JOIN users AS u ON st.user_id = u.id 
+                LEFT JOIN users AS staff ON st.assigned_to = staff.id
                 WHERE st.id = ?', [$ticketNumber]);
 
         if ($ticket) {
@@ -178,6 +179,10 @@ class SupportController extends Controller
                 ? $db->select('SELECT id, username, email FROM users WHERE status = 0 AND id != ? ORDER BY username', [$ticket['user_id']])
                 : [];
 
+            $staffUsers = (int) ($_SESSION['auth_roles'] ?? -1) === 0
+                ? $db->select('SELECT id, username FROM users WHERE status = 0 AND roles_mask = 0 ORDER BY username')
+                : [];
+
             $_SESSION['current_ticket'] = [$ticket['id']];
             return view($response,'admin/support/viewTicket.twig', [
                 'ticket' => $ticket,
@@ -186,6 +191,7 @@ class SupportController extends Controller
                 'currentUri' => $uri,
                 'domain_name' => $domainName,
                 'user_id' => $_SESSION['auth_user_id'],
+                'staff_users' => $staffUsers,
                 'transfer_users' => $transferUsers
             ]);
         } else {
@@ -365,6 +371,43 @@ class SupportController extends Controller
                 return $response->withHeader('Location', '/ticket/'.$ticket_id)->withStatus(302);
             }
         }
+    }
+
+    public function assignTicket(Request $request, Response $response)
+    {
+        if ((int) ($_SESSION['auth_roles'] ?? -1) !== 0) {
+            $this->container->get('flash')->addMessage('error', 'You do not have permission to perform this action');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        $data = $request->getParsedBody();
+        $ticketId = filter_var($data['ticket_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $assignedTo = ($data['assigned_to'] ?? null) === '' ? null
+            : filter_var($data['assigned_to'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if (!$ticketId || $assignedTo === false) {
+            $this->container->get('flash')->addMessage('error', 'Invalid ticket or administrator');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        $db = $this->container->get('db');
+        if (!$db->selectValue('SELECT id FROM support_tickets WHERE id = ?', [$ticketId])
+            || ($assignedTo !== null && !$db->selectValue('SELECT id FROM users WHERE id = ? AND status = 0 AND roles_mask = 0', [$assignedTo]))) {
+            $this->container->get('flash')->addMessage('error', 'Ticket or active administrator not found');
+            return $response->withHeader('Location', '/support')->withStatus(302);
+        }
+
+        try {
+            $db->update('support_tickets', [
+                'assigned_to' => $assignedTo,
+                'last_updated' => (new \DateTime())->format('Y-m-d H:i:s.v'),
+            ], ['id' => $ticketId]);
+        } catch (\Throwable $e) {
+            $this->container->get('flash')->addMessage('error', 'Unable to assign ticket');
+            return $response->withHeader('Location', '/ticket/'.$ticketId)->withStatus(302);
+        }
+
+        $this->container->get('flash')->addMessage('success', 'Ticket assignment has been updated successfully');
+        return $response->withHeader('Location', '/ticket/'.$ticketId)->withStatus(302);
     }
 
     public function transferTicket(Request $request, Response $response)

@@ -732,6 +732,7 @@ CREATE TABLE ticket_categories (
 CREATE TABLE support_tickets (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL, 
+    "assigned_to" INT DEFAULT NULL,
     "category_id" INTEGER NOT NULL,
     "subject" VARCHAR(255) NOT NULL,
     "message" TEXT NOT NULL,

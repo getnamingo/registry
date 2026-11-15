@@ -809,6 +809,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`ticket_categories` (
 CREATE TABLE IF NOT EXISTS `registry`.`support_tickets` (
     `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT(11) UNSIGNED NOT NULL, 
+    `assigned_to` INT DEFAULT NULL,
     `category_id` INT(11) UNSIGNED NOT NULL,
     `subject` VARCHAR(255) NOT NULL,
     `message` TEXT NOT NULL,
