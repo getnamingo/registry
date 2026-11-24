@@ -1067,6 +1067,8 @@ CREATE INDEX idx_domain_exdate ON registry.domain (exdate);
 CREATE INDEX idx_support_tickets_date_created ON registry.support_tickets (date_created);
 
 -- Namingo Registry ICANN Specification 3 event history for mariadb.
+USE `registry`;
+
 CREATE TABLE IF NOT EXISTS reporting_baseline (
   id INTEGER PRIMARY KEY,
   installed_at DATETIME(3) NOT NULL

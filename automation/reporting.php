@@ -223,12 +223,14 @@ SQL;
     foreach ($seen as $reg) ryCellIncrement($rows, $reg, 'total-nameservers');
 }
 
-/** Latest state may be deleted later. Test whether this registration survived its grace period. */
+/** Treat redemption as cancellation even when the domain is purged later. */
 function ryWasPurged(PDO $db, string $name, string $crdate, string $until): bool
 {
     static $q = null;
     $q ??= $db->prepare("SELECT COUNT(*) FROM reporting_domain_event
-        WHERE name = :name AND crdate = :created AND action = 'delete' AND event_time < :until");
+        WHERE name = :name AND crdate = :created AND event_time < :until
+        AND (action = 'delete' OR (action = 'update' AND rgpstatus = 'redemptionPeriod'
+            AND (prev_rgpstatus IS NULL OR prev_rgpstatus <> 'redemptionPeriod')))");
     $q->execute(['name' => $name, 'created' => $crdate, 'until' => $until]);
     return (int)$q->fetchColumn() > 0;
 }
@@ -272,9 +274,11 @@ function ryLedger(PDO $db, string $start, string $end, int $tldId, string $tld,
 function ryCreationDate(PDO $db, string $name, string $at): string
 {
     static $q = null;
+    // On PostgreSQL, statement.date and domain.crdate share transaction time,
+    // but the AFTER trigger's clock_timestamp() is later than both.
     $q ??= $db->prepare("SELECT crdate FROM reporting_domain_event
-        WHERE name = :name AND action <> 'delete' AND event_time <= :at
-        ORDER BY id DESC LIMIT 1");
+        WHERE name = :name AND action <> 'delete' AND crdate <= :at
+        ORDER BY crdate DESC, id DESC LIMIT 1");
     $q->execute(['name' => $name, 'at' => $at]);
     $v = $q->fetchColumn();
     if ($v === false) throw new RuntimeException("Missing domain history for $name");
@@ -391,18 +395,18 @@ function ryParseFrame(?string $xml): array
 function rySrs(PDO $tx, string $table, string $start, string $end, array $tlds,
     array &$activity, array &$transactions): void
 {
-    $q = $tx->prepare("SELECT registrar_id, cmd, obj_type, obj_id, clTRIDframe, code
+    $q = $tx->prepare("SELECT registrar_id, cmd, obj_type, obj_id, clTRIDframe AS frame_xml, code
         FROM $table WHERE svdate >= :start AND svdate < :end AND code IS NOT NULL");
     $q->execute(['start' => $start, 'end' => $end]);
     foreach ($q as $v) {
-        [$cmd, $op, $names] = ryParseFrame($v['clTRIDframe']);
+        [$cmd, $op, $names] = ryParseFrame($v['frame_xml']);
         $cmd ??= $v['cmd'];
         $object = $v['obj_type'];
         // Failed requests may not have an obj_type in the log. Determine it from the XML.
         if (!in_array($object, ['domain','host','contact'], true)) {
-            if (str_contains((string)$v['clTRIDframe'], 'urn:ietf:params:xml:ns:domain-1.0')) $object = 'domain';
-            elseif (str_contains((string)$v['clTRIDframe'], 'urn:ietf:params:xml:ns:host-1.0')) $object = 'host';
-            elseif (str_contains((string)$v['clTRIDframe'], 'urn:ietf:params:xml:ns:contact-1.0')) $object = 'contact';
+            if (str_contains((string)$v['frame_xml'], 'urn:ietf:params:xml:ns:domain-1.0')) $object = 'domain';
+            elseif (str_contains((string)$v['frame_xml'], 'urn:ietf:params:xml:ns:host-1.0')) $object = 'host';
+            elseif (str_contains((string)$v['frame_xml'], 'urn:ietf:params:xml:ns:contact-1.0')) $object = 'contact';
         }
         $prefix = match ($object) {'domain' => 'srs-dom-', 'host' => 'srs-host-',
             'contact' => 'srs-cont-', default => null};
