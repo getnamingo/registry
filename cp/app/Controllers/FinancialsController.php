@@ -1587,22 +1587,30 @@ class FinancialsController extends Controller
 
     private function paymentContextFromRequest(Request $request, string $gateway): array
     {
+        $userId = filter_var(
+            $_SESSION['auth_user_id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
         $registrarId = filter_var(
             $_SESSION['auth_registrar_id'] ?? null,
             FILTER_VALIDATE_INT,
             ['options' => ['min_range' => 1]]
         );
-        if ($registrarId === false) {
+        if ($userId === false || $registrarId === false) {
             throw new \InvalidArgumentException('You must be signed in to create a payment.');
         }
 
         $db = $this->container->get('db');
         $user = $db->selectRow(
-            'SELECT id, email, username FROM users WHERE id = ? LIMIT 1',
-            [$registrarId]
+            'SELECT u.id, u.email, u.username
+             FROM users u
+             JOIN registrar_users ru ON ru.user_id = u.id
+             WHERE u.id = ? AND ru.registrar_id = ? LIMIT 1',
+            [$userId, $registrarId]
         );
         if (!$user) {
-            throw new \InvalidArgumentException('Payment user was not found.');
+            throw new \InvalidArgumentException('Payment user is not linked to this registrar.');
         }
 
         $currency = strtoupper(trim((string)$_SESSION['_currency']));
@@ -1620,6 +1628,8 @@ class FinancialsController extends Controller
         $description = 'Account balance deposit';
 
         $amountMinor = $this->amountToMinor($amount);
+        // Payment context stores the registrar ID for webhook settlement;
+        // the signed-in panel user is validated through registrar_users above.
         $token = $this->encodePaymentContext($gateway, [
             'user_id' => $registrarId,
             'type' => $type,
