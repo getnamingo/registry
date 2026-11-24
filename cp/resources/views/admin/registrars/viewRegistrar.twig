@@ -118,7 +118,7 @@
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Credit Threshold') }}</div>
-                      <div class="datagrid-content">{{ registrar.currency }} {{ registrar.creditThreshold }}</div>
+                      <div class="datagrid-content">{% if registrar.thresholdType == 'percent' %}{{ registrar.creditThreshold }}%{% else %}{{ registrar.currency }} {{ registrar.creditThreshold }}{% endif %}</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">{{ __('Threshold Type') }}</div>

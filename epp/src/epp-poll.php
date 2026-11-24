@@ -41,7 +41,7 @@ function launchOriginalTransaction($db, int $registrarId, string $name, string $
     }
 }
 
-function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated) {
+function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated, bool $balancePollSupported) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
 
@@ -96,10 +96,7 @@ function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiate
         // $op === 'req'
         $stmt = $db->prepare('SELECT id, qdate, msg, msg_type, obj_name_or_id,
             obj_trStatus AS "obj_trStatus", obj_reID AS "obj_reID", obj_reDate AS "obj_reDate",
-            obj_acID AS "obj_acID", obj_acDate AS "obj_acDate", obj_exDate AS "obj_exDate",
-            registrarName AS "registrarName", creditLimit AS "creditLimit",
-            creditThreshold AS "creditThreshold", creditThresholdType AS "creditThresholdType",
-            availableCredit AS "availableCredit"
+            obj_acID AS "obj_acID", obj_acDate AS "obj_acDate", obj_exDate AS "obj_exDate"
             FROM poll WHERE registrar_id = :registrar_id ORDER BY id ASC LIMIT 1');
         $stmt->execute([':registrar_id' => $clid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -162,11 +159,39 @@ function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiate
     $response['qDate'] = $qdate;
 
     if ($response['poll_msg_type'] === 'lowBalance') {
-        $response['registrarName'] = $result['registrarName'];
-        $response['creditLimit'] = $result['creditLimit'];
-        $response['creditThreshold'] = $result['creditThreshold'];
-        $response['creditThresholdType'] = $result['creditThresholdType'];
-        $response['availableCredit'] = $result['availableCredit'];
+        // Old clients can still ack a plain text alert without negotiating Balance.
+        $response['msg'] = 'Low Balance';
+        if ($balancePollSupported) {
+        try {
+            $snapshot = json_decode((string)($result['msg'] ?? ''), true);
+            if (is_array($snapshot) && ($snapshot['mapping'] ?? null) === 'balance-0.4') {
+                $response['balance'] = array_intersect_key($snapshot, array_flip([
+                    'currency', 'balanceAvailable', 'creditLine', 'cashBalance',
+                    'notificationThreshold', 'executionLimit'
+                ]));
+                $currency = (string)($response['balance']['currency'] ?? '');
+                if (!preg_match('/^[A-Z]{3}$/D', $currency) ||
+                    !(new \Money\Currencies\ISOCurrencies())->contains(new \Money\Currency($currency))) {
+                    throw new UnexpectedValueException('Invalid low-balance currency');
+                }
+                foreach (['balanceAvailable', 'creditLine', 'cashBalance', 'executionLimit', 'notificationThreshold'] as $key) {
+                    if (!isset($response['balance'][$key]) ||
+                        !preg_match('/^-?[0-9]+(?:\.[0-9]{1,2})?$/D', (string)$response['balance'][$key])) {
+                        throw new UnexpectedValueException('Invalid low-balance snapshot');
+                    }
+                }
+            } else {
+                // Old queued notifications contain no complete cash snapshot.
+                $response['balance'] = registrarEppBalance($db, (int)$clid);
+            }
+        } catch (Throwable $e) {
+            $response['balance'] = null;
+        }
+        if ($response['balance'] === null) {
+            sendEppError($conn, $db, 2400, 'Balance data unavailable', $clTRID, $trans);
+            return;
+        }
+        }
     } elseif ($response['poll_msg_type'] === 'domainTransfer') {
         $response['name'] = $result['obj_name_or_id'];
         $response['obj_trStatus'] = $result['obj_trStatus'];

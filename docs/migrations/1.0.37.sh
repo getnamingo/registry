@@ -86,6 +86,115 @@ SQL
     esac
 }
 
+upgrade_balance_mapping() {
+    log "Installing transactional balance poll triggers"
+    case "$NAMINGO_DB_DRIVER" in
+        mariadb)
+            db_sql <<'SQL'
++DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_update`;
+DELIMITER //
+CREATE TRIGGER `registry`.`registrar_balance_low_insert`
+AFTER INSERT ON `registry`.`registrar` FOR EACH ROW
+BEGIN
+    DECLARE new_threshold DECIMAL(24,2);
+    SET new_threshold = IF(NEW.thresholdType = 'percent',
+        ROUND(NEW.creditLimit * NEW.creditThreshold / 100, 2), NEW.creditThreshold);
+    IF NEW.accountBalance <= new_threshold THEN
+        INSERT INTO `registry`.`poll` (registrar_id, qdate, msg_type, msg)
+        VALUES (NEW.id, UTC_TIMESTAMP(3), 'lowBalance',
+            JSON_OBJECT(
+                'mapping', 'balance-0.4',
+                'currency', NEW.currency,
+                'balanceAvailable', CAST(NEW.accountBalance + NEW.creditLimit AS CHAR),
+                'creditLine', CAST(NEW.creditLimit AS CHAR),
+                'cashBalance', CAST(NEW.accountBalance AS CHAR),
+                'executionLimit', CAST(-NEW.creditLimit AS CHAR),
+                'notificationThreshold', CAST(new_threshold AS CHAR)
+            ));
+    END IF;
+END//
+
+CREATE TRIGGER `registry`.`registrar_balance_low_update`
+AFTER UPDATE ON `registry`.`registrar` FOR EACH ROW
+BEGIN
+    DECLARE old_threshold DECIMAL(24,2);
+    DECLARE new_threshold DECIMAL(24,2);
+    SET old_threshold = IF(OLD.thresholdType = 'percent',
+        ROUND(OLD.creditLimit * OLD.creditThreshold / 100, 2), OLD.creditThreshold);
+    SET new_threshold = IF(NEW.thresholdType = 'percent',
+        ROUND(NEW.creditLimit * NEW.creditThreshold / 100, 2), NEW.creditThreshold);
+    IF OLD.accountBalance > old_threshold AND NEW.accountBalance <= new_threshold THEN
+        INSERT INTO `registry`.`poll` (registrar_id, qdate, msg_type, msg)
+        VALUES (NEW.id, UTC_TIMESTAMP(3), 'lowBalance',
+            JSON_OBJECT(
+                'mapping', 'balance-0.4',
+                'currency', NEW.currency,
+                'balanceAvailable', CAST(NEW.accountBalance + NEW.creditLimit AS CHAR),
+                'creditLine', CAST(NEW.creditLimit AS CHAR),
+                'cashBalance', CAST(NEW.accountBalance AS CHAR),
+                'executionLimit', CAST(-NEW.creditLimit AS CHAR),
+                'notificationThreshold', CAST(new_threshold AS CHAR)
+            ));
+    END IF;
+END//
+DELIMITER ;
+SQL
+            ;;
+        pgsql)
+            db_sql <<'SQL'
++CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    old_threshold numeric;
+    new_threshold numeric;
+BEGIN
+    new_threshold := CASE WHEN NEW.thresholdtype = 'percent'
+        THEN ROUND(NEW.creditlimit * NEW.creditthreshold / 100, 2)
+        ELSE NEW.creditthreshold END;
+
+    IF TG_OP = 'UPDATE' THEN
+        old_threshold := CASE WHEN OLD.thresholdtype = 'percent'
+            THEN ROUND(OLD.creditlimit * OLD.creditthreshold / 100, 2)
+            ELSE OLD.creditthreshold END;
+        IF NOT (OLD.accountbalance > old_threshold AND NEW.accountbalance <= new_threshold) THEN
+            RETURN NEW;
+        END IF;
+    ELSIF NEW.accountbalance > new_threshold THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO poll (registrar_id, qdate, msg_type, msg)
+    VALUES (NEW.id, timezone('UTC', clock_timestamp()), 'lowBalance',
+        json_build_object(
+            'mapping', 'balance-0.4',
+            'currency', NEW.currency,
+            'balanceAvailable', (NEW.accountbalance + NEW.creditlimit)::text,
+            'creditLine', NEW.creditlimit::text,
+            'cashBalance', NEW.accountbalance::text,
+            'executionLimit', (-NEW.creditlimit)::text,
+            'notificationThreshold', new_threshold::text
+        )::text);
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS registrar_balance_low_insert ON registrar;
+CREATE TRIGGER registrar_balance_low_insert
+AFTER INSERT ON registrar FOR EACH ROW
+EXECUTE FUNCTION registrar_balance_low_poll();
+
+DROP TRIGGER IF EXISTS registrar_balance_low_update ON registrar;
+CREATE TRIGGER registrar_balance_low_update
+AFTER UPDATE OF accountbalance, creditlimit, creditthreshold, thresholdtype
+ON registrar FOR EACH ROW
+EXECUTE FUNCTION registrar_balance_low_poll();
+SQL
+            ;;
+        *) die "Unsupported database driver: $NAMINGO_DB_DRIVER" ;;
+    esac
+}
+
 upgrade_zone_writer_config() {
     if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
         log "Skipping host-only DNS configuration migration in Docker"
@@ -155,6 +264,7 @@ case "$PHASE" in
     post)
         upgrade_ticket_assignment
         upgrade_registrar_onboarding
+        upgrade_balance_mapping
         upgrade_zone_writer_config
         ;;
     *)

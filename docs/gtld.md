@@ -481,7 +481,7 @@ Ensure the following EPP extensions are **disabled** (i.e., `"enabled": false`) 
   "urn:ietf:params:xml:ns:mark-1.0": {
     "enabled": false
   },
-  "https://namingo.org/epp/funds-1.0": {
+  "urn:ietf:params:xml:ns:epp:balance-0.4": {
     "enabled": false
   },
   "https://namingo.org/epp/identica-1.0": {

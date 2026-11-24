@@ -224,6 +224,55 @@ CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     CONSTRAINT `poll_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='poll';
 
++DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_update`;
+DELIMITER //
+CREATE TRIGGER `registry`.`registrar_balance_low_insert`
+AFTER INSERT ON `registry`.`registrar` FOR EACH ROW
+BEGIN
+    DECLARE new_threshold DECIMAL(24,2);
+    SET new_threshold = IF(NEW.thresholdType = 'percent',
+        ROUND(NEW.creditLimit * NEW.creditThreshold / 100, 2), NEW.creditThreshold);
+    IF NEW.accountBalance <= new_threshold THEN
+        INSERT INTO `registry`.`poll` (registrar_id, qdate, msg_type, msg)
+        VALUES (NEW.id, UTC_TIMESTAMP(3), 'lowBalance',
+            JSON_OBJECT(
+                'mapping', 'balance-0.4',
+                'currency', NEW.currency,
+                'balanceAvailable', CAST(NEW.accountBalance + NEW.creditLimit AS CHAR),
+                'creditLine', CAST(NEW.creditLimit AS CHAR),
+                'cashBalance', CAST(NEW.accountBalance AS CHAR),
+                'executionLimit', CAST(-NEW.creditLimit AS CHAR),
+                'notificationThreshold', CAST(new_threshold AS CHAR)
+            ));
+    END IF;
+END//
+
+CREATE TRIGGER `registry`.`registrar_balance_low_update`
+AFTER UPDATE ON `registry`.`registrar` FOR EACH ROW
+BEGIN
+    DECLARE old_threshold DECIMAL(24,2);
+    DECLARE new_threshold DECIMAL(24,2);
+    SET old_threshold = IF(OLD.thresholdType = 'percent',
+        ROUND(OLD.creditLimit * OLD.creditThreshold / 100, 2), OLD.creditThreshold);
+    SET new_threshold = IF(NEW.thresholdType = 'percent',
+        ROUND(NEW.creditLimit * NEW.creditThreshold / 100, 2), NEW.creditThreshold);
+    IF OLD.accountBalance > old_threshold AND NEW.accountBalance <= new_threshold THEN
+        INSERT INTO `registry`.`poll` (registrar_id, qdate, msg_type, msg)
+        VALUES (NEW.id, UTC_TIMESTAMP(3), 'lowBalance',
+            JSON_OBJECT(
+                'mapping', 'balance-0.4',
+                'currency', NEW.currency,
+                'balanceAvailable', CAST(NEW.accountBalance + NEW.creditLimit AS CHAR),
+                'creditLine', CAST(NEW.creditLimit AS CHAR),
+                'cashBalance', CAST(NEW.accountBalance AS CHAR),
+                'executionLimit', CAST(-NEW.creditLimit AS CHAR),
+                'notificationThreshold', CAST(new_threshold AS CHAR)
+            ));
+    END IF;
+END//
+DELIMITER ;
+
 CREATE TABLE IF NOT EXISTS `registry`.`payment_history` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `registrar_id` int(10) unsigned NOT NULL,

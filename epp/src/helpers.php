@@ -246,7 +246,8 @@ function sendGreeting($conn, Swoole\Table $eppExtensionsTable, bool $secureAuthI
     
     $extensions = [];
     foreach ($eppExtensionsTable as $urn => $row) {
-        if ($urn !== 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0') {
+        if ($urn !== 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0' &&
+            $urn !== 'urn:ietf:params:xml:ns:epp:balance-0.4') {
             $extensions[] = $urn;
         }
     }
@@ -260,12 +261,13 @@ function sendGreeting($conn, Swoole\Table $eppExtensionsTable, bool $secureAuthI
         'svDate' => $currentDate,
         'version' => '1.0',
         'lang' => 'en',
-        'services' => [
+        'services' => array_merge([
             'urn:ietf:params:xml:ns:domain-1.0',
             'urn:ietf:params:xml:ns:contact-1.0',
             'urn:ietf:params:xml:ns:host-1.0',
             'urn:ietf:params:xml:ns:epp:maintenance-1.0'
-        ],
+        ], $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4')
+            ? ['urn:ietf:params:xml:ns:epp:balance-0.4'] : []),
         'extensions' => $extensions,
         'dcp' => [ // Data Collection Policy (optional)
             'access' => ['all'],
@@ -280,6 +282,30 @@ function sendGreeting($conn, Swoole\Table $eppExtensionsTable, bool $secureAuthI
     $epp = new EPP\EppWriter();
     $xml = $epp->epp_writer($response);
     sendEppResponse($conn, $xml);
+}
+
+/** Return one single-currency balance, using database decimal arithmetic. */
+function registrarEppBalance($db, int $registrarId): ?array {
+    $stmt = $db->prepare('SELECT currency,
+        accountBalance AS "cashBalance", creditLimit AS "creditLine",
+        (accountBalance + creditLimit) AS "balanceAvailable",
+        (0 - creditLimit) AS "executionLimit",
+        CASE WHEN thresholdType = 'percent'
+            THEN ROUND(creditLimit * creditThreshold / 100, 2)
+            ELSE creditThreshold END AS "notificationThreshold"
+        FROM registrar WHERE id = :id LIMIT 1');
+    $stmt->execute(['id' => $registrarId]);
+    $balance = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
+    if (!$balance) {
+        return null;
+    }
+    $currency = (string)$balance['currency'];
+    if (!preg_match('/^[A-Z]{3}$/D', $currency) ||
+        !(new \Money\Currencies\ISOCurrencies())->contains(new \Money\Currency($currency))) {
+        throw new UnexpectedValueException('Invalid ISO 4217 registrar currency');
+    }
+    return $balance;
 }
 
 function sendEppError($conn, $db, $code, $msg, $clTRID = "000", $trans = "0", bool $newPWError = false) {

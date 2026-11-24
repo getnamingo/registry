@@ -433,12 +433,17 @@ try {
         $xml->writeElementNS('rdeEppParams', 'version', null, '1.0');
         $xml->writeElementNS('rdeEppParams', 'lang', null, 'en');
 
-        // Add objURI elements
+        // Balance is an EPP object mapping, not an svcExtension.
+        $config = json_decode(@file_get_contents('/opt/registry/epp/extensions.json'), true);
+        $balanceNs = 'urn:ietf:params:xml:ns:epp:balance-0.4';
         $uriArray = [
             'urn:ietf:params:xml:ns:domain-1.0',
             'urn:ietf:params:xml:ns:contact-1.0',
             'urn:ietf:params:xml:ns:host-1.0'
         ];
+        if (!is_array($config) || !empty($config[$balanceNs]['enabled'])) {
+            $uriArray[] = $balanceNs;
+        }
 
         foreach ($uriArray as $uri) {
             $xml->writeElementNS('rdeEppParams', 'objURI', null, $uri);
@@ -447,22 +452,16 @@ try {
         // Start of svcExtension
         $xml->startElementNS('rdeEppParams', 'svcExtension', null);
         $extUriArray = [];
-        if (file_exists('/opt/registry/epp/extensions.json')) {
-            $json = file_get_contents('/opt/registry/epp/extensions.json');
-            $data = json_decode($json, true);
-
-            if (is_array($data)) {
-                foreach ($data as $urn => $ext) {
-                    if (!empty($ext['enabled'])) {
-                        $extUriArray[] = $urn;
-                    }
+        if (is_array($config)) {
+            foreach ($config as $urn => $ext) {
+                if ($urn !== $balanceNs && !empty($ext['enabled'])) {
+                    $extUriArray[] = $urn;
                 }
             }
         }
         // Fallback to hardcoded list if needed
         if (empty($extUriArray)) {
             $extUriArray = [
-                'https://namingo.org/epp/funds-1.0',
                 'https://namingo.org/epp/identica-1.0',
                 'urn:ietf:params:xml:ns:secDNS-1.1',
                 'urn:ietf:params:xml:ns:rgp-1.0',

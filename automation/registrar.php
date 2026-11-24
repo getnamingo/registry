@@ -59,7 +59,8 @@ if ($row) {
 
 // Define the query
 $sql = 'SELECT id, clid, name, accountBalance AS "accountBalance",
-        creditThreshold AS "creditThreshold", creditLimit AS "creditLimit", email, currency
+        creditThreshold AS "creditThreshold", thresholdType AS "thresholdType",
+        creditLimit AS "creditLimit", email, currency
         FROM registrar';
 
 try {
@@ -67,14 +68,17 @@ try {
 
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $balance = (float)$row['accountBalance'];
-        $threshold = (float)$row['creditThreshold'];
         $creditLimit = (float)$row['creditLimit'];
+        $threshold = $row['thresholdType'] === 'percent'
+            ? round($creditLimit * (float)$row['creditThreshold'] / 100, 2)
+            : (float)$row['creditThreshold'];
+        $row['notificationThreshold'] = number_format($threshold, 2, '.', '');
 
         if (($balance + $creditLimit) < 0) {
             sendEmail($row, 'over_limit', $log, $supportEmail, $supportPhoneNumber, $registryName);
         } elseif ($balance == 0) {
             sendEmail($row, 'zero_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
-        } elseif ($balance < $threshold) {
+        } elseif ($balance <= $threshold) {
             sendEmail($row, 'low_balance', $log, $supportEmail, $supportPhoneNumber, $registryName);
         }
     }
@@ -94,7 +98,7 @@ function sendEmail($data, $case, $log, $supportEmail, $supportPhoneNumber, $regi
         case 'low_balance':
             $subject = "Low balance alert for registrar: " . $data['clid'];
             $alertTitle = 'Low Balance Alert';
-            $alertMessage = "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is below the minimum credit threshold of {$data['currency']} {$data['creditThreshold']}.";
+            $alertMessage = "We are writing to inform you that your account with us currently has a low balance. As of now, your account balance is {$data['currency']} {$data['accountBalance']}, which is at or below the credit threshold of {$data['currency']} {$data['notificationThreshold']}.";
             break;
 
         case 'zero_balance':

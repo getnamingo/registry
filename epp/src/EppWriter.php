@@ -41,7 +41,7 @@ class EppWriter {
         'create_host' => '_create_host',
         'delete_host' => '_common',
         'info_host' => '_info_host',
-        'info_funds' => '_info_funds',
+        'info_balance' => '_info_balance',
         'info_maintenance' => '_info_maintenance',
         'update_host' => '_common',
         'poll' => '_poll',
@@ -476,20 +476,8 @@ class EppWriter {
             $writer->text($resp['msg']);
             $writer->endElement(); // End of 'msg'
             $writer->endElement();  // End of 'msgQ'
-            if ($resp['poll_msg_type'] === 'lowBalance') {
-                $writer->startElement('resData');
-                    $writer->startElement('lowbalance-poll:pollData');
-                    $writer->writeAttribute('xmlns:lowbalance-poll', 'http://www.verisign.com/epp/lowbalance-poll-1.0');
-                    $writer->writeAttribute('xsi:schemaLocation', 'http://www.verisign.com/epp/lowbalance-poll-1.0 lowbalance-poll-1.0.xsd');
-                    $writer->writeElement('lowbalance-poll:registrarName', $resp['registrarName']);
-                    $writer->writeElement('lowbalance-poll:creditLimit', $resp['creditLimit']);
-                    $writer->startElement('lowbalance-poll:creditThreshold');
-                    $writer->writeAttribute('type', $resp['creditThresholdType']);
-                    $writer->text($resp['creditThreshold']);
-                    $writer->endElement(); // End of 'lowbalance-poll:creditThreshold'
-                    $writer->writeElement('lowbalance-poll:availableCredit', $resp['availableCredit']);
-                    $writer->endElement();  // End of 'lowbalance-poll:pollData'
-                $writer->endElement();  // End of 'resData'
+            if ($resp['poll_msg_type'] === 'lowBalance' && isset($resp['balance'])) {
+                $this->_balanceInfData($writer, $resp['balance']);
             } elseif ($resp['poll_msg_type'] === 'domainTransfer') {
                 $writer->startElement('resData');
                     $writer->startElement('domain:trnData');
@@ -1444,33 +1432,34 @@ class EppWriter {
         $this->_postamble($writer, $resp);
     }
 
-    private function _info_funds($writer, $resp) {
+    private function _info_balance($writer, $resp) {
         $this->_preamble($writer, $resp);
-        
         if ($this->epp_success($resp['resultCode'])) {
-            $writer->startElement('resData');
-                $writer->startElement('funds:infData');
-                $writer->writeAttribute('xmlns:funds', 'https://namingo.org/epp/funds-1.0');
-                $writer->writeAttribute('xsi:schemaLocation', 'https://namingo.org/epp/funds-1.0 funds-1.0.xsd');
-                
-                $writer->writeElement('funds:balance', $resp['funds']);
-                $writer->writeElement('funds:currency', $resp['currency']);
-                $writer->writeElement('funds:availableCredit', $resp['availableCredit']);
-                $writer->writeElement('funds:creditLimit', $resp['creditLimit']);
-                
-                $writer->startElement('funds:creditThreshold');
-                if ($resp['thresholdType'] === 'fixed') {
-                    $writer->writeElement('funds:fixed', $resp['creditThreshold']);
-                } elseif ($resp['thresholdType'] === 'percent') {
-                    $writer->writeElement('funds:percent', $resp['creditThreshold']);
-                }
-                $writer->endElement();  // End of 'funds:creditThreshold'
-                
-                $writer->endElement();  // End of 'funds:infData'
-            $writer->endElement();  // End of 'resData'
+            $this->_balanceInfData($writer, $resp['balance']);
         }
-
         $this->_postamble($writer, $resp);
+    }
+
+    private function _balanceInfData($writer, array $balance): void {
+        $writer->startElement('resData');
+        $writer->startElement('balance:infData');
+        $writer->writeAttribute('xmlns:balance', 'urn:ietf:params:xml:ns:epp:balance-0.4');
+        $writer->startElement('balance:balance');
+        $writer->writeElement('balance:currency', $balance['currency']);
+        $writer->writeElement('balance:balanceAvailable', $balance['balanceAvailable']);
+        $writer->writeElement('balance:creditLine', $balance['creditLine']);
+        $writer->writeElement('balance:cashBalance', $balance['cashBalance']);
+        $writer->startElement('balance:executionLimit');
+        $writer->writeAttribute('basedOn', 'cashBalance');
+        $writer->text($balance['executionLimit']);
+        $writer->endElement();
+        $writer->startElement('balance:notificationThreshold');
+        $writer->writeAttribute('basedOn', 'cashBalance');
+        $writer->text($balance['notificationThreshold']);
+        $writer->endElement();
+        $writer->endElement(); // balance:balance
+        $writer->endElement(); // balance:infData
+        $writer->endElement(); // resData
     }
 
 }

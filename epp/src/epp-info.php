@@ -810,50 +810,30 @@ function processDomainInfo($conn, $db, $xml, $clid, $trans) {
 
 }
 
-function processFundsInfo($conn, $db, $xml, $clid, $trans) {
+function processBalanceInfo($conn, $db, $xml, $registrarId, $trans) {
     $clTRID = (string) $xml->command->clTRID;
 
     try {
-        $stmt = $db->prepare('
-            SELECT accountBalance AS "accountBalance", creditLimit AS "creditLimit",
-                   creditThreshold AS "creditThreshold", thresholdType AS "thresholdType", currency
-            FROM registrar
-            WHERE clid = :id
-            LIMIT 1
-        ');
-        $stmt->execute(['id' => $clid]);
-        $funds = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-
-        if (!$funds) {
+        $balance = registrarEppBalance($db, (int)$registrarId);
+        if ($balance === null) {
             sendEppError($conn, $db, 2303, 'Registrar does not exist', $clTRID, $trans);
             return;
         }
 
-        $creditBalance = ($funds['accountBalance'] < 0) ? -$funds['accountBalance'] : 0;
-        $availableCredit = $funds['creditLimit'] - $creditBalance;
-        $availableCredit = number_format($availableCredit, 2, '.', '');
-
         $svTRID = generateSvTRID();
         $response = [
-            'command' => 'info_funds',
+            'command' => 'info_balance',
             'clTRID' => $clTRID,
             'svTRID' => $svTRID,
             'resultCode' => 1000,
-            'msg' => 'Command completed successfully',
-            'funds' => $funds['accountBalance'],
-            'currency' => $funds['currency'],
-            'availableCredit' => $availableCredit,
-            'creditLimit' => $funds['creditLimit'],
-            'creditThreshold' => $funds['creditThreshold'],
-            'thresholdType' => $funds['thresholdType']
+            'balance' => $balance
         ];
 
         $epp = new EPP\EppWriter();
         $xml = $epp->epp_writer($response);
-        updateTransaction($db, 'info', null, $funds['accountBalance'], 1000, 'Command completed successfully', $svTRID, $xml, $trans);
+        updateTransaction($db, 'info', null, null, 1000, 'Command completed successfully', $svTRID, $xml, $trans);
         sendEppResponse($conn, $xml);
-    } catch (PDOException $e) {
-        sendEppError($conn, $db, 2400, 'Database error', $clTRID, $trans);
+    } catch (Throwable $e) {
+        sendEppError($conn, $db, 2400, 'Balance data unavailable', $clTRID, $trans);
     }
 }

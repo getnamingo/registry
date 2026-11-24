@@ -118,7 +118,7 @@
                         <div class="col-md-4">
                           <div class="mb-3">
                             <div class="form-label">{{ __('Credit Threshold') }}</div>
-                            <div class="form-control-plaintext">{{ registrar.currency }} {{ registrar.creditThreshold }}</div>
+                            <div class="form-control-plaintext">{% if registrar.thresholdType == 'percent' %}{{ registrar.creditThreshold }}%{% else %}{{ registrar.currency }} {{ registrar.creditThreshold }}{% endif %}</div>
                             <small class="text-muted">{{ __('Credit threshold triggering alerts or actions.') }}</small>
                           </div>
                           <div class="mb-3">

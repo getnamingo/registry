@@ -68,13 +68,13 @@ For detailed protocol specifications, refer to the linked RFCs and the correspon
         <objURI>urn:ietf:params:xml:ns:domain-1.0</objURI>
         <objURI>urn:ietf:params:xml:ns:contact-1.0</objURI>
         <objURI>urn:ietf:params:xml:ns:host-1.0</objURI>
+        <objURI>urn:ietf:params:xml:ns:epp:balance-0.4</objURI>
         <svcExtension>
           <extURI>urn:ietf:params:xml:ns:secDNS-1.1</extURI>
           <extURI>urn:ietf:params:xml:ns:rgp-1.0</extURI>
           <extURI>urn:ietf:params:xml:ns:launch-1.0</extURI>
           <extURI>urn:ietf:params:xml:ns:idn-1.0</extURI>
           <extURI>urn:ietf:params:xml:ns:epp:fee-1.0</extURI>
-          <extURI>https://namingo.org/epp/funds-1.0</extURI>
           <extURI>https://namingo.org/epp/identica-1.0</extURI>
         </svcExtension>
       </svcs>
@@ -1759,20 +1759,43 @@ For detailed protocol specifications, refer to the linked RFCs and the correspon
 
 ### 5. Extensions
 
-#### 5.1. Funds Info
+#### 5.1. Balance Info (draft-ietf-regext-balance-03)
+
+Include `urn:ietf:params:xml:ns:epp:balance-0.4` as an `objURI` in EPP login.
+The mapping reports one unnamed, single-currency account. Namingo's existing
+`accountBalance` is the cash balance, while `creditLimit` permits an overdraft.
+`balanceAvailable = accountBalance + creditLimit`. Both the execution limit
+(`-creditLimit`) and notification threshold use `basedOn="cashBalance"`.
+`creditThreshold` is the warning cash balance: fixed is a currency amount;
+percent is a percentage of `creditLimit`, rounded to two decimal places. This
+matches the registrar control panel and the existing billable-transaction cutoff.
+
+The base MariaDB and PostgreSQL schemas include transactional low-balance poll
+triggers. The 1.0.37 migration installs them on existing databases, and Docker
+schema initialization also ensures they exist. A single `lowBalance` poll is inserted
+when a registrar's cash balance crosses from above its warning threshold to at
+or below it (including warning-threshold changes). New registrars initially
+at or below their threshold also receive one message. Messages are not repeated
+while the balance stays below the threshold; a later top-up re-arms it.
+
+New notices store an event-time balance snapshot in `poll.msg` and are rendered
+as standard `balance:infData` when retrieved. Existing queued `lowBalance`
+rows are retained and translated at read time using current registrar values,
+since their original cash balance and currency were not stored in full. Poll
+acknowledgement continues to delete the same `poll` row. Clients that do not
+negotiate Balance or RFC 9038 receive a plain text `Low Balance` poll that they
+can acknowledge without receiving an unnegotiated XML mapping. Email alerts
+from `automation/registrar.php` use the same threshold amount but retain their
+existing separate email schedule. No separate trigger files are needed.
 
 **Request:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
   <command>
     <info>
-      <funds:info
-        xmlns:funds="https://namingo.org/epp/funds-1.0">
-      </funds:info>
+      <balance:info xmlns:balance="urn:ietf:params:xml:ns:epp:balance-0.4"/>
     </info>
     <clTRID>client-20241128-12345</clTRID>
   </command>
@@ -1783,30 +1806,25 @@ For detailed protocol specifications, refer to the linked RFCs and the correspon
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
-    <response>
-      <result code="1000">
-        <msg>Command completed successfully</msg>
-      </result>
-      <resData>
-        <funds:infData 
-         xmlns:funds="https://namingo.org/epp/funds-1.0"
-         xsi:schemaLocation="https://namingo.org/epp/funds-1.0 funds-1.0.xsd">
-          <funds:balance>100000.00</funds:balance>
-          <funds:currency>EUR</funds:currency>
-          <funds:availableCredit>100000.00</funds:availableCredit>
-          <funds:creditLimit>100000.00</funds:creditLimit>
-          <funds:creditThreshold>
-            <funds:fixed>500.00</funds:fixed>
-          </funds:creditThreshold>
-        </funds:infData>
-      </resData>
-      <trID>
-        <clTRID>client-20241128-12345</clTRID>
-        <svTRID>namingo-1234567890-abcdef1234</svTRID>
-      </trID>
-    </response>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <response>
+    <result code="1000"><msg>Command completed successfully</msg></result>
+    <resData>
+      <balance:infData xmlns:balance="urn:ietf:params:xml:ns:epp:balance-0.4">
+        <balance:balance>
+          <balance:currency>EUR</balance:currency>
+          <balance:balanceAvailable>101000.00</balance:balanceAvailable>
+          <balance:creditLine>1000.00</balance:creditLine>
+          <balance:cashBalance>100000.00</balance:cashBalance>
+          <balance:executionLimit basedOn="cashBalance">-1000.00</balance:executionLimit>
+          <balance:notificationThreshold basedOn="cashBalance">500.00</balance:notificationThreshold>
+        </balance:balance>
+      </balance:infData>
+    </resData>
+    <trID>
+      <clTRID>client-20241128-12345</clTRID>
+      <svTRID>namingo-1234567890-abcdef1234</svTRID>
+    </trID>
+  </response>
 </epp>
 ```
