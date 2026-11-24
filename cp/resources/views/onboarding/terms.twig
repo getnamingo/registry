@@ -1,7 +1,8 @@
 {# This rendered HTML is snapshotted at application creation. Customize before enabling. #}
 <h1>Registrar Accreditation Agreement</h1>
 <p>This Agreement is entered into on {{ 'now'|date('F j, Y') }} between <strong>{{ registryName }}</strong> ("Registry") and <strong>{{ d.name }}</strong> ("Registrar").</p>
-<p>Registrar address: {{ d.ownerStreet1 }}, {{ d.ownerCity }}, {{ d.ownerSp }}, {{ d.ownerPc }}, {{ d.ownerCc }}.<br>
+<p>Company registration number: {{ d.companyNumber }}.<br>
+Registrar address: {{ d.ownerStreet1 }}, {{ d.ownerCity }}, {{ d.ownerSp }}, {{ d.ownerPc }}, {{ d.ownerCc }}.<br>
 Authorized contact: {{ d.ownerFirstName }} {{ d.ownerLastName }}, {{ d.ownerEmail }}.<br>
 Registrar website: {{ d.url }}. EPP identifier: {{ d.user_name }}.</p>
 <h2>I. Accreditation</h2>
@@ -11,7 +12,7 @@ Registrar website: {{ d.url }}. EPP identifier: {{ d.user_name }}.</p>
 <h2>III. Registry Obligations</h2>
 <p>The Registry will provide the Registrar access to its EPP and other registration systems and appropriate support, and will provide reasonable notice of material changes to policies and fees.</p>
 <h2>IV. Financial Terms</h2>
-<p>Registration, renewal, transfer, and other applicable fees are payable under the published Registry price schedule or any additional agreement between the parties.</p>
+<p>Registration, renewal, transfer, and other applicable fees are payable in {{ d.currency }} under the published Registry price schedule or any additional agreement between the parties.</p>
 <h2>V. Intellectual Property</h2>
 <p>All rights in the Registry, its registration systems, trademarks, and TLD administration remain with their respective owners. No ownership interest is transferred by accreditation.</p>
 <h2>VI. Term and Termination</h2>

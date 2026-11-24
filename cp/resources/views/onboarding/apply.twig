@@ -2,7 +2,7 @@
 {% block title %}Registrar Onboarding{% endblock %}
 {% block content %}
 <div class="container container-tight py-5" style="max-width:850px">
-  <div class="text-center mb-4"><a href="/"><img src="{{ logoPath }}" height="40" alt="Registry"></a></div>
+  <div class="text-center mb-4"><a href="/" class="navbar-brand navbar-brand-autodark"><img src="{{ logoPath }}" height="36" alt="Registry" class="navbar-brand-image" style="max-width:180px;max-height:36px;width:auto;height:auto;object-fit:contain"></a></div>
   <div class="card"><div class="card-body">
     <h1 class="card-title">Registrar Accreditation Application</h1>
     <p class="text-secondary">Submit your registrar details. You can review and sign the agreement on the next page.</p>
@@ -11,7 +11,9 @@
       {{ csrf.field|raw }}
       {% set groups = [
         { 'title': 'Registrar', 'fields': [
-          { 'name': 'name', 'label': 'Accredited registrar name', 'required': true },
+          { 'name': 'name', 'label': 'Company name', 'required': true },
+          { 'name': 'companyNumber', 'label': 'Company number', 'required': true },
+          { 'name': 'currency', 'label': 'Currency', 'required': true },
           { 'name': 'ianaId', 'label': 'IANA ID (optional)' },
           { 'name': 'email', 'label': 'Registrar email', 'type': 'email', 'required': true },
           { 'name': 'url', 'label': 'Website (https://...)', 'type': 'url', 'required': true },
@@ -28,7 +30,7 @@
           { 'name': 'ownerCity', 'label': 'City', 'required': true },
           { 'name': 'ownerSp', 'label': 'State / province' },
           { 'name': 'ownerPc', 'label': 'Postal code' },
-          { 'name': 'ownerCc', 'label': 'Country (ISO 3166-1 alpha-2, e.g. BG)', 'required': true },
+          { 'name': 'ownerCc', 'label': 'Country', 'required': true },
           { 'name': 'ownerVoice', 'label': 'Phone (+123.456789)' },
           { 'name': 'ownerEmail', 'label': 'Contact email', 'type': 'email', 'required': true }
         ] },
@@ -42,10 +44,26 @@
         <h2 class="h3 mt-4">{{ group.title }}</h2>
         <div class="row row-cards">
         {% for field in group.fields %}
-          <div class="col-md-6"><label class="form-label" for="{{ field.name }}">{{ field.label }}</label>
-          <input class="form-control" id="{{ field.name }}" name="{{ field.name }}"
-                 type="{{ field.type|default('text') }}" maxlength="255"
-                 value="{{ values[field.name]|default('') }}" {% if field.required|default(false) %}required{% endif %}></div>
+          <div class="col-md-6"><label class="form-label{% if field.required|default(false) %} required{% endif %}" for="{{ field.name }}">{{ field.label }}</label>
+          {% if field.name == 'ownerCc' %}
+            <select class="form-select" id="ownerCc" name="ownerCc" required>
+              <option value="">Select a country</option>
+              {% for country in countries %}
+                <option value="{{ country.alpha2 }}" {% if values.ownerCc|default('') == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
+              {% endfor %}
+            </select>
+          {% elseif field.name == 'currency' %}
+            <select class="form-select" id="currency" name="currency" required>
+              <option value="">Select a currency</option>
+              {% for code, label in currencies %}
+                <option value="{{ code }}" {% if values.currency|default('') == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <input class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                   type="{{ field.type|default('text') }}" maxlength="{{ field.name == 'companyNumber' ? 30 : 255 }}"
+                   value="{{ values[field.name]|default('') }}" {% if field.required|default(false) %}required{% endif %}>
+          {% endif %}</div>
         {% endfor %}
         </div>
       {% endfor %}
