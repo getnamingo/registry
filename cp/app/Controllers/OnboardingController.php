@@ -21,6 +21,14 @@ final class OnboardingController extends Controller
             $vars['countries'] = (new ISO3166())->all();
             usort($vars['countries'], static fn (array $a, array $b): int =>
                 strcasecmp($a['name'], $b['name']));
+            $currencies = [];
+            foreach ($vars['countries'] as $country) {
+                foreach ($country['currency'] as $currency) {
+                    $currencies[$currency] = $currency;
+                }
+            }
+            ksort($currencies);
+            $vars['currencies'] = $currencies;
         }
         return $this->container->get('view')->render($response, 'onboarding/' . $name . '.twig', $vars);
     }
@@ -69,7 +77,7 @@ final class OnboardingController extends Controller
     {
         $input = (array) ($request->getParsedBody() ?? []);
         $fields = [
-            'name', 'ianaId', 'email', 'url', 'whoisServer', 'rdapServer',
+            'name', 'companyNumber', 'currency', 'ianaId', 'email', 'url', 'whoisServer', 'rdapServer',
             'abuseEmail', 'abusePhone', 'ownerFirstName', 'ownerLastName',
             'ownerOrg', 'ownerStreet1', 'ownerCity', 'ownerSp', 'ownerPc',
             'ownerCc', 'ownerVoice', 'ownerEmail', 'user_email', 'user_name', 'ipAddress',
@@ -80,8 +88,9 @@ final class OnboardingController extends Controller
         }
         $data['user_name'] = strtolower($data['user_name']);
         $data['ownerCc'] = strtoupper($data['ownerCc']);
+        $data['currency'] = strtoupper($data['currency']);
         $required = [
-            'name', 'email', 'url', 'whoisServer', 'rdapServer', 'abuseEmail',
+            'name', 'companyNumber', 'currency', 'email', 'url', 'whoisServer', 'rdapServer', 'abuseEmail',
             'abusePhone', 'ownerFirstName', 'ownerLastName', 'ownerCity',
             'ownerCc', 'ownerEmail', 'user_email', 'user_name', 'ipAddress',
         ];
@@ -119,6 +128,18 @@ final class OnboardingController extends Controller
             (new ISO3166())->alpha2($data['ownerCc']);
         } catch (\Throwable $e) {
             $errors[] = 'Select a valid country.';
+        }
+        if (mb_strlen($data['companyNumber']) > 30) {
+            $errors[] = 'Company number must not exceed 30 characters.';
+        }
+        $currencies = [];
+        foreach ((new ISO3166())->all() as $country) {
+            foreach ($country['currency'] as $code) {
+                $currencies[$code] = true;
+            }
+        }
+        if (!isset($currencies[$data['currency']])) {
+            $errors[] = 'Select a valid currency.';
         }
         if ($data['ianaId'] !== '' && (!ctype_digit($data['ianaId']) || (int) $data['ianaId'] < 1 || (int) $data['ianaId'] > 99999)) {
             $errors[] = 'IANA ID must be a positive integer, or left blank.';
@@ -207,7 +228,11 @@ final class OnboardingController extends Controller
             $prefix = match ($node->nodeName) {
                 'h1' => '# ', 'h2' => '## ', 'h3' => '### ', 'li' => '- ', default => '',
             };
-            $sections[] = $prefix . $text;
+            // Escape all CommonMark punctuation from the signed HTML snapshot.
+            // Only our intentional heading/list prefix may introduce formatting.
+            $literal = preg_replace_callback('/[[:punct:]]/u',
+                static fn (array $match): string => chr(92) . $match[0], $text);
+            $sections[] = $prefix . $literal;
         }
         if (!$sections) {
             throw new \RuntimeException('The stored agreement has no printable content');
@@ -340,18 +365,20 @@ final class OnboardingController extends Controller
             $panelPassword = bin2hex(random_bytes(16)) . 'aA1!';
             $eppPassword = bin2hex(random_bytes(8));
             $now = date('Y-m-d H:i:s');
-            $currency = $pdo->query("SELECT value FROM settings WHERE name = 'currency'")->fetchColumn() ?: 'EUR';
+            $currency = $d['currency'] ?? ($pdo->query("SELECT value FROM settings WHERE name = 'currency'")->fetchColumn() ?: 'EUR');
+            $companyNumberColumn = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql'
+                ? '"companyNumber"' : 'companyNumber';
             $stmt = $pdo->prepare(
                 'INSERT INTO registrar (name, iana_id, clid, pw, prefix, email, url, whois_server,
                  rdap_server, abuse_email, abuse_phone, accountbalance, creditlimit, creditthreshold,
-                 thresholdtype, currency, crdate, lastupdate)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 100, ?, ?, ?, ?)'
+                 thresholdtype, currency, ' . $companyNumberColumn . ', crdate, lastupdate)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 100, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $d['name'], $d['ianaId'] === '' ? null : (int) $d['ianaId'], $d['user_name'],
                 PasswordHasher::hash($eppPassword), 'T' . strtoupper(bin2hex(random_bytes(2))),
                 $d['email'], $d['url'], $d['whoisServer'], $d['rdapServer'],
-                $d['abuseEmail'], $d['abusePhone'], 'fixed', $currency, $now, $now,
+                $d['abuseEmail'], $d['abusePhone'], 'fixed', $currency, $d['companyNumber'] ?? null, $now, $now,
             ]);
             $registrarId = (int) $pdo->lastInsertId($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql' ? 'registrar_id_seq' : null);
             $prefix = 'R' . str_pad((string) $registrarId, 4, '0', STR_PAD_LEFT);
