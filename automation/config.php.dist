@@ -50,6 +50,12 @@ return [
     'reporting_upload' => false,
     'reporting_username' => 'your_username',
     'reporting_password' => 'your_password',
+
+    // Optional ntfy error notifications (run ntfy_error_notifier.php from cron)
+    'ntfy_topic' => '', // Full topic URL, e.g. https://ntfy.sh/a-long-private-topic
+    'ntfy_token' => '', // Optional bearer token for an authenticated ntfy server
+    'ntfy_min_level' => 400, // Monolog ERROR and above
+    'ntfy_last_id_file' => '/var/log/namingo/ntfy-last-id',
     
     // Zone Writer Configuration
     'dns_server' => 'bind',
