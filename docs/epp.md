@@ -33,7 +33,7 @@ Namingo supports the following standard extensions and operational practices:
 Namingo additionally provides the following proprietary extensions:
 
 - **Namingo Funds** – Support registrar account balance and funding operations.
-- **Namingo Identica** – Provide identity-related registry functionality.
+- **Namingo Identica** – Extend EPP contact objects with personal or business identification numbers and optional identity-verification metadata. [Specification](https://namingo.org/epp/identica-1.0.html) · [IANA EPP Extensions Registry](https://www.iana.org/assignments/epp-extensions) (registered; status: **Inactive**, as production use has not yet been confirmed).
 
 ### Using This Guide
 
