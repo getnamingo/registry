@@ -410,6 +410,17 @@ class EppWriter {
                 $writer->endElement(); // extValue
             }
 
+            if (!empty($resp['unhandled_balance']) && isset($resp['balance'])) {
+                // RFC 9038 section 3.1: unnegotiated object data belongs in
+                // result/extValue/value, without a response/resData element.
+                $writer->startElement('extValue');
+                $writer->startElement('value');
+                $this->_balanceInfData($writer, $resp['balance'], false);
+                $writer->endElement(); // value
+                $writer->writeElement('reason', 'urn:ietf:params:xml:ns:epp:balance-0.4 not in login services');
+                $writer->endElement(); // extValue
+            }
+
             $writer->endElement();  // End of 'result'
     }
 
@@ -476,7 +487,7 @@ class EppWriter {
             $writer->text($resp['msg']);
             $writer->endElement(); // End of 'msg'
             $writer->endElement();  // End of 'msgQ'
-            if ($resp['poll_msg_type'] === 'lowBalance' && isset($resp['balance'])) {
+            if ($resp['poll_msg_type'] === 'lowBalance' && isset($resp['balance']) && empty($resp['unhandled_balance'])) {
                 $this->_balanceInfData($writer, $resp['balance']);
             } elseif ($resp['poll_msg_type'] === 'domainTransfer') {
                 $writer->startElement('resData');
@@ -1440,8 +1451,10 @@ class EppWriter {
         $this->_postamble($writer, $resp);
     }
 
-    private function _balanceInfData($writer, array $balance): void {
-        $writer->startElement('resData');
+    private function _balanceInfData($writer, array $balance, bool $wrapResData = true): void {
+        if ($wrapResData) {
+            $writer->startElement('resData');
+        }
         $writer->startElement('balance:infData');
         $writer->writeAttribute('xmlns:balance', 'urn:ietf:params:xml:ns:epp:balance-0.4');
         $writer->startElement('balance:balance');
@@ -1459,7 +1472,9 @@ class EppWriter {
         $writer->endElement();
         $writer->endElement(); // balance:balance
         $writer->endElement(); // balance:infData
-        $writer->endElement(); // resData
+        if ($wrapResData) {
+            $writer->endElement(); // resData
+        }
     }
 
 }

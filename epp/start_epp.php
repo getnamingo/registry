@@ -684,14 +684,16 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
                     $services = json_decode((string)($data['login_services'] ?? '[]'), true) ?: [];
-                    $balancePollSupported = $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
-                        ((int)($data['balance'] ?? 0) === 1 ||
-                         ($eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0') &&
-                          in_array('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0', $services, true)));
+                    $balanceNegotiated = $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
+                        (int)($data['balance'] ?? 0) === 1;
+                    $balanceUnhandled = !$balanceNegotiated &&
+                        $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
+                        $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0') &&
+                        in_array('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0', $services, true);
                     processPoll($conn, $pdo, $xml, $data['clid'], $trans,
                         (int) $data['maintenance'] === 1 ||
                         !$eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0'),
-                        $balancePollSupported);
+                        $balanceNegotiated || $balanceUnhandled, $balanceUnhandled);
                     return;
                 }
               

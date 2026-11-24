@@ -91,7 +91,7 @@ upgrade_balance_mapping() {
     case "$NAMINGO_DB_DRIVER" in
         mariadb)
             db_sql <<'SQL'
-+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
 DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_update`;
 DELIMITER //
 CREATE TRIGGER `registry`.`registrar_balance_low_insert`
@@ -143,7 +143,7 @@ SQL
             ;;
         pgsql)
             db_sql <<'SQL'
-+CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
+CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
     old_threshold numeric;

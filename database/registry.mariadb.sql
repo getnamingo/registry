@@ -224,7 +224,7 @@ CREATE TABLE IF NOT EXISTS `registry`.`poll` (
     CONSTRAINT `poll_ibfk_1` FOREIGN KEY (`registrar_id`) REFERENCES `registrar` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='poll';
 
-+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
+DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_insert`;
 DROP TRIGGER IF EXISTS `registry`.`registrar_balance_low_update`;
 DELIMITER //
 CREATE TRIGGER `registry`.`registrar_balance_low_insert`

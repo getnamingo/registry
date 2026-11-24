@@ -41,7 +41,7 @@ function launchOriginalTransaction($db, int $registrarId, string $name, string $
     }
 }
 
-function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated, bool $balancePollSupported) {
+function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiated, bool $balancePollSupported, bool $balanceUnhandled = false) {
     $clTRID = (string) $xml->command->clTRID;
     $node = $xml->command->poll;
 
@@ -191,6 +191,7 @@ function processPoll($conn, $db, $xml, $clid, $trans, bool $maintenanceNegotiate
             sendEppError($conn, $db, 2400, 'Balance data unavailable', $clTRID, $trans);
             return;
         }
+        $response['unhandled_balance'] = $balanceUnhandled;
         }
     } elseif ($response['poll_msg_type'] === 'domainTransfer') {
         $response['name'] = $result['obj_name_or_id'];

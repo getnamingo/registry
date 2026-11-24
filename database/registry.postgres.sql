@@ -222,7 +222,7 @@ CREATE TABLE poll (
      "availablecredit"   decimal(12,2) default '0.00'
 );
 
-+CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
+CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
     old_threshold numeric;
