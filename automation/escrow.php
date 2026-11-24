@@ -57,13 +57,32 @@ try {
 }
 
 try {
+    // Separate read connection keeps a consistent live-database view while
+    // operational deposit records are written on the original connection.
+    $readDbh = new PDO($dsn, $c['db_username'], $c['db_password'], $options);
+    if ($readDbh->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+        $readDbh->exec("SET time_zone = '+00:00'");
+        $readDbh->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        $readDbh->exec('SET TRANSACTION READ ONLY');
+        $readDbh->beginTransaction();
+    } else {
+        $readDbh->beginTransaction();
+        $readDbh->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+        $readDbh->exec("SET LOCAL TIME ZONE 'UTC'");
+    }
+    // A live MVCC view represents the moment it was captured, not midnight
+    // unless the job actually starts then. Never claim a historical cutoff.
+    $capturedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    $snapshotDate = $capturedAt->format('Y-m-d');
+    $watermark = $capturedAt->format('Y-m-d\TH:i:s.v\Z');
+
     // Fetching TLDs
-    $stmt = $dbh->query("SELECT id,tld FROM domain_tld;");
+    $stmt = $readDbh->query("SELECT id,tld FROM domain_tld;");
     $tlds = $stmt->fetchAll();
 
-    // Prepare the SQL query with a condition for the previous day
+    // Allocate the revision using live operational records.
     $stmt = $dbh->prepare("SELECT revision FROM rde_escrow_deposits WHERE deposit_date = :previousDay ORDER BY revision DESC LIMIT 1");
-    $date = date('Y-m-d');
+    $date = $snapshotDate;
     $stmt->bindParam(':previousDay', $date);
     $stmt->execute();
 
@@ -77,18 +96,23 @@ try {
     }
 
     // Get ROID from database
-    $stmt = $dbh->query("SELECT value FROM settings WHERE name = 'handle'");
-    $roid = $stmt->fetchColumn();
+    $stmt = $readDbh->query("SELECT value FROM settings WHERE name = 'handle'");
+    $roid = escrowRequired($stmt->fetchColumn(), 'registry handle');
 
     foreach ($tlds as $tld) {
         $tldname = ltrim($tld['tld'], '.');
-        $endOfPreviousDay = gmdate('Y-m-d 00:00:00', strtotime('today UTC'));
 
-        $domainCount = fetchDomainCount($dbh, $tld['id']);
-        $NNDNCount = fetchNNDNCount($dbh);
-        $hostCount = fetchCount($dbh, 'host');
-        $contactCount = fetchCount($dbh, 'contact');
-        $registrarCount = fetchCount($dbh, 'registrar');
+        $count = $readDbh->prepare('SELECT COUNT(*) FROM domain WHERE tldid = ?');
+        $count->execute([$tld['id']]);
+        $domainCount = $count->fetchColumn();
+        $nndns = escrowNndns($readDbh, $tldname);
+        $NNDNCount = count($nndns);
+        $hostCount = $readDbh->query('SELECT COUNT(*) FROM host')->fetchColumn();
+        $contactCount = $readDbh->query('SELECT COUNT(*) FROM contact')->fetchColumn();
+        $registrarCount = $readDbh->query('SELECT COUNT(*) FROM registrar')->fetchColumn();
+        $count = $readDbh->prepare('SELECT COUNT(*) FROM domain WHERE tldid = ? AND registrant IS NULL');
+        $count->execute([$tld['id']]);
+        $requiresRegistrant = (int)$count->fetchColumn() === 0;
 
         // Skip subdomains
         if (strpos($tldname, '.') !== false) {
@@ -105,7 +129,7 @@ try {
         $xml->startElementNS('rde', 'deposit', 'urn:ietf:params:xml:ns:rde-1.0');
         $xml->writeAttribute('type', 'FULL');
         $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
-        $depositId = date('Ymd') . $paddedFinalDepositId;
+        $depositId = str_replace('-', '', $snapshotDate) . $paddedFinalDepositId;
         $xml->writeAttribute('id', $depositId);
 
         // Add the necessary XML namespaces
@@ -124,7 +148,7 @@ try {
         $xml->writeAttributeNS('xmlns', 'epp', null, 'urn:ietf:params:xml:ns:epp-1.0');
 
         $xml->startElementNS('rde', 'watermark', null);
-        $previousDayWatermark = date('Y-m-d', strtotime('-1 day')) . 'T23:59:59Z';
+        $previousDayWatermark = $watermark;
         $xml->text($previousDayWatermark);
         $xml->endElement(); // End rde:watermark
 
@@ -147,7 +171,7 @@ try {
             'urn:ietf:params:xml:ns:rdePolicy-1.0'
         ];
 
-        if (isIDN($dbh, $tld['id'])) {
+        if (isIDN($readDbh, $tld['id'])) {
             $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
         }
 
@@ -186,7 +210,7 @@ try {
         $xml->text($registrarCount);
         $xml->endElement();
 
-        if (isIDN($dbh, $tld['id'])) {
+        if (isIDN($readDbh, $tld['id'])) {
             $xml->startElement('rdeHeader:count');
             $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
             $xml->text('1');
@@ -200,7 +224,7 @@ try {
 
         $xml->startElement('rdeHeader:count');
         $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdePolicy-1.0');
-        $xml->text('1');
+        $xml->text($requiresRegistrant ? '1' : '0');
         $xml->endElement();
 
         $xml->startElement('rdeHeader:count');
@@ -211,9 +235,8 @@ try {
         $xml->endElement();  // Closing rdeHeader:header
 
         // Fetch domain details for this TLD
-        $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate < :endOfPreviousDay");
+        $stmt = $readDbh->prepare("SELECT * FROM domain WHERE tldid = :tldid");
         $stmt->bindParam(':tldid', $tld['id']);
-        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
         $stmt->execute();
         $domains = $stmt->fetchAll();
 
@@ -222,37 +245,37 @@ try {
             $xml->writeElement('rdeDomain:name', $domain['name']);
             $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
             $xml->writeElement('rdeDomain:uName', $domain['name']);
-            if (isIDN($dbh, $tld['id'])) {
+            if (isIDN($readDbh, $tld['id'])) {
                 $script = guessIdnScriptName($tld['tld']);
                 $xml->writeElement('rdeDomain:idnTableId', $script);
             }
 
             // Fetch domain status
-            $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
-            $stmt->bindParam(':domain_id', $domain['id']);
-            $stmt->execute();
-            $status = $stmt->fetch();
-            $xml->startElement('rdeDomain:status');
-            $xml->writeAttribute('s', $status['status'] ?? 'ok');
-            $xml->text($status['status'] ?? 'ok');
-            $xml->endElement(); // Close rdeDomain:status
+            escrowStatuses($xml, $readDbh, 'domain', $domain['id']);
+            if (!empty($domain['rgpstatus'])) {
+                $xml->startElement('rdeDomain:rgpStatus');
+                $xml->writeAttribute('s', $domain['rgpstatus']);
+                $xml->endElement();
+            }
 
-            $xml->writeElement('rdeDomain:registrant', getIdentifier($dbh, $domain['registrant']));
+            if ($domain['registrant'] !== null) {
+                $xml->writeElement('rdeDomain:registrant', escrowIdentifier($readDbh, $domain['registrant']));
+            }
 
             // Fetch domain contacts
-            $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
+            $stmt = $readDbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $domain_contacts = $stmt->fetchAll();
             foreach ($domain_contacts as $contact) {
                 $xml->startElement('rdeDomain:contact');
                 $xml->writeAttribute('type', $contact['type']);
-                $xml->text(getIdentifier($dbh, $contact['contact_id']));
+                $xml->text(escrowIdentifier($readDbh, $contact['contact_id']));
                 $xml->endElement();  // Closing rdeDomain:contact
             }
 
             // Fetch domain hosts and incorporate into XML
-            $stmt = $dbh->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
+            $stmt = $readDbh->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
             $stmt->bindParam(':domain_id', $domain['id']);
             $stmt->execute();
             $domain_hosts = $stmt->fetchAll();
@@ -264,19 +287,21 @@ try {
                 $xml->endElement();  // Closing rdeDomain:ns
             }
 
-            $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
-            $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
+            $xml->writeElement('rdeDomain:clID', escrowClid($readDbh, $domain['clid']));
+            $xml->writeElement('rdeDomain:crRr', escrowClid($readDbh, $domain['crid']));
+            $crDate = escrowParseDate($domain['crdate']);
             $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
-            $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
+            $exDate = escrowParseDate($domain['exdate']);
             $xml->writeElement('rdeDomain:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            escrowUpdate($xml, $readDbh, 'rdeDomain', $domain);
+            escrowDnssec($xml, $readDbh, $domain['id']);
+            escrowTransfer($xml, $readDbh, 'rdeDomain', $domain);
             
             $xml->endElement();  // Closing rdeDomain:domain
         }
 
         // Fetch and incorporate host details
-        $stmt = $dbh->prepare("SELECT * FROM host WHERE crdate < :endOfPreviousDay");
-        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+        $stmt = $readDbh->prepare("SELECT * FROM host");
         $stmt->execute();
         $hosts = $stmt->fetchAll();
 
@@ -285,14 +310,11 @@ try {
             $xml->writeElement('rdeHost:name', $host['name']);
             $xml->writeElement('rdeHost:roid', 'H' . $host['id'] . '-' . $roid);
             
-            $xml->startElement('rdeHost:status');
-            $xml->writeAttribute('s', 'ok');
-            $xml->text('ok');
-            $xml->endElement();  // Closing rdeHost:status
+            escrowStatuses($xml, $readDbh, 'host', $host['id']);
 
             if (implode('.', array_slice(explode('.', $host['name']), -count(explode('.', ltrim($tld['tld'], '.'))))) === ltrim($tld['tld'], '.')) {
                 // Fetch and add addresses
-                $stmtAddr = $dbh->prepare("SELECT addr, ip FROM host_addr WHERE host_id = :host_id");
+                $stmtAddr = $readDbh->prepare("SELECT addr, ip FROM host_addr WHERE host_id = :host_id");
                 $stmtAddr->execute([':host_id' => $host['id']]);
                 $addresses = $stmtAddr->fetchAll();
 
@@ -304,78 +326,74 @@ try {
                 }
             }
 
-            $xml->writeElement('rdeHost:clID', getClid($dbh, $host['clid']));
-            $xml->writeElement('rdeHost:crRr', getClid($dbh, $host['crid']));
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $host['crdate']);
+            $xml->writeElement('rdeHost:clID', escrowClid($readDbh, $host['clid']));
+            $xml->writeElement('rdeHost:crRr', escrowClid($readDbh, $host['crid']));
+            $crDate = escrowParseDate($host['crdate']);
             $xml->writeElement('rdeHost:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
+            escrowUpdate($xml, $readDbh, 'rdeHost', $host);
+            escrowDate($xml, 'rdeHost:trDate', $host['trdate']);
             $xml->endElement();  // Closing rdeHost:host
         }
 
         // Fetch and incorporate contact details
-        $stmt = $dbh->prepare("SELECT * FROM contact WHERE crdate < :endOfPreviousDay");
-        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+        $stmt = $readDbh->prepare("SELECT * FROM contact");
         $stmt->execute();
         $contacts = $stmt->fetchAll();
 
         foreach ($contacts as $contact) {
             $xml->startElement('rdeContact:contact');
-            $xml->writeElement('rdeContact:id', $contact['identifier']);
+            $xml->writeElement('rdeContact:id', escrowRequired($contact['identifier'], 'contact identifier'));
             $xml->writeElement('rdeContact:roid', 'C' . $contact['id'] . '-' . $roid);
-            $xml->startElement('rdeContact:status');
-            $xml->writeAttribute('s', 'ok');
-            $xml->text('ok');
-            $xml->endElement();  // Closing rdeContact:status
+            escrowStatuses($xml, $readDbh, 'contact', $contact['id']);
 
             // Fetch postalInfo for the current contact
-            $stmtPostal = $dbh->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
+            $stmtPostal = $readDbh->prepare("SELECT * FROM contact_postalInfo WHERE contact_id = :contact_id;");
             $stmtPostal->bindParam(':contact_id', $contact['id']);
             $stmtPostal->execute();
-            $postalInfo = $stmtPostal->fetch();
-
-            if ($postalInfo) {
+            $postalRows = $stmtPostal->fetchAll();
+            if (!$postalRows) {
+                throw new RuntimeException('Escrow contact has no postal information (row ' . $contact['id'] . ').');
+            }
+            foreach ($postalRows as $postalInfo) {
                 $xml->startElement('rdeContact:postalInfo');
-                $xml->writeAttribute('type', 'int');
-                $xml->writeElement('contact:name', $postalInfo['name']);
-                $xml->writeElement('contact:org', $postalInfo['org']);
-                $xml->startElement('contact:addr');
-                $xml->writeElement('contact:street', $postalInfo['street1']);
-                $xml->writeElement('contact:city', $postalInfo['city']);
-                $xml->writeElement('contact:pc', $postalInfo['pc']);
-                $xml->writeElement('contact:cc', $postalInfo['cc']);
-                $xml->endElement();  // Closing contact:addr
-                $xml->endElement();  // Closing rdeContact:postalInfo
+                $xml->writeAttribute('type', $postalInfo['type']);
+                $xml->writeElement('contact:name', escrowRequired($postalInfo['name'], 'contact name'));
+                escrowOptional($xml, 'contact:org', $postalInfo['org']);
+                escrowAddress($xml, 'contact', $postalInfo);
+                $xml->endElement();
             }
 
-            $xml->writeElement('rdeContact:voice', $contact['voice']);
-            $xml->writeElement('rdeContact:fax', $contact['fax']);
-            $xml->writeElement('rdeContact:email', $contact['email']);
-            $xml->writeElement('rdeContact:clID', getClid($dbh, $contact['clid']));
-            $xml->writeElement('rdeContact:crRr', getClid($dbh, $contact['crid']));
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['crdate']);
+            escrowPhone($xml, 'rdeContact:voice', $contact['voice'], $contact['voice_x']);
+            escrowPhone($xml, 'rdeContact:fax', $contact['fax'], $contact['fax_x']);
+            $xml->writeElement('rdeContact:email', escrowRequired($contact['email'], 'contact email'));
+            $xml->writeElement('rdeContact:clID', escrowClid($readDbh, $contact['clid']));
+            $xml->writeElement('rdeContact:crRr', escrowClid($readDbh, $contact['crid']));
+            $crDate = escrowParseDate($contact['crdate']);
             $xml->writeElement('rdeContact:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
-            if (!empty($contact['upid'])) {
-                $xml->writeElement('rdeContact:upRr', getClid($dbh, $contact['upid']));
-                $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $contact['lastupdate']);
-                $xml->writeElement('rdeContact:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
-            }
+            escrowUpdate($xml, $readDbh, 'rdeContact', $contact);
+            escrowTransfer($xml, $readDbh, 'rdeContact', $contact);
+            escrowDisclosure($xml, $contact, $postalRows);
             $xml->endElement();  // Closing rdeContact:contact
         }
         
         // Fetch and incorporate registrar details
-        $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate < :endOfPreviousDay");
-        $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+        $stmt = $readDbh->prepare("SELECT * FROM registrar");
         $stmt->execute();
         $registrars = $stmt->fetchAll();
 
         foreach ($registrars as $registrar) {
             $xml->startElement('rdeRegistrar:registrar');
-            $xml->writeElement('rdeRegistrar:id', getClid($dbh, $registrar['id']));
-            $xml->writeElement('rdeRegistrar:name', $registrar['name']);
-            $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
-            $xml->writeElement('rdeRegistrar:status', 'ok');
+            $xml->writeElement('rdeRegistrar:id', escrowClid($readDbh, $registrar['id']));
+            $xml->writeElement('rdeRegistrar:name', escrowRequired($registrar['name'], 'registrar name'));
+            if ($registrar['iana_id'] !== null && $registrar['iana_id'] !== '') {
+                if ((int)$registrar['iana_id'] <= 0) {
+                    throw new RuntimeException('Escrow registrar IANA ID must be positive when present.');
+                }
+                $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
+            }
 
             // Fetch and incorporate registrar contact details
-            $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
+            $stmt = $readDbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
             $stmt->bindParam(':registrar_id', $registrar['id']);
             $stmt->execute();
             $registrar_contacts = $stmt->fetch();
@@ -383,39 +401,34 @@ try {
             if ($registrar_contacts) {
                 $xml->startElement('rdeRegistrar:postalInfo');
                 $xml->writeAttribute('type', 'int');
-                $xml->startElement('rdeRegistrar:addr');
-                $xml->writeElement('rdeRegistrar:street', $registrar_contacts['street1']);
-                $xml->writeElement('rdeRegistrar:city', $registrar_contacts['city']);
-                $xml->writeElement('rdeRegistrar:pc', $registrar_contacts['pc']);
-                $xml->writeElement('rdeRegistrar:cc', $registrar_contacts['cc']);
-                $xml->endElement(); // Closing rdeRegistrar:addr
+                escrowAddress($xml, 'rdeRegistrar', $registrar_contacts);
                 $xml->endElement(); // Closing rdeRegistrar:postalInfo
             }
 
-            $xml->writeElement('rdeRegistrar:voice', $registrar_contacts['voice']);
-            $xml->writeElement('rdeRegistrar:fax', $registrar_contacts['fax']);
-            $xml->writeElement('rdeRegistrar:email', $registrar['email']);
+            escrowPhone($xml, 'rdeRegistrar:voice', $registrar_contacts['voice'] ?? null);
+            escrowPhone($xml, 'rdeRegistrar:fax', $registrar_contacts['fax'] ?? null);
+            escrowOptional($xml, 'rdeRegistrar:email', $registrar['email']);
             
-            $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+            escrowOptional($xml, 'rdeRegistrar:url', $registrar['url']);
 
-            $xml->startElement('rdeRegistrar:whoisInfo');
-            $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-            $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-            $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+            if (!empty($registrar['whois_server'])) {
+                $xml->startElement('rdeRegistrar:whoisInfo');
+                $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+                $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+                $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+            }
 
-            $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+            $crDate = escrowParseDate($registrar['crdate']);
             $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             if (!empty($registrar['lastupdate'])) {
-                $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['lastupdate']);
+                $upDate = escrowParseDate($registrar['lastupdate']);
                 $xml->writeElement('rdeRegistrar:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
-            } else {
-                $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
             }
 
             $xml->endElement();  // Closing rdeRegistrar:registrar
         }
 
-        if (isIDN($dbh, $tld['id'])) {
+        if (isIDN($readDbh, $tld['id'])) {
             $script = guessIdnScriptName($tld['tld']);
 
             // Writing the idnTableRef section
@@ -424,6 +437,14 @@ try {
             $xml->writeElement('rdeIDN:url', 'https://namingo.org');
             $xml->writeElement('rdeIDN:urlPolicy', 'https://namingo.org');
             $xml->endElement();  // Closing rdeIDN:idnTableRef
+        }
+
+        foreach ($nndns as $name) {
+            $xml->startElement('rdeNNDN:NNDN');
+            $xml->writeElement('rdeNNDN:aName', $name);
+            // Reserved names are blocked, not withheld IDN variants (RFC 9022, 5.6).
+            $xml->writeElement('rdeNNDN:nameState', 'blocked');
+            $xml->endElement();
         }
 
         // Start of rdeEppParams:eppParams
@@ -516,11 +537,13 @@ try {
         // End of rdeEppParams:eppParams
         $xml->endElement();
 
-        // rdePolicy:policy element
-        $xml->startElementNS('rdePolicy', 'policy', null);
-        $xml->writeAttribute('scope', '//rde:deposit/rde:contents/rdeDomain:domain');
-        $xml->writeAttribute('element', 'rdeDomain:registrant');
-        $xml->endElement();
+        if ($requiresRegistrant) {
+            // rdePolicy:policy element
+            $xml->startElementNS('rdePolicy', 'policy', null);
+            $xml->writeAttribute('scope', '//rde:deposit/rde:contents/rdeDomain:domain');
+            $xml->writeAttribute('element', 'rdeDomain:registrant');
+            $xml->endElement();
+        }
         
         // End the rde:contents element
         $xml->endElement(); // End rde:contents
@@ -529,7 +552,7 @@ try {
         $deposit = $xml->outputMemory();
 
         // Define the base name without the extension
-        $baseFileName = "{$tldname}_" . date('Y-m-d') . "_full_S1_R{$finalDepositId}";
+        $baseFileName = "{$tldname}_" . $snapshotDate . "_full_S1_R{$finalDepositId}";
 
         // XML and tar filenames
         $xmlFileName = $baseFileName . ".xml";
@@ -625,7 +648,7 @@ try {
         $reportXML->writeAttribute('xmlns:rdeHeader', 'urn:ietf:params:xml:ns:rdeHeader-1.0');
 
         $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
-        $depositId = date('Ymd') . $paddedFinalDepositId;
+        $depositId = str_replace('-', '', $snapshotDate) . $paddedFinalDepositId;
         $reportXML->writeElement('rdeReport:id', $depositId);
         $reportXML->writeElement('rdeReport:version', '1');
         $reportXML->writeElement('rdeReport:rydeSpecEscrow', 'RFC8909');
@@ -635,7 +658,7 @@ try {
         $crDateWithMilliseconds = $currentDateTime->format("Y-m-d\TH:i:s.v\Z");
         $reportXML->writeElement('rdeReport:crDate', $crDateWithMilliseconds);
         $reportXML->writeElement('rdeReport:kind', 'FULL');
-        $previousDayWatermark = date('Y-m-d', strtotime('-1 day')) . 'T23:59:59Z';
+        $previousDayWatermark = $watermark;
         $reportXML->writeElement('rdeReport:watermark', $previousDayWatermark);
 
         $reportXML->startElement('rdeHeader:header');
@@ -660,7 +683,7 @@ try {
         $reportXML->text($registrarCount);
         $reportXML->endElement();
 
-        if (isIDN($dbh, $tld['id'])) {
+        if (isIDN($readDbh, $tld['id'])) {
             $reportXML->startElement('rdeHeader:count');
             $reportXML->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
             $reportXML->text('0');
@@ -683,13 +706,13 @@ try {
         $reps = $reportXML->outputMemory();
 
         // Save the report file
-        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_" . date('Y-m-d') . "_full_R{$finalDepositId}.rep";
+        $reportFilePath = $c['escrow_deposit_path']."/{$tldname}_" . $snapshotDate . "_full_R{$finalDepositId}.rep";
         if (file_put_contents($reportFilePath, $reps, LOCK_EX) === false) {
             throw new RuntimeException('RDE report write failed.');
         }
         
         $dayOfWeekToRunBRDA = $c['escrow_BRDAday'];
-        $currentDayOfWeek = date('l');
+        $currentDayOfWeek = (new DateTime($snapshotDate, new DateTimeZone('UTC')))->format('l');
 
         if ($currentDayOfWeek === $dayOfWeekToRunBRDA) {
             // Start BRDA generation
@@ -701,7 +724,7 @@ try {
             $xml->startElementNS('rde', 'deposit', 'urn:ietf:params:xml:ns:rde-1.0');
             $xml->writeAttribute('type', 'FULL');
             $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
-            $depositId = date('Ymd') . $paddedFinalDepositId;
+            $depositId = str_replace('-', '', $snapshotDate) . $paddedFinalDepositId;
             $xml->writeAttribute('id', $depositId);
 
             // Add the necessary XML namespaces
@@ -720,7 +743,7 @@ try {
             $xml->writeAttributeNS('xmlns', 'epp', null, 'urn:ietf:params:xml:ns:epp-1.0');
 
             $xml->startElementNS('rde', 'watermark', null);
-            $previousDayWatermark = date('Y-m-d', strtotime('-1 day')) . 'T23:59:59Z';
+            $previousDayWatermark = $watermark;
             $xml->text($previousDayWatermark);
             $xml->endElement(); // End rde:watermark
 
@@ -743,7 +766,7 @@ try {
                 'urn:ietf:params:xml:ns:rdePolicy-1.0'
             ];
 
-            if (isIDN($dbh, $tld['id'])) {
+            if (isIDN($readDbh, $tld['id'])) {
                 $objURIs[] = 'urn:ietf:params:xml:ns:rdeIDN-1.0';
             }
 
@@ -782,7 +805,7 @@ try {
             $xml->text($registrarCount);
             $xml->endElement();
 
-            if (isIDN($dbh, $tld['id'])) {
+            if (isIDN($readDbh, $tld['id'])) {
                 $xml->startElement('rdeHeader:count');
                 $xml->writeAttribute('uri', 'urn:ietf:params:xml:ns:rdeIDN-1.0');
                 $xml->text('1');
@@ -807,9 +830,8 @@ try {
             $xml->endElement();  // Closing rdeHeader:header
 
             // Fetch domain details for this TLD
-            $stmt = $dbh->prepare("SELECT * FROM domain WHERE tldid = :tldid AND crdate < :endOfPreviousDay");
+            $stmt = $readDbh->prepare("SELECT * FROM domain WHERE tldid = :tldid");
             $stmt->bindParam(':tldid', $tld['id']);
-            $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
             $stmt->execute();
             $domains = $stmt->fetchAll();
 
@@ -818,37 +840,32 @@ try {
                 $xml->writeElement('rdeDomain:name', $domain['name']);
                 $xml->writeElement('rdeDomain:roid', 'D' . $domain['id'] . '-' . $roid);
                 $xml->writeElement('rdeDomain:uName', $domain['name']);
-                if (isIDN($dbh, $tld['id'])) {
+                if (isIDN($readDbh, $tld['id'])) {
                     $script = guessIdnScriptName($tld['tld']);
                     $xml->writeElement('rdeDomain:idnTableId', $script);
                 }
 
                 // Fetch domain status
-                $stmt = $dbh->prepare("SELECT * FROM domain_status WHERE domain_id = :domain_id;");
-                $stmt->bindParam(':domain_id', $domain['id']);
-                $stmt->execute();
-                $status = $stmt->fetch();
-                $xml->startElement('rdeDomain:status');
-                $xml->writeAttribute('s', $status['status'] ?? 'ok');
-                $xml->text($status['status'] ?? 'ok');
-                $xml->endElement(); // Close rdeDomain:status
+                escrowStatuses($xml, $readDbh, 'domain', $domain['id']);
 
-                $xml->writeElement('rdeDomain:registrant', getIdentifier($dbh, $domain['registrant']));
+                if ($domain['registrant'] !== null) {
+                    $xml->writeElement('rdeDomain:registrant', escrowIdentifier($readDbh, $domain['registrant']));
+                }
 
                 // Fetch domain contacts
-                $stmt = $dbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
+                $stmt = $readDbh->prepare("SELECT * FROM domain_contact_map WHERE domain_id = :domain_id;");
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $domain_contacts = $stmt->fetchAll();
                 foreach ($domain_contacts as $contact) {
                     $xml->startElement('rdeDomain:contact');
                     $xml->writeAttribute('type', $contact['type']);
-                    $xml->text(getIdentifier($dbh, $contact['contact_id']));
+                    $xml->text(escrowIdentifier($readDbh, $contact['contact_id']));
                     $xml->endElement();  // Closing rdeDomain:contact
                 }
 
                 // Fetch domain hosts and incorporate into XML
-                $stmt = $dbh->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
+                $stmt = $readDbh->prepare("SELECT host.name FROM domain_host_map JOIN host ON domain_host_map.host_id = host.id WHERE domain_host_map.domain_id = :domain_id;");
                 $stmt->bindParam(':domain_id', $domain['id']);
                 $stmt->execute();
                 $domain_hosts = $stmt->fetchAll();
@@ -860,31 +877,34 @@ try {
                     $xml->endElement();  // Closing rdeDomain:ns
                 }
 
-                $xml->writeElement('rdeDomain:clID', getClid($dbh, $domain['clid']));
-                $xml->writeElement('rdeDomain:crRr', getClid($dbh, $domain['crid']));
-                $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['crdate']);
+                $xml->writeElement('rdeDomain:clID', escrowClid($readDbh, $domain['clid']));
+                $xml->writeElement('rdeDomain:crRr', escrowClid($readDbh, $domain['crid']));
+                $crDate = escrowParseDate($domain['crdate']);
                 $xml->writeElement('rdeDomain:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
-                $exDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $domain['exdate']);
+                $exDate = escrowParseDate($domain['exdate']);
                 $xml->writeElement('rdeDomain:exDate', $exDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 
                 $xml->endElement();  // Closing rdeDomain:domain
             }
 
             // Fetch and incorporate registrar details
-            $stmt = $dbh->prepare("SELECT * FROM registrar WHERE crdate < :endOfPreviousDay");
-            $stmt->bindParam(':endOfPreviousDay', $endOfPreviousDay);
+            $stmt = $readDbh->prepare("SELECT * FROM registrar");
             $stmt->execute();
             $registrars = $stmt->fetchAll();
 
             foreach ($registrars as $registrar) {
                 $xml->startElement('rdeRegistrar:registrar');
-                $xml->writeElement('rdeRegistrar:id', getClid($dbh, $registrar['id']));
-                $xml->writeElement('rdeRegistrar:name', $registrar['name']);
-                $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
-                $xml->writeElement('rdeRegistrar:status', 'ok');
+                $xml->writeElement('rdeRegistrar:id', escrowClid($readDbh, $registrar['id']));
+                $xml->writeElement('rdeRegistrar:name', escrowRequired($registrar['name'], 'registrar name'));
+                if ($registrar['iana_id'] !== null && $registrar['iana_id'] !== '') {
+                    if ((int)$registrar['iana_id'] <= 0) {
+                        throw new RuntimeException('Escrow registrar IANA ID must be positive when present.');
+                    }
+                    $xml->writeElement('rdeRegistrar:gurid', $registrar['iana_id']);
+                }
 
                 // Fetch and incorporate registrar contact details
-                $stmt = $dbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
+                $stmt = $readDbh->prepare("SELECT * FROM registrar_contact WHERE registrar_id = :registrar_id AND type = 'owner';");
                 $stmt->bindParam(':registrar_id', $registrar['id']);
                 $stmt->execute();
                 $registrar_contacts = $stmt->fetch();
@@ -892,33 +912,28 @@ try {
                 if ($registrar_contacts) {
                     $xml->startElement('rdeRegistrar:postalInfo');
                     $xml->writeAttribute('type', 'int');
-                    $xml->startElement('rdeRegistrar:addr');
-                    $xml->writeElement('rdeRegistrar:street', $registrar_contacts['street1']);
-                    $xml->writeElement('rdeRegistrar:city', $registrar_contacts['city']);
-                    $xml->writeElement('rdeRegistrar:pc', $registrar_contacts['pc']);
-                    $xml->writeElement('rdeRegistrar:cc', $registrar_contacts['cc']);
-                    $xml->endElement();  // Closing rdeRegistrar:addr
+                    escrowAddress($xml, 'rdeRegistrar', $registrar_contacts);
                     $xml->endElement();  // Closing rdeRegistrar:postalInfo
                 }
 
-                $xml->writeElement('rdeRegistrar:voice', $registrar_contacts['voice']);
-                $xml->writeElement('rdeRegistrar:fax', $registrar_contacts['fax']);
-                $xml->writeElement('rdeRegistrar:email', $registrar['email']);
+                escrowPhone($xml, 'rdeRegistrar:voice', $registrar_contacts['voice'] ?? null);
+                escrowPhone($xml, 'rdeRegistrar:fax', $registrar_contacts['fax'] ?? null);
+                escrowOptional($xml, 'rdeRegistrar:email', $registrar['email']);
 
-                $xml->writeElement('rdeRegistrar:url', $registrar['url']);
+                escrowOptional($xml, 'rdeRegistrar:url', $registrar['url']);
 
-                $xml->startElement('rdeRegistrar:whoisInfo');
-                $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
-                $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
-                $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+                if (!empty($registrar['whois_server'])) {
+                    $xml->startElement('rdeRegistrar:whoisInfo');
+                    $xml->writeElement('rdeRegistrar:name', $registrar['whois_server']);
+                    $xml->writeElement('rdeRegistrar:url', $registrar['whois_server']);
+                    $xml->endElement();  // Closing rdeRegistrar:whoisInfo
+                }
                 
-                $crDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['crdate']);
+                $crDate = escrowParseDate($registrar['crdate']);
                 $xml->writeElement('rdeRegistrar:crDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 if (!empty($registrar['lastupdate'])) {
-                    $upDate = DateTime::createFromFormat('Y-m-d H:i:s.v', $registrar['lastupdate']);
+                    $upDate = escrowParseDate($registrar['lastupdate']);
                     $xml->writeElement('rdeRegistrar:upDate', $upDate->format("Y-m-d\\TH:i:s.v\\Z"));
-                } else {
-                    $xml->writeElement('rdeRegistrar:upDate', $crDate->format("Y-m-d\\TH:i:s.v\\Z"));
                 }
                 $xml->endElement();  // Closing rdeRegistrar:registrar
             }
@@ -930,7 +945,7 @@ try {
             $deposit = $xml->outputMemory();
 
             // Define the base name without the extension
-            $baseFileNameBrda = "{$tldname}_" . date('Y-m-d') . "_brda_S1_R{$finalDepositId}";
+            $baseFileNameBrda = "{$tldname}_" . $snapshotDate . "_brda_S1_R{$finalDepositId}";
 
             // XML and tar filenames
             $xmlFileName = $baseFileNameBrda . ".xml";
@@ -1034,7 +1049,7 @@ try {
             // Upload the files
             $filesToUpload = [
                 $encryptedFilePath,
-                $signatureFilePath
+                $signaturePath
             ];
 
             foreach ($filesToUpload as $filePath) {
@@ -1114,7 +1129,7 @@ try {
                 }
             }
             
-            $depositDate = date('Y-m-d');
+            $depositDate = $snapshotDate;
             $fileName = $c['escrow_deposit_path'] . "/" . $baseFileNameBrda . ".ryde";
             $fileFormat = 'XML';
             $encryptionMethod = 'GnuPG';
@@ -1125,7 +1140,7 @@ try {
             // Prepare the INSERT statement
             $stmt = $dbh->prepare("INSERT INTO rde_escrow_deposits (deposit_id, deposit_date, file_name, file_format, encryption_method, deposit_type, status, verification_status, revision) VALUES (:deposit_id, :deposit_date, :file_name, :file_format, :encryption_method, :deposit_type, :status, :verification_status, :revision)");
 
-            $previousDayFormatted = date('Ymd');
+            $previousDayFormatted = str_replace('-', '', $snapshotDate);
             $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
             $depositId = $previousDayFormatted . $paddedFinalDepositId;
 
@@ -1148,7 +1163,7 @@ try {
             }
         }
         
-        $depositDate = date('Y-m-d');
+        $depositDate = $snapshotDate;
         $fileName = $c['escrow_deposit_path'] . "/" . $baseFileName . ".ryde";
         $fileFormat = 'XML';
         $encryptionMethod = 'GnuPG';
@@ -1159,7 +1174,7 @@ try {
         // Prepare the INSERT statement
         $stmt = $dbh->prepare("INSERT INTO rde_escrow_deposits (deposit_id, deposit_date, file_name, file_format, encryption_method, deposit_type, status, verification_status, revision) VALUES (:deposit_id, :deposit_date, :file_name, :file_format, :encryption_method, :deposit_type, :status, :verification_status, :revision)");
 
-        $previousDayFormatted = date('Ymd');
+        $previousDayFormatted = str_replace('-', '', $snapshotDate);
         $paddedFinalDepositId = str_pad($finalDepositId, 3, '0', STR_PAD_LEFT);
         $depositId = $previousDayFormatted . $paddedFinalDepositId;
 
@@ -1182,11 +1197,234 @@ try {
         }
 
     }
+    $readDbh->commit();
     $log->info('job finished successfully.');
 } catch (PDOException $e) {
+    if (isset($readDbh) && $readDbh->inTransaction()) {
+        $readDbh->rollBack();
+    }
     $log->error('Database error: ' . $e->getMessage());
     exit(1);
 } catch (Throwable $e) {
+    if (isset($readDbh) && $readDbh->inTransaction()) {
+        $readDbh->rollBack();
+    }
     $log->error('Error: ' . $e->getMessage());
     exit(1);
+}
+
+// Escrow XML helpers: preserve stored values and the RFC 9022 element order.
+function escrowRequired($value, string $field): string
+{
+    if ($value === null || trim((string)$value) === '') {
+        throw new RuntimeException('Escrow snapshot is missing required ' . $field . '.');
+    }
+    return (string)$value;
+}
+
+function escrowOptional(XMLWriter $xml, string $element, $value): void
+{
+    if ($value !== null && (string)$value !== '') {
+        $xml->writeElement($element, (string)$value);
+    }
+}
+
+function escrowClid(PDO $db, $id): string
+{
+    return escrowRequired($id === null ? null : getClid($db, (int)$id), 'registrar reference');
+}
+
+function escrowIdentifier(PDO $db, $id): string
+{
+    return escrowRequired($id === null ? null : getIdentifier($db, (int)$id), 'contact reference');
+}
+
+function escrowParseDate($value): DateTime
+{
+    $value = escrowRequired($value, 'date');
+    $format = str_contains($value, '.') ? '!Y-m-d H:i:s.u' : '!Y-m-d H:i:s';
+    $date = DateTime::createFromFormat($format, $value, new DateTimeZone('UTC'));
+    $errors = DateTime::getLastErrors();
+    if (!$date || ($errors && ($errors['warning_count'] || $errors['error_count']))) {
+        throw new RuntimeException('Invalid date in escrow snapshot.');
+    }
+    return $date;
+}
+
+function escrowDate(XMLWriter $xml, string $element, $value): void
+{
+    if ($value !== null && $value !== '') {
+        $xml->writeElement($element, escrowParseDate($value)->format('Y-m-d\TH:i:s.v\Z'));
+    }
+}
+
+function escrowStatuses(XMLWriter $xml, PDO $db, string $object, $id): void
+{
+    $limit = match ($object) { 'domain' => 11, 'host', 'contact' => 7 };
+    $stmt = $db->prepare("SELECT status FROM {$object}_status WHERE {$object}_id = ? ORDER BY status");
+    $stmt->execute([$id]);
+    $statuses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    if (count($statuses) > $limit) {
+        throw new RuntimeException('Too many ' . $object . ' statuses in escrow snapshot.');
+    }
+    foreach ($statuses ?: ['ok'] as $status) {
+        $xml->startElement('rde' . ucfirst($object) . ':status');
+        $xml->writeAttribute('s', $status);
+        $xml->endElement();
+    }
+}
+
+function escrowAddress(XMLWriter $xml, string $prefix, array $address): void
+{
+    $xml->startElement($prefix . ':addr');
+    foreach (['street1', 'street2', 'street3'] as $field) {
+        escrowOptional($xml, $prefix . ':street', $address[$field]);
+    }
+    $xml->writeElement($prefix . ':city', escrowRequired($address['city'], 'postal city'));
+    escrowOptional($xml, $prefix . ':sp', $address['sp']);
+    escrowOptional($xml, $prefix . ':pc', $address['pc']);
+    $xml->writeElement($prefix . ':cc', escrowRequired($address['cc'], 'postal country'));
+    $xml->endElement();
+}
+
+function escrowPhone(XMLWriter $xml, string $element, $value, $extension = null): void
+{
+    if ($value === null || $value === '') {
+        if ($extension !== null && $extension !== '') {
+            throw new RuntimeException('Escrow telephone extension has no telephone number.');
+        }
+        return;
+    }
+    if (!preg_match('/\A\+[0-9]{1,3}\.[0-9]+\z/', (string)$value)) {
+        throw new RuntimeException('Invalid RFC 5733 telephone in escrow snapshot (' . $element . ').');
+    }
+    $xml->startElement($element);
+    if ($extension !== null && $extension !== '') {
+        $xml->writeAttribute('x', (string)$extension);
+    }
+    $xml->text((string)$value);
+    $xml->endElement();
+}
+
+function escrowUpdate(XMLWriter $xml, PDO $db, string $prefix, array $row): void
+{
+    if ($row['upid'] !== null) {
+        $xml->writeElement($prefix . ':upRr', escrowClid($db, $row['upid']));
+    }
+    escrowDate($xml, $prefix . ':upDate', $row['lastupdate']);
+}
+
+function escrowTransfer(XMLWriter $xml, PDO $db, string $prefix, array $row): void
+{
+    escrowDate($xml, $prefix . ':trDate', $row['trdate']);
+    if ($row['trstatus'] === null || $row['trstatus'] === '') {
+        return;
+    }
+    $xml->startElement($prefix . ':trnData');
+    $xml->writeElement($prefix . ':trStatus', $row['trstatus']);
+    $xml->writeElement($prefix . ':reRr', escrowClid($db, $row['reid']));
+    $xml->writeElement($prefix . ':reDate', escrowParseDate($row['redate'])->format('Y-m-d\TH:i:s.v\Z'));
+    $xml->writeElement($prefix . ':acRr', escrowClid($db, $row['acid']));
+    $xml->writeElement($prefix . ':acDate', escrowParseDate($row['acdate'])->format('Y-m-d\TH:i:s.v\Z'));
+    if ($prefix === 'rdeDomain') {
+        escrowDate($xml, $prefix . ':exDate', $row['transfer_exdate']);
+    }
+    $xml->endElement();
+}
+
+function escrowDnssec(XMLWriter $xml, PDO $db, $domainId): void
+{
+    $stmt = $db->prepare('SELECT * FROM secdns WHERE domain_id = ? ORDER BY id');
+    $stmt->execute([$domainId]);
+    $records = $stmt->fetchAll();
+    if (!$records) {
+        return;
+    }
+    $interface = $records[0]['interface'];
+    if (!in_array($interface, ['dsData', 'keyData'], true)) {
+        throw new RuntimeException('Unknown DNSSEC interface in escrow snapshot.');
+    }
+    // maxSigLife is domain-level metadata, but EPP additions may store NULL
+    // for records where the optional value was omitted. Reconcile the
+    // non-null values without treating those NULLs as contradictions.
+    $maxSigLife = null;
+    foreach ($records as $record) {
+        if ($record['interface'] !== $interface) {
+            throw new RuntimeException('Inconsistent DNSSEC interface in escrow data.');
+        }
+        if ($record['maxsiglife'] !== null && $record['maxsiglife'] !== '') {
+            if ($maxSigLife !== null && (string)$maxSigLife !== (string)$record['maxsiglife']) {
+                throw new RuntimeException('Conflicting DNSSEC maxSigLife values in escrow data.');
+            }
+            $maxSigLife = $record['maxsiglife'];
+        }
+    }
+    $xml->startElement('rdeDomain:secDNS');
+    escrowOptional($xml, 'secDNS:maxSigLife', $maxSigLife);
+    foreach ($records as $record) {
+        if ($interface === 'dsData') {
+            $xml->startElement('secDNS:dsData');
+            foreach (['keyTag' => 'keytag', 'alg' => 'alg', 'digestType' => 'digesttype', 'digest' => 'digest'] as $tag => $column) {
+                $xml->writeElement('secDNS:' . $tag, escrowRequired($record[$column], 'DNSSEC ' . $tag));
+            }
+        }
+        // DS records may also carry the original DNSKEY.
+        if ($interface === 'keyData' || ($record['pubkey'] !== null && $record['pubkey'] !== '')) {
+            $xml->startElement('secDNS:keyData');
+            foreach (['flags' => 'flags', 'protocol' => 'protocol', 'alg' => 'keydata_alg', 'pubKey' => 'pubkey'] as $tag => $column) {
+                $xml->writeElement('secDNS:' . $tag, escrowRequired($record[$column], 'DNSKEY ' . $tag));
+            }
+            $xml->endElement();
+        }
+        if ($interface === 'dsData') {
+            $xml->endElement();
+        }
+    }
+    $xml->endElement();
+}
+
+function escrowDisclosure(XMLWriter $xml, array $contact, array $postalRows): void
+{
+    // flag=0 lists withheld fields; unlisted fields remain disclosed.
+    $xml->startElement('rdeContact:disclose');
+    $xml->writeAttribute('flag', '0');
+    foreach (['name', 'org', 'addr'] as $field) {
+        foreach ($postalRows as $postal) {
+            if ((string)$postal['disclose_' . $field . '_' . $postal['type']] === '0') {
+                $xml->startElement('contact:' . $field);
+                $xml->writeAttribute('type', $postal['type']);
+                $xml->endElement();
+            }
+        }
+    }
+    foreach (['voice', 'fax', 'email'] as $field) {
+        if ((string)$contact['disclose_' . $field] === '0') {
+            $xml->writeElement('contact:' . $field);
+        }
+    }
+    $xml->endElement();
+}
+
+function escrowNndns(PDO $db, string $tld): array
+{
+    $names = [];
+    $registered = $db->prepare('SELECT 1 FROM domain WHERE name = ?');
+    foreach ($db->query('SELECT name FROM reserved_domain_names ORDER BY id') as $row) {
+        // Namingo supports both global reserved labels and explicit FQDNs.
+        $name = strtolower(escrowRequired($row['name'], 'reserved name'));
+        if (!str_contains($name, '.')) {
+            $name .= '.' . $tld;
+        }
+        if (!str_ends_with($name, '.' . $tld)) {
+            continue;
+        }
+        if (strlen($name) > 253 || !preg_match('/\A[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+\z/', $name)) {
+            throw new RuntimeException('Reserved name is not an A-label FQDN in escrow snapshot.');
+        }
+        $registered->execute([$name]);
+        if (!$registered->fetchColumn()) {
+            $names[$name] = $name; // An existing domain must not also be an NNDN.
+        }
+    }
+    return array_values($names);
 }

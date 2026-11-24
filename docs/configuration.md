@@ -1013,6 +1013,15 @@ In this section, we provide a detailed overview of each configuration file used 
 
 This configuration file is essential for setting up the automation scripts for the registry tool.
 
+Escrow reads the live registry database through a separate, read-only,
+repeatable-read transaction. No second database or snapshot configuration is
+required. The deposit watermark records the actual UTC capture time; running
+the job later does **not** reconstruct an earlier midnight state. Operators
+subject to a contractual 00:00:00 UTC cutoff (such as certain ICANN gTLD
+agreements) must arrange a genuine midnight-consistent capture separately.
+Long-running deposits can also retain database row versions until the read
+transaction finishes, so monitor database load and undo/WAL retention.
+
 ```php
 <?php
 
