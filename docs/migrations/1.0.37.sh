@@ -571,6 +571,60 @@ if (file_put_contents($path, $updated, LOCK_EX) !== strlen($updated)) {
 PHP
 }
 
+upgrade_ntfy_config() {
+    if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
+        log "Skipping host-only ntfy configuration migration in Docker"
+        return 0
+    fi
+
+    config_file="${NAMINGO_INSTALL_DIR:-/opt/registry}/automation/config.php"
+    [ -f "$config_file" ] || die "Automation configuration not found: $config_file"
+
+    php_bin=$(command -v "php${NAMINGO_PHP_VERSION:-8.3}" 2>/dev/null || command -v php 2>/dev/null || true)
+    [ -n "$php_bin" ] || die "PHP executable not found"
+
+    log "Adding optional ntfy notification settings"
+    "$php_bin" /dev/stdin "$config_file" <<'PHP'
+<?php
+$path = $argv[1];
+$config = file_get_contents($path);
+if ($config === false) {
+    throw new RuntimeException('Could not read automation configuration');
+}
+$settings = [
+    'ntfy_topic' => "    'ntfy_topic' => '', // Full ntfy topic URL",
+    'ntfy_token' => "    'ntfy_token' => '', // Optional bearer token",
+    'ntfy_min_level' => "    'ntfy_min_level' => 400, // ERROR and above",
+    'ntfy_last_id_file' => "    'ntfy_last_id_file' => '/var/log/namingo/ntfy-last-id',",
+];
+$missing = [];
+foreach ($settings as $key => $line) {
+    if (!preg_match('/^[\t ]*[\x27\x22]' . preg_quote($key, '/') . '[\x27\x22][\t ]*=>/m', $config)) {
+        $missing[] = $line;
+    }
+}
+if (!$missing) {
+    echo "ntfy settings already configured; leaving them unchanged\n";
+    exit(0);
+}
+$updated = preg_replace_callback(
+    '/^([\t ]*[\x27\x22]reporting_password[\x27\x22][\t ]*=>[^\r\n]*)(\r?\n)/m',
+    static fn (array $match): string => $match[1] . $match[2]
+        . $match[2] . str_replace("\n", $match[2], implode("\n", $missing)) . $match[2],
+    $config,
+    1,
+    $count
+);
+if ($updated === null || $count !== 1) {
+    throw new RuntimeException('Could not locate reporting_password in automation configuration');
+}
+token_get_all($updated, TOKEN_PARSE);
+if (file_put_contents($path, $updated, LOCK_EX) !== strlen($updated)) {
+    throw new RuntimeException('Could not update automation configuration');
+}
+PHP
+}
+
 case "$PHASE" in
     pre)
         ;;
@@ -580,6 +634,7 @@ case "$PHASE" in
         upgrade_balance_mapping
         upgrade_reporting_history
         upgrade_zone_writer_config
+        upgrade_ntfy_config
         ;;
     reporting)
         upgrade_reporting_history
