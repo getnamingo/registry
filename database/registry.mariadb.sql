@@ -1066,6 +1066,151 @@ CREATE INDEX idx_domain_crdate ON registry.domain (crdate DESC);
 CREATE INDEX idx_domain_exdate ON registry.domain (exdate);
 CREATE INDEX idx_support_tickets_date_created ON registry.support_tickets (date_created);
 
+-- Namingo Registry ICANN Specification 3 event history for mariadb.
+CREATE TABLE IF NOT EXISTS reporting_baseline (
+  id INTEGER PRIMARY KEY,
+  installed_at DATETIME(3) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reporting_domain_event (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_time DATETIME(3) NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL,
+  tldid INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  clid INTEGER NOT NULL,
+  prev_clid INTEGER NULL,
+  reid INTEGER NULL,
+  trstatus VARCHAR(32) NULL,
+  prev_trstatus VARCHAR(32) NULL,
+  crdate DATETIME(3) NOT NULL,
+  rgpstatus VARCHAR(32) NULL,
+  prev_rgpstatus VARCHAR(32) NULL,
+  rgpres_time DATETIME(3) NULL,
+  prev_rgpres_time DATETIME(3) NULL,
+  rgpres_reason TEXT NULL,
+  agp_request DATETIME(3) NULL,
+  prev_agp_request DATETIME(3) NULL,
+  agp_grant DATETIME(3) NULL,
+  prev_agp_grant DATETIME(3) NULL,
+  agp_exempted INTEGER NULL,
+  prev_agp_exempted INTEGER NULL,
+  add_period INTEGER NULL,
+  renew_period INTEGER NULL,
+  renewed_date DATETIME(3) NULL,
+  transfer_period INTEGER NULL,
+  trdate DATETIME(3) NULL,
+  exdate DATETIME(3) NULL
+);
+
+CREATE INDEX IF NOT EXISTS reporting_de_asof ON reporting_domain_event(domain_id, id);
+CREATE INDEX IF NOT EXISTS reporting_de_tldtime ON reporting_domain_event(tldid, event_time);
+CREATE INDEX IF NOT EXISTS reporting_de_name ON reporting_domain_event(name, crdate, action, event_time);
+
+CREATE TABLE IF NOT EXISTS reporting_host_event (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_time DATETIME(3) NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  host_id BIGINT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  clid INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_he_asof ON reporting_host_event(host_id, id);
+
+CREATE TABLE IF NOT EXISTS reporting_map_event (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_time DATETIME(3) NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL,
+  host_id BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_me_asof ON reporting_map_event(domain_id, host_id, id);
+
+CREATE TABLE IF NOT EXISTS reporting_pending_create_event (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_time DATETIME(3) NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_pce_asof ON reporting_pending_create_event(domain_id, id);
+
+
+DELIMITER //
+
+CREATE TRIGGER IF NOT EXISTS reporting_domain_ainsert AFTER INSERT ON domain FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES (UTC_TIMESTAMP(3), 'insert', NEW.`id`, NEW.`tldid`, NEW.`name`, NEW.`clid`, NULL, NEW.`reid`, NEW.`trstatus`, NULL, NEW.`crdate`, NEW.`rgpstatus`, NULL, NEW.`rgpresTime`, NULL, NEW.`rgpresReason`, NEW.`agp_request`, NULL, NEW.`agp_grant`, NULL, NEW.`agp_exempted`, NULL, NEW.`addPeriod`, NEW.`renewPeriod`, NEW.`renewedDate`, NEW.`transferPeriod`, NEW.`trdate`, NEW.`exdate`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_domain_aupdate AFTER UPDATE ON domain FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES (UTC_TIMESTAMP(3), 'update', NEW.`id`, NEW.`tldid`, NEW.`name`, NEW.`clid`, OLD.`clid`, NEW.`reid`, NEW.`trstatus`, OLD.`trstatus`, NEW.`crdate`, NEW.`rgpstatus`, OLD.`rgpstatus`, NEW.`rgpresTime`, OLD.`rgpresTime`, NEW.`rgpresReason`, NEW.`agp_request`, OLD.`agp_request`, NEW.`agp_grant`, OLD.`agp_grant`, NEW.`agp_exempted`, OLD.`agp_exempted`, NEW.`addPeriod`, NEW.`renewPeriod`, NEW.`renewedDate`, NEW.`transferPeriod`, NEW.`trdate`, NEW.`exdate`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_domain_adelete AFTER DELETE ON domain FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES (UTC_TIMESTAMP(3), 'delete', OLD.`id`, OLD.`tldid`, OLD.`name`, OLD.`clid`, OLD.`clid`, OLD.`reid`, OLD.`trstatus`, OLD.`trstatus`, OLD.`crdate`, OLD.`rgpstatus`, OLD.`rgpstatus`, OLD.`rgpresTime`, OLD.`rgpresTime`, OLD.`rgpresReason`, OLD.`agp_request`, OLD.`agp_request`, OLD.`agp_grant`, OLD.`agp_grant`, OLD.`agp_exempted`, OLD.`agp_exempted`, OLD.`addPeriod`, OLD.`renewPeriod`, OLD.`renewedDate`, OLD.`transferPeriod`, OLD.`trdate`, OLD.`exdate`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_host_ainsert AFTER INSERT ON host FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_host_event (event_time, action, host_id, name, clid)
+  VALUES (UTC_TIMESTAMP(3), 'insert', NEW.`id`, NEW.`name`, NEW.`clid`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_host_aupdate AFTER UPDATE ON host FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_host_event (event_time, action, host_id, name, clid)
+  VALUES (UTC_TIMESTAMP(3), 'update', NEW.`id`, NEW.`name`, NEW.`clid`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_host_adelete AFTER DELETE ON host FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_host_event (event_time, action, host_id, name, clid)
+  VALUES (UTC_TIMESTAMP(3), 'delete', OLD.`id`, OLD.`name`, OLD.`clid`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_map_ainsert AFTER INSERT ON domain_host_map FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_map_event (event_time, action, domain_id, host_id)
+  VALUES (UTC_TIMESTAMP(3), 'insert', NEW.`domain_id`, NEW.`host_id`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_map_adelete AFTER DELETE ON domain_host_map FOR EACH ROW
+BEGIN
+  INSERT INTO reporting_map_event (event_time, action, domain_id, host_id)
+  VALUES (UTC_TIMESTAMP(3), 'delete', OLD.`domain_id`, OLD.`host_id`);
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_pending_create_ainsert AFTER INSERT ON domain_status FOR EACH ROW
+BEGIN
+  IF NEW.status = 'pendingCreate' THEN
+    INSERT INTO reporting_pending_create_event (event_time, action, domain_id)
+    VALUES (UTC_TIMESTAMP(3), 'insert', NEW.domain_id);
+  END IF;
+END//
+
+CREATE TRIGGER IF NOT EXISTS reporting_pending_create_adelete AFTER DELETE ON domain_status FOR EACH ROW
+BEGIN
+  IF OLD.status = 'pendingCreate' THEN
+    INSERT INTO reporting_pending_create_event (event_time, action, domain_id)
+    VALUES (UTC_TIMESTAMP(3), 'delete', OLD.domain_id);
+  END IF;
+END//
+
+DELIMITER ;
+
+INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) SELECT UTC_TIMESTAMP(3), 'insert', d.`id`, d.`tldid`, d.`name`, d.`clid`, NULL, d.`reid`, d.`trstatus`, NULL, d.`crdate`, d.`rgpstatus`, NULL, d.`rgpresTime`, NULL, d.`rgpresReason`, d.`agp_request`, NULL, d.`agp_grant`, NULL, d.`agp_exempted`, NULL, d.`addPeriod`, d.`renewPeriod`, d.`renewedDate`, d.`transferPeriod`, d.`trdate`, d.`exdate` FROM domain d WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_host_event (event_time,action,host_id,name,clid) SELECT UTC_TIMESTAMP(3), 'insert', h.id, h.name, h.clid FROM host h WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_map_event (event_time,action,domain_id,host_id) SELECT UTC_TIMESTAMP(3), 'insert', m.domain_id, m.host_id FROM domain_host_map m WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_pending_create_event (event_time,action,domain_id) SELECT UTC_TIMESTAMP(3), 'insert', s.domain_id FROM domain_status s WHERE s.status = 'pendingCreate' AND NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT IGNORE INTO reporting_baseline (id, installed_at) VALUES (1, UTC_TIMESTAMP(3));
+
 CREATE DATABASE IF NOT EXISTS `registryTransaction`;
 
 CREATE TABLE IF NOT EXISTS `registryTransaction`.`transaction_identifier` (
