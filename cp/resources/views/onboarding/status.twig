@@ -12,6 +12,9 @@
        {% elseif application.status == 'approved' %}Your application has been approved. The registry will provide login details securely.
        {% else %}Your application was not approved. Contact the registry for details.{% endif %}</p>
     <a class="btn btn-outline-primary" href="/onboarding/contract/{{ application.public_token }}">View agreement</a>
+    {% if application.signature %}
+      <a class="btn btn-outline-primary" href="/onboarding/contract/{{ application.public_token }}/pdf">Download signed PDF</a>
+    {% endif %}
   {% endif %}
   <p class="text-secondary mt-4">Keep this private link to revisit your application. Anyone with the link can view the application and agreement.</p>
   <div class="input-group"><input class="form-control" aria-label="Application link" readonly value="{{ application.public_token }}"><button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(location.href)">Copy link</button></div>

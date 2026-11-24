@@ -47,6 +47,7 @@ $app->get('/onboarding', OnboardingController::class . ':index');
 $app->post('/onboarding', OnboardingController::class . ':submit');
 $app->get('/onboarding/application/{token}', OnboardingController::class . ':status');
 $app->get('/onboarding/contract/{token}', OnboardingController::class . ':contract');
+$app->get('/onboarding/contract/{token}/pdf', OnboardingController::class . ':signedPdf');
 $app->post('/onboarding/contract/{token}', OnboardingController::class . ':sign');
 // Controller enforces Registry's existing admin session/role; POST actions use CP CSRF.
 $app->get('/onboarding/admin', OnboardingController::class . ':admin');

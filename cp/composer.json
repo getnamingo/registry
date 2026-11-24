@@ -1,6 +1,6 @@
 {
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "ext-pdo": "*",
         "ext-openssl": "*",
         "slim/slim": "4.15.2",
@@ -20,6 +20,7 @@
         "gettext/gettext": "^5.7.3",
         "punic/punic": "^3.8.1",
         "league/iso3166": "^4.4.0",
+        "dragonofmercy/phppdf": "^1.12.5",
         "stripe/stripe-php": "^20.3.1",
         "robthree/twofactorauth": "^3.0.3",
         "lbuchs/webauthn": "^2.2.0",

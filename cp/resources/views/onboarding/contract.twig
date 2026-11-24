@@ -8,6 +8,7 @@
     {% if application.signature %}
       <hr><p>Signed by {{ d.ownerFirstName }} {{ d.ownerLastName }} on {{ application.signed_at }} (registry database time). Recorded IP: {{ application.signed_ip }}.</p>
       <img src="{{ application.signature }}" width="420" height="130" alt="Registrar signature" style="max-width:100%;border:1px solid #ccc;object-fit:contain">
+      <p class="mt-3"><a class="btn btn-outline-primary" href="/onboarding/contract/{{ application.public_token }}/pdf">Download signed PDF</a></p>
     {% elseif not admin and application.status == 'pendingAgreement' %}
       <hr><h2>Sign agreement</h2>
       {% if error is defined %}<div class="alert alert-danger">{{ error }}</div>{% endif %}

@@ -3,6 +3,11 @@
 namespace App\Controllers;
 
 use App\Security\PasswordHasher;
+use DragonOfMercy\PhpPdf\Document;
+use DragonOfMercy\PhpPdf\Font;
+use DragonOfMercy\PhpPdf\Image;
+use DragonOfMercy\PhpPdf\PageMargins;
+use League\ISO3166\ISO3166;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -12,6 +17,11 @@ final class OnboardingController extends Controller
     private function page(Response $response, string $name, array $vars = []): Response
     {
         $vars['registryName'] = (string) envi('APP_NAME', 'Registry');
+        if ($name === 'apply') {
+            $vars['countries'] = (new ISO3166())->all();
+            usort($vars['countries'], static fn (array $a, array $b): int =>
+                strcasecmp($a['name'], $b['name']));
+        }
         return $this->container->get('view')->render($response, 'onboarding/' . $name . '.twig', $vars);
     }
 
@@ -105,8 +115,10 @@ final class OnboardingController extends Controller
         if (!preg_match('/^[a-z0-9-]{1,16}$/D', $data['user_name'])) {
             $errors[] = 'EPP client ID must be 1–16 lowercase letters, numbers or hyphens.';
         }
-        if (!preg_match('/^[A-Z]{2}$/D', $data['ownerCc'])) {
-            $errors[] = 'Country must be a two-letter ISO code.';
+        try {
+            (new ISO3166())->alpha2($data['ownerCc']);
+        } catch (\Throwable $e) {
+            $errors[] = 'Select a valid country.';
         }
         if ($data['ianaId'] !== '' && (!ctype_digit($data['ianaId']) || (int) $data['ianaId'] < 1 || (int) $data['ianaId'] > 99999)) {
             $errors[] = 'IANA ID must be a positive integer, or left blank.';
@@ -163,6 +175,79 @@ final class OnboardingController extends Controller
             return $this->redirect($response, '/onboarding');
         }
         return $this->page($response->withHeader('Cache-Control', 'no-store'), 'contract', ['application' => $application]);
+    }
+
+    /** Download the snapshotted agreement with its captured electronic signature. */
+    public function signedPdf(Request $request, Response $response, string $token): Response
+    {
+        $application = $this->application($token);
+        if (!$application || !$application['signature'] || !$application['signed_at']) {
+            return $response->withStatus(404);
+        }
+
+        // phppdf does not render HTML. Convert the stored (not regenerated)
+        // agreement's text sections to flowing PDF Markdown.
+        $html = new \DOMDocument();
+        $oldErrors = libxml_use_internal_errors(true);
+        try {
+            if (!$html->loadHTML('<?xml encoding="UTF-8"?>' . $application['agreement_html'], LIBXML_NONET)) {
+                throw new \RuntimeException('Cannot read the stored agreement');
+            }
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($oldErrors);
+        }
+        $sections = [];
+        $xpath = new \DOMXPath($html);
+        foreach ($xpath->query('//body//*[self::h1 or self::h2 or self::h3 or self::p or self::li]') as $node) {
+            $text = trim(preg_replace('/\s+/u', ' ', $node->textContent) ?? '');
+            if ($text === '') {
+                continue;
+            }
+            $prefix = match ($node->nodeName) {
+                'h1' => '# ', 'h2' => '## ', 'h3' => '### ', 'li' => '- ', default => '',
+            };
+            $sections[] = $prefix . $text;
+        }
+        if (!$sections) {
+            throw new \RuntimeException('The stored agreement has no printable content');
+        }
+
+        $pdf = new Document();
+        $pdf->metadata()->title('Signed registrar accreditation agreement');
+        $pdf->setMargins(new PageMargins(top: 20, right: 20, bottom: 20, left: 20));
+        $pdf->setAutoPageBreak(true);
+        // Use an installed Unicode font where available for international names.
+        $fontPath = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
+        $font = Font::helvetica();
+        if (is_readable($fontPath)) {
+            $pdf->registerFontFamily('registry', regular: $fontPath);
+            $font = Font::custom('registry');
+        }
+        $page = $pdf->addPage();
+        $page->setFont($font, 11);
+        $page->markdown(implode("\n\n", $sections), width: 170);
+
+        $page = $pdf->getCurrentPage();
+        if ($page->getY() > 220) {
+            $page = $pdf->addPage();
+        }
+        $page->setFont($font, 10);
+        $y = $page->getY() + 8;
+        $details = $application['details'];
+        $signer = trim(($details['ownerFirstName'] ?? '') . ' ' . ($details['ownerLastName'] ?? ''));
+        $page->text(20, $y, 'Electronically signed by: ' . $signer);
+        $page->text(20, $y + 7, 'Signed at: ' . $application['signed_at'] . ' (registry database time)');
+        $page->text(20, $y + 14, 'Recorded IP: ' . (string)$application['signed_ip']);
+        $page->image(Image::fromBase64($application['signature']), x: 20, y: $y + 20, w: 90, h: 27);
+
+        $bytes = $pdf->output();
+        $response->getBody()->write($bytes);
+        return $response->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', 'attachment; filename="registrar-agreement-' . (int)$application['id'] . '.pdf"')
+            ->withHeader('Content-Length', (string)strlen($bytes))
+            ->withHeader('Cache-Control', 'private, no-store')
+            ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public function sign(Request $request, Response $response, string $token): Response

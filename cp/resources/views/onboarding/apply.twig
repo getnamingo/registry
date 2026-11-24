@@ -28,7 +28,7 @@
           { 'name': 'ownerCity', 'label': 'City', 'required': true },
           { 'name': 'ownerSp', 'label': 'State / province' },
           { 'name': 'ownerPc', 'label': 'Postal code' },
-          { 'name': 'ownerCc', 'label': 'Country (ISO 3166-1 alpha-2, e.g. BG)', 'required': true },
+          { 'name': 'ownerCc', 'label': 'Country', 'required': true },
           { 'name': 'ownerVoice', 'label': 'Phone (+123.456789)' },
           { 'name': 'ownerEmail', 'label': 'Contact email', 'type': 'email', 'required': true }
         ] },
@@ -43,9 +43,18 @@
         <div class="row row-cards">
         {% for field in group.fields %}
           <div class="col-md-6"><label class="form-label" for="{{ field.name }}">{{ field.label }}</label>
-          <input class="form-control" id="{{ field.name }}" name="{{ field.name }}"
-                 type="{{ field.type|default('text') }}" maxlength="255"
-                 value="{{ values[field.name]|default('') }}" {% if field.required|default(false) %}required{% endif %}></div>
+          {% if field.name == 'ownerCc' %}
+            <select class="form-select" id="ownerCc" name="ownerCc" required>
+              <option value="">Select a country</option>
+              {% for country in countries %}
+                <option value="{{ country.alpha2 }}" {% if values.ownerCc|default('') == country.alpha2 %}selected{% endif %}>{{ country.name }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <input class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                   type="{{ field.type|default('text') }}" maxlength="255"
+                   value="{{ values[field.name]|default('') }}" {% if field.required|default(false) %}required{% endif %}>
+          {% endif %}</div>
         {% endfor %}
         </div>
       {% endfor %}
