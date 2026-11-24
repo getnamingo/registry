@@ -290,7 +290,10 @@ final class OnboardingController extends Controller
                 'line_items' => [[
                     'price_data' => [
                         'currency' => strtolower($payment['currency']),
-                        'product_data' => ['name' => 'Registrar onboarding fee'],
+                        'product_data' => [
+                            'name' => 'Registrar onboarding fee',
+                            'description' => 'EPP client ID: ' . $data['user_name'],
+                        ],
                         'unit_amount' => (int) $payment['amount_minor'],
                     ],
                     'quantity' => 1,

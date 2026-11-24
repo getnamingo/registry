@@ -94,6 +94,73 @@ upgrade_onboarding_fee_config() {
     fi
 }
 
+upgrade_cp_stripe_csp() {
+    caddy_file=/etc/caddy/Caddyfile
+    if [ ! -f "$caddy_file" ] || ! command -v caddy >/dev/null 2>&1; then
+        log "Caddy not installed; skipping Control Panel CSP update"
+        return 0
+    fi
+
+    php_bin=$(command -v "php${NAMINGO_PHP_VERSION:-8.3}" 2>/dev/null || command -v php 2>/dev/null || true)
+    [ -n "$php_bin" ] || die "PHP executable not found for Caddy CSP migration"
+    updated_file=$(mktemp "${caddy_file}.stripe.XXXXXX")
+    backup_file=$(mktemp "${caddy_file}.backup.XXXXXX")
+    cp -p "$caddy_file" "$updated_file"
+    cp -p "$caddy_file" "$backup_file"
+
+    "$php_bin" /dev/stdin "$caddy_file" "$updated_file" <<'PHP'
+<?php
+[$script, $source, $target] = $argv;
+$lines = file($source);
+if ($lines === false) {
+    throw new RuntimeException('Could not read Caddyfile');
+}
+$inPanel = false;
+$depth = 0;
+$changed = 0;
+foreach ($lines as &$line) {
+    if (!$inPanel && preg_match('/^\s*(?:https:\/\/)?cp\.[^\s{]+\s*\{\s*$/', $line)) {
+        $inPanel = true;
+    }
+    if ($inPanel) {
+        if (str_contains($line, 'Content-Security-Policy')
+            && str_contains($line, "form-action 'self';")) {
+            $line = str_replace("form-action 'self';",
+                "form-action 'self' https://checkout.stripe.com;", $line);
+            ++$changed;
+        }
+        $depth += substr_count($line, '{') - substr_count($line, '}');
+        if ($depth === 0) {
+            $inPanel = false;
+        }
+    }
+}
+unset($line);
+if ($changed > 1 || file_put_contents($target, implode('', $lines)) === false) {
+    throw new RuntimeException('Could not safely update Control Panel CSP');
+}
+PHP
+
+    if cmp -s "$caddy_file" "$updated_file"; then
+        log "Control Panel Stripe CSP already configured or no matching block; leaving Caddy unchanged"
+        rm -f "$updated_file" "$backup_file"
+        return 0
+    fi
+    if ! caddy validate --config "$updated_file" --adapter caddyfile; then
+        rm -f "$updated_file" "$backup_file"
+        die "Updated Caddy configuration failed validation"
+    fi
+    cp -p "$updated_file" "$caddy_file"
+    if ! systemctl restart caddy; then
+        cp -p "$backup_file" "$caddy_file"
+        systemctl restart caddy || true
+        rm -f "$updated_file" "$backup_file"
+        die "Caddy restart failed; restored previous configuration"
+    fi
+    rm -f "$updated_file" "$backup_file"
+    log "Allowed Stripe Checkout redirects in Control Panel CSP and restarted Caddy"
+}
+
 upgrade_balance_mapping() {
     log "Installing transactional balance poll triggers"
     case "$NAMINGO_DB_DRIVER" in
@@ -640,6 +707,7 @@ case "$PHASE" in
         upgrade_ticket_assignment
         upgrade_registrar_onboarding
         upgrade_onboarding_fee_config
+        upgrade_cp_stripe_csp
         upgrade_balance_mapping
         upgrade_reporting_history
         upgrade_zone_writer_config
