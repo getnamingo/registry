@@ -1039,3 +1039,158 @@ ALTER TABLE ticket_responses ADD FOREIGN KEY ("ticket_id") REFERENCES support_ti
 CREATE INDEX idx_domain_crdate ON domain (crdate DESC);
 CREATE INDEX idx_domain_exdate ON domain (exdate);
 CREATE INDEX idx_support_tickets_date_created ON support_tickets (date_created);
+
+-- Namingo Registry ICANN Specification 3 event history for postgres.
+CREATE TABLE IF NOT EXISTS reporting_baseline (
+  id INTEGER PRIMARY KEY,
+  installed_at TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reporting_domain_event (
+  id BIGSERIAL PRIMARY KEY,
+  event_time TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL,
+  tldid INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  clid INTEGER NOT NULL,
+  prev_clid INTEGER NULL,
+  reid INTEGER NULL,
+  trstatus VARCHAR(32) NULL,
+  prev_trstatus VARCHAR(32) NULL,
+  crdate TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  rgpstatus VARCHAR(32) NULL,
+  prev_rgpstatus VARCHAR(32) NULL,
+  rgpres_time TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  prev_rgpres_time TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  rgpres_reason TEXT NULL,
+  agp_request TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  prev_agp_request TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  agp_grant TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  prev_agp_grant TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  agp_exempted BOOLEAN NULL,
+  prev_agp_exempted BOOLEAN NULL,
+  add_period INTEGER NULL,
+  renew_period INTEGER NULL,
+  renewed_date TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  transfer_period INTEGER NULL,
+  trdate TIMESTAMP(3) WITHOUT TIME ZONE NULL,
+  exdate TIMESTAMP(3) WITHOUT TIME ZONE NULL
+);
+
+CREATE INDEX IF NOT EXISTS reporting_de_asof ON reporting_domain_event(domain_id, id);
+CREATE INDEX IF NOT EXISTS reporting_de_tldtime ON reporting_domain_event(tldid, event_time);
+CREATE INDEX IF NOT EXISTS reporting_de_name ON reporting_domain_event(name, crdate, action, event_time);
+
+CREATE TABLE IF NOT EXISTS reporting_host_event (
+  id BIGSERIAL PRIMARY KEY,
+  event_time TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  host_id BIGINT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  clid INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_he_asof ON reporting_host_event(host_id, id);
+
+CREATE TABLE IF NOT EXISTS reporting_map_event (
+  id BIGSERIAL PRIMARY KEY,
+  event_time TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL,
+  host_id BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_me_asof ON reporting_map_event(domain_id, host_id, id);
+
+CREATE TABLE IF NOT EXISTS reporting_pending_create_event (
+  id BIGSERIAL PRIMARY KEY,
+  event_time TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL,
+  action VARCHAR(8) NOT NULL,
+  domain_id BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reporting_pce_asof ON reporting_pending_create_event(domain_id, id);
+
+
+CREATE OR REPLACE FUNCTION reporting_domain_capture() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'insert', NEW."id", NEW."tldid", NEW."name", NEW."clid", NULL, NEW."reid", NEW."trstatus", NULL, NEW."crdate", NEW."rgpstatus", NULL, NEW."rgprestime", NULL, NEW."rgpresreason", NEW."agp_request", NULL, NEW."agp_grant", NULL, NEW."agp_exempted", NULL, NEW."addperiod", NEW."renewperiod", NEW."reneweddate", NEW."transferperiod", NEW."trdate", NEW."exdate");
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'update', NEW."id", NEW."tldid", NEW."name", NEW."clid", OLD."clid", NEW."reid", NEW."trstatus", OLD."trstatus", NEW."crdate", NEW."rgpstatus", OLD."rgpstatus", NEW."rgprestime", OLD."rgprestime", NEW."rgpresreason", NEW."agp_request", OLD."agp_request", NEW."agp_grant", OLD."agp_grant", NEW."agp_exempted", OLD."agp_exempted", NEW."addperiod", NEW."renewperiod", NEW."reneweddate", NEW."transferperiod", NEW."trdate", NEW."exdate");
+    RETURN NEW;
+  ELSE
+    INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'delete', OLD."id", OLD."tldid", OLD."name", OLD."clid", OLD."clid", OLD."reid", OLD."trstatus", OLD."trstatus", OLD."crdate", OLD."rgpstatus", OLD."rgpstatus", OLD."rgprestime", OLD."rgprestime", OLD."rgpresreason", OLD."agp_request", OLD."agp_request", OLD."agp_grant", OLD."agp_grant", OLD."agp_exempted", OLD."agp_exempted", OLD."addperiod", OLD."renewperiod", OLD."reneweddate", OLD."transferperiod", OLD."trdate", OLD."exdate");
+    RETURN OLD;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS reporting_domain_capture_trg ON domain;
+CREATE TRIGGER reporting_domain_capture_trg AFTER INSERT OR UPDATE OR DELETE ON domain
+FOR EACH ROW EXECUTE FUNCTION reporting_domain_capture();
+
+
+CREATE OR REPLACE FUNCTION reporting_host_capture() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO reporting_host_event (event_time, action, host_id, name, clid) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'insert', NEW."id", NEW."name", NEW."clid");
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO reporting_host_event (event_time, action, host_id, name, clid) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'update', NEW."id", NEW."name", NEW."clid");
+    RETURN NEW;
+  ELSE
+    INSERT INTO reporting_host_event (event_time, action, host_id, name, clid) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'delete', OLD."id", OLD."name", OLD."clid");
+    RETURN OLD;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS reporting_host_capture_trg ON host;
+CREATE TRIGGER reporting_host_capture_trg AFTER INSERT OR UPDATE OR DELETE ON host
+FOR EACH ROW EXECUTE FUNCTION reporting_host_capture();
+
+
+CREATE OR REPLACE FUNCTION reporting_map_capture() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO reporting_map_event (event_time, action, domain_id, host_id) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'insert', NEW."domain_id", NEW."host_id");
+    RETURN NEW;
+  ELSE
+    INSERT INTO reporting_map_event (event_time, action, domain_id, host_id) VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'delete', OLD."domain_id", OLD."host_id");
+    RETURN OLD;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS reporting_map_capture_trg ON domain_host_map;
+CREATE TRIGGER reporting_map_capture_trg AFTER INSERT OR DELETE ON domain_host_map
+FOR EACH ROW EXECUTE FUNCTION reporting_map_capture();
+
+
+CREATE OR REPLACE FUNCTION reporting_pending_create_capture() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status = 'pendingCreate' THEN
+      INSERT INTO reporting_pending_create_event (event_time, action, domain_id)
+      VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'insert', NEW.domain_id);
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF OLD.status = 'pendingCreate' THEN
+    INSERT INTO reporting_pending_create_event (event_time, action, domain_id)
+    VALUES ((clock_timestamp() AT TIME ZONE 'UTC'), 'delete', OLD.domain_id);
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS reporting_pending_create_capture_trg ON domain_status;
+CREATE TRIGGER reporting_pending_create_capture_trg AFTER INSERT OR DELETE ON domain_status
+FOR EACH ROW EXECUTE FUNCTION reporting_pending_create_capture();
+
+
+INSERT INTO reporting_domain_event (event_time, action, domain_id, tldid, name, clid, prev_clid, reid, trstatus, prev_trstatus, crdate, rgpstatus, prev_rgpstatus, rgpres_time, prev_rgpres_time, rgpres_reason, agp_request, prev_agp_request, agp_grant, prev_agp_grant, agp_exempted, prev_agp_exempted, add_period, renew_period, renewed_date, transfer_period, trdate, exdate) SELECT (clock_timestamp() AT TIME ZONE 'UTC'), 'insert', d."id", d."tldid", d."name", d."clid", NULL, d."reid", d."trstatus", NULL, d."crdate", d."rgpstatus", NULL, d."rgprestime", NULL, d."rgpresreason", d."agp_request", NULL, d."agp_grant", NULL, d."agp_exempted", NULL, d."addperiod", d."renewperiod", d."reneweddate", d."transferperiod", d."trdate", d."exdate" FROM domain d WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_host_event (event_time,action,host_id,name,clid) SELECT (clock_timestamp() AT TIME ZONE 'UTC'), 'insert', h.id, h.name, h.clid FROM host h WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_map_event (event_time,action,domain_id,host_id) SELECT (clock_timestamp() AT TIME ZONE 'UTC'), 'insert', m.domain_id, m.host_id FROM domain_host_map m WHERE NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_pending_create_event (event_time,action,domain_id) SELECT (clock_timestamp() AT TIME ZONE 'UTC'), 'insert', s.domain_id FROM domain_status s WHERE s.status = 'pendingCreate' AND NOT EXISTS (SELECT 1 FROM reporting_baseline WHERE id = 1);
+
+INSERT INTO reporting_baseline (id, installed_at) VALUES (1, (clock_timestamp() AT TIME ZONE 'UTC')) ON CONFLICT (id) DO NOTHING;

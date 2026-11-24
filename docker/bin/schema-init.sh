@@ -105,8 +105,35 @@ CREATE TABLE IF NOT EXISTS `registrar_onboarding` (
 SQL
 }
 
+# The versioned upgrade normally installs these triggers. Reconcile older
+# Docker volumes when an image is started without a version transition.
+ensure_reporting_schema() {
+    local baseline_table baseline_rows
+    baseline_table=$(
+        "${mysql[@]}" -Nse "
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_schema = 'registry' AND table_name = 'reporting_baseline';
+        "
+    )
+    baseline_rows=0
+    if [[ "$baseline_table" == "1" ]]; then
+        baseline_rows=$("${mysql[@]}" -Nse "SELECT COUNT(*) FROM registry.reporting_baseline WHERE id = 1;")
+    fi
+    if [[ "$baseline_rows" == "0" ]]; then
+        echo "Installing ICANN reporting history for existing Docker database..."
+        NAMINGO_DB_DRIVER=mariadb \
+        NAMINGO_DB_MAIN=registry \
+        NAMINGO_DB_HOST="$host" \
+        NAMINGO_DB_PORT="$port" \
+        NAMINGO_DB_USER="$user" \
+        NAMINGO_DB_PASSWORD="$db_password" \
+            sh /opt/registry/docs/migrations/1.0.37.sh reporting
+    fi
+}
+
 if [[ "$schema_exists" == "1" ]]; then
     ensure_onboarding_schema
+    ensure_reporting_schema
     echo "Namingo database schema already exists."
     exit 0
 fi
@@ -128,5 +155,6 @@ schema_exists=$(
     || die "Schema import completed but registry.users is still missing."
 
 ensure_onboarding_schema
+ensure_reporting_schema
 
 echo "Namingo database schema initialized successfully."
