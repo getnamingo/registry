@@ -22,7 +22,7 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 
 - **Control Panel**: A modern, multilingual interface for registrar and registry administration, with two-factor authentication, WebAuthn support, registrar billing, and Stripe, Adyen, and cryptocurrency payment integrations. A comprehensive API is also available for automated access to registry functions.
   
-- **EPP Server**: Provides secure, standards-based communication for domain, contact, and host registration and management. Includes [Namingo Identica](https://namingo.org/epp/identica-1.0.html), an [IANA-registered EPP extension](https://www.iana.org/assignments/epp-extensions) for contact identification and optional identity-verification metadata (currently listed as Inactive pending confirmed production use).
+- **EPP Server**: Provides secure, standards-based communication for domain, contact, and host registration and management.
 
 - **WHOIS Service**: Provides public domain registration data through both the traditional port 43 protocol and a web-based WHOIS interface.
 
