@@ -5,6 +5,7 @@ APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
 MINIMUM_DATA=false
 REGISTRAR_ONBOARDING=false
+ONBOARDING_FEE=0
 
 # Enables read-only /registry-api when set; use at least 32 random characters.
 REGISTRY_API_JWT_SECRET=

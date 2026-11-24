@@ -86,6 +86,14 @@ SQL
     esac
 }
 
+upgrade_onboarding_fee_config() {
+    config_file="${NAMINGO_CP_DIR:-/var/www/cp}/.env"
+    if [ -f "$config_file" ] && ! grep -Eq '^(ONBOARDING_FEE|onboarding_fee)=' "$config_file"; then
+        printf '\nONBOARDING_FEE=0\n' >> "$config_file"
+        log "Added disabled onboarding fee setting to Control Panel .env"
+    fi
+}
+
 upgrade_balance_mapping() {
     log "Installing transactional balance poll triggers"
     case "$NAMINGO_DB_DRIVER" in
@@ -631,6 +639,7 @@ case "$PHASE" in
     post)
         upgrade_ticket_assignment
         upgrade_registrar_onboarding
+        upgrade_onboarding_fee_config
         upgrade_balance_mapping
         upgrade_reporting_history
         upgrade_zone_writer_config

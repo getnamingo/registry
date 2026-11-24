@@ -317,6 +317,7 @@ $panel = [
     'TIME_ZONE' => envValue('NAMINGO_TIMEZONE', 'UTC'),
     'MINIMUM_DATA' => envBool('NAMINGO_MINIMUM_DATA', false) ? 'true' : 'false',
     'REGISTRAR_ONBOARDING' => envBool('NAMINGO_REGISTRAR_ONBOARDING', false) ? 'true' : 'false',
+    'ONBOARDING_FEE' => envValue('NAMINGO_ONBOARDING_FEE', envValue('ONBOARDING_FEE', '0')),
     'LANG' => envValue('NAMINGO_LANGUAGE', 'en_US'),
     'UI_LANG' => envValue('NAMINGO_UI_LANGUAGE', 'us'),
     'DB_DRIVER' => 'mysql',

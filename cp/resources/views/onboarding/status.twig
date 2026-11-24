@@ -16,6 +16,22 @@
       <a class="btn btn-outline-primary" href="/onboarding/contract/{{ application.public_token }}/pdf">Download signed PDF</a>
     {% endif %}
   {% endif %}
+  {% if application.details._onboarding_fee is defined %}
+    {% set fee = application.details._onboarding_fee %}
+    <div class="mt-3">
+      {% if fee.paid %}
+        <span class="badge bg-success text-success-fg">Onboarding fee paid</span>
+      {% elseif application.status == 'signed' %}
+        {% set zeroDecimal = fee.currency in ['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'] %}
+        <p>Onboarding fee: <strong>{{ (fee.amount_minor / (zeroDecimal ? 1 : 100))|number_format(zeroDecimal ? 0 : 2) }} {{ fee.currency }}</strong></p>
+        <form method="post" action="/onboarding/application/{{ application.public_token }}/pay">
+          {{ csrf.field|raw }}
+          <button type="submit" class="btn btn-primary">Pay onboarding fee with Stripe</button>
+        </form>
+        <p class="text-secondary mt-2">Payment is required before registry approval. Return here after paying.</p>
+      {% endif %}
+    </div>
+  {% endif %}
   <p class="text-secondary mt-4">Keep this private link to revisit your application. Anyone with the link can view the application and agreement.</p>
   <div class="input-group"><input class="form-control" aria-label="Application link" readonly value="{{ application.public_token }}"><button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(location.href)">Copy link</button></div>
   <form method="post" action="/onboarding/application/{{ application.public_token }}/hide" class="mt-4">
