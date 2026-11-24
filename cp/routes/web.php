@@ -31,6 +31,7 @@ use App\Controllers\SystemController;
 use App\Controllers\SupportController;
 use App\Controllers\MaintenanceController;
 use App\Controllers\DapiController;
+use App\Controllers\OnboardingController;
 use App\Controllers\RegistryApiController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GuestMiddleware;
@@ -41,6 +42,16 @@ use Tqdev\PhpCrudApi\Api;
 use Tqdev\PhpCrudApi\Config\Config;
 
 $app->get('/', HomeController::class .':index')->setName('index');
+// Public application, status and signing; access is controlled by the feature guard above.
+$app->get('/onboarding', OnboardingController::class . ':index');
+$app->post('/onboarding', OnboardingController::class . ':submit');
+$app->get('/onboarding/application/{token}', OnboardingController::class . ':status');
+$app->get('/onboarding/contract/{token}', OnboardingController::class . ':contract');
+$app->post('/onboarding/contract/{token}', OnboardingController::class . ':sign');
+// Controller enforces Registry's existing admin session/role; POST actions use CP CSRF.
+$app->get('/onboarding/admin', OnboardingController::class . ':admin');
+$app->get('/onboarding/admin/{id}', OnboardingController::class . ':review');
+$app->post('/onboarding/admin/{id}/{action:approve|reject}', OnboardingController::class . ':action');
 $app->post('/payment/{gateway}/webhook', FinancialsController::class . ':paymentWebhook')->setName('payment.webhook');
 $app->map(['GET', 'POST'], '/payment/{gateway}/return', FinancialsController::class . ':paymentReturn')->setName('payment.return');
 
@@ -373,7 +384,7 @@ $app->any('/api[/{params:.*}]', function (
         'basePath' => '/api',
         'middlewares' => 'customization,dbAuth,authorization,sanitation,multiTenancy',
         'authorization.tableHandler' => function ($operation, $tableName) {
-        $restrictedTables = ['contact_authInfo', 'contact_authinfo', 'contact_postalInfo', 'contact_postalinfo', 'domain_authInfo', 'domain_authinfo', 'secdns', 'maintenance'];
+        $restrictedTables = ['contact_authInfo', 'contact_authinfo', 'contact_postalInfo', 'contact_postalinfo', 'domain_authInfo', 'domain_authinfo', 'secdns', 'maintenance', 'registrar_onboarding'];
             // Maintenance writes must also create immutable EPP poll notifications.
             // Prevent generic CRUD from bypassing the MaintenanceController.
             if ($tableName === 'poll' && !in_array($operation, ['list', 'read'], true)) {

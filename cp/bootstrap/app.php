@@ -353,6 +353,16 @@ $csrfMiddleware = function ($request, $handler) use ($container) {
 };
 
 $app->add($csrfMiddleware);
+
+// Default-off public registrar onboarding. Guard even unmatched /onboarding paths.
+$app->add(function ($request, $handler) use ($responseFactory) {
+    $path = $request->getUri()->getPath();
+    if (($path === '/onboarding' || str_starts_with($path, '/onboarding/'))
+        && !filter_var(envi('REGISTRAR_ONBOARDING', 'false'), FILTER_VALIDATE_BOOLEAN)) {
+        return $responseFactory->createResponse(302)->withHeader('Location', '/');
+    }
+    return $handler->handle($request);
+});
 $app->setBasePath(routePath());
 
 require __DIR__ . '/../routes/web.php';

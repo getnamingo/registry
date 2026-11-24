@@ -132,6 +132,20 @@ CREATE TABLE IF NOT EXISTS `registry`.`registrar` (
     UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='registrar';
 
+CREATE TABLE IF NOT EXISTS `registry`.`registrar_onboarding` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `public_token` CHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    `application_data` LONGTEXT NOT NULL,
+    `agreement_html` LONGTEXT NOT NULL,
+    `status` VARCHAR(24) NOT NULL DEFAULT 'pendingAgreement',
+    `signature` LONGTEXT DEFAULT NULL,
+    `signed_ip` VARCHAR(45) DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `signed_at` DATETIME DEFAULT NULL,
+    `registrar_id` INT UNSIGNED DEFAULT NULL,
+    INDEX `status_idx` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `registry`.`registrar_whitelist` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `registrar_id` int(10) unsigned NOT NULL,

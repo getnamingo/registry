@@ -139,6 +139,20 @@ END;
 CREATE TRIGGER add_current_date_to_registrar BEFORE UPDATE ON registrar FOR EACH ROW EXECUTE PROCEDURE
 update_registrar();
 
+CREATE TABLE IF NOT EXISTS registrar_onboarding (
+    id BIGSERIAL PRIMARY KEY,
+    public_token CHAR(48) NOT NULL UNIQUE,
+    application_data TEXT NOT NULL,
+    agreement_html TEXT NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'pendingAgreement',
+    signature TEXT DEFAULT NULL,
+    signed_ip VARCHAR(45) DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    signed_at TIMESTAMP DEFAULT NULL,
+    registrar_id INTEGER DEFAULT NULL
+);
+CREATE INDEX IF NOT EXISTS registrar_onboarding_status_idx ON registrar_onboarding (status);
+
 CREATE TABLE registrar_whitelist (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,

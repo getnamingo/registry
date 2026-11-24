@@ -45,6 +45,47 @@ ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS assigned_to INT DEFAULT NUL
 SQL
 }
 
+upgrade_registrar_onboarding() {
+    log "Creating registrar onboarding application table"
+    case "$NAMINGO_DB_DRIVER" in
+        mariadb)
+            db_sql <<'SQL'
+CREATE TABLE IF NOT EXISTS `registrar_onboarding` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `public_token` CHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    `application_data` LONGTEXT NOT NULL,
+    `agreement_html` LONGTEXT NOT NULL,
+    `status` VARCHAR(24) NOT NULL DEFAULT 'pendingAgreement',
+    `signature` LONGTEXT DEFAULT NULL,
+    `signed_ip` VARCHAR(45) DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `signed_at` DATETIME DEFAULT NULL,
+    `registrar_id` INT UNSIGNED DEFAULT NULL,
+    INDEX `status_idx` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL
+            ;;
+        pgsql)
+            db_sql <<'SQL'
+CREATE TABLE IF NOT EXISTS registrar_onboarding (
+    id BIGSERIAL PRIMARY KEY,
+    public_token CHAR(48) NOT NULL UNIQUE,
+    application_data TEXT NOT NULL,
+    agreement_html TEXT NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'pendingAgreement',
+    signature TEXT DEFAULT NULL,
+    signed_ip VARCHAR(45) DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    signed_at TIMESTAMP DEFAULT NULL,
+    registrar_id INTEGER DEFAULT NULL
+);
+CREATE INDEX IF NOT EXISTS registrar_onboarding_status_idx ON registrar_onboarding (status);
+SQL
+            ;;
+        *) die "Unsupported database driver: $NAMINGO_DB_DRIVER" ;;
+    esac
+}
+
 upgrade_zone_writer_config() {
     if [ "${NAMINGO_DEPLOYMENT:-}" = docker ]; then
         log "Skipping host-only DNS configuration migration in Docker"
@@ -113,6 +154,7 @@ case "$PHASE" in
         ;;
     post)
         upgrade_ticket_assignment
+        upgrade_registrar_onboarding
         upgrade_zone_writer_config
         ;;
     *)
