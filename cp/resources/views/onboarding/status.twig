@@ -18,5 +18,9 @@
   {% endif %}
   <p class="text-secondary mt-4">Keep this private link to revisit your application. Anyone with the link can view the application and agreement.</p>
   <div class="input-group"><input class="form-control" aria-label="Application link" readonly value="{{ application.public_token }}"><button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(location.href)">Copy link</button></div>
+  <form method="post" action="/onboarding/application/{{ application.public_token }}/hide" class="mt-4">
+    {{ csrf.field|raw }}
+    <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Permanently disable this public link? You will no longer be able to view or sign the application using this link. The registry administrator will still have access.')">Hide application from public access</button>
+  </form>
 </div></div></div>
 {% endblock %}

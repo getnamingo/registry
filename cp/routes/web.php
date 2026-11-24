@@ -46,6 +46,7 @@ $app->get('/', HomeController::class .':index')->setName('index');
 $app->get('/onboarding', OnboardingController::class . ':index');
 $app->post('/onboarding', OnboardingController::class . ':submit');
 $app->get('/onboarding/application/{token}', OnboardingController::class . ':status');
+$app->post('/onboarding/application/{token}/hide', OnboardingController::class . ':hide');
 $app->get('/onboarding/contract/{token}', OnboardingController::class . ':contract');
 $app->get('/onboarding/contract/{token}/pdf', OnboardingController::class . ':signedPdf');
 $app->post('/onboarding/contract/{token}', OnboardingController::class . ':sign');
