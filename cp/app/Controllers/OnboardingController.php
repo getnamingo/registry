@@ -63,11 +63,8 @@ final class OnboardingController extends Controller
     private function onboardingFee(): ?array
     {
         $secretKey = trim((string) envi('STRIPE_SECRET_KEY', ''));
-        $publishableKey = trim((string) envi('STRIPE_PUBLISHABLE_KEY', ''));
         $fee = trim((string) envi('ONBOARDING_FEE', envi('onboarding_fee', '0')));
-        if (!preg_match('/^(?:sk|rk)_(test|live)_\S+$/', $secretKey, $keyMatch)
-            || !preg_match('/^pk_(test|live)_\S+$/', $publishableKey, $publishableMatch)
-            || $keyMatch[1] !== $publishableMatch[1]
+        if (!preg_match('/^(?:sk|rk)_(?:test|live)_\S+$/', $secretKey)
             || $fee === '' || $fee === '0') {
             return null;
         }
