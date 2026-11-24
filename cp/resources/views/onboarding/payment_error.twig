@@ -1,0 +1,9 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Payment Unavailable{% endblock %}
+{% block content %}
+<div class="container container-tight py-5"><div class="card"><div class="card-body">
+  <h1 class="card-title">Payment temporarily unavailable</h1>
+  <p>Stripe could not start or confirm your payment. Please try again later.</p>
+  <a class="btn btn-primary" href="/onboarding/application/{{ token }}">Return to application</a>
+</div></div></div>
+{% endblock %}

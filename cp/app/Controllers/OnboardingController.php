@@ -60,6 +60,49 @@ final class OnboardingController extends Controller
         return $row ?: null;
     }
 
+    private function onboardingFee(): ?array
+    {
+        $key = trim((string) envi('STRIPE_SECRET_KEY', ''));
+        $fee = trim((string) envi('ONBOARDING_FEE', envi('onboarding_fee', '0')));
+        if ($key === '' || $fee === '' || $fee === '0') {
+            return null;
+        }
+        if (!preg_match('/^\d{1,9}(?:\.\d{1,2})?$/D', $fee)) {
+            throw new \RuntimeException('Invalid ONBOARDING_FEE amount.');
+        }
+        $currency = strtoupper((string) $this->container->get('db')->selectValue(
+            "SELECT value FROM settings WHERE name = 'currency'"
+        ));
+        if (!preg_match('/^[A-Z]{3}$/D', $currency)) {
+            throw new \RuntimeException('Invalid registry currency for onboarding payment.');
+        }
+        $zeroDecimal = in_array($currency, [
+            'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG',
+            'RWF', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+        ], true);
+        if (($zeroDecimal || in_array($currency, ['ISK', 'UGX'], true))
+            && str_contains($fee, '.') && (int) explode('.', $fee)[1] !== 0) {
+            throw new \RuntimeException('Onboarding fee must be a whole amount for this currency.');
+        }
+        [$whole, $fraction] = array_pad(explode('.', $fee, 2), 2, '');
+        $minor = (int) $whole * ($zeroDecimal ? 1 : 100)
+            + ($zeroDecimal ? 0 : (int) str_pad($fraction, 2, '0'));
+        return $minor > 0 ? ['amount_minor' => $minor, 'currency' => $currency, 'paid' => false] : null;
+    }
+
+    private function confirmOnboardingPayment(array $application, array $payment): bool
+    {
+        if (empty($payment['session_id'])) {
+            return false;
+        }
+        $stripe = new \Stripe\StripeClient((string) envi('STRIPE_SECRET_KEY'));
+        $session = $stripe->checkout->sessions->retrieve($payment['session_id'], []);
+        return $session->payment_status === 'paid'
+            && (int) $session->amount_total === (int) $payment['amount_minor']
+            && strtoupper((string) $session->currency) === $payment['currency']
+            && (string) ($session->metadata->onboarding_id ?? '') === (string) $application['id'];
+    }
+
     private function forbidden(Response $response): Response
     {
         if (!$this->container->get('auth')->isLogin()) {
@@ -177,6 +220,9 @@ final class OnboardingController extends Controller
         }
 
         $token = bin2hex(random_bytes(24));
+        if ($payment = $this->onboardingFee()) {
+            $data['_onboarding_fee'] = $payment;
+        }
         $twig = $this->container->get('view')->getEnvironment();
         $termsTemplate = $twig->getLoader()->exists('onboarding/terms.twig.custom')
             ? 'onboarding/terms.twig.custom' : 'onboarding/terms.twig';
@@ -199,6 +245,95 @@ final class OnboardingController extends Controller
             return $this->redirect($response, '/onboarding');
         }
         return $this->page($response, 'status', ['application' => $application]);
+    }
+
+    public function pay(Request $request, Response $response, string $token): Response
+    {
+        $response = $this->privateResponse($response);
+        $application = $this->application($token);
+        if (!$application || $application['status'] !== 'signed') {
+            return $this->redirect($response, '/onboarding');
+        }
+        $data = $application['details'];
+        $payment = $data['_onboarding_fee'] ?? null;
+        if (!$payment || $payment['paid']) {
+            return $this->redirect($response, '/onboarding/application/' . $token);
+        }
+        $stripe = new \Stripe\StripeClient((string) envi('STRIPE_SECRET_KEY'));
+        try {
+            if (!empty($payment['session_id'])) {
+                $previous = $stripe->checkout->sessions->retrieve($payment['session_id'], []);
+                if ($this->confirmOnboardingPayment($application, $payment)) {
+                    $data['_onboarding_fee']['paid'] = true;
+                    $this->saveApplicationData($application['id'], $data);
+                    return $this->redirect($response, '/onboarding/application/' . $token);
+                }
+                if ($previous->status === 'open' && !empty($previous->url)) {
+                    return $this->redirect($response, (string) $previous->url);
+                }
+                if ($previous->status === 'complete') {
+                    return $this->redirect($response, '/onboarding/application/' . $token);
+                }
+            }
+            $session = $stripe->checkout->sessions->create([
+                'mode' => 'payment',
+                'line_items' => [[
+                    'price_data' => [
+                        'currency' => strtolower($payment['currency']),
+                        'product_data' => ['name' => 'Registrar onboarding fee'],
+                        'unit_amount' => (int) $payment['amount_minor'],
+                    ],
+                    'quantity' => 1,
+                ]],
+                'client_reference_id' => (string) $application['id'],
+                'metadata' => ['onboarding_id' => (string) $application['id']],
+                'success_url' => rtrim((string) envi('APP_URL'), '/')
+                    . '/onboarding/payment/' . $token . '/return?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => rtrim((string) envi('APP_URL'), '/')
+                    . '/onboarding/application/' . $token,
+            ], ['idempotency_key' => 'onboarding-' . $application['id'] . '-'
+                . ($payment['session_id'] ?? 'initial')]);
+            if (empty($session->id) || empty($session->url)) {
+                throw new \RuntimeException('Stripe did not return a checkout session.');
+            }
+            $data['_onboarding_fee']['session_id'] = (string) $session->id;
+            $this->saveApplicationData($application['id'], $data);
+            return $this->redirect($response, (string) $session->url);
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            error_log('Onboarding Stripe checkout: ' . $e->getMessage());
+            return $this->page($response->withStatus(503), 'payment_error', ['token' => $token]);
+        }
+    }
+
+    private function saveApplicationData(int|string $id, array $data): void
+    {
+        $stmt = $this->container->get('pdo')->prepare(
+            'UPDATE registrar_onboarding SET application_data = ? WHERE id = ?'
+        );
+        $stmt->execute([json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $id]);
+    }
+
+    public function paymentReturn(Request $request, Response $response, string $token): Response
+    {
+        $response = $this->privateResponse($response);
+        $application = $this->application($token);
+        $sessionId = $request->getQueryParams()['session_id'] ?? null;
+        if (!$application || !is_string($sessionId)) {
+            return $this->redirect($response, '/onboarding');
+        }
+        $data = $application['details'];
+        $payment = $data['_onboarding_fee'] ?? null;
+        if ($payment && hash_equals((string) ($payment['session_id'] ?? ''), $sessionId)) {
+            try {
+                if ($this->confirmOnboardingPayment($application, $payment)) {
+                    $data['_onboarding_fee']['paid'] = true;
+                    $this->saveApplicationData($application['id'], $data);
+                }
+            } catch (\Stripe\Exception\ApiErrorException $e) {
+                error_log('Onboarding Stripe confirmation: ' . $e->getMessage());
+            }
+        }
+        return $this->redirect($response, '/onboarding/application/' . $token);
     }
 
     public function contract(Request $request, Response $response, string $token): Response
@@ -383,12 +518,20 @@ final class OnboardingController extends Controller
             if (!$application || $application['status'] !== 'signed') {
                 throw new \RuntimeException('Only signed, pending applications can be processed.');
             }
+            $data = json_decode($application['application_data'], true, 512, JSON_THROW_ON_ERROR);
+            if ($action === 'approve' && !empty($data['_onboarding_fee']) && !$data['_onboarding_fee']['paid']) {
+                if (!$this->confirmOnboardingPayment($application, $data['_onboarding_fee'])) {
+                    throw new \RuntimeException('Onboarding fee has not been paid.');
+                }
+                $data['_onboarding_fee']['paid'] = true;
+                $this->saveApplicationData($id, $data);
+            }
             if ($action === 'reject') {
                 $pdo->prepare("UPDATE registrar_onboarding SET status = 'rejected' WHERE id = ?")->execute([$id]);
                 $pdo->commit();
                 return $this->redirect($response, '/onboarding/admin');
             }
-            $d = json_decode($application['application_data'], true, 512, JSON_THROW_ON_ERROR);
+            $d = $data;
             $panelPassword = bin2hex(random_bytes(16)) . 'aA1!';
             $eppPassword = bin2hex(random_bytes(8));
             $now = date('Y-m-d H:i:s');

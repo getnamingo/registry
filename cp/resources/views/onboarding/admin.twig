@@ -6,7 +6,8 @@
   <thead><tr><th>ID</th><th>Registrar</th><th>Login email</th><th>Created</th><th>Status</th><th>Action</th></tr></thead>
   <tbody>
   {% for a in applications %}
-    <tr><td>{{ a.id }}</td><td>{{ a.details.name }}</td><td>{{ a.details.user_email }}</td><td>{{ a.created_at }}</td><td>{{ a.status }}</td>
+    <tr><td>{{ a.id }}</td><td>{{ a.details.name }}</td><td>{{ a.details.user_email }}</td><td>{{ a.created_at }}</td><td>{{ a.status }}
+      {% if a.details._onboarding_fee is defined %}<br><small class="text-secondary">Fee: {{ a.details._onboarding_fee.paid ? 'Paid' : 'Awaiting payment' }}</small>{% endif %}</td>
       <td><a class="btn btn-sm btn-outline-secondary" href="/onboarding/admin/{{ a.id }}">Agreement</a>
         {% if a.status == 'signed' %}
           <form method="post" action="/onboarding/admin/{{ a.id }}/approve" style="display:inline">{{ csrf.field|raw }}<button class="btn btn-sm btn-success" onclick="return confirm('Create registrar and user?')">Approve</button></form>
