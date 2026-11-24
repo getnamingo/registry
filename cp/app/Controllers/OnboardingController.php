@@ -38,6 +38,14 @@ final class OnboardingController extends Controller
         return $response->withHeader('Location', $url)->withStatus(303);
     }
 
+    private function privateResponse(Response $response): Response
+    {
+        return $response->withHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+            ->withHeader('Referrer-Policy', 'no-referrer')
+            ->withHeader('Cache-Control', 'private, no-store')
+            ->withHeader('X-Content-Type-Options', 'nosniff');
+    }
+
     private function application(string $token): ?array
     {
         if (!preg_match('/^[a-f0-9]{48}$/D', $token)) {
@@ -177,30 +185,33 @@ final class OnboardingController extends Controller
              VALUES (?, ?, ?, 'pendingAgreement', CURRENT_TIMESTAMP)"
         );
         $stmt->execute([$token, json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $agreement]);
-        return $this->redirect($response, '/onboarding/application/' . $token);
+        return $this->redirect($this->privateResponse($response), '/onboarding/application/' . $token);
     }
 
     public function status(Request $request, Response $response, string $token): Response
     {
+        $response = $this->privateResponse($response);
         $application = $this->application($token);
         if (!$application) {
             return $this->redirect($response, '/onboarding');
         }
-        return $this->page($response->withHeader('Cache-Control', 'no-store'), 'status', ['application' => $application]);
+        return $this->page($response, 'status', ['application' => $application]);
     }
 
     public function contract(Request $request, Response $response, string $token): Response
     {
+        $response = $this->privateResponse($response);
         $application = $this->application($token);
         if (!$application) {
             return $this->redirect($response, '/onboarding');
         }
-        return $this->page($response->withHeader('Cache-Control', 'no-store'), 'contract', ['application' => $application]);
+        return $this->page($response, 'contract', ['application' => $application]);
     }
 
     /** Download the snapshotted agreement with its captured electronic signature. */
     public function signedPdf(Request $request, Response $response, string $token): Response
     {
+        $response = $this->privateResponse($response);
         $application = $this->application($token);
         if (!$application || !$application['signature'] || !$application['signed_at']) {
             return $response->withStatus(404);
@@ -270,13 +281,26 @@ final class OnboardingController extends Controller
         $response->getBody()->write($bytes);
         return $response->withHeader('Content-Type', 'application/pdf')
             ->withHeader('Content-Disposition', 'attachment; filename="registrar-agreement-' . (int)$application['id'] . '.pdf"')
-            ->withHeader('Content-Length', (string)strlen($bytes))
-            ->withHeader('Cache-Control', 'private, no-store')
-            ->withHeader('X-Content-Type-Options', 'nosniff');
+            ->withHeader('Content-Length', (string)strlen($bytes));
+    }
+
+    /** Revoke the public bearer URL without changing the application or its admin status. */
+    public function hide(Request $request, Response $response, string $token): Response
+    {
+        $response = $this->privateResponse($response);
+        if (!preg_match('/^[a-f0-9]{48}$/D', $token)) {
+            return $this->redirect($response, '/onboarding');
+        }
+        $stmt = $this->container->get('pdo')->prepare(
+            'UPDATE registrar_onboarding SET public_token = ? WHERE public_token = ?'
+        );
+        $stmt->execute([bin2hex(random_bytes(24)), $token]);
+        return $this->redirect($response, '/onboarding');
     }
 
     public function sign(Request $request, Response $response, string $token): Response
     {
+        $response = $this->privateResponse($response);
         $application = $this->application($token);
         if (!$application || $application['status'] !== 'pendingAgreement') {
             return $this->redirect($response, '/onboarding');
