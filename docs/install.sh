@@ -13,9 +13,9 @@ set -euo pipefail
 #   NAMINGO_PANEL_PASSWORD
 #   NAMINGO_SSH_PORT           default: 22
 #   NAMINGO_CONFIGURE_FIREWALL yes|no (default: yes)
-#   NAMINGO_REGISTRY_VERSION   git tag/branch (default: v1.0.36)
+#   NAMINGO_REGISTRY_VERSION   git tag/branch (default: v1.0.37)
 
-REGISTRY_VERSION="${NAMINGO_REGISTRY_VERSION:-v1.0.36}"
+REGISTRY_VERSION="${NAMINGO_REGISTRY_VERSION:-v1.0.37}"
 
 # ---------- Helpers ----------
 log() { printf "\n\033[1;32m[%s]\033[0m %s\n" "$(date +%H:%M:%S)" "$*"; }
