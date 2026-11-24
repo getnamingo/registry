@@ -1344,12 +1344,24 @@ function escrowDnssec(XMLWriter $xml, PDO $db, $domainId): void
     if (!in_array($interface, ['dsData', 'keyData'], true)) {
         throw new RuntimeException('Unknown DNSSEC interface in escrow snapshot.');
     }
-    $xml->startElement('rdeDomain:secDNS');
-    escrowOptional($xml, 'secDNS:maxSigLife', $records[0]['maxsiglife']);
+    // maxSigLife is domain-level metadata, but EPP additions may store NULL
+    // for records where the optional value was omitted. Reconcile the
+    // non-null values without treating those NULLs as contradictions.
+    $maxSigLife = null;
     foreach ($records as $record) {
-        if ($record['interface'] !== $interface || $record['maxsiglife'] !== $records[0]['maxsiglife']) {
-            throw new RuntimeException('Inconsistent DNSSEC interface or maxSigLife in escrow snapshot.');
+        if ($record['interface'] !== $interface) {
+            throw new RuntimeException('Inconsistent DNSSEC interface in escrow data.');
         }
+        if ($record['maxsiglife'] !== null && $record['maxsiglife'] !== '') {
+            if ($maxSigLife !== null && (string)$maxSigLife !== (string)$record['maxsiglife']) {
+                throw new RuntimeException('Conflicting DNSSEC maxSigLife values in escrow data.');
+            }
+            $maxSigLife = $record['maxsiglife'];
+        }
+    }
+    $xml->startElement('rdeDomain:secDNS');
+    escrowOptional($xml, 'secDNS:maxSigLife', $maxSigLife);
+    foreach ($records as $record) {
         if ($interface === 'dsData') {
             $xml->startElement('secDNS:dsData');
             foreach (['keyTag' => 'keytag', 'alg' => 'alg', 'digestType' => 'digesttype', 'digest' => 'digest'] as $tag => $column) {
