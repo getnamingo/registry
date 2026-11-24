@@ -23,15 +23,36 @@ use GuzzleHttp\Client;
 $config = require __DIR__ . '/config.php';
 $log = setupLogger('/var/log/namingo/ntfy_error_notifier.log', 'Ntfy_Error_Notifier');
 
-/**
- * Persist progress after every successful delivery; a failed delivery must
- * leave the failed event eligible for the next run.
- */
-function saveNtfyCursor($state, int $id): void
+/** Replace the checkpoint atomically; the separate .lock file is never replaced. */
+function saveNtfyCursor(string $path, int $baseline, array $delivered): void
 {
-    if (!rewind($state) || !ftruncate($state, 0)
-        || fwrite($state, (string)$id . "\n") === false || !fflush($state)) {
-        throw new RuntimeException('Unable to save ntfy notification cursor');
+    $temp = tempnam(dirname($path), '.ntfy-');
+    if ($temp === false) {
+        throw new RuntimeException('Unable to create temporary ntfy cursor');
+    }
+    try {
+        $stream = fopen($temp, 'wb');
+        if ($stream === false) {
+            throw new RuntimeException('Unable to open temporary ntfy cursor');
+        }
+        try {
+            chmod($temp, 0600);
+            $contents = json_encode(['baseline' => $baseline,
+                'delivered' => array_map('intval', array_keys($delivered))], JSON_THROW_ON_ERROR) . "\n";
+            if (fwrite($stream, $contents) !== strlen($contents) || !fflush($stream)
+                || (function_exists('fsync') && !fsync($stream))) {
+                throw new RuntimeException('Unable to flush ntfy cursor');
+            }
+        } finally {
+            fclose($stream);
+        }
+        if (!rename($temp, $path)) {
+            throw new RuntimeException('Unable to publish ntfy cursor');
+        }
+    } finally {
+        if (is_file($temp)) {
+            unlink($temp);
+        }
     }
 }
 
@@ -60,12 +81,12 @@ try {
         throw new RuntimeException('Authenticated ntfy publishing requires HTTPS');
     }
 
-    $state = fopen($stateFile, 'c+');
-    if ($state === false) {
-        throw new RuntimeException('Unable to open ntfy cursor file');
+    $lock = fopen($stateFile . '.lock', 'c');
+    if ($lock === false) {
+        throw new RuntimeException('Unable to open ntfy notification lock');
     }
     try {
-        if (!flock($state, LOCK_EX | LOCK_NB)) {
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
             $log->info('Another notifier process is already running.');
             exit(0);
         }
@@ -80,24 +101,41 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
 
-        $content = trim((string)stream_get_contents($state));
-        if ($content === '') {
+        if (!is_file($stateFile)) {
             // Never replay months of historical incidents on first enablement.
             $initial = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM error_log')->fetchColumn();
-            saveNtfyCursor($state, $initial);
+            saveNtfyCursor($stateFile, $initial, []);
             $log->info('Initialized ntfy cursor at current event', ['id' => $initial]);
             exit(0);
         }
-        if (!ctype_digit($content)) {
-            throw new RuntimeException('Invalid ntfy cursor; fix the file before rerunning');
+        $content = trim((string)file_get_contents($stateFile));
+        if (ctype_digit($content)) {
+            // Accept checkpoints from the standalone notifier and first integration.
+            $baseline = (int)$content;
+            $delivered = [];
+        } else {
+            $checkpoint = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($checkpoint) || !isset($checkpoint['baseline'], $checkpoint['delivered'])
+                || !is_int($checkpoint['baseline']) || $checkpoint['baseline'] < 0
+                || !is_array($checkpoint['delivered'])) {
+                throw new RuntimeException('Invalid ntfy cursor; fix the file before rerunning');
+            }
+            $baseline = $checkpoint['baseline'];
+            $delivered = [];
+            foreach ($checkpoint['delivered'] as $id) {
+                if (!is_int($id) || $id <= $baseline) {
+                    throw new RuntimeException('Invalid delivered ntfy event ID in cursor');
+                }
+                $delivered[$id] = true;
+            }
         }
-        $lastId = (int)$content;
+        // IDs are allocated before commit, so a lower ID can become visible
+        // after a higher one. Revisit all IDs since the baseline, deduplicating
+        // with the durable per-event delivery set rather than a high-water ID.
         $query = $db->prepare('SELECT id, level, level_name, message, created_at
-            FROM error_log WHERE id > :last_id AND level >= :min_level
+            FROM error_log WHERE id > :scan_id AND level >= :min_level
             ORDER BY id ASC LIMIT 500');
-        $query->bindValue(':last_id', $lastId, PDO::PARAM_INT);
         $query->bindValue(':min_level', $minLevel, PDO::PARAM_INT);
-        $query->execute();
 
         $headers = ['Content-Type' => 'text/plain; charset=utf-8'];
         $token = trim((string)($config['ntfy_token'] ?? ''));
@@ -107,31 +145,53 @@ try {
         $client = new Client(['timeout' => 10, 'connect_timeout' => 5,
             'http_errors' => false, 'allow_redirects' => false]);
         $sent = 0;
-        while ($event = $query->fetch()) {
-            $level = (int)$event['level'];
-            $body = sprintf('[%s] [%s] %s',
-                $event['created_at'], $event['level_name'], $event['message']);
-            $response = $client->post($topic, [
-                'headers' => $headers + [
-                    'Title' => $level >= 500 ? 'Namingo critical error' : 'Namingo registry error',
-                    'Priority' => $level >= 500 ? '5' : ($level >= 400 ? '4' : '3'),
-                ],
-                'body' => $body,
-            ]);
-            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
-                throw new RuntimeException(sprintf(
-                    'ntfy delivery failed with HTTP %d for event %d',
-                    $response->getStatusCode(), $event['id']
-                ));
+        $scanId = $baseline;
+        while ($sent < 500) {
+            $query->bindValue(':scan_id', $scanId, PDO::PARAM_INT);
+            $query->execute();
+            $page = $query->fetchAll();
+            $query->closeCursor();
+            if (!$page) {
+                break;
             }
-            $lastId = (int)$event['id'];
-            saveNtfyCursor($state, $lastId);
-            $sent++;
+            foreach ($page as $event) {
+                $id = (int)$event['id'];
+                $scanId = $id;
+                if (isset($delivered[$id])) {
+                    continue;
+                }
+                $level = (int)$event['level'];
+                $body = sprintf('[%s] [%s] %s',
+                    $event['created_at'], $event['level_name'], $event['message']);
+                $response = $client->post($topic, [
+                    'headers' => $headers + [
+                        'Title' => $level >= 500 ? 'Namingo critical error' : 'Namingo registry error',
+                        'Priority' => $level >= 500 ? '5' : ($level >= 400 ? '4' : '3'),
+                    ],
+                    'body' => $body,
+                ]);
+                if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+                    throw new RuntimeException(sprintf(
+                        'ntfy delivery failed with HTTP %d for event %d',
+                        $response->getStatusCode(), $event['id']
+                    ));
+                }
+                $delivered[$id] = true;
+                saveNtfyCursor($stateFile, $baseline, $delivered);
+                $sent++;
+                if ($sent >= 500) {
+                    break;
+                }
+            }
+            if (count($page) < 500) {
+                break;
+            }
         }
-        $log->info('ntfy notification check complete.', ['delivered' => $sent, 'cursor' => $lastId]);
+        $log->info('ntfy notification check complete.', ['delivered' => $sent,
+            'baseline' => $baseline, 'tracked_events' => count($delivered)]);
     } finally {
-        flock($state, LOCK_UN);
-        fclose($state);
+        flock($lock, LOCK_UN);
+        fclose($lock);
     }
 } catch (Throwable $e) {
     $log->error('ntfy notification job failed: ' . $e->getMessage());
