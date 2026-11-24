@@ -70,15 +70,23 @@ WORKDIR /opt/registry
 COPY . /opt/registry
 
 RUN set -eux; \
+    retry_composer() { \
+        attempt=1; \
+        until "$@"; do \
+            if [ "$attempt" -ge 3 ]; then return 1; fi; \
+            attempt=$((attempt + 1)); \
+            sleep 10; \
+        done; \
+    }; \
     for component in cp epp rdap das whois/port43 automation; do \
-        composer --working-dir="${component}" install \
+        retry_composer composer --working-dir="${component}" install \
             --no-dev \
             --no-interaction \
             --no-progress \
             --prefer-dist \
             --optimize-autoloader; \
     done; \
-    composer --working-dir=whois/web require \
+    retry_composer composer --working-dir=whois/web require \
         --no-interaction \
         --no-progress \
         --prefer-dist \
