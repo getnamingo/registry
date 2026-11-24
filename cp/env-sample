@@ -4,6 +4,7 @@ APP_URL=https://cp.example.com
 APP_DOMAIN=example.com
 APP_ROOT=/var/www/cp
 MINIMUM_DATA=false
+REGISTRAR_ONBOARDING=false
 
 # Enables read-only /registry-api when set; use at least 32 random characters.
 REGISTRY_API_JWT_SECRET=

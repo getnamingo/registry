@@ -85,7 +85,28 @@ schema_exists=$(
     "
 )
 
+# Also run for pre-existing volumes: Docker upgrades can skip a versioned
+# migration when the installed version already matches the image.
+ensure_onboarding_schema() {
+    "${mysql[@]}" registry <<'SQL'
+CREATE TABLE IF NOT EXISTS `registrar_onboarding` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `public_token` CHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    `application_data` LONGTEXT NOT NULL,
+    `agreement_html` LONGTEXT NOT NULL,
+    `status` VARCHAR(24) NOT NULL DEFAULT 'pendingAgreement',
+    `signature` LONGTEXT DEFAULT NULL,
+    `signed_ip` VARCHAR(45) DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `signed_at` DATETIME DEFAULT NULL,
+    `registrar_id` INT UNSIGNED DEFAULT NULL,
+    INDEX `status_idx` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL
+}
+
 if [[ "$schema_exists" == "1" ]]; then
+    ensure_onboarding_schema
     echo "Namingo database schema already exists."
     exit 0
 fi
@@ -105,5 +126,7 @@ schema_exists=$(
 
 [[ "$schema_exists" == "1" ]] \
     || die "Schema import completed but registry.users is still missing."
+
+ensure_onboarding_schema
 
 echo "Namingo database schema initialized successfully."

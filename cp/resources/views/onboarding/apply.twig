@@ -1,0 +1,56 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Registrar Onboarding{% endblock %}
+{% block content %}
+<div class="container container-tight py-5" style="max-width:850px">
+  <div class="text-center mb-4"><a href="/"><img src="{{ logoPath }}" height="40" alt="Registry"></a></div>
+  <div class="card"><div class="card-body">
+    <h1 class="card-title">Registrar Accreditation Application</h1>
+    <p class="text-secondary">Submit your registrar details. You can review and sign the agreement on the next page.</p>
+    {% for error in errors|default([]) %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}
+    <form method="post" action="/onboarding" autocomplete="on">
+      {{ csrf.field|raw }}
+      {% set groups = [
+        { 'title': 'Registrar', 'fields': [
+          { 'name': 'name', 'label': 'Accredited registrar name', 'required': true },
+          { 'name': 'ianaId', 'label': 'IANA ID (optional)' },
+          { 'name': 'email', 'label': 'Registrar email', 'type': 'email', 'required': true },
+          { 'name': 'url', 'label': 'Website (https://...)', 'type': 'url', 'required': true },
+          { 'name': 'whoisServer', 'label': 'WHOIS hostname', 'required': true },
+          { 'name': 'rdapServer', 'label': 'RDAP HTTPS URL', 'type': 'url', 'required': true },
+          { 'name': 'abuseEmail', 'label': 'Abuse email', 'type': 'email', 'required': true },
+          { 'name': 'abusePhone', 'label': 'Abuse phone (+123.456789)', 'required': true }
+        ] },
+        { 'title': 'Owner / contact', 'fields': [
+          { 'name': 'ownerFirstName', 'label': 'First name', 'required': true },
+          { 'name': 'ownerLastName', 'label': 'Last name', 'required': true },
+          { 'name': 'ownerOrg', 'label': 'Organization' },
+          { 'name': 'ownerStreet1', 'label': 'Street address' },
+          { 'name': 'ownerCity', 'label': 'City', 'required': true },
+          { 'name': 'ownerSp', 'label': 'State / province' },
+          { 'name': 'ownerPc', 'label': 'Postal code' },
+          { 'name': 'ownerCc', 'label': 'Country (ISO 3166-1 alpha-2, e.g. BG)', 'required': true },
+          { 'name': 'ownerVoice', 'label': 'Phone (+123.456789)' },
+          { 'name': 'ownerEmail', 'label': 'Contact email', 'type': 'email', 'required': true }
+        ] },
+        { 'title': 'Portal and EPP access', 'fields': [
+          { 'name': 'user_email', 'label': 'Control-panel login email', 'type': 'email', 'required': true },
+          { 'name': 'user_name', 'label': 'Desired EPP client ID (max 16 characters)', 'required': true },
+          { 'name': 'ipAddress', 'label': 'EPP allowlisted IP address', 'required': true }
+        ] }
+      ] %}
+      {% for group in groups %}
+        <h2 class="h3 mt-4">{{ group.title }}</h2>
+        <div class="row row-cards">
+        {% for field in group.fields %}
+          <div class="col-md-6"><label class="form-label" for="{{ field.name }}">{{ field.label }}</label>
+          <input class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                 type="{{ field.type|default('text') }}" maxlength="255"
+                 value="{{ values[field.name]|default('') }}" {% if field.required|default(false) %}required{% endif %}></div>
+        {% endfor %}
+        </div>
+      {% endfor %}
+      <div class="mt-4"><button class="btn btn-primary w-100" type="submit">Continue to agreement</button></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}

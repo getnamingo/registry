@@ -1,0 +1,19 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Application Status{% endblock %}
+{% block content %}
+<div class="container container-tight py-5"><div class="card"><div class="card-body">
+  <h1 class="card-title">{{ application.details.name }}: application</h1>
+  <p>Status: <strong>{{ application.status }}</strong></p>
+  {% if application.status == 'pendingAgreement' %}
+    <p>Your application is saved. Sign the registrar agreement to send it for review.</p>
+    <a class="btn btn-primary" href="/onboarding/contract/{{ application.public_token }}">Review and sign agreement</a>
+  {% else %}
+    <p>{% if application.status == 'signed' %}Your agreement is signed and awaits registry approval.
+       {% elseif application.status == 'approved' %}Your application has been approved. The registry will provide login details securely.
+       {% else %}Your application was not approved. Contact the registry for details.{% endif %}</p>
+    <a class="btn btn-outline-primary" href="/onboarding/contract/{{ application.public_token }}">View agreement</a>
+  {% endif %}
+  <p class="text-secondary mt-4">Keep this private link to revisit your application. Anyone with the link can view the application and agreement.</p>
+  <div class="input-group"><input class="form-control" aria-label="Application link" readonly value="{{ application.public_token }}"><button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(location.href)">Copy link</button></div>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends 'layouts/auth.twig' %}
+{% block title %}Application Error{% endblock %}
+{% block content %}
+<div class="container container-tight py-5"><div class="alert alert-danger">{{ error }}</div>
+<a href="/onboarding/admin">Back to applications</a></div>
+{% endblock %}
