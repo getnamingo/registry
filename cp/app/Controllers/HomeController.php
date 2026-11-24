@@ -38,7 +38,8 @@ class HomeController extends Controller
             'whois_server' => $whois_server,
             'rdap_server' => $rdap_server,
             'company_name' => $company_name,
-            'email' => $email
+            'email' => $email,
+            'onboardingEnabled' => filter_var(envi('REGISTRAR_ONBOARDING', 'false'), FILTER_VALIDATE_BOOLEAN)
         ]);
     }
 

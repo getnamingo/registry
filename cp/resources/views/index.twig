@@ -131,7 +131,7 @@
         </div>
         <div class="page-body">
           <div class="container-xl">
-            <div class="row row-cols-1 row-cols-md-2 gx-3 gx-md-4 gy-4">
+            <div class="row row-cols-1 {{ onboardingEnabled ? 'row-cols-md-2' : 'row-cols-md-3' }} gx-3 gx-md-4 gy-4">
                 <div class="col">
                     <div class="card">
                         <div class="card-body text-center">
@@ -170,15 +170,17 @@
                         </div>
                     </div>
                 </div>
+                {% if onboardingEnabled %}
                 <div class="col">
                     <div class="card">
                         <div class="card-body text-center">
                             <h5 class="card-title">Become a Registrar</h5>
                             <p class="card-text">Interested in partnering with us? Apply to become an official registrar.</p>
-                            <a href="#" class="btn btn-warning"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M13 17.5v4.5l2 -1.5l2 1.5v-4.5" /><path d="M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73" /><path d="M6 9l12 0" /><path d="M6 12l3 0" /><path d="M6 15l2 0" /></svg> Apply Now</a>
+                            <a href="/onboarding" class="btn btn-warning"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M13 17.5v4.5l2 -1.5l2 1.5v-4.5" /><path d="M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73" /><path d="M6 9l12 0" /><path d="M6 12l3 0" /><path d="M6 15l2 0" /></svg> Apply Now</a>
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
 
             <div class="alert alert-info alert-dismissible mt-4" role="alert">
