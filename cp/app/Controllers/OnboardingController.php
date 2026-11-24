@@ -272,7 +272,16 @@ final class OnboardingController extends Controller
                     return $this->redirect($response, (string) $previous->url);
                 }
                 if ($previous->status === 'complete') {
-                    return $this->redirect($response, '/onboarding/application/' . $token);
+                    // A completed Checkout may still have a delayed payment processing.
+                    // Only replace it once Stripe confirms the PaymentIntent failed.
+                    $intentId = (string) ($previous->payment_intent ?? '');
+                    if ($intentId === '') {
+                        return $this->redirect($response, '/onboarding/application/' . $token);
+                    }
+                    $intent = $stripe->paymentIntents->retrieve($intentId, []);
+                    if (!in_array($intent->status, ['requires_payment_method', 'canceled'], true)) {
+                        return $this->redirect($response, '/onboarding/application/' . $token);
+                    }
                 }
             }
             $session = $stripe->checkout->sessions->create([
