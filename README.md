@@ -34,6 +34,8 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 
 - **Registry API**: Provides secure, JWT-authenticated REST API access to domain availability checks, domain droplists, and registrar list, with rate limiting, response caching, and registrar-specific API key management for integration with external systems and services.
 
+- **Automated Registrar Onboarding**: Enables self-service registrar applications and electronic agreement signing, followed by registry administrator review and approval with automatic account provisioning. See the [Onboarding Configuration Guide](docs/configuration.md#136-automated-registrar-onboarding).
+
 - **Database Compatibility**: Full support for both MariaDB and PostgreSQL, giving operators the flexibility to use either database backend.
 
 - **GDPR and NIS2 Support**: Includes features designed to support GDPR and NIS2 requirements, such as contact validation, encrypted data storage, access controls, and security-focused operational processes. See the [Encryption Guide](docs/encryption.md) for implementation details.
@@ -43,10 +45,6 @@ Its architecture is intended to remain straightforward to deploy, operate, audit
 - **Registry Reporting and Data Escrow**: Automates the generation and delivery of RDE deposits, LORDN files, ICANN monthly reports, invoices, and other operational registry reports.
 
 - **Error Notifications**: Monitors new high-severity registry errors and delivers configurable push notifications through ntfy, with MariaDB/PostgreSQL support and reliable retry handling. See the [ntfy Error Notifications Guide](docs/ntfy.md).
-
-### Optional Components
-
-- [**Automated Registrar Onboarding**](https://github.com/getnamingo/registrar-onboarding) – Provides a complete self-service onboarding workflow for new registrars, including application forms, electronic agreement signing, and online payment of application fees. Applications can then be reviewed and approved by registry staff before account activation, eliminating manual email exchanges, document handling, and duplicate data entry.
 
 ## Documentation
 
