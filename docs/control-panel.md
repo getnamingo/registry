@@ -439,6 +439,12 @@ At the bottom of the edit screen, an optional irreversible action is available:
 
 ---
 
+## 6.2 Automated Registrar Onboarding (Optional)
+
+When enabled, prospective registrars can apply through the public `/onboarding` form and electronically sign the accreditation agreement. Registry administrators (role `0`) can review applications at `/onboarding/admin` and approve or reject signed submissions. Approval provisions the registrar and its Control Panel user; applicants may revoke access to their private application links without removing the administrative record.
+
+This feature is disabled by default. For activation, cache clearing, and agreement-template customization, see [Configuration Guide, section 1.3.6](configuration.md#136-automated-registrar-onboarding).
+
 # 7. Financials
 
 The **Financials** section of the Namingo Control Panel provides full visibility and control over billing, payments, and financial interactions between the registry and its accredited registrars. It is designed to support both automated and manual workflows for payments, invoices, deposits, and transaction logging.

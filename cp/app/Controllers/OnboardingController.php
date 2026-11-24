@@ -177,8 +177,11 @@ final class OnboardingController extends Controller
         }
 
         $token = bin2hex(random_bytes(24));
-        $agreement = $this->container->get('view')->getEnvironment()->render(
-            'onboarding/terms.twig', ['d' => $data, 'registryName' => (string) envi('APP_NAME', 'Registry')]
+        $twig = $this->container->get('view')->getEnvironment();
+        $termsTemplate = $twig->getLoader()->exists('onboarding/terms.twig.custom')
+            ? 'onboarding/terms.twig.custom' : 'onboarding/terms.twig';
+        $agreement = $twig->render(
+            $termsTemplate, ['d' => $data, 'registryName' => (string) envi('APP_NAME', 'Registry')]
         );
         $stmt = $pdo->prepare(
             "INSERT INTO registrar_onboarding (public_token, application_data, agreement_html, status, created_at)

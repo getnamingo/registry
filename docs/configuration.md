@@ -165,6 +165,26 @@ session.save_handler = files
 session.save_path = "/var/lib/php/sessions"
 ```
 
+#### 1.3.6. Automated Registrar Onboarding
+
+Registrar onboarding is disabled by default. To enable public applications, set the following in `/var/www/cp/.env`:
+
+```env
+REGISTRAR_ONBOARDING=true
+```
+
+Then clear the Control Panel cache:
+
+```bash
+php /var/www/cp/bin/clear_cache.php
+```
+
+The landing page will display **Apply Now**, linking to `/onboarding`. Applicants submit company, contact, and technical details, review the accreditation agreement, and sign it electronically. The application and signed agreement are saved for review. A logged-in registry administrator (role `0`) can review, approve, or reject applications at `/onboarding/admin`; approval creates the registrar and its Control Panel account. Applicants can revoke their private application link without deleting the administrator's record.
+
+**Customizing the agreement:** Copy `/var/www/cp/resources/views/onboarding/terms.twig` to `terms.twig.custom` in the same directory and edit the copy. The custom template is used for new applications whenever it exists; removing it restores the default. Previously submitted agreements keep their saved snapshot. Keep the custom file across upgrades to preserve your changes.
+
+Set `REGISTRAR_ONBOARDING=false` (or remove it) and clear the cache again to disable the public onboarding routes.
+
 ### 1.4. Setting Up the Automation System
 
 Follow these steps to configure the automation system for your registry:
