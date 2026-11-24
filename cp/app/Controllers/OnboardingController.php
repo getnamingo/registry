@@ -253,7 +253,7 @@ final class OnboardingController extends Controller
             }
             $d = json_decode($application['application_data'], true, 512, JSON_THROW_ON_ERROR);
             $panelPassword = bin2hex(random_bytes(16)) . 'aA1!';
-            $eppPassword = bin2hex(random_bytes(16)) . 'aA1!';
+            $eppPassword = bin2hex(random_bytes(8));
             $now = date('Y-m-d H:i:s');
             $currency = $pdo->query("SELECT value FROM settings WHERE name = 'currency'")->fetchColumn() ?: 'EUR';
             $stmt = $pdo->prepare(
