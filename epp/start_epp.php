@@ -72,6 +72,7 @@ $table->column('logged_in', Table::TYPE_INT, 1);
 $table->column('maintenance', Table::TYPE_INT, 1);
 $table->column('login_services', Table::TYPE_STRING, 4096);
 $table->column('fee', Table::TYPE_INT, 1);
+$table->column('balance', Table::TYPE_INT, 1);
 $table->create();
 
 $permittedIPsTable = new Table(1024);
@@ -95,7 +96,7 @@ if (is_array($data)) {
 } else {
     // fallback if file is missing or invalid
     $fallback = [
-        'https://namingo.org/epp/funds-1.0',
+        'urn:ietf:params:xml:ns:epp:balance-0.4',
         'https://namingo.org/epp/identica-1.0',
         'urn:ietf:params:xml:ns:secDNS-1.1',
         'urn:ietf:params:xml:ns:rgp-1.0',
@@ -388,10 +389,27 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
             $xml->registerXPathNamespace('loginSec', 'urn:ietf:params:xml:ns:epp:loginSec-1.0');
             $xml->registerXPathNamespace('secureAuthInfo', 'urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0');
             $xml->registerXPathNamespace('identica', 'https://namingo.org/epp/identica-1.0');
+            $xml->registerXPathNamespace('balance', 'urn:ietf:params:xml:ns:epp:balance-0.4');
 
             if ($xml->getName() != 'epp') {
                 sendEppError($conn, $pdo, 2001, 'Root element must be <epp>');
                 return;
+            }
+            // The retired Funds namespace must never execute as a Balance request.
+            if ($xml->xpath('//*[namespace-uri()="https://namingo.org/epp/funds-1.0"]')) {
+                sendEppError($conn, $pdo, 2102, 'Namingo Funds mapping retired', (string)$xml->command->clTRID);
+                return;
+            }
+            $balanceNodes = $xml->xpath('//*[namespace-uri()="urn:ietf:params:xml:ns:epp:balance-0.4"]') ?: [];
+            if ($balanceNodes) {
+                $infoNodes = $xml->xpath('/e:epp/e:command/e:info/balance:info') ?: [];
+                if (count($balanceNodes) !== 1 || count($infoNodes) !== 1 ||
+                    count($xml->xpath('/e:epp/e:command/e:info/*') ?: []) !== 1 ||
+                    !$eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') ||
+                    ($infoNodes[0]->xpath('./*') ?: []) || trim((string)$infoNodes[0]) !== '') {
+                    sendEppError($conn, $pdo, 2003, 'Invalid Balance info command', (string)$xml->command->clTRID);
+                    return;
+                }
             }
 
             // Do not silently accept launch commands when launch is disabled.
@@ -570,6 +588,8 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $maintenanceUri = 'urn:ietf:params:xml:ns:epp:maintenance-1.0';
                         $loginObjUris = $xml->xpath('/e:epp/e:command/e:login/e:svcs/e:objURI') ?: [];
                         $maintenanceNegotiated = in_array($maintenanceUri, array_map('strval', $loginObjUris), true);
+                        $balanceNegotiated = $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
+                            in_array('urn:ietf:params:xml:ns:epp:balance-0.4', array_map('strval', $loginObjUris), true);
                         $loginServicesJson = '';
                         if ($eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0')) {
                             $loginServices = $xml->xpath(
@@ -591,7 +611,8 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                             'logged_in' => 1,
                             'maintenance' => $maintenanceNegotiated ? 1 : 0,
                             'login_services' => $loginServicesJson,
-                            'fee' => $feeNegotiated ? 1 : 0
+                            'fee' => $feeNegotiated ? 1 : 0,
+                            'balance' => $balanceNegotiated ? 1 : 0
                         ]);
                         $svTRID = generateSvTRID();
                         $response = [
@@ -662,9 +683,17 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
+                    $services = json_decode((string)($data['login_services'] ?? '[]'), true) ?: [];
+                    $balanceNegotiated = $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
+                        (int)($data['balance'] ?? 0) === 1;
+                    $balanceUnhandled = !$balanceNegotiated &&
+                        $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:balance-0.4') &&
+                        $eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0') &&
+                        in_array('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0', $services, true);
                     processPoll($conn, $pdo, $xml, $data['clid'], $trans,
                         (int) $data['maintenance'] === 1 ||
-                        !$eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0'));
+                        !$eppExtensionsTable->exist('urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0'),
+                        $balanceNegotiated || $balanceUnhandled, $balanceUnhandled);
                     return;
                 }
               
@@ -985,7 +1014,7 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                     return;
                 }
                     
-                case isset($xml->command->info) && isset($xml->command->info->children('https://namingo.org/epp/funds-1.0')->info):
+                case isset($xml->command->info) && isset($xml->command->info->children('urn:ietf:params:xml:ns:epp:balance-0.4')->info):
                 {
                     $data = $table->get($connId);
                     $clTRID = (string) $xml->command->clTRID;
@@ -994,10 +1023,14 @@ $server->on('Receive', function(Server $serv, int $fd, int $reactorId, string $d
                         $conn->close();
                         break;
                     }
+                    if (empty($data['balance'])) {
+                        sendEppError($conn, $pdo, 2103, 'Balance mapping not negotiated at login', $clTRID);
+                        return;
+                    }
                     $clid = (int) $data['registrar_id'];
                     $xmlString = $xmlData;
                     $trans = createTransaction($pdo, $clid, $clTRID, $xmlString);
-                    processFundsInfo($conn, $pdo, $xml, $data['clid'], $trans);
+                    processBalanceInfo($conn, $pdo, $xml, $clid, $trans);
                     return;
                 }
                     

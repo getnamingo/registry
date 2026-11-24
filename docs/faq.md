@@ -33,7 +33,7 @@ Namingo's EPP service supports the following standard and proprietary extensions
 | Unhandled Namespaces | `urn:ietf:params:xml:ns:epp:unhandled-namespaces-1.0` | [RFC 9038](https://www.rfc-editor.org/rfc/rfc9038) |
 | Secure Authorization Information for Transfer | `urn:ietf:params:xml:ns:epp:secure-authinfo-transfer-1.0` | [RFC 9154](https://www.rfc-editor.org/rfc/rfc9154) |
 | Registry Maintenance Notification | `urn:ietf:params:xml:ns:epp:maintenance-1.0` | [RFC 9167](https://www.rfc-editor.org/rfc/rfc9167) |
-| Namingo Funds | `https://namingo.org/epp/funds-1.0` | Proprietary |
+| EPP Balance Mapping | `urn:ietf:params:xml:ns:epp:balance-0.4` | [draft-ietf-regext-balance-03](https://datatracker.ietf.org/doc/html/draft-ietf-regext-balance-03) |
 | Namingo Identica | `https://namingo.org/epp/identica-1.0` | Proprietary |
 
 ## WHOIS and RDAP

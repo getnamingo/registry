@@ -222,6 +222,53 @@ CREATE TABLE poll (
      "availablecredit"   decimal(12,2) default '0.00'
 );
 
+CREATE OR REPLACE FUNCTION registrar_balance_low_poll() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    old_threshold numeric;
+    new_threshold numeric;
+BEGIN
+    new_threshold := CASE WHEN NEW.thresholdtype = 'percent'
+        THEN ROUND(NEW.creditlimit * NEW.creditthreshold / 100, 2)
+        ELSE NEW.creditthreshold END;
+
+    IF TG_OP = 'UPDATE' THEN
+        old_threshold := CASE WHEN OLD.thresholdtype = 'percent'
+            THEN ROUND(OLD.creditlimit * OLD.creditthreshold / 100, 2)
+            ELSE OLD.creditthreshold END;
+        IF NOT (OLD.accountbalance > old_threshold AND NEW.accountbalance <= new_threshold) THEN
+            RETURN NEW;
+        END IF;
+    ELSIF NEW.accountbalance > new_threshold THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO poll (registrar_id, qdate, msg_type, msg)
+    VALUES (NEW.id, timezone('UTC', clock_timestamp()), 'lowBalance',
+        json_build_object(
+            'mapping', 'balance-0.4',
+            'currency', NEW.currency,
+            'balanceAvailable', (NEW.accountbalance + NEW.creditlimit)::text,
+            'creditLine', NEW.creditlimit::text,
+            'cashBalance', NEW.accountbalance::text,
+            'executionLimit', (-NEW.creditlimit)::text,
+            'notificationThreshold', new_threshold::text
+        )::text);
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS registrar_balance_low_insert ON registrar;
+CREATE TRIGGER registrar_balance_low_insert
+AFTER INSERT ON registrar FOR EACH ROW
+EXECUTE FUNCTION registrar_balance_low_poll();
+
+DROP TRIGGER IF EXISTS registrar_balance_low_update ON registrar;
+CREATE TRIGGER registrar_balance_low_update
+AFTER UPDATE OF accountbalance, creditlimit, creditthreshold, thresholdtype
+ON registrar FOR EACH ROW
+EXECUTE FUNCTION registrar_balance_low_poll();
+
 CREATE TABLE payment_history (
      "id" SERIAL PRIMARY KEY,
      "registrar_id" int CHECK ("registrar_id" >= 0) NOT NULL,
