@@ -80,20 +80,33 @@ if ($httpCode !== 200 || !$response) {
 
 // Decode and validate API response
 $data = json_decode($response, true);
-if (!isset($data['quotes'])) {
+if (!isset($data['quotes'], $data['source']) || !is_array($data['quotes'])) {
     flock($lock, LOCK_UN);
     fclose($lock);
     $log->error('Invalid API response.');
     exit;
 }
 
-// Filter only configured currencies, keeping old values for missing ones
-$filteredRates = $existingRates['rates']; // Start with existing rates
+// The /live endpoint quotes against its response source (normally USD), not
+// necessarily the registry's configured base currency.
+$source = $data['source'];
+$sourceToBase = $source === $baseCurrency ? 1.0 : ($data['quotes'][$source . $baseCurrency] ?? null);
+if (!is_numeric($sourceToBase) || (float) $sourceToBase <= 0) {
+    $log->error('Missing or invalid exchange rate for registry base currency.');
+    exit;
+}
+
+$filteredRates = [''.$baseCurrency => 1.0];
 foreach ($currencies as $currency) {
-    $rateKey = $baseCurrency . $currency;
-    if (isset($data['quotes'][$rateKey])) {
-        $filteredRates[$currency] = $data['quotes'][$rateKey];
+    if ($currency === $baseCurrency) {
+        continue;
     }
+    $quote = $currency === $source ? 1.0 : ($data['quotes'][$source . $currency] ?? null);
+    if (!is_numeric($quote) || (float) $quote <= 0) {
+        $log->error("Missing or invalid exchange rate for {$currency}; keeping previous rates file.");
+        exit;
+    }
+    $filteredRates[$currency] = (float) $quote / (float) $sourceToBase;
 }
 
 // Prepare updated exchange rate data

@@ -341,7 +341,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
 
     $exchangeRates = getExchangeRates();
     $baseCurrency = $exchangeRates['base_currency'] ?? 'USD';
-    $exchangeRate = $exchangeRates['rates'][$currency] ?? 1.0;
+    $exchangeRate = requireExchangeRate($exchangeRates, $currency);
 
     // Check for premium pricing
     $premiumCacheKey = "premium_price_{$domain_name}_{$tld_id}";
@@ -526,16 +526,18 @@ function getExchangeRates() {
         $data['rates'][$data['base_currency']] = 1.0;
     }
 
-    // Ensure every currency defaults to 1.0 if missing
-    foreach ($data['rates'] as $currency => $rate) {
-        if (!is_numeric($rate)) {
-            $data['rates'][$currency] = 1.0;
-        }
-    }
-
     $redis->setex($cacheKey, 3600, json_encode($data)); // Cache for 1 hour
 
     return $data;
+}
+
+function requireExchangeRate(array $exchangeRates, string $currency): float {
+    $base = $exchangeRates['base_currency'] ?? 'USD';
+    $rate = $currency === $base ? 1.0 : ($exchangeRates['rates'][$currency] ?? null);
+    if (!is_numeric($rate) || (float) $rate <= 0) {
+        throw new \RuntimeException("No valid exchange rate for {$currency} (base {$base})");
+    }
+    return (float) $rate;
 }
 
 /**
