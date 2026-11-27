@@ -327,7 +327,7 @@ function processAbuseDetection(PDO $pdo, string $domain, int $clid, string $abus
     }
 }
 
-function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'USD') {
+function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 'create', $registrar_id = null, $currency = 'EUR') {
     $redis = new Redis();
     $redis->connect('127.0.0.1', 6379);
 
@@ -340,7 +340,7 @@ function getDomainPrice($pdo, $domain_name, $tld_id, $date_add = 12, $command = 
     }
 
     $exchangeRates = getExchangeRates();
-    $baseCurrency = $exchangeRates['base_currency'] ?? 'USD';
+    $baseCurrency = $exchangeRates['base_currency'] ?? 'EUR';
     $exchangeRate = requireExchangeRate($exchangeRates, $currency);
 
     // Check for premium pricing
@@ -501,9 +501,9 @@ function getExchangeRates() {
 
     $filePath = "/var/www/cp/resources/exchange_rates.json";
     $defaultRates = [
-        'base_currency' => 'USD',
+        'base_currency' => 'EUR',
         'rates' => [
-            'USD' => 1.0  // Ensure USD always exists
+            'EUR' => 1.0  // Ensure USD always exists
         ],
         'last_updated' => date('c') // ISO 8601 timestamp
     ];
@@ -532,7 +532,7 @@ function getExchangeRates() {
 }
 
 function requireExchangeRate(array $exchangeRates, string $currency): float {
-    $base = $exchangeRates['base_currency'] ?? 'USD';
+    $base = $exchangeRates['base_currency'] ?? 'EUR';
     $rate = $currency === $base ? 1.0 : ($exchangeRates['rates'][$currency] ?? null);
     if (!is_numeric($rate) || (float) $rate <= 0) {
         throw new \RuntimeException("No valid exchange rate for {$currency} (base {$base})");
