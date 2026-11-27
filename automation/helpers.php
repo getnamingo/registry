@@ -503,7 +503,7 @@ function getExchangeRates() {
     $defaultRates = [
         'base_currency' => 'EUR',
         'rates' => [
-            'EUR' => 1.0  // Ensure USD always exists
+            'EUR' => 1.0  // Ensure EUR always exists
         ],
         'last_updated' => date('c') // ISO 8601 timestamp
     ];
